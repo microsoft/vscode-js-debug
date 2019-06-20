@@ -197,9 +197,9 @@ function getWSEndpoint(browserURL: string): Promise<string> {
   const promise: Promise<string> = new Promise((res, rej) => { resolve = res; reject = rej; });
 
   const endpointURL = URL.resolve(browserURL, '/json/version');
-  const protocol = endpointURL.startsWith('https') ? https : http;
+  const protocolRequest = endpointURL.startsWith('https') ? https.request.bind(https) : http.request.bind(http);
   const requestOptions = Object.assign(URL.parse(endpointURL), { method: 'GET' });
-  const request = protocol.request(requestOptions, res => {
+  const request = protocolRequest.request(requestOptions, res => {
     let data = '';
     if (res.statusCode !== 200) {
       // Consume response data to free up memory.
