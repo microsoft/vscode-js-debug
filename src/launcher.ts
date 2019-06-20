@@ -80,11 +80,11 @@ export async function launch(executablePath: string, options: LaunchOptions | un
     if (!usePipe) {
       const browserWSEndpoint = await waitForWSEndpoint(chromeProcess, timeout);
       const transport = await WebSocketTransport.create(browserWSEndpoint);
-      return new Connection(browserWSEndpoint, transport);
+      return new Connection(transport);
     } else {
       const stdio = chromeProcess.stdio as unknown as [Writable, Readable, Readable, Writable, Readable];
       const transport = new PipeTransport(stdio[3], stdio[4]);
-      return new Connection('', transport);
+      return new Connection(transport);
     }
   } catch (e) {
     killChrome();
@@ -135,11 +135,11 @@ export async function attach(options: AttachOptions): Promise<Connection> {
 
   if (browserWSEndpoint) {
     const connectionTransport = await WebSocketTransport.create(browserWSEndpoint);
-    return new Connection(browserWSEndpoint, connectionTransport);
+    return new Connection(connectionTransport);
   } else if (browserURL) {
     const connectionURL = await getWSEndpoint(browserURL);
     const connectionTransport = await WebSocketTransport.create(connectionURL);
-    return new Connection(connectionURL, connectionTransport);
+    return new Connection(connectionTransport);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }

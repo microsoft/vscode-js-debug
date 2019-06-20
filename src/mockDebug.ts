@@ -9,7 +9,7 @@ import {
 	Thread, Scope
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { Connection } from './connection';
+import { CDPSession } from './connection';
 import { findChrome } from './findChrome';
 import * as launcher from './launcher';
 
@@ -35,7 +35,7 @@ export class MockDebugSession extends LoggingDebugSession {
 	private static THREAD_ID = 1;
 
 	private _configurationDone: Function;
-	private _connection: Connection;
+	private _browserSession: CDPSession;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -98,11 +98,12 @@ export class MockDebugSession extends LoggingDebugSession {
 
 		// start the program in the runtime
 		const executablePath = findChrome().pop();
-		this._connection = await launcher.launch(
+		const connection = await launcher.launch(
 			executablePath, {
 				userDataDir: '.profile',
 				pipe: true,
 			});
+		this._browserSession = connection.browserSession();
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
@@ -121,7 +122,7 @@ export class MockDebugSession extends LoggingDebugSession {
 	}
 
 	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
-		await this._connection.send('Browser.close');
+		await this._browserSession.send('Browser.close');
     this.sendResponse(response);
 	}
 
@@ -133,7 +134,7 @@ export class MockDebugSession extends LoggingDebugSession {
 	}
 
 	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
-		await this._connection.send('Browser.close');
+		await this._browserSession.send('Browser.close');
 		this.sendResponse(response);
 	}
 
