@@ -1,8 +1,14 @@
 import * as DAP from './dap';
 import { DebugProtocol } from 'vscode-debugprotocol';
+import { CDPSession, SessionEvents } from './connection';
+import { TargetManager, TargetEvents } from './targetManager';
+import { findChrome } from './findChrome';
+import * as launcher from './launcher';
 
 export class Adapter implements DAP.Adapter {
 	private _dap: DAP.Connection;
+	private _browserSession: CDPSession;
+	private _targetManager: TargetManager;
 
 	constructor(dap: DAP.Connection) {
 		this._dap = dap;
@@ -13,6 +19,23 @@ export class Adapter implements DAP.Adapter {
 		console.assert(params.linesStartAt1);
 		console.assert(params.columnsStartAt1);
 		console.assert(params.pathFormat === 'path');
+
+		const executablePath = findChrome().pop();
+		const connection = await launcher.launch(
+			executablePath, {
+				userDataDir: '.profile',
+				pipe: true,
+			});
+		this._targetManager = new TargetManager(connection);
+		this._targetManager.on(TargetEvents.TargetAttached, target => {
+      this._dap.didChangeThread('started', target.threadId());
+		});
+		this._targetManager.on(TargetEvents.TargetDetached, target => {
+      this._dap.didChangeThread('exited', target.threadId());
+		});
+
+		this._browserSession = connection.browserSession();
+		this._browserSession.on(SessionEvents.Disconnected, () => this._dap.didExit(0));
 
 		// params.locale || 'en-US'
 		// params.supportsVariableType
@@ -57,13 +80,29 @@ export class Adapter implements DAP.Adapter {
 	async launch(params: DebugProtocol.LaunchRequestArguments): Promise<void> {
 		// params.noDebug
 		// params.url
-		setTimeout(() => {
-			this._dap.didPause('pause', 'Just paused', 1);
-		}, 0);
+		let target = this._targetManager.mainTarget();
+		if (!target)
+			target = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
+		this._targetManager.on(TargetEvents.TargetDetached, t => {
+      if (t === target) {
+				this._dap.didTerminate();
+			}
+		});
+		await target.session().send('Page.navigate', {url: (params as {url:string}).url});
+		// for (const target of this._targetManager.targets())
+  	// 	this._dap.didChangeThread('started', target.threadId());
+		// setTimeout(() => {
+		// 	this._dap.didPause('pause', 'Just paused', 1);
+		// }, 0);
 	}
 
 	async getThreads(): Promise<DebugProtocol.Thread[]> {
-		return [{id: 1, name: 'Thread #1'}, {id: 2, name: 'Thread #2'}];
+		return this._targetManager.targets().map(target => {
+			return {
+				id: target.threadId(),
+				name: target.info().title,
+			}
+		});
 	}
 
 	async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<{stackFrames: DebugProtocol.StackFrame[], totalFrames?: number}> {
