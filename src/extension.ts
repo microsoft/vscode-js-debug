@@ -5,7 +5,6 @@
 
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
-import { MockDebugSession } from './mockDebug';
 import * as Net from 'net';
 import * as DAP from './dap';
 import { Adapter } from './adapter';
@@ -49,9 +48,6 @@ class MockDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptor
 			this.server = Net.createServer(socket => {
 				const dap = DAP.createConnection(<NodeJS.ReadableStream>socket, socket);
 				new Adapter(dap);
-				// const session = new MockDebugSession();
-				// session.setRunAsServer(true);
-				// session.start();
 			}).listen(0);
 		}
 

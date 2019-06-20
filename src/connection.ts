@@ -4,6 +4,7 @@
 import { EventEmitter } from 'events';
 import { Transport } from './transport';
 import * as debug from 'debug';
+import Protocol from 'devtools-protocol';
 
 const debugConnection = debug('connection');
 
@@ -81,18 +82,6 @@ export class Connection extends EventEmitter {
     debugConnection('◀ RECV ' + message);
     const object = JSON.parse(message);
 
-    if (object.method === 'Target.attachedToTarget') {
-      const sessionId = object.params.sessionId;
-      const session = new CDPSession(this, sessionId);
-      this._sessions.set(sessionId, session);
-    } else if (object.method === 'Target.detachedFromTarget') {
-      const session = this._sessions.get(object.params.sessionId);
-      if (session) {
-        session._onClose();
-        this._sessions.delete(object.params.sessionId);
-      }
-    }
-
     const session = this._sessions.get(object.sessionId || '');
     if (session)
       session._onMessage(object);
@@ -115,6 +104,17 @@ export class Connection extends EventEmitter {
     this._onTransportClose();
     this._transport.close();
   }
+
+  createSession(sessionId: Protocol.Target.SessionID): CDPSession {
+    const session = new CDPSession(this, sessionId);
+    this._sessions.set(sessionId, session);
+    return session;
+  }
+
+  _disposeSession(session: CDPSession) {
+    session._onClose();
+    this._sessions.delete(session.sessionId());
+  }
 }
 
 export class CDPSession extends EventEmitter {
@@ -129,7 +129,15 @@ export class CDPSession extends EventEmitter {
     this._sessionId = sessionId;
   }
 
+  sessionId(): Protocol.Target.SessionID {
+    return this._sessionId;
+  }
+
   send(method: string, params: object | undefined = {}): Promise<object | null> {
+    return this.sendOrDie(method, params).catch(e => null);
+  }
+
+  sendOrDie(method: string, params: object | undefined = {}): Promise<object | null> {
     if (!this._connection)
       return Promise.reject(new Error(`Protocol error (${method}): Session closed. Most likely the target has been closed.`));
     const id = this._connection._send(method, params, this._sessionId);
@@ -155,6 +163,11 @@ export class CDPSession extends EventEmitter {
         throw new Error();
       this.emit(object.method, object.params);
     }
+  }
+
+  dispose() {
+    if (this._connection)
+      this._connection._disposeSession(this);
   }
 
   async detach() {
