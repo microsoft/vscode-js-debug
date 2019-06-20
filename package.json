@@ -73,16 +73,16 @@
 		"debuggers": [
 			{
 				"type": "cdp",
-				"label": "Run in Chrome",
+				"label": "Run in Chrome with CDP",
 				"program": "./out/debugAdapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
 						"properties": {
-							"trace": {
-								"type": "boolean",
-								"description": "Enable logging of the Debug Adapter Protocol.",
-								"default": true
+              "url": {
+                "type": "string",
+                "description": "Page url",
+                "default": "http://localhost:8080"
 							}
 						}
 					}
@@ -96,12 +96,13 @@
 				],
 				"configurationSnippets": [
 					{
-						"label": "Chrome Debug Protocol: Launch",
-						"description": "A new configuration for debugging a web app",
+						"label": "Run in Chrome with CDP",
+						"description": "A new configuration for running Chrome with CDP",
 						"body": {
 							"type": "cdp",
 							"request": "launch",
-							"name": "Run in Chrome"
+							"name": "Run in Chrome with CDP",
+							"url": "http://localhost:8080"
 						}
 					}
 				]

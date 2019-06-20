@@ -47,8 +47,8 @@ class MockDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptor
 		if (!this.server) {
 			// start listening on a random port
 			this.server = Net.createServer(socket => {
-				const connection = DAP.createConnection(<NodeJS.ReadableStream>socket, socket);
-				const adapter = new Adapter(connection);
+				const dap = DAP.createConnection(<NodeJS.ReadableStream>socket, socket);
+				new Adapter(dap);
 				// const session = new MockDebugSession();
 				// session.setRunAsServer(true);
 				// session.start();
