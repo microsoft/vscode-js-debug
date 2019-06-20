@@ -10,6 +10,7 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { CDPSession } from './connection';
+import { TargetManager } from './targetManager';
 import { findChrome } from './findChrome';
 import * as launcher from './launcher';
 
@@ -103,11 +104,7 @@ export class MockDebugSession extends LoggingDebugSession {
 				userDataDir: '.profile',
 				pipe: true,
 			});
-		this._browserSession = connection.browserSession();
-
-		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
-		// we request them early by sending an 'initializeRequest' to the frontend.
-		// The frontend will end the configuration sequence by calling 'configurationDone' request.
+		new TargetManager(connection);
 		this.sendEvent(new InitializedEvent());
 	}
 
