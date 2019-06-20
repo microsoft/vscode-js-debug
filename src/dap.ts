@@ -4,14 +4,39 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as debug from 'debug';
 
+export interface StackTraceResult {
+	stackFrames: DebugProtocol.StackFrame[];
+	totalFrames?: number;
+}
+
+export interface EvaluateResult {
+	result: string;
+	type?: string;
+	presentationHint?: DebugProtocol.VariablePresentationHint;
+	variablesReference: number;
+	namedVariables?: number;
+	indexedVariables?: number;
+}
+
 export interface Adapter {
 	// Requests
 	initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
 	launch(params: DebugProtocol.LaunchRequestArguments): Promise<void>;
 	getThreads(): Promise<DebugProtocol.Thread[]>;
-	getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<{stackFrames: DebugProtocol.StackFrame[], totalFrames?: number}>;
+	getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<StackTraceResult>;
 	getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]>;
 	getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]>;
+	continue(params: DebugProtocol.ContinueArguments): Promise<void>;
+	evaluate(params: DebugProtocol.EvaluateArguments): Promise<EvaluateResult>;
+}
+
+export interface PausedDetails {
+	reason: string;
+	description?: string;
+	threadId?: number;
+	preserveFocusHint?: boolean;
+	text?: string;
+	allThreadsStopped?: boolean;
 }
 
 export interface Connection {
@@ -21,13 +46,13 @@ export interface Connection {
 	didInitialize(): void;
 	didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void;
 	didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void;
-	didContinue(threadId: number, allThreadsContinued?: boolean): void;
+	didContinue(threadId: number): void;
 	didExit(exitCode: number): void;
 	didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
 	didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void;
 	didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void;
 	didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void;
-	didPause(reason: string, description?: string, threadId?: number, preserveFocusHint?: boolean, text?: string, allThreads?: boolean): void;
+	didPause(details: PausedDetails): void;
 	didTerminate(restart?: any): void;
 	didChangeThread(reason: string, threadId: number): void;
 
@@ -118,6 +143,11 @@ class ConnectionImpl implements Connection {
 		this._dispatchMap.set('variables', async params => {
 			return {variables: await adapter.getVariables(params)};
 		});
+		this._dispatchMap.set('continue', async params => {
+			await adapter.continue(params);
+			return {allThreadsContinued: false};
+		});
+		this._dispatchMap.set('evaluate', params => adapter.evaluate(params));
 	}
 
 	public didInitialize(): void {
@@ -132,8 +162,8 @@ class ConnectionImpl implements Connection {
 		this._sendEvent('capabitilies', {capabilities});
 	}
 
-	public didContinue(threadId: number, allThreadsContinued?: boolean): void {
-		this._sendEvent('continued', {threadId, allThreadsContinued});
+	public didContinue(threadId: number): void {
+		this._sendEvent('continued', {threadId, allThreadsContinued: false});
 	}
 
 	public didExit(exitCode: number): void {
@@ -156,8 +186,8 @@ class ConnectionImpl implements Connection {
 		this._sendEvent('process', {name, systemProcessId, isLocalProcess, startMethod});
 	}
 
-	public didPause(reason: string, description?: string, threadId?: number, preserveFocusHint?: boolean, text?: string, allThreads?: boolean): void {
-		this._sendEvent('stopped', {reason, description, threadId, preserveFocusHint, text, allThreadsStopped: allThreads});
+	public didPause(details: PausedDetails): void {
+		this._sendEvent('stopped', {...details, allThreadsStopped: false});
 	}
 
 	public didTerminate(restart?: any): void {
