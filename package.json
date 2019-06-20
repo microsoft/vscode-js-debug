@@ -30,7 +30,6 @@
 		"compile": "tsc -p ./src",
 		"tslint": "tslint ./src/**/*.ts",
 		"watch": "tsc -w -p ./src",
-		"test": "mocha -u tdd ./out/tests/",
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"package": "vsce package",
 		"publish": "vsce publish"
@@ -97,7 +96,7 @@
 				],
 				"configurationSnippets": [
 					{
-						"label": "Chrome Debug: Launch",
+						"label": "Chrome Debug Protocol: Launch",
 						"description": "A new configuration for debugging a web app",
 						"body": {
 							"type": "cdp",
