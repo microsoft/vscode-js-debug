@@ -91,9 +91,6 @@ export class Adapter implements DAP.Adapter {
 		await target.session().send('Page.navigate', {url: (params as {url:string}).url});
 		// for (const target of this._targetManager.targets())
   	// 	this._dap.didChangeThread('started', target.threadId());
-		// setTimeout(() => {
-		// 	this._dap.didPause('pause', 'Just paused', 1);
-		// }, 0);
 	}
 
 	async getThreads(): Promise<DebugProtocol.Thread[]> {
@@ -105,7 +102,7 @@ export class Adapter implements DAP.Adapter {
 		});
 	}
 
-	async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<{stackFrames: DebugProtocol.StackFrame[], totalFrames?: number}> {
+	async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<DAP.StackTraceResult> {
 		return {stackFrames: [], totalFrames: 0};
 	}
 
@@ -115,5 +112,12 @@ export class Adapter implements DAP.Adapter {
 
 	async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
 		return [];
+	}
+
+	async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
+	}
+
+	async evaluate(params: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
+		return {result: '', variablesReference: 0};
 	}
 }
