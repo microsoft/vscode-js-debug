@@ -2,13 +2,33 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import * as debug from 'debug';
 
 export interface Adapter {
+	// Requests
 	initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
+	launch(params: DebugProtocol.LaunchRequestArguments): Promise<void>;
+	getThreads(): Promise<DebugProtocol.Thread[]>;
+	getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<{stackFrames: DebugProtocol.StackFrame[], totalFrames?: number}>;
+	getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]>;
+	getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]>;
 }
 
 export interface Connection {
 	setAdapter(adapter: Adapter): void;
-	sendEvent(event: string, params?: any): void;
-	sendRequest(command: string, args: any, timeout: number): Promise<DebugProtocol.Response>;
+
+	// Events
+	didInitialize(): void;
+	didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void;
+	didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void;
+	didContinue(threadId: number, allThreadsContinued?: boolean): void;
+	didExit(exitCode: number): void;
+	didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
+	didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void;
+	didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void;
+	didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void;
+	didPause(reason: string, description?: string, threadId?: number, preserveFocusHint?: boolean, text?: string, allThreads?: boolean): void;
+	didTerminate(restart?: any): void;
+	didChangeThread(reason: string, threadId: number): void;
+
+	// Requests
 }
 
 export function createConnection(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream): Connection {
@@ -83,10 +103,69 @@ class ConnectionImpl implements Connection {
 
  	public setAdapter(adapter: Adapter): void {
 		this._dispatchMap = new Map();
-		this._dispatchMap.set('initialize', adapter.initialize.bind(adapter));
+		this._dispatchMap.set('initialize', params => adapter.initialize(params));
+		this._dispatchMap.set('launch', params => adapter.launch(params));
+		this._dispatchMap.set('threads', async () => {
+			return {threads: await adapter.getThreads()};
+		});
+		this._dispatchMap.set('stackTrace', params => adapter.getStackTrace(params));
+		this._dispatchMap.set('scopes', async params => {
+			return {scopes: await adapter.getScopes(params)};
+		});
+		this._dispatchMap.set('variables', async params => {
+			return {variables: await adapter.getVariables(params)};
+		});
 	}
 
-	public sendEvent(event: string, params?: any): void {
+	public didInitialize(): void {
+		this._sendEvent('initialized');
+	}
+
+	public didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void {
+		this._sendEvent('breakpoint', {reason, breakpoint});
+	}
+
+	public didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void {
+		this._sendEvent('capabitilies', {capabilities});
+	}
+
+	public didContinue(threadId: number, allThreadsContinued?: boolean): void {
+		this._sendEvent('continued', {threadId, allThreadsContinued});
+	}
+
+	public didExit(exitCode: number): void {
+		this._sendEvent('exited', {exitCode});
+	}
+
+	public didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void {
+		this._sendEvent('loadedSource', {reason, source});
+	}
+
+	public didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void {
+		this._sendEvent('module', {reason, module});
+	}
+
+	public didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void {
+		this._sendEvent('output', {output, category, variablesReference, source, line, column, data});
+	}
+
+	public didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void {
+		this._sendEvent('process', {name, systemProcessId, isLocalProcess, startMethod});
+	}
+
+	public didPause(reason: string, description?: string, threadId?: number, preserveFocusHint?: boolean, text?: string, allThreads?: boolean): void {
+		this._sendEvent('stopped', {reason, description, threadId, preserveFocusHint, text, allThreadsStopped: allThreads});
+	}
+
+	public didTerminate(restart?: any): void {
+		this._sendEvent('terminated', {restart});
+	}
+
+	public didChangeThread(reason: string, threadId: number): void {
+		this._sendEvent('thread', {reason, threadId});
+	}
+
+	private _sendEvent(event: string, params?: any): void {
 		this._writeData(this._parser.wrap('event', new Event(event, params)));
 	}
 
@@ -98,7 +177,7 @@ class ConnectionImpl implements Connection {
 		this._writeData(this._parser.wrap('response', response));
 	}
 
-	public sendRequest(command: string, args: any, timeout: number): Promise<DebugProtocol.Response> {
+	private sendRequest(command: string, args: any, timeout: number): Promise<DebugProtocol.Response> {
 		const request: any = { command };
 		if (args && Object.keys(args).length > 0)
 			request.arguments = args;
@@ -151,7 +230,7 @@ class ConnectionImpl implements Connection {
 		try {
 			const callback = this._dispatchMap.get(request.command);
 			if (!callback) {
-				console.error('Unknown request');
+				console.error(`Unknown request: ${request.command}`);
 				//this._sendErrorResponse(response, 1014, `Unrecognized request: ${request.command}`);
 			} else {
 				response.body = await callback(request.arguments);
