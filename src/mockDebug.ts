@@ -5,14 +5,13 @@
 import {
 	Logger, logger,
 	LoggingDebugSession,
-	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	InitializedEvent,
+	Thread, Scope
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { basename } from 'path';
+import { Connection } from './connection';
 import { findChrome } from './findChrome';
-import * as puppeteer from 'puppeteer-core';
-const { Subject } = require('await-notify');
+import * as launcher from './launcher';
 
 
 /**
@@ -35,9 +34,8 @@ export class MockDebugSession extends LoggingDebugSession {
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
 
-	private _page: puppeteer.Page;
-	private _session: puppeteer.CDPSession;
 	private _configurationDone: Function;
+	private _connection: Connection;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -100,16 +98,11 @@ export class MockDebugSession extends LoggingDebugSession {
 
 		// start the program in the runtime
 		const executablePath = findChrome().pop();
-		const browser = await puppeteer.launch({
-			executablePath,
-			pipe: true,
-			defaultViewport: null,
-			headless: false,
-			args: [`data:text/html,`]
-		});
-
-		this._page = (await browser.pages()).find(page => page.url().startsWith('data:text/html,')) as puppeteer.Page;
-		this._session = await this._page.target().createCDPSession();
+		this._connection = await launcher.launch(
+			executablePath, {
+				userDataDir: '.profile',
+				pipe: true,
+			});
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
@@ -128,12 +121,11 @@ export class MockDebugSession extends LoggingDebugSession {
 	}
 
 	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
-    await this._page.browser().close();
+		await this._connection.send('Browser.close');
     this.sendResponse(response);
 	}
 
 	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
-
 		// make sure to 'Stop' the buffered logging if 'trace' is not set
 		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 		await new Promise(f => this._configurationDone = f);
@@ -141,12 +133,11 @@ export class MockDebugSession extends LoggingDebugSession {
 	}
 
 	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
-		await this._page.browser().close();
+		await this._connection.send('Browser.close');
 		this.sendResponse(response);
 	}
 
 	protected async restartRequest(response: DebugProtocol.RestartResponse, args: DebugProtocol.RestartArguments) {
-		await this._page.reload();
 		this.sendResponse(response);
 	}
 
@@ -197,7 +188,7 @@ export class MockDebugSession extends LoggingDebugSession {
 	}
 
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
-		const frameReference = args.frameId;
+		// const frameReference = args.frameId;
 		const scopes = new Array<Scope>();
 		// scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
 		// scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
@@ -297,7 +288,7 @@ export class MockDebugSession extends LoggingDebugSession {
 
 	//---- helpers
 
-	private createSource(filePath: string): Source {
-		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'mock-adapter-data');
-	}
+	// private createSource(filePath: string): Source {
+	// 	return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'mock-adapter-data');
+	// }
 }
