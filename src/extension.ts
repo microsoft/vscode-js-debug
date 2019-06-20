@@ -7,6 +7,8 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { MockDebugSession } from './mockDebug';
 import * as Net from 'net';
+import * as DAP from './dap';
+import { Adapter } from './adapter';
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MockConfigurationProvider();
@@ -22,7 +24,6 @@ export function deactivate() {
 }
 
 class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
-
 	/**
 	 * Massage a debug configuration just before a debug session is being launched,
 	 * e.g. add all missing attributes to the debug configuration.
@@ -40,17 +41,17 @@ class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
 }
 
 class MockDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
-
 	private server?: Net.Server;
 
 	createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-
 		if (!this.server) {
 			// start listening on a random port
 			this.server = Net.createServer(socket => {
-				const session = new MockDebugSession();
-				session.setRunAsServer(true);
-				session.start(<NodeJS.ReadableStream>socket, socket);
+				const connection = DAP.createConnection(<NodeJS.ReadableStream>socket, socket);
+				const adapter = new Adapter(connection);
+				// const session = new MockDebugSession();
+				// session.setRunAsServer(true);
+				// session.start();
 			}).listen(0);
 		}
 
