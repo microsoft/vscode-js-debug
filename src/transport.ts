@@ -2,20 +2,20 @@ import * as eventUtils from './eventUtils';
 import * as WebSocket from 'ws';
 
 export interface Transport {
-	send(message: string): void;
-	close(): void;
-	onmessage?: (message: string) => void;
-	onclose?: () => void;
+  send(message: string): void;
+  close(): void;
+  onmessage?: (message: string) => void;
+  onclose?: () => void;
 }
 
 export class PipeTransport implements Transport {
-	private _pipeWrite: NodeJS.WritableStream | null;
-	private _pendingMessage: string;
-	private _eventListeners: any[];
-	onmessage: (message: string) => void | null;
-	onclose: () => void | null;
+  private _pipeWrite: NodeJS.WritableStream | null;
+  private _pendingMessage: string;
+  private _eventListeners: any[];
+  onmessage: (message: string) => void | null;
+  onclose: () => void | null;
 
-	constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
+  constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
     this._pipeWrite = pipeWrite;
     this._pendingMessage = '';
     this._eventListeners = [
@@ -63,8 +63,8 @@ export class PipeTransport implements Transport {
 
 export class WebSocketTransport implements Transport {
   private _ws: WebSocket;
-	onmessage: (message: string) => void | null;
-	onclose: () => void | null;
+  onmessage: (message: string) => void | null;
+  onclose: () => void | null;
 
   static create(url: string): Promise<WebSocketTransport> {
     return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ export class WebSocketTransport implements Transport {
         this.onclose.call(null);
     });
     // Silently ignore all errors - we don't know what to do with them.
-    this._ws.addEventListener('error', () => {});
+    this._ws.addEventListener('error', () => { });
     this.onmessage = null;
     this.onclose = null;
   }

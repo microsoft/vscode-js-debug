@@ -75,7 +75,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   }
 
   let chromeClosed = false;
-  const listeners = [ eventUtils.addEventListener(process, 'exit', killChrome) ];
+  const listeners = [eventUtils.addEventListener(process, 'exit', killChrome)];
   try {
     if (!usePipe) {
       const browserWSEndpoint = await waitForWSEndpoint(chromeProcess, timeout);
@@ -190,7 +190,8 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
 }
 
 function getWSEndpoint(browserURL: string): Promise<string> {
-  let resolve, reject;
+  let resolve: (o: string) => void;
+  let reject: (e: Error) => void
   const promise: Promise<string> = new Promise((res, rej) => { resolve = res; reject = rej; });
 
   const endpointURL = URL.resolve(browserURL, '/json/version');

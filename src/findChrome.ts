@@ -147,7 +147,7 @@ function win32() {
   return installations;
 }
 
-function sort(installations, priorities) {
+function sort(installations: string[], priorities: {regex: RegExp, weight: number}[]) {
   const defaultPriority = 10;
   return installations
       // assign priorities
@@ -165,7 +165,7 @@ function sort(installations, priorities) {
       .map(pair => pair.path);
 }
 
-function canAccess(file) {
+function canAccess(file: string) {
   if (!file) {
     return false;
   }
@@ -178,7 +178,7 @@ function canAccess(file) {
   }
 }
 
-function uniq(arr) {
+function uniq(arr: string[]) {
   return Array.from(new Set(arr));
 }
 
