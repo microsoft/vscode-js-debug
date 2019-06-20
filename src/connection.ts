@@ -4,9 +4,8 @@
 import { EventEmitter } from 'events';
 import { Transport } from './transport';
 import * as debug from 'debug';
-import { Protocol } from 'devtools-protocol';
 
-const debugProtocol = debug('protocol');
+const debugConnection = debug('connection');
 
 interface ProtocolCommand {
   id: number;
@@ -36,11 +35,11 @@ interface ProtocolCallback {
   method: string;
 }
 
-export const ProtocolEvents = {
+export const SessionEvents = {
   Disconnected: Symbol('Disconnected')
 }
 
-export class Connection {
+export class Connection extends EventEmitter {
   private _lastId: number;
   private _transport: any;
   private _sessions: Map<string, CDPSession>;
@@ -48,6 +47,7 @@ export class Connection {
   private _browserSession: CDPSession;
 
   constructor(transport: Transport) {
+    super();
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -72,13 +72,13 @@ export class Connection {
     if (sessionId)
       message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    debugProtocol('SEND ► ' + messageString);
+    debugConnection('SEND ► ' + messageString);
     this._transport.send(messageString);
     return id;
   }
 
   async _onMessage(message: string) {
-    debugProtocol('◀ RECV ' + message);
+    debugConnection('◀ RECV ' + message);
     const object = JSON.parse(message);
 
     if (object.method === 'Target.attachedToTarget') {
@@ -174,11 +174,6 @@ export class CDPSession extends EventEmitter {
     }
     this._callbacks.clear();
     this._connection = null;
-    this.emit(ProtocolEvents.Disconnected);
-  }
-
-  async createSession(targetInfo: Protocol.Target.TargetInfo): Promise<CDPSession> {
-    const { sessionId } = await this.send('Target.attachToTarget', { targetId: targetInfo.targetId, flatten: true }) as { sessionId: string };
-    return this._connection.session(sessionId);
+    this.emit(SessionEvents.Disconnected);
   }
 }
