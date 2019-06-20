@@ -11,7 +11,7 @@
 		"sourceMap": true,
 		"outDir": "../out",
 		"preserveConstEnums": true,
-		"strictNullChecks": true,
+		"strictNullChecks": false,
 		"noUnusedParameters": false
 	}
 }
