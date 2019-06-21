@@ -9,7 +9,7 @@ import Protocol from 'devtools-protocol';
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
-import {Thread, ThreadEvents} from './thread';
+import {Script, Thread, ThreadEvents} from './thread';
 
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
@@ -19,6 +19,7 @@ export class Adapter implements DAP.Adapter {
 
   private _mainTarget: Target;
   private _threads: Map<number, Thread> = new Map();
+  private _scripts: Map<number, Script> = new Map();
   private _lastVariableReference: number = 0;
   private _variableToObject: Map<number, Protocol.Runtime.RemoteObjectId> = new Map();
   private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
@@ -81,7 +82,7 @@ export class Adapter implements DAP.Adapter {
       supportsExceptionInfoRequest: false,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: false,
-      supportsLoadedSourcesRequest: false,
+      supportsLoadedSourcesRequest: true,
       supportsLogPoints: false,
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
@@ -112,6 +113,18 @@ export class Adapter implements DAP.Adapter {
 
     thread.on(ThreadEvents.ThreadResumed, () => {
       this._dap.didResume(thread.threadId());
+    });
+
+    const onScriptParsed = (script: Script) => {
+      this._scripts.set(script.sourceReference(), script);
+      this._dap.didChangeScript('new', script.toDap());
+    };
+    thread.on(ThreadEvents.ScriptAdded, onScriptParsed);
+    for (const [scriptId, script] of thread.scripts())
+      onScriptParsed(script);
+    thread.on(ThreadEvents.ScriptsRemoved, (scripts: Script[]) => {
+      for (const script of scripts)
+        this._dap.didChangeScript('removed', script.toDap());
     });
   }
 
@@ -286,5 +299,21 @@ export class Adapter implements DAP.Adapter {
         return {label};
       })
     };
+  }
+
+  async getScripts(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
+    const sources = [];
+    for (const [threadId, thread] of this._threads) {
+      for (const [scriptId, script] of thread.scripts())
+        sources.push(script.toDap());
+    }
+    return sources;
+  }
+
+  async getScriptSource(params: DebugProtocol.SourceArguments): Promise<DAP.GetScriptSourceResult> {
+    const script = this._scripts.get(params.sourceReference);
+    if (!script)
+      return {content: '', mimeType: 'text/javascript'};
+    return {content: await script.source(), mimeType: 'text/javascript'};
   }
 }
