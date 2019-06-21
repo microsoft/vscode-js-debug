@@ -1,112 +1,112 @@
 {
-	"name": "cdp-debug",
-	"displayName": "CDP Debug",
-	"version": "0.9.0",
-	"publisher": "",
-	"description": "CDP debugger extension.",
-	"author": {
-		"name": "Microsoft Corporation",
-		"email": "pfeldman@microsoft.com"
-	},
-	"license": "MIT",
-	"engines": {
-		"vscode": "^1.30.0-insider",
-		"node": "^8.9.3"
-	},
-	"icon": "images/mock-debug-icon.png",
-	"categories": [
-		"Debuggers"
-	],
-	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-mock-debug.git"
-	},
-	"bugs": {
-		"url": "https://github.com/Microsoft/vscode-mock-debug/issues"
-	},
-	"scripts": {
-		"prepublish": "tsc -p ./src",
-		"compile": "tsc -p ./src",
-		"tslint": "tslint ./src/**/*.ts",
-		"watch": "tsc -w -p ./src",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"package": "vsce package",
-		"publish": "vsce publish"
-	},
-	"dependencies": {
-		"vscode-debugadapter": "1.33.0",
-		"ws": "^7.0.1"
-	},
-	"devDependencies": {
-		"@types/debug": "^4.1.4",
-		"@types/node": "^8.9.3",
-		"@types/ws": "^6.0.1",
-		"devtools-protocol": "0.0.670335",
-		"tslint": "5.11.0",
-		"typescript": "3.1.6",
-		"vsce": "1.53.2",
-		"vscode": "1.1.21"
-	},
-	"main": "./out/extension",
-	"activationEvents": [
-		"onDebug"
-	],
-	"contributes": {
-		"breakpoints": [
-			{
-				"language": "javascript"
-			},
-			{
-				"language": "typescriptreact"
-			},
-			{
-				"language": "javascriptreact"
-			},
-			{
-				"language": "fsharp"
-			},
-			{
-				"language": "html"
-			}
-		],
-		"debuggers": [
-			{
-				"type": "cdp",
-				"label": "Run in Chrome with CDP",
-				"program": "./out/debugAdapter.js",
-				"runtime": "node",
-				"configurationAttributes": {
-					"launch": {
-						"properties": {
+  "name": "cdp-debug",
+  "displayName": "CDP Debug",
+  "version": "0.9.0",
+  "publisher": "",
+  "description": "CDP debugger extension.",
+  "author": {
+    "name": "Microsoft Corporation",
+    "email": "pfeldman@microsoft.com"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.30.0-insider",
+    "node": "^8.9.3"
+  },
+  "icon": "images/mock-debug-icon.png",
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/vscode-mock-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+  },
+  "scripts": {
+    "prepublish": "tsc -p ./src",
+    "compile": "tsc -p ./src",
+    "tslint": "tslint ./src/**/*.ts",
+    "watch": "tsc -w -p ./src",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "vscode-debugadapter": "1.33.0",
+    "ws": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.4",
+    "@types/node": "^8.9.3",
+    "@types/ws": "^6.0.1",
+    "devtools-protocol": "0.0.670335",
+    "tslint": "5.11.0",
+    "typescript": "3.1.6",
+    "vsce": "1.53.2",
+    "vscode": "1.1.21"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onDebug"
+  ],
+  "contributes": {
+    "breakpoints": [
+      {
+        "language": "javascript"
+      },
+      {
+        "language": "typescriptreact"
+      },
+      {
+        "language": "javascriptreact"
+      },
+      {
+        "language": "fsharp"
+      },
+      {
+        "language": "html"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "cdp",
+        "label": "Run in Chrome with CDP",
+        "program": "./out/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
               "url": {
                 "type": "string",
                 "description": "Page url",
                 "default": "http://localhost:8080"
-							}
-						}
-					}
-				},
-				"initialConfigurations": [
-					{
-						"type": "cdp",
-						"request": "launch",
-						"name": "Run in Chrome"
-					}
-				],
-				"configurationSnippets": [
-					{
-						"label": "Run in Chrome with CDP",
-						"description": "A new configuration for running Chrome with CDP",
-						"body": {
-							"type": "cdp",
-							"request": "launch",
-							"name": "Run in Chrome with CDP",
-							"url": "http://localhost:8080"
-						}
-					}
-				]
-			}
-		]
-	}
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "cdp",
+            "request": "launch",
+            "name": "Run in Chrome"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Run in Chrome with CDP",
+            "description": "A new configuration for running Chrome with CDP",
+            "body": {
+              "type": "cdp",
+              "request": "launch",
+              "name": "Run in Chrome with CDP",
+              "url": "http://localhost:8080"
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
