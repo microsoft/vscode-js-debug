@@ -4,14 +4,16 @@
 import * as DAP from './dap';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { CDPSession, SessionEvents } from './connection';
-import { TargetManager, TargetEvents } from './targetManager';
+import { Target, TargetManager, TargetEvents } from './targetManager';
 import { findChrome } from './findChrome';
 import * as launcher from './launcher';
+import Protocol from 'devtools-protocol';
 
 export class Adapter implements DAP.Adapter {
 	private _dap: DAP.Connection;
 	private _browserSession: CDPSession;
 	private _targetManager: TargetManager;
+	private _mainTarget: Target;
 
 	constructor(dap: DAP.Connection) {
 		this._dap = dap;
@@ -30,11 +32,11 @@ export class Adapter implements DAP.Adapter {
 				pipe: true,
 			});
 		this._targetManager = new TargetManager(connection);
-		this._targetManager.on(TargetEvents.TargetAttached, target => {
+		this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
 			if (target.threadId())
         this._dap.didChangeThread('started', target.threadId());
 		});
-		this._targetManager.on(TargetEvents.TargetDetached, target => {
+		this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
 			if (target.threadId())
         this._dap.didChangeThread('exited', target.threadId());
 		});
@@ -85,15 +87,15 @@ export class Adapter implements DAP.Adapter {
 	async launch(params: DebugProtocol.LaunchRequestArguments): Promise<void> {
 		// params.noDebug
 		// params.url
-		let target = this._targetManager.mainTarget();
-		if (!target)
-			target = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
-		this._targetManager.on(TargetEvents.TargetDetached, t => {
-      if (t === target) {
+		this._mainTarget = this._targetManager.mainTarget();
+		if (!this._mainTarget)
+		  this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
+		this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
+      if (target === this._mainTarget) {
 				this._dap.didTerminate();
 			}
 		});
-		await target.session().send('Page.navigate', {url: (params as {url:string}).url});
+		await this._mainTarget.session().send('Page.navigate', {url: (params as {url:string}).url});
 	}
 
 	async getThreads(): Promise<DebugProtocol.Thread[]> {
@@ -120,7 +122,13 @@ export class Adapter implements DAP.Adapter {
 	async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
 	}
 
-	async evaluate(params: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
-		return {result: '', variablesReference: 0};
+	async evaluate(args: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
+		if (!this._mainTarget)
+			return {result: '', variablesReference: 0};
+		const params: Protocol.Runtime.EvaluateRequest = {
+      expression: args.expression
+		};
+		const result = await this._mainTarget.session().send('Runtime.evaluate', params) as Protocol.Runtime.EvaluateResponse;
+		return { result: result.result.description, variablesReference: 0 };
 	}
 }
