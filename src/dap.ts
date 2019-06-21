@@ -23,8 +23,12 @@ export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
   url: string;
 }
 
+export interface GetScriptSourceResult {
+  content: string;
+  mimeType?: string;
+}
+
 export interface Adapter {
-  // Requests
   initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
   launch(params: LaunchParams): Promise<void>;
   getThreads(): Promise<DebugProtocol.Thread[]>;
@@ -37,6 +41,8 @@ export interface Adapter {
   terminate(params: DebugProtocol.TerminateArguments): Promise<void>;
   disconnect(params: DebugProtocol.DisconnectArguments): Promise<void>;
   restart(params: DebugProtocol.RestartArguments): Promise<void>;
+  getScripts(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]>;
+  getScriptSource(params: DebugProtocol.SourceArguments): Promise<GetScriptSourceResult>;
 }
 
 export interface DidPauseDetails {
@@ -63,6 +69,7 @@ export interface Connection {
   didPause(details: DidPauseDetails): void;
   didTerminate(restart?: any): void;
   didChangeThread(reason: string, threadId: number): void;
+  didChangeScript(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
 
   // Requests
 }
@@ -160,6 +167,10 @@ class ConnectionImpl implements Connection {
     this._dispatchMap.set('terminate', params => adapter.terminate(params));
     this._dispatchMap.set('disconnect', params => adapter.disconnect(params));
     this._dispatchMap.set('restart', params => adapter.restart(params));
+    this._dispatchMap.set('loadedSources', async params => {
+      return {sources: await adapter.getScripts(params)};
+    });
+    this._dispatchMap.set('source', params => adapter.getScriptSource(params));
   }
 
   public didInitialize(): void {
@@ -208,6 +219,10 @@ class ConnectionImpl implements Connection {
 
   public didChangeThread(reason: string, threadId: number): void {
     this._sendEvent('thread', {reason, threadId});
+  }
+
+  public didChangeScript(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void {
+    this._sendEvent('loadedSource', {reason, source});
   }
 
   private _sendEvent(event: string, params?: any): void {
