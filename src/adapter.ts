@@ -18,7 +18,7 @@ export class Adapter implements DAP.Adapter {
   private _threads: Map<number, Thread> = new Map();
   private _scripts: Map<number, Script> = new Map();
   private _lastVariableReference: number = 0;
-  private _variableToObject: Map<number, Protocol.Runtime.RemoteObjectId> = new Map();
+  private _variableToObject: Map<number, Protocol.Runtime.RemoteObject> = new Map();
   private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
 
   constructor(dap: DAP.Connection) {
@@ -183,32 +183,82 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
-    const objectId = this._variableToObject.get(params.variablesReference);
+    const object = this._variableToObject.get(params.variablesReference);
+    if (object.subtype === 'array') {
+      if (params.filter === 'indexed')
+        return this._getArraySlots(params, object);
+      if (params.filter === 'named')
+        return this._getArrayProperties(params, object);
+      const indexes = await this._getArrayProperties(params, object);
+      const names = await this._getArraySlots(params, object);
+      return names.concat(indexes);
+    }
+    return this._getObjectProperties(object);
+  }
+
+  async _getObjectProperties(object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
     const getPropertiesParams: Protocol.Runtime.GetPropertiesRequest = {
-      objectId,
+      objectId: object.objectId,
       ownProperties: true
     };
     const response = await this._mainTarget.session().send('Runtime.getProperties', getPropertiesParams) as Protocol.Runtime.GetPropertiesResponse;
-    let properties = response.result;
-    if (params.start)
-      properties = properties.slice(params.start);
-    if (params.count)
-      properties.length = params.count;
-
-    return properties.map(p => this._createVariable(p.name, p.value, p));
+    const properties = response.result;
+    return Promise.all(properties.map(p => this._createVariable(p.name, p.value)));
   }
 
-  _createVariableReference(objectId: Protocol.Runtime.RemoteObjectId): number {
+  async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
+    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+      objectId: object.objectId,
+      functionDeclaration: `
+        function() {
+          const result = {__proto__: this.__proto__};
+          const names = Object.getOwnPropertyNames(this);
+          for (let i = 0; i < names.length; ++i) {
+            const name = names[i];
+            // Array index check according to the ES5-15.4.
+            if (String(name >>> 0) === name && name >>> 0 !== 0xffffffff)
+              continue;
+            const descriptor = Object.getOwnPropertyDescriptor(this, name);
+            if (descriptor)
+              Object.defineProperty(result, name, descriptor);
+          }
+        }`,
+    };
+    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    return this._getObjectProperties(response.result);
+  }
+
+  async _getArraySlots(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
+    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+      objectId: object.objectId,
+      functionDeclaration: `
+        function(start, count) {
+          const result = {};
+          for (let i = start; i < start + count; ++i) {
+            const descriptor = Object.getOwnPropertyDescriptor(this, i);
+            if (descriptor)
+              Object.defineProperty(result, i, descriptor);
+            else
+              result[i] = undefined;
+          }
+          return result;
+        }
+      `,
+      arguments: [ { value: params.start }, { value: params.count } ]
+    };
+    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    const result = (await this._getObjectProperties(response.result)).filter(p => p.name !== '__proto__');
+    return result;
+  }
+
+  _createVariableReference(object: Protocol.Runtime.RemoteObject): number {
     const reference = ++this._lastVariableReference;
-    this._variableToObject.set(reference, objectId);
-    this._objectToVariable.set(objectId, reference);
+    this._variableToObject.set(reference, object);
+    this._objectToVariable.set(object.objectId, reference);
     return reference;
   }
 
-  _createVariable(name: string, value: Protocol.Runtime.RemoteObject, prop?: Protocol.Runtime.PropertyDescriptor): DebugProtocol.Variable {
-    let variablesReference = 0;
-    let indexedVariables: number | undefined = undefined;
-    let namedVariables: number | undefined = undefined;
+  async _createVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
     if (!value) {
       // TODO(pfeldman): implement getters / setters
       return {
@@ -218,30 +268,51 @@ export class Adapter implements DAP.Adapter {
       };
     }
 
-    if (value.objectId) {
-      variablesReference = this._createVariableReference(value.objectId);
-      namedVariables = 100000;
-    }
     if (value.subtype === 'array')
-      indexedVariables = 1000000;
+      return this._createArrayVariable(name, value);
+    if (value.objectId)
+      return this._createObjectVariable(name, value);
+    return this._createPrimitiveVariable(name, value);
+  }
 
-    let presentationHint: DebugProtocol.VariablePresentationHint = {};
-    presentationHint.kind = value.type === 'function' ? 'method' : 'property';
-    if (prop && !prop.enumerable)
-      presentationHint.visibility = 'private';
-    presentationHint.attributes = [];
-    if (prop && !prop.configurable)
-      presentationHint.attributes.push('constant');
-    if (prop && !prop.writable)
-      presentationHint.attributes.push('readOnly');
+  async _createPrimitiveVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+    return {
+      name,
+      value: value.unserializableValue || value.value,
+      type: value.type,
+      variablesReference: 0
+    };
+  }
+
+  async _createObjectVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+    const variablesReference = this._createVariableReference(value);
+    return {
+      name,
+      value: value.description,
+      type: value.className || value.subtype || value.type,
+      variablesReference
+    };
+  }
+
+  async _createArrayVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+    const variablesReference = this._createVariableReference(value);
+    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+      objectId: value.objectId,
+      functionDeclaration: `function (prefix) {
+          return this.length;
+        }`,
+      objectGroup: 'console',
+      returnByValue: true
+    };
+
+    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    const indexedVariables = response.result.value;
 
     return {
       name,
       value: value.description,
       type: value.className || value.subtype || value.type,
       variablesReference,
-      presentationHint,
-      namedVariables,
       indexedVariables
     };
   }
