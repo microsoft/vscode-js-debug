@@ -11,6 +11,9 @@ export class Adapter implements DAP.Adapter {
   private _browserSession: CDPSession;
   private _targetManager: TargetManager;
   private _mainTarget: Target;
+  private _lastVariableReference: number = 0;
+  private _variableToObject: Map<number, Protocol.Runtime.RemoteObjectId> = new Map();
+  private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
 
   constructor(dap: DAP.Connection) {
     this._dap = dap;
@@ -104,6 +107,9 @@ export class Adapter implements DAP.Adapter {
     });
   }
 
+  async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
+  }
+
   async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<DAP.StackTraceResult> {
     return {stackFrames: [], totalFrames: 0};
   }
@@ -113,19 +119,87 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
-    return [];
+    const objectId = this._variableToObject.get(params.variablesReference);
+    const getPropertiesParams: Protocol.Runtime.GetPropertiesRequest = {
+      objectId,
+      ownProperties: true
+    };
+    const response = await this._mainTarget.session().send('Runtime.getProperties', getPropertiesParams) as Protocol.Runtime.GetPropertiesResponse;
+    let properties = response.result;
+    if (params.start)
+      properties = properties.slice(params.start);
+    if (params.count)
+      properties.length = params.count;
+
+    return properties.map(p => this._createVariable(p.name, p.value, p));
   }
 
-  async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
+  _createVariableReference(objectId: Protocol.Runtime.RemoteObjectId): number {
+    const reference = ++this._lastVariableReference;
+    this._variableToObject.set(reference, objectId);
+    this._objectToVariable.set(objectId, reference);
+    return reference;
+  }
+
+  _createVariable(name: string, value: Protocol.Runtime.RemoteObject, prop?: Protocol.Runtime.PropertyDescriptor): DebugProtocol.Variable {
+    let variablesReference = 0;
+    let indexedVariables: number | undefined = undefined;
+    let namedVariables: number | undefined = undefined;
+    if (!value) {
+      // TODO(pfeldman): implement getters / setters
+      return {
+        name,
+        value: '',
+        variablesReference: 0
+      };
+    }
+
+    if (value.objectId) {
+      variablesReference = this._createVariableReference(value.objectId);
+      namedVariables = 100000;
+    }
+    if (value.subtype === 'array')
+      indexedVariables = 1000000;
+
+    let presentationHint: DebugProtocol.VariablePresentationHint = {};
+    presentationHint.kind = value.type === 'function' ? 'method' : 'property';
+    if (prop && !prop.enumerable)
+      presentationHint.visibility = 'private';
+    presentationHint.attributes = [];
+    if (prop && !prop.configurable)
+      presentationHint.attributes.push('constant');
+    if (prop && !prop.writable)
+      presentationHint.attributes.push('readOnly');
+
+    return {
+      name,
+      value: value.description,
+      type: value.className || value.subtype || value.type,
+      variablesReference,
+      presentationHint,
+      namedVariables,
+      indexedVariables
+    };
   }
 
   async evaluate(args: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
     if (!this._mainTarget)
       return {result: '', variablesReference: 0};
-    const params: Protocol.Runtime.EvaluateRequest = {
-      expression: args.expression
+    const evaluateParams: Protocol.Runtime.EvaluateRequest = {
+      expression: args.expression,
+      includeCommandLineAPI: true,
+      objectGroup: 'console'
     };
-    const result = await this._mainTarget.session().send('Runtime.evaluate', params) as Protocol.Runtime.EvaluateResponse;
-    return { result: result.result.description, variablesReference: 0 };
+    const response = await this._mainTarget.session().send('Runtime.evaluate', evaluateParams) as Protocol.Runtime.EvaluateResponse;
+    if (response.result.objectId) {
+      const variable = await this._createVariable('', response.result);
+      return {
+        result: response.result.description,
+        variablesReference: variable.variablesReference,
+        namedVariables: variable.namedVariables,
+        indexedVariables: variable.indexedVariables,
+      };
+    }
+    return { result: response.result.description, variablesReference: 0 };
   }
 }
