@@ -37,12 +37,12 @@ export class Adapter implements DAP.Adapter {
       });
     this._targetManager = new TargetManager(connection);
     this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
-      if (target.threadId())
-        this._dap.didChangeThread('started', target.threadId());
+      if (target.thread())
+        this._dap.didChangeThread('started', target.thread().threadId());
     });
     this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
-      if (target.threadId())
-        this._dap.didChangeThread('exited', target.threadId());
+      if (target.thread())
+        this._dap.didChangeThread('exited', target.thread().threadId());
     });
 
     this._browserSession = connection.browserSession();
@@ -121,12 +121,7 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getThreads(): Promise<DebugProtocol.Thread[]> {
-    return this._targetManager.threadTargets().map(target => {
-      return {
-        id: target.threadId(),
-        name: target.threadName(),
-      }
-    });
+    return this._targetManager.threads().map(thread => thread.toDap());
   }
 
   async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
