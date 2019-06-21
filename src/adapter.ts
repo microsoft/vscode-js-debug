@@ -8,6 +8,8 @@ import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import {Script, Thread, ThreadEvents} from './thread';
 
+let stackId = 0;
+
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
   private _cdp: CDP.Connection;
@@ -175,7 +177,67 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<DAP.StackTraceResult> {
-    return {stackFrames: [], totalFrames: 0};
+    const thread = this._threads.get(params.threadId);
+    if (!thread || !thread.pausedDetails())
+      return {stackFrames: [], totalFrames: 0};
+    const details = thread.pausedDetails()!;
+    const result: DebugProtocol.StackFrame[] = [];
+
+    for (const callFrame of details.callFrames) {
+      const stackFrame: DebugProtocol.StackFrame = {
+        id: ++stackId,
+        name: callFrame.functionName || '<anonymous>',
+        line: callFrame.location.lineNumber + 1,
+        column: (callFrame.location.columnNumber || 0) + 1,
+        presentationHint: 'normal'
+      };
+      const script = thread.scripts().get(callFrame.location.scriptId);
+      if (script) {
+        stackFrame.source = script.toDap();
+      } else {
+        stackFrame.source = {name: 'unknown'};
+      }
+      result.push(stackFrame);
+    }
+
+    let asyncParent = details.asyncStackTrace;
+    while (asyncParent) {
+      if (asyncParent.description === 'async function' && asyncParent.callFrames.length)
+        asyncParent.callFrames.shift();
+
+      if (!asyncParent.callFrames.length) {
+        asyncParent = asyncParent.parent;
+        continue;
+      }
+
+      result.push({
+        id: ++stackId,
+        name: asyncParent.description || 'async',
+        line: 1,
+        column: 1,
+        presentationHint: 'label'
+      });
+
+      for (const callFrame of asyncParent.callFrames) {
+        const stackFrame: DebugProtocol.StackFrame = {
+          id: ++stackId,
+          name: callFrame.functionName || '<anonymous>',
+          line: callFrame.lineNumber + 1,
+          column: (callFrame.columnNumber || 0) + 1,
+          presentationHint: 'normal'
+        };
+        const script = thread.scripts().get(callFrame.scriptId);
+        if (script) {
+          stackFrame.source = script.toDap();
+        } else {
+          stackFrame.source = {name: callFrame.url};
+        }
+        result.push(stackFrame);
+      }
+      asyncParent = asyncParent.parent;
+    }
+
+    return {stackFrames: result, totalFrames: result.length};
   }
 
   async getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]> {
