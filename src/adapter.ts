@@ -1,20 +1,24 @@
 import * as DAP from './dap';
+import * as CDP from './connection';
 import {DebugProtocol} from 'vscode-debugprotocol';
-import {CDPSession, SessionEvents} from './connection';
+import Protocol from 'devtools-protocol';
+
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
-import Protocol from 'devtools-protocol';
+import {Thread, ThreadEvents} from './thread';
 
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
-  private _browserSession: CDPSession;
+  private _cdp: CDP.Connection;
   private _targetManager: TargetManager;
+  private _launchParams: DAP.LaunchParams;
+
   private _mainTarget: Target;
+  private _threads: Map<number, Thread> = new Map();
   private _lastVariableReference: number = 0;
   private _variableToObject: Map<number, Protocol.Runtime.RemoteObjectId> = new Map();
   private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
-  private _launchParams: DAP.LaunchParams;
 
   constructor(dap: DAP.Connection) {
     this._dap = dap;
@@ -27,23 +31,23 @@ export class Adapter implements DAP.Adapter {
     console.assert(params.pathFormat === 'path');
 
     const executablePath = findChrome().pop();
-    const connection = await launcher.launch(
+    this._cdp = await launcher.launch(
       executablePath, {
         userDataDir: '.profile',
         pipe: true,
       });
-    this._targetManager = new TargetManager(connection);
+
+    this._targetManager = new TargetManager(this._cdp);
     this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
       if (target.thread())
-        this._dap.didChangeThread('started', target.thread().threadId());
+        this._onThreadCreated(target.thread());
     });
     this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
       if (target.thread())
-        this._dap.didChangeThread('exited', target.thread().threadId());
+        this._onThreadDestroyed(target.thread());
     });
 
-    this._browserSession = connection.browserSession();
-    this._browserSession.on(SessionEvents.Disconnected, () => this._dap.didExit(0));
+    this._cdp.browserSession().on(CDP.SessionEvents.Disconnected, () => this._dap.didExit(0));
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -85,6 +89,29 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
+  _onThreadCreated(thread: Thread): void {
+    console.assert(!this._threads.has(thread.threadId()));
+    this._threads.set(thread.threadId(), thread);
+    thread.on(ThreadEvents.ThreadPaused, () => {
+      const details = thread.pausedDetails();
+      this._dap.didPause({
+        reason: details.reason,
+        description: 'didPause.description',
+        threadId: thread.threadId(),
+        text: 'didPause.text'
+      });
+    });
+    thread.on(ThreadEvents.ThreadResumed, () => {
+      this._dap.didResume(thread.threadId());
+    });
+    this._dap.didChangeThread('started', thread.threadId());
+  }
+
+  _onThreadDestroyed(thread: Thread): void {
+    this._threads.delete(thread.threadId());
+    this._dap.didChangeThread('exited', thread.threadId());
+  }
+
   async launch(params: DAP.LaunchParams): Promise<void> {
     // params.noDebug
     this._launchParams = params;
@@ -103,8 +130,7 @@ export class Adapter implements DAP.Adapter {
   }
 
   async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
-    if (this._browserSession)
-      this._browserSession.send('Browser.close');
+    this._cdp.browserSession().send('Browser.close');
   }
 
   async _load(): Promise<void> {
@@ -122,6 +148,9 @@ export class Adapter implements DAP.Adapter {
   }
 
   async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
+    const thread = this._threads.get(params.threadId);
+    if (thread)
+      thread.resume();
   }
 
   async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<DAP.StackTraceResult> {

@@ -10,7 +10,6 @@ const debugTarget = debug('target');
 export const TargetEvents = {
   TargetAttached: Symbol('TargetAttached'),
   TargetDetached: Symbol('TargetDetached'),
-  TargetChanged: Symbol('TargetChanged'),
 }
 
 export class TargetManager extends EventEmitter {
@@ -84,7 +83,6 @@ export class TargetManager extends EventEmitter {
     if (!target)
       return;
     target._updateFromInfo(targetInfo);
-    this.emit(TargetEvents.TargetChanged, target);
     this._dumpTargets();
   }
 

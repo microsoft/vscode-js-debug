@@ -1,17 +1,26 @@
 import {Target} from './targetManager';
 import * as debug from 'debug';
 import {DebugProtocol} from 'vscode-debugprotocol';
+import Protocol from 'devtools-protocol';
+import {EventEmitter} from 'events';
 
 const debugThread = debug('thread');
 
-export class Thread {
+export const ThreadEvents = {
+  ThreadPaused: Symbol('ThreadPaused'),
+  ThreadResumed: Symbol('ThreadResumed'),
+};
+
+export class Thread extends EventEmitter {
   private static _lastThreadId: number = 0;
 
   private _target: Target;
   private _threadId: number;
   private _threadName: string;
+  private _pausedDetails?: Protocol.Debugger.PausedEvent;
 
   constructor(target: Target) {
+    super();
     this._target = target;
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
@@ -26,8 +35,26 @@ export class Thread {
     return {id: this._threadId, name: this._threadName};
   }
 
+  pausedDetails(): Protocol.Debugger.PausedEvent | undefined {
+    return this._pausedDetails;
+  }
+
+  resume() {
+    this._target.session().send('Debugger.resume');
+  }
+
   async initialize() {
-    await this._target.session().send('Runtime.enable');
+    const session = this._target.session();
+    await session.send('Runtime.enable');
+    session.on('Debugger.paused', (event: Protocol.Debugger.PausedEvent) => {
+      this._pausedDetails = event;
+      this.emit(ThreadEvents.ThreadPaused);
+    });
+    session.on('Debugger.resumed', event => {
+      this._pausedDetails = null;
+      this.emit(ThreadEvents.ThreadResumed);
+    });
+    await session.send('Debugger.enable');
   }
 
   dispose() {
