@@ -1,8 +1,8 @@
 import * as DAP from './dap';
-import { DebugProtocol } from 'vscode-debugprotocol';
-import { CDPSession, SessionEvents } from './connection';
-import { Target, TargetManager, TargetEvents } from './targetManager';
-import { findChrome } from './findChrome';
+import {DebugProtocol} from 'vscode-debugprotocol';
+import {CDPSession, SessionEvents} from './connection';
+import {Target, TargetManager, TargetEvents} from './targetManager';
+import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import Protocol from 'devtools-protocol';
 
@@ -14,6 +14,7 @@ export class Adapter implements DAP.Adapter {
   private _lastVariableReference: number = 0;
   private _variableToObject: Map<number, Protocol.Runtime.RemoteObjectId> = new Map();
   private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
+  private _launchParams: DAP.LaunchParams;
 
   constructor(dap: DAP.Connection) {
     this._dap = dap;
@@ -67,7 +68,7 @@ export class Adapter implements DAP.Adapter {
       supportsModulesRequest: false,
       additionalModuleColumns: [],
       supportedChecksumAlgorithms: [],
-      supportsRestartRequest: false,
+      supportsRestartRequest: true,
       supportsExceptionOptions: false,
       supportsValueFormattingOptions: false,
       supportsExceptionInfoRequest: false,
@@ -84,9 +85,9 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
-  async launch(params: DebugProtocol.LaunchRequestArguments): Promise<void> {
+  async launch(params: DAP.LaunchParams): Promise<void> {
     // params.noDebug
-    // params.url
+    this._launchParams = params;
     this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
       this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
@@ -95,7 +96,25 @@ export class Adapter implements DAP.Adapter {
         this._dap.didTerminate();
       }
     });
-    await this._mainTarget.session().send('Page.navigate', {url: (params as {url:string}).url});
+    await this._load();
+  }
+
+  async terminate(params: DebugProtocol.TerminateArguments): Promise<void> {
+  }
+
+  async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
+    if (this._browserSession)
+      this._browserSession.send('Browser.close');
+  }
+
+  async _load(): Promise<void> {
+    if (this._mainTarget && this._launchParams) {
+      await this._mainTarget.session().send('Page.navigate', {url: this._launchParams.url});
+    }
+  }
+
+  async restart(params: DebugProtocol.RestartArguments): Promise<void> {
+    this._load();
   }
 
   async getThreads(): Promise<DebugProtocol.Thread[]> {
@@ -200,15 +219,15 @@ export class Adapter implements DAP.Adapter {
         indexedVariables: variable.indexedVariables,
       };
     }
-    return { result: response.result.description, variablesReference: 0 };
+    return {result: response.result.description, variablesReference: 0};
   }
 
   async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
     if (!this._mainTarget)
-      return { targets: [] };
-    const global = await this._mainTarget.session().send('Runtime.evaluate', { expression: 'self' }) as Protocol.Runtime.EvaluateResponse;
+      return {targets: []};
+    const global = await this._mainTarget.session().send('Runtime.evaluate', {expression: 'self'}) as Protocol.Runtime.EvaluateResponse;
     if (!global)
-      return { targets: [] };
+      return {targets: []};
 
     const callArg: Protocol.Runtime.CallArgument = {
       value: params.text
@@ -224,12 +243,12 @@ export class Adapter implements DAP.Adapter {
     };
     const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
     if (!response)
-      return { targets: [] };
+      return {targets: []};
 
     const completions = response.result.value as string[];
     return {
       targets: completions.map(label => {
-        return { label };
+        return {label};
       })
     };
   }
