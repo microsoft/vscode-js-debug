@@ -15,6 +15,10 @@ export interface EvaluateResult {
   indexedVariables?: number;
 }
 
+export interface CompletionsResult {
+  targets: DebugProtocol.CompletionItem[];
+}
+
 export interface Adapter {
   // Requests
   initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
@@ -25,6 +29,7 @@ export interface Adapter {
   getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]>;
   continue(params: DebugProtocol.ContinueArguments): Promise<void>;
   evaluate(params: DebugProtocol.EvaluateArguments): Promise<EvaluateResult>;
+  completions(params: DebugProtocol.CompletionsArguments): Promise<CompletionsResult>;
 }
 
 export interface PausedDetails {
@@ -145,6 +150,7 @@ class ConnectionImpl implements Connection {
       return {allThreadsContinued: false};
     });
     this._dispatchMap.set('evaluate', params => adapter.evaluate(params));
+    this._dispatchMap.set('completions', params => adapter.completions(params));
   }
 
   public didInitialize(): void {

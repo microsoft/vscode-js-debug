@@ -148,7 +148,7 @@ export class Target {
   }
 
   async _initialize(waitingForDebugger: boolean) {
-    await this._session.send('Runtime.evaluate');
+    await this._session.send('Runtime.enable');
     if (waitingForDebugger)
       this._session.send('Runtime.runIfWaitingForDebugger');
   }

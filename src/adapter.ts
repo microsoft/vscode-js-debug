@@ -63,7 +63,7 @@ export class Adapter implements DAP.Adapter {
       supportsRestartFrame: false,
       supportsGotoTargetsRequest: false,
       supportsStepInTargetsRequest: false,
-      supportsCompletionsRequest: false,
+      supportsCompletionsRequest: true,
       supportsModulesRequest: false,
       additionalModuleColumns: [],
       supportedChecksumAlgorithms: [],
@@ -201,5 +201,36 @@ export class Adapter implements DAP.Adapter {
       };
     }
     return { result: response.result.description, variablesReference: 0 };
+  }
+
+  async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
+    if (!this._mainTarget)
+      return { targets: [] };
+    const global = await this._mainTarget.session().send('Runtime.evaluate', { expression: 'self' }) as Protocol.Runtime.EvaluateResponse;
+    if (!global)
+      return { targets: [] };
+
+    const callArg: Protocol.Runtime.CallArgument = {
+      value: params.text
+    };
+    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+      objectId: global.result.objectId,
+      functionDeclaration: `function (prefix) {
+          return Object.getOwnPropertyNames(this).filter(l => l.startsWith(prefix));
+        }`,
+      objectGroup: 'console',
+      arguments: [callArg],
+      returnByValue: true
+    };
+    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    if (!response)
+      return { targets: [] };
+
+    const completions = response.result.value as string[];
+    return {
+      targets: completions.map(label => {
+        return { label };
+      })
+    };
   }
 }
