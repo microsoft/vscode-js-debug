@@ -31,10 +31,12 @@ export class Adapter implements DAP.Adapter {
 			});
 		this._targetManager = new TargetManager(connection);
 		this._targetManager.on(TargetEvents.TargetAttached, target => {
-      this._dap.didChangeThread('started', target.threadId());
+			if (target.threadId())
+        this._dap.didChangeThread('started', target.threadId());
 		});
 		this._targetManager.on(TargetEvents.TargetDetached, target => {
-      this._dap.didChangeThread('exited', target.threadId());
+			if (target.threadId())
+        this._dap.didChangeThread('exited', target.threadId());
 		});
 
 		this._browserSession = connection.browserSession();
@@ -92,15 +94,13 @@ export class Adapter implements DAP.Adapter {
 			}
 		});
 		await target.session().send('Page.navigate', {url: (params as {url:string}).url});
-		// for (const target of this._targetManager.targets())
-  	// 	this._dap.didChangeThread('started', target.threadId());
 	}
 
 	async getThreads(): Promise<DebugProtocol.Thread[]> {
-		return this._targetManager.targets().map(target => {
+		return this._targetManager.threadTargets().map(target => {
 			return {
 				id: target.threadId(),
-				name: target.info().title,
+				name: target.threadName(),
 			}
 		});
 	}
