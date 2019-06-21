@@ -95,7 +95,9 @@ export class Adapter implements DAP.Adapter {
   _onThreadCreated(thread: Thread): void {
     console.assert(!this._threads.has(thread.threadId()));
     this._threads.set(thread.threadId(), thread);
-    thread.on(ThreadEvents.ThreadPaused, () => {
+    this._dap.didChangeThread('started', thread.threadId());
+
+    const onPaused = () => {
       const details = thread.pausedDetails();
       this._dap.didPause({
         reason: details.reason,
@@ -103,11 +105,14 @@ export class Adapter implements DAP.Adapter {
         threadId: thread.threadId(),
         text: 'didPause.text'
       });
-    });
+    };
+    thread.on(ThreadEvents.ThreadPaused, onPaused);
+    if (thread.pausedDetails())
+      onPaused();
+
     thread.on(ThreadEvents.ThreadResumed, () => {
       this._dap.didResume(thread.threadId());
     });
-    this._dap.didChangeThread('started', thread.threadId());
   }
 
   _onThreadDestroyed(thread: Thread): void {
@@ -147,7 +152,10 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getThreads(): Promise<DebugProtocol.Thread[]> {
-    return this._targetManager.threads().map(thread => thread.toDap());
+    const result = [];
+    for (const thread of this._threads.values())
+      result.push(thread.toDap());
+    return result;
   }
 
   async continue(params: DebugProtocol.ContinueArguments): Promise<void> {

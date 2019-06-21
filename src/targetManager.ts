@@ -34,16 +34,6 @@ export class TargetManager extends EventEmitter {
     return Array.from(this._targets.values());
   }
 
-  threads(): Thread[] {
-    const mainTarget = this.mainTarget();
-    if (!mainTarget)
-      return [];
-
-    const result: Thread[] = [];
-    mainTarget._visit(t => t.thread() ? result.push(t.thread()) : 0);
-    return result;
-  }
-
   mainTarget(): Target {
     return this._targets.values().next().value;
   }
@@ -60,24 +50,52 @@ export class TargetManager extends EventEmitter {
       this._attachedToTarget(targetInfo, sessionId, false, null);
     });
     this._browserSession.on('Target.detachedFromTarget', (event: Protocol.Target.DetachedFromTargetEvent) => {
-      const target = this._targets.get(event.targetId);
-      if (target)
-        this._detachedFromTarget(target);
+      this._detachedFromTarget(event.targetId);
     });
   }
 
-  _attachedToTarget(targetInfo: Protocol.Target.TargetInfo, sessionId: Protocol.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null): Target {
+  async _attachedToTarget(targetInfo: Protocol.Target.TargetInfo, sessionId: Protocol.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null) {
+    debugTarget(`Attaching to target ${targetInfo.targetId}`);
+
     const session = this._connection.createSession(sessionId);
-    const target = new Target(this, targetInfo, session, waitingForDebugger, parentTarget);
+    const target = new Target(targetInfo, session, parentTarget);
     this._targets.set(targetInfo.targetId, target);
+    if (parentTarget)
+      parentTarget._children.set(targetInfo.targetId, target);
+
+    session.on('Target.attachedToTarget', async (event: Protocol.Target.AttachedToTargetEvent) => {
+      this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
+    });
+    session.on('Target.detachedFromTarget', async (event: Protocol.Target.DetachedFromTargetEvent) => {
+      this._detachedFromTarget(event.targetId);
+    });
+    await session.send('Target.setAutoAttach', {autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
+    await target._initialize(waitingForDebugger);
+
+    if (!this._targets.has(targetInfo.targetId))
+      return;
     this.emit(TargetEvents.TargetAttached, target);
+    debugTarget(`Attached to target ${targetInfo.targetId}`);
     this._dumpTargets();
-    return target;
   }
 
-  _detachedFromTarget(target: Target) {
-    this._targets.delete(target._targetId);
+  async _detachedFromTarget(targetId: string) {
+    const target = this._targets.get(targetId);
+    if (!target)
+      return;
+    debugTarget(`Detaching from target ${targetId}`);
+
+    for (const childTargetId of target._children.keys())
+      await this._detachedFromTarget(childTargetId);
+    await target._dispose();
+    target.session().dispose();
+
+    this._targets.delete(targetId);
+    if (target._parentTarget)
+      target._parentTarget._children.delete(targetId);
+
     this.emit(TargetEvents.TargetDetached, target);
+    debugTarget(`Detached from target ${targetId}`);
     this._dumpTargets();
   }
 
@@ -99,36 +117,19 @@ export class TargetManager extends EventEmitter {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 
 export class Target {
-  private _children: Map<Protocol.Target.TargetID, Target> = new Map();
-  private _targetManager: TargetManager;
-  _targetInfo: Protocol.Target.TargetInfo;
-  _targetId: Protocol.Target.TargetID;
   private _session: CDPSession;
-  private _parentTarget?: Target;
-  _thread: Thread | undefined;
+  private _thread: Thread | undefined;
+  private _targetInfo: Protocol.Target.TargetInfo;
 
-  constructor(targetManager: TargetManager, targetInfo: Protocol.Target.TargetInfo, session: CDPSession, waitingForDebugger: boolean, parentTarget: Target | undefined) {
-    this._targetManager = targetManager;
-    this._targetId = targetInfo.targetId;
+  _parentTarget?: Target;
+  _children: Map<Protocol.Target.TargetID, Target> = new Map();
+
+  constructor(targetInfo: Protocol.Target.TargetInfo, session: CDPSession, parentTarget: Target | undefined) {
     this._session = session;
-    this._session.send('Target.setAutoAttach', {autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
-    this._session.on('Target.attachedToTarget', async (event: Protocol.Target.AttachedToTargetEvent) => {
-      const target = this._targetManager._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, this);
-      this._children.set(target._targetId, target);
-    });
-    this._session.on('Target.detachedFromTarget', async (event: Protocol.Target.DetachedFromTargetEvent) => {
-      const target = this._children.get(event.targetId);
-      this._children.delete(target._targetId);
-      target._dispose();
-    });
     this._parentTarget = parentTarget;
-
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this);
     this._updateFromInfo(targetInfo);
-
-    debugTarget(`Attached to ${this._targetInfo.title}`);
-    this._initialize(waitingForDebugger);
   }
 
   thread(): Thread | undefined {
@@ -143,7 +144,7 @@ export class Target {
     if (this._thread)
       await this._thread.initialize();
     if (waitingForDebugger)
-      this._session.send('Runtime.runIfWaitingForDebugger');
+      await this._session.send('Runtime.runIfWaitingForDebugger');
   }
 
   _updateFromInfo(targetInfo: Protocol.Target.TargetInfo) {
@@ -180,14 +181,9 @@ export class Target {
     this._thread.setThreadName(threadName);
   }
 
-  _dispose() {
-    for (const child of this._children.values())
-      child._dispose();
+  async _dispose() {
     if (this._thread)
-      this._thread.dispose();
-    this._targetManager._detachedFromTarget(this);
-    this._session.dispose();
-    debugTarget(`Detached from ${this._targetInfo.title}`);
+      await this._thread.dispose();
   }
 
   _visit(visitor: (t: Target) => void) {
