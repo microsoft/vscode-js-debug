@@ -1,17 +1,17 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es2017",
-		"lib": ["es2017"],
-		"noImplicitAny": false,
-		"removeComments": false,
-		"noUnusedLocals": false,
-		"noImplicitThis": true,
-		"inlineSourceMap": false,
-		"sourceMap": true,
-		"outDir": "../out",
-		"preserveConstEnums": true,
-		"strictNullChecks": false,
-		"noUnusedParameters": false
-	}
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2017",
+    "lib": ["es2017"],
+    "noImplicitAny": false,
+    "removeComments": false,
+    "noUnusedLocals": false,
+    "noImplicitThis": true,
+    "inlineSourceMap": false,
+    "sourceMap": true,
+    "outDir": "../out",
+    "preserveConstEnums": true,
+    "strictNullChecks": false,
+    "noUnusedParameters": false
+  }
 }

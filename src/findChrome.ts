@@ -124,7 +124,7 @@ function linux() {
 }
 
 function win32() {
-	const installations : string[] = [];
+  const installations : string[] = [];
   const suffixes = [
     `${path.sep}Google${path.sep}Chrome SxS${path.sep}Application${path.sep}chrome.exe`,
     `${path.sep}Google${path.sep}Chrome${path.sep}Application${path.sep}chrome.exe`
@@ -193,8 +193,8 @@ function findChromeExecutables(folder) {
     //    /home/user/Downloads/chrome-linux/chrome-wrapper %U
 
     // Some systems do not support grep -R so fallback to -r.
-		// See https://github.com/GoogleChrome/chrome-launcher/issues/46 for more context.
-		let execResult : Buffer;
+    // See https://github.com/GoogleChrome/chrome-launcher/issues/46 for more context.
+    let execResult : Buffer;
     try {
       execResult = execSync(`grep -ER "${chromeExecRegex}" ${folder} | awk -F '=' '{print $2}'`);
     } catch (e) {
