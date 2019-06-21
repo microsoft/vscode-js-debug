@@ -8,6 +8,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import { EventEmitter } from 'events';
 import {Thread} from './thread';
+import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 const debugTarget = debug('target');
 
 export const TargetEvents = {
@@ -18,14 +19,14 @@ export const TargetEvents = {
 export class TargetManager extends EventEmitter {
   private _connection: Connection;
   private _targets: Map<Protocol.Target.TargetID, Target> = new Map();
-  private _browserSession: CDPSession;
+  private _browser: ProtocolProxyApi.ProtocolApi;
 
   constructor(connection: Connection) {
     super();
     this._connection = connection;
-    this._browserSession = connection.browserSession();
+    this._browser = connection.browserSession().cdp();
     this._attachToFirstPage();
-    this._browserSession.on('Target.targetInfoChanged', (event: Protocol.Target.TargetInfoChangedEvent) => {
+    this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
   }
@@ -39,17 +40,17 @@ export class TargetManager extends EventEmitter {
   }
 
   _attachToFirstPage() {
-    this._browserSession.send('Target.setDiscoverTargets', { discover: true });
-    this._browserSession.on('Target.targetCreated', async (event: Protocol.Target.TargetCreatedEvent) => {
+    this._browser.Target.setDiscoverTargets({ discover: true });
+    this._browser.Target.on('targetCreated', async event => {
       if (this._targets.size)
         return;
       const targetInfo = event.targetInfo;
       if (targetInfo.type !== 'page')
         return;
-      const { sessionId } = await this._browserSession.send('Target.attachToTarget', { targetId: targetInfo.targetId, flatten: true }) as { sessionId: Protocol.Target.SessionID };
+      const { sessionId } = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
       this._attachedToTarget(targetInfo, sessionId, false, null);
     });
-    this._browserSession.on('Target.detachedFromTarget', (event: Protocol.Target.DetachedFromTargetEvent) => {
+    this._browser.Target.on('detachedFromTarget', event => {
       this._detachedFromTarget(event.targetId);
     });
   }
@@ -58,18 +59,19 @@ export class TargetManager extends EventEmitter {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const session = this._connection.createSession(sessionId);
+    const cdp = session.cdp();
     const target = new Target(targetInfo, session, parentTarget);
     this._targets.set(targetInfo.targetId, target);
     if (parentTarget)
       parentTarget._children.set(targetInfo.targetId, target);
 
-    session.on('Target.attachedToTarget', async (event: Protocol.Target.AttachedToTargetEvent) => {
+      cdp.Target.on('attachedToTarget', async event => {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
     });
-    session.on('Target.detachedFromTarget', async (event: Protocol.Target.DetachedFromTargetEvent) => {
+    cdp.Target.on('detachedFromTarget', async event => {
       this._detachedFromTarget(event.targetId);
     });
-    await session.send('Target.setAutoAttach', {autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
+    await cdp.Target.setAutoAttach({autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
     await target._initialize(waitingForDebugger);
 
     if (!this._targets.has(targetInfo.targetId))

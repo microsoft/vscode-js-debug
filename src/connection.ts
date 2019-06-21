@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import { Transport } from './transport';
 import * as debug from 'debug';
 import Protocol from 'devtools-protocol';
+import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 const debugConnection = debug('connection');
 
@@ -121,16 +122,38 @@ export class CDPSession extends EventEmitter {
   private _connection: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
+  private _cdp: ProtocolProxyApi.ProtocolApi;
 
   constructor(connection: Connection, sessionId: string) {
     super();
     this._callbacks = new Map();
     this._connection = connection;
     this._sessionId = sessionId;
+    this._cdp = this._createApi();
+  }
+
+  cdp(): ProtocolProxyApi.ProtocolApi {
+    return this._cdp;
   }
 
   sessionId(): Protocol.Target.SessionID {
     return this._sessionId;
+  }
+
+  _createApi(): ProtocolProxyApi.ProtocolApi {
+    return new Proxy({}, {
+      get: (target, agentName: string, receiver) => new Proxy({}, {
+        get: (target, methodName: string, receiver) => {
+          if (methodName === 'on')
+            return (eventName, listener) => this.on(`${agentName}.${eventName}`, listener);
+          if (methodName === 'once')
+            return (eventName, listener) => this.once(`${agentName}.${eventName}`, listener);
+          if (methodName === 'off')
+            return (eventName, listener) => this.removeListener(`${agentName}.${eventName}`, listener);
+          return params => this.send(`${agentName}.${methodName}`, params);
+        }
+      })
+    }) as ProtocolProxyApi.ProtocolApi;
   }
 
   send(method: string, params: object | undefined = {}): Promise<object | null> {
