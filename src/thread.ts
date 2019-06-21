@@ -7,6 +7,7 @@ import {EventEmitter} from 'events';
 const debugThread = debug('thread');
 
 export const ThreadEvents = {
+  ThreadNameChanged: Symbol('ThreadNameChanged'),
   ThreadPaused: Symbol('ThreadPaused'),
   ThreadResumed: Symbol('ThreadResumed'),
 };
@@ -48,21 +49,22 @@ export class Thread extends EventEmitter {
     await session.send('Runtime.enable');
     session.on('Debugger.paused', (event: Protocol.Debugger.PausedEvent) => {
       this._pausedDetails = event;
-      this.emit(ThreadEvents.ThreadPaused);
+      this.emit(ThreadEvents.ThreadPaused, this);
     });
     session.on('Debugger.resumed', event => {
       this._pausedDetails = null;
-      this.emit(ThreadEvents.ThreadResumed);
+      this.emit(ThreadEvents.ThreadResumed, this);
     });
     await session.send('Debugger.enable');
   }
 
-  dispose() {
+  async dispose() {
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
   }
 
   setThreadName(threadName: string) {
     this._threadName = threadName;
-    debugThread(`Thread updated #${this._threadId}: ${this._threadName}`);
+    debugThread(`Thread renamed #${this._threadId}: ${this._threadName}`);
+    this.emit(ThreadEvents.ThreadNameChanged, this);
   }
 }
