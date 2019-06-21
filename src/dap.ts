@@ -22,10 +22,14 @@ export interface CompletionsResult {
   targets: DebugProtocol.CompletionItem[];
 }
 
+export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
+  url: string;
+}
+
 export interface Adapter {
   // Requests
   initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
-  launch(params: DebugProtocol.LaunchRequestArguments): Promise<void>;
+  launch(params: LaunchParams): Promise<void>;
   getThreads(): Promise<DebugProtocol.Thread[]>;
   getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<StackTraceResult>;
   getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]>;
@@ -33,6 +37,9 @@ export interface Adapter {
   continue(params: DebugProtocol.ContinueArguments): Promise<void>;
   evaluate(params: DebugProtocol.EvaluateArguments): Promise<EvaluateResult>;
   completions(params: DebugProtocol.CompletionsArguments): Promise<CompletionsResult>;
+  terminate(params: DebugProtocol.TerminateArguments): Promise<void>;
+  disconnect(params: DebugProtocol.DisconnectArguments): Promise<void>;
+  restart(params: DebugProtocol.RestartArguments): Promise<void>;
 }
 
 export interface PausedDetails {
@@ -41,7 +48,6 @@ export interface PausedDetails {
   threadId?: number;
   preserveFocusHint?: boolean;
   text?: string;
-  allThreadsStopped?: boolean;
 }
 
 export interface Connection {
@@ -154,6 +160,9 @@ class ConnectionImpl implements Connection {
     });
     this._dispatchMap.set('evaluate', params => adapter.evaluate(params));
     this._dispatchMap.set('completions', params => adapter.completions(params));
+    this._dispatchMap.set('terminate', params => adapter.terminate(params));
+    this._dispatchMap.set('disconnect', params => adapter.disconnect(params));
+    this._dispatchMap.set('restart', params => adapter.restart(params));
   }
 
   public didInitialize(): void {
