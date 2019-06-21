@@ -1,7 +1,9 @@
-// Place your settings in this file to overwrite default and user settings.FALSE
+// Place your settings in this file to overwrite default and user settings.
 {
 	"javascript.validate.enable": false,
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"files.trimTrailingWhitespace": true,
-	"editor.insertSpaces": false
+	"editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
 }
