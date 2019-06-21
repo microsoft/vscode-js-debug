@@ -42,7 +42,7 @@ export interface Adapter {
   restart(params: DebugProtocol.RestartArguments): Promise<void>;
 }
 
-export interface PausedDetails {
+export interface DidPauseDetails {
   reason: string;
   description?: string;
   threadId?: number;
@@ -57,13 +57,13 @@ export interface Connection {
   didInitialize(): void;
   didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void;
   didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void;
-  didContinue(threadId: number): void;
+  didResume(threadId: number): void;
   didExit(exitCode: number): void;
   didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
   didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void;
   didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void;
   didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void;
-  didPause(details: PausedDetails): void;
+  didPause(details: DidPauseDetails): void;
   didTerminate(restart?: any): void;
   didChangeThread(reason: string, threadId: number): void;
 
@@ -177,7 +177,7 @@ class ConnectionImpl implements Connection {
     this._sendEvent('capabitilies', {capabilities});
   }
 
-  public didContinue(threadId: number): void {
+  public didResume(threadId: number): void {
     this._sendEvent('continued', {threadId, allThreadsContinued: false});
   }
 
@@ -201,7 +201,7 @@ class ConnectionImpl implements Connection {
     this._sendEvent('process', {name, systemProcessId, isLocalProcess, startMethod});
   }
 
-  public didPause(details: PausedDetails): void {
+  public didPause(details: DidPauseDetails): void {
     this._sendEvent('stopped', {...details, allThreadsStopped: false});
   }
 
