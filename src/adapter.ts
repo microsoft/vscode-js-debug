@@ -269,14 +269,26 @@ export class Adapter implements DAP.Adapter {
       ownProperties: true,
       generatePreview: true
     });
-    const properties = [];
-    for (const p of response.result)
+    const properties: Promise<DebugProtocol.Variable>[] = [];
+    const weight: Map<string, number> = new Map();
+    for (const p of response.result) {
       properties.push(this._createVariable(p.name, p.value));
-    for (const p of (response.privateProperties || []))
+      weight.set(p.name, variables.propertyWeight(p));
+    }
+    for (const p of (response.privateProperties || [])) {
       properties.push(this._createVariable(p.name, p.value));
-    // for (const p of (response.internalProperties || []))
-    //   properties.push(this._createVariable(p.name, p.value));
-    return Promise.all(properties);
+      weight.set(p.name, variables.privatePropertyWeight(p));
+    }
+    for (const p of (response.internalProperties || [])) {
+      properties.push(this._createVariable(p.name, p.value));
+      weight.set(p.name, variables.internalPropertyWeight(p));
+    }
+    const result = await Promise.all(properties);
+    result.sort((a, b) => {
+      const delta = weight.get(b.name) - weight.get(a.name);
+      return delta ? delta : a.name.localeCompare(b.name);
+    });
+    return result;
   }
 
   async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
@@ -362,7 +374,7 @@ export class Adapter implements DAP.Adapter {
     const variablesReference = this._createVariableReference(value);
     return {
       name,
-      value: name === '__proto__' && value.description === 'Object' ? value.description : variables.previewRemoteObject(value, context),
+      value: name === '__proto__' ? variables.briefPreviewRemoteObject(value, context) : variables.previewRemoteObject(value, context),
       type: value.className || value.subtype || value.type,
       variablesReference
     };

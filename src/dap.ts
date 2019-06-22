@@ -302,6 +302,7 @@ class ConnectionImpl implements Connection {
         this._sendResponse(response);
       }
     } catch (e) {
+      console.error(e);
       this._sendErrorResponse(response, 1104, `Error processing ${request.command}: ${e.stack || e.message}`);
     }
   }
