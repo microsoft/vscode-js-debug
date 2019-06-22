@@ -4,17 +4,31 @@
 
 import Protocol from 'devtools-protocol';
 
-export function generateArrayPreview(object: Protocol.Runtime.RemoteObject, context?: string): string {
-  if (!object.preview)
-    return object.description;
+export function previewRemoteObject(object: Protocol.Runtime.RemoteObject, context?: string): string {
+  // Evaluating function does not produce preview object for it.
+  if (object.type === 'function')
+    return formatFunctionDescription(object.description);
+  return renderPreview(object.preview) || object.description;
+}
 
+function renderPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+  if (preview.subtype === 'array')
+    return renderArrayPreview(preview, context);
+  if (preview.type === 'object')
+    return renderObjectPreview(preview, context);
+  if (preview.type === 'function')
+    return formatFunctionDescription(preview.description);
+  return renderPrimitivePreview(preview, context);
+}
+
+function renderArrayPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
   const tokens = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
   // Indexed
   let lastIndex = -1;
-  for (const prop of object.preview.properties) {
+  for (const prop of preview.properties) {
     if (tokens.length > tokenBudget) {
       overflow = true;
       continue;
@@ -25,44 +39,46 @@ export function generateArrayPreview(object: Protocol.Runtime.RemoteObject, cont
     if (index > lastIndex + 1)
       tokens.push('…');
     lastIndex = index;
-    tokens.push(generatePropertyValuePreview(prop));
+    tokens.push(renderPropertyPreview(prop));
   }
 
   // Named
-  for (const prop of object.preview.properties) {
+  for (const prop of preview.properties) {
     if (tokens.length > tokenBudget) {
       overflow = true;
       continue;
     }
     if (!isNaN(prop.name as unknown as number))
       continue;
-    tokens.push(`${prop.name}: ${generatePropertyValuePreview(prop)}`);
+    tokens.push(`${prop.name}: ${renderPropertyPreview(prop)}`);
   }
 
   if (overflow)
     tokens.push('…');
 
-  return `${object.description} [${tokens.join(', ')}]`;
+  return `${preview.description} [${tokens.join(', ')}]`;
 }
 
-export function generateObjectPreview(object: Protocol.Runtime.RemoteObject, context?: string): string {
-  if (object.type === 'function')
-    return formatFunctionDescription(object.description);
-
-  const description = object.description === 'Object' ? '' : object.description + ' ';
-  if (!object.preview)
-    return description;
-
+function renderObjectPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+  const description = preview.description === 'Object' ? '' : preview.description + ' ';
   const tokens = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
-  for (const prop of object.preview.properties) {
+  for (const prop of preview.properties) {
     if (tokens.length > tokenBudget) {
       overflow = true;
       continue;
     }
-    tokens.push(`${prop.name}: ${generatePropertyValuePreview(prop)}`);
+    tokens.push(`${prop.name}: ${renderPropertyPreview(prop)}`);
+  }
+
+  for (const entry of (preview.entries || [])) {
+    if (tokens.length > tokenBudget) {
+      overflow = true;
+      continue;
+    }
+    tokens.push(`${renderPreview(entry.key)} => ${renderPreview(entry.value)}`);
   }
 
   if (overflow)
@@ -71,15 +87,15 @@ export function generateObjectPreview(object: Protocol.Runtime.RemoteObject, con
   return `${description}{${tokens.join(', ')}}`;
 }
 
-export function generatePrimitivePreview(object: Protocol.Runtime.RemoteObject, context?: string): string {
-  if (object.subtype === 'null')
+function renderPrimitivePreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+  if (preview.subtype === 'null')
     return 'null';
-    if (object.type === 'undefined')
+    if (preview.type === 'undefined')
     return 'undefined';
-  return object.description;
+  return preview.description;
 }
 
-function generatePropertyValuePreview(prop: Protocol.Runtime.PropertyPreview): string {
+function renderPropertyPreview(prop: Protocol.Runtime.PropertyPreview): string {
   if (prop.type === 'function')
     return 'ƒ';
   if (prop.type === 'object')
