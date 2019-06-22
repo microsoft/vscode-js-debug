@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import * as DAP from './dap';
 import * as CDP from './connection';
 import {DebugProtocol} from 'vscode-debugprotocol';

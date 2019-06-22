@@ -1,4 +1,8 @@
-import { Connection, CDPSession } from './connection';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+import { Connection } from './connection';
 import Protocol from 'devtools-protocol';
 import * as debug from 'debug';
 import * as path from 'path';

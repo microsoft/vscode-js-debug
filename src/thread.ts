@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import {Target} from './targetManager';
 import * as debug from 'debug';
 import {DebugProtocol} from 'vscode-debugprotocol';

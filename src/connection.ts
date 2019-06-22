@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { EventEmitter } from 'events';
 import { Transport } from './transport';
 import * as debug from 'debug';
