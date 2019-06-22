@@ -7,12 +7,13 @@ import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import {Script, Thread, ThreadEvents} from './thread';
+import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 let stackId = 0;
 
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
-  private _cdp: CDP.Connection;
+  private _browser: ProtocolProxyApi.ProtocolApi;
   private _targetManager: TargetManager;
   private _launchParams: DAP.LaunchParams;
 
@@ -34,13 +35,13 @@ export class Adapter implements DAP.Adapter {
     console.assert(params.pathFormat === 'path');
 
     const executablePath = findChrome().pop();
-    this._cdp = await launcher.launch(
+    const connection = await launcher.launch(
       executablePath, {
         userDataDir: '.profile',
         pipe: true,
       });
 
-    this._targetManager = new TargetManager(this._cdp);
+    this._targetManager = new TargetManager(connection);
     this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
       if (target.thread())
         this._onThreadCreated(target.thread());
@@ -50,7 +51,7 @@ export class Adapter implements DAP.Adapter {
         this._onThreadDestroyed(target.thread());
     });
 
-    this._cdp.browserSession().on(CDP.SessionEvents.Disconnected, () => this._dap.didExit(0));
+    connection.browserSession().on(CDP.SessionEvents.Disconnected, () => this._dap.didExit(0));
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -119,7 +120,7 @@ export class Adapter implements DAP.Adapter {
       this._dap.didChangeScript('new', script.toDap());
     };
     thread.on(ThreadEvents.ScriptAdded, onScriptParsed);
-    for (const [scriptId, script] of thread.scripts())
+    for (const script of thread.scripts().values())
       onScriptParsed(script);
     thread.on(ThreadEvents.ScriptsRemoved, (scripts: Script[]) => {
       for (const script of scripts)
@@ -150,12 +151,12 @@ export class Adapter implements DAP.Adapter {
   }
 
   async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
-    this._cdp.browserSession().send('Browser.close');
+    this._browser.Browser.close();
   }
 
   async _load(): Promise<void> {
     if (this._mainTarget && this._launchParams) {
-      await this._mainTarget.session().send('Page.navigate', {url: this._launchParams.url});
+      await this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
     }
   }
 
@@ -259,17 +260,16 @@ export class Adapter implements DAP.Adapter {
   }
 
   async _getObjectProperties(object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const getPropertiesParams: Protocol.Runtime.GetPropertiesRequest = {
+    const response = await this._mainTarget.cdp().Runtime.getProperties({
       objectId: object.objectId,
       ownProperties: true
-    };
-    const response = await this._mainTarget.session().send('Runtime.getProperties', getPropertiesParams) as Protocol.Runtime.GetPropertiesResponse;
+    });
     const properties = response.result;
     return Promise.all(properties.map(p => this._createVariable(p.name, p.value)));
   }
 
   async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
         function() {
@@ -285,13 +285,12 @@ export class Adapter implements DAP.Adapter {
               Object.defineProperty(result, name, descriptor);
           }
         }`,
-    };
-    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    });
     return this._getObjectProperties(response.result);
   }
 
   async _getArraySlots(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
         function(start, count) {
@@ -307,8 +306,7 @@ export class Adapter implements DAP.Adapter {
         }
       `,
       arguments: [ { value: params.start }, { value: params.count } ]
-    };
-    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    });
     const result = (await this._getObjectProperties(response.result)).filter(p => p.name !== '__proto__');
     return result;
   }
@@ -358,16 +356,14 @@ export class Adapter implements DAP.Adapter {
 
   async _createArrayVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
     const variablesReference = this._createVariableReference(value);
-    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
       objectId: value.objectId,
       functionDeclaration: `function (prefix) {
           return this.length;
         }`,
       objectGroup: 'console',
       returnByValue: true
-    };
-
-    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    });
     const indexedVariables = response.result.value;
 
     return {
@@ -382,12 +378,11 @@ export class Adapter implements DAP.Adapter {
   async evaluate(args: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
     if (!this._mainTarget)
       return {result: '', variablesReference: 0};
-    const evaluateParams: Protocol.Runtime.EvaluateRequest = {
+    const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,
       includeCommandLineAPI: true,
       objectGroup: 'console'
-    };
-    const response = await this._mainTarget.session().send('Runtime.evaluate', evaluateParams) as Protocol.Runtime.EvaluateResponse;
+    });
     if (response.result.objectId) {
       const variable = await this._createVariable('', response.result);
       return {
@@ -403,14 +398,14 @@ export class Adapter implements DAP.Adapter {
   async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
     if (!this._mainTarget)
       return {targets: []};
-    const global = await this._mainTarget.session().send('Runtime.evaluate', {expression: 'self'}) as Protocol.Runtime.EvaluateResponse;
+    const global = await this._mainTarget.cdp().Runtime.evaluate({expression: 'self'});
     if (!global)
       return {targets: []};
 
     const callArg: Protocol.Runtime.CallArgument = {
       value: params.text
     };
-    const callParams: Protocol.Runtime.CallFunctionOnRequest = {
+    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
       objectId: global.result.objectId,
       functionDeclaration: `function (prefix) {
           return Object.getOwnPropertyNames(this).filter(l => l.startsWith(prefix));
@@ -418,8 +413,7 @@ export class Adapter implements DAP.Adapter {
       objectGroup: 'console',
       arguments: [callArg],
       returnByValue: true
-    };
-    const response = await this._mainTarget.session().send('Runtime.callFunctionOn', callParams) as Protocol.Runtime.CallFunctionOnResponse;
+    });
     if (!response)
       return {targets: []};
 
@@ -433,8 +427,8 @@ export class Adapter implements DAP.Adapter {
 
   async getScripts(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
     const sources = [];
-    for (const [threadId, thread] of this._threads) {
-      for (const [scriptId, script] of thread.scripts())
+    for (const thread of this._threads.values()) {
+      for (const script of thread.scripts().values())
         sources.push(script.toDap());
     }
     return sources;

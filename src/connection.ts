@@ -147,20 +147,20 @@ export class CDPSession extends EventEmitter {
             return (eventName, listener) => this.once(`${agentName}.${eventName}`, listener);
           if (methodName === 'off')
             return (eventName, listener) => this.removeListener(`${agentName}.${eventName}`, listener);
-          return params => this.send(`${agentName}.${methodName}`, params);
+          return params => this._send(`${agentName}.${methodName}`, params);
         }
       })
     }) as ProtocolProxyApi.ProtocolApi;
   }
 
-  send(method: string, params: object | undefined = {}): Promise<object | null> {
-    return this.sendOrDie(method, params).catch(e => {
+  _send(method: string, params: object | undefined = {}): Promise<object | null> {
+    return this._sendOrDie(method, params).catch(e => {
       console.error(e);
       return null;
     });
   }
 
-  sendOrDie(method: string, params: object | undefined = {}): Promise<object | null> {
+  _sendOrDie(method: string, params: object | undefined = {}): Promise<object | null> {
     if (!this._connection)
       return Promise.reject(new Error(`Protocol error (${method}): Session closed. Most likely the target has been closed.`));
     const id = this._connection._send(method, params, this._sessionId);
