@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Connection, CDPSession } from './connection';
+import { Connection } from './connection';
 import Protocol from 'devtools-protocol';
 import * as debug from 'debug';
 import * as path from 'path';
