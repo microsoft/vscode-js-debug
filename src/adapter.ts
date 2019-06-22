@@ -11,6 +11,7 @@ import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import {Script, Thread, ThreadEvents} from './thread';
+import * as variables from './variables';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 let stackId = 0;
@@ -266,7 +267,8 @@ export class Adapter implements DAP.Adapter {
   async _getObjectProperties(object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
     const response = await this._mainTarget.cdp().Runtime.getProperties({
       objectId: object.objectId,
-      ownProperties: true
+      ownProperties: true,
+      generatePreview: true
     });
     const properties = response.result;
     return Promise.all(properties.map(p => this._createVariable(p.name, p.value)));
@@ -288,7 +290,9 @@ export class Adapter implements DAP.Adapter {
             if (descriptor)
               Object.defineProperty(result, name, descriptor);
           }
+          return result;
         }`,
+      generatePreview: true
     });
     return this._getObjectProperties(response.result);
   }
@@ -309,6 +313,7 @@ export class Adapter implements DAP.Adapter {
           return result;
         }
       `,
+      generatePreview: true,
       arguments: [ { value: params.start }, { value: params.count } ]
     });
     const result = (await this._getObjectProperties(response.result)).filter(p => p.name !== '__proto__');
@@ -322,7 +327,7 @@ export class Adapter implements DAP.Adapter {
     return reference;
   }
 
-  async _createVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+  async _createVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
     if (!value) {
       // TODO(pfeldman): implement getters / setters
       return {
@@ -333,32 +338,32 @@ export class Adapter implements DAP.Adapter {
     }
 
     if (value.subtype === 'array')
-      return this._createArrayVariable(name, value);
+      return this._createArrayVariable(name, value, context);
     if (value.objectId)
-      return this._createObjectVariable(name, value);
-    return this._createPrimitiveVariable(name, value);
+      return this._createObjectVariable(name, value, context);
+    return this._createPrimitiveVariable(name, value, context);
   }
 
-  async _createPrimitiveVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+  async _createPrimitiveVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
     return {
       name,
-      value: value.unserializableValue || value.value,
+      value: variables.generatePrimitivePreview(value, context),
       type: value.type,
       variablesReference: 0
     };
   }
 
-  async _createObjectVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+  async _createObjectVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
     const variablesReference = this._createVariableReference(value);
     return {
       name,
-      value: value.description,
+      value: name === '__proto__' && value.description === 'Object' ? value.description : variables.generateObjectPreview(value, context),
       type: value.className || value.subtype || value.type,
       variablesReference
     };
   }
 
-  async _createArrayVariable(name: string, value: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable> {
+  async _createArrayVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
     const variablesReference = this._createVariableReference(value);
     const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
       objectId: value.objectId,
@@ -372,7 +377,7 @@ export class Adapter implements DAP.Adapter {
 
     return {
       name,
-      value: value.description,
+      value: variables.generateArrayPreview(value, context),
       type: value.className || value.subtype || value.type,
       variablesReference,
       indexedVariables
@@ -385,18 +390,16 @@ export class Adapter implements DAP.Adapter {
     const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,
       includeCommandLineAPI: true,
-      objectGroup: 'console'
+      objectGroup: 'console',
+      generatePreview: true
     });
-    if (response.result.objectId) {
-      const variable = await this._createVariable('', response.result);
-      return {
-        result: response.result.description,
-        variablesReference: variable.variablesReference,
-        namedVariables: variable.namedVariables,
-        indexedVariables: variable.indexedVariables,
-      };
-    }
-    return {result: response.result.description, variablesReference: 0};
+    const variable = await this._createVariable('', response.result, args.context);
+    return {
+      result: variable.value,
+      variablesReference: variable.variablesReference,
+      namedVariables: variable.namedVariables,
+      indexedVariables: variable.indexedVariables,
+    };
   }
 
   async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
