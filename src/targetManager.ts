@@ -90,7 +90,7 @@ export class TargetManager extends EventEmitter {
     for (const childTargetId of target._children.keys())
       await this._detachedFromTarget(childTargetId);
     await target._dispose();
-    target.session().dispose();
+    target._session.dispose();
 
     this._targets.delete(targetId);
     if (target._parentTarget)
@@ -119,15 +119,17 @@ export class TargetManager extends EventEmitter {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 
 export class Target {
-  private _session: CDPSession;
+  private _cdp: ProtocolProxyApi.ProtocolApi;
   private _thread: Thread | undefined;
   private _targetInfo: Protocol.Target.TargetInfo;
 
+  _session: CDPSession;
   _parentTarget?: Target;
   _children: Map<Protocol.Target.TargetID, Target> = new Map();
 
   constructor(targetInfo: Protocol.Target.TargetInfo, session: CDPSession, parentTarget: Target | undefined) {
     this._session = session;
+    this._cdp = session.cdp();
     this._parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this);
@@ -138,15 +140,15 @@ export class Target {
     return this._thread;
   }
 
-  session(): CDPSession {
-    return this._session;
+  cdp(): ProtocolProxyApi.ProtocolApi {
+    return this._cdp;
   }
 
   async _initialize(waitingForDebugger: boolean) {
     if (this._thread)
       await this._thread.initialize();
     if (waitingForDebugger)
-      await this._session.send('Runtime.runIfWaitingForDebugger');
+      await this._cdp.Runtime.runIfWaitingForDebugger();
   }
 
   _updateFromInfo(targetInfo: Protocol.Target.TargetInfo) {

@@ -45,10 +45,9 @@ export class Script {
 
   async source() {
     if (this._source === undefined) {
-      const params: Protocol.Debugger.GetScriptSourceRequest = {
+      const response = await this._thread._target.cdp().Debugger.getScriptSource({
         scriptId: this._event.scriptId
-      };
-      const response = await this._thread._target.session().send('Debugger.getScriptSource', params) as Protocol.Debugger.GetScriptSourceResponse;
+      });
       this._source = response.scriptSource;
     }
     return this._source;
@@ -89,28 +88,28 @@ export class Thread extends EventEmitter {
   }
 
   resume() {
-    this._target.session().send('Debugger.resume');
+    this._target.cdp().Debugger.resume();
   }
 
   async initialize() {
-    const session = this._target.session();
-    session.on('Runtime.executionContextsCleared', event => this._reset());
-    await session.send('Runtime.enable');
-    session.on('Debugger.paused', (event: Protocol.Debugger.PausedEvent) => {
+    const cdp = this._target.cdp();
+    cdp.Runtime.on('executionContextsCleared', () => this._reset());
+    await cdp.Runtime.enable();
+    cdp.Debugger.on('paused', event => {
       this._pausedDetails = event;
       this.emit(ThreadEvents.ThreadPaused, this);
     });
-    session.on('Debugger.resumed', event => {
+    cdp.Debugger.on('resumed', () => {
       this._pausedDetails = null;
       this.emit(ThreadEvents.ThreadResumed, this);
     });
-    session.on('Debugger.scriptParsed', (event: Protocol.Debugger.ScriptParsedEvent) => {
+    cdp.Debugger.on('scriptParsed', (event: Protocol.Debugger.ScriptParsedEvent) => {
       const script = new Script(this, event);
       console.assert(!this._scripts.has(event.scriptId));
       this._scripts.set(event.scriptId, script);
       this.emit(ThreadEvents.ScriptAdded, script);
     });
-    await session.send('Debugger.enable');
+    await cdp.Debugger.enable({});
   }
 
   async dispose() {

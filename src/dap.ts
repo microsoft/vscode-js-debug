@@ -240,6 +240,7 @@ class ConnectionImpl implements Connection {
     this._writeData(this._parser.wrap('response', response));
   }
 
+  /*
   private sendRequest(command: string, args: any, timeout: number): Promise<DebugProtocol.Response> {
     const request: any = { command };
     if (args && Object.keys(args).length > 0)
@@ -259,6 +260,7 @@ class ConnectionImpl implements Connection {
       }, timeout);
     });
   }
+  */
 
   public stop(): void {
     if (this._writableStream) {
