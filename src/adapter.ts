@@ -54,7 +54,7 @@ export class Adapter implements DAP.Adapter {
         this._onThreadDestroyed(target.thread());
     });
 
-    connection.browserSession().on(CDP.SessionEvents.Disconnected, () => this._dap.didExit(0));
+    connection.on(CDP.ConnectionEvents.Disconnected, () => this._dap.didExit(0));
 
     // params.locale || 'en-US'
     // params.supportsVariableType
