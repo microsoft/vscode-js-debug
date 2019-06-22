@@ -21,7 +21,7 @@ export class TargetManager extends EventEmitter {
   constructor(connection: Connection) {
     super();
     this._connection = connection;
-    this._browser = connection.browserSession().cdp();
+    this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
@@ -55,9 +55,10 @@ export class TargetManager extends EventEmitter {
   async _attachedToTarget(targetInfo: Protocol.Target.TargetInfo, sessionId: Protocol.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null) {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
-    const session = this._connection.createSession(sessionId);
-    const cdp = session.cdp();
-    const target = new Target(targetInfo, session, parentTarget);
+    const cdp = this._connection.createSession(sessionId);
+    const target = new Target(targetInfo, cdp, parentTarget, target => {
+      this._connection.disposeSession(sessionId);
+    });
     this._targets.set(targetInfo.targetId, target);
     if (parentTarget)
       parentTarget._children.set(targetInfo.targetId, target);
@@ -87,7 +88,6 @@ export class TargetManager extends EventEmitter {
     for (const childTargetId of target._children.keys())
       await this._detachedFromTarget(childTargetId);
     await target._dispose();
-    target._session.dispose();
 
     this._targets.delete(targetId);
     if (target._parentTarget)
@@ -119,18 +119,18 @@ export class Target {
   private _cdp: ProtocolProxyApi.ProtocolApi;
   private _thread: Thread | undefined;
   private _targetInfo: Protocol.Target.TargetInfo;
+  private _ondispose: (t:Target) => void;
 
-  _session: CDPSession;
   _parentTarget?: Target;
   _children: Map<Protocol.Target.TargetID, Target> = new Map();
 
-  constructor(targetInfo: Protocol.Target.TargetInfo, session: CDPSession, parentTarget: Target | undefined) {
-    this._session = session;
-    this._cdp = session.cdp();
+  constructor(targetInfo: Protocol.Target.TargetInfo, cdp: ProtocolProxyApi.ProtocolApi, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+    this._cdp = cdp;
     this._parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this);
     this._updateFromInfo(targetInfo);
+    this._ondispose = ondispose;
   }
 
   thread(): Thread | undefined {
@@ -185,6 +185,7 @@ export class Target {
   async _dispose() {
     if (this._thread)
       await this._thread.dispose();
+    this._ondispose(this);
   }
 
   _visit(visitor: (t: Target) => void) {

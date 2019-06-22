@@ -34,7 +34,7 @@ interface ProtocolCallback {
   method: string;
 }
 
-export const SessionEvents = {
+export const ConnectionEvents = {
   Disconnected: Symbol('Disconnected')
 }
 
@@ -57,12 +57,12 @@ export class Connection extends EventEmitter {
     this._sessions.set('', this._browserSession);
   }
 
-  browserSession(): CDPSession {
-    return this._browserSession;
+  browser(): ProtocolProxyApi.ProtocolApi {
+    return this._browserSession.cdp();
   }
 
-  session(sessionId: string): CDPSession {
-    return this._sessions.get(sessionId);
+  session(sessionId: string): ProtocolProxyApi.ProtocolApi {
+    return this._sessions.get(sessionId).cdp();
   }
 
   _send(method: string, params: object | undefined = {}, sessionId: string): number {
@@ -96,6 +96,7 @@ export class Connection extends EventEmitter {
     for (const session of this._sessions.values())
       session._onClose();
     this._sessions.clear();
+    this.emit(ConnectionEvents.Disconnected);
   }
 
   dispose() {
@@ -103,13 +104,16 @@ export class Connection extends EventEmitter {
     this._transport.close();
   }
 
-  createSession(sessionId: Protocol.Target.SessionID): CDPSession {
+  createSession(sessionId: Protocol.Target.SessionID): ProtocolProxyApi.ProtocolApi {
     const session = new CDPSession(this, sessionId);
     this._sessions.set(sessionId, session);
-    return session;
+    return session.cdp();
   }
 
-  _disposeSession(session: CDPSession) {
+  disposeSession(sessionId: Protocol.Target.SessionID) {
+    const session = this._sessions.get(sessionId);
+    if (!session)
+      return;
     session._onClose();
     this._sessions.delete(session.sessionId());
   }
@@ -188,11 +192,6 @@ export class CDPSession extends EventEmitter {
     }
   }
 
-  dispose() {
-    if (this._connection)
-      this._connection._disposeSession(this);
-  }
-
   async detach() {
     if (!this._connection)
       throw new Error(`Session already detached. Most likely the target has been closed.`);
@@ -210,6 +209,5 @@ export class CDPSession extends EventEmitter {
     }
     this._callbacks.clear();
     this._connection = null;
-    this.emit(SessionEvents.Disconnected);
   }
 }
