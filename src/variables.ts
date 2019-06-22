@@ -8,12 +8,35 @@ export function previewRemoteObject(object: Protocol.Runtime.RemoteObject, conte
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description);
-  return renderPreview(object.preview) || object.description;
+  return object.preview ? renderPreview(object.preview, context) : object.description;
+}
+
+export function briefPreviewRemoteObject(object: Protocol.Runtime.RemoteObject, context?: string): string {
+  // Evaluating function does not produce preview object for it.
+  if (object.type === 'function')
+    return formatFunctionDescription(object.description);
+  return object.description;
+}
+
+export function propertyWeight(prop: Protocol.Runtime.PropertyDescriptor): number {
+  if (prop.name === '__proto__')
+    return 0;
+  return 100;
+}
+
+export function privatePropertyWeight(prop: Protocol.Runtime.PrivatePropertyDescriptor): number {
+  return 20;
+}
+
+export function internalPropertyWeight(prop: Protocol.Runtime.InternalPropertyDescriptor): number {
+  return 10;
 }
 
 function renderPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
   if (preview.subtype === 'array')
     return renderArrayPreview(preview, context);
+  if (preview.subtype as string === 'internal#entry')
+    return preview.description;
   if (preview.type === 'object')
     return renderObjectPreview(preview, context);
   if (preview.type === 'function')
