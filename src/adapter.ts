@@ -269,8 +269,14 @@ export class Adapter implements DAP.Adapter {
       ownProperties: true,
       generatePreview: true
     });
-    const properties = response.result;
-    return Promise.all(properties.map(p => this._createVariable(p.name, p.value)));
+    const properties = [];
+    for (const p of response.result)
+      properties.push(this._createVariable(p.name, p.value));
+    for (const p of (response.privateProperties || []))
+      properties.push(this._createVariable(p.name, p.value));
+    // for (const p of (response.internalProperties || []))
+    //   properties.push(this._createVariable(p.name, p.value));
+    return Promise.all(properties);
   }
 
   async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
@@ -346,7 +352,7 @@ export class Adapter implements DAP.Adapter {
   async _createPrimitiveVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
     return {
       name,
-      value: variables.generatePrimitivePreview(value, context),
+      value: variables.previewRemoteObject(value, context),
       type: value.type,
       variablesReference: 0
     };
@@ -356,7 +362,7 @@ export class Adapter implements DAP.Adapter {
     const variablesReference = this._createVariableReference(value);
     return {
       name,
-      value: name === '__proto__' && value.description === 'Object' ? value.description : variables.generateObjectPreview(value, context),
+      value: name === '__proto__' && value.description === 'Object' ? value.description : variables.previewRemoteObject(value, context),
       type: value.className || value.subtype || value.type,
       variablesReference
     };
@@ -376,7 +382,7 @@ export class Adapter implements DAP.Adapter {
 
     return {
       name,
-      value: variables.generateArrayPreview(value, context),
+      value: variables.previewRemoteObject(value, context),
       type: value.className || value.subtype || value.type,
       variablesReference,
       indexedVariables
