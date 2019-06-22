@@ -10,7 +10,7 @@ import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import {Script, Thread, ThreadEvents} from './thread';
-import * as variables from './variables';
+import {VariableStore} from './variableStore';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 let stackId = 0;
@@ -24,9 +24,7 @@ export class Adapter implements DAP.Adapter {
   private _mainTarget: Target;
   private _threads: Map<number, Thread> = new Map();
   private _scripts: Map<number, Script> = new Map();
-  private _lastVariableReference: number = 0;
-  private _variableToObject: Map<number, Protocol.Runtime.RemoteObject> = new Map();
-  private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
+  private _variableStore = new VariableStore();
 
   constructor(dap: DAP.Connection) {
     this._dap = dap;
@@ -250,155 +248,7 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
-    const object = this._variableToObject.get(params.variablesReference);
-    if (object.subtype === 'array') {
-      if (params.filter === 'indexed')
-        return this._getArraySlots(params, object);
-      if (params.filter === 'named')
-        return this._getArrayProperties(params, object);
-      const indexes = await this._getArrayProperties(params, object);
-      const names = await this._getArraySlots(params, object);
-      return names.concat(indexes);
-    }
-    return this._getObjectProperties(object);
-  }
-
-  async _getObjectProperties(object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const response = await this._mainTarget.cdp().Runtime.getProperties({
-      objectId: object.objectId,
-      ownProperties: true,
-      generatePreview: true
-    });
-    const properties: Promise<DebugProtocol.Variable>[] = [];
-    const weight: Map<string, number> = new Map();
-    for (const p of response.result) {
-      properties.push(this._createVariable(p.name, p.value));
-      weight.set(p.name, variables.propertyWeight(p));
-    }
-    for (const p of (response.privateProperties || [])) {
-      properties.push(this._createVariable(p.name, p.value));
-      weight.set(p.name, variables.privatePropertyWeight(p));
-    }
-    for (const p of (response.internalProperties || [])) {
-      properties.push(this._createVariable(p.name, p.value));
-      weight.set(p.name, variables.internalPropertyWeight(p));
-    }
-    const result = await Promise.all(properties);
-    result.sort((a, b) => {
-      const delta = weight.get(b.name) - weight.get(a.name);
-      return delta ? delta : a.name.localeCompare(b.name);
-    });
-    return result;
-  }
-
-  async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
-      objectId: object.objectId,
-      functionDeclaration: `
-        function() {
-          const result = {__proto__: this.__proto__};
-          const names = Object.getOwnPropertyNames(this);
-          for (let i = 0; i < names.length; ++i) {
-            const name = names[i];
-            // Array index check according to the ES5-15.4.
-            if (String(name >>> 0) === name && name >>> 0 !== 0xffffffff)
-              continue;
-            const descriptor = Object.getOwnPropertyDescriptor(this, name);
-            if (descriptor)
-              Object.defineProperty(result, name, descriptor);
-          }
-          return result;
-        }`,
-      generatePreview: true
-    });
-    return this._getObjectProperties(response.result);
-  }
-
-  async _getArraySlots(params: DebugProtocol.VariablesArguments, object: Protocol.Runtime.RemoteObject): Promise<DebugProtocol.Variable[]> {
-    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
-      objectId: object.objectId,
-      functionDeclaration: `
-        function(start, count) {
-          const result = {};
-          for (let i = start; i < start + count; ++i) {
-            const descriptor = Object.getOwnPropertyDescriptor(this, i);
-            if (descriptor)
-              Object.defineProperty(result, i, descriptor);
-            else
-              result[i] = undefined;
-          }
-          return result;
-        }
-      `,
-      generatePreview: true,
-      arguments: [ { value: params.start }, { value: params.count } ]
-    });
-    const result = (await this._getObjectProperties(response.result)).filter(p => p.name !== '__proto__');
-    return result;
-  }
-
-  _createVariableReference(object: Protocol.Runtime.RemoteObject): number {
-    const reference = ++this._lastVariableReference;
-    this._variableToObject.set(reference, object);
-    this._objectToVariable.set(object.objectId, reference);
-    return reference;
-  }
-
-  async _createVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
-    if (!value) {
-      // TODO(pfeldman): implement getters / setters
-      return {
-        name,
-        value: '',
-        variablesReference: 0
-      };
-    }
-
-    if (value.subtype === 'array')
-      return this._createArrayVariable(name, value, context);
-    if (value.objectId)
-      return this._createObjectVariable(name, value, context);
-    return this._createPrimitiveVariable(name, value, context);
-  }
-
-  async _createPrimitiveVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
-    return {
-      name,
-      value: variables.previewRemoteObject(value, context),
-      type: value.type,
-      variablesReference: 0
-    };
-  }
-
-  async _createObjectVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
-    const variablesReference = this._createVariableReference(value);
-    return {
-      name,
-      value: name === '__proto__' ? variables.briefPreviewRemoteObject(value, context) : variables.previewRemoteObject(value, context),
-      type: value.className || value.subtype || value.type,
-      variablesReference
-    };
-  }
-
-  async _createArrayVariable(name: string, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
-    const variablesReference = this._createVariableReference(value);
-    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
-      objectId: value.objectId,
-      functionDeclaration: `function (prefix) {
-          return this.length;
-        }`,
-      objectGroup: 'console',
-      returnByValue: true
-    });
-    const indexedVariables = response.result.value;
-
-    return {
-      name,
-      value: variables.previewRemoteObject(value, context),
-      type: value.className || value.subtype || value.type,
-      variablesReference,
-      indexedVariables
-    };
+    return this._variableStore.getVariables(params);
   }
 
   async evaluate(args: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
@@ -410,7 +260,7 @@ export class Adapter implements DAP.Adapter {
       objectGroup: 'console',
       generatePreview: true
     });
-    const variable = await this._createVariable('', response.result, args.context);
+    const variable = await this._variableStore.createVariable(this._mainTarget.cdp(), response.result, args.context);
     return {
       result: variable.value,
       variablesReference: variable.variablesReference,
