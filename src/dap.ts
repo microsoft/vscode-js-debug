@@ -34,6 +34,7 @@ export interface GetSourceContentResult {
 
 export interface Adapter {
   initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
+  configurationDone(params: DebugProtocol.ConfigurationDoneArguments): Promise<void>;
   launch(params: LaunchParams): Promise<void>;
   getThreads(): Promise<DebugProtocol.Thread[]>;
   getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<StackTraceResult>;
@@ -152,6 +153,7 @@ class ConnectionImpl implements Connection {
    public setAdapter(adapter: Adapter): void {
     this._dispatchMap = new Map();
     this._dispatchMap.set('initialize', params => adapter.initialize(params));
+    this._dispatchMap.set('configurationDone', params => adapter.configurationDone(params));
     this._dispatchMap.set('launch', params => adapter.launch(params));
     this._dispatchMap.set('threads', async () => {
       return {threads: await adapter.getThreads()};
