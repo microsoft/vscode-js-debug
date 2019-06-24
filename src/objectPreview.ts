@@ -8,7 +8,7 @@ export function previewRemoteObject(object: Protocol.Runtime.RemoteObject, conte
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description);
-  return object.preview ? renderPreview(object.preview, context) : object.description;
+  return object.preview ? renderPreview(object.preview, context) : renderValue(object);
 }
 
 export function briefPreviewRemoteObject(object: Protocol.Runtime.RemoteObject, context?: string): string {
@@ -125,6 +125,12 @@ function renderPropertyPreview(prop: Protocol.Runtime.PropertyPreview): string {
     return '{…}';
   const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : trimEnd(prop.value, 50);
   return prop.type === 'string' ? `"${value}"` : value;
+}
+
+function renderValue(object: Protocol.Runtime.RemoteObject): string {
+  if (object.value)
+    return object.type === 'string' ? `'${object.value}'` : String(object.value);
+  return object.description;
 }
 
 function trimEnd(text: string, maxLength: number) {
