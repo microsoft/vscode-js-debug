@@ -14,7 +14,7 @@ export class SourceMap {
   static async load(url: string): Promise<SourceMap | undefined> {
     let content;
     try {
-      content = utils.fetch(url);
+      content = await utils.fetch(url);
     } catch (e) {
       return;
     }
@@ -62,6 +62,19 @@ export class SourceMap {
     });
   }
 
+  url(): string {
+    return this._url;
+  }
+
+  sourceUrls(): string[] {
+    return Array.from(this._sourceInfos.keys());
+  }
+
+  sourceContent(sourceURL: string): string | undefined {
+    const info = this._sourceInfos.get(sourceURL);
+    return info.content;
+  }
+
   _forEachSection(callback: (map: SourceMapV3, line: number, column: number) => void) {
     if (!this._json.sections) {
       callback(this._json, 0, 0);
@@ -69,19 +82,6 @@ export class SourceMap {
     }
     for (const section of this._json.sections)
       callback(section.map, section.offset.line, section.offset.column);
-  }
-
-  _baseUrl(compiledUrl: string): string {
-    return this._url.startsWith('data:') ? compiledUrl : this._url;
-  }
-
-  _sourceUrl(url: string, compiledUrl: string): string {
-    const base = this._baseUrl(compiledUrl);
-    try {
-      return new URL(url, base).href;
-    } catch (e) {
-      return url;
-    }
   }
 };
 

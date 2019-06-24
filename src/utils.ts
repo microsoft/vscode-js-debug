@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import {URL} from 'url';
+import * as path from 'path';
 
 export function fetch(url: string): Promise<string> {
   let fulfill, reject;
@@ -27,3 +28,11 @@ export function completeUrl(base: string, relative: string): string | undefined 
   } catch (e) {
   }
 };
+
+export function rebaseUrlPath(url: string, webRoot: string): string | undefined {
+  try {
+    const relative = new URL(url).pathname;
+    return path.join(webRoot, relative);
+  } catch (e) {
+  }
+}

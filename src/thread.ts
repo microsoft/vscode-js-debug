@@ -38,8 +38,8 @@ export class Thread extends EventEmitter {
     return this._threadId;
   }
 
-  toDap(): DebugProtocol.Thread {
-    return {id: this._threadId, name: this._threadName};
+  threadName(): string {
+    return this._threadName;
   }
 
   pausedDetails(): Protocol.Debugger.PausedEvent | undefined {

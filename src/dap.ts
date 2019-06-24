@@ -24,6 +24,7 @@ export interface CompletionsResult {
 
 export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
   url: string;
+  webRoot?: string;
 }
 
 export interface GetSourceContentResult {
@@ -46,6 +47,7 @@ export interface Adapter {
   restart(params: DebugProtocol.RestartArguments): Promise<void>;
   getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]>;
   getSourceContent(params: DebugProtocol.SourceArguments): Promise<GetSourceContentResult>;
+  setBreakpoints(params: DebugProtocol.SetBreakpointsArguments): Promise<DebugProtocol.Breakpoint[]>;
 }
 
 export interface DidPauseDetails {
@@ -174,6 +176,9 @@ class ConnectionImpl implements Connection {
       return {sources: await adapter.getSources(params)};
     });
     this._dispatchMap.set('source', params => adapter.getSourceContent(params));
+    this._dispatchMap.set('setBreakpoints', async params => {
+      return {breakpoints: await adapter.setBreakpoints(params)};
+    });
   }
 
   public didInitialize(): void {
