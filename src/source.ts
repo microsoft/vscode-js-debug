@@ -7,6 +7,13 @@ import * as utils from './utils';
 
 export type SourceContentGetter = () => Promise<string | undefined>;
 
+export interface Location {
+  lineNumber: number;
+  columnNumber: number;
+  url: string;
+  source?: Source;
+};
+
 export class Source {
   private static _lastSourceReference = 0;
 
@@ -59,6 +66,9 @@ export class SourceContainer extends EventEmitter {
     SourcesRemoved: Symbol('SourcesRemoved'),
   };
 
+  // TODO(dgozman): this is what create-react-app does. We should be able to auto-detect.
+  private _sourceUrlsArePaths = true;
+
   // All sources by the sourceReference.
   private _sources: Map<number, SourceData> = new Map();
   // All source maps by url.
@@ -73,6 +83,31 @@ export class SourceContainer extends EventEmitter {
   source(sourceReference: number): Source | undefined {
     const data = this._sources.get(sourceReference);
     return data && data.source;
+  }
+
+  uiLocation(rawLocation: Location): Location {
+    if (!rawLocation.source)
+      return rawLocation;
+    const compiledData = this._sources.get(rawLocation.source.sourceReference());
+    if (!compiledData.sourceMapUrl)
+      return rawLocation;
+    const map = this._sourceMaps.get(compiledData.sourceMapUrl).map;
+    if (!map)
+      return rawLocation;
+    // TODO(dgozman): account for inline scripts which have lineOffset and columnOffset.
+    const entry = map.findEntry(rawLocation.lineNumber, rawLocation.columnNumber);
+    if (!entry || !entry.sourceUrl)
+      return rawLocation;
+    const resolvedUrl = this._resolveSourceUrl(map, rawLocation.source, entry.sourceUrl);
+    const sourceData = this._sourceMapSources.get(resolvedUrl);
+    if (!sourceData)
+      return rawLocation;
+    return {
+      lineNumber: entry.sourceLineNumber,
+      columnNumber: entry.sourceColumnNumber,
+      url: resolvedUrl,
+      source: sourceData.source
+    };
   }
 
   addSource(source: Source) {
@@ -109,6 +144,7 @@ export class SourceContainer extends EventEmitter {
 
     sourceMapData = {compiled: new Set([compiled])};
     this._sourceMaps.set(url, sourceMapData);
+    // TODO(dgozman): do we need stub source while source map is loading?
     const sourceMap = await SourceMap.load(url);
     // Source map could have been detached while loading.
     if (!sourceMap || this._sourceMaps.get(url) !== sourceMapData)
@@ -120,9 +156,8 @@ export class SourceContainer extends EventEmitter {
   }
 
   _addSourceMapSources(compiled: Source, map: SourceMap) {
-    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
     for (const url of map.sourceUrls()) {
-      const resolvedUrl = utils.completeUrl(baseUrl, url) || url;
+      const resolvedUrl = this._resolveSourceUrl(map, compiled, url);
       const sourceData = this._sourceMapSources.get(resolvedUrl);
       if (sourceData) {
         sourceData.counter++;
@@ -153,9 +188,8 @@ export class SourceContainer extends EventEmitter {
 
   _removeSourceMapSources(compiled: Source, map: SourceMap): Source[] {
     const result = [];
-    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
     for (const url of map.sourceUrls()) {
-      const resolvedUrl = utils.completeUrl(baseUrl, url) || url;
+      const resolvedUrl = this._resolveSourceUrl(map, compiled, url);
       const sourceData = this._sourceMapSources.get(resolvedUrl);
       if (--sourceData.counter > 0)
         continue;
@@ -166,5 +200,12 @@ export class SourceContainer extends EventEmitter {
       result.push(sourceData.source);
     }
     return result;
+  }
+
+  _resolveSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
+    if (this._sourceUrlsArePaths)
+      sourceUrl = 'file://' + sourceUrl;
+    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
+    return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
   }
 };
