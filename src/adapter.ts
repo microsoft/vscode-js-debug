@@ -10,12 +10,29 @@ import Protocol from 'devtools-protocol';
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
+import * as utils from './utils';
+import * as path from 'path';
 import {Thread, ThreadEvents} from './thread';
 import {VariableStore} from './variableStore';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import {Source, SourceContainer} from './source';
 
 let stackId = 0;
+
+interface Location {
+  lineNumber: number;
+  columnNumber: number;
+  url: string;
+  scriptId?: string;
+  thread?: Thread;
+};
+
+interface ResolvedLocation {
+  lineNumber: number;
+  columnNumber: number;
+  url: string;
+  source?: Source;
+};
 
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
@@ -140,13 +157,13 @@ export class Adapter implements DAP.Adapter {
     });
 
     const onSource = (source: Source) => {
-      this._dap.didChangeScript('new', source.toDap());
+      this._dap.didChangeScript('new', this._sourceToDap(source));
     };
     this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
     this._sourceContainer.sources().forEach(onSource);
     this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
       for (const source of sources)
-        this._dap.didChangeScript('removed', source.toDap());
+        this._dap.didChangeScript('removed', this._sourceToDap(source));
     });
 
     await this._load();
@@ -172,7 +189,7 @@ export class Adapter implements DAP.Adapter {
   async getThreads(): Promise<DebugProtocol.Thread[]> {
     const result = [];
     for (const thread of this._threads.values())
-      result.push(thread.toDap());
+      result.push({id: thread.threadId(), name: thread.threadName()});
     return result;
   }
 
@@ -190,19 +207,22 @@ export class Adapter implements DAP.Adapter {
     const result: DebugProtocol.StackFrame[] = [];
 
     for (const callFrame of details.callFrames) {
+      const location = {
+        url: callFrame.url,
+        lineNumber: callFrame.location.lineNumber,
+        columnNumber: callFrame.location.columnNumber,
+        scriptId: callFrame.location.scriptId,
+        thread: thread,
+      };
+      const resolved = this._resolveLocation(location);
       const stackFrame: DebugProtocol.StackFrame = {
         id: ++stackId,
         name: callFrame.functionName || '<anonymous>',
-        line: callFrame.location.lineNumber + 1,
-        column: (callFrame.location.columnNumber || 0) + 1,
+        line: resolved.lineNumber,
+        column: resolved.columnNumber,
+        source: this._sourceToDap(resolved.source),
         presentationHint: 'normal'
       };
-      const script = thread.scripts().get(callFrame.location.scriptId);
-      if (script) {
-        stackFrame.source = script.toDap();
-      } else {
-        stackFrame.source = {name: 'unknown'};
-      }
       result.push(stackFrame);
     }
 
@@ -225,25 +245,55 @@ export class Adapter implements DAP.Adapter {
       });
 
       for (const callFrame of asyncParent.callFrames) {
+        const location = {
+          url: callFrame.url,
+          lineNumber: callFrame.lineNumber,
+          columnNumber: callFrame.columnNumber,
+          scriptId: callFrame.scriptId,
+          thread: thread,
+        };
+        const resolved = this._resolveLocation(location);
         const stackFrame: DebugProtocol.StackFrame = {
           id: ++stackId,
           name: callFrame.functionName || '<anonymous>',
-          line: callFrame.lineNumber + 1,
-          column: (callFrame.columnNumber || 0) + 1,
+          line: resolved.lineNumber,
+          column: resolved.columnNumber,
+          source: this._sourceToDap(resolved.source),
           presentationHint: 'normal'
         };
-        const script = thread.scripts().get(callFrame.scriptId);
-        if (script) {
-          stackFrame.source = script.toDap();
-        } else {
-          stackFrame.source = {name: callFrame.url};
-        }
         result.push(stackFrame);
       }
       asyncParent = asyncParent.parent;
     }
 
     return {stackFrames: result, totalFrames: result.length};
+  }
+
+  _resolveLocation(location: Location): ResolvedLocation {
+    const script = location.thread && location.scriptId ? location.thread.scripts().get(location.scriptId) : undefined;
+    return {
+      lineNumber: location.lineNumber + 1,
+      columnNumber: location.columnNumber + 1,
+      url: script.url() || location.url,
+      source: script
+    };
+  }
+
+  _sourceToDap(source: Source | undefined): DebugProtocol.Source {
+    if (!source)
+      return {name: 'unknown'};
+
+    let rebased: string | undefined;
+    if (source.url() && this._launchParams && this._launchParams.webRoot)
+      rebased = utils.rebaseUrlPath(source.url(), this._launchParams.webRoot);
+    if (this._launchParams && this._launchParams.webRoot === rebased || path.join(this._launchParams.webRoot, '/') === rebased)
+      rebased = path.join(this._launchParams.webRoot, 'index.html');
+    return {
+      name: path.basename(rebased || source.url() || '') || '<anonymous>',
+      path: rebased,
+      sourceReference: rebased ? 0 : source.sourceReference(),
+      presentationHint: 'normal'
+    };
   }
 
   async getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]> {
@@ -303,7 +353,7 @@ export class Adapter implements DAP.Adapter {
   }
 
   async getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
-    return this._sourceContainer.sources().map(source => source.toDap());
+    return this._sourceContainer.sources().map(source => this._sourceToDap(source));
   }
 
   async getSourceContent(params: DebugProtocol.SourceArguments): Promise<DAP.GetSourceContentResult> {
@@ -311,5 +361,9 @@ export class Adapter implements DAP.Adapter {
     if (!source)
       return {content: '', mimeType: 'text/javascript'};
     return {content: await source.content(), mimeType: source.mimeType()};
+  }
+
+  async setBreakpoints(params: DebugProtocol.SetBreakpointsArguments): Promise<DebugProtocol.Breakpoint[]> {
+    return [];
   }
 }
