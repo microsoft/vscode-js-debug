@@ -27,7 +27,7 @@ export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
   url: string;
 }
 
-export interface GetScriptSourceResult {
+export interface GetSourceContentResult {
   content: string;
   mimeType?: string;
 }
@@ -45,8 +45,8 @@ export interface Adapter {
   terminate(params: DebugProtocol.TerminateArguments): Promise<void>;
   disconnect(params: DebugProtocol.DisconnectArguments): Promise<void>;
   restart(params: DebugProtocol.RestartArguments): Promise<void>;
-  getScripts(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]>;
-  getScriptSource(params: DebugProtocol.SourceArguments): Promise<GetScriptSourceResult>;
+  getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]>;
+  getSourceContent(params: DebugProtocol.SourceArguments): Promise<GetSourceContentResult>;
 }
 
 export interface DidPauseDetails {
@@ -172,9 +172,9 @@ class ConnectionImpl implements Connection {
     this._dispatchMap.set('disconnect', params => adapter.disconnect(params));
     this._dispatchMap.set('restart', params => adapter.restart(params));
     this._dispatchMap.set('loadedSources', async params => {
-      return {sources: await adapter.getScripts(params)};
+      return {sources: await adapter.getSources(params)};
     });
-    this._dispatchMap.set('source', params => adapter.getScriptSource(params));
+    this._dispatchMap.set('source', params => adapter.getSourceContent(params));
   }
 
   public didInitialize(): void {

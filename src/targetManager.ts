@@ -10,6 +10,7 @@ import { URL } from 'url';
 import { EventEmitter } from 'events';
 import {Thread} from './thread';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import {SourceContainer} from './source';
 const debugTarget = debug('target');
 
 export const TargetEvents = {
@@ -21,10 +22,12 @@ export class TargetManager extends EventEmitter {
   private _connection: Connection;
   private _targets: Map<Protocol.Target.TargetID, Target> = new Map();
   private _browser: ProtocolProxyApi.ProtocolApi;
+  private _sourceContainer: SourceContainer;
 
-  constructor(connection: Connection) {
+  constructor(connection: Connection, sourceContainer: SourceContainer) {
     super();
     this._connection = connection;
+    this._sourceContainer = sourceContainer;
     this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
@@ -60,7 +63,7 @@ export class TargetManager extends EventEmitter {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new Target(targetInfo, cdp, parentTarget, target => {
+    const target = new Target(targetInfo, cdp, parentTarget, this._sourceContainer, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -123,14 +126,16 @@ export class Target {
   private _cdp: ProtocolProxyApi.ProtocolApi;
   private _thread: Thread | undefined;
   private _targetInfo: Protocol.Target.TargetInfo;
+  private _sourceContainer: SourceContainer;
   private _ondispose: (t:Target) => void;
 
   _parentTarget?: Target;
   _children: Map<Protocol.Target.TargetID, Target> = new Map();
 
-  constructor(targetInfo: Protocol.Target.TargetInfo, cdp: ProtocolProxyApi.ProtocolApi, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+  constructor(targetInfo: Protocol.Target.TargetInfo, cdp: ProtocolProxyApi.ProtocolApi, parentTarget: Target | undefined, sourceContainer: SourceContainer, ondispose: (t:Target) => void) {
     this._cdp = cdp;
     this._parentTarget = parentTarget;
+    this._sourceContainer = sourceContainer;
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this);
     this._updateFromInfo(targetInfo);
@@ -143,6 +148,14 @@ export class Target {
 
   cdp(): ProtocolProxyApi.ProtocolApi {
     return this._cdp;
+  }
+
+  url(): string {
+    return this._targetInfo.url;
+  }
+
+  sourceContainer(): SourceContainer {
+    return this._sourceContainer;
   }
 
   async _initialize(waitingForDebugger: boolean) {

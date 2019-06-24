@@ -7,6 +7,8 @@ import * as debug from 'debug';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import Protocol from 'devtools-protocol';
 import {EventEmitter} from 'events';
+import {Source} from './source';
+import * as utils from './utils';
 
 const debugThread = debug('thread');
 
@@ -14,46 +16,7 @@ export const ThreadEvents = {
   ThreadNameChanged: Symbol('ThreadNameChanged'),
   ThreadPaused: Symbol('ThreadPaused'),
   ThreadResumed: Symbol('ThreadResumed'),
-  ScriptAdded: Symbol('ScriptAdded'),
-  ScriptsRemoved: Symbol('ScriptsRemoved'),
 };
-
-export class Script {
-  private static _lastSourceReference = 0;
-
-  private _thread: Thread;
-  private _event: Protocol.Debugger.ScriptParsedEvent;
-  private _sourceReference: number;
-  private _source?: string;
-
-  constructor(thread: Thread, event: Protocol.Debugger.ScriptParsedEvent) {
-    this._thread = thread;
-    this._event = event;
-    this._sourceReference = ++Script._lastSourceReference;
-  }
-
-  sourceReference(): number {
-    return this._sourceReference;
-  }
-
-  toDap(): DebugProtocol.Source {
-    return {
-      name: this._event.url,
-      sourceReference: this._sourceReference,
-      presentationHint: 'normal'
-    };
-  }
-
-  async source() {
-    if (this._source === undefined) {
-      const response = await this._thread._target.cdp().Debugger.getScriptSource({
-        scriptId: this._event.scriptId
-      });
-      this._source = response.scriptSource;
-    }
-    return this._source;
-  }
-}
 
 export class Thread extends EventEmitter {
   private static _lastThreadId: number = 0;
@@ -62,7 +25,7 @@ export class Thread extends EventEmitter {
   private _threadId: number;
   private _threadName: string;
   private _pausedDetails?: Protocol.Debugger.PausedEvent;
-  private _scripts: Map<string, Script> = new Map();
+  private _scripts: Map<string, Source> = new Map();
 
   constructor(target: Target) {
     super();
@@ -84,7 +47,7 @@ export class Thread extends EventEmitter {
     return this._pausedDetails;
   }
 
-  scripts(): Map<string, Script> {
+  scripts(): Map<string, Source> {
     return this._scripts;
   }
 
@@ -104,12 +67,7 @@ export class Thread extends EventEmitter {
       this._pausedDetails = null;
       this.emit(ThreadEvents.ThreadResumed, this);
     });
-    cdp.Debugger.on('scriptParsed', (event: Protocol.Debugger.ScriptParsedEvent) => {
-      const script = new Script(this, event);
-      console.assert(!this._scripts.has(event.scriptId));
-      this._scripts.set(event.scriptId, script);
-      this.emit(ThreadEvents.ScriptAdded, script);
-    });
+    cdp.Debugger.on('scriptParsed', (event: Protocol.Debugger.ScriptParsedEvent) => this._onScriptParsed(event));
     await cdp.Debugger.enable({});
   }
 
@@ -127,6 +85,23 @@ export class Thread extends EventEmitter {
   _reset() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
-    this.emit(ThreadEvents.ScriptsRemoved, scripts);
+    this._target.sourceContainer().removeSources(...scripts);
   }
-}
+
+  _onScriptParsed(event: Protocol.Debugger.ScriptParsedEvent) {
+    const readableUrl = event.url || `VM${event.scriptId}`;
+    const source = Source.createWithContentGetter(readableUrl, async () => {
+      const response = await this._target.cdp().Debugger.getScriptSource({scriptId: event.scriptId});
+      return response.scriptSource;
+    });
+    this._scripts.set(event.scriptId, source);
+    this._target.sourceContainer().addSource(source);
+    if (event.sourceMapURL) {
+      // TODO(dgozman): reload source map when target url changes.
+      const resolvedSourceUrl = utils.completeUrl(this._target.url(), event.url);
+      const resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+      if (resolvedSourceMapUrl)
+        this._target.sourceContainer().attachSourceMap(source, resolvedSourceMapUrl);
+    }
+  }
+};

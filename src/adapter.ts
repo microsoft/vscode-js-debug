@@ -10,21 +10,22 @@ import Protocol from 'devtools-protocol';
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
-import {Script, Thread, ThreadEvents} from './thread';
+import {Thread, ThreadEvents} from './thread';
 import {VariableStore} from './variableStore';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import {Source, SourceContainer} from './source';
 
 let stackId = 0;
 
 export class Adapter implements DAP.Adapter {
   private _dap: DAP.Connection;
   private _browser: ProtocolProxyApi.ProtocolApi;
+  private _sourceContainer: SourceContainer;
   private _targetManager: TargetManager;
   private _launchParams: DAP.LaunchParams;
 
   private _mainTarget: Target;
   private _threads: Map<number, Thread> = new Map();
-  private _scripts: Map<number, Script> = new Map();
   private _variableStore = new VariableStore();
 
   constructor(dap: DAP.Connection) {
@@ -44,7 +45,8 @@ export class Adapter implements DAP.Adapter {
         pipe: true,
       });
 
-    this._targetManager = new TargetManager(connection);
+    this._sourceContainer = new SourceContainer();
+    this._targetManager = new TargetManager(connection, this._sourceContainer);
     this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
       if (target.thread())
         this._onThreadCreated(target.thread());
@@ -53,6 +55,7 @@ export class Adapter implements DAP.Adapter {
       if (target.thread())
         this._onThreadDestroyed(target.thread());
     });
+    this._browser = connection.browser();
 
     connection.on(CDP.ConnectionEvents.Disconnected, () => this._dap.didExit(0));
 
@@ -117,18 +120,6 @@ export class Adapter implements DAP.Adapter {
     thread.on(ThreadEvents.ThreadResumed, () => {
       this._dap.didResume(thread.threadId());
     });
-
-    const onScriptParsed = (script: Script) => {
-      this._scripts.set(script.sourceReference(), script);
-      this._dap.didChangeScript('new', script.toDap());
-    };
-    thread.on(ThreadEvents.ScriptAdded, onScriptParsed);
-    for (const script of thread.scripts().values())
-      onScriptParsed(script);
-    thread.on(ThreadEvents.ScriptsRemoved, (scripts: Script[]) => {
-      for (const script of scripts)
-        this._dap.didChangeScript('removed', script.toDap());
-    });
   }
 
   _onThreadDestroyed(thread: Thread): void {
@@ -147,6 +138,17 @@ export class Adapter implements DAP.Adapter {
         this._dap.didTerminate();
       }
     });
+
+    const onSource = (source: Source) => {
+      this._dap.didChangeScript('new', source.toDap());
+    };
+    this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
+    this._sourceContainer.sources().forEach(onSource);
+    this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
+      for (const source of sources)
+        this._dap.didChangeScript('removed', source.toDap());
+    });
+
     await this._load();
   }
 
@@ -300,19 +302,14 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
-  async getScripts(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
-    const sources = [];
-    for (const thread of this._threads.values()) {
-      for (const script of thread.scripts().values())
-        sources.push(script.toDap());
-    }
-    return sources;
+  async getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
+    return this._sourceContainer.sources().map(source => source.toDap());
   }
 
-  async getScriptSource(params: DebugProtocol.SourceArguments): Promise<DAP.GetScriptSourceResult> {
-    const script = this._scripts.get(params.sourceReference);
-    if (!script)
+  async getSourceContent(params: DebugProtocol.SourceArguments): Promise<DAP.GetSourceContentResult> {
+    const source = this._sourceContainer.source(params.sourceReference);
+    if (!source)
       return {content: '', mimeType: 'text/javascript'};
-    return {content: await script.source(), mimeType: 'text/javascript'};
+    return {content: await source.content(), mimeType: source.mimeType()};
   }
 }
