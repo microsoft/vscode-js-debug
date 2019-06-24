@@ -4,7 +4,6 @@
 
 import {Target} from './targetManager';
 import * as debug from 'debug';
-import {DebugProtocol} from 'vscode-debugprotocol';
 import Protocol from 'devtools-protocol';
 import {EventEmitter} from 'events';
 import {Source} from './source';

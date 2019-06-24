@@ -10,7 +10,7 @@ import Protocol from 'devtools-protocol';
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
 import * as launcher from './launcher';
-import * as utils from './utils';
+import {URL} from 'url';
 import * as path from 'path';
 import * as completionz from './completions';
 import {Thread, ThreadEvents} from './thread';
@@ -208,20 +208,18 @@ export class Adapter implements DAP.Adapter {
     const result: DebugProtocol.StackFrame[] = [];
 
     for (const callFrame of details.callFrames) {
-      const location = {
+      const location = this._sourceContainer.uiLocation({
         url: callFrame.url,
         lineNumber: callFrame.location.lineNumber,
         columnNumber: callFrame.location.columnNumber,
-        scriptId: callFrame.location.scriptId,
-        thread: thread,
-      };
-      const resolved = this._resolveLocation(location);
+        source: thread.scripts().get(callFrame.location.scriptId)
+      });
       const stackFrame: DebugProtocol.StackFrame = {
         id: ++stackId,
         name: callFrame.functionName || '<anonymous>',
-        line: resolved.lineNumber,
-        column: resolved.columnNumber,
-        source: this._sourceToDap(resolved.source),
+        line: location.lineNumber + 1,
+        column: location.columnNumber + 1,
+        source: this._sourceToDap(location.source),
         presentationHint: 'normal'
       };
       result.push(stackFrame);
@@ -246,20 +244,18 @@ export class Adapter implements DAP.Adapter {
       });
 
       for (const callFrame of asyncParent.callFrames) {
-        const location = {
+        const location = this._sourceContainer.uiLocation({
           url: callFrame.url,
           lineNumber: callFrame.lineNumber,
           columnNumber: callFrame.columnNumber,
-          scriptId: callFrame.scriptId,
-          thread: thread,
-        };
-        const resolved = this._resolveLocation(location);
+          source: thread.scripts().get(callFrame.scriptId)
+        });
         const stackFrame: DebugProtocol.StackFrame = {
           id: ++stackId,
           name: callFrame.functionName || '<anonymous>',
-          line: resolved.lineNumber,
-          column: resolved.columnNumber,
-          source: this._sourceToDap(resolved.source),
+          line: location.lineNumber + 1,
+          column: location.columnNumber + 1,
+          source: this._sourceToDap(location.source),
           presentationHint: 'normal'
         };
         result.push(stackFrame);
@@ -270,25 +266,25 @@ export class Adapter implements DAP.Adapter {
     return {stackFrames: result, totalFrames: result.length};
   }
 
-  _resolveLocation(location: Location): ResolvedLocation {
-    const script = location.thread && location.scriptId ? location.thread.scripts().get(location.scriptId) : undefined;
-    return {
-      lineNumber: location.lineNumber + 1,
-      columnNumber: location.columnNumber + 1,
-      url: script.url() || location.url,
-      source: script
-    };
-  }
-
   _sourceToDap(source: Source | undefined): DebugProtocol.Source {
     if (!source)
       return {name: 'unknown'};
 
     let rebased: string | undefined;
-    if (source.url() && this._launchParams && this._launchParams.webRoot)
-      rebased = utils.rebaseUrlPath(source.url(), this._launchParams.webRoot);
-    if (this._launchParams && this._launchParams.webRoot === rebased || path.join(this._launchParams.webRoot, '/') === rebased)
-      rebased = path.join(this._launchParams.webRoot, 'index.html');
+    const url = source.url();
+    if (url && url.startsWith('file://')) {
+      rebased = url.substring(7);
+      // TODO(dgozman): what if absolute file url does not belong to webRoot?
+    } else if (url && this._launchParams && this._launchParams.webRoot) {
+      try {
+        let relative = new URL(url).pathname;
+        if (relative === '' || relative === '/')
+          relative = 'index.html';
+        rebased = path.join(this._launchParams.webRoot, relative);
+      } catch (e) {
+      }
+    }
+    // TODO(dgozman): can we check whether the path exists? Search for another match? Provide source fallback?
     return {
       name: path.basename(rebased || source.url() || '') || '<anonymous>',
       path: rebased,
