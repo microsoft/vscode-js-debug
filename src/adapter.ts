@@ -11,6 +11,7 @@ import {findChrome} from './findChrome';
 import * as launcher from './launcher';
 import * as utils from './utils';
 import * as path from 'path';
+import * as completionz from './completions';
 import {Thread, ThreadEvents} from './thread';
 import {VariableStore} from './variableStore';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
@@ -324,28 +325,9 @@ export class Adapter implements DAP.Adapter {
   async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
     if (!this._mainTarget)
       return {targets: []};
-    const global = await this._mainTarget.cdp().Runtime.evaluate({expression: 'self'});
-    if (!global)
-      return {targets: []};
-
-    const callArg: Protocol.Runtime.CallArgument = {
-      value: params.text
-    };
-    const response = await this._mainTarget.cdp().Runtime.callFunctionOn({
-      objectId: global.result.objectId,
-      functionDeclaration: `function (prefix) {
-          return Object.getOwnPropertyNames(this).filter(l => l.startsWith(prefix));
-        }`,
-      objectGroup: 'console',
-      arguments: [callArg],
-      returnByValue: true
-    });
-    if (!response)
-      return {targets: []};
-
-    const completions = response.result.value as string[];
+    const result = await completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column);
     return {
-      targets: completions.map(label => {
+      targets: result.map(label => {
         return {label};
       })
     };
