@@ -50,7 +50,7 @@ export class Adapter implements DAP.Adapter {
     dap.setAdapter(this);
   }
 
-  public async initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities> {
+  async initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
@@ -84,7 +84,7 @@ export class Adapter implements DAP.Adapter {
 
     this._dap.didInitialize();
     return {
-      supportsConfigurationDoneRequest: false,
+      supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
       supportsConditionalBreakpoints: false,
       supportsHitConditionalBreakpoints: false,
@@ -116,6 +116,27 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
+  async configurationDone(params: DebugProtocol.ConfigurationDoneArguments): Promise<void> {
+    this._mainTarget = this._targetManager.mainTarget();
+    if (!this._mainTarget)
+      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
+    this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
+      if (target === this._mainTarget) {
+        this._dap.didTerminate();
+      }
+    });
+
+    const onSource = (source: Source) => {
+      this._dap.didChangeScript('new', this._sourceToDap(source));
+    };
+    this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
+    this._sourceContainer.sources().forEach(onSource);
+    this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
+      for (const source of sources)
+        this._dap.didChangeScript('removed', this._sourceToDap(source));
+    });
+  }
+
   _onThreadCreated(thread: Thread): void {
     console.assert(!this._threads.has(thread.threadId()));
     this._threads.set(thread.threadId(), thread);
@@ -145,45 +166,24 @@ export class Adapter implements DAP.Adapter {
   }
 
   async launch(params: DAP.LaunchParams): Promise<void> {
+    if (!this._mainTarget)
+      await this.configurationDone({});
+
     // params.noDebug
     this._launchParams = params;
-    this._mainTarget = this._targetManager.mainTarget();
-    if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
-    this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
-      if (target === this._mainTarget) {
-        this._dap.didTerminate();
-      }
-    });
-
-    const onSource = (source: Source) => {
-      this._dap.didChangeScript('new', this._sourceToDap(source));
-    };
-    this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
-    this._sourceContainer.sources().forEach(onSource);
-    this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
-      for (const source of sources)
-        this._dap.didChangeScript('removed', this._sourceToDap(source));
-    });
-
-    await this._load();
+    this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
   }
 
   async terminate(params: DebugProtocol.TerminateArguments): Promise<void> {
+    this._mainTarget.cdp().Page.navigate({url: 'about:blank'});
   }
 
   async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
     this._browser.Browser.close();
   }
 
-  async _load(): Promise<void> {
-    if (this._mainTarget && this._launchParams) {
-      await this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
-    }
-  }
-
   async restart(params: DebugProtocol.RestartArguments): Promise<void> {
-    this._load();
+    this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
   }
 
   async getThreads(): Promise<DebugProtocol.Thread[]> {
