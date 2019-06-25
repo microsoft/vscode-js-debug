@@ -35,7 +35,6 @@
     "publish": "vsce publish"
   },
   "dependencies": {
-    "vscode-debugadapter": "1.33.0",
     "ws": "^7.0.1"
   },
   "devDependencies": {
@@ -46,7 +45,8 @@
     "tslint": "5.11.0",
     "typescript": "^3.1.6",
     "vsce": "1.53.2",
-    "vscode": "1.1.21"
+    "vscode": "1.1.21",
+    "vscode-debugprotocol": "^1.35.0"
   },
   "main": "./out/extension",
   "activationEvents": [
