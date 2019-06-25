@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as DAP from './dap';
+import Dap from './dap/api';
 import * as CDP from './connection';
 
 import {Target, TargetManager, TargetEvents} from './targetManager';
@@ -16,7 +16,6 @@ import * as objectPreview from './objectPreview';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import Protocol from 'devtools-protocol';
 import {Source, SourceContainer} from './source';
-import Dap from '../dap';
 
 let stackId = 0;
 
@@ -26,7 +25,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 }
 
 export class Adapter {
-  private _dap: Dap.DapProxyApi;
+  private _dap: Dap.Api;
   private _browser: ProtocolProxyApi.ProtocolApi;
   private _sourceContainer: SourceContainer;
   private _targetManager: TargetManager;
@@ -36,8 +35,8 @@ export class Adapter {
   private _threads: Map<number, Thread> = new Map();
   private _variableStore = new VariableStore();
 
-  constructor(dap: DAP.Connection) {
-    this._dap = dap.dap();
+  constructor(dap: Dap.Api) {
+    this._dap = dap;
     this._dap.on('initialize', params => this._onInitialize(params));
     this._dap.on('configurationDone', params => this._onConfigurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
@@ -54,7 +53,6 @@ export class Adapter {
     this._dap.on('loadedSources', params => this._onLoadedSources(params));
     this._dap.on('source', params => this._onSource(params));
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
-    //dap.setAdapter(this);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult> {

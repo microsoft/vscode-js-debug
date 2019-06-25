@@ -100,7 +100,7 @@ async function generate() {
 
   interfaceSeparator();
   result.push(
-    `  export interface DapProxyApi {`,
+    `  export interface Api {`,
   );
   const apiSeparator = createSeparator();
   for (const name in defs) {
@@ -171,7 +171,7 @@ async function generate() {
     ``,
   );
 
-  const fileName = path.join(__dirname, '../dap.d.ts');
+  const fileName = path.join(__dirname, '../src/dap/api.d.ts');
   fs.writeFileSync(fileName, result.join('\n'));
 }
 
