@@ -3,7 +3,6 @@
 
 import * as DAP from './dap';
 import * as CDP from './connection';
-import {DebugProtocol} from 'vscode-debugprotocol';
 
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
@@ -21,27 +20,17 @@ import Dap from '../dap';
 
 let stackId = 0;
 
-interface Location {
-  lineNumber: number;
-  columnNumber: number;
+export interface LaunchParams extends Dap.LaunchParams {
   url: string;
-  scriptId?: string;
-  thread?: Thread;
-};
+  webRoot?: string;
+}
 
-interface ResolvedLocation {
-  lineNumber: number;
-  columnNumber: number;
-  url: string;
-  source?: Source;
-};
-
-export class Adapter implements DAP.Adapter {
+export class Adapter {
   private _dap: Dap.DapProxyApi;
   private _browser: ProtocolProxyApi.ProtocolApi;
   private _sourceContainer: SourceContainer;
   private _targetManager: TargetManager;
-  private _launchParams: DAP.LaunchParams;
+  private _launchParams: LaunchParams;
 
   private _mainTarget: Target;
   private _threads: Map<number, Thread> = new Map();
@@ -49,10 +38,26 @@ export class Adapter implements DAP.Adapter {
 
   constructor(dap: DAP.Connection) {
     this._dap = dap.dap();
-    dap.setAdapter(this);
+    this._dap.on('initialize', params => this._onInitialize(params));
+    this._dap.on('configurationDone', params => this._onConfigurationDone(params));
+    this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
+    this._dap.on('terminate', params => this._onTerminate(params));
+    this._dap.on('disconnect', params => this._onDisconnect(params));
+    this._dap.on('restart', params => this._onRestart(params));
+    this._dap.on('threads', params => this._onThreads(params));
+    this._dap.on('continue', params => this._onContinue(params));
+    this._dap.on('stackTrace', params => this._onStackTrace(params));
+    this._dap.on('scopes', params => this._onScopes(params));
+    this._dap.on('variables', params => this._onVariables(params));
+    this._dap.on('evaluate', params => this._onEvaluate(params));
+    this._dap.on('completions', params => this._onCompletions(params));
+    this._dap.on('loadedSources', params => this._onLoadedSources(params));
+    this._dap.on('source', params => this._onSource(params));
+    this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
+    //dap.setAdapter(this);
   }
 
-  async initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities> {
+  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
@@ -118,7 +123,7 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
-  async configurationDone(params: DebugProtocol.ConfigurationDoneArguments): Promise<void> {
+  async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
     this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
       this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
@@ -137,6 +142,7 @@ export class Adapter implements DAP.Adapter {
       for (const source of sources)
         this._dap.loadedSource({reason: 'removed', source: this._sourceToDap(source)});
     });
+    return {};
   }
 
   _onThreadCreated(thread: Thread): void {
@@ -206,49 +212,53 @@ export class Adapter implements DAP.Adapter {
       line: location ? location.lineNumber : undefined,
       column: location ? location.columnNumber : undefined,
     });
-}
+  }
 
-  async launch(params: DAP.LaunchParams): Promise<void> {
+  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult> {
     if (!this._mainTarget)
-      await this.configurationDone({});
+      await this._onConfigurationDone({});
 
     // params.noDebug
     this._launchParams = params;
     this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
+    return {};
   }
 
-  async terminate(params: DebugProtocol.TerminateArguments): Promise<void> {
+  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult> {
     this._mainTarget.cdp().Page.navigate({url: 'about:blank'});
+    return {};
   }
 
-  async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
-    if (this._browser)
-      this._browser.Browser.close();
+  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult> {
+    this._browser.Browser.close();
+    return {};
   }
 
-  async restart(params: DebugProtocol.RestartArguments): Promise<void> {
+  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult> {
     this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
+    return {};
   }
 
-  async getThreads(): Promise<DebugProtocol.Thread[]> {
-    const result = [];
+  async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult> {
+    const threads = [];
     for (const thread of this._threads.values())
-      result.push({id: thread.threadId(), name: thread.threadName()});
-    return result;
+      threads.push({id: thread.threadId(), name: thread.threadName()});
+    return {threads};
   }
 
-  async continue(params: DebugProtocol.ContinueArguments): Promise<void> {
+  async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult> {
     const thread = this._threads.get(params.threadId);
     if (thread)
       thread.resume();
+    return {allThreadsContinued: false};
   }
 
-  async getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<DAP.StackTraceResult> {
+  async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
     const thread = this._threads.get(params.threadId);
     if (!thread || !thread.pausedDetails())
       return {stackFrames: [], totalFrames: 0};
     const details = thread.pausedDetails()!;
-    const result: DebugProtocol.StackFrame[] = [];
+    const result: Dap.StackFrame[] = [];
 
     for (const callFrame of details.callFrames) {
       const location = this._sourceContainer.uiLocation({
@@ -257,7 +267,7 @@ export class Adapter implements DAP.Adapter {
         columnNumber: callFrame.location.columnNumber,
         source: thread.scripts().get(callFrame.location.scriptId)
       });
-      const stackFrame: DebugProtocol.StackFrame = {
+      const stackFrame: Dap.StackFrame = {
         id: ++stackId,
         name: callFrame.functionName || '<anonymous>',
         line: location.lineNumber + 1,
@@ -293,7 +303,7 @@ export class Adapter implements DAP.Adapter {
           columnNumber: callFrame.columnNumber,
           source: thread.scripts().get(callFrame.scriptId)
         });
-        const stackFrame: DebugProtocol.StackFrame = {
+        const stackFrame: Dap.StackFrame = {
           id: ++stackId,
           name: callFrame.functionName || '<anonymous>',
           line: location.lineNumber + 1,
@@ -309,7 +319,7 @@ export class Adapter implements DAP.Adapter {
     return {stackFrames: result, totalFrames: result.length};
   }
 
-  _sourceToDap(source: Source | undefined): DebugProtocol.Source {
+  _sourceToDap(source: Source | undefined): Dap.Source {
     if (!source)
       return {name: 'unknown'};
 
@@ -336,15 +346,15 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
-  async getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]> {
-    return [];
+  async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult> {
+    return {scopes: []};
   }
 
-  async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
-    return this._variableStore.getVariables(params);
+  async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
+    return {variables: await this._variableStore.getVariables(params)};
   }
 
-  async evaluate(args: DebugProtocol.EvaluateArguments): Promise<DAP.EvaluateResult> {
+  async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {
     if (!this._mainTarget)
       return {result: '', variablesReference: 0};
     const response = await this._mainTarget.cdp().Runtime.evaluate({
@@ -363,24 +373,24 @@ export class Adapter implements DAP.Adapter {
     };
   }
 
-  async completions(params: DebugProtocol.CompletionsArguments): Promise<DebugProtocol.CompletionItem[]> {
+  async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult> {
     if (!this._mainTarget)
-      return [];
-    return completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column);
+      return {targets: []};
+    return {targets: await completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column)};
   }
 
-  async getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {
-    return this._sourceContainer.sources().map(source => this._sourceToDap(source));
+  async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
+    return {sources: this._sourceContainer.sources().map(source => this._sourceToDap(source))};
   }
 
-  async getSourceContent(params: DebugProtocol.SourceArguments): Promise<DAP.GetSourceContentResult> {
+  async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult> {
     const source = this._sourceContainer.source(params.sourceReference);
     if (!source)
       return {content: '', mimeType: 'text/javascript'};
     return {content: await source.content(), mimeType: source.mimeType()};
   }
 
-  async setBreakpoints(params: DebugProtocol.SetBreakpointsArguments): Promise<DebugProtocol.Breakpoint[]> {
-    return [];
+  async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult> {
+    return {breakpoints: []};
   }
 }

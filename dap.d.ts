@@ -82,11 +82,6 @@ export namespace Dap {
     capabilities(params: CapabilitiesEventParams): void;
 
     /**
-     * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
-     */
-    on(request: 'runInTerminal', handler: (params: RunInTerminalParams) => Promise<RunInTerminalResult>): void;
-
-    /**
      * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
      * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
      * The 'initialize' request may only be sent once.
@@ -1046,45 +1041,6 @@ export namespace Dap {
   }
 
   export interface ReverseContinueResult {
-  }
-
-  export interface RunInTerminalParams {
-    /**
-     * What kind of terminal to launch.
-     */
-    kind?: string;
-
-    /**
-     * Optional title of the terminal.
-     */
-    title?: string;
-
-    /**
-     * Working directory of the command.
-     */
-    cwd: string;
-
-    /**
-     * List of arguments. The first argument is the command to run.
-     */
-    args: string[];
-
-    /**
-     * Environment key-value pairs that are added to or removed from the default environment.
-     */
-    env?: object;
-  }
-
-  export interface RunInTerminalResult {
-    /**
-     * The process ID.
-     */
-    processId?: number;
-
-    /**
-     * The process ID of the terminal shell.
-     */
-    shellProcessId?: number;
   }
 
   export interface ScopesParams {
