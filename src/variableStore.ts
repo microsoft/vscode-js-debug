@@ -16,8 +16,8 @@ class RemoteObject {
     this.cdp = cdp;
   }
 
-  wrap(object: Protocol.Runtime.RemoteObject): RemoteObject {
-    return new RemoteObject(this.cdp, object);
+  wrap(object: Protocol.Runtime.RemoteObject): RemoteObject | null {
+    return object ? new RemoteObject(this.cdp, object) : null;
   }
 }
 

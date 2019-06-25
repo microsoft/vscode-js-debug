@@ -2,9 +2,10 @@
 // Licensed under the MIT license.
 
 import * as ts from 'typescript';
+import {DebugProtocol} from 'vscode-debugprotocol';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
-export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<string[]> {
+export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<DebugProtocol.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
@@ -12,7 +13,7 @@ export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression:
     /*setParentNodes */ true);
 
   const offset = positionToOffset(expression, line, column);
-  let result: Promise<string[]>;
+  let result: Promise<DebugProtocol.CompletionItem[]>;
   traverse(sourceFile);
 
   function traverse(node: ts.Node) {
@@ -42,14 +43,27 @@ export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression:
   return result || Promise.resolve([]);
 }
 
-async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, expression: string, prefix: string): Promise<string[]> {
+async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, expression: string, prefix: string): Promise<DebugProtocol.CompletionItem[]> {
   const response = await cdp.Runtime.evaluate({
     expression: `
       (function() {
         const result = [];
+        const set = new Set();
         for (let object = ${expression}; object; object = object.__proto__) {
-          const props = Object.getOwnPropertyNames(object).filter(l => l.startsWith('${prefix}'));
-          result.push(...props);
+          const props = Object.getOwnPropertyNames(object).filter(l => l.startsWith('${prefix}') && !l.match(/\\d/));
+          for (const name of props) {
+            if (set.has(name))
+              continue;
+            set.add(name);
+            const d = Object.getOwnPropertyDescriptor(object, name);
+            const dType = typeof d.value;
+            let type = undefined;
+            if (dType === 'function')
+              type = 'function';
+            else
+              type = 'property';
+            result.push({label: name, type});
+          }
         }
         return result;
       })();
@@ -58,9 +72,12 @@ async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, express
     silent: true,
     returnByValue: true
   });
-  if (!response || response.exceptionDetails)
+  if (response.exceptionDetails) {
+    console.log(response.exceptionDetails);
     return [];
-  return response.result.value as string[];
+  }
+
+  return response.result.value as DebugProtocol.CompletionItem[];
 }
 
 function positionToOffset(text: string, line: number, column: number): number {

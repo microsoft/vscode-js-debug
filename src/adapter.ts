@@ -13,7 +13,9 @@ import * as path from 'path';
 import * as completionz from './completions';
 import {Thread, ThreadEvents} from './thread';
 import {VariableStore} from './variableStore';
+import * as objectPreview from './objectPreview';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import Protocol from 'devtools-protocol';
 import {Source, SourceContainer} from './source';
 import Dap from '../dap';
 
@@ -160,12 +162,51 @@ export class Adapter implements DAP.Adapter {
     thread.on(ThreadEvents.ThreadResumed, () => {
       this._dap.continued({threadId: thread.threadId()});
     });
+    thread.on(ThreadEvents.ThreadConsoleMessage, ({thread, event}) => this._onConsoleMessage(thread, event));
   }
 
   _onThreadDestroyed(thread: Thread): void {
     this._threads.delete(thread.threadId());
     this._dap.thread({reason: 'exited', threadId: thread.threadId()});
   }
+
+  async _onConsoleMessage(thread: Thread, event: Protocol.Runtime.ConsoleAPICalledEvent): Promise<void> {
+    const tokens = [];
+    for (let i = 0; i < event.args.length; ++i) {
+      const arg = event.args[i];
+      let output = objectPreview.previewRemoteObject(arg);
+      if (i === 0 && output.startsWith(`'`) && output.endsWith(`'`))
+        output = output.substring(1, output.length - 1);
+      tokens.push(output);
+    }
+
+    const callFrame = event.stackTrace ? event.stackTrace.callFrames[0] : null;
+    const location = callFrame ? this._sourceContainer.uiLocation({
+      url: callFrame.url,
+      lineNumber: callFrame.lineNumber,
+      columnNumber: callFrame.columnNumber,
+      source: thread.scripts().get(callFrame.scriptId)
+    }) : null;
+
+    let prefix = ''
+    if (event.type === 'warning')
+      prefix = '⚠️';
+    if (event.type === 'error')
+      prefix = '🔴';
+
+    let category = 'stdout';
+    if (event.type === 'error')
+      category = 'stderr';
+    if (event.type === 'warning')
+      category = 'console';
+    this._dap.output({
+      category: category as any,
+      output: prefix + tokens.join(' '),
+      variablesReference: 0,
+      line: location ? location.lineNumber : undefined,
+      column: location ? location.columnNumber : undefined,
+    });
+}
 
   async launch(params: DAP.LaunchParams): Promise<void> {
     if (!this._mainTarget)
@@ -181,7 +222,8 @@ export class Adapter implements DAP.Adapter {
   }
 
   async disconnect(params: DebugProtocol.DisconnectArguments): Promise<void> {
-    this._browser.Browser.close();
+    if (this._browser)
+      this._browser.Browser.close();
   }
 
   async restart(params: DebugProtocol.RestartArguments): Promise<void> {
@@ -312,23 +354,19 @@ export class Adapter implements DAP.Adapter {
       generatePreview: true
     });
     const variable = await this._variableStore.createVariable(this._mainTarget.cdp(), response.result, args.context);
+    const prefix = args.context === 'repl' ? '↳ ' : '';
     return {
-      result: variable.value,
+      result: prefix + variable.value,
       variablesReference: variable.variablesReference,
       namedVariables: variable.namedVariables,
       indexedVariables: variable.indexedVariables,
     };
   }
 
-  async completions(params: DebugProtocol.CompletionsArguments): Promise<DAP.CompletionsResult> {
+  async completions(params: DebugProtocol.CompletionsArguments): Promise<DebugProtocol.CompletionItem[]> {
     if (!this._mainTarget)
-      return {targets: []};
-    const result = await completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column);
-    return {
-      targets: result.map(label => {
-        return {label};
-      })
-    };
+      return [];
+    return completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column);
   }
 
   async getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]> {

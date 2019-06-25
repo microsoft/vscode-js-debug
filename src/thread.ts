@@ -7,6 +7,7 @@ import Protocol from 'devtools-protocol';
 import {EventEmitter} from 'events';
 import {Source} from './source';
 import * as utils from './utils';
+import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 const debugThread = debug('thread');
 
@@ -14,6 +15,7 @@ export const ThreadEvents = {
   ThreadNameChanged: Symbol('ThreadNameChanged'),
   ThreadPaused: Symbol('ThreadPaused'),
   ThreadResumed: Symbol('ThreadResumed'),
+  ThreadConsoleMessage: Symbol('ThreadConsoleMessage'),
 };
 
 export class Thread extends EventEmitter {
@@ -31,6 +33,10 @@ export class Thread extends EventEmitter {
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
     debugThread(`Thread created #${this._threadId}`);
+  }
+
+  cdp(): ProtocolProxyApi.ProtocolApi {
+    return this._target.cdp();
   }
 
   threadId(): number {
@@ -56,6 +62,9 @@ export class Thread extends EventEmitter {
   async initialize() {
     const cdp = this._target.cdp();
     cdp.Runtime.on('executionContextsCleared', () => this._reset());
+    cdp.Runtime.on('consoleAPICalled', event => {
+      this.emit(ThreadEvents.ThreadConsoleMessage, { thread: this, event });
+    });
     await cdp.Runtime.enable();
     cdp.Debugger.on('paused', event => {
       this._pausedDetails = event;
