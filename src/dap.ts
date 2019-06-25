@@ -6,83 +6,6 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import Dap from '../dap';
 import * as debug from 'debug';
 
-export interface StackTraceResult {
-  stackFrames: DebugProtocol.StackFrame[];
-  totalFrames?: number;
-}
-
-export interface EvaluateResult {
-  result: string;
-  type?: string;
-  presentationHint?: DebugProtocol.VariablePresentationHint;
-  variablesReference: number;
-  namedVariables?: number;
-  indexedVariables?: number;
-}
-
-export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
-  url: string;
-  webRoot?: string;
-}
-
-export interface GetSourceContentResult {
-  content: string;
-  mimeType?: string;
-}
-
-export interface Adapter {
-  initialize(params: DebugProtocol.InitializeRequestArguments): Promise<DebugProtocol.Capabilities>;
-  configurationDone(params: DebugProtocol.ConfigurationDoneArguments): Promise<void>;
-  launch(params: LaunchParams): Promise<void>;
-  getThreads(): Promise<DebugProtocol.Thread[]>;
-  getStackTrace(params: DebugProtocol.StackTraceArguments): Promise<StackTraceResult>;
-  getScopes(params: DebugProtocol.ScopesArguments): Promise<DebugProtocol.Scope[]>;
-  getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]>;
-  continue(params: DebugProtocol.ContinueArguments): Promise<void>;
-  evaluate(params: DebugProtocol.EvaluateArguments): Promise<EvaluateResult>;
-  completions(params: DebugProtocol.CompletionsArguments): Promise<DebugProtocol.CompletionItem[]>;
-  terminate(params: DebugProtocol.TerminateArguments): Promise<void>;
-  disconnect(params: DebugProtocol.DisconnectArguments): Promise<void>;
-  restart(params: DebugProtocol.RestartArguments): Promise<void>;
-  getSources(params: DebugProtocol.LoadedSourcesArguments): Promise<DebugProtocol.Source[]>;
-  getSourceContent(params: DebugProtocol.SourceArguments): Promise<GetSourceContentResult>;
-  setBreakpoints(params: DebugProtocol.SetBreakpointsArguments): Promise<DebugProtocol.Breakpoint[]>;
-}
-
-export interface DidPauseDetails {
-  reason: string;
-  description?: string;
-  threadId?: number;
-  preserveFocusHint?: boolean;
-  text?: string;
-}
-
-export interface Connection {
-  dap(): Dap.DapProxyApi;
-  setAdapter(adapter: Adapter): void;
-
-  // Events
-  didInitialize(): void;
-  didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void;
-  didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void;
-  didResume(threadId: number): void;
-  didExit(exitCode: number): void;
-  didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
-  didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void;
-  didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void;
-  didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void;
-  didPause(details: DidPauseDetails): void;
-  didTerminate(restart?: any): void;
-  didChangeThread(reason: string, threadId: number): void;
-  didChangeScript(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void;
-
-  // Requests
-}
-
-export function createConnection(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream): Connection {
-  return new ConnectionImpl(inStream, outStream);
-}
-
 const debugDAP = debug('dap');
 
 class Message implements DebugProtocol.ProtocolMessage {
@@ -125,11 +48,10 @@ class Event extends Message implements DebugProtocol.Event {
   }
 }
 
-class ConnectionImpl implements Connection {
+export class Connection {
   private _writableStream: NodeJS.WritableStream;
   private _parser: Parser;
   private _pendingRequests = new Map<number, (response: DebugProtocol.Response) => void>();
-  private _dispatchMap = new Map<string, (params: any) => Promise<any>>();
   private _handlers = new Map<string, (params: any) => Promise<any>>();
   private _dap: Dap.DapProxyApi;
 
@@ -167,93 +89,6 @@ class ConnectionImpl implements Connection {
         return params => this._sendEvent(methodName, params);
       }
     }) as Dap.DapProxyApi;
-  }
-
-  public setAdapter(adapter: Adapter): void {
-    this._dispatchMap = new Map();
-    this._dispatchMap.set('initialize', params => adapter.initialize(params));
-    this._dispatchMap.set('configurationDone', params => adapter.configurationDone(params));
-    this._dispatchMap.set('launch', params => adapter.launch(params));
-    this._dispatchMap.set('threads', async () => {
-      return {threads: await adapter.getThreads()};
-    });
-    this._dispatchMap.set('stackTrace', params => adapter.getStackTrace(params));
-    this._dispatchMap.set('scopes', async params => {
-      return {scopes: await adapter.getScopes(params)};
-    });
-    this._dispatchMap.set('variables', async params => {
-      return {variables: await adapter.getVariables(params)};
-    });
-    this._dispatchMap.set('continue', async params => {
-      await adapter.continue(params);
-      return {allThreadsContinued: false};
-    });
-    this._dispatchMap.set('evaluate', params => adapter.evaluate(params));
-    this._dispatchMap.set('completions', async params => {
-      return {targets: await adapter.completions(params)};
-    });
-    this._dispatchMap.set('terminate', params => adapter.terminate(params));
-    this._dispatchMap.set('disconnect', params => adapter.disconnect(params));
-    this._dispatchMap.set('restart', params => adapter.restart(params));
-    this._dispatchMap.set('loadedSources', async params => {
-      return {sources: await adapter.getSources(params)};
-    });
-    this._dispatchMap.set('source', params => adapter.getSourceContent(params));
-    this._dispatchMap.set('setBreakpoints', async params => {
-      return {breakpoints: await adapter.setBreakpoints(params)};
-    });
-  }
-
-  public didInitialize(): void {
-    this._sendEvent('initialized');
-  }
-
-  public didChangeBreakpoint(reason: string, breakpoint: DebugProtocol.Breakpoint): void {
-    this._sendEvent('breakpoint', {reason, breakpoint});
-  }
-
-  public didChangeCapabilities(capabilities: DebugProtocol.Capabilities): void {
-    this._sendEvent('capabitilies', {capabilities});
-  }
-
-  public didResume(threadId: number): void {
-    this._sendEvent('continued', {threadId, allThreadsContinued: false});
-  }
-
-  public didExit(exitCode: number): void {
-    this._sendEvent('exited', {exitCode});
-  }
-
-  public didChangeSource(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void {
-    this._sendEvent('loadedSource', {reason, source});
-  }
-
-  public didChangeModule(reason: 'new' | 'changed' | 'removed', module: DebugProtocol.Module): void {
-    this._sendEvent('module', {reason, module});
-  }
-
-  public didProduceOutput(output: string, category?: string, variablesReference?: number, source?: DebugProtocol.Source, line?: number, column?: number, data?: any): void {
-    this._sendEvent('output', {output, category, variablesReference, source, line, column, data});
-  }
-
-  public didAttachToProcess(name: string, systemProcessId?: number, isLocalProcess?: boolean, startMethod?: 'launch' | 'attach' | 'attachForSuspendedLaunch'): void {
-    this._sendEvent('process', {name, systemProcessId, isLocalProcess, startMethod});
-  }
-
-  public didPause(details: DidPauseDetails): void {
-    this._sendEvent('stopped', {...details, allThreadsStopped: false});
-  }
-
-  public didTerminate(restart?: any): void {
-    this._sendEvent('terminated', {restart});
-  }
-
-  public didChangeThread(reason: string, threadId: number): void {
-    this._sendEvent('thread', {reason, threadId});
-  }
-
-  public didChangeScript(reason: 'new' | 'changed' | 'removed', source: DebugProtocol.Source): void {
-    this._sendEvent('loadedSource', {reason, source});
   }
 
   private _sendEvent(event: string, params?: any): void {
@@ -321,7 +156,7 @@ class ConnectionImpl implements Connection {
   private async _dispatchRequest(request: DebugProtocol.Request): Promise<void> {
     const response: DebugProtocol.Response = new Response(request);
     try {
-      const callback = this._handlers.get(request.command) || this._dispatchMap.get(request.command);
+      const callback = this._handlers.get(request.command);
       if (!callback) {
         console.error(`Unknown request: ${request.command}`);
         //this._sendErrorResponse(response, 1014, `Unrecognized request: ${request.command}`);

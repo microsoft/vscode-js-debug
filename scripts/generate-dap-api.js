@@ -114,7 +114,7 @@ async function generate() {
       result.push(`    ${desc.properties.event.enum[0]}(params: ${name}Params): void;`);
       stubs.push({type: 'event', name: `${name}Params`, value: desc.properties.body || {properties: {}}});
     }
-    if (ref['$ref'] === '#/definitions/Request') {
+    if (ref['$ref'] === '#/definitions/Request' && desc.title !== 'Reverse Requests') {
       const short = desc.properties.command.enum[0];
       const title = short.substring(0, 1).toUpperCase() + short.substring(1);
       apiSeparator();

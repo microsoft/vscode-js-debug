@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import Protocol from 'devtools-protocol';
-import {DebugProtocol} from 'vscode-debugprotocol';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import * as objectPreview from './objectPreview';
+import Dap from '../dap';
 
 class RemoteObject {
   o: Protocol.Runtime.RemoteObject;
@@ -27,7 +27,7 @@ export class VariableStore {
   private _variableToObject: Map<number, RemoteObject> = new Map();
   private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
 
-  async getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]> {
+  async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const object = this._variableToObject.get(params.variablesReference);
     if (object.o.subtype === 'array') {
       if (params.filter === 'indexed')
@@ -41,17 +41,17 @@ export class VariableStore {
     return this._getObjectProperties(object);
   }
 
-  async createVariable(cdp: ProtocolProxyApi.ProtocolApi, value: Protocol.Runtime.RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
+  async createVariable(cdp: ProtocolProxyApi.ProtocolApi, value: Protocol.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
     return this._createVariable('', new RemoteObject(cdp, value), context);
   }
 
-  private async _getObjectProperties(object: RemoteObject): Promise<DebugProtocol.Variable[]> {
+  private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {
     const response = await object.cdp.Runtime.getProperties({
       objectId: object.objectId,
       ownProperties: true,
       generatePreview: true
     });
-    const properties: Promise<DebugProtocol.Variable>[] = [];
+    const properties: Promise<Dap.Variable>[] = [];
     const weight: Map<string, number> = new Map();
     for (const p of response.result) {
       properties.push(this._createVariable(p.name, object.wrap(p.value)));
@@ -73,7 +73,7 @@ export class VariableStore {
     return result;
   }
 
-  private async _getArrayProperties(params: DebugProtocol.VariablesArguments, object: RemoteObject): Promise<DebugProtocol.Variable[]> {
+  private async _getArrayProperties(params: Dap.VariablesParams, object: RemoteObject): Promise<Dap.Variable[]> {
     const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
@@ -96,7 +96,7 @@ export class VariableStore {
     return this._getObjectProperties(object.wrap(response.result));
   }
 
-  private async _getArraySlots(params: DebugProtocol.VariablesArguments, object: RemoteObject): Promise<DebugProtocol.Variable[]> {
+  private async _getArraySlots(params: Dap.VariablesParams, object: RemoteObject): Promise<Dap.Variable[]> {
     const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
@@ -126,7 +126,7 @@ export class VariableStore {
     return reference;
   }
 
-  private async _createVariable(name: string, value: RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
+  private async _createVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
     if (!value) {
       // TODO(pfeldman): implement getters / setters
       return {
@@ -143,7 +143,7 @@ export class VariableStore {
     return this._createPrimitiveVariable(name, value, context);
   }
 
-  private async _createPrimitiveVariable(name: string, value: RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
+  private async _createPrimitiveVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
     return {
       name,
       value: objectPreview.previewRemoteObject(value.o, context),
@@ -152,7 +152,7 @@ export class VariableStore {
     };
   }
 
-  private async _createObjectVariable(name: string, value: RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
+  private async _createObjectVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
     const variablesReference = this._createVariableReference(value);
     const object = value.o;
     return {
@@ -163,7 +163,7 @@ export class VariableStore {
     };
   }
 
-  private async _createArrayVariable(name: string, value: RemoteObject, context?: string): Promise<DebugProtocol.Variable> {
+  private async _createArrayVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
     const variablesReference = this._createVariableReference(value);
     const response = await value.cdp.Runtime.callFunctionOn({
       objectId: value.objectId,

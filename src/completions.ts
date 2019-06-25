@@ -3,10 +3,10 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
-import {DebugProtocol} from 'vscode-debugprotocol';
+import Dap from '../dap';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
-export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<DebugProtocol.CompletionItem[]> {
+export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
@@ -14,7 +14,7 @@ export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression:
     /*setParentNodes */ true);
 
   const offset = positionToOffset(expression, line, column);
-  let result: Promise<DebugProtocol.CompletionItem[]>;
+  let result: Promise<Dap.CompletionItem[]>;
   traverse(sourceFile);
 
   function traverse(node: ts.Node) {
@@ -44,7 +44,7 @@ export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression:
   return result || Promise.resolve([]);
 }
 
-async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, expression: string, prefix: string): Promise<DebugProtocol.CompletionItem[]> {
+async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
   const response = await cdp.Runtime.evaluate({
     expression: `
       (function() {
@@ -78,7 +78,7 @@ async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, express
     return [];
   }
 
-  return response.result.value as DebugProtocol.CompletionItem[];
+  return response.result.value as Dap.CompletionItem[];
 }
 
 function positionToOffset(text: string, line: number, column: number): number {
