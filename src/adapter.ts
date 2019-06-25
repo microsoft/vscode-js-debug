@@ -127,7 +127,7 @@ export class Adapter {
   async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
     this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
+      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f)) as Target;
     this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
       if (target === this._mainTarget) {
         this._dap.terminated({});
