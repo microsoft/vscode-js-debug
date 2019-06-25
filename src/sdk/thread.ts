@@ -4,9 +4,10 @@
 import {Target} from './targetManager';
 import * as debug from 'debug';
 import {EventEmitter} from 'events';
-import {Source} from './source';
+import {Source, Location} from './source';
 import * as utils from '../utils';
 import {Cdp, CdpApi} from '../cdp/api';
+import {PausedDetails} from './pausedDetails';
 
 const debugThread = debug('thread');
 
@@ -20,10 +21,10 @@ export const ThreadEvents = {
 export class Thread extends EventEmitter {
   private static _lastThreadId: number = 0;
 
-  _target: Target;
+  private _target: Target;
   private _threadId: number;
   private _threadName: string;
-  private _pausedDetails?: Cdp.Debugger.PausedEvent;
+  private _pausedDetails?: PausedDetails;
   private _scripts: Map<string, Source> = new Map();
 
   constructor(target: Target) {
@@ -46,7 +47,7 @@ export class Thread extends EventEmitter {
     return this._threadName;
   }
 
-  pausedDetails(): Cdp.Debugger.PausedEvent | undefined {
+  pausedDetails(): PausedDetails | undefined {
     return this._pausedDetails;
   }
 
@@ -66,15 +67,16 @@ export class Thread extends EventEmitter {
     });
     await cdp.Runtime.enable();
     cdp.Debugger.on('paused', event => {
-      this._pausedDetails = event;
+      this._pausedDetails = new PausedDetails(this, event);
       this.emit(ThreadEvents.ThreadPaused, this);
     });
     cdp.Debugger.on('resumed', () => {
-      this._pausedDetails = null;
+      this._pausedDetails = undefined;
       this.emit(ThreadEvents.ThreadResumed, this);
     });
     cdp.Debugger.on('scriptParsed', (event: Cdp.Debugger.ScriptParsedEvent) => this._onScriptParsed(event));
     await cdp.Debugger.enable({});
+    await cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
   }
 
   async dispose() {
@@ -88,10 +90,30 @@ export class Thread extends EventEmitter {
     this.emit(ThreadEvents.ThreadNameChanged, this);
   }
 
+  rawLocation(callFrame: Cdp.Debugger.CallFrame | Cdp.Runtime.CallFrame): Location {
+    if (callFrame['location']) {
+      const frame = callFrame as Cdp.Debugger.CallFrame;
+      return {
+        url: frame.url,
+        lineNumber: frame.location.lineNumber,
+        columnNumber: frame.location.columnNumber,
+        source: this._scripts.get(frame.location.scriptId)
+      };
+    }
+    const frame = callFrame as Cdp.Runtime.CallFrame;
+    return {
+      url: frame.url,
+      lineNumber: frame.lineNumber,
+      columnNumber: frame.columnNumber,
+      source: this._scripts.get(frame.scriptId)
+    };
+  }
+
   _reset() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
     this._target.sourceContainer().removeSources(...scripts);
+    this._pausedDetails = undefined;
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {

@@ -108,7 +108,7 @@ export class Adapter {
       supportsValueFormattingOptions: false,
       supportsExceptionInfoRequest: false,
       supportTerminateDebuggee: false,
-      supportsDelayedStackTraceLoading: false,
+      supportsDelayedStackTraceLoading: true,
       supportsLoadedSourcesRequest: true,
       supportsLogPoints: false,
       supportsTerminateThreadsRequest: false,
@@ -150,11 +150,10 @@ export class Adapter {
     const onPaused = () => {
       const details = thread.pausedDetails();
       this._dap.stopped({
-        // TODO(dgozman): map reason
-        reason: 'pause',
-        description: details.reason,
-        threadId: thread.threadId(),
-        text: 'didPause.text',
+        reason: details.reason(),
+        description: details.description(),
+        threadId: details.thread().threadId(),
+        text: details.text(),
         allThreadsStopped: false
       });
     };
@@ -255,69 +254,40 @@ export class Adapter {
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
+    const dummy = {stackFrames: [], totalFrames: 0};
+
     const thread = this._threads.get(params.threadId);
-    if (!thread || !thread.pausedDetails())
-      return {stackFrames: [], totalFrames: 0};
-    const details = thread.pausedDetails()!;
+    if (!thread)
+      return dummy;
+    const details = thread.pausedDetails();
+    if (!details)
+      return dummy;
+
+    const from = params.startFrame || 0;
+    const to = params.levels ? from + params.levels : from + 1;
+    const stackTrace = await details.loadStackTrace(to);
+    if (thread.pausedDetails() !== details)
+      return dummy;
+
     const result: Dap.StackFrame[] = [];
-
-    for (const callFrame of details.callFrames) {
-      const location = this._sourceContainer.uiLocation({
-        url: callFrame.url,
-        lineNumber: callFrame.location.lineNumber,
-        columnNumber: callFrame.location.columnNumber,
-        source: thread.scripts().get(callFrame.location.scriptId)
-      });
-      const stackFrame: Dap.StackFrame = {
-        id: ++stackId,
-        name: callFrame.functionName || '<anonymous>',
-        line: location.lineNumber + 1,
-        column: location.columnNumber + 1,
-        source: this._sourceToDap(location.source),
-        presentationHint: 'normal'
-      };
-      result.push(stackFrame);
-    }
-
-    let asyncParent = details.asyncStackTrace;
-    while (asyncParent) {
-      if (asyncParent.description === 'async function' && asyncParent.callFrames.length)
-        asyncParent.callFrames.shift();
-
-      if (!asyncParent.callFrames.length) {
-        asyncParent = asyncParent.parent;
-        continue;
-      }
-
+    for (let index = from; index < to && index < stackTrace.length; index++) {
+      const stackFrame = stackTrace[index];
+      const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
+      const hint = ({
+        'frame': 'normal',
+        'asyncCall': 'label',
+        'asyncFrame': 'normal'
+      })[stackFrame.type];
       result.push({
-        id: ++stackId,
-        name: asyncParent.description || 'async',
-        line: 1,
-        column: 1,
-        presentationHint: 'label'
+        id: stackFrame.id,
+        name: stackFrame.name,
+        line: uiLocation.lineNumber + 1,
+        column: uiLocation.columnNumber + 1,
+        source: stackFrame.type === 'asyncCall' ? undefined : this._sourceToDap(uiLocation.source),
+        presentationHint: hint
       });
-
-      for (const callFrame of asyncParent.callFrames) {
-        const location = this._sourceContainer.uiLocation({
-          url: callFrame.url,
-          lineNumber: callFrame.lineNumber,
-          columnNumber: callFrame.columnNumber,
-          source: thread.scripts().get(callFrame.scriptId)
-        });
-        const stackFrame: Dap.StackFrame = {
-          id: ++stackId,
-          name: callFrame.functionName || '<anonymous>',
-          line: location.lineNumber + 1,
-          column: location.columnNumber + 1,
-          source: this._sourceToDap(location.source),
-          presentationHint: 'normal'
-        };
-        result.push(stackFrame);
-      }
-      asyncParent = asyncParent.parent;
     }
-
-    return {stackFrames: result, totalFrames: result.length};
+    return {stackFrames: result, totalFrames: details.canLoadMoreFrames() ? 1000000 : stackTrace.length};
   }
 
   _sourceToDap(source: Source | undefined): Dap.Source {
