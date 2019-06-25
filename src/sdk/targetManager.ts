@@ -2,14 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Connection } from './connection';
-import Protocol from 'devtools-protocol';
+import {Cdp, CdpApi} from '../cdp/api';
+import {Connection} from '../cdp/connection';
 import * as debug from 'debug';
 import * as path from 'path';
-import { URL } from 'url';
-import { EventEmitter } from 'events';
+import {URL} from 'url';
+import {EventEmitter} from 'events';
 import {Thread} from './thread';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import {SourceContainer} from './source';
 const debugTarget = debug('target');
 
@@ -20,8 +19,8 @@ export const TargetEvents = {
 
 export class TargetManager extends EventEmitter {
   private _connection: Connection;
-  private _targets: Map<Protocol.Target.TargetID, Target> = new Map();
-  private _browser: ProtocolProxyApi.ProtocolApi;
+  private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
+  private _browser: CdpApi;
   private _sourceContainer: SourceContainer;
 
   constructor(connection: Connection, sourceContainer: SourceContainer) {
@@ -59,7 +58,7 @@ export class TargetManager extends EventEmitter {
     });
   }
 
-  async _attachedToTarget(targetInfo: Protocol.Target.TargetInfo, sessionId: Protocol.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null) {
+  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null) {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
@@ -105,7 +104,7 @@ export class TargetManager extends EventEmitter {
     this._dumpTargets();
   }
 
-  _targetInfoChanged(targetInfo: Protocol.Target.TargetInfo) {
+  _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
     const target = this._targets.get(targetInfo.targetId);
     if (!target)
       return;
@@ -123,16 +122,16 @@ export class TargetManager extends EventEmitter {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 
 export class Target {
-  private _cdp: ProtocolProxyApi.ProtocolApi;
+  private _cdp: CdpApi;
   private _thread: Thread | undefined;
-  private _targetInfo: Protocol.Target.TargetInfo;
+  private _targetInfo: Cdp.Target.TargetInfo;
   private _sourceContainer: SourceContainer;
   private _ondispose: (t:Target) => void;
 
   _parentTarget?: Target;
-  _children: Map<Protocol.Target.TargetID, Target> = new Map();
+  _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(targetInfo: Protocol.Target.TargetInfo, cdp: ProtocolProxyApi.ProtocolApi, parentTarget: Target | undefined, sourceContainer: SourceContainer, ondispose: (t:Target) => void) {
+  constructor(targetInfo: Cdp.Target.TargetInfo, cdp: CdpApi, parentTarget: Target | undefined, sourceContainer: SourceContainer, ondispose: (t:Target) => void) {
     this._cdp = cdp;
     this._parentTarget = parentTarget;
     this._sourceContainer = sourceContainer;
@@ -146,7 +145,7 @@ export class Target {
     return this._thread;
   }
 
-  cdp(): ProtocolProxyApi.ProtocolApi {
+  cdp(): CdpApi {
     return this._cdp;
   }
 
@@ -165,7 +164,7 @@ export class Target {
       await this._cdp.Runtime.runIfWaitingForDebugger();
   }
 
-  _updateFromInfo(targetInfo: Protocol.Target.TargetInfo) {
+  _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
     this._targetInfo = targetInfo;
     if (!this._thread)
       return;

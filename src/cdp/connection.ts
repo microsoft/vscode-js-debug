@@ -2,11 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { EventEmitter } from 'events';
-import { Transport } from './transport';
+import {EventEmitter} from 'events';
+import {Transport} from './transport';
 import * as debug from 'debug';
-import Protocol from 'devtools-protocol';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import {Cdp, CdpApi} from './api';
 
 const debugConnection = debug('connection');
 
@@ -38,11 +37,11 @@ interface ProtocolCallback {
   method: string;
 }
 
-export const ConnectionEvents = {
-  Disconnected: Symbol('Disconnected')
-}
-
 export class Connection extends EventEmitter {
+  public static Events = {
+    Disconnected: Symbol('Disconnected')
+  };
+
   private _lastId: number;
   private _transport: any;
   private _sessions: Map<string, CDPSession>;
@@ -61,11 +60,11 @@ export class Connection extends EventEmitter {
     this._sessions.set('', this._browserSession);
   }
 
-  browser(): ProtocolProxyApi.ProtocolApi {
+  browser(): CdpApi {
     return this._browserSession.cdp();
   }
 
-  session(sessionId: string): ProtocolProxyApi.ProtocolApi {
+  session(sessionId: string): CdpApi {
     return this._sessions.get(sessionId).cdp();
   }
 
@@ -100,7 +99,7 @@ export class Connection extends EventEmitter {
     for (const session of this._sessions.values())
       session._onClose();
     this._sessions.clear();
-    this.emit(ConnectionEvents.Disconnected);
+    this.emit(Connection.Events.Disconnected);
   }
 
   dispose() {
@@ -108,13 +107,13 @@ export class Connection extends EventEmitter {
     this._transport.close();
   }
 
-  createSession(sessionId: Protocol.Target.SessionID): ProtocolProxyApi.ProtocolApi {
+  createSession(sessionId: Cdp.Target.SessionID): CdpApi {
     const session = new CDPSession(this, sessionId);
     this._sessions.set(sessionId, session);
     return session.cdp();
   }
 
-  disposeSession(sessionId: Protocol.Target.SessionID) {
+  disposeSession(sessionId: Cdp.Target.SessionID) {
     const session = this._sessions.get(sessionId);
     if (!session)
       return;
@@ -127,7 +126,7 @@ export class CDPSession extends EventEmitter {
   private _connection: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
-  private _cdp: ProtocolProxyApi.ProtocolApi;
+  private _cdp: CdpApi;
 
   constructor(connection: Connection, sessionId: string) {
     super();
@@ -137,15 +136,15 @@ export class CDPSession extends EventEmitter {
     this._cdp = this._createApi();
   }
 
-  cdp(): ProtocolProxyApi.ProtocolApi {
+  cdp(): CdpApi {
     return this._cdp;
   }
 
-  sessionId(): Protocol.Target.SessionID {
+  sessionId(): Cdp.Target.SessionID {
     return this._sessionId;
   }
 
-  _createApi(): ProtocolProxyApi.ProtocolApi {
+  _createApi(): CdpApi {
     return new Proxy({}, {
       get: (target, agentName: string, receiver) => new Proxy({}, {
         get: (target, methodName: string, receiver) => {
@@ -158,7 +157,7 @@ export class CDPSession extends EventEmitter {
           return params => this._send(`${agentName}.${methodName}`, params);
         }
       })
-    }) as ProtocolProxyApi.ProtocolApi;
+    }) as CdpApi;
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | null> {

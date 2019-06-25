@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as utils from './utils';
+import * as utils from '../utils';
 
 export class SourceMap {
   private _json: SourceMapV3;

@@ -3,20 +3,19 @@
  *--------------------------------------------------------*/
 
 import Dap from './dap/api';
-import * as CDP from './connection';
+import {Cdp, CdpApi} from './cdp/api';
 
-import {Target, TargetManager, TargetEvents} from './targetManager';
-import {findChrome} from './findChrome';
-import * as launcher from './launcher';
+import {Connection} from './cdp/connection';
+import {Target, TargetManager, TargetEvents} from './sdk/targetManager';
+import findChrome from './chrome/findChrome';
+import * as launcher from './chrome/launcher';
 import {URL} from 'url';
 import * as path from 'path';
-import * as completionz from './completions';
-import {Thread, ThreadEvents} from './thread';
-import {VariableStore} from './variableStore';
-import * as objectPreview from './objectPreview';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
-import Protocol from 'devtools-protocol';
-import {Source, SourceContainer} from './source';
+import * as completionz from './sdk/completions';
+import {Thread, ThreadEvents} from './sdk/thread';
+import {VariableStore} from './sdk/variableStore';
+import * as objectPreview from './sdk/objectPreview';
+import {Source, SourceContainer} from './sdk/source';
 
 let stackId = 0;
 
@@ -27,7 +26,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 export class Adapter {
   private _dap: Dap.Api;
-  private _browser: ProtocolProxyApi.ProtocolApi;
+  private _browser: CdpApi;
   private _sourceContainer: SourceContainer;
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
@@ -80,7 +79,7 @@ export class Adapter {
     });
     this._browser = connection.browser();
 
-    connection.on(CDP.ConnectionEvents.Disconnected, () => this._dap.exited({exitCode: 0}));
+    connection.on(Connection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -175,7 +174,7 @@ export class Adapter {
     this._dap.thread({reason: 'exited', threadId: thread.threadId()});
   }
 
-  async _onConsoleMessage(thread: Thread, event: Protocol.Runtime.ConsoleAPICalledEvent): Promise<void> {
+  async _onConsoleMessage(thread: Thread, event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
     const tokens = [];
     for (let i = 0; i < event.args.length; ++i) {
       const arg = event.args[i];

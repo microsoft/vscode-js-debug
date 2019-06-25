@@ -7,10 +7,10 @@ import * as https from 'https';
 import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
-import * as eventUtils from './eventUtils';
-import { Connection } from './connection';
-import { PipeTransport, WebSocketTransport } from './transport';
-import { Readable, Writable } from 'stream';
+import * as eventUtils from '../eventUtils';
+import {Connection} from '../cdp/connection';
+import {PipeTransport, WebSocketTransport} from '../cdp/transport';
+import {Readable, Writable} from 'stream';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',

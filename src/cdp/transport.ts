@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as eventUtils from './eventUtils';
+import * as eventUtils from '../eventUtils';
 import * as WebSocket from 'ws';
 
 export interface Transport {

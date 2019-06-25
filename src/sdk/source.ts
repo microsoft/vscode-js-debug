@@ -4,7 +4,7 @@
 
 import {SourceMap} from './sourceMap';
 import {EventEmitter} from 'events';
-import * as utils from './utils';
+import * as utils from '../utils';
 
 export type SourceContentGetter = () => Promise<string | undefined>;
 
