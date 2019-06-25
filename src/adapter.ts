@@ -175,15 +175,6 @@ export class Adapter {
   }
 
   async _onConsoleMessage(thread: Thread, event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
-    const tokens = [];
-    for (let i = 0; i < event.args.length; ++i) {
-      const arg = event.args[i];
-      let output = objectPreview.previewRemoteObject(arg);
-      if (i === 0 && output.startsWith(`'`) && output.endsWith(`'`))
-        output = output.substring(1, output.length - 1);
-      tokens.push(output);
-    }
-
     const callFrame = event.stackTrace ? event.stackTrace.callFrames[0] : null;
     const location = callFrame ? this._sourceContainer.uiLocation({
       url: callFrame.url,
@@ -192,21 +183,34 @@ export class Adapter {
       source: thread.scripts().get(callFrame.scriptId)
     }) : null;
 
-    let prefix = ''
-    if (event.type === 'warning')
-      prefix = '⚠️';
-    if (event.type === 'error')
-      prefix = '🔴';
-
     let category = 'stdout';
     if (event.type === 'error')
       category = 'stderr';
     if (event.type === 'warning')
       category = 'console';
+
+    const tokens = [];
+    for (const arg of event.args)
+      tokens.push(objectPreview.renderValue(arg, false));
+    const messageText = tokens.join(' ');
+
+    const allPrimitive = !event.args.find(a => a.objectId);
+    const stackTrace = (event.type === 'error' || event.type === 'warning') ? event.stackTrace : undefined;
+    if (allPrimitive && !stackTrace) {
+      this._dap.output({
+        category: category as any,
+        output: messageText,
+        variablesReference: 0,
+        line: location ? location.lineNumber : undefined,
+        column: location ? location.columnNumber : undefined,
+      });
+      return;
+    }
+
     this._dap.output({
       category: category as any,
-      output: prefix + tokens.join(' '),
-      variablesReference: 0,
+      output: '',
+      variablesReference: await this._variableStore.createVariableForMessageFormat(thread.cdp(), messageText, event.args, stackTrace),
       line: location ? location.lineNumber : undefined,
       column: location ? location.columnNumber : undefined,
     });

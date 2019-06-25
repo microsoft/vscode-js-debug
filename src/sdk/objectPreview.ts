@@ -8,7 +8,7 @@ export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: 
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description);
-  return object.preview ? renderPreview(object.preview, context) : renderValue(object);
+  return object.preview ? renderPreview(object.preview, context) : renderValue(object, true);
 }
 
 export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
@@ -113,7 +113,7 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: strin
 function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   if (preview.subtype === 'null')
     return 'null';
-    if (preview.type === 'undefined')
+  if (preview.type === 'undefined')
     return 'undefined';
   return preview.description;
 }
@@ -127,9 +127,9 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
-function renderValue(object: Cdp.Runtime.RemoteObject): string {
+export function renderValue(object: Cdp.Runtime.RemoteObject, quote: boolean): string {
   if (object.value)
-    return object.type === 'string' ? `'${object.value}'` : String(object.value);
+    return quote && object.type === 'string' ? `'${object.value}'` : String(object.value);
   if (object.type === 'undefined')
     return 'undefined';
   if (object.subtype === 'null')
