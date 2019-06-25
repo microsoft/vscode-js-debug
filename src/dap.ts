@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import { DebugProtocol } from 'vscode-debugprotocol';
+import Dap from '../dap';
 import * as debug from 'debug';
 
 export interface StackTraceResult {
@@ -60,6 +61,7 @@ export interface DidPauseDetails {
 }
 
 export interface Connection {
+  dap(): Dap.DapProxyApi;
   setAdapter(adapter: Adapter): void;
 
   // Events
@@ -131,6 +133,8 @@ class ConnectionImpl implements Connection {
   private _parser: Parser;
   private _pendingRequests = new Map<number, (response: DebugProtocol.Response) => void>();
   private _dispatchMap = new Map<string, (params: any) => Promise<any>>();
+  private _handlers = new Map<string, (params: any) => Promise<any>>();
+  private _dap: Dap.DapProxyApi;
 
   constructor(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
     this._parser = new Parser(this._onMessage.bind(this));
@@ -148,9 +152,27 @@ class ConnectionImpl implements Connection {
       // error.message
     });
     inStream.resume();
+
+    this._dap = this._createApi();
   }
 
-   public setAdapter(adapter: Adapter): void {
+  dap(): Dap.DapProxyApi {
+    return this._dap;
+  }
+
+  _createApi(): Dap.DapProxyApi {
+    return new Proxy({}, {
+      get: (target, methodName: string, receiver) => {
+        if (methodName === 'on')
+          return (requestName, handler) => this._handlers.set(requestName, handler);
+        if (methodName === 'off')
+          return (requestName, handler) => this._handlers.delete(requestName);
+        return params => this._sendEvent(methodName, params);
+      }
+    }) as Dap.DapProxyApi;
+  }
+
+  public setAdapter(adapter: Adapter): void {
     this._dispatchMap = new Map();
     this._dispatchMap.set('initialize', params => adapter.initialize(params));
     this._dispatchMap.set('configurationDone', params => adapter.configurationDone(params));
@@ -300,7 +322,7 @@ class ConnectionImpl implements Connection {
   private async _dispatchRequest(request: DebugProtocol.Request): Promise<void> {
     const response: DebugProtocol.Response = new Response(request);
     try {
-      const callback = this._dispatchMap.get(request.command);
+      const callback = this._handlers.get(request.command) || this._dispatchMap.get(request.command);
       if (!callback) {
         console.error(`Unknown request: ${request.command}`);
         //this._sendErrorResponse(response, 1014, `Unrecognized request: ${request.command}`);

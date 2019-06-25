@@ -4,7 +4,6 @@
 import * as DAP from './dap';
 import * as CDP from './connection';
 import {DebugProtocol} from 'vscode-debugprotocol';
-import Protocol from 'devtools-protocol';
 
 import {Target, TargetManager, TargetEvents} from './targetManager';
 import {findChrome} from './findChrome';
@@ -16,6 +15,7 @@ import {Thread, ThreadEvents} from './thread';
 import {VariableStore} from './variableStore';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import {Source, SourceContainer} from './source';
+import Dap from '../dap';
 
 let stackId = 0;
 
@@ -35,7 +35,7 @@ interface ResolvedLocation {
 };
 
 export class Adapter implements DAP.Adapter {
-  private _dap: DAP.Connection;
+  private _dap: Dap.DapProxyApi;
   private _browser: ProtocolProxyApi.ProtocolApi;
   private _sourceContainer: SourceContainer;
   private _targetManager: TargetManager;
@@ -46,7 +46,7 @@ export class Adapter implements DAP.Adapter {
   private _variableStore = new VariableStore();
 
   constructor(dap: DAP.Connection) {
-    this._dap = dap;
+    this._dap = dap.dap();
     dap.setAdapter(this);
   }
 
@@ -74,7 +74,7 @@ export class Adapter implements DAP.Adapter {
     });
     this._browser = connection.browser();
 
-    connection.on(CDP.ConnectionEvents.Disconnected, () => this._dap.didExit(0));
+    connection.on(CDP.ConnectionEvents.Disconnected, () => this._dap.exited({exitCode: 0}));
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -82,7 +82,7 @@ export class Adapter implements DAP.Adapter {
     // params.supportsRunInTerminalRequest
     // params.supportsMemoryReferences
 
-    this._dap.didInitialize();
+    this._dap.initialized({});
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
@@ -122,33 +122,35 @@ export class Adapter implements DAP.Adapter {
       this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f));
     this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
       if (target === this._mainTarget) {
-        this._dap.didTerminate();
+        this._dap.terminated({});
       }
     });
 
     const onSource = (source: Source) => {
-      this._dap.didChangeScript('new', this._sourceToDap(source));
+      this._dap.loadedSource({reason: 'new', source: this._sourceToDap(source)});
     };
     this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
     this._sourceContainer.sources().forEach(onSource);
     this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
       for (const source of sources)
-        this._dap.didChangeScript('removed', this._sourceToDap(source));
+        this._dap.loadedSource({reason: 'removed', source: this._sourceToDap(source)});
     });
   }
 
   _onThreadCreated(thread: Thread): void {
     console.assert(!this._threads.has(thread.threadId()));
     this._threads.set(thread.threadId(), thread);
-    this._dap.didChangeThread('started', thread.threadId());
+    this._dap.thread({reason: 'started', threadId: thread.threadId()});
 
     const onPaused = () => {
       const details = thread.pausedDetails();
-      this._dap.didPause({
-        reason: details.reason,
-        description: 'didPause.description',
+      this._dap.stopped({
+        // TODO(dgozman): map reason
+        reason: 'pause',
+        description: details.reason,
         threadId: thread.threadId(),
-        text: 'didPause.text'
+        text: 'didPause.text',
+        allThreadsStopped: false
       });
     };
     thread.on(ThreadEvents.ThreadPaused, onPaused);
@@ -156,13 +158,13 @@ export class Adapter implements DAP.Adapter {
       onPaused();
 
     thread.on(ThreadEvents.ThreadResumed, () => {
-      this._dap.didResume(thread.threadId());
+      this._dap.continued({threadId: thread.threadId()});
     });
   }
 
   _onThreadDestroyed(thread: Thread): void {
     this._threads.delete(thread.threadId());
-    this._dap.didChangeThread('exited', thread.threadId());
+    this._dap.thread({reason: 'exited', threadId: thread.threadId()});
   }
 
   async launch(params: DAP.LaunchParams): Promise<void> {

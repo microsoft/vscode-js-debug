@@ -315,7 +315,7 @@ export namespace Dap {
      * The data is sent as the 'restart' attribute of the 'terminated' event.
      * The client should leave the data intact.
      */
-    __restart: array | boolean | integer | null | number | object | string;
+    __restart?: any[] | boolean | number | null | number | object | string;
   }
 
   export interface AttachResult {
@@ -344,7 +344,7 @@ export namespace Dap {
     /**
      * Returns completions in the scope of this stack frame. If not specified, the completions are returned for the global scope.
      */
-    frameId: integer;
+    frameId?: number;
 
     /**
      * One or more source lines. Typically this is the text a user has typed into the debug console before he asked for completion.
@@ -354,12 +354,12 @@ export namespace Dap {
     /**
      * The character position for which to determine the completion proposals.
      */
-    column: integer;
+    column: number;
 
     /**
      * An optional line for which to determine the completion proposals. If missing the first line of the text is assumed.
      */
-    line: integer;
+    line?: number;
   }
 
   export interface CompletionsResult {
@@ -379,33 +379,33 @@ export namespace Dap {
     /**
      * Continue execution for the specified thread (if possible). If the backend cannot continue on a single thread but will continue on all threads, it should set the 'allThreadsContinued' attribute in the response to true.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface ContinueResult {
     /**
      * If true, the 'continue' request has ignored the specified thread and continued all threads instead. If this attribute is missing a value of 'true' is assumed for backward compatibility.
      */
-    allThreadsContinued: boolean;
+    allThreadsContinued?: boolean;
   }
 
   export interface ContinuedEventParams {
     /**
      * The thread which was continued.
      */
-    threadId: integer;
+    threadId: number;
 
     /**
      * If 'allThreadsContinued' is true, a debug adapter can announce that all threads have continued.
      */
-    allThreadsContinued: boolean;
+    allThreadsContinued?: boolean;
   }
 
   export interface DataBreakpointInfoParams {
     /**
      * Reference to the Variable container if the data breakpoint is requested for a child of the container.
      */
-    variablesReference: integer;
+    variablesReference?: number;
 
     /**
      * The name of the Variable's child to obtain data breakpoint information for. If variableReference isn’t provided, this can be an expression.
@@ -427,12 +427,12 @@ export namespace Dap {
     /**
      * Optional attribute listing the available access types for a potential data breakpoint. A UI frontend could surface this information.
      */
-    accessTypes: DataBreakpointAccessType[];
+    accessTypes?: DataBreakpointAccessType[];
 
     /**
      * Optional attribute indicating that a potential data breakpoint could be persisted across sessions.
      */
-    canPersist: boolean;
+    canPersist?: boolean;
   }
 
   export interface DisassembleParams {
@@ -444,22 +444,22 @@ export namespace Dap {
     /**
      * Optional offset (in bytes) to be applied to the reference location before disassembling. Can be negative.
      */
-    offset: integer;
+    offset?: number;
 
     /**
      * Optional offset (in instructions) to be applied after the byte offset (if any) before disassembling. Can be negative.
      */
-    instructionOffset: integer;
+    instructionOffset?: number;
 
     /**
      * Number of instructions to disassemble starting at the specified location and offset. An adapter must return exactly this number of instructions - any unavailable instructions should be replaced with an implementation-defined 'invalid instruction' value.
      */
-    instructionCount: integer;
+    instructionCount: number;
 
     /**
      * If true, the adapter should attempt to resolve memory addresses and other values to symbolic names.
      */
-    resolveSymbols: boolean;
+    resolveSymbols?: boolean;
   }
 
   export interface DisassembleResult {
@@ -473,14 +473,14 @@ export namespace Dap {
     /**
      * A value of true indicates that this 'disconnect' request is part of a restart sequence.
      */
-    restart: boolean;
+    restart?: boolean;
 
     /**
      * Indicates whether the debuggee should be terminated when the debugger is disconnected.
      * If unspecified, the debug adapter is free to do whatever it thinks is best.
      * A client can only rely on this attribute being properly honored if a debug adapter returns true for the 'supportTerminateDebuggee' capability.
      */
-    terminateDebuggee: boolean;
+    terminateDebuggee?: boolean;
   }
 
   export interface DisconnectResult {
@@ -495,17 +495,17 @@ export namespace Dap {
     /**
      * Evaluate the expression in the scope of this stack frame. If not specified, the expression is evaluated in the global scope.
      */
-    frameId: integer;
+    frameId?: number;
 
     /**
      * The context in which the evaluate request is run.
      */
-    context: 'watch' | 'repl' | 'hover';
+    context?: 'watch' | 'repl' | 'hover';
 
     /**
      * Specifies details on how to format the Evaluate result.
      */
-    format: ValueFormat;
+    format?: ValueFormat;
   }
 
   export interface EvaluateResult {
@@ -517,12 +517,12 @@ export namespace Dap {
     /**
      * The optional type of the evaluate result.
      */
-    type: string;
+    type?: string;
 
     /**
      * Properties of a evaluate result that can be used to determine how to render the result in the UI.
      */
-    presentationHint: VariablePresentationHint;
+    presentationHint?: VariablePresentationHint;
 
     /**
      * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
@@ -533,25 +533,25 @@ export namespace Dap {
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    namedVariables: number;
+    namedVariables?: number;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    indexedVariables: number;
+    indexedVariables?: number;
 
     /**
      * Memory reference to a location appropriate for this result. For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
      */
-    memoryReference: string;
+    memoryReference?: string;
   }
 
   export interface ExceptionInfoParams {
     /**
      * Thread for which exception information should be retrieved.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface ExceptionInfoResult {
@@ -563,7 +563,7 @@ export namespace Dap {
     /**
      * Descriptive text for the exception provided by the debug adapter.
      */
-    description: string;
+    description?: string;
 
     /**
      * Mode that caused the exception notification to be raised.
@@ -573,26 +573,26 @@ export namespace Dap {
     /**
      * Detailed information about the exception.
      */
-    details: ExceptionDetails;
+    details?: ExceptionDetails;
   }
 
   export interface ExitedEventParams {
     /**
      * The exit code returned from the debuggee.
      */
-    exitCode: integer;
+    exitCode: number;
   }
 
   export interface GotoParams {
     /**
      * Set the goto target for this thread.
      */
-    threadId: integer;
+    threadId: number;
 
     /**
      * The location where the debuggee will continue to run.
      */
-    targetId: integer;
+    targetId: number;
   }
 
   export interface GotoResult {
@@ -607,12 +607,12 @@ export namespace Dap {
     /**
      * The line location for which the goto targets are determined.
      */
-    line: integer;
+    line: number;
 
     /**
      * An optional column location for which the goto targets are determined.
      */
-    column: integer;
+    column?: number;
   }
 
   export interface GotoTargetsResult {
@@ -626,12 +626,12 @@ export namespace Dap {
     /**
      * The ID of the (frontend) client using this adapter.
      */
-    clientID: string;
+    clientID?: string;
 
     /**
      * The human readable name of the (frontend) client using this adapter.
      */
-    clientName: string;
+    clientName?: string;
 
     /**
      * The ID of the debug adapter.
@@ -641,189 +641,189 @@ export namespace Dap {
     /**
      * The ISO-639 locale of the (frontend) client using this adapter, e.g. en-US or de-CH.
      */
-    locale: string;
+    locale?: string;
 
     /**
      * If true all line numbers are 1-based (default).
      */
-    linesStartAt1: boolean;
+    linesStartAt1?: boolean;
 
     /**
      * If true all column numbers are 1-based (default).
      */
-    columnsStartAt1: boolean;
+    columnsStartAt1?: boolean;
 
     /**
      * Determines in what format paths are specified. The default is 'path', which is the native format.
      */
-    pathFormat: 'path' | 'uri';
+    pathFormat?: 'path' | 'uri';
 
     /**
      * Client supports the optional type attribute for variables.
      */
-    supportsVariableType: boolean;
+    supportsVariableType?: boolean;
 
     /**
      * Client supports the paging of variables.
      */
-    supportsVariablePaging: boolean;
+    supportsVariablePaging?: boolean;
 
     /**
      * Client supports the runInTerminal request.
      */
-    supportsRunInTerminalRequest: boolean;
+    supportsRunInTerminalRequest?: boolean;
 
     /**
      * Client supports memory references.
      */
-    supportsMemoryReferences: boolean;
+    supportsMemoryReferences?: boolean;
   }
 
   export interface InitializeResult {
     /**
      * The debug adapter supports the 'configurationDone' request.
      */
-    supportsConfigurationDoneRequest: boolean;
+    supportsConfigurationDoneRequest?: boolean;
 
     /**
      * The debug adapter supports function breakpoints.
      */
-    supportsFunctionBreakpoints: boolean;
+    supportsFunctionBreakpoints?: boolean;
 
     /**
      * The debug adapter supports conditional breakpoints.
      */
-    supportsConditionalBreakpoints: boolean;
+    supportsConditionalBreakpoints?: boolean;
 
     /**
      * The debug adapter supports breakpoints that break execution after a specified number of hits.
      */
-    supportsHitConditionalBreakpoints: boolean;
+    supportsHitConditionalBreakpoints?: boolean;
 
     /**
      * The debug adapter supports a (side effect free) evaluate request for data hovers.
      */
-    supportsEvaluateForHovers: boolean;
+    supportsEvaluateForHovers?: boolean;
 
     /**
      * Available filters or options for the setExceptionBreakpoints request.
      */
-    exceptionBreakpointFilters: ExceptionBreakpointsFilter[];
+    exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
 
     /**
      * The debug adapter supports stepping back via the 'stepBack' and 'reverseContinue' requests.
      */
-    supportsStepBack: boolean;
+    supportsStepBack?: boolean;
 
     /**
      * The debug adapter supports setting a variable to a value.
      */
-    supportsSetVariable: boolean;
+    supportsSetVariable?: boolean;
 
     /**
      * The debug adapter supports restarting a frame.
      */
-    supportsRestartFrame: boolean;
+    supportsRestartFrame?: boolean;
 
     /**
      * The debug adapter supports the 'gotoTargets' request.
      */
-    supportsGotoTargetsRequest: boolean;
+    supportsGotoTargetsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'stepInTargets' request.
      */
-    supportsStepInTargetsRequest: boolean;
+    supportsStepInTargetsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'completions' request.
      */
-    supportsCompletionsRequest: boolean;
+    supportsCompletionsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'modules' request.
      */
-    supportsModulesRequest: boolean;
+    supportsModulesRequest?: boolean;
 
     /**
      * The set of additional module information exposed by the debug adapter.
      */
-    additionalModuleColumns: ColumnDescriptor[];
+    additionalModuleColumns?: ColumnDescriptor[];
 
     /**
      * Checksum algorithms supported by the debug adapter.
      */
-    supportedChecksumAlgorithms: ChecksumAlgorithm[];
+    supportedChecksumAlgorithms?: ChecksumAlgorithm[];
 
     /**
      * The debug adapter supports the 'restart' request. In this case a client should not implement 'restart' by terminating and relaunching the adapter but by calling the RestartRequest.
      */
-    supportsRestartRequest: boolean;
+    supportsRestartRequest?: boolean;
 
     /**
      * The debug adapter supports 'exceptionOptions' on the setExceptionBreakpoints request.
      */
-    supportsExceptionOptions: boolean;
+    supportsExceptionOptions?: boolean;
 
     /**
      * The debug adapter supports a 'format' attribute on the stackTraceRequest, variablesRequest, and evaluateRequest.
      */
-    supportsValueFormattingOptions: boolean;
+    supportsValueFormattingOptions?: boolean;
 
     /**
      * The debug adapter supports the 'exceptionInfo' request.
      */
-    supportsExceptionInfoRequest: boolean;
+    supportsExceptionInfoRequest?: boolean;
 
     /**
      * The debug adapter supports the 'terminateDebuggee' attribute on the 'disconnect' request.
      */
-    supportTerminateDebuggee: boolean;
+    supportTerminateDebuggee?: boolean;
 
     /**
      * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and the 'totalFrames' result of the 'StackTrace' request are supported.
      */
-    supportsDelayedStackTraceLoading: boolean;
+    supportsDelayedStackTraceLoading?: boolean;
 
     /**
      * The debug adapter supports the 'loadedSources' request.
      */
-    supportsLoadedSourcesRequest: boolean;
+    supportsLoadedSourcesRequest?: boolean;
 
     /**
      * The debug adapter supports logpoints by interpreting the 'logMessage' attribute of the SourceBreakpoint.
      */
-    supportsLogPoints: boolean;
+    supportsLogPoints?: boolean;
 
     /**
      * The debug adapter supports the 'terminateThreads' request.
      */
-    supportsTerminateThreadsRequest: boolean;
+    supportsTerminateThreadsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'setExpression' request.
      */
-    supportsSetExpression: boolean;
+    supportsSetExpression?: boolean;
 
     /**
      * The debug adapter supports the 'terminate' request.
      */
-    supportsTerminateRequest: boolean;
+    supportsTerminateRequest?: boolean;
 
     /**
      * The debug adapter supports data breakpoints.
      */
-    supportsDataBreakpoints: boolean;
+    supportsDataBreakpoints?: boolean;
 
     /**
      * The debug adapter supports the 'readMemory' request.
      */
-    supportsReadMemoryRequest: boolean;
+    supportsReadMemoryRequest?: boolean;
 
     /**
      * The debug adapter supports the 'disassemble' request.
      */
-    supportsDisassembleRequest: boolean;
+    supportsDisassembleRequest?: boolean;
   }
 
   export interface InitializedEventParams {
@@ -833,14 +833,14 @@ export namespace Dap {
     /**
      * If noDebug is true the launch request should launch the program without enabling debugging.
      */
-    noDebug: boolean;
+    noDebug?: boolean;
 
     /**
      * Optional data from the previous, restarted session.
      * The data is sent as the 'restart' attribute of the 'terminated' event.
      * The client should leave the data intact.
      */
-    __restart: array | boolean | integer | null | number | object | string;
+    __restart?: any[] | boolean | number | null | number | object | string;
   }
 
   export interface LaunchResult {
@@ -884,12 +884,12 @@ export namespace Dap {
     /**
      * The index of the first module to return; if omitted modules start at 0.
      */
-    startModule: integer;
+    startModule?: number;
 
     /**
      * The number of modules to return. If moduleCount is not specified or 0, all modules are returned.
      */
-    moduleCount: integer;
+    moduleCount?: number;
   }
 
   export interface ModulesResult {
@@ -901,14 +901,14 @@ export namespace Dap {
     /**
      * The total number of modules available.
      */
-    totalModules: integer;
+    totalModules?: number;
   }
 
   export interface NextParams {
     /**
      * Execute 'next' for this thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface NextResult {
@@ -918,7 +918,7 @@ export namespace Dap {
     /**
      * The output category. If not specified, 'console' is assumed.
      */
-    category: 'console' | 'stdout' | 'stderr' | 'telemetry';
+    category?: 'console' | 'stdout' | 'stderr' | 'telemetry';
 
     /**
      * The output to report.
@@ -928,34 +928,34 @@ export namespace Dap {
     /**
      * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request.
      */
-    variablesReference: number;
+    variablesReference?: number;
 
     /**
      * An optional source location where the output was produced.
      */
-    source: Source;
+    source?: Source;
 
     /**
      * An optional source location line where the output was produced.
      */
-    line: integer;
+    line?: number;
 
     /**
      * An optional source location column where the output was produced.
      */
-    column: integer;
+    column?: number;
 
     /**
      * Optional data to report. For the 'telemetry' category the data will be sent to telemetry, for the other categories the data is shown in JSON format.
      */
-    data: array | boolean | integer | null | number | object | string;
+    data?: any[] | boolean | number | null | number | object | string;
   }
 
   export interface PauseParams {
     /**
      * Pause execution for this thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface PauseResult {
@@ -970,22 +970,22 @@ export namespace Dap {
     /**
      * The system process id of the debugged process. This property will be missing for non-system processes.
      */
-    systemProcessId: integer;
+    systemProcessId?: number;
 
     /**
      * If true, the process is running on the same computer as the debug adapter.
      */
-    isLocalProcess: boolean;
+    isLocalProcess?: boolean;
 
     /**
      * Describes how the debug engine started debugging this process.
      */
-    startMethod: string;
+    startMethod?: string;
 
     /**
      * The size of a pointer or address for this process, in bits. This value may be used by clients when formatting addresses for display.
      */
-    pointerSize: integer;
+    pointerSize?: number;
   }
 
   export interface ReadMemoryParams {
@@ -997,12 +997,12 @@ export namespace Dap {
     /**
      * Optional offset (in bytes) to be applied to the reference location before reading data. Can be negative.
      */
-    offset: integer;
+    offset?: number;
 
     /**
      * Number of bytes to read at the specified location and offset.
      */
-    count: integer;
+    count: number;
   }
 
   export interface ReadMemoryResult {
@@ -1014,19 +1014,19 @@ export namespace Dap {
     /**
      * The number of unreadable bytes encountered after the last successfully read byte. This can be used to determine the number of bytes that must be skipped before a subsequent 'readMemory' request will succeed.
      */
-    unreadableBytes: integer;
+    unreadableBytes?: number;
 
     /**
      * The bytes read from memory, encoded using base64.
      */
-    data: string;
+    data?: string;
   }
 
   export interface RestartFrameParams {
     /**
      * Restart this stackframe.
      */
-    frameId: integer;
+    frameId: number;
   }
 
   export interface RestartFrameResult {
@@ -1042,7 +1042,7 @@ export namespace Dap {
     /**
      * Execute 'reverseContinue' for this thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface ReverseContinueResult {
@@ -1052,12 +1052,12 @@ export namespace Dap {
     /**
      * What kind of terminal to launch.
      */
-    kind: string;
+    kind?: string;
 
     /**
      * Optional title of the terminal.
      */
-    title: string;
+    title?: string;
 
     /**
      * Working directory of the command.
@@ -1072,26 +1072,26 @@ export namespace Dap {
     /**
      * Environment key-value pairs that are added to or removed from the default environment.
      */
-    env: object;
+    env?: object;
   }
 
   export interface RunInTerminalResult {
     /**
      * The process ID.
      */
-    processId: number;
+    processId?: number;
 
     /**
      * The process ID of the terminal shell.
      */
-    shellProcessId: number;
+    shellProcessId?: number;
   }
 
   export interface ScopesParams {
     /**
      * Retrieve the scopes for this stackframe.
      */
-    frameId: integer;
+    frameId: number;
   }
 
   export interface ScopesResult {
@@ -1110,17 +1110,17 @@ export namespace Dap {
     /**
      * The code locations of the breakpoints.
      */
-    breakpoints: SourceBreakpoint[];
+    breakpoints?: SourceBreakpoint[];
 
     /**
      * Deprecated: The code locations of the breakpoints.
      */
-    lines: integer[];
+    lines?: number[];
 
     /**
      * A value of true indicates that the underlying source has been modified which results in new breakpoint locations.
      */
-    sourceModified: boolean;
+    sourceModified?: boolean;
   }
 
   export interface SetBreakpointsResult {
@@ -1153,7 +1153,7 @@ export namespace Dap {
     /**
      * Configuration options for selected exceptions.
      */
-    exceptionOptions: ExceptionOptions[];
+    exceptionOptions?: ExceptionOptions[];
   }
 
   export interface SetExceptionBreakpointsResult {
@@ -1173,12 +1173,12 @@ export namespace Dap {
     /**
      * Evaluate the expressions in the scope of this stack frame. If not specified, the expressions are evaluated in the global scope.
      */
-    frameId: integer;
+    frameId?: number;
 
     /**
      * Specifies how the resulting value should be formatted.
      */
-    format: ValueFormat;
+    format?: ValueFormat;
   }
 
   export interface SetExpressionResult {
@@ -1190,29 +1190,29 @@ export namespace Dap {
     /**
      * The optional type of the value.
      */
-    type: string;
+    type?: string;
 
     /**
      * Properties of a value that can be used to determine how to render the result in the UI.
      */
-    presentationHint: VariablePresentationHint;
+    presentationHint?: VariablePresentationHint;
 
     /**
      * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
      */
-    variablesReference: number;
+    variablesReference?: number;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    namedVariables: number;
+    namedVariables?: number;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    indexedVariables: number;
+    indexedVariables?: number;
   }
 
   export interface SetFunctionBreakpointsParams {
@@ -1233,7 +1233,7 @@ export namespace Dap {
     /**
      * The reference of the variable container.
      */
-    variablesReference: integer;
+    variablesReference: number;
 
     /**
      * The name of the variable in the container.
@@ -1248,7 +1248,7 @@ export namespace Dap {
     /**
      * Specifies details on how to format the response value.
      */
-    format: ValueFormat;
+    format?: ValueFormat;
   }
 
   export interface SetVariableResult {
@@ -1260,36 +1260,36 @@ export namespace Dap {
     /**
      * The type of the new value. Typically shown in the UI when hovering over the value.
      */
-    type: string;
+    type?: string;
 
     /**
      * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
      */
-    variablesReference: number;
+    variablesReference?: number;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    namedVariables: number;
+    namedVariables?: number;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    indexedVariables: number;
+    indexedVariables?: number;
   }
 
   export interface SourceParams {
     /**
      * Specifies the source content to load. Either source.path or source.sourceReference must be specified.
      */
-    source: Source;
+    source?: Source;
 
     /**
      * The reference to the source. This is the same as source.sourceReference. This is provided for backward compatibility since old backends do not understand the 'source' attribute.
      */
-    sourceReference: integer;
+    sourceReference: number;
   }
 
   export interface SourceResult {
@@ -1301,29 +1301,29 @@ export namespace Dap {
     /**
      * Optional content type (mime type) of the source.
      */
-    mimeType: string;
+    mimeType?: string;
   }
 
   export interface StackTraceParams {
     /**
      * Retrieve the stacktrace for this thread.
      */
-    threadId: integer;
+    threadId: number;
 
     /**
      * The index of the first frame to return; if omitted frames start at 0.
      */
-    startFrame: integer;
+    startFrame?: number;
 
     /**
      * The maximum number of frames to return. If levels is not specified or 0, all frames are returned.
      */
-    levels: integer;
+    levels?: number;
 
     /**
      * Specifies details on how to format the stack frames.
      */
-    format: StackFrameFormat;
+    format?: StackFrameFormat;
   }
 
   export interface StackTraceResult {
@@ -1336,14 +1336,14 @@ export namespace Dap {
     /**
      * The total number of frames available.
      */
-    totalFrames: integer;
+    totalFrames?: number;
   }
 
   export interface StepBackParams {
     /**
      * Execute 'stepBack' for this thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface StepBackResult {
@@ -1353,12 +1353,12 @@ export namespace Dap {
     /**
      * Execute 'stepIn' for this thread.
      */
-    threadId: integer;
+    threadId: number;
 
     /**
      * Optional id of the target to step into.
      */
-    targetId: integer;
+    targetId?: number;
   }
 
   export interface StepInResult {
@@ -1368,7 +1368,7 @@ export namespace Dap {
     /**
      * The stack frame for which to retrieve the possible stepIn targets.
      */
-    frameId: integer;
+    frameId: number;
   }
 
   export interface StepInTargetsResult {
@@ -1382,7 +1382,7 @@ export namespace Dap {
     /**
      * Execute 'stepOut' for this thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface StepOutResult {
@@ -1398,36 +1398,36 @@ export namespace Dap {
     /**
      * The full reason for the event, e.g. 'Paused on exception'. This string is shown in the UI as is and must be translated.
      */
-    description: string;
+    description?: string;
 
     /**
      * The thread which was stopped.
      */
-    threadId: integer;
+    threadId?: number;
 
     /**
      * A value of true hints to the frontend that this event should not change the focus.
      */
-    preserveFocusHint: boolean;
+    preserveFocusHint?: boolean;
 
     /**
      * Additional information. E.g. if reason is 'exception', text contains the exception name. This string is shown in the UI.
      */
-    text: string;
+    text?: string;
 
     /**
      * If 'allThreadsStopped' is true, a debug adapter can announce that all threads have stopped.
      * - The client should use this information to enable that all threads can be expanded to access their stacktraces.
      * - If the attribute is missing or false, only the thread with the given threadId can be expanded.
      */
-    allThreadsStopped: boolean;
+    allThreadsStopped?: boolean;
   }
 
   export interface TerminateParams {
     /**
      * A value of true indicates that this 'terminate' request is part of a restart sequence.
      */
-    restart: boolean;
+    restart?: boolean;
   }
 
   export interface TerminateResult {
@@ -1437,7 +1437,7 @@ export namespace Dap {
     /**
      * Ids of threads to be terminated.
      */
-    threadIds: integer[];
+    threadIds?: number[];
   }
 
   export interface TerminateThreadsResult {
@@ -1448,7 +1448,7 @@ export namespace Dap {
      * A debug adapter may set 'restart' to true (or to an arbitrary object) to request that the front end restarts the session.
      * The value is not interpreted by the client and passed unmodified as an attribute '__restart' to the 'launch' and 'attach' requests.
      */
-    restart: array | boolean | integer | null | number | object | string;
+    restart?: any[] | boolean | number | null | number | object | string;
   }
 
   export interface ThreadEventParams {
@@ -1460,7 +1460,7 @@ export namespace Dap {
     /**
      * The identifier of the thread.
      */
-    threadId: integer;
+    threadId: number;
   }
 
   export interface ThreadsParams {
@@ -1477,27 +1477,27 @@ export namespace Dap {
     /**
      * The Variable reference.
      */
-    variablesReference: integer;
+    variablesReference: number;
 
     /**
      * Optional filter to limit the child variables to either named or indexed. If ommited, both types are fetched.
      */
-    filter: string;
+    filter?: string;
 
     /**
      * The index of the first variable to return; if omitted children start at 0.
      */
-    start: integer;
+    start?: number;
 
     /**
      * The number of variables to return. If count is missing or 0, all variables are returned.
      */
-    count: integer;
+    count?: number;
 
     /**
      * Specifies details on how to format the Variable values.
      */
-    format: ValueFormat;
+    format?: ValueFormat;
   }
 
   export interface VariablesResult {
@@ -1529,39 +1529,39 @@ export namespace Dap {
     /**
      * The type of the variable's value. Typically shown in the UI when hovering over the value.
      */
-    type: string;
+    type?: string;
 
     /**
      * Properties of a variable that can be used to determine how to render the variable in the UI.
      */
-    presentationHint: VariablePresentationHint;
+    presentationHint?: VariablePresentationHint;
 
     /**
      * Optional evaluatable name of this variable which can be passed to the 'EvaluateRequest' to fetch the variable's value.
      */
-    evaluateName: string;
+    evaluateName?: string;
 
     /**
      * If variablesReference is > 0, the variable is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
      */
-    variablesReference: integer;
+    variablesReference: number;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the children in a paged UI and fetch them in chunks.
      */
-    namedVariables: integer;
+    namedVariables?: number;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the children in a paged UI and fetch them in chunks.
      */
-    indexedVariables: integer;
+    indexedVariables?: number;
 
     /**
      * Optional memory reference for the variable if the variable represents executable code, such as a function pointer.
      */
-    memoryReference: string;
+    memoryReference?: string;
   }
 
   /**
@@ -1571,7 +1571,7 @@ export namespace Dap {
     /**
      * Unique identifier for the thread.
      */
-    id: integer;
+    id: number;
 
     /**
      * A name of the thread.
@@ -1586,7 +1586,7 @@ export namespace Dap {
     /**
      * Unique identifier for a stepIn target.
      */
-    id: integer;
+    id: number;
 
     /**
      * The name of the stepIn target (shown in the UI).
@@ -1601,7 +1601,7 @@ export namespace Dap {
     /**
      * An identifier for the stack frame. It must be unique across all threads. This id can be used to retrieve the scopes of the frame with the 'scopesRequest' or to restart the execution of a stackframe.
      */
-    id: integer;
+    id: number;
 
     /**
      * The name of the stack frame, typically a method name.
@@ -1611,42 +1611,42 @@ export namespace Dap {
     /**
      * The optional source of the frame.
      */
-    source: Source;
+    source?: Source;
 
     /**
      * The line within the file of the frame. If source is null or doesn't exist, line is 0 and must be ignored.
      */
-    line: integer;
+    line: number;
 
     /**
      * The column within the line. If source is null or doesn't exist, column is 0 and must be ignored.
      */
-    column: integer;
+    column: number;
 
     /**
      * An optional end line of the range covered by the stack frame.
      */
-    endLine: integer;
+    endLine?: number;
 
     /**
      * An optional end column of the range covered by the stack frame.
      */
-    endColumn: integer;
+    endColumn?: number;
 
     /**
      * Optional memory reference for the current instruction pointer in this frame.
      */
-    instructionPointerReference: string;
+    instructionPointerReference?: string;
 
     /**
      * The module associated with this frame, if any.
      */
-    moduleId: integer | string;
+    moduleId?: number | string;
 
     /**
      * An optional hint for how to present this frame in the UI. A value of 'label' can be used to indicate that the frame is an artificial frame that is used as a visual label or separator. A value of 'subtle' can be used to change the appearance of a frame in a 'subtle' way.
      */
-    presentationHint: string;
+    presentationHint?: string;
   }
 
   export type StackFrameFormat = undefined;
@@ -1663,12 +1663,12 @@ export namespace Dap {
     /**
      * An optional expression for conditional breakpoints.
      */
-    condition: string;
+    condition?: string;
 
     /**
      * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
      */
-    hitCondition: string;
+    hitCondition?: string;
   }
 
   /**
@@ -1678,7 +1678,7 @@ export namespace Dap {
     /**
      * A path that selects a single or multiple exceptions in a tree. If 'path' is missing, the whole tree is selected. By convention the first segment of the path is a category that is used to group exceptions in the UI.
      */
-    path: ExceptionPathSegment[];
+    path?: ExceptionPathSegment[];
 
     /**
      * Condition when a thrown exception should result in a break.
@@ -1693,7 +1693,7 @@ export namespace Dap {
     /**
      * If false or missing this segment matches the names provided, otherwise it matches anything except the names provided.
      */
-    negate: boolean;
+    negate?: boolean;
 
     /**
      * Depending on the value of 'negate' the names that should match or not match.
@@ -1713,17 +1713,17 @@ export namespace Dap {
     /**
      * The access type of the data.
      */
-    accessType: DataBreakpointAccessType;
+    accessType?: DataBreakpointAccessType;
 
     /**
      * An optional expression for conditional breakpoints.
      */
-    condition: string;
+    condition?: string;
 
     /**
      * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
      */
-    hitCondition: string;
+    hitCondition?: string;
   }
 
   /**
@@ -1733,27 +1733,27 @@ export namespace Dap {
     /**
      * The source line of the breakpoint or logpoint.
      */
-    line: integer;
+    line: number;
 
     /**
      * An optional source column of the breakpoint.
      */
-    column: integer;
+    column?: number;
 
     /**
      * An optional expression for conditional breakpoints.
      */
-    condition: string;
+    condition?: string;
 
     /**
      * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
      */
-    hitCondition: string;
+    hitCondition?: string;
 
     /**
      * If this attribute exists and is non-empty, the backend must not 'break' (stop) but log the message instead. Expressions within {} are interpolated.
      */
-    logMessage: string;
+    logMessage?: string;
   }
 
   /**
@@ -1768,24 +1768,24 @@ export namespace Dap {
     /**
      * An optional hint for how to present this scope in the UI. If this attribute is missing, the scope is shown with a generic UI.
      */
-    presentationHint: 'arguments' | 'locals' | 'registers';
+    presentationHint?: 'arguments' | 'locals' | 'registers';
 
     /**
      * The variables of this scope can be retrieved by passing the value of variablesReference to the VariablesRequest.
      */
-    variablesReference: integer;
+    variablesReference: number;
 
     /**
      * The number of named variables in this scope.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    namedVariables: integer;
+    namedVariables?: number;
 
     /**
      * The number of indexed variables in this scope.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
      */
-    indexedVariables: integer;
+    indexedVariables?: number;
 
     /**
      * If true, the number of variables in this scope is large or expensive to retrieve.
@@ -1795,27 +1795,27 @@ export namespace Dap {
     /**
      * Optional source for this scope.
      */
-    source: Source;
+    source?: Source;
 
     /**
      * Optional start line of the range covered by this scope.
      */
-    line: integer;
+    line?: number;
 
     /**
      * Optional start column of the range covered by this scope.
      */
-    column: integer;
+    column?: number;
 
     /**
      * Optional end line of the range covered by this scope.
      */
-    endLine: integer;
+    endLine?: number;
 
     /**
      * Optional end column of the range covered by this scope.
      */
-    endColumn: integer;
+    endColumn?: number;
   }
 
   /**
@@ -1832,7 +1832,7 @@ export namespace Dap {
     /**
      * Unique identifier for the module.
      */
-    id: integer | string;
+    id: number | string;
 
     /**
      * A name of the module.
@@ -1845,42 +1845,42 @@ export namespace Dap {
      * 
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
-    path: string;
+    path?: string;
 
     /**
      * True if the module is optimized.
      */
-    isOptimized: boolean;
+    isOptimized?: boolean;
 
     /**
      * True if the module is considered 'user code' by a debugger that supports 'Just My Code'.
      */
-    isUserCode: boolean;
+    isUserCode?: boolean;
 
     /**
      * Version of Module.
      */
-    version: string;
+    version?: string;
 
     /**
      * User understandable description of if symbols were found for the module (ex: 'Symbols Loaded', 'Symbols not found', etc.
      */
-    symbolStatus: string;
+    symbolStatus?: string;
 
     /**
      * Logical full path to the symbol file. The exact definition is implementation defined.
      */
-    symbolFilePath: string;
+    symbolFilePath?: string;
 
     /**
      * Module created or modified.
      */
-    dateTimeStamp: string;
+    dateTimeStamp?: string;
 
     /**
      * Address range covered by this module.
      */
-    addressRange: string;
+    addressRange?: string;
   }
 
   /**
@@ -1906,17 +1906,17 @@ export namespace Dap {
     /**
      * Format to use for the rendered values in this column. TBD how the format strings looks like.
      */
-    format: string;
+    format?: string;
 
     /**
      * Datatype of values in this column.  Defaults to 'string' if not specified.
      */
-    type: string;
+    type?: string;
 
     /**
      * Width of this column in characters (hint only).
      */
-    width: integer;
+    width?: number;
   }
 
   /**
@@ -1936,7 +1936,7 @@ export namespace Dap {
     /**
      * Initial value of the filter. If not specified a value 'false' is assumed.
      */
-    default: boolean;
+    default?: boolean;
   }
 
   /**
@@ -1947,7 +1947,7 @@ export namespace Dap {
     /**
      * Unique identifier for a goto target. This is used in the goto request.
      */
-    id: integer;
+    id: number;
 
     /**
      * The name of the goto target (shown in the UI).
@@ -1957,27 +1957,27 @@ export namespace Dap {
     /**
      * The line of the goto target.
      */
-    line: integer;
+    line: number;
 
     /**
      * An optional column of the goto target.
      */
-    column: integer;
+    column?: number;
 
     /**
      * An optional end line of the range covered by the goto target.
      */
-    endLine: integer;
+    endLine?: number;
 
     /**
      * An optional end column of the range covered by the goto target.
      */
-    endColumn: integer;
+    endColumn?: number;
 
     /**
      * Optional memory reference for the instruction pointer value represented by this target.
      */
-    instructionPointerReference: string;
+    instructionPointerReference?: string;
   }
 
   /**
@@ -1987,42 +1987,42 @@ export namespace Dap {
     /**
      * The short name of the source. Every source returned from the debug adapter has a name. When sending a source to the debug adapter this name is optional.
      */
-    name: string;
+    name?: string;
 
     /**
      * The path of the source to be shown in the UI. It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
      */
-    path: string;
+    path?: string;
 
     /**
      * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source.
      */
-    sourceReference: number;
+    sourceReference?: number;
 
     /**
      * An optional hint for how to present the source in the UI. A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
      */
-    presentationHint: string;
+    presentationHint?: string;
 
     /**
      * The (optional) origin of this source: possible values 'internal module', 'inlined content from source map', etc.
      */
-    origin: string;
+    origin?: string;
 
     /**
      * An optional list of sources that are related to this source. These may be the source that generated this source.
      */
-    sources: Source[];
+    sources?: Source[];
 
     /**
      * Optional data that a debug adapter might want to loop through the client. The client should leave the data intact and persist it across sessions. The client should not interpret the data.
      */
-    adapterData: array | boolean | integer | null | number | object | string;
+    adapterData?: any[] | boolean | number | null | number | object | string;
 
     /**
      * The checksums associated with this file.
      */
-    checksums: Checksum[];
+    checksums?: Checksum[];
   }
 
   /**
@@ -2047,32 +2047,32 @@ export namespace Dap {
     /**
      * Message contained in the exception.
      */
-    message: string;
+    message?: string;
 
     /**
      * Short type name of the exception object.
      */
-    typeName: string;
+    typeName?: string;
 
     /**
      * Fully-qualified type name of the exception object.
      */
-    fullTypeName: string;
+    fullTypeName?: string;
 
     /**
      * Optional expression that can be evaluated in the current scope to obtain the exception object.
      */
-    evaluateName: string;
+    evaluateName?: string;
 
     /**
      * Stack trace at the time the exception was thrown.
      */
-    stackTrace: string;
+    stackTrace?: string;
 
     /**
      * Details of the exception contained by this exception, if any.
      */
-    innerException: ExceptionDetails[];
+    innerException?: ExceptionDetails[];
   }
 
   /**
@@ -2091,17 +2091,17 @@ export namespace Dap {
     /**
      * The kind of variable. Before introducing additional values, try to use the listed values.
      */
-    kind: 'property' | 'method' | 'class' | 'data' | 'event' | 'baseClass' | 'innerClass' | 'interface' | 'mostDerivedClass' | 'virtual' | 'dataBreakpoint';
+    kind?: 'property' | 'method' | 'class' | 'data' | 'event' | 'baseClass' | 'innerClass' | 'interface' | 'mostDerivedClass' | 'virtual' | 'dataBreakpoint';
 
     /**
      * Set of attributes represented as an array of strings. Before introducing additional values, try to use the listed values.
      */
-    attributes: 'static' | 'constant' | 'readOnly' | 'rawString' | 'hasObjectId' | 'canHaveObjectId' | 'hasSideEffects'[];
+    attributes?: 'static' | 'constant' | 'readOnly' | 'rawString' | 'hasObjectId' | 'canHaveObjectId' | 'hasSideEffects'[];
 
     /**
      * Visibility of variable. Before introducing additional values, try to use the listed values.
      */
-    visibility: 'public' | 'private' | 'protected' | 'internal' | 'final';
+    visibility?: 'public' | 'private' | 'protected' | 'internal' | 'final';
   }
 
   /**
@@ -2111,7 +2111,7 @@ export namespace Dap {
     /**
      * Display the value in hex.
      */
-    hex: boolean;
+    hex?: boolean;
   }
 
   /**
@@ -2126,7 +2126,7 @@ export namespace Dap {
     /**
      * Optional raw bytes representing the instruction and its operands, in an implementation-defined format.
      */
-    instructionBytes: string;
+    instructionBytes?: string;
 
     /**
      * Text representing the instruction and its operands, in an implementation-defined format.
@@ -2136,32 +2136,32 @@ export namespace Dap {
     /**
      * Name of the symbol that correponds with the location of this instruction, if any.
      */
-    symbol: string;
+    symbol?: string;
 
     /**
      * Source location that corresponds to this instruction, if any. Should always be set (if available) on the first instruction returned, but can be omitted afterwards if this instruction maps to the same source file as the previous instruction.
      */
-    location: Source;
+    location?: Source;
 
     /**
      * The line within the source location that corresponds to this instruction, if any.
      */
-    line: integer;
+    line?: number;
 
     /**
      * The column within the line that corresponds to this instruction, if any.
      */
-    column: integer;
+    column?: number;
 
     /**
      * The end line of the range that corresponds to this instruction, if any.
      */
-    endLine: integer;
+    endLine?: number;
 
     /**
      * The end column of the range that corresponds to this instruction, if any.
      */
-    endColumn: integer;
+    endColumn?: number;
   }
 
   /**
@@ -2181,24 +2181,24 @@ export namespace Dap {
     /**
      * If text is not falsy then it is inserted instead of the label.
      */
-    text: string;
+    text?: string;
 
     /**
      * The item's type. Typically the client uses this information to render the item in the UI with an icon.
      */
-    type: CompletionItemType;
+    type?: CompletionItemType;
 
     /**
      * This value determines the location (in the CompletionsRequest's 'text' attribute) where the completion text is added.
      * If missing the text is added at the location specified by the CompletionsRequest's 'column' attribute.
      */
-    start: integer;
+    start?: number;
 
     /**
      * This value determines how many characters are overwritten by the completion text.
      * If missing the value 0 is assumed which results in the completion text being inserted.
      */
-    length: integer;
+    length?: number;
   }
 
   /**
@@ -2213,147 +2213,147 @@ export namespace Dap {
     /**
      * The debug adapter supports the 'configurationDone' request.
      */
-    supportsConfigurationDoneRequest: boolean;
+    supportsConfigurationDoneRequest?: boolean;
 
     /**
      * The debug adapter supports function breakpoints.
      */
-    supportsFunctionBreakpoints: boolean;
+    supportsFunctionBreakpoints?: boolean;
 
     /**
      * The debug adapter supports conditional breakpoints.
      */
-    supportsConditionalBreakpoints: boolean;
+    supportsConditionalBreakpoints?: boolean;
 
     /**
      * The debug adapter supports breakpoints that break execution after a specified number of hits.
      */
-    supportsHitConditionalBreakpoints: boolean;
+    supportsHitConditionalBreakpoints?: boolean;
 
     /**
      * The debug adapter supports a (side effect free) evaluate request for data hovers.
      */
-    supportsEvaluateForHovers: boolean;
+    supportsEvaluateForHovers?: boolean;
 
     /**
      * Available filters or options for the setExceptionBreakpoints request.
      */
-    exceptionBreakpointFilters: ExceptionBreakpointsFilter[];
+    exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
 
     /**
      * The debug adapter supports stepping back via the 'stepBack' and 'reverseContinue' requests.
      */
-    supportsStepBack: boolean;
+    supportsStepBack?: boolean;
 
     /**
      * The debug adapter supports setting a variable to a value.
      */
-    supportsSetVariable: boolean;
+    supportsSetVariable?: boolean;
 
     /**
      * The debug adapter supports restarting a frame.
      */
-    supportsRestartFrame: boolean;
+    supportsRestartFrame?: boolean;
 
     /**
      * The debug adapter supports the 'gotoTargets' request.
      */
-    supportsGotoTargetsRequest: boolean;
+    supportsGotoTargetsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'stepInTargets' request.
      */
-    supportsStepInTargetsRequest: boolean;
+    supportsStepInTargetsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'completions' request.
      */
-    supportsCompletionsRequest: boolean;
+    supportsCompletionsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'modules' request.
      */
-    supportsModulesRequest: boolean;
+    supportsModulesRequest?: boolean;
 
     /**
      * The set of additional module information exposed by the debug adapter.
      */
-    additionalModuleColumns: ColumnDescriptor[];
+    additionalModuleColumns?: ColumnDescriptor[];
 
     /**
      * Checksum algorithms supported by the debug adapter.
      */
-    supportedChecksumAlgorithms: ChecksumAlgorithm[];
+    supportedChecksumAlgorithms?: ChecksumAlgorithm[];
 
     /**
      * The debug adapter supports the 'restart' request. In this case a client should not implement 'restart' by terminating and relaunching the adapter but by calling the RestartRequest.
      */
-    supportsRestartRequest: boolean;
+    supportsRestartRequest?: boolean;
 
     /**
      * The debug adapter supports 'exceptionOptions' on the setExceptionBreakpoints request.
      */
-    supportsExceptionOptions: boolean;
+    supportsExceptionOptions?: boolean;
 
     /**
      * The debug adapter supports a 'format' attribute on the stackTraceRequest, variablesRequest, and evaluateRequest.
      */
-    supportsValueFormattingOptions: boolean;
+    supportsValueFormattingOptions?: boolean;
 
     /**
      * The debug adapter supports the 'exceptionInfo' request.
      */
-    supportsExceptionInfoRequest: boolean;
+    supportsExceptionInfoRequest?: boolean;
 
     /**
      * The debug adapter supports the 'terminateDebuggee' attribute on the 'disconnect' request.
      */
-    supportTerminateDebuggee: boolean;
+    supportTerminateDebuggee?: boolean;
 
     /**
      * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and the 'totalFrames' result of the 'StackTrace' request are supported.
      */
-    supportsDelayedStackTraceLoading: boolean;
+    supportsDelayedStackTraceLoading?: boolean;
 
     /**
      * The debug adapter supports the 'loadedSources' request.
      */
-    supportsLoadedSourcesRequest: boolean;
+    supportsLoadedSourcesRequest?: boolean;
 
     /**
      * The debug adapter supports logpoints by interpreting the 'logMessage' attribute of the SourceBreakpoint.
      */
-    supportsLogPoints: boolean;
+    supportsLogPoints?: boolean;
 
     /**
      * The debug adapter supports the 'terminateThreads' request.
      */
-    supportsTerminateThreadsRequest: boolean;
+    supportsTerminateThreadsRequest?: boolean;
 
     /**
      * The debug adapter supports the 'setExpression' request.
      */
-    supportsSetExpression: boolean;
+    supportsSetExpression?: boolean;
 
     /**
      * The debug adapter supports the 'terminate' request.
      */
-    supportsTerminateRequest: boolean;
+    supportsTerminateRequest?: boolean;
 
     /**
      * The debug adapter supports data breakpoints.
      */
-    supportsDataBreakpoints: boolean;
+    supportsDataBreakpoints?: boolean;
 
     /**
      * The debug adapter supports the 'readMemory' request.
      */
-    supportsReadMemoryRequest: boolean;
+    supportsReadMemoryRequest?: boolean;
 
     /**
      * The debug adapter supports the 'disassemble' request.
      */
-    supportsDisassembleRequest: boolean;
+    supportsDisassembleRequest?: boolean;
   }
 
   /**
@@ -2363,7 +2363,7 @@ export namespace Dap {
     /**
      * An optional identifier for the breakpoint. It is needed if breakpoint events are used to update or remove breakpoints.
      */
-    id: integer;
+    id?: number;
 
     /**
      * If true breakpoint could be set (but not necessarily at the desired location).
@@ -2373,32 +2373,32 @@ export namespace Dap {
     /**
      * An optional message about the state of the breakpoint. This is shown to the user and can be used to explain why a breakpoint could not be verified.
      */
-    message: string;
+    message?: string;
 
     /**
      * The source where the breakpoint is located.
      */
-    source: Source;
+    source?: Source;
 
     /**
      * The start line of the actual range covered by the breakpoint.
      */
-    line: integer;
+    line?: number;
 
     /**
      * An optional start column of the actual range covered by the breakpoint.
      */
-    column: integer;
+    column?: number;
 
     /**
      * An optional end line of the actual range covered by the breakpoint.
      */
-    endLine: integer;
+    endLine?: number;
 
     /**
      * An optional end column of the actual range covered by the breakpoint. If no end line is given, then the end column is assumed to be in the start line.
      */
-    endColumn: integer;
+    endColumn?: number;
   }
 }
 

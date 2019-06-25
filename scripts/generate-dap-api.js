@@ -72,23 +72,26 @@ async function generate() {
       return `${def}`;
     }
     if (Array.isArray(prop.type)) {
-      return `${prop.type.join(' | ')}`;
+      return `${prop.type.map(type => generateType({type})).join(' | ')}`;
     }
     if (prop.type === 'array') {
-      const subtype = generateType(prop.items);
+      const subtype = prop.items ? generateType(prop.items) : 'any';
       return `${subtype}[]`;
     }
+    if (prop.type === 'integer')
+      return 'number';
     return prop.type;
   }
 
-  function appendProps(props, indent) {
+  function appendProps(props, required, indent) {
+    required = new Set(required || []);
     const propSeparator = createSeparator();
     for (const name in props) {
       const prop = props[name];
       propSeparator();
       appendText(prop.description, '    ');
       const generatedType = generateType(prop);
-      result.push(`${indent}${name}: ${generatedType};`);
+      result.push(`${indent}${name}${required.has(name) ? '' : '?'}: ${generatedType};`);
     }
   }
 
@@ -141,7 +144,7 @@ async function generate() {
       while (type.value['$ref'])
         type.value = defs[definition(type.value['$ref'])];
     }
-    appendProps(type.value.properties, '    ');
+    appendProps(type.value.properties, type.value.required, '    ');
     result.push(
       `  }`,
     );
@@ -156,7 +159,7 @@ async function generate() {
       result.push(`  export type ${type} = ${def.type};`);
     } else {
       result.push(`  export interface ${type} {`);
-      appendProps(def.properties, '    ');
+      appendProps(def.properties, def.required, '    ');
       result.push(`  }`);
     }
   }
