@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import * as Net from 'net';
-import Connection from './dap/connection';
+import DapConnection from './dap/connection';
 import {Adapter} from './adapter';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -44,7 +44,7 @@ class MockDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptor
     if (!this.server) {
       // start listening on a random port
       this.server = Net.createServer(socket => {
-        const connection = new Connection(<NodeJS.ReadableStream>socket, socket);
+        const connection = new DapConnection(<NodeJS.ReadableStream>socket, socket);
         new Adapter(connection.dap());
       }).listen(0);
     }

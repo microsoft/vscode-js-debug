@@ -4,7 +4,7 @@
 import Dap from './dap/api';
 import {Cdp, CdpApi} from './cdp/api';
 
-import {Connection} from './cdp/connection';
+import CdpConnection from './cdp/connection';
 import {Target, TargetManager, TargetEvents} from './sdk/targetManager';
 import findChrome from './chrome/findChrome';
 import * as launcher from './chrome/launcher';
@@ -78,7 +78,7 @@ export class Adapter {
     });
     this._browser = connection.browser();
 
-    connection.on(Connection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
+    connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
 
     // params.locale || 'en-US'
     // params.supportsVariableType

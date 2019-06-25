@@ -36,7 +36,7 @@ interface ProtocolCallback {
   method: string;
 }
 
-export class Connection extends EventEmitter {
+export default class Connection extends EventEmitter {
   public static Events = {
     Disconnected: Symbol('Disconnected')
   };
@@ -121,7 +121,7 @@ export class Connection extends EventEmitter {
   }
 }
 
-export class CDPSession extends EventEmitter {
+class CDPSession extends EventEmitter {
   private _connection: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
