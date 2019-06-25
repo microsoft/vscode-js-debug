@@ -2,10 +2,10 @@
 // Licensed under the MIT license.
 
 import * as ts from 'typescript';
-import Dap from './dap/api';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import Dap from '../dap/api';
+import {CdpApi} from '../cdp/api';
 
-export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
+export async function completions(cdp: CdpApi, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
@@ -43,7 +43,7 @@ export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression:
   return result || Promise.resolve([]);
 }
 
-async function completePropertyAccess(cdp: ProtocolProxyApi.ProtocolApi, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
+async function completePropertyAccess(cdp: CdpApi, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
   const response = await cdp.Runtime.evaluate({
     expression: `
       (function() {

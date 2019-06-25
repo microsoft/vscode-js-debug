@@ -211,7 +211,7 @@ function findChromeExecutables(folder) {
   return installations;
 }
 
-export function findChrome() {
+export default function() {
   if (process.platform === 'linux')
     return linux();
   if (process.platform === 'win32')

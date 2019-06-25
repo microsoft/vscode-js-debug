@@ -1,22 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Protocol from 'devtools-protocol';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import * as objectPreview from './objectPreview';
-import Dap from './dap/api';
+import {Cdp, CdpApi} from '../cdp/api';
+import Dap from '../dap/api';
 
 class RemoteObject {
-  o: Protocol.Runtime.RemoteObject;
-  objectId:  Protocol.Runtime.RemoteObjectId;
-  cdp: ProtocolProxyApi.ProtocolApi;
-  constructor(cdp: ProtocolProxyApi.ProtocolApi, object: Protocol.Runtime.RemoteObject) {
+  o: Cdp.Runtime.RemoteObject;
+  objectId:  Cdp.Runtime.RemoteObjectId;
+  cdp: CdpApi;
+  constructor(cdp: CdpApi, object: Cdp.Runtime.RemoteObject) {
     this.o = object;
     this.objectId = object.objectId;
     this.cdp = cdp;
   }
 
-  wrap(object: Protocol.Runtime.RemoteObject): RemoteObject | null {
+  wrap(object: Cdp.Runtime.RemoteObject): RemoteObject | null {
     return object ? new RemoteObject(this.cdp, object) : null;
   }
 }
@@ -24,7 +23,7 @@ class RemoteObject {
 export class VariableStore {
   private static _lastVariableReference: number = 0;
   private _variableToObject: Map<number, RemoteObject> = new Map();
-  private _objectToVariable: Map<Protocol.Runtime.RemoteObjectId, number> = new Map();
+  private _objectToVariable: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const object = this._variableToObject.get(params.variablesReference);
@@ -40,7 +39,7 @@ export class VariableStore {
     return this._getObjectProperties(object);
   }
 
-  async createVariable(cdp: ProtocolProxyApi.ProtocolApi, value: Protocol.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
+  async createVariable(cdp: CdpApi, value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
     return this._createVariable('', new RemoteObject(cdp, value), context);
   }
 

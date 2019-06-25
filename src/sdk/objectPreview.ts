@@ -1,37 +1,37 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Protocol from 'devtools-protocol';
+import Cdp from '../cdp/api';
 
-export function previewRemoteObject(object: Protocol.Runtime.RemoteObject, context?: string): string {
+export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description);
   return object.preview ? renderPreview(object.preview, context) : renderValue(object);
 }
 
-export function briefPreviewRemoteObject(object: Protocol.Runtime.RemoteObject, context?: string): string {
+export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description);
   return object.description;
 }
 
-export function propertyWeight(prop: Protocol.Runtime.PropertyDescriptor): number {
+export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
   if (prop.name === '__proto__')
     return 0;
   return 100;
 }
 
-export function privatePropertyWeight(prop: Protocol.Runtime.PrivatePropertyDescriptor): number {
+export function privatePropertyWeight(prop: Cdp.Runtime.PrivatePropertyDescriptor): number {
   return 20;
 }
 
-export function internalPropertyWeight(prop: Protocol.Runtime.InternalPropertyDescriptor): number {
+export function internalPropertyWeight(prop: Cdp.Runtime.InternalPropertyDescriptor): number {
   return 10;
 }
 
-function renderPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+function renderPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   if (preview.subtype === 'array')
     return renderArrayPreview(preview, context);
   if (preview.subtype as string === 'internal#entry')
@@ -43,7 +43,7 @@ function renderPreview(preview: Protocol.Runtime.ObjectPreview, context?: string
   return renderPrimitivePreview(preview, context);
 }
 
-function renderArrayPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   const tokens = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
@@ -81,7 +81,7 @@ function renderArrayPreview(preview: Protocol.Runtime.ObjectPreview, context?: s
   return `${preview.description} [${tokens.join(', ')}]`;
 }
 
-function renderObjectPreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
   const tokens = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
@@ -109,7 +109,7 @@ function renderObjectPreview(preview: Protocol.Runtime.ObjectPreview, context?: 
   return `${description}{${tokens.join(', ')}}`;
 }
 
-function renderPrimitivePreview(preview: Protocol.Runtime.ObjectPreview, context?: string): string {
+function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   if (preview.subtype === 'null')
     return 'null';
     if (preview.type === 'undefined')
@@ -117,7 +117,7 @@ function renderPrimitivePreview(preview: Protocol.Runtime.ObjectPreview, context
   return preview.description;
 }
 
-function renderPropertyPreview(prop: Protocol.Runtime.PropertyPreview): string {
+function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.type === 'function')
     return 'ƒ';
   if (prop.type === 'object')
@@ -126,7 +126,7 @@ function renderPropertyPreview(prop: Protocol.Runtime.PropertyPreview): string {
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
-function renderValue(object: Protocol.Runtime.RemoteObject): string {
+function renderValue(object: Cdp.Runtime.RemoteObject): string {
   if (object.value)
     return object.type === 'string' ? `'${object.value}'` : String(object.value);
   if (object.type === 'undefined')

@@ -3,11 +3,10 @@
 
 import {Target} from './targetManager';
 import * as debug from 'debug';
-import Protocol from 'devtools-protocol';
 import {EventEmitter} from 'events';
 import {Source} from './source';
-import * as utils from './utils';
-import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
+import * as utils from '../utils';
+import {Cdp, CdpApi} from '../cdp/api';
 
 const debugThread = debug('thread');
 
@@ -24,7 +23,7 @@ export class Thread extends EventEmitter {
   _target: Target;
   private _threadId: number;
   private _threadName: string;
-  private _pausedDetails?: Protocol.Debugger.PausedEvent;
+  private _pausedDetails?: Cdp.Debugger.PausedEvent;
   private _scripts: Map<string, Source> = new Map();
 
   constructor(target: Target) {
@@ -35,7 +34,7 @@ export class Thread extends EventEmitter {
     debugThread(`Thread created #${this._threadId}`);
   }
 
-  cdp(): ProtocolProxyApi.ProtocolApi {
+  cdp(): CdpApi {
     return this._target.cdp();
   }
 
@@ -47,7 +46,7 @@ export class Thread extends EventEmitter {
     return this._threadName;
   }
 
-  pausedDetails(): Protocol.Debugger.PausedEvent | undefined {
+  pausedDetails(): Cdp.Debugger.PausedEvent | undefined {
     return this._pausedDetails;
   }
 
@@ -74,7 +73,7 @@ export class Thread extends EventEmitter {
       this._pausedDetails = null;
       this.emit(ThreadEvents.ThreadResumed, this);
     });
-    cdp.Debugger.on('scriptParsed', (event: Protocol.Debugger.ScriptParsedEvent) => this._onScriptParsed(event));
+    cdp.Debugger.on('scriptParsed', (event: Cdp.Debugger.ScriptParsedEvent) => this._onScriptParsed(event));
     await cdp.Debugger.enable({});
   }
 
@@ -95,7 +94,7 @@ export class Thread extends EventEmitter {
     this._target.sourceContainer().removeSources(...scripts);
   }
 
-  _onScriptParsed(event: Protocol.Debugger.ScriptParsedEvent) {
+  _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     const readableUrl = event.url || `VM${event.scriptId}`;
     const source = Source.createWithContentGetter(readableUrl, async () => {
       const response = await this._target.cdp().Debugger.getScriptSource({scriptId: event.scriptId});

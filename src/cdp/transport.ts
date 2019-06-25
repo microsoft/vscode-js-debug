@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as eventUtils from './eventUtils';
+import * as eventUtils from '../eventUtils';
 import * as WebSocket from 'ws';
 
 export interface Transport {
