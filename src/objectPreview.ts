@@ -124,12 +124,16 @@ function renderPropertyPreview(prop: Protocol.Runtime.PropertyPreview): string {
   if (prop.type === 'object')
     return '{…}';
   const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : trimEnd(prop.value, 50);
-  return prop.type === 'string' ? `"${value}"` : value;
+  return prop.type === 'string' ? `'${value}'` : value;
 }
 
 function renderValue(object: Protocol.Runtime.RemoteObject): string {
   if (object.value)
     return object.type === 'string' ? `'${object.value}'` : String(object.value);
+  if (object.type === 'undefined')
+    return 'undefined';
+  if (object.subtype === 'null')
+    return 'null';
   return object.description;
 }
 

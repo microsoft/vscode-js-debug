@@ -20,10 +20,6 @@ export interface EvaluateResult {
   indexedVariables?: number;
 }
 
-export interface CompletionsResult {
-  targets: DebugProtocol.CompletionItem[];
-}
-
 export interface LaunchParams extends DebugProtocol.LaunchRequestArguments {
   url: string;
   webRoot?: string;
@@ -44,7 +40,7 @@ export interface Adapter {
   getVariables(params: DebugProtocol.VariablesArguments): Promise<DebugProtocol.Variable[]>;
   continue(params: DebugProtocol.ContinueArguments): Promise<void>;
   evaluate(params: DebugProtocol.EvaluateArguments): Promise<EvaluateResult>;
-  completions(params: DebugProtocol.CompletionsArguments): Promise<CompletionsResult>;
+  completions(params: DebugProtocol.CompletionsArguments): Promise<DebugProtocol.CompletionItem[]>;
   terminate(params: DebugProtocol.TerminateArguments): Promise<void>;
   disconnect(params: DebugProtocol.DisconnectArguments): Promise<void>;
   restart(params: DebugProtocol.RestartArguments): Promise<void>;
@@ -193,7 +189,9 @@ class ConnectionImpl implements Connection {
       return {allThreadsContinued: false};
     });
     this._dispatchMap.set('evaluate', params => adapter.evaluate(params));
-    this._dispatchMap.set('completions', params => adapter.completions(params));
+    this._dispatchMap.set('completions', async params => {
+      return {targets: await adapter.completions(params)};
+    });
     this._dispatchMap.set('terminate', params => adapter.terminate(params));
     this._dispatchMap.set('disconnect', params => adapter.disconnect(params));
     this._dispatchMap.set('restart', params => adapter.restart(params));
