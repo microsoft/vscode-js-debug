@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
-import Dap from '../dap';
+import Dap from './dap/api';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 
 export async function completions(cdp: ProtocolProxyApi.ProtocolApi, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {

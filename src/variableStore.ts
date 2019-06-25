@@ -5,7 +5,7 @@
 import Protocol from 'devtools-protocol';
 import ProtocolProxyApi from 'devtools-protocol/types/protocol-proxy-api';
 import * as objectPreview from './objectPreview';
-import Dap from '../dap';
+import Dap from './dap/api';
 
 class RemoteObject {
   o: Protocol.Runtime.RemoteObject;

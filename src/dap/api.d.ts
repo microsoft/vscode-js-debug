@@ -3,7 +3,7 @@
  ****************************************************************/
 
 export namespace Dap {
-  export interface DapProxyApi {
+  export interface Api {
     /**
      * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
      * A debug adapter is expected to send this event when it is ready to accept configuration requests (but not before the 'initialize' request has finished).

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from '../dap';
+import Dap from './api';
 import * as debug from 'debug';
 
 const debugDAP = debug('dap');
@@ -19,7 +19,7 @@ interface Message {
   message?: string;
 }
 
-export class Connection {
+export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
 
   private _writableStream: NodeJS.WritableStream;
@@ -29,7 +29,7 @@ export class Connection {
 
   private _pendingRequests = new Map<number, (response: Message) => void>();
   private _handlers = new Map<string, (params: any) => Promise<any>>();
-  private _dap: Dap.DapProxyApi;
+  private _dap: Dap.Api;
 
   constructor(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
     this._writableStream = outStream;
@@ -52,11 +52,11 @@ export class Connection {
     this._dap = this._createApi();
   }
 
-  public dap(): Dap.DapProxyApi {
+  public dap(): Dap.Api {
     return this._dap;
   }
 
-  _createApi(): Dap.DapProxyApi {
+  _createApi(): Dap.Api {
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
         if (methodName === 'on')
@@ -68,7 +68,7 @@ export class Connection {
           this._send(e);
         };
       }
-    }) as Dap.DapProxyApi;
+    }) as Dap.Api;
   }
 
   /*
