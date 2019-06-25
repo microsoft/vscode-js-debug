@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as eventUtils from '../eventUtils';
+import * as utils from '../utils';
 import * as WebSocket from 'ws';
 
 export interface Transport {
@@ -23,8 +23,8 @@ export class PipeTransport implements Transport {
     this._pipeWrite = pipeWrite;
     this._pendingMessage = '';
     this._eventListeners = [
-      eventUtils.addEventListener(pipeRead, 'data', buffer => this._dispatch(buffer)),
-      eventUtils.addEventListener(pipeRead, 'close', () => {
+      utils.addEventListener(pipeRead, 'data', buffer => this._dispatch(buffer)),
+      utils.addEventListener(pipeRead, 'close', () => {
         if (this.onclose)
           this.onclose.call(null);
       })
@@ -61,7 +61,7 @@ export class PipeTransport implements Transport {
 
   close() {
     this._pipeWrite = null;
-    eventUtils.removeEventListeners(this._eventListeners);
+    utils.removeEventListeners(this._eventListeners);
   }
 }
 

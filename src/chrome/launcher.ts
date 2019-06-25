@@ -7,8 +7,8 @@ import * as https from 'https';
 import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
-import * as eventUtils from '../eventUtils';
-import {Connection} from '../cdp/connection';
+import * as utils from '../utils';
+import CdpConnection from '../cdp/connection';
 import {PipeTransport, WebSocketTransport} from '../cdp/transport';
 import {Readable, Writable} from 'stream';
 
@@ -37,7 +37,7 @@ interface LaunchOptions {
   userDataDir?: string;
 }
 
-export async function launch(executablePath: string, options: LaunchOptions | undefined = {}): Promise<Connection> {
+export async function launch(executablePath: string, options: LaunchOptions | undefined = {}): Promise<CdpConnection> {
   const {
     args = [],
     dumpio = false,
@@ -79,16 +79,16 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   }
 
   let chromeClosed = false;
-  const listeners = [eventUtils.addEventListener(process, 'exit', killChrome)];
+  const listeners = [utils.addEventListener(process, 'exit', killChrome)];
   try {
     if (!usePipe) {
       const browserWSEndpoint = await waitForWSEndpoint(chromeProcess, timeout);
       const transport = await WebSocketTransport.create(browserWSEndpoint);
-      return new Connection(transport);
+      return new CdpConnection(transport);
     } else {
       const stdio = chromeProcess.stdio as unknown as [Writable, Readable, Readable, Writable, Readable];
       const transport = new PipeTransport(stdio[3], stdio[4]);
-      return new Connection(transport);
+      return new CdpConnection(transport);
     }
   } catch (e) {
     killChrome();
@@ -97,7 +97,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
 
   // This method has to be sync to be used as 'exit' event handler.
   function killChrome() {
-    eventUtils.removeEventListeners(listeners);
+    utils.removeEventListeners(listeners);
     if (chromeProcess.pid && !chromeProcess.killed && !chromeClosed) {
       // Force kill chrome.
       try {
@@ -131,7 +131,7 @@ interface AttachOptions {
   browserWSEndpoint?: string;
 }
 
-export async function attach(options: AttachOptions): Promise<Connection> {
+export async function attach(options: AttachOptions): Promise<CdpConnection> {
   const {
     browserWSEndpoint,
     browserURL,
@@ -139,11 +139,11 @@ export async function attach(options: AttachOptions): Promise<Connection> {
 
   if (browserWSEndpoint) {
     const connectionTransport = await WebSocketTransport.create(browserWSEndpoint);
-    return new Connection(connectionTransport);
+    return new CdpConnection(connectionTransport);
   } else if (browserURL) {
     const connectionURL = await getWSEndpoint(browserURL);
     const connectionTransport = await WebSocketTransport.create(connectionURL);
-    return new Connection(connectionTransport);
+    return new CdpConnection(connectionTransport);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }
@@ -153,10 +153,10 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
     const rl = readline.createInterface({ input: chromeProcess.stderr });
     let stderr = '';
     const listeners = [
-      eventUtils.addEventListener(rl, 'line', onLine),
-      eventUtils.addEventListener(rl, 'close', () => onClose()),
-      eventUtils.addEventListener(chromeProcess, 'exit', () => onClose()),
-      eventUtils.addEventListener(chromeProcess, 'error', error => onClose(error))
+      utils.addEventListener(rl, 'line', onLine),
+      utils.addEventListener(rl, 'close', () => onClose()),
+      utils.addEventListener(chromeProcess, 'exit', () => onClose()),
+      utils.addEventListener(chromeProcess, 'error', error => onClose(error))
     ];
     const timeoutId = timeout ? setTimeout(onTimeout, timeout) : 0;
 
@@ -188,7 +188,7 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
     function cleanup() {
       if (timeoutId)
         clearTimeout(timeoutId);
-      eventUtils.removeEventListeners(listeners);
+      utils.removeEventListeners(listeners);
     }
   });
 }

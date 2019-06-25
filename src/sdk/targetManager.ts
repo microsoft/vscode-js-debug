@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import {Cdp, CdpApi} from '../cdp/api';
-import {Connection} from '../cdp/connection';
+import CdpConnection from '../cdp/connection';
 import * as debug from 'debug';
 import * as path from 'path';
 import {URL} from 'url';
@@ -18,12 +18,12 @@ export const TargetEvents = {
 }
 
 export class TargetManager extends EventEmitter {
-  private _connection: Connection;
+  private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: CdpApi;
   private _sourceContainer: SourceContainer;
 
-  constructor(connection: Connection, sourceContainer: SourceContainer) {
+  constructor(connection: CdpConnection, sourceContainer: SourceContainer) {
     super();
     this._connection = connection;
     this._sourceContainer = sourceContainer;
