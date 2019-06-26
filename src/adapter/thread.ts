@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {Cdp, CdpApi} from '../cdp/api';
+import Cdp from '../cdp/api';
 import * as debug from 'debug';
 import {Source, Location} from './source';
 import * as utils from '../utils';
@@ -25,7 +25,7 @@ export class Thread {
   private static _lastThreadId: number = 0;
 
   private _context: Context;
-  private _cdp: CdpApi;
+  private _cdp: Cdp.Api;
   private _state: ('init' | 'normal' | 'disposed') = 'init';
   private _threadId: number;
   private _threadName: string;
@@ -33,7 +33,7 @@ export class Thread {
   private _pausedDetails?: PausedDetails;
   private _scripts: Map<string, Source> = new Map();
 
-  constructor(context: Context, cdp: CdpApi) {
+  constructor(context: Context, cdp: Cdp.Api) {
     this._context = context;
     this._cdp = cdp;
     this._threadId = ++Thread._lastThreadId;
@@ -45,7 +45,7 @@ export class Thread {
     return this._context;
   }
 
-  cdp(): CdpApi {
+  cdp(): Cdp.Api {
     return this._cdp;
   }
 
@@ -62,9 +62,7 @@ export class Thread {
   }
 
   async resume(): Promise<boolean> {
-    const response = await this._cdp.Debugger.resume();
-    // TODO(dgozman): update protocol api to return non-void.
-    return !!(response as any);
+    return !!await this._cdp.Debugger.resume({});
   }
 
   async initialize(): Promise<boolean> {
@@ -87,8 +85,7 @@ export class Thread {
       if (this._state === 'normal')
         this._onExceptionThrown(event.exceptionDetails);
     });
-    // TODO(dgozman): update protocol api to return non-void.
-    if (!(await this._cdp.Runtime.enable() as any))
+    if (!await this._cdp.Runtime.enable({}))
       return false;
 
     this._cdp.Debugger.on('paused', event => {
@@ -98,11 +95,9 @@ export class Thread {
     });
     this._cdp.Debugger.on('resumed', onResumed);
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
-    // TODO(dgozman): update protocol api to return non-void.
-    if (!(await this._cdp.Debugger.enable({}) as any))
+    if (!await this._cdp.Debugger.enable({}))
       return false;
-    // TODO(dgozman): update protocol api to return non-void.
-    if (!(await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}) as any))
+    if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
       return false;
 
     if (this._state === 'disposed')
@@ -202,7 +197,7 @@ export class Thread {
         stackTrace = undefined;
     }
 
-    let category = 'stdout';
+    let category: 'console' | 'stdout' | 'stderr' | 'telemetry' = 'stdout';
     if (event.type === 'error')
       category = 'stderr';
     if (event.type === 'warning')
@@ -216,7 +211,7 @@ export class Thread {
     const allPrimitive = !event.args.find(a => !!a.objectId);
     if (allPrimitive && !stackTrace) {
       this._context.dap.output({
-        category: category as any,
+        category,
         output: messageText,
         variablesReference: 0,
         line: uiLocation ? uiLocation.lineNumber : undefined,
@@ -227,7 +222,7 @@ export class Thread {
 
     const variablesReference = await this._context.variableStore.createVariableForMessageFormat(this._cdp, messageText, event.args, stackTrace);
     this._context.dap.output({
-      category: category as any,
+      category,
       output: '',
       variablesReference,
       line: uiLocation ? uiLocation.lineNumber : undefined,

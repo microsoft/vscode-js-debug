@@ -131,7 +131,7 @@ export class Adapter {
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
     if (!this._context)
       return this._mainTargetNotAvailable();
-    this._context.browser.Browser.close();
+    this._context.browser.Browser.close({});
     return {};
   }
 

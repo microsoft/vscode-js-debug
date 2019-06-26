@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as objectPreview from './objectPreview';
-import {Cdp, CdpApi} from '../cdp/api';
+import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
 import {Context} from './context';
@@ -11,9 +11,9 @@ import {Context} from './context';
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
   objectId:  Cdp.Runtime.RemoteObjectId;
-  cdp: CdpApi;
+  cdp: Cdp.Api;
 
-  constructor(cdp: CdpApi, object: Cdp.Runtime.RemoteObject) {
+  constructor(cdp: Cdp.Api, object: Cdp.Runtime.RemoteObject) {
     this.o = object;
     this.objectId = object.objectId!;
     this.cdp = cdp;
@@ -58,11 +58,11 @@ export class VariableStore {
     return this._getObjectProperties(object);
   }
 
-  async createVariable(cdp: CdpApi, value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
+  async createVariable(cdp: Cdp.Api, value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
     return this._createVariable('', new RemoteObject(cdp, value), context);
   }
 
-  async createVariableForMessageFormat(cdp: CdpApi, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
+  async createVariableForMessageFormat(cdp: Cdp.Api, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const resultReference = ++VariableStore._lastVariableReference;
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {

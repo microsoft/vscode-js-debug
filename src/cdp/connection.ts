@@ -5,7 +5,7 @@
 import {EventEmitter} from 'events';
 import {Transport} from './transport';
 import * as debug from 'debug';
-import {Cdp, CdpApi} from './api';
+import Cdp from './api';
 
 const debugConnection = debug('connection');
 
@@ -43,7 +43,7 @@ export default class Connection extends EventEmitter {
   };
 
   private _lastId: number;
-  private _transport: any;
+  private _transport: Transport;
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _browserSession: CDPSession;
@@ -60,11 +60,11 @@ export default class Connection extends EventEmitter {
     this._sessions.set('', this._browserSession);
   }
 
-  browser(): CdpApi {
+  browser(): Cdp.Api {
     return this._browserSession.cdp();
   }
 
-  session(sessionId: string): CdpApi {
+  session(sessionId: string): Cdp.Api {
     return this._sessions.get(sessionId)!.cdp();
   }
 
@@ -94,8 +94,8 @@ export default class Connection extends EventEmitter {
     if (this._closed)
       return;
     this._closed = true;
-    this._transport.onmessage = null;
-    this._transport.onclose = null;
+    this._transport.onmessage = undefined;
+    this._transport.onclose = undefined;
     for (const session of this._sessions.values())
       session._onClose();
     this._sessions.clear();
@@ -107,7 +107,7 @@ export default class Connection extends EventEmitter {
     this._transport.close();
   }
 
-  createSession(sessionId: Cdp.Target.SessionID): CdpApi {
+  createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {
     const session = new CDPSession(this, sessionId);
     this._sessions.set(sessionId, session);
     return session.cdp();
@@ -126,7 +126,7 @@ class CDPSession extends EventEmitter {
   private _connection?: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
-  private _cdp: CdpApi;
+  private _cdp: Cdp.Api;
 
   constructor(connection: Connection, sessionId: string) {
     super();
@@ -136,7 +136,7 @@ class CDPSession extends EventEmitter {
     this._cdp = this._createApi();
   }
 
-  cdp(): CdpApi {
+  cdp(): Cdp.Api {
     return this._cdp;
   }
 
@@ -144,7 +144,7 @@ class CDPSession extends EventEmitter {
     return this._sessionId;
   }
 
-  _createApi(): CdpApi {
+  _createApi(): Cdp.Api {
     return new Proxy({}, {
       get: (target, agentName: string, receiver) => new Proxy({}, {
         get: (target, methodName: string, receiver) => {
@@ -157,17 +157,17 @@ class CDPSession extends EventEmitter {
           return params => this._send(`${agentName}.${methodName}`, params);
         }
       })
-    }) as CdpApi;
+    }) as Cdp.Api;
   }
 
-  _send(method: string, params: object | undefined = {}): Promise<object | null> {
+  _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
     return this._sendOrDie(method, params).catch(e => {
       console.error(e);
-      return null;
+      return undefined;
     });
   }
 
-  _sendOrDie(method: string, params: object | undefined = {}): Promise<object | null> {
+  _sendOrDie(method: string, params: object | undefined = {}): Promise<object | undefined> {
     if (!this._connection)
       return Promise.reject(new Error(`Protocol error (${method}): Session closed. Most likely the target has been closed.`));
     const id = this._connection._send(method, params, this._sessionId);
