@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import {Thread} from "./thread";
-import {Location} from "./source";
+import {Location, SourceContainer} from "./source";
 import Cdp from "../cdp/api";
 
 export interface StackFrame {
@@ -120,5 +120,25 @@ export class StackTrace {
   _appendFrame(frame: StackFrame) {
     this._frames.push(frame);
     this._frameById.set(frame.id, frame);
+  }
+
+  async format(sourceContainer: SourceContainer): Promise<string> {
+    // This loads all available frames.
+    const stackFrames = await this.loadFrames(50);
+    const frames: string[] = stackFrames.map(frame => {
+      const text = frame.name;
+      // TODO(dgozman): use stack trace format.
+      // TODO(dgozman): figure out paths vs urls.
+      const uiLocation = sourceContainer.uiLocation(frame.location);
+      let location = `${uiLocation.url}:${uiLocation.lineNumber + 1}`;
+      if (uiLocation.columnNumber)
+        location += `:${uiLocation.columnNumber + 1}`;
+      if (frame.isAsyncSeparator)
+        return `    ◀ ${text} ▶`;
+      if (uiLocation.url)
+        return `    at ${text} (${location})`;
+      return `    at ${text}${location}`;
+    });
+    return frames.join('\n');
   }
 };

@@ -17,6 +17,7 @@ export const ThreadEvents = {
   ThreadPaused: Symbol('ThreadPaused'),
   ThreadResumed: Symbol('ThreadResumed'),
   ThreadConsoleMessage: Symbol('ThreadConsoleMessage'),
+  ThreadExceptionThrown: Symbol('ThreadExceptionThrown')
 };
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
@@ -74,6 +75,9 @@ export class Thread extends EventEmitter {
     cdp.Runtime.on('executionContextsCleared', () => this._reset());
     cdp.Runtime.on('consoleAPICalled', event => {
       this.emit(ThreadEvents.ThreadConsoleMessage, { thread: this, event });
+    });
+    cdp.Runtime.on('exceptionThrown', event => {
+      this.emit(ThreadEvents.ThreadExceptionThrown, { thread: this, details: event.exceptionDetails });
     });
     await cdp.Runtime.enable();
     cdp.Debugger.on('paused', event => {

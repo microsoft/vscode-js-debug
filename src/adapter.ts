@@ -164,6 +164,7 @@ export class Adapter {
       this._dap.continued({threadId: thread.threadId()});
     });
     thread.on(ThreadEvents.ThreadConsoleMessage, ({thread, event}) => this._onConsoleMessage(thread, event));
+    thread.on(ThreadEvents.ThreadExceptionThrown, ({thread, details}) => this._onExceptionThrown(thread, details));
   }
 
   _onThreadDestroyed(thread: Thread): void {
@@ -210,6 +211,24 @@ export class Adapter {
       category: category as any,
       output: '',
       variablesReference: await this._variableStore.createVariableForMessageFormat(thread.cdp(), messageText, event.args, stackTrace),
+      line: uiLocation ? uiLocation.lineNumber : undefined,
+      column: uiLocation ? uiLocation.columnNumber : undefined,
+    });
+  }
+
+  async _onExceptionThrown(thread: Thread, details: Cdp.Runtime.ExceptionDetails): Promise<void> {
+    let stackTrace: StackTrace | undefined;
+    let uiLocation: Location | undefined;
+    if (details.stackTrace)
+      stackTrace = StackTrace.fromRuntime(thread, details.stackTrace);
+    const frames = await stackTrace.loadFrames(50);
+    if (frames.length)
+      uiLocation = this._sourceContainer.uiLocation(frames[0].location);
+    const message = details.exception.description.split('\n').filter(line => !line.startsWith('    at'));
+    this._dap.output({
+      category: 'stderr',
+      output: message + '\n' + await stackTrace.format(this._sourceContainer),
+      variablesReference: 0,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
     });
