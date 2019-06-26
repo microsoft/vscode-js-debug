@@ -2,23 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {Target} from './targetManager';
+import {Cdp, CdpApi} from '../cdp/api';
 import * as debug from 'debug';
-import {EventEmitter} from 'events';
 import {Source, Location} from './source';
 import * as utils from '../utils';
-import {Cdp, CdpApi} from '../cdp/api';
 import {StackTrace} from './stackTrace';
+import {Context} from './context';
+import * as objectPreview from './objectPreview';
 
 const debugThread = debug('thread');
-
-export const ThreadEvents = {
-  ThreadNameChanged: Symbol('ThreadNameChanged'),
-  ThreadPaused: Symbol('ThreadPaused'),
-  ThreadResumed: Symbol('ThreadResumed'),
-  ThreadConsoleMessage: Symbol('ThreadConsoleMessage'),
-  ThreadExceptionThrown: Symbol('ThreadExceptionThrown')
-};
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
 
@@ -29,25 +21,32 @@ export interface PausedDetails {
   text?: string;
 };
 
-export class Thread extends EventEmitter {
+export class Thread {
   private static _lastThreadId: number = 0;
 
-  private _target: Target;
+  private _context: Context;
+  private _cdp: CdpApi;
+  private _state: ('init' | 'normal' | 'disposed') = 'init';
   private _threadId: number;
   private _threadName: string;
+  private _threadUrl: string;
   private _pausedDetails?: PausedDetails;
   private _scripts: Map<string, Source> = new Map();
 
-  constructor(target: Target) {
-    super();
-    this._target = target;
+  constructor(context: Context, cdp: CdpApi) {
+    this._context = context;
+    this._cdp = cdp;
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
     debugThread(`Thread created #${this._threadId}`);
   }
 
+  context(): Context {
+    return this._context;
+  }
+
   cdp(): CdpApi {
-    return this._target.cdp();
+    return this._cdp;
   }
 
   threadId(): number {
@@ -62,46 +61,68 @@ export class Thread extends EventEmitter {
     return this._pausedDetails;
   }
 
-  scripts(): Map<string, Source> {
-    return this._scripts;
-  }
-
   resume() {
-    this._target.cdp().Debugger.resume();
+    this._cdp.Debugger.resume();
   }
 
   async initialize() {
-    const cdp = this._target.cdp();
-    cdp.Runtime.on('executionContextsCleared', () => this._reset());
-    cdp.Runtime.on('consoleAPICalled', event => {
-      this.emit(ThreadEvents.ThreadConsoleMessage, { thread: this, event });
-    });
-    cdp.Runtime.on('exceptionThrown', event => {
-      this.emit(ThreadEvents.ThreadExceptionThrown, { thread: this, details: event.exceptionDetails });
-    });
-    await cdp.Runtime.enable();
-    cdp.Debugger.on('paused', event => {
-      this._pausedDetails = this._createPausedDetails(event);
-      this.emit(ThreadEvents.ThreadPaused, this);
-    });
-    cdp.Debugger.on('resumed', () => {
+    const onResumed = () => {
       this._pausedDetails = undefined;
-      this.emit(ThreadEvents.ThreadResumed, this);
+      if (this._state === 'normal')
+        this._context.dap.continued({threadId: this._threadId});
+    };
+
+    this._cdp.Runtime.on('executionContextsCleared', () => {
+      this._removeAllScripts();
+      if (this._pausedDetails)
+        onResumed();
     });
-    cdp.Debugger.on('scriptParsed', (event: Cdp.Debugger.ScriptParsedEvent) => this._onScriptParsed(event));
-    await cdp.Debugger.enable({});
-    await cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
+    this._cdp.Runtime.on('consoleAPICalled', event => {
+      if (this._state === 'normal')
+        this._onConsoleMessage(event);
+    });
+    this._cdp.Runtime.on('exceptionThrown', event => {
+      if (this._state === 'normal')
+        this._onExceptionThrown(event.exceptionDetails);
+    });
+    await this._cdp.Runtime.enable();
+
+    this._cdp.Debugger.on('paused', event => {
+      this._pausedDetails = this._createPausedDetails(event);
+      if (this._state === 'normal')
+        this._reportPaused();
+    });
+    this._cdp.Debugger.on('resumed', onResumed);
+    this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
+    await this._cdp.Debugger.enable({});
+    await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
+
+    if (this._state === 'disposed')
+      return;
+
+    this._state = 'normal';
+    console.assert(!this._context.threads.has(this._threadId));
+    this._context.threads.set(this._threadId, this);
+    this._context.dap.thread({reason: 'started', threadId: this._threadId});
+    if (this._pausedDetails)
+      this._reportPaused();
   }
 
   async dispose() {
-    this._reset();
+    this._removeAllScripts();
+    if (this._state === 'normal') {
+      console.assert(this._context.threads.get(this._threadId) === this);
+      this._context.threads.delete(this._threadId);
+      this._context.dap.thread({reason: 'exited', threadId: this._threadId});
+    }
+    this._state = 'disposed';
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
   }
 
-  setThreadName(threadName: string) {
+  setThreadDetails(threadName: string, threadUrl: string) {
     this._threadName = threadName;
+    this._threadUrl = threadUrl;
     debugThread(`Thread renamed #${this._threadId}: ${this._threadName}`);
-    this.emit(ThreadEvents.ThreadNameChanged, this);
   }
 
   locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
@@ -132,6 +153,16 @@ export class Thread extends EventEmitter {
     };
   }
 
+  _reportPaused() {
+    this._context.dap.stopped({
+      reason: this._pausedDetails.reason,
+      description: this._pausedDetails.description,
+      threadId: this._threadId,
+      text: this._pausedDetails.text,
+      allThreadsStopped: false
+    });
+  }
+
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
     // TODO(dgozman): fill "text" with more details.
     const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
@@ -149,27 +180,90 @@ export class Thread extends EventEmitter {
     }
   }
 
-  _reset() {
+  async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
+    let stackTrace: StackTrace | undefined;
+    let uiLocation: Location | undefined;
+    if (event.stackTrace) {
+      stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
+      const frames = await stackTrace.loadFrames(1);
+      if (frames.length)
+        uiLocation = this._context.sourceContainer.uiLocation(frames[0].location);
+      if (event.type !== 'error' && event.type !== 'warning')
+        stackTrace = undefined;
+    }
+
+    let category = 'stdout';
+    if (event.type === 'error')
+      category = 'stderr';
+    if (event.type === 'warning')
+      category = 'console';
+
+    const tokens = [];
+    for (const arg of event.args)
+      tokens.push(objectPreview.renderValue(arg, false));
+    const messageText = tokens.join(' ');
+
+    const allPrimitive = !event.args.find(a => a.objectId);
+    if (allPrimitive && !stackTrace) {
+      this._context.dap.output({
+        category: category as any,
+        output: messageText,
+        variablesReference: 0,
+        line: uiLocation ? uiLocation.lineNumber : undefined,
+        column: uiLocation ? uiLocation.columnNumber : undefined,
+      });
+      return;
+    }
+
+    const variablesReference = await this._context.variableStore.createVariableForMessageFormat(this._cdp, messageText, event.args, stackTrace);
+    this._context.dap.output({
+      category: category as any,
+      output: '',
+      variablesReference,
+      line: uiLocation ? uiLocation.lineNumber : undefined,
+      column: uiLocation ? uiLocation.columnNumber : undefined,
+    });
+  }
+
+  async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<void> {
+    let stackTrace: StackTrace | undefined;
+    let uiLocation: Location | undefined;
+    if (details.stackTrace)
+      stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
+    const frames = await stackTrace.loadFrames(50);
+    if (frames.length)
+      uiLocation = this._context.sourceContainer.uiLocation(frames[0].location);
+    const message = details.exception.description.split('\n').filter(line => !line.startsWith('    at'));
+    const output = message + '\n' + await stackTrace.format();
+    this._context.dap.output({
+      category: 'stderr',
+      output,
+      variablesReference: 0,
+      line: uiLocation ? uiLocation.lineNumber : undefined,
+      column: uiLocation ? uiLocation.columnNumber : undefined,
+    });
+  }
+
+  _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
-    this._target.sourceContainer().removeSources(...scripts);
-    this._pausedDetails = undefined;
+    this._context.sourceContainer.removeSources(...scripts);
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     const readableUrl = event.url || `VM${event.scriptId}`;
-    const source = this._target.sourceContainer().createSource(readableUrl, async () => {
-      const response = await this._target.cdp().Debugger.getScriptSource({scriptId: event.scriptId});
+    const source = this._context.sourceContainer.createSource(readableUrl, async () => {
+      const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
       return response.scriptSource;
     });
     this._scripts.set(event.scriptId, source);
-    this._target.sourceContainer().addSource(source);
+    this._context.sourceContainer.addSource(source);
     if (event.sourceMapURL) {
       // TODO(dgozman): reload source map when target url changes.
-      const resolvedSourceUrl = utils.completeUrl(this._target.url(), event.url);
+      const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
       const resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
       if (resolvedSourceMapUrl)
-        this._target.sourceContainer().attachSourceMap(source, resolvedSourceMapUrl);
+        this._context.sourceContainer.attachSourceMap(source, resolvedSourceMapUrl);
     }
   }
 };

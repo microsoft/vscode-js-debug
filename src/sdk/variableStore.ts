@@ -7,6 +7,7 @@ import {Cdp, CdpApi} from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
 import {SourceContainer} from './source';
+import {Context} from './context';
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
@@ -25,13 +26,13 @@ class RemoteObject {
 
 export class VariableStore {
   private static _lastVariableReference: number = 0;
-  private _sourceContainer: SourceContainer;
+  private _context: Context;
   private _refernceToObject: Map<number, RemoteObject> = new Map();
   private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
 
-  constructor(sourceContainer: SourceContainer) {
-    this._sourceContainer = sourceContainer;
+  constructor(context: Context) {
+    this._context = context;
   }
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
@@ -77,7 +78,7 @@ export class VariableStore {
     if (stackTrace) {
       const stackTraceVariable: Dap.Variable = {
         name: '',
-        value: await stackTrace.format(this._sourceContainer),
+        value: await stackTrace.format(),
         variablesReference: 0
       };
       params.push(stackTraceVariable);

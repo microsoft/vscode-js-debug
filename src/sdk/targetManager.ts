@@ -9,7 +9,7 @@ import * as path from 'path';
 import {URL} from 'url';
 import {EventEmitter} from 'events';
 import {Thread} from './thread';
-import {SourceContainer} from './source';
+import {Context} from './context';
 const debugTarget = debug('target');
 
 export const TargetEvents = {
@@ -21,12 +21,12 @@ export class TargetManager extends EventEmitter {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: CdpApi;
-  private _sourceContainer: SourceContainer;
+  private _context: Context;
 
-  constructor(connection: CdpConnection, sourceContainer: SourceContainer) {
+  constructor(connection: CdpConnection, context: Context) {
     super();
     this._connection = connection;
-    this._sourceContainer = sourceContainer;
+    this._context = context;
     this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
@@ -62,7 +62,7 @@ export class TargetManager extends EventEmitter {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new Target(targetInfo, cdp, parentTarget, this._sourceContainer, target => {
+    const target = new Target(this._context, targetInfo, cdp, parentTarget, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -125,36 +125,24 @@ export class Target {
   private _cdp: CdpApi;
   private _thread: Thread | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
-  private _sourceContainer: SourceContainer;
+  private _context: Context;
   private _ondispose: (t:Target) => void;
 
   _parentTarget?: Target;
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(targetInfo: Cdp.Target.TargetInfo, cdp: CdpApi, parentTarget: Target | undefined, sourceContainer: SourceContainer, ondispose: (t:Target) => void) {
+  constructor(context: Context, targetInfo: Cdp.Target.TargetInfo, cdp: CdpApi, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
     this._parentTarget = parentTarget;
-    this._sourceContainer = sourceContainer;
+    this._context = context;
     if (jsTypes.has(targetInfo.type))
-      this._thread = new Thread(this);
+      this._thread = new Thread(context, cdp);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
 
-  thread(): Thread | undefined {
-    return this._thread;
-  }
-
   cdp(): CdpApi {
     return this._cdp;
-  }
-
-  url(): string {
-    return this._targetInfo.url;
-  }
-
-  sourceContainer(): SourceContainer {
-    return this._sourceContainer;
   }
 
   async _initialize(waitingForDebugger: boolean) {
@@ -195,7 +183,7 @@ export class Target {
       threadName += targetInfo.url;
     }
 
-    this._thread.setThreadName(threadName);
+    this._thread.setThreadDetails(threadName, targetInfo.url);
   }
 
   async _dispose() {
