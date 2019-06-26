@@ -8,13 +8,12 @@ import CdpConnection from './cdp/connection';
 import {Target, TargetManager, TargetEvents} from './sdk/targetManager';
 import findChrome from './chrome/findChrome';
 import * as launcher from './chrome/launcher';
-import {URL} from 'url';
-import * as path from 'path';
 import * as completionz from './sdk/completions';
 import {Thread, ThreadEvents} from './sdk/thread';
 import {VariableStore} from './sdk/variableStore';
 import * as objectPreview from './sdk/objectPreview';
-import {Source, SourceContainer} from './sdk/source';
+import {Source, SourceContainer, Location} from './sdk/source';
+import {StackTrace} from './sdk/stackTrace';
 
 let stackId = 0;
 
@@ -131,13 +130,13 @@ export class Adapter {
     });
 
     const onSource = (source: Source) => {
-      this._dap.loadedSource({reason: 'new', source: this._sourceToDap(source)});
+      this._dap.loadedSource({reason: 'new', source: source.toDap()});
     };
     this._sourceContainer.on(SourceContainer.Events.SourceAdded, onSource);
     this._sourceContainer.sources().forEach(onSource);
     this._sourceContainer.on(SourceContainer.Events.SourcesRemoved, (sources: Source[]) => {
       for (const source of sources)
-        this._dap.loadedSource({reason: 'removed', source: this._sourceToDap(source)});
+        this._dap.loadedSource({reason: 'removed', source: source.toDap()});
     });
     return {};
   }
@@ -150,10 +149,10 @@ export class Adapter {
     const onPaused = () => {
       const details = thread.pausedDetails();
       this._dap.stopped({
-        reason: details.reason(),
-        description: details.description(),
-        threadId: details.thread().threadId(),
-        text: details.text(),
+        reason: details.reason,
+        description: details.description,
+        threadId: thread.threadId(),
+        text: details.text,
         allThreadsStopped: false
       });
     };
@@ -173,13 +172,16 @@ export class Adapter {
   }
 
   async _onConsoleMessage(thread: Thread, event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
-    const callFrame = event.stackTrace ? event.stackTrace.callFrames[0] : null;
-    const location = callFrame ? this._sourceContainer.uiLocation({
-      url: callFrame.url,
-      lineNumber: callFrame.lineNumber,
-      columnNumber: callFrame.columnNumber,
-      source: thread.scripts().get(callFrame.scriptId)
-    }) : null;
+    let stackTrace: StackTrace | undefined;
+    let uiLocation: Location | undefined;
+    if (event.stackTrace) {
+      stackTrace = new StackTrace(thread, event.stackTrace);
+      const frames = await stackTrace.loadFrames(1);
+      if (frames.length)
+        uiLocation = this._sourceContainer.uiLocation(frames[0].location);
+      if (event.type !== 'error' && event.type !== 'warning')
+        stackTrace = undefined;
+    }
 
     let category = 'stdout';
     if (event.type === 'error')
@@ -193,14 +195,13 @@ export class Adapter {
     const messageText = tokens.join(' ');
 
     const allPrimitive = !event.args.find(a => a.objectId);
-    const stackTrace = (event.type === 'error' || event.type === 'warning') ? event.stackTrace : undefined;
     if (allPrimitive && !stackTrace) {
       this._dap.output({
         category: category as any,
         output: messageText,
         variablesReference: 0,
-        line: location ? location.lineNumber : undefined,
-        column: location ? location.columnNumber : undefined,
+        line: uiLocation ? uiLocation.lineNumber : undefined,
+        column: uiLocation ? uiLocation.columnNumber : undefined,
       });
       return;
     }
@@ -209,8 +210,8 @@ export class Adapter {
       category: category as any,
       output: '',
       variablesReference: await this._variableStore.createVariableForMessageFormat(thread.cdp(), messageText, event.args, stackTrace),
-      line: location ? location.lineNumber : undefined,
-      column: location ? location.columnNumber : undefined,
+      line: uiLocation ? uiLocation.lineNumber : undefined,
+      column: uiLocation ? uiLocation.columnNumber : undefined,
     });
   }
 
@@ -220,6 +221,7 @@ export class Adapter {
 
     // params.noDebug
     this._launchParams = params;
+    this._sourceContainer.setWebRoot(this._launchParams.webRoot);
     this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
     return {};
   }
@@ -265,13 +267,13 @@ export class Adapter {
 
     const from = params.startFrame || 0;
     const to = params.levels ? from + params.levels : from + 1;
-    const stackTrace = await details.loadStackTrace(to);
+    const frames = await details.stackTrace.loadFrames(to);
     if (thread.pausedDetails() !== details)
       return dummy;
 
     const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to && index < stackTrace.length; index++) {
-      const stackFrame = stackTrace[index];
+    for (let index = from; index < to && index < frames.length; index++) {
+      const stackFrame = frames[index];
       const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
       const hint = ({
         'frame': 'normal',
@@ -283,38 +285,11 @@ export class Adapter {
         name: stackFrame.name,
         line: uiLocation.lineNumber + 1,
         column: uiLocation.columnNumber + 1,
-        source: stackFrame.type === 'asyncCall' ? undefined : this._sourceToDap(uiLocation.source),
+        source: uiLocation.source ? uiLocation.source.toDap() : undefined,
         presentationHint: hint
       });
     }
-    return {stackFrames: result, totalFrames: details.canLoadMoreFrames() ? 1000000 : stackTrace.length};
-  }
-
-  _sourceToDap(source: Source | undefined): Dap.Source {
-    if (!source)
-      return {name: 'unknown'};
-
-    let rebased: string | undefined;
-    const url = source.url();
-    if (url && url.startsWith('file://')) {
-      rebased = url.substring(7);
-      // TODO(dgozman): what if absolute file url does not belong to webRoot?
-    } else if (url && this._launchParams && this._launchParams.webRoot) {
-      try {
-        let relative = new URL(url).pathname;
-        if (relative === '' || relative === '/')
-          relative = 'index.html';
-        rebased = path.join(this._launchParams.webRoot, relative);
-      } catch (e) {
-      }
-    }
-    // TODO(dgozman): can we check whether the path exists? Search for another match? Provide source fallback?
-    return {
-      name: path.basename(rebased || source.url() || '') || '<anonymous>',
-      path: rebased,
-      sourceReference: rebased ? 0 : source.sourceReference(),
-      presentationHint: 'normal'
-    };
+    return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
   }
 
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult> {
@@ -351,7 +326,7 @@ export class Adapter {
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return {sources: this._sourceContainer.sources().map(source => this._sourceToDap(source))};
+    return {sources: this._sourceContainer.sources().map(source => source.toDap())};
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult> {
