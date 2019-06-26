@@ -42,4 +42,16 @@ export class Context {
   initialized(): boolean {
     return !!this.launchParams;
   }
+
+  createSilentError(text: string): Dap.Error {
+    return {
+      __errorMarker: true,
+      error: {
+        id: 9222,
+        format: text,
+        showUser: false,
+        sendTelemetry: false
+      }
+    };
+  }
 };
