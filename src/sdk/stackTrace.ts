@@ -64,9 +64,10 @@ export class StackTrace {
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
-      const {stackTrace} = await this._thread.cdp().Debugger.getStackTrace({stackTraceId: this._asyncStackTraceId});
+      const response = await this._thread.cdp().Debugger.getStackTrace({stackTraceId: this._asyncStackTraceId});
       this._asyncStackTraceId = undefined;
-      this._appendStackTrace(stackTrace);
+      if (response)
+        this._appendStackTrace(response.stackTrace);
     }
     return this._frames;
   }
@@ -121,14 +122,14 @@ export class StackTrace {
     this._frameById.set(frame.id, frame);
   }
 
-  async format(sourceContainer: SourceContainer): Promise<string> {
+  async format(): Promise<string> {
     // This loads all available frames.
     const stackFrames = await this.loadFrames(50);
     const frames: string[] = stackFrames.map(frame => {
       const text = frame.name;
       // TODO(dgozman): use stack trace format.
       // TODO(dgozman): figure out paths vs urls.
-      const uiLocation = sourceContainer.uiLocation(frame.location);
+      const uiLocation = this._thread.context().sourceContainer.uiLocation(frame.location);
       let location = `${uiLocation.url}:${uiLocation.lineNumber + 1}`;
       if (uiLocation.columnNumber)
         location += `:${uiLocation.columnNumber + 1}`;

@@ -7,6 +7,7 @@ import * as utils from '../utils';
 import Dap from '../dap/api';
 import {URL} from 'url';
 import * as path from 'path';
+import {Context} from './context';
 
 export type SourceContentGetter = () => Promise<string | undefined>;
 
@@ -21,14 +22,14 @@ export class Source {
   private static _lastSourceReference = 0;
 
   private _sourceReference: number;
-  private _sourceContainer: SourceContainer;
+  private _context: Context;
   private _url: string;
   private _content?: Promise<string | undefined>;
   private _contentGetter: SourceContentGetter;
 
-  constructor(sourceContainer: SourceContainer, url: string, contentGetter: SourceContentGetter) {
+  constructor(context: Context, url: string, contentGetter: SourceContentGetter) {
     this._sourceReference = ++Source._lastSourceReference;
-    this._sourceContainer = sourceContainer;
+    this._context = context;
     this._url = url;
     this._contentGetter = contentGetter;
   }
@@ -56,12 +57,12 @@ export class Source {
     if (this._url && this._url.startsWith('file://')) {
       rebased = this._url.substring(7);
       // TODO(dgozman): what if absolute file url does not belong to webRoot?
-    } else if (this._url && this._sourceContainer._webRoot) {
+    } else if (this._url && this._context.launchParams.webRoot) {
       try {
         let relative = new URL(this._url).pathname;
         if (relative === '' || relative === '/')
           relative = 'index.html';
-        rebased = path.join(this._sourceContainer._webRoot, relative);
+        rebased = path.join(this._context.launchParams.webRoot, relative);
       } catch (e) {
       }
     }
@@ -80,21 +81,21 @@ type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
 type SourceMapSourceData = {counter: number, source: Source};
 
 export class SourceContainer extends EventEmitter {
-  static Events = {
-    SourceAdded: Symbol('SourceAdded'),
-    SourcesRemoved: Symbol('SourcesRemoved'),
-  };
-
   // TODO(dgozman): this is what create-react-app does. We should be able to auto-detect.
   private _sourceUrlsArePaths = true;
-  _webRoot?: string;
 
+  private _context: Context;
   // All sources by the sourceReference.
   private _sources: Map<number, SourceData> = new Map();
   // All source maps by url.
   private _sourceMaps: Map<string, SourceMapData> = new Map();
   // All sources generated from source maps, by resolved url.
   private _sourceMapSources: Map<string, SourceMapSourceData> = new Map();
+
+  constructor(context: Context) {
+    super();
+    this._context = context;
+  }
 
   sources(): Source[] {
     return Array.from(this._sources.values()).map(data => data.source);
@@ -106,11 +107,12 @@ export class SourceContainer extends EventEmitter {
   }
 
   createSource(url: string, contentGetter: SourceContentGetter): Source {
-    return new Source(this, url, contentGetter);
+    return new Source(this._context, url, contentGetter);
   }
 
-  setWebRoot(webRoot: string | undefined) {
-    this._webRoot = webRoot;
+  initialize() {
+    for (const sourceData of this._sources.values())
+      this._reportSource(sourceData.source);
   }
 
   // TODO(dgozman): we should probably translate to one-based here.
@@ -141,7 +143,8 @@ export class SourceContainer extends EventEmitter {
 
   addSource(source: Source) {
     this._sources.set(source.sourceReference(), {source});
-    this.emit(SourceContainer.Events.SourceAdded, source);
+    if (this._context.initialized())
+      this._reportSource(source);
   }
 
   removeSources(...sources: Source[]) {
@@ -152,7 +155,12 @@ export class SourceContainer extends EventEmitter {
         removedSourceMapSources.push(...this._detachSourceMap(source, data.sourceMapUrl));
       this._sources.delete(source.sourceReference());
     }
-    this.emit(SourceContainer.Events.SourcesRemoved, sources.concat(removedSourceMapSources));
+    if (this._context.initialized()) {
+      for (const source of sources)
+        this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
+      for (const source of removedSourceMapSources)
+        this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
+    }
   }
 
   async attachSourceMap(compiled: Source, url: string) {
@@ -182,6 +190,10 @@ export class SourceContainer extends EventEmitter {
 
     for (const anyCompiled of sourceMapData.compiled)
       this._addSourceMapSources(anyCompiled, sourceMap);
+  }
+
+  _reportSource(source: Source) {
+    this._context.dap.loadedSource({reason: 'new', source: source.toDap()});
   }
 
   _addSourceMapSources(compiled: Source, map: SourceMap) {
