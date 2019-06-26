@@ -58,7 +58,6 @@ export class VariableStore {
   async createVariableForMessageFormat(cdp: CdpApi, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const resultReference = ++VariableStore._lastVariableReference;
     const rootObjectReference = ++VariableStore._lastVariableReference;
-    const stackTraceRerefence = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {
       name: '',
       value: text,
@@ -77,30 +76,10 @@ export class VariableStore {
     if (stackTrace) {
       const stackTraceVariable: Dap.Variable = {
         name: '',
-        value: 'stack',
-        variablesReference: stackTraceRerefence,
-        namedVariables: args.length + 1
+        value: await stackTrace.format(this._sourceContainer),
+        variablesReference: 0
       };
       params.push(stackTraceVariable);
-
-      // This loads all available frames.
-      const stackFrames = await stackTrace.loadFrames(1);
-      const frames = stackFrames.map(frame => {
-        const text = frame.name;
-        // TODO(dgozman): use stack trace format.
-        // TODO(dgozman): figure out paths vs urls.
-        const uiLocation = this._sourceContainer.uiLocation(frame.location);
-        let location = `${uiLocation.url}:${uiLocation.lineNumber + 1}`;
-        if (uiLocation.columnNumber)
-          location += `:${uiLocation.columnNumber + 1}`;
-        const frameVariable: Dap.Variable = {
-          name: '',
-          value: `${text} @ ${location}`,
-          variablesReference: 0,
-        }
-        return frameVariable;
-      });
-      this._referenceToVariables.set(stackTraceRerefence, frames);
     }
 
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
