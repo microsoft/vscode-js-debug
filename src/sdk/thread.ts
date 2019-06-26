@@ -99,28 +99,37 @@ export class Thread extends EventEmitter {
     this.emit(ThreadEvents.ThreadNameChanged, this);
   }
 
-  rawLocation(callFrame: Cdp.Debugger.CallFrame | Cdp.Runtime.CallFrame): Location {
-    if (callFrame['location']) {
-      const frame = callFrame as Cdp.Debugger.CallFrame;
-      return {
-        url: frame.url,
-        lineNumber: frame.location.lineNumber,
-        columnNumber: frame.location.columnNumber,
-        source: this._scripts.get(frame.location.scriptId)
-      };
-    }
-    const frame = callFrame as Cdp.Runtime.CallFrame;
+  locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
     return {
-      url: frame.url,
-      lineNumber: frame.lineNumber,
-      columnNumber: frame.columnNumber,
-      source: this._scripts.get(frame.scriptId)
+      url: callFrame.url,
+      lineNumber: callFrame.location.lineNumber,
+      columnNumber: callFrame.location.columnNumber,
+      source: this._scripts.get(callFrame.location.scriptId)
+    };
+  }
+
+  locationFromRuntimeCallFrame(callFrame: Cdp.Runtime.CallFrame): Location {
+    return {
+      url: callFrame.url,
+      lineNumber: callFrame.lineNumber,
+      columnNumber: callFrame.columnNumber,
+      source: this._scripts.get(callFrame.scriptId)
+    };
+  }
+
+  locationFromDebugger(location: Cdp.Debugger.Location): Location {
+    const script = this._scripts.get(location.scriptId);
+    return {
+      url: script ? script.url() : '',
+      lineNumber: location.lineNumber,
+      columnNumber: location.columnNumber,
+      source: script
     };
   }
 
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
     // TODO(dgozman): fill "text" with more details.
-    const stackTrace = new StackTrace(this, event);
+    const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
     switch (event.reason) {
       case 'assert': return {stackTrace, reason: 'exception', description: 'Paused on assert'};
       case 'debugCommand': return {stackTrace, reason: 'pause', description: 'Paused on debug() call'};

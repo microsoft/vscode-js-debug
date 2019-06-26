@@ -13,9 +13,7 @@ import {Thread, ThreadEvents} from './sdk/thread';
 import {VariableStore} from './sdk/variableStore';
 import * as objectPreview from './sdk/objectPreview';
 import {Source, SourceContainer, Location} from './sdk/source';
-import {StackTrace} from './sdk/stackTrace';
-
-let stackId = 0;
+import {StackTrace, StackFrame} from './sdk/stackTrace';
 
 export interface LaunchParams extends Dap.LaunchParams {
   url: string;
@@ -31,7 +29,7 @@ export class Adapter {
 
   private _mainTarget: Target;
   private _threads: Map<number, Thread> = new Map();
-  private _variableStore = new VariableStore();
+  private _variableStore: VariableStore;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -66,6 +64,7 @@ export class Adapter {
       });
 
     this._sourceContainer = new SourceContainer();
+    this._variableStore = new VariableStore(this._sourceContainer);
     this._targetManager = new TargetManager(connection, this._sourceContainer);
     this._targetManager.on(TargetEvents.TargetAttached, (target: Target) => {
       if (target.thread())
@@ -175,7 +174,7 @@ export class Adapter {
     let stackTrace: StackTrace | undefined;
     let uiLocation: Location | undefined;
     if (event.stackTrace) {
-      stackTrace = new StackTrace(thread, event.stackTrace);
+      stackTrace = StackTrace.fromRuntime(thread, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
         uiLocation = this._sourceContainer.uiLocation(frames[0].location);
@@ -268,6 +267,8 @@ export class Adapter {
     const from = params.startFrame || 0;
     const to = params.levels ? from + params.levels : from + 1;
     const frames = await details.stackTrace.loadFrames(to);
+    // TODO(dgozman): figure out whether we should always check for current in
+    // every async function or it will work out by itself because UI is smart.
     if (thread.pausedDetails() !== details)
       return dummy;
 
@@ -275,25 +276,95 @@ export class Adapter {
     for (let index = from; index < to && index < frames.length; index++) {
       const stackFrame = frames[index];
       const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
-      const hint = ({
-        'frame': 'normal',
-        'asyncCall': 'label',
-        'asyncFrame': 'normal'
-      })[stackFrame.type];
       result.push({
         id: stackFrame.id,
         name: stackFrame.name,
         line: uiLocation.lineNumber + 1,
         column: uiLocation.columnNumber + 1,
         source: uiLocation.source ? uiLocation.source.toDap() : undefined,
-        presentationHint: hint
+        presentationHint: stackFrame.isAsyncSeparator ? 'label' : 'normal'
       });
     }
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
   }
 
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult> {
-    return {scopes: []};
+    let stackFrame: StackFrame | undefined;
+    let frameThread: Thread | undefined;
+    for (const thread of this._threads.values()) {
+      if (!thread.pausedDetails())
+        continue;
+      stackFrame = thread.pausedDetails().stackTrace.frame(params.frameId);
+      frameThread = thread;
+      if (stackFrame)
+        break;
+    }
+    if (!stackFrame || !stackFrame.scopeChain)
+      return {scopes: []};
+    const scopes: Dap.Scope[] = [];
+    for (const scope of stackFrame.scopeChain) {
+      let name: string = '';
+      let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
+      switch (scope.type) {
+        case 'global':
+          name = 'Global';
+          break;
+        case 'local':
+          name = 'Local';
+          presentationHint = 'locals';
+          break;
+        case 'with':
+          name = 'With Block';
+          presentationHint = 'locals';
+          break;
+        case 'closure':
+          name = 'Closure';
+          presentationHint = 'arguments';
+          break;
+        case 'catch':
+          name = 'Catch Block';
+          presentationHint = 'locals';
+          break;
+        case 'block':
+          name = 'Block';
+          presentationHint = 'locals';
+          break;
+        case 'script':
+          name = 'Script';
+          break;
+        case 'eval':
+          name = 'Eval';
+          break;
+        case 'module':
+          name = 'Module';
+          break;
+      }
+      const variable = await this._variableStore.createVariable(frameThread.cdp(), scope.object);
+      const uiStartLocation = scope.startLocation
+          ? this._sourceContainer.uiLocation(frameThread.locationFromDebugger(scope.startLocation))
+          : undefined;
+      const uiEndLocation = scope.endLocation
+          ? this._sourceContainer.uiLocation(frameThread.locationFromDebugger(scope.endLocation))
+          : undefined;
+      if (scope.name && scope.type === 'closure')
+        name = `Closure ${scope.name}`;
+      else if (scope.name)
+        name = scope.name;
+      scopes.push({
+        name,
+        presentationHint,
+        expensive: scope.type === 'global',
+        namedVariables: variable.namedVariables,
+        indexedVariables: variable.indexedVariables,
+        variablesReference: variable.variablesReference,
+        source: uiStartLocation && uiStartLocation.source ? uiStartLocation.source.toDap() : undefined,
+        line: uiStartLocation ? uiStartLocation.lineNumber + 1 : undefined,
+        column: uiStartLocation ? uiStartLocation.columnNumber + 1 : undefined,
+        endLine: uiEndLocation ? uiEndLocation.lineNumber + 1 : undefined,
+        endColumn: uiEndLocation ? uiEndLocation.columnNumber + 1 : undefined,
+      });
+    }
+    return {scopes};
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
