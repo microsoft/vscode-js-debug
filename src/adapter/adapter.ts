@@ -114,44 +114,53 @@ export class Adapter {
     return {};
   }
 
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult> {
+  _mainTargetNotAvailable(): Dap.Error {
+    return this._context.createSilentError('Page is not available');
+  }
+
+  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+    if (!this._mainTarget)
+      return this._mainTargetNotAvailable();
     this._mainTarget.cdp().Page.navigate({url: 'about:blank'});
     return {};
   }
 
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult> {
+  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+    if (!this._context)
+      return this._mainTargetNotAvailable();
     this._context.browser.Browser.close();
     return {};
   }
 
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult> {
+  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+    if (!this._mainTarget)
+      return this._mainTargetNotAvailable();
     this._mainTarget.cdp().Page.navigate({url: this._context.launchParams.url});
     return {};
   }
 
-  async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult> {
+  async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads = [];
     for (const thread of this._context.threads.values())
       threads.push({id: thread.threadId(), name: thread.threadName()});
     return {threads};
   }
 
-  async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult> {
+  async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
     const thread = this._context.threads.get(params.threadId);
-    if (thread)
-      thread.resume();
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    thread.resume();
     return {allThreadsContinued: false};
   }
 
-  async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
-    const dummy = {stackFrames: [], totalFrames: 0};
-
+  async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     const thread = this._context.threads.get(params.threadId);
     if (!thread)
-      return dummy;
+      return this._context.createSilentError('Thread not found');
     const details = thread.pausedDetails();
     if (!details)
-      return dummy;
+      return this._context.createSilentError('Thread is not paused');
 
     const from = params.startFrame || 0;
     const to = params.levels ? from + params.levels : from + 1;
@@ -172,7 +181,7 @@ export class Adapter {
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
   }
 
-  async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult> {
+  async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
     let stackFrame: StackFrame | undefined;
     let frameThread: Thread | undefined;
     for (const thread of this._context.threads.values()) {
@@ -184,7 +193,7 @@ export class Adapter {
         break;
     }
     if (!stackFrame || !stackFrame.scopeChain)
-      return {scopes: []};
+      return this._context.createSilentError('Stack frame not found');
     const scopes: Dap.Scope[] = [];
     for (const scope of stackFrame.scopeChain) {
       let name: string = '';

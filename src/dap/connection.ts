@@ -117,15 +117,35 @@ export default class Connection {
       try {
         const callback = this._handlers.get(msg.command!);
         if (!callback) {
+          response.success = false;
+          response.body = {error: {
+            id: 9220,
+            format: `Unrecognized request: ${msg.command}`,
+            showUser: false,
+            sendTelemetry: false
+          }};
           console.error(`Unknown request: ${msg.command}`);
-          //this._sendErrorResponse(response, 1014, `Unrecognized request: ${request.command}`);
+          // this._send(response);
         } else {
-          response.body = await callback(msg.arguments!);
-          this._send(response);
+          const result = await callback(msg.arguments!);
+          if (result.__errorMarker) {
+            response.success = false;
+            response.body = {error: result.error};
+          } else {
+            response.body = result;
+            this._send(response);
+          }
         }
       } catch (e) {
         console.error(e);
-        this._sendErrorResponse(response, 1104, `Error processing ${msg.command}: ${e.stack || e.message}`);
+        response.success = false;
+        response.body = {error: {
+          id: 9221,
+          format: `Error processing ${msg.command}: ${e.stack || e.message}`,
+          showUser: false,
+          sendTelemetry: false
+        }};
+        this._send(response);
       }
     } else if (msg.type === 'response') {
       const clb = this._pendingRequests.get(msg.request_seq);
@@ -134,20 +154,6 @@ export default class Connection {
         clb(msg);
       }
     }
-  }
-
-  _sendErrorResponse(response: Message, code: number, message: string): void {
-    response.success = false;
-    response.message = message;
-    if (!response.body)
-      response.body = {};
-    response.body.error = {
-      id: code,
-      format: message,
-      // showUser: true,
-      // sendTelemetry: true,
-    };
-    this._send(response);
   }
 
   _handleData(data: Buffer): void {
