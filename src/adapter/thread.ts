@@ -64,6 +64,22 @@ export class Thread {
     return !!await this._cdp.Debugger.resume({});
   }
 
+  async pause(): Promise<boolean> {
+    return !!await this._cdp.Debugger.pause({});
+  }
+
+  async stepOver(): Promise<boolean> {
+    return !!await this._cdp.Debugger.stepOver({});
+  }
+
+  async stepInto(): Promise<boolean> {
+    return !!await this._cdp.Debugger.stepInto({});
+  }
+
+  async stepOut(): Promise<boolean> {
+    return !!await this._cdp.Debugger.stepOut({});
+  }
+
   async initialize(): Promise<boolean> {
     const onResumed = () => {
       this._pausedDetails = undefined;

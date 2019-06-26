@@ -27,6 +27,10 @@ export class Adapter {
     this._dap.on('restart', params => this._onRestart(params));
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
+    this._dap.on('pause', params => this._onPause(params));
+    this._dap.on('next', params => this._onNext(params));
+    this._dap.on('stepIn', params => this._onStepIn(params));
+    this._dap.on('stepOut', params => this._onStepOut(params));
     this._dap.on('stackTrace', params => this._onStackTrace(params));
     this._dap.on('scopes', params => this._onScopes(params));
     this._dap.on('variables', params => this._onVariables(params));
@@ -44,7 +48,7 @@ export class Adapter {
 
     const executablePath = findChrome().pop();
     if (!executablePath)
-      return this._context.createUserError('Cannot not find Chrome');
+      return this._context.createUserError('Unable to find Chrome');
     const connection = await launcher.launch(
       executablePath, {
         userDataDir: '.profile',
@@ -152,9 +156,46 @@ export class Adapter {
     const thread = this._context.threads.get(params.threadId);
     if (!thread)
       return this._context.createSilentError('Thread not found');
-    if (!(await thread.resume()))
-      return this._context.createSilentError('Could not resume');
+    if (!await thread.resume())
+      return this._context.createSilentError('Unable to resume');
     return {allThreadsContinued: false};
+  }
+
+  async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
+    const thread = this._context.threads.get(params.threadId);
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    if (!await thread.pause())
+      return this._context.createSilentError('Unable to pause');
+    return {};
+  }
+
+  async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
+    const thread = this._context.threads.get(params.threadId);
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    if (!await thread.stepOver())
+      return this._context.createSilentError('Unable to step next');
+    return {};
+  }
+
+  async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
+    const thread = this._context.threads.get(params.threadId);
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    // TODO(dgozman): support |params.targetId|.
+    if (!await thread.stepInto())
+      return this._context.createSilentError('Unable to step in');
+    return {};
+  }
+
+  async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
+    const thread = this._context.threads.get(params.threadId);
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    if (!await thread.stepOut())
+      return this._context.createSilentError('Unable to step out');
+    return {};
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
@@ -279,7 +320,7 @@ export class Adapter {
       generatePreview: true
     });
     if (!response)
-      return this._context.createSilentError('Could not evaluate');
+      return this._context.createSilentError('Unable to evaluate');
     const variable = await this._context.variableStore.createVariable(this._mainTarget.cdp(), response.result, args.context);
     const prefix = args.context === 'repl' ? '↳ ' : '';
     return {
@@ -307,7 +348,7 @@ export class Adapter {
       return this._context.createSilentError('Source not found');
     const content = await source.content();
     if (content === undefined)
-      return this._context.createSilentError('Could not retrieve source content');
+      return this._context.createSilentError('Unable to retrieve source content');
     return {content, mimeType: source.mimeType()};
   }
 
