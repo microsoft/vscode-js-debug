@@ -38,12 +38,14 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
   }
 
-  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult> {
+  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
 
     const executablePath = findChrome().pop();
+    if (!executablePath)
+      return this._context.createUserError('Cannot not find Chrome');
     const connection = await launcher.launch(
       executablePath, {
         userDataDir: '.profile',
@@ -141,7 +143,7 @@ export class Adapter {
   }
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
-    const threads = [];
+    const threads: Dap.Thread[] = [];
     for (const thread of this._context.threads.values())
       threads.push({id: thread.threadId(), name: thread.threadName()});
     return {threads};
@@ -151,7 +153,8 @@ export class Adapter {
     const thread = this._context.threads.get(params.threadId);
     if (!thread)
       return this._context.createSilentError('Thread not found');
-    thread.resume();
+    if (!(await thread.resume()))
+      return this._context.createSilentError('Could not resume');
     return {allThreadsContinued: false};
   }
 
@@ -186,14 +189,15 @@ export class Adapter {
     let stackFrame: StackFrame | undefined;
     let frameThread: Thread | undefined;
     for (const thread of this._context.threads.values()) {
-      if (!thread.pausedDetails())
+      const details = thread.pausedDetails();
+      if (!details)
         continue;
-      stackFrame = thread.pausedDetails().stackTrace.frame(params.frameId);
+      stackFrame = details.stackTrace.frame(params.frameId);
       frameThread = thread;
       if (stackFrame)
         break;
     }
-    if (!stackFrame || !stackFrame.scopeChain)
+    if (!stackFrame || !stackFrame.scopeChain || !frameThread)
       return this._context.createSilentError('Stack frame not found');
     const scopes: Dap.Scope[] = [];
     for (const scope of stackFrame.scopeChain) {
@@ -266,15 +270,17 @@ export class Adapter {
     return {variables: await this._context.variableStore.getVariables(params)};
   }
 
-  async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {
+  async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     if (!this._mainTarget)
-      return {result: '', variablesReference: 0};
+      return this._mainTargetNotAvailable();
     const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,
       includeCommandLineAPI: true,
       objectGroup: 'console',
       generatePreview: true
     });
+    if (!response)
+      return this._context.createSilentError('Could not evaluate');
     const variable = await this._context.variableStore.createVariable(this._mainTarget.cdp(), response.result, args.context);
     const prefix = args.context === 'repl' ? '↳ ' : '';
     return {
@@ -288,18 +294,22 @@ export class Adapter {
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult> {
     if (!this._mainTarget)
       return {targets: []};
-    return {targets: await completionz.completions(this._mainTarget.cdp(), params.text, params.line, params.column)};
+    const line = params.line === undefined ? 0 : params.line - 1;
+    return {targets: await completionz.completions(this._mainTarget.cdp(), params.text, line, params.column)};
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
     return {sources: this._context.sourceContainer.sources().map(source => source.toDap())};
   }
 
-  async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult> {
+  async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     const source = this._context.sourceContainer.source(params.sourceReference);
     if (!source)
-      return {content: '', mimeType: 'text/javascript'};
-    return {content: await source.content(), mimeType: source.mimeType()};
+      return this._context.createSilentError('Source not found');
+    const content = await source.content();
+    if (content === undefined)
+      return this._context.createSilentError('Could not retrieve source content');
+    return {content, mimeType: source.mimeType()};
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult> {

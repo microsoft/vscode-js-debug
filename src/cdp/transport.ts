@@ -13,11 +13,11 @@ export interface Transport {
 }
 
 export class PipeTransport implements Transport {
-  private _pipeWrite: NodeJS.WritableStream | null;
+  private _pipeWrite?: NodeJS.WritableStream;
   private _pendingMessage: string;
   private _eventListeners: any[];
-  onmessage: (message: string) => void | null;
-  onclose: () => void | null;
+  onmessage?: (message: string) => void;
+  onclose?: () => void;
 
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
     this._pipeWrite = pipeWrite;
@@ -29,13 +29,13 @@ export class PipeTransport implements Transport {
           this.onclose.call(null);
       })
     ];
-    this.onmessage = null;
-    this.onclose = null;
+    this.onmessage = undefined;
+    this.onclose = undefined;
   }
 
   send(message: string) {
-    this._pipeWrite.write(message);
-    this._pipeWrite.write('\0');
+    this._pipeWrite!.write(message);
+    this._pipeWrite!.write('\0');
   }
 
   _dispatch(buffer: Buffer) {
@@ -60,15 +60,15 @@ export class PipeTransport implements Transport {
   }
 
   close() {
-    this._pipeWrite = null;
+    this._pipeWrite = undefined;
     utils.removeEventListeners(this._eventListeners);
   }
 }
 
 export class WebSocketTransport implements Transport {
   private _ws: WebSocket;
-  onmessage: (message: string) => void | null;
-  onclose: () => void | null;
+  onmessage?: (message: string) => void;
+  onclose?: () => void;
 
   static create(url: string): Promise<WebSocketTransport> {
     return new Promise((resolve, reject) => {
@@ -93,8 +93,8 @@ export class WebSocketTransport implements Transport {
     });
     // Silently ignore all errors - we don't know what to do with them.
     this._ws.addEventListener('error', () => { });
-    this.onmessage = null;
-    this.onclose = null;
+    this.onmessage = undefined;
+    this.onclose = undefined;
   }
 
   send(message: string) {

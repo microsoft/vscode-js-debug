@@ -6,7 +6,7 @@ import {Cdp, CdpApi} from '../cdp/api';
 import * as debug from 'debug';
 import {Source, Location} from './source';
 import * as utils from '../utils';
-import {StackTrace} from './stackTrace';
+import {StackTrace, StackFrame} from './stackTrace';
 import {Context} from './context';
 import * as objectPreview from './objectPreview';
 
@@ -61,11 +61,13 @@ export class Thread {
     return this._pausedDetails;
   }
 
-  resume() {
-    this._cdp.Debugger.resume();
+  async resume(): Promise<boolean> {
+    const response = await this._cdp.Debugger.resume();
+    // TODO(dgozman): update protocol api to return non-void.
+    return !!(response as any);
   }
 
-  async initialize() {
+  async initialize(): Promise<boolean> {
     const onResumed = () => {
       this._pausedDetails = undefined;
       if (this._state === 'normal')
@@ -85,7 +87,9 @@ export class Thread {
       if (this._state === 'normal')
         this._onExceptionThrown(event.exceptionDetails);
     });
-    await this._cdp.Runtime.enable();
+    // TODO(dgozman): update protocol api to return non-void.
+    if (!(await this._cdp.Runtime.enable() as any))
+      return false;
 
     this._cdp.Debugger.on('paused', event => {
       this._pausedDetails = this._createPausedDetails(event);
@@ -94,11 +98,15 @@ export class Thread {
     });
     this._cdp.Debugger.on('resumed', onResumed);
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
-    await this._cdp.Debugger.enable({});
-    await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
+    // TODO(dgozman): update protocol api to return non-void.
+    if (!(await this._cdp.Debugger.enable({}) as any))
+      return false;
+    // TODO(dgozman): update protocol api to return non-void.
+    if (!(await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}) as any))
+      return false;
 
     if (this._state === 'disposed')
-      return;
+      return true;
 
     this._state = 'normal';
     console.assert(!this._context.threads.has(this._threadId));
@@ -106,6 +114,7 @@ export class Thread {
     this._context.dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
+    return true;
   }
 
   async dispose() {
@@ -129,7 +138,7 @@ export class Thread {
     return {
       url: callFrame.url,
       lineNumber: callFrame.location.lineNumber,
-      columnNumber: callFrame.location.columnNumber,
+      columnNumber: callFrame.location.columnNumber || 0,
       source: this._scripts.get(callFrame.location.scriptId)
     };
   }
@@ -148,17 +157,18 @@ export class Thread {
     return {
       url: script ? script.url() : '',
       lineNumber: location.lineNumber,
-      columnNumber: location.columnNumber,
+      columnNumber: location.columnNumber || 0,
       source: script
     };
   }
 
   _reportPaused() {
+    const details = this._pausedDetails!;
     this._context.dap.stopped({
-      reason: this._pausedDetails.reason,
-      description: this._pausedDetails.description,
+      reason: details.reason,
+      description: details.description,
       threadId: this._threadId,
-      text: this._pausedDetails.text,
+      text: details.text,
       allThreadsStopped: false
     });
   }
@@ -198,7 +208,7 @@ export class Thread {
     if (event.type === 'warning')
       category = 'console';
 
-    const tokens = [];
+    const tokens: string[] = [];
     for (const arg of event.args)
       tokens.push(objectPreview.renderValue(arg, false));
     const messageText = tokens.join(' ');
@@ -230,14 +240,16 @@ export class Thread {
     let uiLocation: Location | undefined;
     if (details.stackTrace)
       stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
-    const frames = await stackTrace.loadFrames(50);
+    const frames: StackFrame[] = stackTrace ? await stackTrace.loadFrames(50) : [];
     if (frames.length)
       uiLocation = this._context.sourceContainer.uiLocation(frames[0].location);
-    const message = details.exception.description.split('\n').filter(line => !line.startsWith('    at'));
-    const output = message + '\n' + await stackTrace.format();
+    const description = details.exception && details.exception.description || '';
+    let message = description.split('\n').filter(line => !line.startsWith('    at')).join('\n');
+    if (stackTrace)
+      message += '\n' + (await stackTrace.format());
     this._context.dap.output({
       category: 'stderr',
-      output,
+      output: message,
       variablesReference: 0,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
@@ -254,7 +266,7 @@ export class Thread {
     const readableUrl = event.url || `VM${event.scriptId}`;
     const source = this._context.sourceContainer.createSource(readableUrl, async () => {
       const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
-      return response.scriptSource;
+      return response ? response.scriptSource : undefined;
     });
     this._scripts.set(event.scriptId, source);
     this._context.sourceContainer.addSource(source);

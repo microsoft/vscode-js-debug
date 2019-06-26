@@ -7,15 +7,15 @@ import Cdp from '../cdp/api';
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
-    return formatFunctionDescription(object.description);
+    return formatFunctionDescription(object.description || '');
   return object.preview ? renderPreview(object.preview, context) : renderValue(object, true);
 }
 
 export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
-    return formatFunctionDescription(object.description);
-  return object.description;
+    return formatFunctionDescription(object.description || '');
+  return object.description || '';
 }
 
 export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
@@ -36,16 +36,16 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): st
   if (preview.subtype === 'array')
     return renderArrayPreview(preview, context);
   if (preview.subtype as string === 'internal#entry')
-    return preview.description;
+    return preview.description || '';
   if (preview.type === 'object')
     return renderObjectPreview(preview, context);
   if (preview.type === 'function')
-    return formatFunctionDescription(preview.description);
+    return formatFunctionDescription(preview.description || '');
   return renderPrimitivePreview(preview, context);
 }
 
 function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
-  const tokens = [];
+  const tokens: string[] = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
@@ -84,7 +84,7 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, context?: string
 
 function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
-  const tokens = [];
+  const tokens: string[] = [];
   const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
@@ -101,7 +101,10 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: strin
       overflow = true;
       continue;
     }
-    tokens.push(`${renderPreview(entry.key)} => ${renderPreview(entry.value)}`);
+    if (entry.key)
+      tokens.push(`${renderPreview(entry.key)} => ${renderPreview(entry.value)}`);
+    else
+      tokens.push(`${renderPreview(entry.value)}`);
   }
 
   if (overflow)
@@ -115,7 +118,7 @@ function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, context?: st
     return 'null';
   if (preview.type === 'undefined')
     return 'undefined';
-  return preview.description;
+  return preview.description || '';
 }
 
 function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
@@ -134,7 +137,7 @@ export function renderValue(object: Cdp.Runtime.RemoteObject, quote: boolean): s
     return 'undefined';
   if (object.subtype === 'null')
     return 'null';
-  return object.description;
+  return object.description || '';
 }
 
 function trimEnd(text: string, maxLength: number) {
@@ -144,7 +147,7 @@ function trimEnd(text: string, maxLength: number) {
 }
 
 function formatFunctionDescription(description: string, includePreview: boolean = false, defaultName: string = ''): string {
-  const tokens = [];
+  const tokens: string[] = [];
   const text = description
     .replace(/^function [gs]et /, 'function ')
     .replace(/^function [gs]et\(/, 'function\(')
@@ -200,9 +203,10 @@ function formatFunctionDescription(description: string, includePreview: boolean 
   function nameAndArguments(contents: string): string {
     const startOfArgumentsIndex = contents.indexOf('(');
     const endOfArgumentsMatch = contents.match(/\)\s*{/);
-    if (startOfArgumentsIndex !== -1 && endOfArgumentsMatch && endOfArgumentsMatch.index > startOfArgumentsIndex) {
+    const endIndex = endOfArgumentsMatch && endOfArgumentsMatch.index || 0;
+    if (startOfArgumentsIndex !== -1 && endOfArgumentsMatch && endIndex > startOfArgumentsIndex) {
       const name = contents.substring(0, startOfArgumentsIndex).trim() || defaultName;
-      const args = contents.substring(startOfArgumentsIndex, endOfArgumentsMatch.index + 1);
+      const args = contents.substring(startOfArgumentsIndex, endIndex + 1);
       return name + args;
     }
     return defaultName + '()';

@@ -6,21 +6,23 @@ import * as objectPreview from './objectPreview';
 import {Cdp, CdpApi} from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
-import {SourceContainer} from './source';
 import {Context} from './context';
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
   objectId:  Cdp.Runtime.RemoteObjectId;
   cdp: CdpApi;
+
   constructor(cdp: CdpApi, object: Cdp.Runtime.RemoteObject) {
     this.o = object;
-    this.objectId = object.objectId;
+    this.objectId = object.objectId!;
     this.cdp = cdp;
   }
 
-  wrap(object: Cdp.Runtime.RemoteObject): RemoteObject | null {
-    return object ? new RemoteObject(this.cdp, object) : null;
+  wrap(object: Cdp.Runtime.RemoteObject): RemoteObject;
+  wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined;
+  wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined {
+    return object ? new RemoteObject(this.cdp, object) : undefined;
   }
 }
 
@@ -41,6 +43,9 @@ export class VariableStore {
       return result;
 
     const object = this._refernceToObject.get(params.variablesReference);
+    if (!object)
+      return [];
+
     if (object.o.subtype === 'array') {
       if (params.filter === 'indexed')
         return this._getArraySlots(params, object);
@@ -68,7 +73,7 @@ export class VariableStore {
     };
     this._referenceToVariables.set(resultReference, [rootObjectVariable]);
 
-    const params = [];
+    const params: Promise<Dap.Variable>[] = [];
     for (let i = 0; i < args.length; ++i) {
       if (!args[i].objectId)
         continue;
@@ -81,7 +86,7 @@ export class VariableStore {
         value: await stackTrace.format(),
         variablesReference: 0
       };
-      params.push(stackTraceVariable);
+      params.push(Promise.resolve(stackTraceVariable));
     }
 
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
@@ -94,6 +99,8 @@ export class VariableStore {
       ownProperties: true,
       generatePreview: true
     });
+    if (!response)
+      return [];
     const properties: Promise<Dap.Variable>[] = [];
     const weight: Map<string, number> = new Map();
     for (const p of response.result) {
@@ -110,7 +117,7 @@ export class VariableStore {
     }
     const result = await Promise.all(properties);
     result.sort((a, b) => {
-      const delta = weight.get(b.name) - weight.get(a.name);
+      const delta = weight.get(b.name)! - weight.get(a.name)!;
       return delta ? delta : a.name.localeCompare(b.name);
     });
     return result;
@@ -136,6 +143,8 @@ export class VariableStore {
         }`,
       generatePreview: true
     });
+    if (!response)
+      return [];
     return this._getObjectProperties(object.wrap(response.result));
   }
 
@@ -158,6 +167,8 @@ export class VariableStore {
       generatePreview: true,
       arguments: [ { value: params.start }, { value: params.count } ]
     });
+    if (!response)
+      return [];
     const result = (await this._getObjectProperties(object.wrap(response.result))).filter(p => p.name !== '__proto__');
     return result;
   }
@@ -169,7 +180,7 @@ export class VariableStore {
     return reference;
   }
 
-  private async _createVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
+  private async _createVariable(name: string, value?: RemoteObject, context?: string): Promise<Dap.Variable> {
     if (!value) {
       // TODO(pfeldman): implement getters / setters
       return {
@@ -210,13 +221,11 @@ export class VariableStore {
     const variablesReference = this._createVariableReference(value);
     const response = await value.cdp.Runtime.callFunctionOn({
       objectId: value.objectId,
-      functionDeclaration: `function (prefix) {
-          return this.length;
-        }`,
+      functionDeclaration: `function() { return this.length; }`,
       objectGroup: 'console',
       returnByValue: true
     });
-    const indexedVariables = response.result.value;
+    const indexedVariables = response ? response.result.value : 0;
 
     const object = value.o;
     return {

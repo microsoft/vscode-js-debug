@@ -34,7 +34,7 @@ export class StackTrace {
     if (stack.parentId) {
       result._asyncStackTraceId = stack.parentId;
       console.assert(!stack.parent);
-    } else if (stack.parent) {
+    } else {
       result._appendStackTrace(stack.parent);
     }
     return result;
@@ -53,7 +53,7 @@ export class StackTrace {
     if (parentId) {
       result._asyncStackTraceId = parentId;
       console.assert(!parent);
-    } else if (parent) {
+    } else {
       result._appendStackTrace(parent);
     }
     return result;
@@ -81,8 +81,8 @@ export class StackTrace {
     return this._frameById.get(frameId);
   }
 
-  _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace) {
-    console.assert(!this._asyncStackTraceId);
+  _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace | undefined) {
+    console.assert(!stackTrace || !this._asyncStackTraceId);
 
     while (stackTrace) {
       if (stackTrace.description === 'async function' && stackTrace.callFrames.length)

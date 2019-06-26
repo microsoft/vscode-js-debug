@@ -14,7 +14,7 @@ export async function completions(cdp: CdpApi, expression: string, line: number,
     /*setParentNodes */ true);
 
   const offset = positionToOffset(expression, line, column);
-  let result: Promise<Dap.CompletionItem[]>;
+  let result: Promise<Dap.CompletionItem[]> | undefined;
   traverse(sourceFile);
 
   function traverse(node: ts.Node) {
@@ -73,6 +73,8 @@ async function completePropertyAccess(cdp: CdpApi, expression: string, prefix: s
     silent: true,
     returnByValue: true
   });
+  if (!response)
+    return [];
   if (response.exceptionDetails) {
     console.log(response.exceptionDetails);
     return [];
