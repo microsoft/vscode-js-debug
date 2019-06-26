@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import * as Net from 'net';
 import DapConnection from './dap/connection';
-import {Adapter} from './adapter';
+import {Adapter} from './adapter/adapter';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new MockConfigurationProvider();

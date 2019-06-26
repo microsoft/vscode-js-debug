@@ -202,7 +202,7 @@ export class Thread {
       tokens.push(objectPreview.renderValue(arg, false));
     const messageText = tokens.join(' ');
 
-    const allPrimitive = !event.args.find(a => a.objectId);
+    const allPrimitive = !event.args.find(a => !!a.objectId);
     if (allPrimitive && !stackTrace) {
       this._context.dap.output({
         category: category as any,

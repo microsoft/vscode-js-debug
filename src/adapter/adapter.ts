@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Dap from './dap/api';
+import Dap from '../dap/api';
 
-import CdpConnection from './cdp/connection';
-import {Target, TargetEvents} from './sdk/targetManager';
-import findChrome from './chrome/findChrome';
-import * as launcher from './chrome/launcher';
-import * as completionz from './sdk/completions';
-import {Thread} from './sdk/thread';
-import {StackFrame} from './sdk/stackTrace';
-import {LaunchParams, Context} from './sdk/context';
+import CdpConnection from '../cdp/connection';
+import {Target, TargetEvents} from './targetManager';
+import findChrome from '../chrome/findChrome';
+import * as launcher from '../chrome/launcher';
+import * as completionz from './completions';
+import {Thread} from './thread';
+import {StackFrame} from './stackTrace';
+import {LaunchParams, Context} from './context';
 
 export class Adapter {
   private _dap: Dap.Api;
