@@ -6,52 +6,61 @@ import {Thread} from "./thread";
 import {Location} from "./source";
 import Cdp from "../cdp/api";
 
-export type StackFrameType = 'frame' | 'asyncCall' | 'asyncFrame';
 export interface StackFrame {
-  type: StackFrameType;
   id: number;
-  location: Location;
   name: string;
-};
-
-export interface DebuggerStackTrace {
-  callFrames: Cdp.Debugger.CallFrame[];
-  asyncStackTrace?: Cdp.Runtime.StackTrace;
-  asyncStackTraceId?: Cdp.Runtime.StackTraceId;
+  location: Location;
+  isAsyncSeparator?: boolean;
+  scopeChain?: Cdp.Debugger.Scope[];
 };
 
 // TODO(dgozman): use stack trace format.
 export class StackTrace {
   private static _lastFrameId = 0;
   private _thread: Thread;
-  private _frames: StackFrame[];
+  private _frames: StackFrame[] = [];
+  private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
 
-  constructor(thread: Thread, stack: Cdp.Runtime.StackTrace | DebuggerStackTrace) {
-    this._thread = thread;
-    this._frames = [];
+  public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
+    const result = new StackTrace(thread);
     for (const callFrame of stack.callFrames) {
-      this._frames.push({
-        type: 'frame',
+      result._frames.push({
         id: ++StackTrace._lastFrameId,
-        location: this._thread.rawLocation(callFrame),
+        location: thread.locationFromRuntimeCallFrame(callFrame),
         name: callFrame.functionName || '<anonymous>'
       });
     }
-
-    if ('asyncStackTraceId' in stack) {
-      this._asyncStackTraceId = stack.asyncStackTraceId;
-      console.assert(!stack.asyncStackTrace);
-    } else if ('asyncStackTrace' in stack) {
-      this._appendStackTrace(stack.asyncStackTrace);
-    }
-
-    if ('parentId' in stack) {
-      this._asyncStackTraceId = stack.parentId;
+    if (stack.parentId) {
+      result._asyncStackTraceId = stack.parentId;
       console.assert(!stack.parent);
-    } else if ('parent' in stack) {
-      this._appendStackTrace(stack.parent);
+    } else if (stack.parent) {
+      result._appendStackTrace(stack.parent);
     }
+    return result;
+  }
+
+  public static fromDebugger(thread: Thread, frames: Cdp.Debugger.CallFrame[], parent?: Cdp.Runtime.StackTrace, parentId?: Cdp.Runtime.StackTraceId): StackTrace {
+    const result = new StackTrace(thread);
+    for (const callFrame of frames) {
+      result._appendFrame({
+        id: ++StackTrace._lastFrameId,
+        location: thread.locationFromDebuggerCallFrame(callFrame),
+        name: callFrame.functionName || '<anonymous>',
+        scopeChain: callFrame.scopeChain
+      });
+    }
+    if (parentId) {
+      result._asyncStackTraceId = parentId;
+      console.assert(!parent);
+    } else if (parent) {
+      result._appendStackTrace(parent);
+    }
+    return result;
+  }
+
+  constructor(thread: Thread) {
+    this._thread = thread;
   }
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
@@ -67,6 +76,10 @@ export class StackTrace {
     return !!this._asyncStackTraceId;
   }
 
+  frame(frameId: number): StackFrame | undefined {
+    return this._frameById.get(frameId);
+  }
+
   _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace) {
     console.assert(!this._asyncStackTraceId);
 
@@ -75,22 +88,21 @@ export class StackTrace {
         stackTrace.callFrames.shift();
 
       if (stackTrace.callFrames.length) {
-        this._frames.push({
-          type: 'asyncCall',
+        this._appendFrame({
           id: ++StackTrace._lastFrameId,
           name: stackTrace.description || 'async',
           location: {
             lineNumber: 1,
             columnNumber: 1,
             url: '',
-          }
+          },
+          isAsyncSeparator: true
         });
 
         for (const callFrame of stackTrace.callFrames) {
-          this._frames.push({
-            type: 'asyncFrame',
+          this._appendFrame({
             id: ++StackTrace._lastFrameId,
-            location: this._thread.rawLocation(callFrame),
+            location: this._thread.locationFromRuntimeCallFrame(callFrame),
             name: callFrame.functionName || '<anonymous>'
           });
         }
@@ -103,5 +115,10 @@ export class StackTrace {
 
       stackTrace = stackTrace.parent;
     }
+  }
+
+  _appendFrame(frame: StackFrame) {
+    this._frames.push(frame);
+    this._frameById.set(frame.id, frame);
   }
 };

@@ -6,6 +6,7 @@ import * as objectPreview from './objectPreview';
 import {Cdp, CdpApi} from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
+import {SourceContainer} from './source';
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
@@ -24,9 +25,14 @@ class RemoteObject {
 
 export class VariableStore {
   private static _lastVariableReference: number = 0;
+  private _sourceContainer: SourceContainer;
   private _refernceToObject: Map<number, RemoteObject> = new Map();
   private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
+
+  constructor(sourceContainer: SourceContainer) {
+    this._sourceContainer = sourceContainer;
+  }
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const result = this._referenceToVariables.get(params.variablesReference);
@@ -84,9 +90,10 @@ export class VariableStore {
         const text = frame.name;
         // TODO(dgozman): use stack trace format.
         // TODO(dgozman): figure out paths vs urls.
-        let location = `${frame.location.url}:${frame.location.lineNumber}`;
-        if (frame.location.columnNumber)
-          location += `:${frame.location.columnNumber}`;
+        const uiLocation = this._sourceContainer.uiLocation(frame.location);
+        let location = `${uiLocation.url}:${uiLocation.lineNumber + 1}`;
+        if (uiLocation.columnNumber)
+          location += `:${uiLocation.columnNumber + 1}`;
         const frameVariable: Dap.Variable = {
           name: '',
           value: `${text} @ ${location}`,

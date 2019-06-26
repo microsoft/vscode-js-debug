@@ -114,6 +114,7 @@ export class SourceContainer extends EventEmitter {
     this._webRoot = webRoot;
   }
 
+  // TODO(dgozman): we should probably translate to one-based here.
   uiLocation(rawLocation: Location): Location {
     if (!rawLocation.source)
       return rawLocation;
