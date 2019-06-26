@@ -4,7 +4,7 @@
 import * as utils from '../utils';
 
 export class SourceMap {
-  private _json: SourceMapV3;
+  private _json?: SourceMapV3;
   private _url: string;
   private _mappings?: SourceMapEntry[];
   private _sourceInfos: Map<string, SourceInfo> = new Map();
@@ -31,7 +31,7 @@ export class SourceMap {
     this._json = payload;
     this._url = url;
 
-    this._mappings = null;
+    this._mappings = undefined;
     if (this._json.sections) {
       const sectionWithUrl = !!this._json.sections.find(section => !!section['url']);
       if (sectionWithUrl) {
@@ -48,7 +48,7 @@ export class SourceMap {
         map.sources[i] = url;
         const source = map.sourcesContent && map.sourcesContent[i];
         // TODO(dgozman): |url| may be equal to compiled url - we may need to distinguish them.
-        this._sourceInfos.set(url, new SourceInfo(source, null));
+        this._sourceInfos.set(url, new SourceInfo(source));
       }
     });
   }
@@ -62,7 +62,7 @@ export class SourceMap {
   }
 
   sourceContent(sourceURL: string): string | undefined {
-    const info = this._sourceInfos.get(sourceURL);
+    const info = this._sourceInfos.get(sourceURL)!;
     return info.content;
   }
 
@@ -71,19 +71,20 @@ export class SourceMap {
     // TODO(dgozman): can use a simpler version of upperBound.
     const index = upperBound(
         mappings, undefined, (unused, entry) => lineNumber - entry.lineNumber || columnNumber - entry.columnNumber);
-    return index ? mappings[index - 1] : null;
+    return index ? mappings[index - 1] : undefined;
   }
 
   mappings(): SourceMapEntry[] {
     if (!this._mappings) {
-      this._mappings = [];
-      this._forEachSection(this._parseMap.bind(this));
-      this._json = null;
+      const mappings: SourceMapEntry[] = [];
+      this._forEachSection(this._parseMap.bind(this, mappings));
+      this._mappings = mappings;
+      this._json = undefined;
     }
     return this._mappings;
   }
 
-  _parseMap(map: SourceMapV3, lineNumber: number, columnNumber: number) {
+  _parseMap(mappings: SourceMapEntry[], map: SourceMapV3, lineNumber: number, columnNumber: number) {
     let sourceIndex = 0;
     let sourceLineNumber = 0;
     let sourceColumnNumber = 0;
@@ -107,7 +108,7 @@ export class SourceMap {
 
       columnNumber += decodeVLQ(stringCharIterator);
       if (!stringCharIterator.hasNext() || isSeparator(stringCharIterator.peek())) {
-        this._mappings.push(new SourceMapEntry(lineNumber, columnNumber));
+        mappings.push(new SourceMapEntry(lineNumber, columnNumber));
         continue;
       }
 
@@ -120,25 +121,26 @@ export class SourceMap {
       sourceColumnNumber += decodeVLQ(stringCharIterator);
 
       if (!stringCharIterator.hasNext() || isSeparator(stringCharIterator.peek())) {
-        this._mappings.push(new SourceMapEntry(lineNumber, columnNumber, sourceURL, sourceLineNumber, sourceColumnNumber));
+        mappings.push(new SourceMapEntry(lineNumber, columnNumber, sourceURL, sourceLineNumber, sourceColumnNumber));
         continue;
       }
 
       nameIndex += decodeVLQ(stringCharIterator);
-      this._mappings.push(new SourceMapEntry(lineNumber, columnNumber, sourceURL, sourceLineNumber, sourceColumnNumber, names[nameIndex]));
+      mappings.push(new SourceMapEntry(lineNumber, columnNumber, sourceURL, sourceLineNumber, sourceColumnNumber, names[nameIndex]));
     }
 
     // As per spec, mappings are not necessarily sorted.
     // TODO(dgozman): do we need stable sort here?
-    this._mappings.sort(SourceMapEntry.compare);
+    mappings.sort(SourceMapEntry.compare);
   }
 
   _forEachSection(callback: (map: SourceMapV3, line: number, column: number) => void) {
-    if (!this._json.sections) {
-      callback(this._json, 0, 0);
+    const json = this._json!;
+    if (!json.sections) {
+      callback(json, 0, 0);
       return;
     }
-    for (const section of this._json.sections)
+    for (const section of json.sections)
       callback(section.map, section.offset.line, section.offset.column);
   }
 };

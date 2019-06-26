@@ -120,9 +120,9 @@ export class SourceContainer extends EventEmitter {
     if (!rawLocation.source)
       return rawLocation;
     const compiledData = this._sources.get(rawLocation.source.sourceReference());
-    if (!compiledData.sourceMapUrl)
+    if (!compiledData || !compiledData.sourceMapUrl)
       return rawLocation;
-    const map = this._sourceMaps.get(compiledData.sourceMapUrl).map;
+    const map = this._sourceMaps.get(compiledData.sourceMapUrl)!.map;
     if (!map)
       return rawLocation;
     // TODO(dgozman): account for inline scripts which have lineOffset and columnOffset.
@@ -134,8 +134,8 @@ export class SourceContainer extends EventEmitter {
     if (!sourceData)
       return rawLocation;
     return {
-      lineNumber: entry.sourceLineNumber,
-      columnNumber: entry.sourceColumnNumber,
+      lineNumber: entry.sourceLineNumber || 0,
+      columnNumber: entry.sourceColumnNumber || 0,
       url: resolvedUrl,
       source: sourceData.source
     };
@@ -148,24 +148,24 @@ export class SourceContainer extends EventEmitter {
   }
 
   removeSources(...sources: Source[]) {
-    const removedSourceMapSources = [];
     for (const source of sources) {
-      const data = this._sources.get(source.sourceReference());
-      if (data.sourceMapUrl)
-        removedSourceMapSources.push(...this._detachSourceMap(source, data.sourceMapUrl));
+      if (this._context.initialized())
+        this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
+      const data = this._sources.get(source.sourceReference())!;
+      if (data.sourceMapUrl) {
+        const removedSourceMapSources = this._detachSourceMap(source, data.sourceMapUrl);
+        if (this._context.initialized()) {
+          for (const source of removedSourceMapSources)
+            this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
+        }
+      }
       this._sources.delete(source.sourceReference());
-    }
-    if (this._context.initialized()) {
-      for (const source of sources)
-        this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
-      for (const source of removedSourceMapSources)
-        this._context.dap.loadedSource({reason: 'removed', source: source.toDap()});
     }
   }
 
   async attachSourceMap(compiled: Source, url: string) {
-    const sourceData = this._sources.get(compiled.sourceReference());
-    console.assert(sourceData && !sourceData.sourceMapUrl);
+    const sourceData = this._sources.get(compiled.sourceReference())!;
+    console.assert(!sourceData.sourceMapUrl);
     sourceData.sourceMapUrl = url;
 
     let sourceMapData = this._sourceMaps.get(url);
@@ -215,8 +215,8 @@ export class SourceContainer extends EventEmitter {
   }
 
   _detachSourceMap(compiled: Source, url: string): Source[] {
-    const sourceMapData = this._sourceMaps.get(url);
-    console.assert(sourceMapData && sourceMapData.compiled.size > 0);
+    const sourceMapData = this._sourceMaps.get(url)!;
+    console.assert(sourceMapData.compiled.size > 0);
     sourceMapData.compiled.delete(compiled);
     if (!sourceMapData.compiled.size)
       this._sourceMaps.delete(url);
@@ -228,15 +228,15 @@ export class SourceContainer extends EventEmitter {
   }
 
   _removeSourceMapSources(compiled: Source, map: SourceMap): Source[] {
-    const result = [];
+    const result: Source[] = [];
     for (const url of map.sourceUrls()) {
       const resolvedUrl = this._resolveSourceUrl(map, compiled, url);
-      const sourceData = this._sourceMapSources.get(resolvedUrl);
+      const sourceData = this._sourceMapSources.get(resolvedUrl)!;
       if (--sourceData.counter > 0)
         continue;
       this._sourceMapSources.delete(resolvedUrl);
       // TODO(dgozman): support recursive source maps?
-      console.assert(!this._sources.get(sourceData.source.sourceReference()).sourceMapUrl);
+      console.assert(this._sources.get(sourceData.source.sourceReference())!.sourceMapUrl === undefined);
       this._sources.delete(sourceData.source.sourceReference());
       result.push(sourceData.source);
     }

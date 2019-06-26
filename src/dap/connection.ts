@@ -21,7 +21,7 @@ interface Message {
 export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
 
-  private _writableStream: NodeJS.WritableStream;
+  private _writableStream?: NodeJS.WritableStream;
   private _rawData: Buffer;
   private _contentLength: number;
   private _sequence: number;
@@ -95,11 +95,11 @@ export default class Connection {
   public stop(): void {
     if (this._writableStream) {
       this._writableStream.end();
-      this._writableStream = null;
+      this._writableStream = undefined;
     }
   }
 
-  _send(message: Message): string {
+  _send(message: Message) {
     message.seq = this._sequence++;
     const json = JSON.stringify(message);
     debugDAP('SEND ► ' + json);
@@ -113,7 +113,7 @@ export default class Connection {
 
   async _onMessage(msg: Message): Promise<void> {
     if (msg.type === 'request') {
-      const response = {seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true, body: undefined};
+      const response: Message = {seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true};
       try {
         const callback = this._handlers.get(msg.command!);
         if (!callback) {
@@ -148,9 +148,9 @@ export default class Connection {
         this._send(response);
       }
     } else if (msg.type === 'response') {
-      const clb = this._pendingRequests.get(msg.request_seq);
+      const clb = this._pendingRequests.get(msg.request_seq!);
       if (clb) {
-        this._pendingRequests.delete(msg.request_seq);
+        this._pendingRequests.delete(msg.request_seq!);
         clb(msg);
       }
     }

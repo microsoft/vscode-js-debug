@@ -53,4 +53,16 @@ export class Context {
       }
     };
   }
+
+  createUserError(text: string): Dap.Error {
+    return {
+      __errorMarker: true,
+      error: {
+        id: 9222,
+        format: text,
+        showUser: true,
+        sendTelemetry: false
+      }
+    };
+  }
 };

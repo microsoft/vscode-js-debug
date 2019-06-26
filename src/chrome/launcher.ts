@@ -194,7 +194,7 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
 
 function getWSEndpoint(browserURL: string): Promise<string> {
   let resolve: (o: string) => void;
-  let reject: (e: Error) => void
+  let reject: (e: Error) => void;
   const promise: Promise<string> = new Promise((res, rej) => { resolve = res; reject = rej; });
 
   const endpointURL = URL.resolve(browserURL, '/json/version');
@@ -213,7 +213,7 @@ function getWSEndpoint(browserURL: string): Promise<string> {
     res.on('end', () => resolve(JSON.parse(data).webSocketDebuggerUrl));
   });
 
-  request.on('error', reject);
+  request.on('error', reject!);
   request.end();
 
   return promise.catch(e => {

@@ -64,7 +64,7 @@ export default class Connection extends EventEmitter {
   }
 
   session(sessionId: string): CdpApi {
-    return this._sessions.get(sessionId).cdp();
+    return this._sessions.get(sessionId)!.cdp();
   }
 
   _send(method: string, params: object | undefined = {}, sessionId: string): number {
@@ -122,7 +122,7 @@ export default class Connection extends EventEmitter {
 }
 
 class CDPSession extends EventEmitter {
-  private _connection: Connection;
+  private _connection?: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
   private _cdp: CdpApi;
@@ -177,7 +177,7 @@ class CDPSession extends EventEmitter {
 
   _onMessage(object: ProtocolResponse) {
     if (object.id && this._callbacks.has(object.id)) {
-      const callback = this._callbacks.get(object.id);
+      const callback = this._callbacks.get(object.id)!;
       this._callbacks.delete(object.id);
       if (object.error) {
         callback.from.message = `Protocol error (${object.method}): ${object.error.message}`;
@@ -185,12 +185,12 @@ class CDPSession extends EventEmitter {
           callback.from.message += ` - ${JSON.stringify(object.error)}`;
         callback.reject(callback.from);
       } else {
-        callback.resolve(object.result);
+        callback.resolve(object.result!);
       }
     } else {
       if (object.id)
         throw new Error();
-      this.emit(object.method, object.params);
+      this.emit(object.method!, object.params);
     }
   }
 
@@ -210,6 +210,6 @@ class CDPSession extends EventEmitter {
       callback.reject(callback.from);
     }
     this._callbacks.clear();
-    this._connection = null;
+    this._connection = undefined;
   }
 }

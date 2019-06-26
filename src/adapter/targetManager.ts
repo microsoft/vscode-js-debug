@@ -50,14 +50,15 @@ export class TargetManager extends EventEmitter {
       if (targetInfo.type !== 'page')
         return;
       const { sessionId } = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
-      this._attachedToTarget(targetInfo, sessionId, false, null);
+      this._attachedToTarget(targetInfo, sessionId, false);
     });
     this._browser.Target.on('detachedFromTarget', event => {
-      this._detachedFromTarget(event.targetId);
+      // TODO(dgozman): targetId is deprecated, we should use sessionId.
+      this._detachedFromTarget(event.targetId!);
     });
   }
 
-  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget: Target|null) {
+  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: Target) {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
@@ -72,10 +73,12 @@ export class TargetManager extends EventEmitter {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
     });
     cdp.Target.on('detachedFromTarget', async event => {
-      this._detachedFromTarget(event.targetId);
+      // TODO(dgozman): targetId is deprecated, we should use sessionId.
+      this._detachedFromTarget(event.targetId!);
     });
     await cdp.Target.setAutoAttach({autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
-    await target._initialize(waitingForDebugger);
+    if (!await target._initialize(waitingForDebugger))
+      return;
 
     if (!this._targets.has(targetInfo.targetId))
       return;
@@ -144,11 +147,13 @@ export class Target {
     return this._cdp;
   }
 
-  async _initialize(waitingForDebugger: boolean) {
-    if (this._thread)
-      await this._thread.initialize();
-    if (waitingForDebugger)
-      await this._cdp.Runtime.runIfWaitingForDebugger();
+  async _initialize(waitingForDebugger: boolean): Promise<boolean> {
+    if (this._thread && !await this._thread.initialize())
+      return false;
+    // TODO(dgozman): update protocol api to return non-void.
+    if (waitingForDebugger && !(await this._cdp.Runtime.runIfWaitingForDebugger() as any))
+      return false;
+    return true;
   }
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
