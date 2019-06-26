@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {Cdp, CdpApi} from '../cdp/api';
+import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import * as debug from 'debug';
 import * as path from 'path';
@@ -19,7 +19,7 @@ export const TargetEvents = {
 export class TargetManager extends EventEmitter {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
-  private _browser: CdpApi;
+  private _browser: Cdp.Api;
   private _context: Context;
 
   constructor(connection: CdpConnection, context: Context) {
@@ -49,8 +49,10 @@ export class TargetManager extends EventEmitter {
       const targetInfo = event.targetInfo;
       if (targetInfo.type !== 'page')
         return;
-      const { sessionId } = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
-      this._attachedToTarget(targetInfo, sessionId, false);
+      const response = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
+      // TODO(dgozman): handle error.
+      if (response)
+        this._attachedToTarget(targetInfo, response.sessionId, false);
     });
     this._browser.Target.on('detachedFromTarget', event => {
       // TODO(dgozman): targetId is deprecated, we should use sessionId.
@@ -124,7 +126,7 @@ export class TargetManager extends EventEmitter {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 
 export class Target {
-  private _cdp: CdpApi;
+  private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
   private _context: Context;
@@ -133,7 +135,7 @@ export class Target {
   _parentTarget?: Target;
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(context: Context, targetInfo: Cdp.Target.TargetInfo, cdp: CdpApi, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+  constructor(context: Context, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
     this._parentTarget = parentTarget;
     this._context = context;
@@ -143,15 +145,14 @@ export class Target {
     this._ondispose = ondispose;
   }
 
-  cdp(): CdpApi {
+  cdp(): Cdp.Api {
     return this._cdp;
   }
 
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread && !await this._thread.initialize())
       return false;
-    // TODO(dgozman): update protocol api to return non-void.
-    if (waitingForDebugger && !(await this._cdp.Runtime.runIfWaitingForDebugger() as any))
+    if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;
     return true;
   }

@@ -4,6 +4,12 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Generate CDP API",
+      "program": "${workspaceFolder}/scripts/generate-cdp-api.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Generate DAP API",
       "program": "${workspaceFolder}/scripts/generate-dap-api.js"
     },

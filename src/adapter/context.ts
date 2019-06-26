@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import Dap from '../dap/api';
-import {CdpApi} from '../cdp/api';
+import Cdp from '../cdp/api';
 import {SourceContainer} from './source';
 import {TargetManager} from './targetManager';
 import {VariableStore} from './variableStore';
@@ -16,7 +16,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 export class Context {
   public dap: Dap.Api;
-  public browser: CdpApi;
+  public browser: Cdp.Api;
   public sourceContainer: SourceContainer;
   public targetManager: TargetManager;
   public launchParams: LaunchParams;
