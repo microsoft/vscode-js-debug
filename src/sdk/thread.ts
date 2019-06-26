@@ -8,7 +8,7 @@ import {EventEmitter} from 'events';
 import {Source, Location} from './source';
 import * as utils from '../utils';
 import {Cdp, CdpApi} from '../cdp/api';
-import {PausedDetails} from './pausedDetails';
+import {StackTrace} from './stackTrace';
 
 const debugThread = debug('thread');
 
@@ -17,6 +17,15 @@ export const ThreadEvents = {
   ThreadPaused: Symbol('ThreadPaused'),
   ThreadResumed: Symbol('ThreadResumed'),
   ThreadConsoleMessage: Symbol('ThreadConsoleMessage'),
+};
+
+export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
+
+export interface PausedDetails {
+  reason: PausedReason;
+  description: string;
+  stackTrace: StackTrace;
+  text?: string;
 };
 
 export class Thread extends EventEmitter {
@@ -68,7 +77,7 @@ export class Thread extends EventEmitter {
     });
     await cdp.Runtime.enable();
     cdp.Debugger.on('paused', event => {
-      this._pausedDetails = new PausedDetails(this, event);
+      this._pausedDetails = this._createPausedDetails(event);
       this.emit(ThreadEvents.ThreadPaused, this);
     });
     cdp.Debugger.on('resumed', () => {
@@ -110,6 +119,23 @@ export class Thread extends EventEmitter {
     };
   }
 
+  _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
+    // TODO(dgozman): fill "text" with more details.
+    const stackTrace = new StackTrace(this, event);
+    switch (event.reason) {
+      case 'assert': return {stackTrace, reason: 'exception', description: 'Paused on assert'};
+      case 'debugCommand': return {stackTrace, reason: 'pause', description: 'Paused on debug() call'};
+      case 'DOM': return {stackTrace, reason: 'data breakpoint', description: 'Paused on DOM breakpoint'};
+      case 'EventListener': return {stackTrace, reason: 'function breakpoint', description: 'Paused on event listener breakpoint'};
+      case 'exception': return {stackTrace, reason: 'exception', description: 'Paused on exception'};
+      case 'promiseRejection': return {stackTrace, reason: 'exception', description: 'Paused on promise rejection'};
+      case 'instrumentation': return {stackTrace, reason: 'function breakpoint', description: 'Paused on function call'};
+      case 'XHR': return {stackTrace, reason: 'data breakpoint', description: 'Paused on XMLHttpRequest or fetch'};
+      case 'OOM': return {stackTrace, reason: 'exception', description: 'Paused before Out Of Memory exception'};
+      default: return {stackTrace, reason: 'step', description: 'Paused'};
+    }
+  }
+
   _reset() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
@@ -119,7 +145,7 @@ export class Thread extends EventEmitter {
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     const readableUrl = event.url || `VM${event.scriptId}`;
-    const source = Source.createWithContentGetter(readableUrl, async () => {
+    const source = this._target.sourceContainer().createSource(readableUrl, async () => {
       const response = await this._target.cdp().Debugger.getScriptSource({scriptId: event.scriptId});
       return response.scriptSource;
     });

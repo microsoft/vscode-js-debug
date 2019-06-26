@@ -5,6 +5,7 @@
 import * as objectPreview from './objectPreview';
 import {Cdp, CdpApi} from '../cdp/api';
 import Dap from '../dap/api';
+import {StackTrace} from './stackTrace';
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
@@ -49,7 +50,7 @@ export class VariableStore {
     return this._createVariable('', new RemoteObject(cdp, value), context);
   }
 
-  async createVariableForMessageFormat(cdp: CdpApi, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: Cdp.Runtime.StackTrace): Promise<number> {
+  async createVariableForMessageFormat(cdp: CdpApi, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const resultReference = ++VariableStore._lastVariableReference;
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const stackTraceRerefence = ++VariableStore._lastVariableReference;
@@ -73,15 +74,19 @@ export class VariableStore {
         name: '',
         value: 'stack',
         variablesReference: stackTraceRerefence,
-        namedVariables: args.length + (stackTrace ? 1 : 0)
+        namedVariables: args.length + 1
       };
       params.push(stackTraceVariable);
 
-      const frames = stackTrace.callFrames.map(frame => {
-        const text = frame.functionName || '(anonymous)';
-        let location = `${frame.url}:${frame.lineNumber}`;
-        if (frame.columnNumber)
-          location += `:${frame.columnNumber}`;
+      // This loads all available frames.
+      const stackFrames = await stackTrace.loadFrames(1);
+      const frames = stackFrames.map(frame => {
+        const text = frame.name;
+        // TODO(dgozman): use stack trace format.
+        // TODO(dgozman): figure out paths vs urls.
+        let location = `${frame.location.url}:${frame.location.lineNumber}`;
+        if (frame.location.columnNumber)
+          location += `:${frame.location.columnNumber}`;
         const frameVariable: Dap.Variable = {
           name: '',
           value: `${text} @ ${location}`,

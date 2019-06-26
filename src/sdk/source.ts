@@ -5,6 +5,9 @@
 import {SourceMap} from './sourceMap';
 import {EventEmitter} from 'events';
 import * as utils from '../utils';
+import Dap from '../dap/api';
+import {URL} from 'url';
+import * as path from 'path';
 
 export type SourceContentGetter = () => Promise<string | undefined>;
 
@@ -19,23 +22,16 @@ export class Source {
   private static _lastSourceReference = 0;
 
   private _sourceReference: number;
+  private _sourceContainer: SourceContainer;
   private _url: string;
   private _content?: Promise<string | undefined>;
   private _contentGetter: SourceContentGetter;
 
-  constructor() {
+  constructor(sourceContainer: SourceContainer, url: string, contentGetter: SourceContentGetter) {
     this._sourceReference = ++Source._lastSourceReference;
-  }
-
-  static createWithContentGetter(url: string, contentGetter: SourceContentGetter): Source {
-    const result = new Source();
-    result._url = url;
-    result._contentGetter = contentGetter;
-    return result;
-  }
-
-  static createWithContent(url: string, content: string): Source {
-    return Source.createWithContentGetter(url, () => Promise.resolve(content));
+    this._sourceContainer = sourceContainer;
+    this._url = url;
+    this._contentGetter = contentGetter;
   }
 
   url(): string {
@@ -55,6 +51,29 @@ export class Source {
   mimeType(): string {
     return 'text/javascript';
   }
+
+  toDap(): Dap.Source {
+    let rebased: string | undefined;
+    if (this._url && this._url.startsWith('file://')) {
+      rebased = this._url.substring(7);
+      // TODO(dgozman): what if absolute file url does not belong to webRoot?
+    } else if (this._url && this._sourceContainer._webRoot) {
+      try {
+        let relative = new URL(this._url).pathname;
+        if (relative === '' || relative === '/')
+          relative = 'index.html';
+        rebased = path.join(this._sourceContainer._webRoot, relative);
+      } catch (e) {
+      }
+    }
+    // TODO(dgozman): can we check whether the path exists? Search for another match? Provide source fallback?
+    return {
+      name: path.basename(rebased || this._url || '') || '<anonymous>',
+      path: rebased,
+      sourceReference: rebased ? 0 : this._sourceReference,
+      presentationHint: 'normal'
+    };
+  }
 };
 
 type SourceData = {source: Source, sourceMapUrl?: string};
@@ -69,6 +88,7 @@ export class SourceContainer extends EventEmitter {
 
   // TODO(dgozman): this is what create-react-app does. We should be able to auto-detect.
   private _sourceUrlsArePaths = true;
+  _webRoot?: string;
 
   // All sources by the sourceReference.
   private _sources: Map<number, SourceData> = new Map();
@@ -84,6 +104,14 @@ export class SourceContainer extends EventEmitter {
   source(sourceReference: number): Source | undefined {
     const data = this._sources.get(sourceReference);
     return data && data.source;
+  }
+
+  createSource(url: string, contentGetter: SourceContentGetter): Source {
+    return new Source(this, url, contentGetter);
+  }
+
+  setWebRoot(webRoot: string | undefined) {
+    this._webRoot = webRoot;
   }
 
   uiLocation(rawLocation: Location): Location {
@@ -165,8 +193,8 @@ export class SourceContainer extends EventEmitter {
       } else {
         const content = map.sourceContent(url);
         const source = content === undefined
-            ? Source.createWithContentGetter(resolvedUrl, () => utils.fetch(resolvedUrl))
-            : Source.createWithContent(resolvedUrl, content);
+            ? this.createSource(resolvedUrl, () => utils.fetch(resolvedUrl))
+            : this.createSource(resolvedUrl, () => Promise.resolve(content));
         this._sourceMapSources.set(resolvedUrl, {counter: 1, source});
         this.addSource(source);
         // TODO(dgozman): support recursive source maps?
