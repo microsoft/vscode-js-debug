@@ -14,6 +14,13 @@
       "program": "${workspaceFolder}/scripts/generate-dap-api.js"
     },
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Run tests",
+      "preLaunchTask": "npm: compile",
+      "program": "${workspaceFolder}/out/test.js"
+    },
+    {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",

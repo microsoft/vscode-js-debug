@@ -49,8 +49,14 @@ export class Adapter {
     const executablePath = findChrome().pop();
     if (!executablePath)
       return this._context.createUserError('Unable to find Chrome');
+    const args: string[] = [];
+    if (params.clientID === 'cdp-test') {
+      args.push('--remote-debugging-port=0');
+      args.push('--headless');
+    }
     const connection = await launcher.launch(
       executablePath, {
+        args,
         userDataDir: '.profile',
         pipe: true,
       });
