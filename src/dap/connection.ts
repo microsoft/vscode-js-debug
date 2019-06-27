@@ -27,8 +27,9 @@ export default class Connection {
   private _contentLength: number;
   private _sequence: number;
 
-  private _pendingRequests = new Map<number, (response: Message) => void>();
-  private _handlers = new Map<string, (params: any) => Promise<any>>();
+  private _pendingRequests = new Map<number, (result: string | object) => void>();
+  private _requestHandlers = new Map<string, (params: any) => Promise<any>>();
+  private _eventListeners = new Map<string, Set<(params: any) => any>>();
   private _dap: Dap.Api;
 
   constructor(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
@@ -60,9 +61,9 @@ export default class Connection {
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
         if (methodName === 'on')
-          return (requestName, handler) => this._handlers.set(requestName, handler);
+          return (requestName, handler) => this._requestHandlers.set(requestName, handler);
         if (methodName === 'off')
-          return (requestName, handler) => this._handlers.delete(requestName);
+          return (requestName, handler) => this._requestHandlers.delete(requestName);
         return params => {
           const e = {seq: 0, type: 'event', event: methodName, body: params};
           this._send(e);
@@ -71,27 +72,51 @@ export default class Connection {
     }) as Dap.Api;
   }
 
-  /*
-  private sendRequest(command: string, args: any, timeout: number): Promise<Message> {
-    const request: any = { command };
-    if (args && Object.keys(args).length > 0)
-      request.arguments = args;
-    this._writeData(this._parser.wrap('request', request));
-
-    return new Promise(cb => {
-      this._pendingRequests.set(request.seq, cb);
-
-      const timer = setTimeout(() => {
-        clearTimeout(timer);
-        const clb = this._pendingRequests.get(request.seq);
-        if (clb) {
-          this._pendingRequests.delete(request.seq);
-          clb(new Response(request, 'timeout'));
-        }
-      }, timeout);
-    });
+  createTestApi(): Dap.TestApi {
+    const on = (eventName, listener) => {
+      let listeners = this._eventListeners.get(eventName);
+      if (!listeners) {
+        listeners = new Set();
+        this._eventListeners.set(eventName, listeners);
+      }
+      listeners.add(listener);
+    };
+    const off = (eventName, listener) => {
+      const listeners = this._eventListeners.get(eventName);
+      if (listeners)
+        listeners.delete(listener);
+    };
+    const once = (eventName, filter) => {
+      return new Promise(cb => {
+        const listener = params => {
+          if (filter && !filter(params))
+            return;
+          off(eventName, listener);
+          cb(params);
+        };
+        on(eventName, listener);
+      });
+    };
+    return new Proxy({}, {
+      get: (target, methodName: string, receiver) => {
+        if (methodName === 'on')
+          return on;
+        if (methodName === 'off')
+          return off;
+        if (methodName === 'once')
+          return once;
+        return params => {
+          return new Promise(cb => {
+            const request: Message = {seq: 0, type: 'request', command: methodName};
+            if (params && Object.keys(params).length > 0)
+              request.arguments = params;
+            this._pendingRequests.set(this._sequence, cb);
+            this._send(request);
+          });
+        };
+      }
+    }) as Dap.TestApi;
   }
-  */
 
   public stop(): void {
     if (this._writableStream) {
@@ -116,7 +141,7 @@ export default class Connection {
     if (msg.type === 'request') {
       const response: Message = {seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true};
       try {
-        const callback = this._handlers.get(msg.command!);
+        const callback = this._requestHandlers.get(msg.command!);
         if (!callback) {
           response.success = false;
           response.body = {error: {
@@ -148,11 +173,20 @@ export default class Connection {
         }};
         this._send(response);
       }
-    } else if (msg.type === 'response') {
-      const clb = this._pendingRequests.get(msg.request_seq!);
-      if (clb) {
-        this._pendingRequests.delete(msg.request_seq!);
-        clb(msg);
+    }
+    if (msg.type === 'event') {
+      const listeners = this._eventListeners.get(msg.event!) || new Set();
+      for (const listener of listeners)
+        listener(msg.body);
+    }
+    if (msg.type === 'response') {
+      const cb = this._pendingRequests.get(msg.request_seq!)!;
+      this._pendingRequests.delete(msg.request_seq!);
+      if (msg.success) {
+        cb(msg.body as object);
+      } else {
+        const format: string | undefined = msg.body && msg.body.error && msg.body.error.format;
+        cb(format || msg.message || `Unknown error`);
       }
     }
   }

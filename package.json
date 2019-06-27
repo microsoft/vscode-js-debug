@@ -32,7 +32,8 @@
     "watch": "tsc -w -p ./src",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "test": "tsc -p ./src && node ./out/test.js"
   },
   "dependencies": {
     "ws": "^7.0.1"

@@ -44,6 +44,7 @@ async function generate() {
   result.push(`  export type Error = E.Error;`);
   result.push(`  export type Message = E.Message;`);
   result.push(`  export type integer = number;`);
+  result.push(`  export type TestApi = any;`);
   result.push(``);
 
   function appendText(text, indent) {

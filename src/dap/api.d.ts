@@ -11,6 +11,7 @@ export namespace Dap {
   export type Error = E.Error;
   export type Message = E.Message;
   export type integer = number;
+  export type TestApi = any;
 
   export interface Api {
     /**
