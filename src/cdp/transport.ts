@@ -9,6 +9,7 @@ export interface Transport {
   close(): void;
   onmessage?: (message: string) => void;
   onclose?: () => void;
+  clone(): Promise<Transport>;
 }
 
 export class PipeTransport implements Transport {
@@ -62,10 +63,15 @@ export class PipeTransport implements Transport {
     this._pipeWrite = undefined;
     utils.removeEventListeners(this._eventListeners);
   }
+
+  clone(): Promise<Transport> {
+    throw new Error('Not implemented');
+  }
 }
 
 export class WebSocketTransport implements Transport {
   private _ws: WebSocket;
+  private _wsUrl: string;
   onmessage?: (message: string) => void;
   onclose?: () => void;
 
@@ -75,13 +81,14 @@ export class WebSocketTransport implements Transport {
         perMessageDeflate: false,
         maxPayload: 256 * 1024 * 1024, // 256Mb
       });
-      ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
+      ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
       ws.addEventListener('error', reject);
     });
   }
 
-  constructor(ws: WebSocket) {
+  constructor(ws: WebSocket, wsUrl: string) {
     this._ws = ws;
+    this._wsUrl = wsUrl;
     this._ws.addEventListener('message', event => {
       if (this.onmessage)
         this.onmessage.call(null, event.data);
@@ -102,5 +109,9 @@ export class WebSocketTransport implements Transport {
 
   close() {
     this._ws.close();
+  }
+
+  clone(): Promise<Transport> {
+    return WebSocketTransport.create(this._wsUrl);
   }
 }

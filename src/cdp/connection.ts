@@ -119,6 +119,10 @@ export default class Connection extends EventEmitter {
     session._onClose();
     this._sessions.delete(session.sessionId());
   }
+
+  async clone(): Promise<Connection> {
+    return new Connection(await this._transport.clone());
+  }
 }
 
 class CDPSession extends EventEmitter {

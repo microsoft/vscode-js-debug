@@ -12,8 +12,14 @@ import {Thread} from './thread';
 import {StackFrame} from './stackTrace';
 import {LaunchParams, Context} from './context';
 
+export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
+  targetId?: string;
+}
+
 export class Adapter {
   private _dap: Dap.Api;
+  private _connection: CdpConnection;
+  private _initializeParams: Dap.InitializeParams;
   private _context: Context;
   private _mainTarget: Target;
 
@@ -41,7 +47,16 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
   }
 
+  testConnection(): Promise<CdpConnection> {
+    return this._connection.clone();
+  }
+
+  _isUnderTest(): boolean {
+    return this._initializeParams.clientID === 'cdp-test';
+  }
+
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
+    this._initializeParams = params;
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
@@ -50,19 +65,19 @@ export class Adapter {
     if (!executablePath)
       return this._context.createUserError('Unable to find Chrome');
     const args: string[] = [];
-    if (params.clientID === 'cdp-test') {
+    if (this._isUnderTest()) {
       args.push('--remote-debugging-port=0');
       args.push('--headless');
     }
-    const connection = await launcher.launch(
+    this._connection = await launcher.launch(
       executablePath, {
         args,
         userDataDir: '.profile',
         pipe: true,
       });
-    connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
+    this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
 
-    this._context = new Context(this._dap, connection);
+    this._context = new Context(this._dap, this._connection);
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -104,7 +119,7 @@ export class Adapter {
     };
   }
 
-  async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
+  async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<ConfigurationDoneResult> {
     this._mainTarget = this._context.targetManager.mainTarget();
     if (!this._mainTarget)
       this._mainTarget = await new Promise(f => this._context.targetManager.once(TargetEvents.TargetAttached, f)) as Target;
@@ -113,6 +128,8 @@ export class Adapter {
         this._dap.terminated({});
       }
     });
+    if (this._isUnderTest())
+      return {targetId: this._mainTarget.targetId()};
     return {};
   }
 
@@ -122,7 +139,7 @@ export class Adapter {
 
     // params.noDebug
     this._context.initialize(params);
-    this._mainTarget.cdp().Page.navigate({url: params.url});
+    await this._mainTarget.cdp().Page.navigate({url: params.url});
     return {};
   }
 
@@ -140,14 +157,14 @@ export class Adapter {
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
     if (!this._context)
       return this._mainTargetNotAvailable();
-    this._context.browser.Browser.close({});
+    await this._context.browser.Browser.close({});
     return {};
   }
 
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
-    this._mainTarget.cdp().Page.navigate({url: this._context.launchParams.url});
+    await this._mainTarget.cdp().Page.navigate({url: this._context.launchParams.url});
     return {};
   }
 
