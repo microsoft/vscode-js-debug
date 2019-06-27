@@ -79,12 +79,19 @@ export class TargetManager extends EventEmitter {
       // TODO(dgozman): targetId is deprecated, we should use sessionId.
       this._detachedFromTarget(event.targetId!);
     });
-    await cdp.Target.setAutoAttach({autoAttach: true, waitForDebuggerOnStart: true, flatten: true});
+
+    const cleanupOnFailure = () => {
+      this._targets.delete(targetInfo.targetId);
+      this._connection.disposeSession(sessionId);
+    }
+
+    if (!await cdp.Target.setAutoAttach({autoAttach: true, waitForDebuggerOnStart: true, flatten: true}))
+      return cleanupOnFailure();
     if (!await target._initialize(waitingForDebugger))
-      return;
+      return cleanupOnFailure();
 
     if (!this._targets.has(targetInfo.targetId))
-      return;
+      return cleanupOnFailure();
     this.emit(TargetEvents.TargetAttached, target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
     this._dumpTargets();
