@@ -157,6 +157,10 @@ export class Target {
     return this._cdp;
   }
 
+  targetId(): string {
+    return this._targetInfo.targetId;
+  }
+
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread && !await this._thread.initialize())
       return false;
