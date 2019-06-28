@@ -22,7 +22,7 @@ export class Adapter {
   private _connection: CdpConnection;
   private _initializeParams: Dap.InitializeParams;
   private _context: Context;
-  private _mainTarget: Target;
+  private _mainTarget?: Target;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -140,7 +140,7 @@ export class Adapter {
 
     // params.noDebug
     this._context.initialize(params);
-    await this._mainTarget.cdp().Page.navigate({url: params.url});
+    await this._mainTarget!.cdp().Page.navigate({url: params.url});
     return {};
   }
 

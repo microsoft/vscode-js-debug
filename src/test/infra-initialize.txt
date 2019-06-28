@@ -1,0 +1,32 @@
+initialized
+{
+    additionalModuleColumns : [
+    ]
+    exceptionBreakpointFilters : [
+    ]
+    supportTerminateDebuggee : false
+    supportedChecksumAlgorithms : [
+    ]
+    supportsCompletionsRequest : true
+    supportsConditionalBreakpoints : false
+    supportsConfigurationDoneRequest : true
+    supportsDelayedStackTraceLoading : true
+    supportsEvaluateForHovers : false
+    supportsExceptionInfoRequest : false
+    supportsExceptionOptions : false
+    supportsFunctionBreakpoints : false
+    supportsGotoTargetsRequest : false
+    supportsHitConditionalBreakpoints : false
+    supportsLoadedSourcesRequest : true
+    supportsLogPoints : false
+    supportsModulesRequest : false
+    supportsRestartFrame : false
+    supportsRestartRequest : true
+    supportsSetExpression : false
+    supportsSetVariable : false
+    supportsStepBack : false
+    supportsStepInTargetsRequest : false
+    supportsTerminateRequest : false
+    supportsTerminateThreadsRequest : false
+    supportsValueFormattingOptions : false
+}

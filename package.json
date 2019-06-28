@@ -33,7 +33,7 @@
     "postinstall": "node ./node_modules/vscode/bin/install",
     "package": "vsce package",
     "publish": "vsce publish",
-    "test": "tsc -p ./src && node ./out/test.js"
+    "test": "tsc -p ./src && node ./out/runTests.js"
   },
   "dependencies": {
     "ws": "^7.0.1"

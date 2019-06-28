@@ -1,0 +1,11 @@
+Connected
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+{
+    allThreadsContinued : false
+}
+Disconnected
