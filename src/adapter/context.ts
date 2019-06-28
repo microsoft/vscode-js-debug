@@ -15,6 +15,8 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
+export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
+
 export class Context {
   public dap: Dap.Api;
   public browser: Cdp.Api;
@@ -23,6 +25,7 @@ export class Context {
   public launchParams: LaunchParams;
   public threads: Map<number, Thread>;
   public variableStore: VariableStore;
+  public pauseOnExceptionsState: PauseOnExceptionsState;
 
   constructor(dap: Dap.Api, connection: CdpConnection) {
     this.dap = dap;
@@ -32,6 +35,7 @@ export class Context {
     this.browser = connection.browser();
     this.threads = new Map();
     this.launchParams = {url: ''};
+    this.pauseOnExceptionsState = 'none';
   }
 
   initialize(launchParams: LaunchParams) {

@@ -12,6 +12,8 @@ import * as completionz from './completions';
 import {Thread} from './thread';
 import {StackFrame} from './stackTrace';
 import {LaunchParams, Context} from './context';
+import * as objectPreview from './objectPreview';
+import Cdp from '../cdp/api';
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -23,6 +25,7 @@ export class Adapter {
   private _initializeParams: Dap.InitializeParams;
   private _context: Context;
   private _mainTarget?: Target;
+  private _exceptionEvaluateName: string;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -46,6 +49,9 @@ export class Adapter {
     this._dap.on('loadedSources', params => this._onLoadedSources(params));
     this._dap.on('source', params => this._onSource(params));
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
+    this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
+    this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
+    this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
   testConnection(): Promise<CdpConnection> {
@@ -93,7 +99,10 @@ export class Adapter {
       supportsConditionalBreakpoints: false,
       supportsHitConditionalBreakpoints: false,
       supportsEvaluateForHovers: false,
-      exceptionBreakpointFilters: [],
+      exceptionBreakpointFilters: [
+        {filter: 'caught', label: 'Caught Exceptions', default: false},
+        {filter: 'uncaught', label: 'Uncaught Exceptions', default: false},
+      ],
       supportsStepBack: false,
       supportsSetVariable: false,
       supportsRestartFrame: false,
@@ -106,7 +115,7 @@ export class Adapter {
       supportsRestartRequest: true,
       supportsExceptionOptions: false,
       supportsValueFormattingOptions: false,
-      supportsExceptionInfoRequest: false,
+      supportsExceptionInfoRequest: true,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
       supportsLoadedSourcesRequest: true,
@@ -249,20 +258,28 @@ export class Adapter {
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
   }
 
-  async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
+  _findStackFrame(frameId: number): {stackFrame: StackFrame, thread: Thread} | undefined {
     let stackFrame: StackFrame | undefined;
-    let frameThread: Thread | undefined;
-    for (const thread of this._context.threads.values()) {
-      const details = thread.pausedDetails();
+    let thread: Thread | undefined;
+    for (const t of this._context.threads.values()) {
+      const details = t.pausedDetails();
       if (!details)
         continue;
-      stackFrame = details.stackTrace.frame(params.frameId);
-      frameThread = thread;
+      stackFrame = details.stackTrace.frame(frameId);
+      thread = t;
       if (stackFrame)
         break;
     }
-    if (!stackFrame || !stackFrame.scopeChain || !frameThread)
+    return stackFrame ? {stackFrame, thread: thread!} : undefined;
+  }
+
+  async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
+    const found = this._findStackFrame(params.frameId);
+    if (!found)
       return this._context.createSilentError('Stack frame not found');
+    const {stackFrame, thread} = found;
+    if (!stackFrame.scopeChain)
+      return {scopes: []};
     const scopes: Dap.Scope[] = [];
     for (const scope of stackFrame.scopeChain) {
       let name: string = '';
@@ -301,12 +318,12 @@ export class Adapter {
           name = 'Module';
           break;
       }
-      const variable = await this._context.variableStore.createVariable(frameThread.cdp(), scope.object);
+      const variable = await this._context.variableStore.createVariable(thread.cdp(), scope.object);
       const uiStartLocation = scope.startLocation
-          ? this._context.sourceContainer.uiLocation(frameThread.locationFromDebugger(scope.startLocation))
+          ? this._context.sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
           : undefined;
       const uiEndLocation = scope.endLocation
-          ? this._context.sourceContainer.uiLocation(frameThread.locationFromDebugger(scope.endLocation))
+          ? this._context.sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
           : undefined;
       if (scope.name && scope.type === 'closure') {
         name = `Closure (${scope.name})`;
@@ -337,6 +354,14 @@ export class Adapter {
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
+    if (args.frameId !== undefined) {
+      const found = this._findStackFrame(args.frameId);
+      if (!found)
+        return this._context.createSilentError('Stack frame not found');
+      const exception = found.thread.pausedDetails()!.exception;
+      if (exception && args.expression === this._exceptionEvaluateName)
+        return this._evaluateResult(found.thread.cdp(), exception);
+    }
     const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,
       includeCommandLineAPI: true,
@@ -345,8 +370,12 @@ export class Adapter {
     });
     if (!response)
       return this._context.createSilentError('Unable to evaluate');
-    const variable = await this._context.variableStore.createVariable(this._mainTarget.cdp(), response.result, args.context);
-    const prefix = args.context === 'repl' ? '↳ ' : '';
+    return this._evaluateResult(this._mainTarget.cdp(), response.result, args.context);
+  }
+
+  async _evaluateResult(cdp: Cdp.Api, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
+    const variable = await this._context.variableStore.createVariable(cdp, result, context);
+    const prefix = context === 'repl' ? '↳ ' : '';
     return {
       result: prefix + variable.value,
       variablesReference: variable.variablesReference,
@@ -378,5 +407,37 @@ export class Adapter {
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult> {
     return {breakpoints: []};
+  }
+
+  async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
+    if (params.filters.includes('caught'))
+      this._context.pauseOnExceptionsState = 'all';
+    else if (params.filters.includes('uncaught'))
+      this._context.pauseOnExceptionsState = 'uncaught';
+    else
+      this._context.pauseOnExceptionsState = 'none';
+    for (const thread of this._context.threads.values())
+      thread.updatePauseOnExceptionsState();
+    return {};
+  }
+
+  async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
+    const thread = this._context.threads.get(params.threadId);
+    if (!thread)
+      return this._context.createSilentError('Thread not found');
+    const details = thread.pausedDetails();
+    const exception = details && details.exception;
+    if (!exception)
+      return this._context.createSilentError('Thread is not paused on exception');
+    const preview = objectPreview.previewException(exception);
+    return {
+      exceptionId: preview.title,
+      breakMode: this._context.pauseOnExceptionsState === 'all' ? 'always' : 'unhandled',
+      details: {
+        stackTrace: preview.stackTrace,
+        // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
+        evaluateName: this._exceptionEvaluateName,
+      }
+    };
   }
 }
