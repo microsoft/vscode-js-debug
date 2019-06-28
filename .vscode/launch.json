@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "Run tests",
       "preLaunchTask": "npm: compile",
-      "program": "${workspaceFolder}/out/test.js"
+      "program": "${workspaceFolder}/out/runTests.js"
     },
     {
       "name": "Extension",

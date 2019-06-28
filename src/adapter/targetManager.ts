@@ -19,6 +19,7 @@ export const TargetEvents = {
 export class TargetManager extends EventEmitter {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
+  private _mainTarget?: Target;
   private _browser: Cdp.Api;
   private _context: Context;
 
@@ -33,12 +34,8 @@ export class TargetManager extends EventEmitter {
     });
   }
 
-  targets(): Target[] {
-    return Array.from(this._targets.values());
-  }
-
-  mainTarget(): Target {
-    return this._targets.values().next().value;
+  mainTarget(): Target | undefined {
+    return this._mainTarget;
   }
 
   _attachToFirstPage() {
@@ -91,6 +88,8 @@ export class TargetManager extends EventEmitter {
 
     if (!this._targets.has(targetInfo.targetId))
       return cleanupOnFailure();
+    if (!this._mainTarget)
+      this._mainTarget = target;
     this.emit(TargetEvents.TargetAttached, target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
     this._dumpTargets();
@@ -110,6 +109,8 @@ export class TargetManager extends EventEmitter {
     if (target._parentTarget)
       target._parentTarget._children.delete(targetId);
 
+    if (this._mainTarget === target)
+      this._mainTarget = undefined;
     this.emit(TargetEvents.TargetDetached, target);
     debugTarget(`Detached from target ${targetId}`);
     this._dumpTargets();
