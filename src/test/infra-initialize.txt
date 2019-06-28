@@ -3,6 +3,16 @@ initialized
     additionalModuleColumns : [
     ]
     exceptionBreakpointFilters : [
+        [0] : {
+            default : false
+            filter : caught
+            label : Caught Exceptions
+        }
+        [1] : {
+            default : false
+            filter : uncaught
+            label : Uncaught Exceptions
+        }
     ]
     supportTerminateDebuggee : false
     supportedChecksumAlgorithms : [
@@ -12,7 +22,7 @@ initialized
     supportsConfigurationDoneRequest : true
     supportsDelayedStackTraceLoading : true
     supportsEvaluateForHovers : false
-    supportsExceptionInfoRequest : false
+    supportsExceptionInfoRequest : true
     supportsExceptionOptions : false
     supportsFunctionBreakpoints : false
     supportsGotoTargetsRequest : false

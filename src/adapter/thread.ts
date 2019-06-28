@@ -18,6 +18,7 @@ export interface PausedDetails {
   description: string;
   stackTrace: StackTrace;
   text?: string;
+  exception?: Cdp.Runtime.RemoteObject;
 };
 
 export class Thread {
@@ -114,6 +115,8 @@ export class Thread {
       return false;
     if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
       return false;
+    if (!await this.updatePauseOnExceptionsState())
+      return false;
 
     if (this._state === 'disposed')
       return true;
@@ -172,6 +175,10 @@ export class Thread {
     };
   }
 
+  async updatePauseOnExceptionsState(): Promise<boolean> {
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._context.pauseOnExceptionsState});
+  }
+
   _reportPaused() {
     const details = this._pausedDetails!;
     this._context.dap.stopped({
@@ -191,7 +198,7 @@ export class Thread {
       case 'debugCommand': return {stackTrace, reason: 'pause', description: 'Paused on debug() call'};
       case 'DOM': return {stackTrace, reason: 'data breakpoint', description: 'Paused on DOM breakpoint'};
       case 'EventListener': return {stackTrace, reason: 'function breakpoint', description: 'Paused on event listener breakpoint'};
-      case 'exception': return {stackTrace, reason: 'exception', description: 'Paused on exception'};
+      case 'exception': return {stackTrace, reason: 'exception', description: 'Paused on exception', exception: event.data as (Cdp.Runtime.RemoteObject | undefined)};
       case 'promiseRejection': return {stackTrace, reason: 'exception', description: 'Paused on promise rejection'};
       case 'instrumentation': return {stackTrace, reason: 'function breakpoint', description: 'Paused on function call'};
       case 'XHR': return {stackTrace, reason: 'data breakpoint', description: 'Paused on XMLHttpRequest or fetch'};

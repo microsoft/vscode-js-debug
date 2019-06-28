@@ -226,3 +226,16 @@ function formatFunctionDescription(description: string, includePreview: boolean 
       tokens.push(abbreviation.replace(/\n/g, ' '));
   }
 }
+
+export function previewException(exception: Cdp.Runtime.RemoteObject): {title: string, stackTrace?: string} {
+  if (exception.type !== 'object')
+    return {title: previewRemoteObject(exception)};
+  const description = exception.description!;
+  const firstCallFrame = /^\s+at\s/m.exec(description);
+  if (!firstCallFrame)
+    return {title: description.substring(0, description.lastIndexOf('\n'))};
+  return {
+    title: description.substring(0, firstCallFrame.index - 1),
+    stackTrace: description.substring(firstCallFrame.index + 2),
+  };
+}

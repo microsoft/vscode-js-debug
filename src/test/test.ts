@@ -20,8 +20,8 @@ class Stream extends stream.Duplex {
   }
 }
 
-export type Log = (value: any, title?: string, stabilizeNames?: string[]) => void;
-export type Params = {cdp: Cdp.Api, dap: Dap.TestApi, log: Log};
+export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
+export type Params = {cdp: Cdp.Api, dap: Dap.TestApi, log: Log, initializeResult: Dap.InitializeResult};
 
 let suitePath = '';
 let total = 0;
@@ -65,10 +65,10 @@ export async function runTest(testFunc: (params: Params) => any) {
   return _runTest(async (log: Log) => {
     const {adapter, dap} = await setup();
     log('Connected');
-    await initialize(dap);
+    const initializeResult = await initialize(dap);
     const connection = await adapter.testConnection();
     const cdp = await configure(connection, dap);
-    await testFunc({cdp, dap, log});
+    await testFunc({cdp, dap, log, initializeResult});
     await disconnect(connection, dap);
     log('Disconnected');
   }, testFunc.name);
@@ -78,13 +78,14 @@ export async function runStartupTest(testFunc: (log: Log) => Promise<any>) {
   return _runTest(testFunc, testFunc.name);
 }
 
-function _log(results: string[], item: any, title?: string, stabilizeNames?: string[]) {
+function _log(results: string[], item: any, title?: string, stabilizeNames?: string[]): any {
   if (typeof item === 'object')
     return _logObject(results, item, title, stabilizeNames);
   results.push('' + item);
+  return item;
 }
 
-function _logObject(results: string[], object: Object, title?: string, stabilizeNames?: string[]) {
+function _logObject(results: string[], object: Object, title?: string, stabilizeNames?: string[]): any {
   stabilizeNames = stabilizeNames || ['id', 'threadId', 'sourceReference'];
   const lines: string[] = [];
 
@@ -130,6 +131,7 @@ function _logObject(results: string[], object: Object, title?: string, stabilize
 
   dumpValue(object, '', title || '');
   results.push(...lines);
+  return object;
 }
 
 async function _runTest(testFunc: (log: Log) => Promise<any>, testName: string) {

@@ -21,6 +21,14 @@
       "program": "${workspaceFolder}/out/runTests.js"
     },
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Reset results",
+      "preLaunchTask": "npm: compile",
+      "program": "${workspaceFolder}/out/runTests.js",
+      "args": ["--reset-results"]
+    },
+    {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",

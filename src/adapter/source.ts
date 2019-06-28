@@ -244,7 +244,7 @@ export class SourceContainer extends EventEmitter {
   }
 
   _resolveSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
-    if (this._sourceUrlsArePaths)
+    if (this._sourceUrlsArePaths && !utils.isValidUrl(sourceUrl))
       sourceUrl = 'file://' + sourceUrl;
     const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;

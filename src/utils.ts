@@ -47,3 +47,12 @@ export function completeUrl(base: string, relative: string): string | undefined 
   } catch (e) {
   }
 };
+
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
