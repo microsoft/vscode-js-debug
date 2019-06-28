@@ -82,7 +82,7 @@ function _log(results: string[], item: any, title?: string, stabilizeNames?: str
 }
 
 function _logObject(results: string[], object: Object, title?: string, stabilizeNames?: string[]) {
-  stabilizeNames = stabilizeNames || ['threadId'];
+  stabilizeNames = stabilizeNames || ['id', 'threadId', 'sourceReference'];
   const lines: string[] = [];
 
   function dumpValue(value, prefix, prefixWithName) {

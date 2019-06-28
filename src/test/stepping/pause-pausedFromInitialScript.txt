@@ -6,6 +6,23 @@ Connected
     threadId : <number>
 }
 {
+    stackFrames : [
+        [0] : {
+            column : 9
+            id : <number>
+            line : 1
+            name : <anonymous>
+            presentationHint : normal
+            source : {
+                name : script>
+                presentationHint : normal
+                sourceReference : <number>
+            }
+        }
+    ]
+    totalFrames : 1
+}
+{
     allThreadsContinued : false
 }
 Disconnected

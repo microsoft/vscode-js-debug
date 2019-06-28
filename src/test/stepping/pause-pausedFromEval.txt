@@ -6,6 +6,23 @@ Connected
     threadId : <number>
 }
 {
+    stackFrames : [
+        [0] : {
+            column : 1
+            id : <number>
+            line : 3
+            name : <anonymous>
+            presentationHint : normal
+            source : {
+                name : eval.js
+                presentationHint : normal
+                sourceReference : <number>
+            }
+        }
+    ]
+    totalFrames : 1
+}
+{
     allThreadsContinued : false
 }
 Disconnected
