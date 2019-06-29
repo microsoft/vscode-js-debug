@@ -130,7 +130,7 @@ export class StackTrace {
       const text = frame.name;
       // TODO(dgozman): use stack trace format.
       // TODO(dgozman): figure out paths vs urls.
-      const uiLocation = this._thread.context().sourceContainer.uiLocation(frame.location);
+      const uiLocation = this._thread.sourceContainer().uiLocation(frame.location);
       let location = `${uiLocation.url}:${uiLocation.lineNumber + 1}`;
       if (uiLocation.columnNumber)
         location += `:${uiLocation.columnNumber + 1}`;

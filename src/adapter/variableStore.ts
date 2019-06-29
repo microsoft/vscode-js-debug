@@ -6,7 +6,6 @@ import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
-import {Context} from './context';
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
