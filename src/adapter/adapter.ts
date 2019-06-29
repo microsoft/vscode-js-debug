@@ -13,6 +13,7 @@ import {StackFrame} from './stackTrace';
 import {LaunchParams, Context} from './context';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
+import { VariableStore } from './variableStore';
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -317,7 +318,7 @@ export class Adapter {
           name = 'Module';
           break;
       }
-      const variable = await this._context.variableStore.createVariable(thread.cdp(), scope.object);
+      const variable = await thread.pausedVariables()!.createVariable(scope.object);
       const uiStartLocation = scope.startLocation
           ? this._context.sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
           : undefined;
@@ -347,7 +348,21 @@ export class Adapter {
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    return {variables: await this._context.variableStore.getVariables(params)};
+    let variableStore: VariableStore | null = null;
+    for (const target of this._context.targetManager.targets()) {
+      const thread = target.thread()
+      if (!thread)
+        continue;
+      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(params))
+        variableStore = thread.pausedVariables();
+      if (thread.replVariables.hasVariables(params))
+        variableStore = thread.replVariables;
+      if (variableStore)
+        break;
+    }
+    if (!variableStore)
+      return { variables: [] };
+    return {variables: await variableStore.getVariables(params)};
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
@@ -359,7 +374,7 @@ export class Adapter {
         return this._context.createSilentError('Stack frame not found');
       const exception = found.thread.pausedDetails()!.exception;
       if (exception && args.expression === this._exceptionEvaluateName)
-        return this._evaluateResult(found.thread.cdp(), exception);
+        return this._evaluateResult(found.thread.pausedVariables()!, exception);
     }
     const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,
@@ -367,13 +382,15 @@ export class Adapter {
       objectGroup: 'console',
       generatePreview: true
     });
+
     if (!response)
       return this._context.createSilentError('Unable to evaluate');
-    return this._evaluateResult(this._mainTarget.cdp(), response.result, args.context);
+    const thread = this._mainTarget.thread()!;
+    return this._evaluateResult(thread.replVariables, response.result, args.context);
   }
 
-  async _evaluateResult(cdp: Cdp.Api, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
-    const variable = await this._context.variableStore.createVariable(cdp, result, context);
+  async _evaluateResult(variableStore: VariableStore, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
+    const variable = await variableStore.createVariable(result, context);
     const prefix = context === 'repl' ? '↳ ' : '';
     return {
       result: prefix + variable.value,

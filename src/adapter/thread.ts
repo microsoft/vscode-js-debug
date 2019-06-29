@@ -8,6 +8,7 @@ import * as utils from '../utils';
 import {StackTrace, StackFrame} from './stackTrace';
 import {Context} from './context';
 import * as objectPreview from './objectPreview';
+import { VariableStore } from './variableStore';
 
 const debugThread = debug('thread');
 
@@ -30,14 +31,17 @@ export class Thread {
   private _threadId: number;
   private _threadName: string;
   private _threadUrl: string;
-  private _pausedDetails?: PausedDetails;
+  private _pausedDetails: PausedDetails | null;
+  private _pausedVariables: VariableStore | null = null;
   private _scripts: Map<string, Source> = new Map();
+  readonly replVariables: VariableStore;
 
   constructor(context: Context, cdp: Cdp.Api) {
     this._context = context;
     this._cdp = cdp;
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
+    this.replVariables = new VariableStore(this._cdp);
     debugThread(`Thread created #${this._threadId}`);
   }
 
@@ -57,8 +61,12 @@ export class Thread {
     return this._threadName;
   }
 
-  pausedDetails(): PausedDetails | undefined {
+  pausedDetails(): PausedDetails | null {
     return this._pausedDetails;
+  }
+
+  pausedVariables(): VariableStore | null {
+    return this._pausedVariables;
   }
 
   async resume(): Promise<boolean> {
@@ -83,7 +91,8 @@ export class Thread {
 
   async initialize(): Promise<boolean> {
     const onResumed = () => {
-      this._pausedDetails = undefined;
+      this._pausedDetails = null;
+      this._pausedVariables = null;
       if (this._state === 'normal')
         this._context.dap.continued({threadId: this._threadId});
     };
@@ -92,6 +101,7 @@ export class Thread {
       this._removeAllScripts();
       if (this._pausedDetails)
         onResumed();
+      this.replVariables.clear();
     });
     this._cdp.Runtime.on('consoleAPICalled', event => {
       if (this._state === 'normal')
@@ -106,6 +116,7 @@ export class Thread {
 
     this._cdp.Debugger.on('paused', event => {
       this._pausedDetails = this._createPausedDetails(event);
+      this._pausedVariables = new VariableStore(this._cdp);
       if (this._state === 'normal')
         this._reportPaused();
     });
@@ -242,7 +253,7 @@ export class Thread {
       return;
     }
 
-    const variablesReference = await this._context.variableStore.createVariableForMessageFormat(this._cdp, messageText, event.args, stackTrace);
+    const variablesReference = await this.replVariables.createVariableForMessageFormat(messageText, event.args, stackTrace);
     this._context.dap.output({
       category,
       output: '',
