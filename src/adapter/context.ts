@@ -24,13 +24,11 @@ export class Context {
   public targetManager: TargetManager;
   public launchParams: LaunchParams;
   public threads: Map<number, Thread>;
-  public variableStore: VariableStore;
   public pauseOnExceptionsState: PauseOnExceptionsState;
 
   constructor(dap: Dap.Api, connection: CdpConnection) {
     this.dap = dap;
     this.sourceContainer = new SourceContainer(this);
-    this.variableStore = new VariableStore(this);
     this.targetManager = new TargetManager(connection, this);
     this.browser = connection.browser();
     this.threads = new Map();

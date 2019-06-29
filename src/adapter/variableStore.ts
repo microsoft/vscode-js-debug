@@ -27,14 +27,19 @@ class RemoteObject {
 }
 
 export class VariableStore {
+  private _cdp: Cdp.Api;
   private static _lastVariableReference: number = 0;
-  private _context: Context;
-  private _refernceToObject: Map<number, RemoteObject> = new Map();
   private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
+  private _referenceToObject: Map<number, RemoteObject> = new Map();
 
-  constructor(context: Context) {
-    this._context = context;
+  constructor(cdp: Cdp.Api) {
+    this._cdp = cdp;
+  }
+
+  hasVariables(params: Dap.VariablesParams): boolean {
+    return this._referenceToVariables.has(params.variablesReference) ||
+        this._referenceToObject.has(params.variablesReference);
   }
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
@@ -42,7 +47,7 @@ export class VariableStore {
     if (result)
       return result;
 
-    const object = this._refernceToObject.get(params.variablesReference);
+    const object = this._referenceToObject.get(params.variablesReference);
     if (!object)
       return [];
 
@@ -58,11 +63,11 @@ export class VariableStore {
     return this._getObjectProperties(object);
   }
 
-  async createVariable(cdp: Cdp.Api, value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
-    return this._createVariable('', new RemoteObject(cdp, value), context);
+  async createVariable(value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
+    return this._createVariable('', new RemoteObject(this._cdp, value), context);
   }
 
-  async createVariableForMessageFormat(cdp: Cdp.Api, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
+  async createVariableForMessageFormat(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const resultReference = ++VariableStore._lastVariableReference;
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {
@@ -77,7 +82,7 @@ export class VariableStore {
     for (let i = 0; i < args.length; ++i) {
       if (!args[i].objectId)
         continue;
-      params.push(this._createVariable(`arg${i}`, new RemoteObject(cdp, args[i]), 'repl'));
+      params.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
     }
 
     if (stackTrace) {
@@ -91,6 +96,13 @@ export class VariableStore {
 
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
     return resultReference;
+  }
+
+  async clear() {
+    this._referenceToVariables.clear();
+    this._objectToReference.clear();
+    this._referenceToObject.clear();
+    this._cdp.Runtime.releaseObjectGroup({ objectGroup: 'console' });
   }
 
   private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {
@@ -175,7 +187,7 @@ export class VariableStore {
 
   private _createVariableReference(object: RemoteObject): number {
     const reference = ++VariableStore._lastVariableReference;
-    this._refernceToObject.set(reference, object);
+    this._referenceToObject.set(reference, object);
     this._objectToReference.set(object.objectId, reference);
     return reference;
   }

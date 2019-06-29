@@ -39,6 +39,10 @@ export class TargetManager extends EventEmitter {
     return this._mainTarget;
   }
 
+  targets(): Target[] {
+    return Array.from(this._targets.values());
+  }
+
   _attachToFirstPage() {
     this._browser.Target.setDiscoverTargets({ discover: true });
     this._browser.Target.on('targetCreated', async event => {
@@ -156,6 +160,10 @@ export class Target {
 
   cdp(): Cdp.Api {
     return this._cdp;
+  }
+
+  thread(): Thread | undefined {
+    return this._thread;
   }
 
   targetId(): string {
