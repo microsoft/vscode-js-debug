@@ -4,16 +4,16 @@
 import Dap from '../dap/api';
 
 import CdpConnection from '../cdp/connection';
-import {Target, TargetEvents} from './targetManager';
+import {Target, TargetEvents, TargetManager} from './targetManager';
 import findChrome from '../chrome/findChrome';
 import * as launcher from '../chrome/launcher';
 import * as completionz from './completions';
 import {Thread} from './thread';
 import {StackFrame} from './stackTrace';
-import {LaunchParams, Context} from './context';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import { VariableStore } from './variableStore';
+import { SourceContainer, LaunchParams } from './source';
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -23,7 +23,9 @@ export class Adapter {
   private _dap: Dap.Api;
   private _connection: CdpConnection;
   private _initializeParams: Dap.InitializeParams;
-  private _context: Context;
+  private _targetManager: TargetManager;
+  private _launchParams: LaunchParams;
+  private _sourceContainer: SourceContainer;
   private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
 
@@ -70,7 +72,7 @@ export class Adapter {
 
     const executablePath = findChrome().pop();
     if (!executablePath)
-      return this._context.createUserError('Unable to find Chrome');
+      return createUserError('Unable to find Chrome');
     const args: string[] = [];
     if (this._isUnderTest()) {
       args.push('--remote-debugging-port=0');
@@ -84,7 +86,8 @@ export class Adapter {
       });
     this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
 
-    this._context = new Context(this._dap, this._connection);
+    this._sourceContainer = new SourceContainer(this._dap);
+    this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
 
     // params.locale || 'en-US'
     // params.supportsVariableType
@@ -130,10 +133,10 @@ export class Adapter {
   }
 
   async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<ConfigurationDoneResult> {
-    this._mainTarget = this._context.targetManager.mainTarget();
+    this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._context.targetManager.once(TargetEvents.TargetAttached, f)) as Target;
-    this._context.targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
+      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f)) as Target;
+    this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
       if (target === this._mainTarget) {
         this._dap.terminated({});
       }
@@ -148,13 +151,14 @@ export class Adapter {
       await this._onConfigurationDone({});
 
     // params.noDebug
-    this._context.initialize(params);
+    this._launchParams = params;
+    this._sourceContainer.initialize(params.webRoot);
     await this._mainTarget!.cdp().Page.navigate({url: params.url});
     return {};
   }
 
   _mainTargetNotAvailable(): Dap.Error {
-    return this._context.createSilentError('Page is not available');
+    return createSilentError('Page is not available');
   }
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
@@ -165,79 +169,79 @@ export class Adapter {
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    if (!this._context)
+    if (!this._targetManager)
       return this._mainTargetNotAvailable();
-    await this._context.browser.Browser.close({});
+    await this._connection.browser().Browser.close({});
     return {};
   }
 
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
-    await this._mainTarget.cdp().Page.navigate({url: this._context.launchParams.url});
+    await this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
     return {};
   }
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
-    for (const thread of this._context.threads.values())
+    for (const thread of this._targetManager.threads.values())
       threads.push({id: thread.threadId(), name: thread.threadName()});
     return {threads};
   }
 
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     if (!await thread.resume())
-      return this._context.createSilentError('Unable to resume');
+      return createSilentError('Unable to resume');
     return {allThreadsContinued: false};
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     if (!await thread.pause())
-      return this._context.createSilentError('Unable to pause');
+      return createSilentError('Unable to pause');
     return {};
   }
 
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     if (!await thread.stepOver())
-      return this._context.createSilentError('Unable to step next');
+      return createSilentError('Unable to step next');
     return {};
   }
 
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     // TODO(dgozman): support |params.targetId|.
     if (!await thread.stepInto())
-      return this._context.createSilentError('Unable to step in');
+      return createSilentError('Unable to step in');
     return {};
   }
 
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     if (!await thread.stepOut())
-      return this._context.createSilentError('Unable to step out');
+      return createSilentError('Unable to step out');
     return {};
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     const details = thread.pausedDetails();
     if (!details)
-      return this._context.createSilentError('Thread is not paused');
+      return createSilentError('Thread is not paused');
 
     const from = params.startFrame || 0;
     const to = params.levels ? from + params.levels : from + 1;
@@ -245,7 +249,7 @@ export class Adapter {
     const result: Dap.StackFrame[] = [];
     for (let index = from; index < to && index < frames.length; index++) {
       const stackFrame = frames[index];
-      const uiLocation = this._context.sourceContainer.uiLocation(stackFrame.location);
+      const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
       result.push({
         id: stackFrame.id,
         name: stackFrame.name,
@@ -261,7 +265,7 @@ export class Adapter {
   _findStackFrame(frameId: number): {stackFrame: StackFrame, thread: Thread} | undefined {
     let stackFrame: StackFrame | undefined;
     let thread: Thread | undefined;
-    for (const t of this._context.threads.values()) {
+    for (const t of this._targetManager.threads.values()) {
       const details = t.pausedDetails();
       if (!details)
         continue;
@@ -276,7 +280,7 @@ export class Adapter {
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
     const found = this._findStackFrame(params.frameId);
     if (!found)
-      return this._context.createSilentError('Stack frame not found');
+      return createSilentError('Stack frame not found');
     const {stackFrame, thread} = found;
     if (!stackFrame.scopeChain)
       return {scopes: []};
@@ -320,10 +324,10 @@ export class Adapter {
       }
       const variable = await thread.pausedVariables()!.createVariable(scope.object);
       const uiStartLocation = scope.startLocation
-          ? this._context.sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
+          ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
           : undefined;
       const uiEndLocation = scope.endLocation
-          ? this._context.sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
+          ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
           : undefined;
       if (scope.name && scope.type === 'closure') {
         name = `Closure (${scope.name})`;
@@ -349,7 +353,7 @@ export class Adapter {
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
     let variableStore: VariableStore | null = null;
-    for (const target of this._context.targetManager.targets()) {
+    for (const target of this._targetManager.targets()) {
       const thread = target.thread()
       if (!thread)
         continue;
@@ -371,7 +375,7 @@ export class Adapter {
     if (args.frameId !== undefined) {
       const found = this._findStackFrame(args.frameId);
       if (!found)
-        return this._context.createSilentError('Stack frame not found');
+        return createSilentError('Stack frame not found');
       const exception = found.thread.pausedDetails()!.exception;
       if (exception && args.expression === this._exceptionEvaluateName)
         return this._evaluateResult(found.thread.pausedVariables()!, exception);
@@ -384,7 +388,7 @@ export class Adapter {
     });
 
     if (!response)
-      return this._context.createSilentError('Unable to evaluate');
+      return createSilentError('Unable to evaluate');
     const thread = this._mainTarget.thread()!;
     return this._evaluateResult(thread.replVariables, response.result, args.context);
   }
@@ -408,16 +412,16 @@ export class Adapter {
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return {sources: this._context.sourceContainer.sources().map(source => source.toDap())};
+    return {sources: this._sourceContainer.sources().map(source => source.toDap())};
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
-    const source = this._context.sourceContainer.source(params.sourceReference);
+    const source = this._sourceContainer.source(params.sourceReference);
     if (!source)
-      return this._context.createSilentError('Source not found');
+      return createSilentError('Source not found');
     const content = await source.content();
     if (content === undefined)
-      return this._context.createSilentError('Unable to retrieve source content');
+      return createSilentError('Unable to retrieve source content');
     return {content, mimeType: source.mimeType()};
   }
 
@@ -427,28 +431,28 @@ export class Adapter {
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     if (params.filters.includes('caught'))
-      this._context.pauseOnExceptionsState = 'all';
+      this._targetManager.pauseOnExceptionsState = 'all';
     else if (params.filters.includes('uncaught'))
-      this._context.pauseOnExceptionsState = 'uncaught';
+      this._targetManager.pauseOnExceptionsState = 'uncaught';
     else
-      this._context.pauseOnExceptionsState = 'none';
-    for (const thread of this._context.threads.values())
+      this._targetManager.pauseOnExceptionsState = 'none';
+    for (const thread of this._targetManager.threads.values())
       thread.updatePauseOnExceptionsState();
     return {};
   }
 
   async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
-    const thread = this._context.threads.get(params.threadId);
+    const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return this._context.createSilentError('Thread not found');
+      return createSilentError('Thread not found');
     const details = thread.pausedDetails();
     const exception = details && details.exception;
     if (!exception)
-      return this._context.createSilentError('Thread is not paused on exception');
+      return createSilentError('Thread is not paused on exception');
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
-      breakMode: this._context.pauseOnExceptionsState === 'all' ? 'always' : 'unhandled',
+      breakMode: this._targetManager.pauseOnExceptionsState === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
         // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
@@ -456,4 +460,28 @@ export class Adapter {
       }
     };
   }
+}
+
+function createSilentError(text: string): Dap.Error {
+  return {
+    __errorMarker: true,
+    error: {
+      id: 9222,
+      format: text,
+      showUser: false,
+      sendTelemetry: false
+    }
+  };
+}
+
+function createUserError(text: string): Dap.Error {
+  return {
+    __errorMarker: true,
+    error: {
+      id: 9222,
+      format: text,
+      showUser: true,
+      sendTelemetry: false
+    }
+  };
 }

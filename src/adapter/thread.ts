@@ -3,12 +3,13 @@
 
 import Cdp from '../cdp/api';
 import * as debug from 'debug';
-import {Source, Location} from './source';
+import {Source, Location, SourceContainer} from './source';
 import * as utils from '../utils';
 import {StackTrace, StackFrame} from './stackTrace';
-import {Context} from './context';
 import * as objectPreview from './objectPreview';
 import { VariableStore } from './variableStore';
+import Dap from '../dap/api';
+import { TargetManager } from './targetManager';
 
 const debugThread = debug('thread');
 
@@ -25,7 +26,9 @@ export interface PausedDetails {
 export class Thread {
   private static _lastThreadId: number = 0;
 
-  private _context: Context;
+  private _targetManager: TargetManager;
+  private _dap: Dap.Api;
+  private _sourceContainer: SourceContainer;
   private _cdp: Cdp.Api;
   private _state: ('init' | 'normal' | 'disposed') = 'init';
   private _threadId: number;
@@ -36,17 +39,15 @@ export class Thread {
   private _scripts: Map<string, Source> = new Map();
   readonly replVariables: VariableStore;
 
-  constructor(context: Context, cdp: Cdp.Api) {
-    this._context = context;
+  constructor(targetManager: TargetManager, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api) {
+    this._targetManager = targetManager;
+    this._sourceContainer = sourceContainer;
     this._cdp = cdp;
+    this._dap = dap;
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
     this.replVariables = new VariableStore(this._cdp);
     debugThread(`Thread created #${this._threadId}`);
-  }
-
-  context(): Context {
-    return this._context;
   }
 
   cdp(): Cdp.Api {
@@ -67,6 +68,10 @@ export class Thread {
 
   pausedVariables(): VariableStore | null {
     return this._pausedVariables;
+  }
+
+  sourceContainer() {
+    return this._sourceContainer;
   }
 
   async resume(): Promise<boolean> {
@@ -94,7 +99,7 @@ export class Thread {
       this._pausedDetails = null;
       this._pausedVariables = null;
       if (this._state === 'normal')
-        this._context.dap.continued({threadId: this._threadId});
+        this._dap.continued({threadId: this._threadId});
     };
 
     this._cdp.Runtime.on('executionContextsCleared', () => {
@@ -133,9 +138,9 @@ export class Thread {
       return true;
 
     this._state = 'normal';
-    console.assert(!this._context.threads.has(this._threadId));
-    this._context.threads.set(this._threadId, this);
-    this._context.dap.thread({reason: 'started', threadId: this._threadId});
+    console.assert(!this._targetManager.threads.has(this._threadId));
+    this._targetManager.threads.set(this._threadId, this);
+    this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
     return true;
@@ -144,9 +149,9 @@ export class Thread {
   async dispose() {
     this._removeAllScripts();
     if (this._state === 'normal') {
-      console.assert(this._context.threads.get(this._threadId) === this);
-      this._context.threads.delete(this._threadId);
-      this._context.dap.thread({reason: 'exited', threadId: this._threadId});
+      console.assert(this._targetManager.threads.get(this._threadId) === this);
+      this._targetManager.threads.delete(this._threadId);
+      this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
     this._state = 'disposed';
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
@@ -187,12 +192,12 @@ export class Thread {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._context.pauseOnExceptionsState});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._targetManager.pauseOnExceptionsState});
   }
 
   _reportPaused() {
     const details = this._pausedDetails!;
-    this._context.dap.stopped({
+    this._dap.stopped({
       reason: details.reason,
       description: details.description,
       threadId: this._threadId,
@@ -225,7 +230,7 @@ export class Thread {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this._context.sourceContainer.uiLocation(frames[0].location);
+        uiLocation = this._sourceContainer.uiLocation(frames[0].location);
       if (event.type !== 'error' && event.type !== 'warning')
         stackTrace = undefined;
     }
@@ -243,7 +248,7 @@ export class Thread {
 
     const allPrimitive = !event.args.find(a => !!a.objectId);
     if (allPrimitive && !stackTrace) {
-      this._context.dap.output({
+      this._dap.output({
         category,
         output: messageText,
         variablesReference: 0,
@@ -254,7 +259,7 @@ export class Thread {
     }
 
     const variablesReference = await this.replVariables.createVariableForMessageFormat(messageText, event.args, stackTrace);
-    this._context.dap.output({
+    this._dap.output({
       category,
       output: '',
       variablesReference,
@@ -270,12 +275,12 @@ export class Thread {
       stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
     const frames: StackFrame[] = stackTrace ? await stackTrace.loadFrames(50) : [];
     if (frames.length)
-      uiLocation = this._context.sourceContainer.uiLocation(frames[0].location);
+      uiLocation = this._sourceContainer.uiLocation(frames[0].location);
     const description = details.exception && details.exception.description || '';
     let message = description.split('\n').filter(line => !line.startsWith('    at')).join('\n');
     if (stackTrace)
       message += '\n' + (await stackTrace.format());
-    this._context.dap.output({
+    this._dap.output({
       category: 'stderr',
       output: message,
       variablesReference: 0,
@@ -287,23 +292,23 @@ export class Thread {
   _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
-    this._context.sourceContainer.removeSources(...scripts);
+    this._sourceContainer.removeSources(...scripts);
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     const readableUrl = event.url || `VM${event.scriptId}`;
-    const source = this._context.sourceContainer.createSource(readableUrl, async () => {
+    const source = this._sourceContainer.createSource(readableUrl, async () => {
       const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
       return response ? response.scriptSource : undefined;
     });
     this._scripts.set(event.scriptId, source);
-    this._context.sourceContainer.addSource(source);
+    this._sourceContainer.addSource(source);
     if (event.sourceMapURL) {
       // TODO(dgozman): reload source map when target url changes.
       const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
       const resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
       if (resolvedSourceMapUrl)
-        this._context.sourceContainer.attachSourceMap(source, resolvedSourceMapUrl);
+        this._sourceContainer.attachSourceMap(source, resolvedSourceMapUrl);
     }
   }
 };
