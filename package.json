@@ -49,9 +49,60 @@
   },
   "main": "./out/extension",
   "activationEvents": [
-    "onDebug"
+    "onDebug",
+    "onView:cdpBreakpoints"
   ],
   "contributes": {
+    "views": {
+			"debug": [
+				{
+					"id": "cdpBreakpoints",
+          "name": "Break on"
+				}
+      ]
+    },
+    "commands": [
+      {
+				"command": "cdp.enableCustomBreakpoint",
+				"title": "ENABLE"
+			},
+      {
+				"command": "cdp.disableCustomBreakpoint",
+				"title": "DISABLE"
+			},
+      {
+				"command": "cdp.enableCustomBreakpointGroup",
+				"title": "ENABLE ALL"
+			},
+      {
+				"command": "cdp.disableCustomBreakpointGroup",
+				"title": "DISABLE ALL"
+			}
+    ],
+    "menus": {
+      "view/item/context": [
+				{
+					"command": "cdp.enableCustomBreakpoint",
+					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointDisabled",
+					"group": "inline"
+				},
+				{
+					"command": "cdp.disableCustomBreakpoint",
+					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointEnabled",
+					"group": "inline"
+				},
+				{
+					"command": "cdp.enableCustomBreakpointGroup",
+					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupDisabled",
+					"group": "inline"
+				},
+				{
+					"command": "cdp.disableCustomBreakpointGroup",
+					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupEnabled",
+					"group": "inline"
+				}
+      ]
+    },
     "breakpoints": [
       {
         "language": "javascript"

@@ -21,7 +21,8 @@ export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export class TargetManager extends EventEmitter {
   private _connection: CdpConnection;
-  public pauseOnExceptionsState: PauseOnExceptionsState;
+  private _pauseOnExceptionsState: PauseOnExceptionsState;
+  private _customBreakpoints: Set<string>;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _mainTarget?: Target;
   private _browser: Cdp.Api;
@@ -32,7 +33,8 @@ export class TargetManager extends EventEmitter {
   constructor(connection: CdpConnection, dap: Dap.Api, sourceContainer: SourceContainer) {
     super();
     this._connection = connection;
-    this.pauseOnExceptionsState = 'none';
+    this._pauseOnExceptionsState = 'none';
+    this._customBreakpoints = new Set();
     this._dap = dap;
     this._sourceContainer = sourceContainer;
     this._browser = connection.browser();
@@ -48,6 +50,36 @@ export class TargetManager extends EventEmitter {
 
   targets(): Target[] {
     return Array.from(this._targets.values());
+  }
+
+  pauseOnExceptionsState(): PauseOnExceptionsState {
+    return this._pauseOnExceptionsState;
+  }
+
+  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
+    this._pauseOnExceptionsState = state;
+    for (const thread of this.threads.values())
+      thread.updatePauseOnExceptionsState();
+  }
+
+  updateCustomBreakpoints(breakpoints: Dap.CustomBreakpoint[]): Promise<any> {
+    const promises: Promise<boolean>[] = [];
+    for (const breakpoint of breakpoints) {
+      if (breakpoint.enabled && !this._customBreakpoints.has(breakpoint.id)) {
+        this._customBreakpoints.add(breakpoint.id);
+        for (const thread of this.threads.values())
+          promises.push(thread.updateCustomBreakpoint(breakpoint.id, true));
+      } else if (!breakpoint.enabled && this._customBreakpoints.has(breakpoint.id)) {
+        this._customBreakpoints.delete(breakpoint.id);
+        for (const thread of this.threads.values())
+          promises.push(thread.updateCustomBreakpoint(breakpoint.id, false));
+      }
+    }
+    return Promise.all(promises);
+  }
+
+  customBreakpoints(): Set<string> {
+    return this._customBreakpoints;
   }
 
   _attachToFirstPage() {

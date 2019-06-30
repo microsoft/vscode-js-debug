@@ -175,3 +175,28 @@ export async function report() {
   for (const failure of failures)
     console.log(`----- [FAIL] ${failure}`);
 }
+
+let evaluateCounter = 0;
+export async function evaluate(p: Params, expression: string) {
+  ++evaluateCounter;
+  p.log(`Evaluating#${evaluateCounter}: ${expression}`);
+  return p.cdp.Runtime.evaluate({expression: expression + `\n//# sourceURL=eval${evaluateCounter}.js`}).then(result => {
+    if (!result) {
+      p.log(expression, 'Error evaluating');
+      debugger;
+    } else if (result.exceptionDetails) {
+      p.log(result.exceptionDetails, 'Error evaluating');
+      debugger;
+    }
+    return result;
+  });
+}
+
+export async function launchAndLoad(p: Params, url: string) {
+  await p.cdp.Page.enable({});
+  await Promise.all([
+    p.dap.launch({url}),
+    new Promise(f => p.cdp.Page.on('loadEventFired', f))
+  ]);
+  await p.cdp.Page.disable({});
+}
