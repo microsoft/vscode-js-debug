@@ -11,6 +11,7 @@ import * as objectPreview from './objectPreview';
 import { VariableStore } from './variableStore';
 import Dap from '../dap/api';
 import { TargetManager } from './targetManager';
+import {customBreakpoints} from './customBreakpoints';
 
 const debugThread = debug('thread');
 
@@ -135,6 +136,13 @@ export class Thread {
     if (!await this.updatePauseOnExceptionsState())
       return false;
 
+    const customBreakpointPromises: Promise<boolean>[] = [];
+    for (const id of this._targetManager.customBreakpoints())
+      customBreakpointPromises.push(this.updateCustomBreakpoint(id, true));
+    // Do not fail for custom breakpoints not set, to account for
+    // future changes in cdp vs stale breakpoints saved in the workspace.
+    await Promise.all(customBreakpointPromises);
+
     if (this._state === 'disposed')
       return true;
 
@@ -193,7 +201,14 @@ export class Thread {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._targetManager.pauseOnExceptionsState});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._targetManager.pauseOnExceptionsState()});
+  }
+
+  async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
+    const breakpoint = customBreakpoints.get(id);
+    if (!breakpoint)
+      return false;
+    return breakpoint.apply(this._cdp, enabled);
   }
 
   _reportPaused() {
@@ -214,7 +229,7 @@ export class Thread {
       case 'assert': return {stackTrace, reason: 'exception', description: 'Paused on assert'};
       case 'debugCommand': return {stackTrace, reason: 'pause', description: 'Paused on debug() call'};
       case 'DOM': return {stackTrace, reason: 'data breakpoint', description: 'Paused on DOM breakpoint'};
-      case 'EventListener': return {stackTrace, reason: 'function breakpoint', description: 'Paused on event listener breakpoint'};
+      case 'EventListener': return this._resolveEventListenerBreakpointDetails(stackTrace, event);
       case 'exception': return {stackTrace, reason: 'exception', description: 'Paused on exception', exception: event.data as (Cdp.Runtime.RemoteObject | undefined)};
       case 'promiseRejection': return {stackTrace, reason: 'exception', description: 'Paused on promise rejection'};
       case 'instrumentation': return {stackTrace, reason: 'function breakpoint', description: 'Paused on function call'};
@@ -222,6 +237,17 @@ export class Thread {
       case 'OOM': return {stackTrace, reason: 'exception', description: 'Paused before Out Of Memory exception'};
       default: return {stackTrace, reason: 'step', description: 'Paused'};
     }
+  }
+
+  _resolveEventListenerBreakpointDetails(stackTrace: StackTrace, event: Cdp.Debugger.PausedEvent): PausedDetails {
+    const data = event.data;
+    const id = data ? (data['eventName'] || '') : '';
+    const breakpoint = customBreakpoints.get(id);
+    if (breakpoint) {
+      const details = breakpoint.details(data!);
+      return {stackTrace, reason: 'function breakpoint', description: details.short, text: details.long};
+    }
+    return {stackTrace, reason: 'function breakpoint', description: 'Paused on event listener'};
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {

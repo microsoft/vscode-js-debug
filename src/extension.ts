@@ -7,6 +7,7 @@ import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken 
 import * as Net from 'net';
 import DapConnection from './dap/connection';
 import {Adapter} from './adapter/adapter';
+import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new MockConfigurationProvider();
@@ -15,6 +16,8 @@ export function activate(context: vscode.ExtensionContext) {
   const factory = new MockDebugAdapterDescriptorFactory();
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('cdp', factory));
   context.subscriptions.push(factory);
+
+  registerCustomBreakpointsUI(context.workspaceState);
 }
 
 export function deactivate() {

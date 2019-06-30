@@ -15,6 +15,7 @@ import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import { VariableStore } from './variableStore';
 import { SourceContainer, LaunchParams } from './source';
+import * as path from 'path';
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -54,6 +55,7 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
+    this._dap.on('updateCustomBreakpoints', params => this._onUpdateCustomBreakpoints(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
@@ -79,10 +81,11 @@ export class Adapter {
       args.push('--remote-debugging-port=0');
       args.push('--headless');
     }
+    const userDataDir = '';
     this._connection = await launcher.launch(
       executablePath, {
         args,
-        userDataDir: '.profile',
+        userDataDir: path.join(userDataDir, this._isUnderTest() ? '.cdp-headless-profile' : '.cdp-profile'),
         pipe: true,
       });
     this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
@@ -432,13 +435,11 @@ export class Adapter {
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     if (params.filters.includes('caught'))
-      this._targetManager.pauseOnExceptionsState = 'all';
+      this._targetManager.setPauseOnExceptionsState('all');
     else if (params.filters.includes('uncaught'))
-      this._targetManager.pauseOnExceptionsState = 'uncaught';
+      this._targetManager.setPauseOnExceptionsState('uncaught');
     else
-      this._targetManager.pauseOnExceptionsState = 'none';
-    for (const thread of this._targetManager.threads.values())
-      thread.updatePauseOnExceptionsState();
+      this._targetManager.setPauseOnExceptionsState('none');
     return {};
   }
 
@@ -453,13 +454,18 @@ export class Adapter {
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
-      breakMode: this._targetManager.pauseOnExceptionsState === 'all' ? 'always' : 'unhandled',
+      breakMode: this._targetManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
         // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
         evaluateName: this._exceptionEvaluateName,
       }
     };
+  }
+
+  async _onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
+    await this._targetManager.updateCustomBreakpoints(params.breakpoints);
+    return {};
   }
 }
 

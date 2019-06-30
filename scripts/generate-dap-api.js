@@ -28,7 +28,8 @@ function toTitleCase(s) {
 }
 
 async function generate() {
-  const json = JSON.parse(await fetch('https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/gh-pages/debugAdapterProtocol.json'));
+  const standard = JSON.parse(await fetch('https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/gh-pages/debugAdapterProtocol.json'));
+  const custom = JSON.parse(fs.readFileSync(path.join(__dirname, 'dap-custom.json')));
   const result = [];
 
   result.push(`/*---------------------------------------------------------`);
@@ -65,7 +66,7 @@ async function generate() {
     }
   }
 
-  const defs = json.definitions;
+  const defs = {...standard.definitions, ...custom.definitions};
 
   function definition(name) {
     return name.substring('#/definitions/'.length);

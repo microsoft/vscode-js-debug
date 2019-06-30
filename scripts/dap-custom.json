@@ -1,0 +1,56 @@
+{
+	"definitions": {
+		"UpdateCustomBreakpointsRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Updates custom breakpoints (instrumentation, event listeners, etc).",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "updateCustomBreakpoints" ]
+					},
+					"arguments": {
+						"$ref": "#/definitions/UpdateCustomBreakpointsRequestArguments"
+					}
+				},
+				"required": [ "command", "arguments"  ]
+			}]
+		},
+		"UpdateCustomBreakpointsRequestArguments": {
+			"type": "object",
+			"properties": {
+				"breakpoints": {
+          "type": "array",
+          "items": {
+						"$ref": "#/definitions/CustomBreakpoint"
+					}
+				}
+			},
+      "required": ["breakpoints"]
+		},
+		"UpdateCustomBreakpointsResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object"
+			}]
+		},
+		"CustomBreakpoint": {
+			"type": "object",
+			"description": "Custom breakpoint definition.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Breakpoint id."
+				},
+				"enabled": {
+					"type": "boolean",
+					"description": "Whether breakpoint should be enabled or disabled."
+        },
+        "data": {
+          "type": "any",
+          "description": "Any custom data."
+        }
+			},
+			"required": [ "id", "enabled" ]
+		}
+	}
+}
