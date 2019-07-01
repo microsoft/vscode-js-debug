@@ -9,7 +9,7 @@ import findChrome from '../chrome/findChrome';
 import * as launcher from '../chrome/launcher';
 import * as completionz from './completions';
 import {Thread} from './thread';
-import {StackFrame} from './stackTrace';
+import {StackFrame, StackTrace} from './stackTrace';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import {VariableStore} from './variableStore';
@@ -51,6 +51,7 @@ export class Adapter {
     this._dap.on('next', params => this._onNext(params));
     this._dap.on('stepIn', params => this._onStepIn(params));
     this._dap.on('stepOut', params => this._onStepOut(params));
+    this._dap.on('restartFrame', params => this._onRestartFrame(params));
     this._dap.on('stackTrace', params => this._onStackTrace(params));
     this._dap.on('scopes', params => this._onScopes(params));
     this._dap.on('variables', params => this._onVariables(params));
@@ -252,6 +253,18 @@ export class Adapter {
     return {};
   }
 
+  async _onRestartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
+    const stackTrace = this._findStackTrace(params.frameId);
+    if (!stackTrace)
+      return createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+    const callFrameId = stackTrace.frame(params.frameId)!.callFrameId;
+    if (!callFrameId)
+      return createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
+    if (!await stackTrace.thread().restartFrame(callFrameId))
+      return createSilentError(localize('error.restartFrameDidFail', 'Unable to restart frame'));
+    return {};
+  }
+
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
@@ -279,26 +292,21 @@ export class Adapter {
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
   }
 
-  _findStackFrame(frameId: number): {stackFrame: StackFrame, thread: Thread} | undefined {
-    let stackFrame: StackFrame | undefined;
-    let thread: Thread | undefined;
-    for (const t of this._targetManager.threads.values()) {
-      const details = t.pausedDetails();
-      if (!details)
-        continue;
-      stackFrame = details.stackTrace.frame(frameId);
-      thread = t;
-      if (stackFrame)
-        break;
+  _findStackTrace(frameId: number): StackTrace | undefined {
+    for (const thread of this._targetManager.threads.values()) {
+      const details = thread.pausedDetails();
+      if (details && details.stackTrace.frame(frameId))
+        return details.stackTrace;
     }
-    return stackFrame ? {stackFrame, thread: thread!} : undefined;
+    return undefined;
   }
 
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
-    const found = this._findStackFrame(params.frameId);
-    if (!found)
+    const stackTrace = this._findStackTrace(params.frameId);
+    if (!stackTrace)
       return createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-    const {stackFrame, thread} = found;
+    const stackFrame = stackTrace.frame(params.frameId)!;
+    const thread = stackTrace.thread();
     if (!stackFrame.scopeChain)
       return {scopes: []};
     const scopes: Dap.Scope[] = [];
@@ -390,12 +398,12 @@ export class Adapter {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
     if (args.frameId !== undefined) {
-      const found = this._findStackFrame(args.frameId);
-      if (!found)
+      const stackTrace = this._findStackTrace(args.frameId);
+      if (!stackTrace)
         return createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-      const exception = found.thread.pausedDetails()!.exception;
+      const exception = stackTrace.thread().pausedDetails()!.exception;
       if (exception && args.expression === this._exceptionEvaluateName)
-        return this._evaluateResult(found.thread.pausedVariables()!, exception);
+        return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception);
     }
     const response = await this._mainTarget.cdp().Runtime.evaluate({
       expression: args.expression,

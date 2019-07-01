@@ -65,4 +65,5 @@ export default async function runTests() {
   await test.runTest(pausedFromEval);
   await test.runTest(pauseOnExceptions);
   await test.runTest(pauseOnInnerHtml);
+  // TODO(dgozman): test restartFrame.
 }

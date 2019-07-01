@@ -99,6 +99,14 @@ export class Thread {
     return !!await this._cdp.Debugger.stepOut({});
   }
 
+  async restartFrame(callFrameId: Cdp.Debugger.CallFrameId): Promise<boolean> {
+    const response = await this._cdp.Debugger.restartFrame({callFrameId});
+    if (!response || !this._pausedDetails)
+      return false;
+    this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
+    return true;
+  }
+
   async initialize(): Promise<boolean> {
     const onResumed = () => {
       this._pausedDetails = null;

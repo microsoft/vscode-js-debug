@@ -11,6 +11,7 @@ export interface StackFrame {
   location: Location;
   isAsyncSeparator?: boolean;
   scopeChain?: Cdp.Debugger.Scope[];
+  callFrameId?: Cdp.Debugger.CallFrameId;
 };
 
 // TODO(dgozman): use stack trace format.
@@ -46,7 +47,8 @@ export class StackTrace {
         id: ++StackTrace._lastFrameId,
         location: thread.locationFromDebuggerCallFrame(callFrame),
         name: callFrame.functionName || '<anonymous>',
-        scopeChain: callFrame.scopeChain
+        scopeChain: callFrame.scopeChain,
+        callFrameId: callFrame.callFrameId,
       });
     }
     if (parentId) {
@@ -78,6 +80,10 @@ export class StackTrace {
 
   frame(frameId: number): StackFrame | undefined {
     return this._frameById.get(frameId);
+  }
+
+  thread(): Thread {
+    return this._thread;
   }
 
   _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace | undefined) {
