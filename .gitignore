@@ -1,4 +1,5 @@
 .profile/
+.cdp-profile/
 .DS_Store
 node_modules/
 out/
