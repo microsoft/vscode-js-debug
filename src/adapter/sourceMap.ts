@@ -3,6 +3,9 @@
  *--------------------------------------------------------*/
 
 import * as utils from '../utils';
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
 
 export class SourceMap {
   private _json?: SourceMapV3;
@@ -37,7 +40,7 @@ export class SourceMap {
       const sectionWithUrl = !!this._json.sections.find(section => !!section['url']);
       if (sectionWithUrl) {
         // TODO(dgozman): report this error.
-        console.error(`SourceMap "${this._url}" contains unsupported "URL" field in one of its sections.`);
+        console.error(localize('error.sourceMapUnsupportedSectionUrl', 'SourceMap "{0}" contains unsupported "URL" field in one of its sections.', this._url));
       }
     }
     this._forEachSection(map => {

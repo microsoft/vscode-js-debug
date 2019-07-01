@@ -17,6 +17,9 @@ import {VariableStore} from './variableStore';
 import {SourceContainer, LaunchParams, SourcePathResolver} from './source';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as nls from 'vscode-nls';
+
+let localize = nls.loadMessageBundle();
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -76,10 +79,12 @@ export class Adapter {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
+    if (params.locale)
+      localize = nls.config({locale: params.locale})();
 
     const executablePath = findChrome().pop();
     if (!executablePath)
-      return createUserError('Unable to find Chrome');
+      return createUserError(localize('error.executableNotFound', 'Unable to find Chrome'));
     const args: string[] = [];
     if (this._isUnderTest()) {
       args.push('--remote-debugging-port=0');
@@ -102,7 +107,6 @@ export class Adapter {
     this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
 
-    // params.locale || 'en-US'
     // params.supportsVariableType
     // params.supportsVariablePaging
     // params.supportsRunInTerminalRequest
@@ -116,8 +120,8 @@ export class Adapter {
       supportsHitConditionalBreakpoints: false,
       supportsEvaluateForHovers: false,
       exceptionBreakpointFilters: [
-        {filter: 'caught', label: 'Caught Exceptions', default: false},
-        {filter: 'uncaught', label: 'Uncaught Exceptions', default: false},
+        {filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false},
+        {filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false},
       ],
       supportsStepBack: false,
       supportsSetVariable: false,
@@ -206,56 +210,56 @@ export class Adapter {
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.resume())
-      return createSilentError('Unable to resume');
+      return createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
     return {allThreadsContinued: false};
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.pause())
-      return createSilentError('Unable to pause');
+      return createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOver())
-      return createSilentError('Unable to step next');
+      return createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     // TODO(dgozman): support |params.targetId|.
     if (!await thread.stepInto())
-      return createSilentError('Unable to step in');
+      return createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
 
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOut())
-      return createSilentError('Unable to step out');
+      return createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
     return {};
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
     if (!details)
-      return createSilentError('Thread is not paused');
+      return createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
 
     const from = params.startFrame || 0;
     const to = params.levels ? from + params.levels : from + 1;
@@ -294,7 +298,7 @@ export class Adapter {
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
     const found = this._findStackFrame(params.frameId);
     if (!found)
-      return createSilentError('Stack frame not found');
+      return createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
     const {stackFrame, thread} = found;
     if (!stackFrame.scopeChain)
       return {scopes: []};
@@ -304,36 +308,36 @@ export class Adapter {
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
       switch (scope.type) {
         case 'global':
-          name = 'Global';
+          name = localize('scope.global', 'Global');
           break;
         case 'local':
-          name = 'Local';
+          name = localize('scope.local', 'Local');
           presentationHint = 'locals';
           break;
         case 'with':
-          name = 'With Block';
+          name = localize('scope.with', 'With Block');
           presentationHint = 'locals';
           break;
         case 'closure':
-          name = 'Closure';
+          name = localize('scope.closure', 'Closure');
           presentationHint = 'arguments';
           break;
         case 'catch':
-          name = 'Catch Block';
+          name = localize('scope.catch', 'Catch Block');
           presentationHint = 'locals';
           break;
         case 'block':
-          name = 'Block';
+          name = localize('scope.block', 'Block');
           presentationHint = 'locals';
           break;
         case 'script':
-          name = 'Script';
+          name = localize('scope.script', 'Script');
           break;
         case 'eval':
-          name = 'Eval';
+          name = localize('scope.eval', 'Eval');
           break;
         case 'module':
-          name = 'Module';
+          name = localize('scope.module', 'Module');
           break;
       }
       const variable = await thread.pausedVariables()!.createVariable(scope.object);
@@ -344,7 +348,7 @@ export class Adapter {
         ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
         : undefined;
       if (scope.name && scope.type === 'closure') {
-        name = `Closure (${scope.name})`;
+        name = localize('scope.closureNamed', 'Closure (${0})', scope.name);
       } else if (scope.name) {
         name = scope.name;
       }
@@ -389,7 +393,7 @@ export class Adapter {
     if (args.frameId !== undefined) {
       const found = this._findStackFrame(args.frameId);
       if (!found)
-        return createSilentError('Stack frame not found');
+        return createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
       const exception = found.thread.pausedDetails()!.exception;
       if (exception && args.expression === this._exceptionEvaluateName)
         return this._evaluateResult(found.thread.pausedVariables()!, exception);
@@ -432,10 +436,10 @@ export class Adapter {
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     const source = this._sourceContainer.source(params.sourceReference);
     if (!source)
-      return createSilentError('Source not found');
+      return createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
     if (content === undefined)
-      return createSilentError('Unable to retrieve source content');
+      return createSilentError(localize('error.sourceContentDidFail', 'Unable to retrieve source content'));
     return {content, mimeType: source.mimeType()};
   }
 
@@ -456,11 +460,11 @@ export class Adapter {
   async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
     const thread = this._targetManager.threads.get(params.threadId);
     if (!thread)
-      return createSilentError('Thread not found');
+      return createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
     const exception = details && details.exception;
     if (!exception)
-      return createSilentError('Thread is not paused on exception');
+      return createSilentError(localize('error.threadNotPausedOnException', 'Thread is not paused on exception'));
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,

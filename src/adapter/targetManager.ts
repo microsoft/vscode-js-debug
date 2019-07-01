@@ -177,6 +177,7 @@ export class TargetManager extends EventEmitter {
 }
 
 const jsTypes = new Set(['page', 'iframe', 'worker']);
+const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class Target {
   private _cdp: Cdp.Api;
@@ -191,7 +192,7 @@ export class Target {
     this._cdp = cdp;
     this._parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = new Thread(targetManager, sourceContainer, cdp, dap);
+      this._thread = new Thread(targetManager, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }

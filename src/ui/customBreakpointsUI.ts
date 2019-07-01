@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import * as vscode from 'vscode';
 import {CustomBreakpoint, customBreakpoints} from '../adapter/customBreakpoints';
 import Dap from '../dap/api';
@@ -79,7 +83,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
     this.memento = context.workspaceState;
 
     const enabled = new Set(this.memento.get<string[]>('cdp.customBreakpoints', []));
-    for (const cb of customBreakpoints.values()) {
+    for (const cb of customBreakpoints().values()) {
       let group = this.groups.get(cb.group);
       if (!group) {
         group = new Group(cb.group);
