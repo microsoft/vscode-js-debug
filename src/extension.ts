@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('cdp', factory));
   context.subscriptions.push(factory);
 
-  registerCustomBreakpointsUI(context.workspaceState);
+  registerCustomBreakpointsUI(context);
 }
 
 export function deactivate() {

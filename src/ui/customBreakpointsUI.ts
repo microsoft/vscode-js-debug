@@ -141,7 +141,8 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
   }
 }
 
-export function registerCustomBreakpointsUI(memento: vscode.Memento) {
+export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
+  const memento = context.workspaceState;
   const provider = new BreakpointsDataProvider(memento);
 
   // TODO(dgozman): figure out UI logic, it is somewhat annoying.
@@ -159,16 +160,16 @@ export function registerCustomBreakpointsUI(memento: vscode.Memento) {
   if (memento.get<string>('cdpLastDebugSessionType') === 'cdp')
     showTreeView();
 
-  vscode.commands.registerCommand('cdp.enableCustomBreakpoint', (breakpoint: Breakpoint) => {
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.enableCustomBreakpoint', (breakpoint: Breakpoint) => {
     provider.update([breakpoint], true);
-  });
-  vscode.commands.registerCommand('cdp.disableCustomBreakpoint', (breakpoint: Breakpoint) => {
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.disableCustomBreakpoint', (breakpoint: Breakpoint) => {
     provider.update([breakpoint], false);
-  });
-  vscode.commands.registerCommand('cdp.enableCustomBreakpointGroup', (group: Group) => {
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.enableCustomBreakpointGroup', (group: Group) => {
     provider.update(group.breakpoints, true);
-  });
-  vscode.commands.registerCommand('cdp.disableCustomBreakpointGroup', (group: Group) => {
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.disableCustomBreakpointGroup', (group: Group) => {
     provider.update(group.breakpoints, false);
-  });
+  }));
 }
