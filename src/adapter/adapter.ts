@@ -16,6 +16,7 @@ import Cdp from '../cdp/api';
 import { VariableStore } from './variableStore';
 import { SourceContainer, LaunchParams } from './source';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -24,6 +25,7 @@ export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
 export class Adapter {
   private _dap: Dap.Api;
   private _connection: CdpConnection;
+  private _storagePath: string;
   private _initializeParams: Dap.InitializeParams;
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
@@ -31,8 +33,9 @@ export class Adapter {
   private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, storagePath: string) {
     this._dap = dap;
+    this._storagePath = storagePath;
     this._dap.on('initialize', params => this._onInitialize(params));
     this._dap.on('configurationDone', params => this._onConfigurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
@@ -81,11 +84,15 @@ export class Adapter {
       args.push('--remote-debugging-port=0');
       args.push('--headless');
     }
-    const userDataDir = '';
+
+    try {
+      fs.mkdirSync(this._storagePath);
+    } catch (e) {
+    }
     this._connection = await launcher.launch(
       executablePath, {
         args,
-        userDataDir: path.join(userDataDir, this._isUnderTest() ? '.cdp-headless-profile' : '.cdp-profile'),
+        userDataDir: path.join(this._storagePath, this._isUnderTest() ? '.headless-profile' : 'profile'),
         pipe: true,
       });
     this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));

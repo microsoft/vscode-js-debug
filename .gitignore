@@ -1,5 +1,6 @@
 .profile/
 .cdp-profile/
+.headless-profile/
 .DS_Store
 node_modules/
 out/

@@ -29,7 +29,7 @@ export async function setup(): Promise<{adapter: Adapter, dap: Dap.TestApi}> {
   const adapterToTest = new Stream();
   const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
   const testConnection = new DapConnection(adapterToTest, testToAdapter);
-  const adapter = new Adapter(adapterConnection.dap());
+  const adapter = new Adapter(adapterConnection.dap(), path.join(__dirname, '../..'));
   return {adapter, dap: testConnection.createTestApi()};
 }
 
