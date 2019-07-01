@@ -10,8 +10,10 @@ import * as objectPreview from './objectPreview';
 import { VariableStore } from './variableStore';
 import Dap from '../dap/api';
 import { TargetManager } from './targetManager';
-import {customBreakpoints} from './customBreakpoints';
+import customBreakpoints from './customBreakpoints';
+import * as nls from 'vscode-nls';
 
+const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
@@ -38,15 +40,17 @@ export class Thread {
   private _pausedDetails: PausedDetails | null;
   private _pausedVariables: VariableStore | null = null;
   private _scripts: Map<string, Source> = new Map();
+  private _supportsCustomBreakpoints: boolean;
   readonly replVariables: VariableStore;
 
-  constructor(targetManager: TargetManager, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api) {
+  constructor(targetManager: TargetManager, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
     this._targetManager = targetManager;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = ++Thread._lastThreadId;
     this._threadName = '';
+    this._supportsCustomBreakpoints = supportsCustomBreakpoints;
     this.replVariables = new VariableStore(this._cdp);
     debugThread(`Thread created #${this._threadId}`);
   }
@@ -204,7 +208,9 @@ export class Thread {
   }
 
   async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
-    const breakpoint = customBreakpoints.get(id);
+    if (!this._supportsCustomBreakpoints)
+      return true;
+    const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
       return false;
     return breakpoint.apply(this._cdp, enabled);
@@ -224,28 +230,65 @@ export class Thread {
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
     const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
     switch (event.reason) {
-      case 'assert': return {stackTrace, reason: 'exception', description: 'Paused on assert'};
-      case 'debugCommand': return {stackTrace, reason: 'pause', description: 'Paused on debug() call'};
-      case 'DOM': return {stackTrace, reason: 'data breakpoint', description: 'Paused on DOM breakpoint'};
+      case 'assert': return {
+        stackTrace,
+        reason: 'exception',
+        description: localize('pause.assert', 'Paused on assert')
+      };
+      case 'debugCommand': return {
+        stackTrace,
+        reason: 'pause',
+        description: localize('pause.debugCommand', 'Paused on debug() call')
+      };
+      case 'DOM': return {
+        stackTrace,
+        reason: 'data breakpoint',
+        description: localize('pause.DomBreakpoint', 'Paused on DOM breakpoint')
+      };
       case 'EventListener': return this._resolveEventListenerBreakpointDetails(stackTrace, event);
-      case 'exception': return {stackTrace, reason: 'exception', description: 'Paused on exception', exception: event.data as (Cdp.Runtime.RemoteObject | undefined)};
-      case 'promiseRejection': return {stackTrace, reason: 'exception', description: 'Paused on promise rejection'};
-      case 'instrumentation': return {stackTrace, reason: 'function breakpoint', description: 'Paused on function call'};
-      case 'XHR': return {stackTrace, reason: 'data breakpoint', description: 'Paused on XMLHttpRequest or fetch'};
-      case 'OOM': return {stackTrace, reason: 'exception', description: 'Paused before Out Of Memory exception'};
-      default: return {stackTrace, reason: 'step', description: 'Paused'};
+      case 'exception': return {
+        stackTrace,
+        reason: 'exception',
+        description: localize('pause.exception', 'Paused on exception'),
+        exception: event.data as (Cdp.Runtime.RemoteObject | undefined)
+      };
+      case 'promiseRejection': return {
+        stackTrace,
+        reason: 'exception',
+        description: localize('pause.promiseRejection', 'Paused on promise rejection')
+      };
+      case 'instrumentation': return {
+        stackTrace,
+        reason: 'function breakpoint',
+        description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
+      };
+      case 'XHR': return {
+        stackTrace,
+        reason: 'data breakpoint',
+        description: localize('pause.xhr', 'Paused on XMLHttpRequest or fetch')
+      };
+      case 'OOM': return {
+        stackTrace,
+        reason: 'exception',
+        description: localize('pause.oom', 'Paused before Out Of Memory exception')
+      };
+      default: return {
+        stackTrace,
+        reason: 'step',
+        description: localize('pause.default', 'Paused')
+      };
     }
   }
 
   _resolveEventListenerBreakpointDetails(stackTrace: StackTrace, event: Cdp.Debugger.PausedEvent): PausedDetails {
     const data = event.data;
     const id = data ? (data['eventName'] || '') : '';
-    const breakpoint = customBreakpoints.get(id);
+    const breakpoint = customBreakpoints().get(id);
     if (breakpoint) {
       const details = breakpoint.details(data!);
       return {stackTrace, reason: 'function breakpoint', description: details.short, text: details.long};
     }
-    return {stackTrace, reason: 'function breakpoint', description: 'Paused on event listener'};
+    return {stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener')};
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {

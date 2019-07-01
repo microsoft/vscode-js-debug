@@ -9,7 +9,7 @@ Evaluating#8: document.querySelector('div').innerHTML = 'bar';
     allThreadsStopped : false
     description : Set innerHTML
     reason : function breakpoint
-    text : Paused on instrumentation breakpoint 'Set innerHTML'
+    text : Paused on instrumentation breakpoint "Set innerHTML"
     threadId : <number>
 }
 {

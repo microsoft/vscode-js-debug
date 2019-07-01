@@ -36,6 +36,7 @@
     "test": "tsc -p ./src && node ./out/runTests.js"
   },
   "dependencies": {
+    "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
   "devDependencies": {
@@ -54,53 +55,53 @@
   ],
   "contributes": {
     "views": {
-			"debug": [
-				{
-					"id": "cdpBreakpoints",
+      "debug": [
+        {
+          "id": "cdpBreakpoints",
           "name": "Break on"
-				}
+        }
       ]
     },
     "commands": [
       {
-				"command": "cdp.enableCustomBreakpoint",
-				"title": "ENABLE"
-			},
+        "command": "cdp.enableCustomBreakpoint",
+        "title": "ENABLE"
+      },
       {
-				"command": "cdp.disableCustomBreakpoint",
-				"title": "DISABLE"
-			},
+        "command": "cdp.disableCustomBreakpoint",
+        "title": "DISABLE"
+      },
       {
-				"command": "cdp.enableCustomBreakpointGroup",
-				"title": "ENABLE ALL"
-			},
+        "command": "cdp.enableCustomBreakpointGroup",
+        "title": "ENABLE ALL"
+      },
       {
-				"command": "cdp.disableCustomBreakpointGroup",
-				"title": "DISABLE ALL"
-			}
+        "command": "cdp.disableCustomBreakpointGroup",
+        "title": "DISABLE ALL"
+      }
     ],
     "menus": {
       "view/item/context": [
-				{
-					"command": "cdp.enableCustomBreakpoint",
-					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointDisabled",
-					"group": "inline"
-				},
-				{
-					"command": "cdp.disableCustomBreakpoint",
-					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointEnabled",
-					"group": "inline"
-				},
-				{
-					"command": "cdp.enableCustomBreakpointGroup",
-					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupDisabled",
-					"group": "inline"
-				},
-				{
-					"command": "cdp.disableCustomBreakpointGroup",
-					"when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupEnabled",
-					"group": "inline"
-				}
+        {
+          "command": "cdp.enableCustomBreakpoint",
+          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointDisabled",
+          "group": "inline"
+        },
+        {
+          "command": "cdp.disableCustomBreakpoint",
+          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointEnabled",
+          "group": "inline"
+        },
+        {
+          "command": "cdp.enableCustomBreakpointGroup",
+          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupDisabled",
+          "group": "inline"
+        },
+        {
+          "command": "cdp.disableCustomBreakpointGroup",
+          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupEnabled",
+          "group": "inline"
+        }
       ]
     },
     "breakpoints": [
