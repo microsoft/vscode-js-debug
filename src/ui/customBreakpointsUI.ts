@@ -154,12 +154,12 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
     treeView.reveal(provider.groups[0], {select: false});
   }
 
-  vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+  context.subscriptions.push(vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
     const lastType = memento.get<string>('cdpLastDebugSessionType');
     memento.update('cdpLastDebugSessionType', session.type);
     if (session.type === 'cdp' && lastType !== 'cdp')
       showTreeView();
-  });
+  }));
   if (memento.get<string>('cdpLastDebugSessionType') === 'cdp')
     showTreeView();
 
