@@ -8,6 +8,7 @@ import * as utils from '../utils';
 import Dap from '../dap/api';
 import {URL} from 'url';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export type SourceContentGetter = () => Promise<string | undefined>;
 
@@ -23,18 +24,103 @@ export interface Location {
   source?: Source;
 };
 
+export interface InlineSourceRange {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+};
+
+export class SourcePathResolver {
+  private _webRoot?: string;
+  private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
+  private _projectRoot?: string;
+
+  initialize(webRoot?: string) {
+    this._webRoot = webRoot ? path.normalize(webRoot) : undefined;
+    if (!this._webRoot)
+      return;
+    const substitute = (s: string): string => {
+      return s.replace(/${webRoot}/g, this._webRoot!);
+    };
+    this._rules = [
+      {urlPrefix: 'webpack:///./~/', pathPrefix: substitute('${webRoot}/node_modules/')},
+      {urlPrefix: 'webpack:///./', pathPrefix: substitute('${webRoot}/')},
+      {urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/')},
+      {urlPrefix: 'webpack:///', pathPrefix: substitute('/')},
+    ];
+    // TODO(dgozman): perhaps some sort of auto-mapping could be useful here.
+
+    let projectRoot = this._webRoot;
+    while (true) {
+      if (fs.existsSync(path.join(projectRoot, '.git'))) {
+        this._projectRoot = projectRoot;
+        break;
+      }
+      const parent = path.dirname(projectRoot);
+      if (projectRoot === parent)
+        break;
+      projectRoot = parent;
+    }
+  }
+
+  resolveSourceMapSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
+    if (this._projectRoot && sourceUrl.startsWith(this._projectRoot) && !utils.isValidUrl(sourceUrl))
+      sourceUrl = 'file://' + sourceUrl;
+    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
+    return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
+  }
+
+  resolveSourcePath(url?: string): {absolutePath?: string, name: string} {
+    if (!url)
+      return {name: ''};
+    let absolutePath = this._resolveAbsoluteSourcePath(url);
+    if (!absolutePath)
+      return {name: path.basename(url || '')};
+    const name = path.basename(absolutePath);
+    if (!this._checkExists(absolutePath))
+      return {name};
+    return {absolutePath, name};
+  }
+
+  _resolveAbsoluteSourcePath(url: string): string | undefined {
+    if (url.startsWith('file://'))
+      return url.substring(7);
+    for (const rule of this._rules) {
+      if (url.startsWith(rule.urlPrefix))
+        return rule.pathPrefix + url.substring(rule.pathPrefix.length);
+    }
+    if (this._webRoot) {
+      try {
+        let relative = new URL(url).pathname;
+        if (relative === '' || relative === '/')
+          relative = 'index.html';
+        return path.join(this._webRoot, relative);
+      } catch (e) {
+      }
+    }
+    return undefined;
+  }
+
+  _checkExists(absolutePath: string): boolean {
+    // TODO(dgozman): this does not scale. Read it once?
+    return fs.existsSync(absolutePath);
+  }
+}
+
 export class Source {
   private static _lastSourceReference = 0;
 
   private _sourceReference: number;
-  private _webRoot?: string;
+  private _sourcePathResolver: SourcePathResolver;
   private _url: string;
   private _content?: Promise<string | undefined>;
   private _contentGetter: SourceContentGetter;
+  _inlineSourceRange?: InlineSourceRange;
 
-  constructor(webRoot: string | undefined, url: string, contentGetter: SourceContentGetter) {
+  constructor(sourcePathResolver: SourcePathResolver, url: string, contentGetter: SourceContentGetter) {
     this._sourceReference = ++Source._lastSourceReference;
-    this._webRoot = webRoot;
+    this._sourcePathResolver = sourcePathResolver;
     this._url = url;
     this._contentGetter = contentGetter;
   }
@@ -57,26 +143,29 @@ export class Source {
     return 'text/javascript';
   }
 
+  setInlineSourceRange(inlineSourceRange: InlineSourceRange) {
+    this._inlineSourceRange = inlineSourceRange;
+  }
+
   toDap(): Dap.Source {
-    let rebased: string | undefined;
-    if (this._url && this._url.startsWith('file://')) {
-      rebased = this._url.substring(7);
-      // TODO(dgozman): what if absolute file url does not belong to webRoot?
-    } else if (this._url && this._webRoot) {
-      try {
-        let relative = new URL(this._url).pathname;
-        if (relative === '' || relative === '/')
-          relative = 'index.html';
-        rebased = path.join(this._webRoot, relative);
-      } catch (e) {
-      }
+    // TODO(dgozman): provide Dap.Source.origin?
+    let {absolutePath, name} = this._sourcePathResolver.resolveSourcePath(this._url);
+    if (absolutePath) {
+      return {
+        name: name || '<anonymous>',
+        path: absolutePath,
+        sourceReference: 0
+      };
     }
-    // TODO(dgozman): can we check whether the path exists? Search for another match? Provide source fallback?
+    if (name && this._inlineSourceRange) {
+      // TODO(dgozman): show real html contents if possible.
+      name = name + '@' + (this._inlineSourceRange.startLine + 1);
+      if (this._inlineSourceRange.startColumn)
+        name = name + ':' + (this._inlineSourceRange.startColumn + 1);
+    }
     return {
-      name: path.basename(rebased || this._url || '') || '<anonymous>',
-      path: rebased,
-      sourceReference: rebased ? 0 : this._sourceReference,
-      presentationHint: 'normal'
+      name: name || '<anonymous>',
+      sourceReference: this._sourceReference
     };
   }
 };
@@ -86,11 +175,8 @@ type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
 type SourceMapSourceData = {counter: number, source: Source};
 
 export class SourceContainer extends EventEmitter {
-  // TODO(dgozman): this is what create-react-app does. We should be able to auto-detect.
-  private _sourceUrlsArePaths = true;
-
   private _dap: Dap.Api;
-  private _webRoot?: string;
+  private _sourcePathResolver: SourcePathResolver;
   // All sources by the sourceReference.
   private _sources: Map<number, SourceData> = new Map();
   // All source maps by url.
@@ -99,9 +185,10 @@ export class SourceContainer extends EventEmitter {
   private _sourceMapSources: Map<string, SourceMapSourceData> = new Map();
   private _initialized = false;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
     super();
     this._dap = dap;
+    this._sourcePathResolver = sourcePathResolver;
   }
 
   sources(): Source[] {
@@ -114,37 +201,49 @@ export class SourceContainer extends EventEmitter {
   }
 
   createSource(url: string, contentGetter: SourceContentGetter): Source {
-    return new Source(this._webRoot, url, contentGetter);
+    return new Source(this._sourcePathResolver, url, contentGetter);
   }
 
-  initialize(webRoot?: string) {
-    this._webRoot = webRoot;
+  initialize() {
     for (const sourceData of this._sources.values())
       this._reportSource(sourceData.source);
     this._initialized = true;
   }
 
-  // TODO(dgozman): we should probably translate to one-based here.
   uiLocation(rawLocation: Location): Location {
+    const oneBased = {
+      lineNumber: rawLocation.lineNumber + 1,
+      columnNumber: rawLocation.columnNumber + 1,
+      url: rawLocation.url,
+      source: rawLocation.source,
+    };
     if (!rawLocation.source)
-      return rawLocation;
+      return oneBased;
+
     const compiledData = this._sources.get(rawLocation.source.sourceReference());
     if (!compiledData || !compiledData.sourceMapUrl)
-      return rawLocation;
+      return oneBased;
     const map = this._sourceMaps.get(compiledData.sourceMapUrl)!.map;
     if (!map)
-      return rawLocation;
-    // TODO(dgozman): account for inline scripts which have lineOffset and columnOffset.
-    const entry = map.findEntry(rawLocation.lineNumber, rawLocation.columnNumber);
+      return oneBased;
+
+    let {lineNumber, columnNumber} = rawLocation;
+    if (rawLocation.source._inlineSourceRange) {
+      lineNumber -= rawLocation.source._inlineSourceRange.startLine;
+      if (!lineNumber)
+        columnNumber -= rawLocation.source._inlineSourceRange.startColumn;
+    }
+    const entry = map.findEntry(lineNumber, columnNumber);
     if (!entry || !entry.sourceUrl)
-      return rawLocation;
-    const resolvedUrl = this._resolveSourceUrl(map, rawLocation.source, entry.sourceUrl);
+      return oneBased;
+
+    const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, rawLocation.source, entry.sourceUrl);
     const sourceData = this._sourceMapSources.get(resolvedUrl);
     if (!sourceData)
-      return rawLocation;
+      return oneBased;
     return {
-      lineNumber: entry.sourceLineNumber || 0,
-      columnNumber: entry.sourceColumnNumber || 0,
+      lineNumber: (entry.sourceLineNumber || 0) + 1,
+      columnNumber: (entry.sourceColumnNumber || 0) + 1,
       url: resolvedUrl,
       source: sourceData.source
     };
@@ -207,15 +306,15 @@ export class SourceContainer extends EventEmitter {
 
   _addSourceMapSources(compiled: Source, map: SourceMap) {
     for (const url of map.sourceUrls()) {
-      const resolvedUrl = this._resolveSourceUrl(map, compiled, url);
+      const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const sourceData = this._sourceMapSources.get(resolvedUrl);
       if (sourceData) {
         sourceData.counter++;
       } else {
         const content = map.sourceContent(url);
         const source = content === undefined
-            ? this.createSource(resolvedUrl, () => utils.fetch(resolvedUrl))
-            : this.createSource(resolvedUrl, () => Promise.resolve(content));
+          ? this.createSource(resolvedUrl, () => utils.fetch(resolvedUrl))
+          : this.createSource(resolvedUrl, () => Promise.resolve(content));
         this._sourceMapSources.set(resolvedUrl, {counter: 1, source});
         this.addSource(source);
         // TODO(dgozman): support recursive source maps?
@@ -239,7 +338,7 @@ export class SourceContainer extends EventEmitter {
   _removeSourceMapSources(compiled: Source, map: SourceMap): Source[] {
     const result: Source[] = [];
     for (const url of map.sourceUrls()) {
-      const resolvedUrl = this._resolveSourceUrl(map, compiled, url);
+      const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const sourceData = this._sourceMapSources.get(resolvedUrl)!;
       if (--sourceData.counter > 0)
         continue;
@@ -250,12 +349,5 @@ export class SourceContainer extends EventEmitter {
       result.push(sourceData.source);
     }
     return result;
-  }
-
-  _resolveSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
-    if (this._sourceUrlsArePaths && !utils.isValidUrl(sourceUrl))
-      sourceUrl = 'file://' + sourceUrl;
-    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
-    return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
   }
 };

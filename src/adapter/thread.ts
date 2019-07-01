@@ -223,7 +223,6 @@ export class Thread {
   }
 
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
-    // TODO(dgozman): fill "text" with more details.
     const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
     switch (event.reason) {
       case 'assert': return {stackTrace, reason: 'exception', description: 'Paused on assert'};
@@ -328,6 +327,14 @@ export class Thread {
       const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
       return response ? response.scriptSource : undefined;
     });
+    if (event.startLine || event.startColumn) {
+      source.setInlineSourceRange({
+        startLine: event.startLine,
+        startColumn: event.startColumn,
+        endLine: event.endLine,
+        endColumn: event.endColumn
+      });
+    }
     this._scripts.set(event.scriptId, source);
     this._sourceContainer.addSource(source);
     if (event.sourceMapURL) {

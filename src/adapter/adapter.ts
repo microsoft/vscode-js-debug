@@ -13,8 +13,8 @@ import {Thread} from './thread';
 import {StackFrame} from './stackTrace';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
-import { VariableStore } from './variableStore';
-import { SourceContainer, LaunchParams } from './source';
+import {VariableStore} from './variableStore';
+import {SourceContainer, LaunchParams, SourcePathResolver} from './source';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -29,6 +29,7 @@ export class Adapter {
   private _initializeParams: Dap.InitializeParams;
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
+  private _sourcePathResolver: SourcePathResolver;
   private _sourceContainer: SourceContainer;
   private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
@@ -97,7 +98,8 @@ export class Adapter {
       });
     this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
 
-    this._sourceContainer = new SourceContainer(this._dap);
+    this._sourcePathResolver = new SourcePathResolver();
+    this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
 
     // params.locale || 'en-US'
@@ -163,7 +165,8 @@ export class Adapter {
 
     // params.noDebug
     this._launchParams = params;
-    this._sourceContainer.initialize(params.webRoot);
+    this._sourcePathResolver.initialize(params.webRoot);
+    this._sourceContainer.initialize();
     await this._mainTarget!.cdp().Page.navigate({url: params.url});
     return {};
   }
@@ -264,8 +267,8 @@ export class Adapter {
       result.push({
         id: stackFrame.id,
         name: stackFrame.name,
-        line: uiLocation.lineNumber + 1,
-        column: uiLocation.columnNumber + 1,
+        line: uiLocation.lineNumber,
+        column: uiLocation.columnNumber,
         source: uiLocation.source ? uiLocation.source.toDap() : undefined,
         presentationHint: stackFrame.isAsyncSeparator ? 'label' : 'normal'
       });
@@ -335,11 +338,11 @@ export class Adapter {
       }
       const variable = await thread.pausedVariables()!.createVariable(scope.object);
       const uiStartLocation = scope.startLocation
-          ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
-          : undefined;
+        ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
+        : undefined;
       const uiEndLocation = scope.endLocation
-          ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
-          : undefined;
+        ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
+        : undefined;
       if (scope.name && scope.type === 'closure') {
         name = `Closure (${scope.name})`;
       } else if (scope.name) {
@@ -353,10 +356,10 @@ export class Adapter {
         indexedVariables: variable.indexedVariables,
         variablesReference: variable.variablesReference,
         source: uiStartLocation && uiStartLocation.source ? uiStartLocation.source.toDap() : undefined,
-        line: uiStartLocation ? uiStartLocation.lineNumber + 1 : undefined,
-        column: uiStartLocation ? uiStartLocation.columnNumber + 1 : undefined,
-        endLine: uiEndLocation ? uiEndLocation.lineNumber + 1 : undefined,
-        endColumn: uiEndLocation ? uiEndLocation.columnNumber + 1 : undefined,
+        line: uiStartLocation ? uiStartLocation.lineNumber : undefined,
+        column: uiStartLocation ? uiStartLocation.columnNumber : undefined,
+        endLine: uiEndLocation ? uiEndLocation.lineNumber : undefined,
+        endColumn: uiEndLocation ? uiEndLocation.columnNumber : undefined,
       });
     }
     return {scopes};
@@ -376,7 +379,7 @@ export class Adapter {
         break;
     }
     if (!variableStore)
-      return { variables: [] };
+      return {variables: []};
     return {variables: await variableStore.getVariables(params)};
   }
 
