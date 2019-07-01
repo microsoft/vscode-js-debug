@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new MockConfigurationProvider();
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cdp', provider));
 
-  const factory = new MockDebugAdapterDescriptorFactory();
+  const factory = new MockDebugAdapterDescriptorFactory(context);
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('cdp', factory));
   context.subscriptions.push(factory);
 
@@ -42,13 +42,18 @@ class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 class MockDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
   private server?: Net.Server;
+  private _context: vscode.ExtensionContext;
+
+  constructor(context: vscode.ExtensionContext) {
+    this._context = context;
+  }
 
   createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     if (!this.server) {
       // start listening on a random port
       this.server = Net.createServer(socket => {
         const connection = new DapConnection(socket, socket);
-        new Adapter(connection.dap());
+        new Adapter(connection.dap(), this._context.storagePath || this._context.extensionPath);
       }).listen(0);
     }
 
