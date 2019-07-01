@@ -75,10 +75,10 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
   groups = new Map<string, Group>();
   memento: vscode.Memento;
 
-  constructor(memento: vscode.Memento) {
-    this.memento = memento;
+  constructor(context: vscode.ExtensionContext) {
+    this.memento = context.workspaceState;
 
-    const enabled = new Set(memento.get<string[]>('cdp.customBreakpoints', []));
+    const enabled = new Set(this.memento.get<string[]>('cdp.customBreakpoints', []));
     for (const cb of customBreakpoints.values()) {
       let group = this.groups.get(cb.group);
       if (!group) {
@@ -95,7 +95,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
         return {id, enabled: true};
       })});
     };
-    vscode.debug.onDidStartDebugSession(sendState);
+    context.subscriptions.push(vscode.debug.onDidStartDebugSession(sendState));
     if (vscode.debug.activeDebugSession)
       sendState(vscode.debug.activeDebugSession);
   }
@@ -143,7 +143,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
 
 export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
   const memento = context.workspaceState;
-  const provider = new BreakpointsDataProvider(memento);
+  const provider = new BreakpointsDataProvider(context);
 
   // TODO(dgozman): figure out UI logic, it is somewhat annoying.
   const treeView = vscode.window.createTreeView('cdpBreakpoints', { treeDataProvider: provider });
