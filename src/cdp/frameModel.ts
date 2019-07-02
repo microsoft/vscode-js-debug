@@ -256,15 +256,12 @@ function trimEnd(text: string, maxLength: number) {
 }
 
 function displayName(urlstring: string): string {
-  let url: URL | undefined;
+  let url: URL;
   try {
     url = new URL(urlstring);
   } catch (e) {
     return trimEnd(urlstring, 20);
   }
-
-  if (!url)
-    return trimEnd(urlstring, 20);
 
   if (url.protocol === 'data')
     return trimEnd(urlstring, 20);

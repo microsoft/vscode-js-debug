@@ -87,8 +87,6 @@ export namespace Dap {
      */
     capabilities(params: CapabilitiesEventParams): void;
 
-    executionContextsChanged(params: ExecutionContextsChangedParams): void;
-
     /**
      * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
      * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
@@ -315,6 +313,16 @@ export namespace Dap {
      * Updates custom breakpoints (instrumentation, event listeners, etc).
      */
     on(request: 'updateCustomBreakpoints', handler: (params: UpdateCustomBreakpointsParams) => Promise<UpdateCustomBreakpointsResult | Error>): void;
+
+    /**
+     * Blackboxes/unblackboxes a particular source.
+     */
+    on(request: 'setSourceBlackboxed', handler: (params: SetSourceBlackboxedParams) => Promise<SetSourceBlackboxedResult | Error>): void;
+
+    /**
+     * The event indicates that execution contexts have changed.
+     */
+    executionContextsChanged(params: ExecutionContextsChangedEventParams): void;
   }
 
   export interface AttachParams {
@@ -582,6 +590,15 @@ export namespace Dap {
      * Detailed information about the exception.
      */
     details?: ExceptionDetails;
+  }
+
+  export interface ExecutionContextsChangedEventParams {
+    /**
+     * Thread id which had execution contexts changed.
+     */
+    threadId: number;
+
+    contexts: ExecutionContext[];
   }
 
   export interface ExitedEventParams {
@@ -1198,6 +1215,21 @@ export namespace Dap {
     breakpoints: Breakpoint[];
   }
 
+  export interface SetSourceBlackboxedParams {
+    /**
+     * The source to be blackboxed or unblackboxed.
+     */
+    source: Source;
+
+    /**
+     * Whether the source should blackboxed.
+     */
+    blackboxed: boolean;
+  }
+
+  export interface SetSourceBlackboxedResult {
+  }
+
   export interface SetVariableParams {
     /**
      * The reference of the variable container.
@@ -1447,14 +1479,6 @@ export namespace Dap {
   }
 
   export interface UpdateCustomBreakpointsResult {
-  }
-
-  export interface ExecutionContextsChangedParams {
-    threadId: number,
-    contexts: Array<{
-      id: string;
-      name: string;
-    }>;
   }
 
   export interface VariablesParams {
@@ -1826,9 +1850,9 @@ export namespace Dap {
    * A Module object represents a row in the modules view.
    * Two attributes are mandatory: an id identifies a module in the modules view and is used in a ModuleEvent for identifying a module for adding, updating or deleting.
    * The name is used to minimally render the module in the UI.
-   *
+   * 
    * Additional attributes can be added to the module. They will show up in the module View if they have a corresponding ColumnDescriptor.
-   *
+   * 
    * To avoid an unnecessary proliferation of additional attributes with similar semantics but different names
    * we recommend to re-use attributes from the 'recommended' list below first, and only introduce new attributes if nothing appropriate could be found.
    */
@@ -1846,7 +1870,7 @@ export namespace Dap {
     /**
      * optional but recommended attributes.
      * always try to use these first before introducing additional attributes.
-     *
+     * 
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
     path?: string;
@@ -2042,6 +2066,21 @@ export namespace Dap {
      * Value of the checksum.
      */
     checksum: string;
+  }
+
+  /**
+   * Execution context definition.
+   */
+  export interface ExecutionContext {
+    /**
+     * Context id.
+     */
+    id: string;
+
+    /**
+     * Human-readable context name.
+     */
+    name: string;
   }
 
   /**

@@ -41,9 +41,10 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
     const sendState = (session: vscode.DebugSession) => {
       if (session.type !== 'cdp')
         return;
-      session.customRequest('updateCustomBreakpoints', {breakpoints: this._collectState().map(id => {
-        return {id, enabled: true};
-      })});
+      const params: Dap.UpdateCustomBreakpointsParams = {
+        breakpoints: this._collectState().map(id => ({id, enabled: true}))
+      };
+      session.customRequest('updateCustomBreakpoints', params);
     };
     context.subscriptions.push(vscode.debug.onDidStartDebugSession(sendState));
     if (vscode.debug.activeDebugSession)
@@ -88,8 +89,10 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
     this.memento.update('cdp.customBreakpoints', this._collectState());
 
     const session = vscode.debug.activeDebugSession;
-    if (session && session.type === 'cdp')
-      session.customRequest('updateCustomBreakpoints', {breakpoints: payload});
+    if (session && session.type === 'cdp') {
+      const params: Dap.UpdateCustomBreakpointsParams = {breakpoints: payload};
+      session.customRequest('updateCustomBreakpoints', params);
+    }
     this._onDidChangeTreeData.fire(undefined);
   }
 
