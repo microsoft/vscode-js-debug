@@ -257,7 +257,13 @@ function trimEnd(text: string, maxLength: number) {
 }
 
 function displayName(urlstring: string): string {
-  const url = new URL(urlstring);
+  let url: URL | undefined;
+  try {
+    url = new URL(urlstring);
+  } catch (e) {
+    return trimEnd(urlstring, 20);
+  }
+
   if (!url)
     return trimEnd(urlstring, 20);
 
