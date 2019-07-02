@@ -1,0 +1,6 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
+<defs><style>.icon-canvas-transparent,.icon-vs-out{fill:#252526}.icon-canvas-transparent{opacity:0}.icon-vs-bg{fill:#c5c5c5}</style></defs>
+<title>add</title>
+<path class='icon-canvas-transparent' d='M16 16H0V0h16z' id='canvas'/>
+<path class='icon-vs-bg' d='M13 7v2H9v4H7V9H3V7h4V3h2v4z' id='iconBg'/>
+</svg>

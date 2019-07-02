@@ -4,92 +4,40 @@
 import * as vscode from 'vscode';
 import {CustomBreakpoint, customBreakpoints} from '../adapter/customBreakpoints';
 import Dap from '../dap/api';
+import { stringify } from 'querystring';
 
 class Breakpoint {
-  customBreakpoint: CustomBreakpoint;
+  id: string;
+  label: string;
   enabled: boolean;
-  group: Group;
+  treeItem: vscode.TreeItem;
 
-  constructor(cb: CustomBreakpoint, enabled: boolean, group: Group) {
-    this.customBreakpoint = cb;
+  constructor(cb: CustomBreakpoint, enabled: boolean) {
+    this.id = cb.id;
     this.enabled = enabled;
-    this.group = group;
+    this.label = `${cb.group}: ${cb.title}`;
+    this.treeItem = new vscode.TreeItem(this.label, vscode.TreeItemCollapsibleState.None);
+    this.treeItem.id = cb.id;
   }
 
   static compare(a: Breakpoint, b: Breakpoint) {
-    return a.customBreakpoint.title < b.customBreakpoint.title ? -1 : 1;
+    return a.label.localeCompare(b.label);
   }
 }
 
-type GroupEnabledState = 'yes' | 'no' | 'partial';
+class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
+  private _onDidChangeTreeData: vscode.EventEmitter<Breakpoint | undefined> = new vscode.EventEmitter<Breakpoint | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<Breakpoint | undefined> = this._onDidChangeTreeData.event;
 
-class Group {
-  title: string;
-  breakpoints: Breakpoint[] = [];
-
-  constructor(title: string) {
-    this.title = title;
-  }
-
-  enabled(): GroupEnabledState {
-    const count = this.breakpoints.map(b => b.enabled ? 1 : 0).reduce((a, b) => a + b, 0);
-    return count === this.breakpoints.length ? 'yes' : (count === 0 ? 'no' : 'partial');
-  }
-
-  static compare(a: Group, b: Group) {
-    return a.title < b.title ? -1 : 1;
-  }
-}
-
-type DataItem = Breakpoint | Group;
-
-class BreakpointItem extends vscode.TreeItem {
-  breakpoint: Breakpoint;
-
-  constructor(breakpoint: Breakpoint) {
-    super(
-      (breakpoint.enabled ? '▣' : '▢') + '\u00a0\u00a0' + breakpoint.customBreakpoint.title,
-      vscode.TreeItemCollapsibleState.None);
-    this.breakpoint = breakpoint;
-    this.id = breakpoint.customBreakpoint.id;
-    this.contextValue = breakpoint.enabled ? 'cdpCustomBreakpointEnabled' : 'cdpCustomBreakpointDisabled';
-  }
-}
-
-class GroupItem extends vscode.TreeItem {
-  group: Group;
-
-  constructor(group: Group) {
-    const enabled = group.enabled();
-    // ️️☑️⬜▦
-    super(
-      (enabled === 'yes' ? '▣' : (enabled === 'no' ? '▢' : '▦')) + '\u00a0\u00a0' + group.title,
-      vscode.TreeItemCollapsibleState.Collapsed);
-    this.group = group;
-    this.id = group.title;
-    this.contextValue = enabled !== 'no' ? 'cdpCustomBreakpointGroupEnabled' : 'cdpCustomBreakpointGroupDisabled';
-  }
-}
-
-class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
-	private _onDidChangeTreeData: vscode.EventEmitter<DataItem | undefined> = new vscode.EventEmitter<DataItem | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<DataItem | undefined> = this._onDidChangeTreeData.event;
-
-  groups = new Map<string, Group>();
+  breakpoints: Breakpoint[];
   memento: vscode.Memento;
 
   constructor(context: vscode.ExtensionContext) {
     this.memento = context.workspaceState;
-
     const enabled = new Set(this.memento.get<string[]>('cdp.customBreakpoints', []));
-    for (const cb of customBreakpoints().values()) {
-      let group = this.groups.get(cb.group);
-      if (!group) {
-        group = new Group(cb.group);
-        this.groups.set(group.title, group);
-      }
-      group.breakpoints.push(new Breakpoint(cb, enabled.has(cb.id), group));
-    }
+    this.breakpoints = [];
+    for (const cb of customBreakpoints().values())
+      this.breakpoints.push(new Breakpoint(cb, enabled.has(cb.id)));
 
     const sendState = (session: vscode.DebugSession) => {
       if (session.type !== 'cdp')
@@ -103,29 +51,43 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
       sendState(vscode.debug.activeDebugSession);
   }
 
-	getTreeItem(item: DataItem): vscode.TreeItem {
-    return item instanceof Breakpoint ? new BreakpointItem(item) : new GroupItem(item);
-	}
-
-	getChildren(item?: DataItem): Thenable<DataItem[]> {
-		if (!item)
-      return Promise.resolve(Array.from(this.groups.values()).sort(Group.compare));
-    return Promise.resolve(item instanceof Group ? item.breakpoints.sort(Breakpoint.compare) : []);
+  getTreeItem(item: Breakpoint): vscode.TreeItem {
+    return item.treeItem;
   }
 
-  getParent(item: DataItem): Thenable<DataItem | undefined> {
-    return Promise.resolve(item instanceof Group ? undefined : item.group);
+  async getChildren(item?: Breakpoint): Promise<Breakpoint[]> {
+    if (!item)
+      return this.breakpoints.filter(b => b.enabled).sort(Breakpoint.compare);
+    return [];
   }
 
-  update(breakpoints: Breakpoint[], enabled: boolean) {
+  async getParent(item: Breakpoint): Promise<Breakpoint | undefined> {
+    return undefined;
+  }
+
+  addBreakpoints(breakpoints: Breakpoint[]) {
+    const payload: Dap.CustomBreakpoint[] = breakpoints.map(b => ({id: b.id, enabled: true}));
+    this._changeBreakpoints(payload);
+  }
+
+  removeBreakpoints(breakpointIds: string[]) {
     const payload: Dap.CustomBreakpoint[] = [];
-    for (const b of breakpoints) {
-      if (b.enabled !== enabled) {
-        b.enabled = enabled;
-        payload.push({id: b.customBreakpoint.id, enabled});
-      }
+    for (const id of breakpointIds)
+      payload.push({id, enabled: false});
+    this._changeBreakpoints(payload);
+  }
+
+  _changeBreakpoints(payload: Dap.CustomBreakpoint[]) {
+    const state = new Map<string, boolean>();
+    for (const p of payload)
+      state.set(p.id, p.enabled);
+    for (const b of this.breakpoints) {
+      if (state.has(b.id))
+        b.enabled = state.get(b.id) as boolean;
     }
+
     this.memento.update('cdp.customBreakpoints', this._collectState());
+
     const session = vscode.debug.activeDebugSession;
     if (session && session.type === 'cdp')
       session.customRequest('updateCustomBreakpoints', {breakpoints: payload});
@@ -133,14 +95,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<DataItem> {
   }
 
   _collectState(): string[] {
-    const state: string[] = [];
-    for (const group of this.groups.values()) {
-      for (const breakpoint of group.breakpoints) {
-        if (breakpoint.enabled)
-          state.push(breakpoint.customBreakpoint.id);
-      }
-    }
-    return state;
+    return this.breakpoints.filter(b => b.enabled).map(b => b.id);
   }
 }
 
@@ -151,7 +106,7 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
   // TODO(dgozman): figure out UI logic, it is somewhat annoying.
   const treeView = vscode.window.createTreeView('cdpBreakpoints', { treeDataProvider: provider });
   function showTreeView() {
-    treeView.reveal(provider.groups[0], {select: false});
+    treeView.reveal(provider.breakpoints[0], {select: false});
   }
 
   context.subscriptions.push(vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
@@ -163,16 +118,23 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
   if (memento.get<string>('cdpLastDebugSessionType') === 'cdp')
     showTreeView();
 
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.enableCustomBreakpoint', (breakpoint: Breakpoint) => {
-    provider.update([breakpoint], true);
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.addCustomBreakpoints', e => {
+    const quickPick = vscode.window.createQuickPick();
+    const items = provider.breakpoints.filter(b => !b.enabled);
+    quickPick.items = items;
+    quickPick.canSelectMany = true;
+    quickPick.onDidAccept(e => {
+      provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
+      quickPick.dispose();
+    })
+    quickPick.show();
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.disableCustomBreakpoint', (breakpoint: Breakpoint) => {
-    provider.update([breakpoint], false);
+
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.removeAllCustomBreakpoints', e => {
+    provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.enableCustomBreakpointGroup', (group: Group) => {
-    provider.update(group.breakpoints, true);
-  }));
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.disableCustomBreakpointGroup', (group: Group) => {
-    provider.update(group.breakpoints, false);
+
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.removeCustomBreakpoint', (treeItem: vscode.TreeItem) => {
+    provider.removeBreakpoints([treeItem.id as string]);
   }));
 }
