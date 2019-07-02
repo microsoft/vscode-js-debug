@@ -101,24 +101,9 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
 }
 
 export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
-  const memento = context.workspaceState;
   const provider = new BreakpointsDataProvider(context);
 
-  // TODO(dgozman): figure out UI logic, it is somewhat annoying.
-  const treeView = vscode.window.createTreeView('cdpBreakpoints', { treeDataProvider: provider });
-  function showTreeView() {
-    treeView.reveal(provider.breakpoints[0], {select: false});
-  }
-
-  context.subscriptions.push(vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
-    const lastType = memento.get<string>('cdpLastDebugSessionType');
-    memento.update('cdpLastDebugSessionType', session.type);
-    if (session.type === 'cdp' && lastType !== 'cdp')
-      showTreeView();
-  }));
-  if (memento.get<string>('cdpLastDebugSessionType') === 'cdp')
-    showTreeView();
-
+  vscode.window.createTreeView('cdpBreakpoints', { treeDataProvider: provider });
   context.subscriptions.push(vscode.commands.registerCommand('cdp.addCustomBreakpoints', e => {
     const quickPick = vscode.window.createQuickPick();
     const items = provider.breakpoints.filter(b => !b.enabled);
@@ -127,7 +112,7 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
     quickPick.onDidAccept(e => {
       provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
       quickPick.dispose();
-    })
+    });
     quickPick.show();
   }));
 
