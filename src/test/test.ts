@@ -11,6 +11,8 @@ import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 
+const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
+
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
     this.push(chunk, encoding);
@@ -87,7 +89,7 @@ function _log(results: string[], item: any, title?: string, stabilizeNames?: str
 }
 
 function _logObject(results: string[], object: Object, title?: string, stabilizeNames?: string[]): any {
-  stabilizeNames = stabilizeNames || ['id', 'threadId', 'sourceReference'];
+  stabilizeNames = stabilizeNames || kStabilizeNames;
   const lines: string[] = [];
 
   function dumpValue(value, prefix, prefixWithName) {

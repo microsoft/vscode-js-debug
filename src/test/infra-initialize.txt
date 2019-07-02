@@ -30,10 +30,10 @@ initialized
     supportsLoadedSourcesRequest : true
     supportsLogPoints : false
     supportsModulesRequest : false
-    supportsRestartFrame : false
+    supportsRestartFrame : true
     supportsRestartRequest : true
     supportsSetExpression : false
-    supportsSetVariable : false
+    supportsSetVariable : true
     supportsStepBack : false
     supportsStepInTargetsRequest : false
     supportsTerminateRequest : false
