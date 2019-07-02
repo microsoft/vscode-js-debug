@@ -4,7 +4,6 @@
 import * as vscode from 'vscode';
 import {CustomBreakpoint, customBreakpoints} from '../adapter/customBreakpoints';
 import Dap from '../dap/api';
-import { stringify } from 'querystring';
 
 class Breakpoint {
   id: string;

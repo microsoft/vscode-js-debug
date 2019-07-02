@@ -87,6 +87,12 @@ export namespace Dap {
      */
     capabilities(params: CapabilitiesEventParams): void;
 
+    executionContextCreated(params: ExecutionContextCreatedParams): void;
+
+    executionContextDestroyed(params: ExecutionContextDestroyedParams): void;
+
+    executionContextsCleared(): void;
+
     /**
      * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
      * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
@@ -1447,6 +1453,16 @@ export namespace Dap {
   export interface UpdateCustomBreakpointsResult {
   }
 
+  export interface ExecutionContextCreatedParams {
+    id: string;
+    name: string;
+    origin: string;
+  }
+
+  export interface ExecutionContextDestroyedParams {
+    id: string;
+  }
+
   export interface VariablesParams {
     /**
      * The Variable reference.
@@ -1816,9 +1832,9 @@ export namespace Dap {
    * A Module object represents a row in the modules view.
    * Two attributes are mandatory: an id identifies a module in the modules view and is used in a ModuleEvent for identifying a module for adding, updating or deleting.
    * The name is used to minimally render the module in the UI.
-   * 
+   *
    * Additional attributes can be added to the module. They will show up in the module View if they have a corresponding ColumnDescriptor.
-   * 
+   *
    * To avoid an unnecessary proliferation of additional attributes with similar semantics but different names
    * we recommend to re-use attributes from the 'recommended' list below first, and only introduce new attributes if nothing appropriate could be found.
    */
@@ -1836,7 +1852,7 @@ export namespace Dap {
     /**
      * optional but recommended attributes.
      * always try to use these first before introducing additional attributes.
-     * 
+     *
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
     path?: string;

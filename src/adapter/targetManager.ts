@@ -5,11 +5,13 @@ import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import * as debug from 'debug';
 import * as path from 'path';
-import {URL} from 'url';
-import {EventEmitter} from 'events';
-import {Thread} from './thread';
+import { URL } from 'url';
+import { EventEmitter } from 'events';
+import { Thread } from './thread';
 import { SourceContainer } from './source';
 import Dap from '../dap/api';
+import { FrameModel } from '../cdp/frameModel';
+
 const debugTarget = debug('target');
 
 export const TargetEvents = {
@@ -150,8 +152,8 @@ export class TargetManager extends EventEmitter {
     await target._dispose();
 
     this._targets.delete(targetId);
-    if (target._parentTarget)
-      target._parentTarget._children.delete(targetId);
+    if (target.parentTarget)
+      target.parentTarget._children.delete(targetId);
 
     if (this._mainTarget === target)
       this._mainTarget = undefined;
@@ -181,17 +183,20 @@ const domDebuggerTypes = new Set(['page', 'iframe']);
 export class Target {
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
+  private _frameModel: FrameModel | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t:Target) => void;
 
-  _parentTarget?: Target;
+  readonly parentTarget?: Target;
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
   constructor(targetManager: TargetManager, sourceContainer: SourceContainer, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, dap: Dap.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
-    this._parentTarget = parentTarget;
+    this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(targetManager, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
+    if (domDebuggerTypes.has(targetInfo.type))
+      this._frameModel = new FrameModel(cdp, parentTarget ? parentTarget._frameModel : undefined);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
@@ -222,7 +227,7 @@ export class Target {
       return;
 
     let indentation = '';
-    for (let parent = this._parentTarget; parent; parent = parent._parentTarget) {
+    for (let parent = this.parentTarget; parent; parent = parent.parentTarget) {
       if (parent._targetInfo.type === 'service_worker')
         continue;
       indentation += '\u00A0\u00A0\u00A0\u00A0';
