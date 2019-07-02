@@ -64,6 +64,7 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('updateCustomBreakpoints', params => this._onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
+    this._dap.on('setSourceBlackboxed', params => this._onSetSourceBlackboxed(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
@@ -447,7 +448,7 @@ export class Adapter {
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
-    const source = this._sourceContainer.source(params.sourceReference);
+    const source = this._sourceContainer.source(params.source!);
     if (!source)
       return createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
@@ -503,6 +504,13 @@ export class Adapter {
     if (!result)
       return createSilentError(localize('error.setVariableDidFail', 'Unable to set variable'));
     return result;
+  }
+
+  async _onSetSourceBlackboxed(params: Dap.SetSourceBlackboxedParams): Promise<Dap.SetSourceBlackboxedResult | Dap.Error> {
+    const source = this._sourceContainer.source(params.source);
+    if (!source)
+      return createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    return {};
   }
 }
 

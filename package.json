@@ -90,6 +90,10 @@
           "light": "resources/remove-all-light.svg",
           "dark": "resources/remove-all-dark.svg"
         }
+      },
+      {
+        "command": "cdp.blackboxActiveDocument",
+        "title": "Blackbox active document"
       }
     ],
     "menus": {

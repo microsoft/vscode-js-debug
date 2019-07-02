@@ -9,6 +9,8 @@ import DapConnection from './dap/connection';
 import {Adapter} from './adapter/adapter';
 import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
 import {registerExecutionContextsUI} from './ui/executionContextsUI';
+import * as querystring from 'querystring';
+import Dap from './dap/api';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new MockConfigurationProvider();
@@ -20,6 +22,26 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCustomBreakpointsUI(context);
   registerExecutionContextsUI(context);
+
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.blackboxActiveDocument', e => {
+    const session = vscode.debug.activeDebugSession;
+    if (!session || session.type !== 'cdp')
+      return;
+    if (!vscode.window.activeTextEditor)
+      return;
+    const uri = vscode.window.activeTextEditor.document.uri;
+    if (uri.scheme === 'file') {
+      const params: Dap.SetSourceBlackboxedParams = {source: {path: uri.path}, blackboxed: true};
+      session.customRequest('setSourceBlackboxed', params);
+    } else if (uri.scheme === 'debug') {
+      const ref = querystring.parse(uri.query).ref;
+      const refNumber = parseInt(typeof ref === 'string' ? ref : '');
+      if (refNumber && String(refNumber) === ref) {
+        const params: Dap.SetSourceBlackboxedParams = {source: {sourceReference: refNumber}, blackboxed: true};
+        session.customRequest('setSourceBlackboxed', params);
+      }
+    }
+  }));
 }
 
 export function deactivate() {

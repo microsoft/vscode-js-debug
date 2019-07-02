@@ -27,11 +27,6 @@ export interface PausedDetails {
   exception?: Cdp.Runtime.RemoteObject;
 };
 
-interface ExecutionContext {
-  id: string;
-  name: string;
-}
-
 export class Thread {
   private static _lastThreadId: number = 0;
 
@@ -189,7 +184,7 @@ export class Thread {
   }
 
   _reportExecutionContexts() {
-    const result: ExecutionContext[] = [];
+    const result: Dap.ExecutionContext[] = [];
     for (const context of this._executionContexts.values()) {
       const id = `${this._threadId}:${context.id}`;
       let name = context.name || context.origin;

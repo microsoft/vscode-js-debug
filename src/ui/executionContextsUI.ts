@@ -3,10 +3,9 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import Dap from '../dap/api';
 
-interface ExecutionContext {
-  id: number;
-  name: string;
+type ExecutionContext = Dap.ExecutionContext & {
   threadId?: number;
 }
 
@@ -14,8 +13,10 @@ export function registerExecutionContextsUI(context: vscode.ExtensionContext) {
   const provider = new ExecutionContextDataProvider(context);
   vscode.window.createTreeView('executionContexts', { treeDataProvider: provider });
   vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
-    if (e.event === 'executionContextsChanged')
-      provider.executionContextsChanged(e.body['threadId'] as number, e.body['contexts'] as ExecutionContext[]);
+    if (e.event === 'executionContextsChanged') {
+      const params = e.body as Dap.ExecutionContextsChangedEventParams;
+      provider.executionContextsChanged(params.threadId, params.contexts);
+    }
   });
 }
 
@@ -44,7 +45,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     return result;
   }
 
-  async getParent(item: ExecutionContext): Promise<ExecutionContext | undefined> {
+  async getParent(item: Dap.ExecutionContext): Promise<Dap.ExecutionContext | undefined> {
     return undefined;
   }
 

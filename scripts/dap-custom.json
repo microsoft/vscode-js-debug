@@ -1,56 +1,188 @@
 {
-	"definitions": {
-		"UpdateCustomBreakpointsRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Updates custom breakpoints (instrumentation, event listeners, etc).",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "updateCustomBreakpoints" ]
-					},
-					"arguments": {
-						"$ref": "#/definitions/UpdateCustomBreakpointsRequestArguments"
-					}
-				},
-				"required": [ "command", "arguments"  ]
-			}]
-		},
-		"UpdateCustomBreakpointsRequestArguments": {
-			"type": "object",
-			"properties": {
-				"breakpoints": {
+  "definitions": {
+    "UpdateCustomBreakpointsRequest": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Request"
+        },
+        {
+          "type": "object",
+          "description": "Updates custom breakpoints (instrumentation, event listeners, etc).",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": [
+                "updateCustomBreakpoints"
+              ]
+            },
+            "arguments": {
+              "$ref": "#/definitions/UpdateCustomBreakpointsRequestArguments"
+            }
+          },
+          "required": [
+            "command",
+            "arguments"
+          ]
+        }
+      ]
+    },
+    "UpdateCustomBreakpointsRequestArguments": {
+      "type": "object",
+      "properties": {
+        "breakpoints": {
           "type": "array",
           "items": {
-						"$ref": "#/definitions/CustomBreakpoint"
-					}
-				}
-			},
-      "required": ["breakpoints"]
-		},
-		"UpdateCustomBreakpointsResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object"
-			}]
-		},
-		"CustomBreakpoint": {
-			"type": "object",
-			"description": "Custom breakpoint definition.",
-			"properties": {
-				"id": {
-					"type": "string",
-					"description": "Breakpoint id."
-				},
-				"enabled": {
-					"type": "boolean",
-					"description": "Whether breakpoint should be enabled or disabled."
+            "$ref": "#/definitions/CustomBreakpoint"
+          }
+        }
+      },
+      "required": [
+        "breakpoints"
+      ]
+    },
+    "UpdateCustomBreakpointsResponse": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Response"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "CustomBreakpoint": {
+      "type": "object",
+      "description": "Custom breakpoint definition.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Breakpoint id."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether breakpoint should be enabled or disabled."
         },
         "data": {
           "type": "any",
           "description": "Any custom data."
         }
-			},
-			"required": [ "id", "enabled" ]
-		}
-	}
+      },
+      "required": [
+        "id",
+        "enabled"
+      ]
+    },
+    "SetSourceBlackboxedRequest": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Request"
+        },
+        {
+          "type": "object",
+          "description": "Blackboxes/unblackboxes a particular source.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": [
+                "setSourceBlackboxed"
+              ]
+            },
+            "arguments": {
+              "$ref": "#/definitions/SetSourceBlackboxedRequestArguments"
+            }
+          },
+          "required": [
+            "command",
+            "arguments"
+          ]
+        }
+      ]
+    },
+    "SetSourceBlackboxedRequestArguments": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "The source to be blackboxed or unblackboxed.",
+          "$ref": "#/definitions/Source"
+        },
+        "blackboxed": {
+          "description": "Whether the source should blackboxed.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "blackboxed"
+      ]
+    },
+    "SetSourceBlackboxedResponse": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Response"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "ExecutionContextsChangedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Event"
+        },
+        {
+          "type": "object",
+          "description": "The event indicates that execution contexts have changed.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": [
+                "executionContextsChanged"
+              ]
+            },
+            "body": {
+              "type": "object",
+              "properties": {
+                "threadId": {
+                  "type": "number",
+                  "description": "Thread id which had execution contexts changed."
+                },
+                "contexts": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ExecutionContext"
+                  }
+                }
+              },
+              "required": [
+                "contexts", "threadId"
+              ]
+            }
+          },
+          "required": [
+            "event",
+            "body"
+          ]
+        }
+      ]
+    },
+    "ExecutionContext": {
+      "type": "object",
+      "description": "Execution context definition.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Context id."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable context name."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    }
+  }
 }
