@@ -9,7 +9,7 @@ import {StackTrace, StackFrame} from './stackTrace';
 import * as objectPreview from './objectPreview';
 import { VariableStore } from './variableStore';
 import Dap from '../dap/api';
-import { TargetManager } from './targetManager';
+import { Target } from './targetManager';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 
@@ -29,13 +29,12 @@ export interface PausedDetails {
 interface ExecutionContext {
   id: string;
   name: string;
-  origin: string;
 }
 
 export class Thread {
   private static _lastThreadId: number = 0;
 
-  private _targetManager: TargetManager;
+  private _target: Target;
   private _dap: Dap.Api;
   private _sourceContainer: SourceContainer;
   private _cdp: Cdp.Api;
@@ -47,11 +46,11 @@ export class Thread {
   private _pausedVariables: VariableStore | null = null;
   private _scripts: Map<string, Source> = new Map();
   private _supportsCustomBreakpoints: boolean;
-  private _executionContexts: Map<string, ExecutionContext> = new Map();
+  private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
   readonly replVariables: VariableStore;
 
-  constructor(targetManager: TargetManager, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
-    this._targetManager = targetManager;
+  constructor(target: Target, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
+    this._target = target;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
@@ -152,7 +151,7 @@ export class Thread {
       return false;
 
     const customBreakpointPromises: Promise<boolean>[] = [];
-    for (const id of this._targetManager.customBreakpoints())
+    for (const id of this._target.manager.customBreakpoints())
       customBreakpointPromises.push(this.updateCustomBreakpoint(id, true));
     // Do not fail for custom breakpoints not set, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
@@ -162,8 +161,8 @@ export class Thread {
       return true;
 
     this._state = 'normal';
-    console.assert(!this._targetManager.threads.has(this._threadId));
-    this._targetManager.threads.set(this._threadId, this);
+    console.assert(!this._target.manager.threads.has(this._threadId));
+    this._target.manager.threads.set(this._threadId, this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
@@ -171,25 +170,36 @@ export class Thread {
   }
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
-    const id = `${this._threadId}:${context.id}`;
-    const data = {...context, id};
-    this._executionContexts.set(id, data);
-    this._dap.executionContextCreated(data);
+    this._executionContexts.set(context.id, context);
+    this._reportExecutionContexts();
   }
 
   _executionContextDestroyed(contextId: number) {
-    const id = `${this._threadId}:${contextId}`;
-    this._executionContexts.delete(id);
-    this._dap.executionContextDestroyed({id});
+    this._executionContexts.delete(contextId);
+    this._reportExecutionContexts();
   }
 
   _executionContextsCleared() {
     this._removeAllScripts();
     if (this._pausedDetails)
       this._onResumed();
-    for (const context of this._executionContexts.values())
-      this._dap.executionContextDestroyed({id: context.id});
     this._executionContexts.clear();
+    this._reportExecutionContexts();
+  }
+
+  _reportExecutionContexts() {
+    const result: ExecutionContext[] = [];
+    for (const context of this._executionContexts.values()) {
+      const id = `${this._threadId}:${context.id}`;
+      let name = context.name || context.origin;
+      if (this._target.frameModel && context.auxData && context.auxData['isDefault'] && context.auxData['frameId']) {
+        const frame = this._target.frameModel.frameForId(context.auxData['frameId']);
+        if (frame)
+          name = frame.displayName();
+      }
+      result.push({ id, name });
+    }
+    this._dap.executionContextsChanged({ contexts: result });
   }
 
   _onResumed() {
@@ -203,8 +213,8 @@ export class Thread {
     this._executionContextsCleared();
     this._removeAllScripts();
     if (this._state === 'normal') {
-      console.assert(this._targetManager.threads.get(this._threadId) === this);
-      this._targetManager.threads.delete(this._threadId);
+      console.assert(this._target.manager.threads.get(this._threadId) === this);
+      this._target.manager.threads.delete(this._threadId);
       this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
     this._state = 'disposed';
@@ -246,7 +256,7 @@ export class Thread {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._targetManager.pauseOnExceptionsState()});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._target.manager.pauseOnExceptionsState()});
   }
 
   async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {

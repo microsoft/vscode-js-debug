@@ -87,11 +87,7 @@ export namespace Dap {
      */
     capabilities(params: CapabilitiesEventParams): void;
 
-    executionContextCreated(params: ExecutionContextCreatedParams): void;
-
-    executionContextDestroyed(params: ExecutionContextDestroyedParams): void;
-
-    executionContextsCleared(): void;
+    executionContextsChanged(params: ExecutionContextsChangedParams): void;
 
     /**
      * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
@@ -1453,14 +1449,11 @@ export namespace Dap {
   export interface UpdateCustomBreakpointsResult {
   }
 
-  export interface ExecutionContextCreatedParams {
-    id: string;
-    name: string;
-    origin: string;
-  }
-
-  export interface ExecutionContextDestroyedParams {
-    id: string;
+  export interface ExecutionContextsChangedParams {
+    contexts: Array<{
+      id: string;
+      name: string;
+    }>;
   }
 
   export interface VariablesParams {

@@ -181,22 +181,25 @@ const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class Target {
+  readonly manager: TargetManager;
+  readonly frameModel: FrameModel | undefined;
+  readonly parentTarget?: Target;
+
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
-  private _frameModel: FrameModel | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t:Target) => void;
 
-  readonly parentTarget?: Target;
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
   constructor(targetManager: TargetManager, sourceContainer: SourceContainer, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, dap: Dap.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
+    this.manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = new Thread(targetManager, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
+      this._thread = new Thread(this, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
     if (domDebuggerTypes.has(targetInfo.type))
-      this._frameModel = new FrameModel(cdp, parentTarget ? parentTarget._frameModel : undefined);
+      this.frameModel = new FrameModel(cdp, parentTarget ? parentTarget.frameModel : undefined);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
