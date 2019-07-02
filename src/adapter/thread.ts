@@ -27,6 +27,12 @@ export interface PausedDetails {
   exception?: Cdp.Runtime.RemoteObject;
 };
 
+interface ExecutionContext {
+  id: string;
+  name: string;
+  origin: string;
+}
+
 export class Thread {
   private static _lastThreadId: number = 0;
 
@@ -42,6 +48,7 @@ export class Thread {
   private _pausedVariables: VariableStore | null = null;
   private _scripts: Map<string, Source> = new Map();
   private _supportsCustomBreakpoints: boolean;
+  private _executionContexts: Map<string, ExecutionContext> = new Map();
   readonly replVariables: VariableStore;
 
   constructor(targetManager: TargetManager, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
@@ -109,18 +116,15 @@ export class Thread {
   }
 
   async initialize(): Promise<boolean> {
-    const onResumed = () => {
-      this._pausedDetails = null;
-      this._pausedVariables = null;
-      if (this._state === 'normal')
-        this._dap.continued({threadId: this._threadId});
-    };
-
+    this._cdp.Runtime.on('executionContextCreated', event => {
+      this._executionContextCreated(event.context);
+    });
+    this._cdp.Runtime.on('executionContextDestroyed', event => {
+      this._executionContextDestroyed(event.executionContextId);
+    });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      this._removeAllScripts();
-      if (this._pausedDetails)
-        onResumed();
       this.replVariables.clear();
+      this._executionContextsCleared();
     });
     this._cdp.Runtime.on('consoleAPICalled', event => {
       if (this._state === 'normal')
@@ -139,7 +143,7 @@ export class Thread {
       if (this._state === 'normal')
         this._reportPaused();
     });
-    this._cdp.Debugger.on('resumed', onResumed);
+    this._cdp.Debugger.on('resumed', () => this._onResumed);
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
     if (!await this._cdp.Debugger.enable({}))
       return false;
@@ -167,7 +171,37 @@ export class Thread {
     return true;
   }
 
+  _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
+    const id = `${this._threadId}:${context.id}`;
+    const data = {...context, id};
+    this._executionContexts.set(id, data);
+    this._dap.executionContextCreated(data);
+  }
+
+  _executionContextDestroyed(contextId: number) {
+    const id = `${this._threadId}:${contextId}`;
+    this._executionContexts.delete(id);
+    this._dap.executionContextDestroyed({id});
+  }
+
+  _executionContextsCleared() {
+    this._removeAllScripts();
+    if (this._pausedDetails)
+      this._onResumed();
+    for (const context of this._executionContexts.values())
+      this._dap.executionContextDestroyed({id: context.id});
+    this._executionContexts.clear();
+  }
+
+  _onResumed() {
+    this._pausedDetails = null;
+    this._pausedVariables = null;
+    if (this._state === 'normal')
+      this._dap.continued({threadId: this._threadId});
+  }
+
   async dispose() {
+    this._executionContextsCleared();
     this._removeAllScripts();
     if (this._state === 'normal') {
       console.assert(this._targetManager.threads.get(this._threadId) === this);

@@ -8,6 +8,7 @@ import * as Net from 'net';
 import DapConnection from './dap/connection';
 import {Adapter} from './adapter/adapter';
 import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
+import {registerExecutionContextsUI} from './ui/executionContextsUI';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new MockConfigurationProvider();
@@ -18,6 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(factory);
 
   registerCustomBreakpointsUI(context);
+  registerExecutionContextsUI(context);
 }
 
 export function deactivate() {

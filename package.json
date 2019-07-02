@@ -59,6 +59,10 @@
         {
           "id": "cdpBreakpoints",
           "name": "Browser breakpoints"
+        },
+        {
+          "id": "executionContexts",
+          "name": "Execution contexts"
         }
       ]
     },
