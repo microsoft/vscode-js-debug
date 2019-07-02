@@ -200,7 +200,7 @@ export class Thread {
       }
       result.push({ id, name });
     }
-    this._dap.executionContextsChanged({ contexts: result });
+    this._dap.executionContextsChanged({ threadId: this._threadId, contexts: result });
   }
 
   _onResumed() {

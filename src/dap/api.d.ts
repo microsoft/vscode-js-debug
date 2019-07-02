@@ -1451,6 +1451,7 @@ export namespace Dap {
   }
 
   export interface ExecutionContextsChangedParams {
+    threadId: number,
     contexts: Array<{
       id: string;
       name: string;
