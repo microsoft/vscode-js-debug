@@ -58,49 +58,66 @@
       "debug": [
         {
           "id": "cdpBreakpoints",
-          "name": "Break on"
+          "name": "Browser breakpoints"
         }
       ]
     },
     "commands": [
       {
-        "command": "cdp.enableCustomBreakpoint",
-        "title": "ENABLE"
+        "command": "cdp.addCustomBreakpoints",
+        "title": "Add Browser Breakpoint",
+        "icon": {
+          "light": "resources/add-light.svg",
+          "dark": "resources/add-dark.svg"
+        }
       },
       {
-        "command": "cdp.disableCustomBreakpoint",
-        "title": "DISABLE"
+        "command": "cdp.removeCustomBreakpoint",
+        "title": "Remove Browser Breakpoint",
+        "icon": {
+          "light": "resources/remove-light.svg",
+          "dark": "resources/remove-dark.svg"
+        }
       },
       {
-        "command": "cdp.enableCustomBreakpointGroup",
-        "title": "ENABLE ALL"
-      },
-      {
-        "command": "cdp.disableCustomBreakpointGroup",
-        "title": "DISABLE ALL"
+        "command": "cdp.removeAllCustomBreakpoints",
+        "title": "Remove All Browser Breakpoints",
+        "icon": {
+          "light": "resources/remove-all-light.svg",
+          "dark": "resources/remove-all-dark.svg"
+        }
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "cdp.addCustomBreakpoints",
+          "when": "view == cdpBreakpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "cdp.removeAllCustomBreakpoints",
+          "when": "view == cdpBreakpoints",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
-          "command": "cdp.enableCustomBreakpoint",
-          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointDisabled",
+          "command": "cdp.removeCustomBreakpoint",
+          "when": "view == cdpBreakpoints",
           "group": "inline"
         },
         {
-          "command": "cdp.disableCustomBreakpoint",
-          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointEnabled",
-          "group": "inline"
+          "command": "cdp.addCustomBreakpoints",
+          "when": "view == cdpBreakpoints"
         },
         {
-          "command": "cdp.enableCustomBreakpointGroup",
-          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupDisabled",
-          "group": "inline"
+          "command": "cdp.removeCustomBreakpoint",
+          "when": "view == cdpBreakpoints"
         },
         {
-          "command": "cdp.disableCustomBreakpointGroup",
-          "when": "view == cdpBreakpoints && viewItem == cdpCustomBreakpointGroupEnabled",
-          "group": "inline"
+          "command": "cdp.removeAllCustomBreakpoints",
+          "when": "view == cdpBreakpoints"
         }
       ]
     },
