@@ -8,11 +8,10 @@ import {Target, TargetEvents, TargetManager} from './targetManager';
 import findChrome from '../chrome/findChrome';
 import * as launcher from '../chrome/launcher';
 import * as completionz from './completions';
-import {Thread} from './thread';
-import {StackFrame, StackTrace} from './stackTrace';
+import {StackTrace} from './stackTrace';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
-import {VariableStore} from './variableStore';
+import {VariableStore, ScopeRef} from './variableStore';
 import {SourceContainer, LaunchParams, SourcePathResolver} from './source';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -63,6 +62,7 @@ export class Adapter {
     this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('updateCustomBreakpoints', params => this._onUpdateCustomBreakpoints(params));
+    this._dap.on('setVariable', params => this._onSetVariable(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
@@ -124,8 +124,8 @@ export class Adapter {
         {filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false},
       ],
       supportsStepBack: false,
-      supportsSetVariable: false,
-      supportsRestartFrame: false,
+      supportsSetVariable: true,
+      supportsRestartFrame: true,
       supportsGotoTargetsRequest: false,
       supportsStepInTargetsRequest: false,
       supportsCompletionsRequest: true,
@@ -274,10 +274,11 @@ export class Adapter {
       return createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
 
     const from = params.startFrame || 0;
-    const to = params.levels ? from + params.levels : from + 1;
+    let to = params.levels ? from + params.levels : from + 1;
     const frames = await details.stackTrace.loadFrames(to);
+    to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to && index < frames.length; index++) {
+    for (let index = from; index < to; index++) {
       const stackFrame = frames[index];
       const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
       result.push({
@@ -310,7 +311,8 @@ export class Adapter {
     if (!stackFrame.scopeChain)
       return {scopes: []};
     const scopes: Dap.Scope[] = [];
-    for (const scope of stackFrame.scopeChain) {
+    for (let index = 0; index < stackFrame.scopeChain.length; index++) {
+      const scope = stackFrame.scopeChain[index];
       let name: string = '';
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
       switch (scope.type) {
@@ -347,7 +349,8 @@ export class Adapter {
           name = localize('scope.module', 'Module');
           break;
       }
-      const variable = await thread.pausedVariables()!.createVariable(scope.object);
+      const scopeRef: ScopeRef = {callFrameId: stackFrame.callFrameId!, scopeNumber: index};
+      const variable = await thread.pausedVariables()!.createScope(scope.object, scopeRef);
       const uiStartLocation = scope.startLocation
         ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
         : undefined;
@@ -355,7 +358,7 @@ export class Adapter {
         ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
         : undefined;
       if (scope.name && scope.type === 'closure') {
-        name = localize('scope.closureNamed', 'Closure (${0})', scope.name);
+        name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
       } else if (scope.name) {
         name = scope.name;
       }
@@ -376,19 +379,21 @@ export class Adapter {
     return {scopes};
   }
 
-  async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    let variableStore: VariableStore | null = null;
+  _findVariableStore(variablesReference: number): VariableStore | null {
     for (const target of this._targetManager.targets()) {
       const thread = target.thread()
       if (!thread)
         continue;
-      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(params))
-        variableStore = thread.pausedVariables();
-      if (thread.replVariables.hasVariables(params))
-        variableStore = thread.replVariables;
-      if (variableStore)
-        break;
+      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
+        return thread.pausedVariables();
+      if (thread.replVariables.hasVariables(variablesReference))
+        return thread.replVariables;
     }
+    return null;
+  }
+
+  async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
+    let variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
       return {variables: []};
     return {variables: await variableStore.getVariables(params)};
@@ -413,7 +418,7 @@ export class Adapter {
     });
 
     if (!response)
-      return createSilentError('Unable to evaluate');
+      return createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
     const thread = this._mainTarget.thread()!;
     return this._evaluateResult(thread.replVariables, response.result, args.context);
   }
@@ -487,6 +492,16 @@ export class Adapter {
   async _onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
     await this._targetManager.updateCustomBreakpoints(params.breakpoints);
     return {};
+  }
+
+  async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
+    let variableStore = this._findVariableStore(params.variablesReference);
+    if (!variableStore)
+      return createSilentError(localize('error.variableNotFound', 'Variable not found'));
+    const result = await variableStore.setVariable(params);
+    if (!result)
+      return createSilentError(localize('error.setVariableDidFail', 'Unable to set variable'));
+    return result;
   }
 }
 

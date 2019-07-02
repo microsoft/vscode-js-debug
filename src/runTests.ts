@@ -7,6 +7,8 @@ async function runTests() {
   await test.suite('infra');
   await test.suite('stepping/pause');
   await test.suite('stepping/threads');
+  await test.suite('stepping/scopes');
+  await test.suite('evaluate/evaluate');
   await test.report();
   process.exit(0);
 }
