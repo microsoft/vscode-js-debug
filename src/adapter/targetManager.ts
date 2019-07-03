@@ -220,7 +220,7 @@ export class TargetManager extends EventEmitter {
       this._mainTarget = target;
     this.emit(TargetEvents.TargetAttached, target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
-    this._dumpTargets();
+    this._targetStructureChanged();
   }
 
   async _detachedFromTarget(targetId: string) {
@@ -241,7 +241,7 @@ export class TargetManager extends EventEmitter {
       this._mainTarget = undefined;
     this.emit(TargetEvents.TargetDetached, target);
     debugTarget(`Detached from target ${targetId}`);
-    this._dumpTargets();
+    this._targetStructureChanged();
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
@@ -249,13 +249,11 @@ export class TargetManager extends EventEmitter {
     if (!target)
       return;
     target._updateFromInfo(targetInfo);
-    this._dumpTargets();
+    this._targetStructureChanged();
   }
 
-  _dumpTargets() {
-    const target = this.mainTarget();
-    if (target)
-      target._dumpTarget();
+  _targetStructureChanged() {
+    this.reportExecutionContexts();
   }
 }
 
