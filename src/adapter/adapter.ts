@@ -204,7 +204,7 @@ export class Adapter {
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
     for (const thread of this._targetManager.threads.values())
-      threads.push({id: thread.threadId(), name: thread.threadName()});
+      threads.push({id: thread.threadId(), name: thread.threadNameWithIndentation()});
     return {threads};
   }
 
