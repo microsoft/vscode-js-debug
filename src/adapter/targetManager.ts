@@ -10,7 +10,7 @@ import { EventEmitter } from 'events';
 import { Thread } from './thread';
 import { SourceContainer } from './source';
 import Dap from '../dap/api';
-import { FrameModel } from '../cdp/frameModel';
+import { FrameModel, Frame } from '../cdp/frameModel';
 
 const debugTarget = debug('target');
 
@@ -83,6 +83,68 @@ export class TargetManager extends EventEmitter {
 
   customBreakpoints(): Set<string> {
     return this._customBreakpoints;
+  }
+
+  reportExecutionContexts() {
+    const reported: Set<string> = new Set();
+    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
+      reported.add(thread.threadId() + ':' + context.id);
+      return {
+        contextId: context.id,
+        name: name || context.name || thread.threadName(),
+        threadId: thread.threadId(),
+        children: []
+      };
+    };
+
+    const mainForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext> = new Map();
+    const worldsForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext[]> = new Map();
+    for (const thread of this.threads.values()) {
+      for (const context of thread.executionContexts()) {
+        const frameId = context.auxData ? context.auxData['frameId'] : null;
+        const isDefault = context.auxData ? context.auxData['isDefault'] : false;
+        const frame = frameId ? this.frameModel.frameForId(frameId) : null;
+        if (frameId && isDefault) {
+          mainForFrameId.set(frameId, toDap(thread, context, frame!.displayName()));
+        } else if (frameId) {
+          let contexts = worldsForFrameId.get(frameId);
+          if (!contexts) {
+            contexts = [];
+            worldsForFrameId.set(frameId, contexts);
+          }
+          contexts.push(toDap(thread, context));
+        }
+      }
+    }
+
+    const visitFrames = (frame: Frame, container: Dap.ExecutionContext[]) => {
+      const main = mainForFrameId.get(frame.id);
+      const worlds = worldsForFrameId.get(frame.id) || [];
+      if (main) {
+        main.children.push(...worlds);
+        container.push(main);
+        for (const childFrame of frame.childFrames())
+          visitFrames(childFrame, main.children);
+      } else {
+        container.push(...worlds);
+        for (const childFrame of frame.childFrames())
+          visitFrames(childFrame, container);
+      }
+    };
+
+    const result: Dap.ExecutionContext[] = [];
+    const mainFrame = this.frameModel.mainFrame();
+    if (mainFrame)
+      visitFrames(mainFrame, result);
+
+    for (const thread of this.threads.values()) {
+      for (const context of thread.executionContexts()) {
+        if (reported.has(thread.threadId() + ':' + context.id))
+          continue;
+        result.push(toDap(thread, context));
+      }
+    }
+    this._dap.executionContextsChanged({ contexts: result });
   }
 
   _attachToFirstPage() {
