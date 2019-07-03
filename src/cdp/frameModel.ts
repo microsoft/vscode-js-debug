@@ -10,102 +10,72 @@ export const FrameModelEvents = {
   FrameAdded: Symbol('FrameAdded'),
   FrameDetached: Symbol('FrameDetached'),
   FrameNavigated: Symbol('FrameNavigated'),
-  FrameWillNavigate: Symbol('FrameWillNavigate'),
-  InspectedURLChanged: Symbol('InspectedURLChanged'),
   MainFrameNavigated: Symbol('MainFrameNavigated'),
 };
 
 export class FrameModel extends EventEmitter {
-  private _cdp: Cdp.Api;
-  private _cachedResourcesProcessed = false;
   private _mainFrame: Frame | null = null;
 
   _frames: Map<string, Frame> = new Map();
-  _parentModel: FrameModel | undefined;
 
-  constructor(cdp: Cdp.Api, parentModel: FrameModel | undefined) {
-    super();
-    this._cdp = cdp;
-    this._parentModel = parentModel;
-    this._cdp.Page.enable({});
-    this._cdp.Page.getResourceTree({}).then(r => {
+  addTarget(cdp: Cdp.Api) {
+    cdp.Page.enable({});
+    cdp.Page.getResourceTree({}).then(r => {
       if (r)
-        this._processCachedResources(r.frameTree);
-    });
-
-    this._cdp.Page.on('frameAttached', event => {
-      this._frameAttached(event.frameId, event.parentFrameId);
-    });
-    this._cdp.Page.on('frameNavigated', event => {
-      this._frameNavigated(event.frame);
-    });
-    this._cdp.Page.on('frameDetached', event => {
-      this._frameDetached(event.frameId);
+        this._processCachedResources(cdp, r.frameTree);
     });
   }
 
-  _processCachedResources(mainFramePayload: Cdp.Page.FrameResourceTree | null) {
+  _processCachedResources(cdp: Cdp.Api, mainFramePayload: Cdp.Page.FrameResourceTree | null) {
     if (mainFramePayload) {
-      this._addFramesRecursively(null, mainFramePayload);
-      this.emit(FrameModelEvents.InspectedURLChanged, mainFramePayload.frame.url);
+      const parentFrame = mainFramePayload.frame.parentId ? this._frames.get(mainFramePayload.frame.parentId) : undefined;
+      this._addFramesRecursively(cdp, mainFramePayload, parentFrame);
     }
-    this._cachedResourcesProcessed = true;
+    cdp.Page.on('frameAttached', event => {
+      this._frameAttached(cdp, event.frameId, event.parentFrameId);
+    });
+    cdp.Page.on('frameNavigated', event => {
+      this._frameNavigated(cdp, event.frame);
+    });
+    cdp.Page.on('frameDetached', event => {
+      this._frameDetached(cdp, event.frameId);
+    });
+    this._frameStructureUpdated();
   }
 
-  _addFrame(frame: Frame, aboutToNavigate?: boolean) {
+  _addFrame(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrame?: Frame): Frame {
+    const frame = new Frame(this, cdp, frameId, parentFrame);
     this._frames.set(frame.id, frame);
     if (frame.isMainFrame())
       this._mainFrame = frame;
     this.emit(FrameModelEvents.FrameAdded, frame);
-  }
-
-  _frameAttached(frameId: Cdp.Page.FrameId, parentFrameId: Cdp.Page.FrameId | null): Frame | null {
-    const parentFrame = parentFrameId ? (this._frames.get(parentFrameId) || null) : null;
-    // Do nothing unless cached resource tree is processed - it will overwrite everything.
-    if (!this._cachedResourcesProcessed && parentFrame)
-      return null;
-    if (this._frames.has(frameId))
-      return null;
-
-    const frame = new Frame(this, parentFrame, frameId, null);
-    if (parentFrameId && !parentFrame)
-      frame._crossTargetParentFrameId = parentFrameId;
-    if (frame.isMainFrame() && this._mainFrame) {
-      // Navigation to the new backend process.
-      this._frameDetached(this._mainFrame.id);
-    }
-    this._addFrame(frame, true);
     return frame;
   }
 
-  _frameNavigated(framePayload: Cdp.Page.Frame) {
-    const parentFrame = framePayload.parentId ? (this._frames.get(framePayload.parentId) || null) : null;
-    // Do nothing unless cached resource tree is processed - it will overwrite everything.
-    if (!this._cachedResourcesProcessed && parentFrame)
-      return;
+  _frameAttached(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId: Cdp.Page.FrameId | null): Frame | null {
+    if (this._frames.has(frameId))
+      return null;
+
+    const parentFrame = parentFrameId ? (this._frames.get(parentFrameId)) : undefined;
+    const frame = this._addFrame(cdp, frameId, parentFrame);
+    this._frameStructureUpdated();
+    return frame;
+  }
+
+  _frameNavigated(cdp: Cdp.Api, framePayload: Cdp.Page.Frame) {
     let frame: Frame | null = this._frames.get(framePayload.id) || null;
     if (!frame) {
       // Simulate missed "frameAttached" for a main frame navigation to the new backend process.
-      frame = this._frameAttached(framePayload.id, framePayload.parentId || '') as Frame;
+      frame = this._frameAttached(cdp, framePayload.id, framePayload.parentId || '') as Frame;
       console.assert(frame);
     }
 
-    this.emit(FrameModelEvents.FrameWillNavigate, frame);
     frame._navigate(framePayload);
     this.emit(FrameModelEvents.FrameNavigated, frame);
-
-    if (frame.isMainFrame())
-      this.emit(FrameModelEvents.MainFrameNavigated, frame);
-
-    if (frame.isMainFrame())
-      this.emit(FrameModelEvents.InspectedURLChanged, frame.url);
+    this._frameStructureUpdated();
   }
 
-  _frameDetached(frameId: Cdp.Page.FrameId) {
-    // Do nothing unless cached resource tree is processed - it will overwrite everything.
-    if (!this._cachedResourcesProcessed)
-      return;
-
+  _frameDetached(cdp: Cdp.Api, frameId: Cdp.Page.FrameId) {
     const frame = this._frames.get(frameId);
     if (!frame)
       return;
@@ -114,6 +84,7 @@ export class FrameModel extends EventEmitter {
       frame.parentFrame._removeChildFrame(frame);
     else
       frame._remove();
+    this._frameStructureUpdated();
   }
 
   frameForId(frameId: Cdp.Page.FrameId): Frame | undefined {
@@ -124,58 +95,58 @@ export class FrameModel extends EventEmitter {
     return Array.from(this._frames.values());
   }
 
-  _addFramesRecursively(parentFrame: Frame | null, frameTreePayload: Cdp.Page.FrameResourceTree) {
+  _addFramesRecursively(cdp: Cdp.Api, frameTreePayload: Cdp.Page.FrameResourceTree, parentFrame?: Frame) {
     const framePayload = frameTreePayload.frame;
-    const frame = new Frame(this, parentFrame, framePayload.id, framePayload);
-    if (!parentFrame && framePayload.parentId)
-      frame._crossTargetParentFrameId = framePayload.parentId;
-    this._addFrame(frame);
-
+    let frame = this._frames.get(framePayload.id);
+    if (frame) {
+      frame._navigate(framePayload);
+      this.emit(FrameModelEvents.FrameNavigated, frame);
+    } else {
+      frame = this._addFrame(cdp, framePayload.id, parentFrame);
+      frame._navigate(framePayload);
+    }
     for (let i = 0; frameTreePayload.childFrames && i < frameTreePayload.childFrames.length; ++i)
-      this._addFramesRecursively(frame, frameTreePayload.childFrames[i]);
+      this._addFramesRecursively(cdp, frameTreePayload.childFrames[i], frame);
+  }
+
+  _frameStructureUpdated() {
+    const dump = (indent: string, frame: Frame) => {
+      for (const child of frame.childFrames.values())
+        dump('  ' + indent, child);
+    };
+    if (this._mainFrame)
+      dump('', this._mainFrame);
   }
 }
 
 class Frame {
-  _crossTargetParentFrameId: string | null;
-  readonly parentFrame: Frame | null;
-  readonly childFrames: Frame[] = [];
+  readonly cdp: Cdp.Api;
+  readonly parentFrame?: Frame;
+  readonly childFrames: Map<Cdp.Page.FrameId, Frame> = new Map();
   readonly id: string;
-  private _model: FrameModel;
+  readonly model: FrameModel;
+
   private _url: string;
   private _name: string | undefined;
   private _securityOrigin: string;
   private _unreachableUrl: string;
 
-  constructor(model: FrameModel, parentFrame: Frame | null, frameId: Cdp.Page.FrameId, payload: Cdp.Page.Frame | null) {
-    this._model = model;
+  constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrame?: Frame) {
+    this.cdp = cdp;
+    this.model = model;
     this.parentFrame = parentFrame;
     this.id = frameId;
     this._url = '';
-    this._crossTargetParentFrameId = null;
-
-    if (payload) {
-      this._name = payload.name;
-      this._url = payload.url;
-      this._securityOrigin = payload.securityOrigin;
-      this._unreachableUrl = payload.unreachableUrl || '';
-    }
-
     if (this.parentFrame)
-      this.parentFrame.childFrames.push(this);
+      this.parentFrame.childFrames.set(this.id, this);
   }
 
-
-  _navigate(framePayload: Cdp.Page.Frame) {
-    this._name = framePayload.name;
-    this._url = framePayload.url;
-    this._securityOrigin = framePayload.securityOrigin;
-    this._unreachableUrl = framePayload.unreachableUrl || '';
+  _navigate(payload: Cdp.Page.Frame) {
+    this._name = payload.name;
+    this._url = payload.url;
+    this._securityOrigin = payload.securityOrigin;
+    this._unreachableUrl = payload.unreachableUrl || '';
     this._removeChildFrames();
-  }
-
-  frameModel(): FrameModel {
-    return this._model;
   }
 
   name(): string {
@@ -194,50 +165,30 @@ class Frame {
     return this._unreachableUrl;
   }
 
-  crossTargetParentFrame(): Frame | null {
-    if (!this._crossTargetParentFrameId)
-      return null;
-    if (!this._model._parentModel)
-      return null;
-    // Note that parent model has already processed cached resources:
-    // - when parent target was created, we issued getResourceTree call;
-    // - strictly after we issued setAutoAttach call;
-    // - both of them were handled in renderer in the same order;
-    // - cached resource tree got processed on parent model;
-    // - child target was created as a result of setAutoAttach call.
-    return this._model._parentModel.frameForId(this._crossTargetParentFrameId) || null;
-  }
-
   isMainFrame(): boolean {
     return !this.parentFrame;
   }
 
-  isTopFrame() {
-    return !this.parentFrame && !this._crossTargetParentFrameId;
-  }
-
   _removeChildFrame(frame: Frame) {
-    const index = this.childFrames.indexOf(frame);
-    if (index !== -1)
-      this.childFrames.splice(index, 1);
+    this.childFrames.delete(frame.id);
     frame._remove();
   }
 
   _removeChildFrames() {
-    const frames = this.childFrames.slice();
-    this.childFrames.length = 0;
+    const frames = Array.from(this.childFrames.values());
+    this.childFrames.clear();
     for (let i = 0; i < frames.length; ++i)
       frames[i]._remove();
   }
 
   _remove() {
     this._removeChildFrames();
-    this._model._frames.delete(this.id);
-    this._model.emit(FrameModelEvents.FrameDetached, this);
+    this.model._frames.delete(this.id);
+    this.model.emit(FrameModelEvents.FrameDetached, this);
   }
 
   displayName(): string {
-    if (this.isTopFrame())
+    if (this.isMainFrame())
       return 'top';
     const subtitle = displayName(this._url);
     if (subtitle) {

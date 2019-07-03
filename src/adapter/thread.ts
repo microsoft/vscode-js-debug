@@ -187,8 +187,8 @@ export class Thread {
     for (const context of this._executionContexts.values()) {
       const id = `${this._threadId}:${context.id}`;
       let name = context.name || context.origin;
-      if (this._target.frameModel && context.auxData && context.auxData['isDefault'] && context.auxData['frameId']) {
-        const frame = this._target.frameModel.frameForId(context.auxData['frameId']);
+      if (context.auxData && context.auxData['isDefault'] && context.auxData['frameId']) {
+        const frame = this._target.manager.frameModel.frameForId(context.auxData['frameId']);
         if (frame)
           name = frame.displayName();
       }

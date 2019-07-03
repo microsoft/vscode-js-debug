@@ -31,6 +31,7 @@ export class TargetManager extends EventEmitter {
   private _dap: Dap.Api;
   private _sourceContainer: SourceContainer;
   public threads: Map<number, Thread> = new Map();
+  readonly frameModel = new FrameModel();
 
   constructor(connection: CdpConnection, dap: Dap.Api, sourceContainer: SourceContainer) {
     super();
@@ -182,7 +183,6 @@ const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class Target {
   readonly manager: TargetManager;
-  readonly frameModel: FrameModel | undefined;
   readonly parentTarget?: Target;
 
   private _cdp: Cdp.Api;
@@ -199,7 +199,7 @@ export class Target {
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
     if (domDebuggerTypes.has(targetInfo.type))
-      this.frameModel = new FrameModel(cdp, parentTarget ? parentTarget.frameModel : undefined);
+      targetManager.frameModel.addTarget(cdp);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
