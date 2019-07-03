@@ -17,7 +17,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 
-let localize = nls.loadMessageBundle();
+const localize = nls.loadMessageBundle();
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -61,7 +61,7 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
-    this._dap.on('updateCustomBreakpoints', params => this._onUpdateCustomBreakpoints(params));
+    this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
     this._dap.on('setSourceBlackboxed', params => this._onSetSourceBlackboxed(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
@@ -80,8 +80,6 @@ export class Adapter {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
-    if (params.locale)
-      localize = nls.config({locale: params.locale})();
 
     const executablePath = findChrome().pop();
     if (!executablePath)
@@ -151,6 +149,8 @@ export class Adapter {
   }
 
   async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<ConfigurationDoneResult> {
+    // TODO(dgozman): assuming first page is our main target breaks multiple debugging sessions
+    // sharing the browser instance.
     this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
       this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f)) as Target;
@@ -490,7 +490,7 @@ export class Adapter {
     };
   }
 
-  async _onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
+  async onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
     await this._targetManager.updateCustomBreakpoints(params.breakpoints);
     return {};
   }
