@@ -98,7 +98,9 @@ export class TargetManager extends EventEmitter {
       };
     };
 
+    // Go over the contexts, bind them to frames.
     const mainForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext> = new Map();
+    const mainForTarget: Map<Target, Dap.ExecutionContext> = new Map();
     const worldsForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext[]> = new Map();
     for (const thread of this.threads.values()) {
       for (const context of thread.executionContexts()) {
@@ -106,7 +108,10 @@ export class TargetManager extends EventEmitter {
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
         const frame = frameId ? this.frameModel.frameForId(frameId) : null;
         if (frameId && isDefault) {
-          mainForFrameId.set(frameId, toDap(thread, context, frame!.displayName()));
+          const name = frame!.parentFrame ? frame!.displayName() : thread.threadName();
+          const dapContext = toDap(thread, context, name);
+          mainForFrameId.set(frameId, dapContext);
+          mainForTarget.set(thread.target, dapContext);
         } else if (frameId) {
           let contexts = worldsForFrameId.get(frameId);
           if (!contexts) {
@@ -118,6 +123,7 @@ export class TargetManager extends EventEmitter {
       }
     }
 
+    // Visit frames and use bindings above to build context tree.
     const visitFrames = (frame: Frame, container: Dap.ExecutionContext[]) => {
       const main = mainForFrameId.get(frame.id);
       const worlds = worldsForFrameId.get(frame.id) || [];
@@ -138,11 +144,24 @@ export class TargetManager extends EventEmitter {
     if (mainFrame)
       visitFrames(mainFrame, result);
 
+    // Traverse remaining contexts, use target hierarchy.
     for (const thread of this.threads.values()) {
+      let container = result;
+
+      // Which target should own the context?
+      for (let target: Target| undefined = thread.target; target; target = target.parentTarget) {
+        const parentContext = mainForTarget.get(target);
+        if (parentContext) {
+          container = parentContext.children;
+          break;
+        }
+      }
+
+      // Put all contexts there.
       for (const context of thread.executionContexts()) {
         if (reported.has(thread.threadId() + ':' + context.id))
           continue;
-        result.push(toDap(thread, context));
+        container.push(toDap(thread, context));
       }
     }
     this._dap.executionContextsChanged({ contexts: result });
@@ -307,7 +326,7 @@ export class Target {
     else if (targetInfo.type === 'worker')
       icon = '\uD83D\uDC77 ';
 
-    let threadName = indentation + icon;
+    let threadName = icon;
     try {
       const parsedURL = new URL(targetInfo.url);
       if (parsedURL.pathname === '/')
@@ -318,7 +337,7 @@ export class Target {
       threadName += targetInfo.url;
     }
 
-    this._thread.setThreadDetails(threadName, targetInfo.url);
+    this._thread.setThreadDetails(threadName, indentation + threadName, targetInfo.url);
   }
 
   async _dispose() {

@@ -30,23 +30,24 @@ export interface PausedDetails {
 export class Thread {
   private static _lastThreadId: number = 0;
 
-  private _target: Target;
   private _dap: Dap.Api;
   private _sourceContainer: SourceContainer;
   private _cdp: Cdp.Api;
   private _state: ('init' | 'normal' | 'disposed') = 'init';
   private _threadId: number;
   private _threadName: string;
+  private _threadNameWithIndentation: string;
   private _threadUrl: string;
   private _pausedDetails: PausedDetails | null;
   private _pausedVariables: VariableStore | null = null;
   private _scripts: Map<string, Source> = new Map();
   private _supportsCustomBreakpoints: boolean;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
+  readonly target: Target;
   readonly replVariables: VariableStore;
 
   constructor(target: Target, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
-    this._target = target;
+    this.target = target;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
@@ -67,6 +68,10 @@ export class Thread {
 
   threadName(): string {
     return this._threadName;
+  }
+
+  threadNameWithIndentation(): string {
+    return this._threadNameWithIndentation;
   }
 
   pausedDetails(): PausedDetails | null {
@@ -151,7 +156,7 @@ export class Thread {
       return false;
 
     const customBreakpointPromises: Promise<boolean>[] = [];
-    for (const id of this._target.manager.customBreakpoints())
+    for (const id of this.target.manager.customBreakpoints())
       customBreakpointPromises.push(this.updateCustomBreakpoint(id, true));
     // Do not fail for custom breakpoints not set, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
@@ -161,8 +166,8 @@ export class Thread {
       return true;
 
     this._state = 'normal';
-    console.assert(!this._target.manager.threads.has(this._threadId));
-    this._target.manager.threads.set(this._threadId, this);
+    console.assert(!this.target.manager.threads.has(this._threadId));
+    this.target.manager.threads.set(this._threadId, this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
@@ -171,12 +176,12 @@ export class Thread {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
-    this._target.manager.reportExecutionContexts();
+    this.target.manager.reportExecutionContexts();
   }
 
   _executionContextDestroyed(contextId: number) {
     this._executionContexts.delete(contextId);
-    this._target.manager.reportExecutionContexts();
+    this.target.manager.reportExecutionContexts();
   }
 
   _executionContextsCleared() {
@@ -184,7 +189,7 @@ export class Thread {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this._target.manager.reportExecutionContexts();
+    this.target.manager.reportExecutionContexts();
   }
 
   _onResumed() {
@@ -198,16 +203,17 @@ export class Thread {
     this._executionContextsCleared();
     this._removeAllScripts();
     if (this._state === 'normal') {
-      console.assert(this._target.manager.threads.get(this._threadId) === this);
-      this._target.manager.threads.delete(this._threadId);
+      console.assert(this.target.manager.threads.get(this._threadId) === this);
+      this.target.manager.threads.delete(this._threadId);
       this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
     this._state = 'disposed';
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
   }
 
-  setThreadDetails(threadName: string, threadUrl: string) {
+  setThreadDetails(threadName: string, threadNameWithIndentation: string, threadUrl: string) {
     this._threadName = threadName;
+    this._threadNameWithIndentation = threadNameWithIndentation;
     this._threadUrl = threadUrl;
     debugThread(`Thread renamed #${this._threadId}: ${this._threadName}`);
   }
@@ -241,7 +247,7 @@ export class Thread {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this._target.manager.pauseOnExceptionsState()});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this.target.manager.pauseOnExceptionsState()});
   }
 
   async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
