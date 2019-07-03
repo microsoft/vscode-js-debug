@@ -5,6 +5,8 @@
 import * as vscode from 'vscode';
 import {CustomBreakpoint, customBreakpoints} from '../adapter/customBreakpoints';
 import Dap from '../dap/api';
+import {AdapterFactory} from '../adapterFactory';
+import {Adapter} from '../adapter/adapter';
 
 class Breakpoint {
   id: string;
@@ -29,27 +31,23 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   private _onDidChangeTreeData: vscode.EventEmitter<Breakpoint | undefined> = new vscode.EventEmitter<Breakpoint | undefined>();
   readonly onDidChangeTreeData: vscode.Event<Breakpoint | undefined> = this._onDidChangeTreeData.event;
 
+  private _factory: AdapterFactory;
   breakpoints: Breakpoint[];
-  memento: vscode.Memento;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.memento = context.workspaceState;
-    const enabled = new Set(this.memento.get<string[]>('cdp.customBreakpoints', []));
+  constructor(factory: AdapterFactory) {
+    this._factory = factory;
     this.breakpoints = [];
     for (const cb of customBreakpoints().values())
-      this.breakpoints.push(new Breakpoint(cb, enabled.has(cb.id)));
+      this.breakpoints.push(new Breakpoint(cb, false));
 
-    const sendState = (session: vscode.DebugSession) => {
-      if (session.type !== 'cdp')
-        return;
+    const sendState = (adapter: Adapter) => {
       const params: Dap.UpdateCustomBreakpointsParams = {
         breakpoints: this._collectState().map(id => ({id, enabled: true}))
       };
-      session.customRequest('updateCustomBreakpoints', params);
+      adapter.onUpdateCustomBreakpoints(params);
     };
-    context.subscriptions.push(vscode.debug.onDidStartDebugSession(sendState));
-    if (vscode.debug.activeDebugSession)
-      sendState(vscode.debug.activeDebugSession);
+    factory.onAdapterAdded(sendState);
+    factory.adapters().forEach(sendState);
   }
 
   getTreeItem(item: Breakpoint): vscode.TreeItem {
@@ -87,13 +85,8 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
         b.enabled = state.get(b.id) as boolean;
     }
 
-    this.memento.update('cdp.customBreakpoints', this._collectState());
-
-    const session = vscode.debug.activeDebugSession;
-    if (session && session.type === 'cdp') {
-      const params: Dap.UpdateCustomBreakpointsParams = {breakpoints: payload};
-      session.customRequest('updateCustomBreakpoints', params);
-    }
+    const params: Dap.UpdateCustomBreakpointsParams = {breakpoints: payload};
+    this._factory.adapters().forEach(adapter => adapter.onUpdateCustomBreakpoints(params));
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -102,11 +95,11 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   }
 }
 
-export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
-  const provider = new BreakpointsDataProvider(context);
+export function registerCustomBreakpointsUI(factory: AdapterFactory) {
+  const provider = new BreakpointsDataProvider(factory);
 
   vscode.window.createTreeView('cdpBreakpoints', { treeDataProvider: provider });
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.addCustomBreakpoints', e => {
+  factory.context.subscriptions.push(vscode.commands.registerCommand('cdp.addCustomBreakpoints', e => {
     const quickPick = vscode.window.createQuickPick();
     const items = provider.breakpoints.filter(b => !b.enabled);
     quickPick.items = items;
@@ -118,11 +111,11 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
     quickPick.show();
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.removeAllCustomBreakpoints', e => {
+  factory.context.subscriptions.push(vscode.commands.registerCommand('cdp.removeAllCustomBreakpoints', e => {
     provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.removeCustomBreakpoint', (treeItem: vscode.TreeItem) => {
+  factory.context.subscriptions.push(vscode.commands.registerCommand('cdp.removeCustomBreakpoint', (treeItem: vscode.TreeItem) => {
     provider.removeBreakpoints([treeItem.id as string]);
   }));
 }
