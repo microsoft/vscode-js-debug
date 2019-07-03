@@ -30,6 +30,8 @@ export interface InlineSourceRange {
   endColumn: number;
 };
 
+type ResolvedPath = {name: string, absolutePath?: string};
+
 export class SourcePathResolver {
   private _webRoot?: string;
   private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
@@ -70,10 +72,10 @@ export class SourcePathResolver {
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
   }
 
-  resolveSourcePath(url?: string): {absolutePath?: string, name: string} {
+  resolveSourcePath(url?: string): ResolvedPath {
     if (!url)
       return {name: ''};
-    let absolutePath = this._resolveAbsoluteSourcePath(url);
+    let absolutePath = this._resolveAbsolutePath(url);
     if (!absolutePath)
       return {name: path.basename(url || '')};
     const name = path.basename(absolutePath);
@@ -82,7 +84,7 @@ export class SourcePathResolver {
     return {absolutePath, name};
   }
 
-  _resolveAbsoluteSourcePath(url: string): string | undefined {
+  _resolveAbsolutePath(url: string): string | undefined {
     // TODO(dgozman): make sure all platform paths are supported.
     if (url.startsWith('file://'))
       return url.substring(7);
@@ -112,15 +114,14 @@ export class Source {
   private static _lastSourceReference = 0;
 
   private _sourceReference: number;
-  private _sourceContainer: SourceContainer;
-  private _url: string;
+  _url: string;
   private _content?: Promise<string | undefined>;
   private _contentGetter: SourceContentGetter;
   _inlineSourceRange?: InlineSourceRange;
+  _resolvedPath?: ResolvedPath;
 
-  constructor(sourceContainer: SourceContainer, url: string, contentGetter: SourceContentGetter) {
+  constructor(url: string, contentGetter: SourceContentGetter) {
     this._sourceReference = ++Source._lastSourceReference;
-    this._sourceContainer = sourceContainer;
     this._url = url;
     this._contentGetter = contentGetter;
   }
@@ -149,9 +150,8 @@ export class Source {
 
   toDap(): Dap.Source {
     // TODO(dgozman): provide Dap.Source.origin?
-    let {absolutePath, name} = this._sourceContainer._sourcePathResolver.resolveSourcePath(this._url);
+    let {absolutePath, name} = this._resolvedPath!;
     if (absolutePath) {
-      this._sourceContainer._sourceReportedByPath(this, absolutePath);
       return {
         name: name || '<anonymous>',
         path: absolutePath,
@@ -171,7 +171,7 @@ export class Source {
   }
 };
 
-type SourceData = {source: Source, sourceMapUrl?: string, reportedPath?: string};
+type SourceData = {source: Source, sourceMapUrl?: string};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
 type SourceMapSourceData = {counter: number, source: Source};
 
@@ -210,12 +210,12 @@ export class SourceContainer extends EventEmitter {
   }
 
   createSource(url: string, contentGetter: SourceContentGetter): Source {
-    return new Source(this, url, contentGetter);
+    return new Source(url, contentGetter);
   }
 
   initialize() {
     for (const sourceData of this._sources.values())
-      this._reportSource(sourceData.source);
+      this._initializeAndReportSource(sourceData.source);
     this._initialized = true;
   }
 
@@ -261,7 +261,7 @@ export class SourceContainer extends EventEmitter {
   addSource(source: Source) {
     this._sources.set(source.sourceReference(), {source});
     if (this._initialized)
-      this._reportSource(source);
+      this._initializeAndReportSource(source);
   }
 
   removeSources(...sources: Source[]) {
@@ -269,16 +269,11 @@ export class SourceContainer extends EventEmitter {
       if (this._initialized)
         this._dap.loadedSource({reason: 'removed', source: source.toDap()});
       const data = this._sources.get(source.sourceReference())!;
-      if (data.reportedPath)
-        this._sourceByReportedPath.delete(data.reportedPath);
-      if (data.sourceMapUrl) {
-        const removedSourceMapSources = this._detachSourceMap(source, data.sourceMapUrl);
-        if (this._initialized) {
-          for (const source of removedSourceMapSources)
-            this._dap.loadedSource({reason: 'removed', source: source.toDap()});
-        }
-      }
       this._sources.delete(source.sourceReference());
+      if (source._resolvedPath && source._resolvedPath.absolutePath)
+        this._sourceByReportedPath.delete(source._resolvedPath.absolutePath);
+      if (data.sourceMapUrl)
+        this._detachSourceMap(source, data.sourceMapUrl);
     }
   }
 
@@ -291,8 +286,8 @@ export class SourceContainer extends EventEmitter {
     if (sourceMapData) {
       sourceMapData.compiled.add(compiled);
       if (sourceMapData.map) {
-        // If source map has been already loaded, we add sources.
-        // If it is still loading, we'll add sources for all compiled at once.
+        // If source map has been already loaded, we add sources here.
+        // Otheriwse, we'll add sources for all compiled after loading the map.
         this._addSourceMapSources(compiled, sourceMapData.map);
       }
       return;
@@ -311,70 +306,50 @@ export class SourceContainer extends EventEmitter {
       this._addSourceMapSources(anyCompiled, sourceMap);
   }
 
-  _reportSource(source: Source) {
-    this._dap.loadedSource({reason: 'new', source: source.toDap()});
-  }
-
   _addSourceMapSources(compiled: Source, map: SourceMap) {
     for (const url of map.sourceUrls()) {
       const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const sourceData = this._sourceMapSources.get(resolvedUrl);
       if (sourceData) {
         sourceData.counter++;
-      } else {
-        const content = map.sourceContent(url);
-        const source = content === undefined
-          ? this.createSource(resolvedUrl, () => utils.fetch(resolvedUrl))
-          : this.createSource(resolvedUrl, () => Promise.resolve(content));
-        this._sourceMapSources.set(resolvedUrl, {counter: 1, source});
-        this.addSource(source);
-        // TODO(dgozman): support recursive source maps?
+        continue;
       }
+      const content = map.sourceContent(url);
+      const source = content === undefined
+        ? this.createSource(resolvedUrl, () => utils.fetch(resolvedUrl))
+        : this.createSource(resolvedUrl, () => Promise.resolve(content));
+      this._sourceMapSources.set(resolvedUrl, {counter: 1, source});
+      this.addSource(source);
+      // TODO(dgozman): support recursive source maps?
     }
   }
 
-  _detachSourceMap(compiled: Source, url: string): Source[] {
+  _detachSourceMap(compiled: Source, url: string) {
     const sourceMapData = this._sourceMaps.get(url)!;
     console.assert(sourceMapData.compiled.size > 0);
     sourceMapData.compiled.delete(compiled);
     if (!sourceMapData.compiled.size)
       this._sourceMaps.delete(url);
-
     // Source map could still be loading, or failed to load.
     if (sourceMapData.map)
-      return this._removeSourceMapSources(compiled, sourceMapData.map);
-    return [];
+      this._removeSourceMapSources(compiled, sourceMapData.map);
   }
 
-  _removeSourceMapSources(compiled: Source, map: SourceMap): Source[] {
-    const result: Source[] = [];
+  _removeSourceMapSources(compiled: Source, map: SourceMap) {
     for (const url of map.sourceUrls()) {
       const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const sourceMapSourceData = this._sourceMapSources.get(resolvedUrl)!;
       if (--sourceMapSourceData.counter > 0)
         continue;
       this._sourceMapSources.delete(resolvedUrl);
-
-      const source = sourceMapSourceData.source;
-      const sourceData = this._sources.get(source.sourceReference());
-      // TODO(dgozman): support recursive source maps?
-      console.assert(sourceData!.sourceMapUrl === undefined);
-      if (sourceData!.reportedPath)
-        this._sourceByReportedPath.delete(sourceData!.reportedPath);
-      this._sources.delete(source.sourceReference());
-
-      result.push(source);
+      this.removeSources(sourceMapSourceData.source);
     }
-    return result;
   }
 
-  _sourceReportedByPath(source: Source, reportedPath: string) {
-    const sourceData = this._sources.get(source.sourceReference());
-    if (!sourceData)
-      return;
-    if (sourceData.reportedPath)
-      this._sourceByReportedPath.delete(sourceData.reportedPath);
-    sourceData.reportedPath = reportedPath;
-    this._sourceByReportedPath.set(reportedPath, source);
+  _initializeAndReportSource(source: Source) {
+    source._resolvedPath = this._sourcePathResolver.resolveSourcePath(source._url);
+    if (source._resolvedPath.absolutePath)
+      this._sourceByReportedPath.set(source._resolvedPath.absolutePath, source);
+    this._dap.loadedSource({reason: 'new', source: source.toDap()});
   }
 };
