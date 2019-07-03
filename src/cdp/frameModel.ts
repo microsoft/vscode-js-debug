@@ -15,7 +15,7 @@ export const FrameModelEvents = {
 };
 
 export class FrameModel extends EventEmitter {
-  private _mainFrame: Frame | null = null;
+  private _mainFrame?: Frame;
 
   _frames: Map<string, Frame> = new Map();
 
@@ -25,6 +25,10 @@ export class FrameModel extends EventEmitter {
       if (r)
         this._processCachedResources(cdp, r.frameTree);
     });
+  }
+
+  mainFrame(): Frame | undefined {
+    return this._mainFrame;
   }
 
   _processCachedResources(cdp: Cdp.Api, mainFramePayload: Cdp.Page.FrameResourceTree | null) {
@@ -112,7 +116,7 @@ export class FrameModel extends EventEmitter {
 
   _frameStructureUpdated() {
     const dump = (indent: string, frame: Frame) => {
-      for (const child of frame.childFrames.values())
+      for (const child of frame._childFrames.values())
         dump('  ' + indent, child);
     };
     if (this._mainFrame)
@@ -120,10 +124,9 @@ export class FrameModel extends EventEmitter {
   }
 }
 
-class Frame {
+export class Frame {
   readonly cdp: Cdp.Api;
   readonly parentFrame?: Frame;
-  readonly childFrames: Map<Cdp.Page.FrameId, Frame> = new Map();
   readonly id: string;
   readonly model: FrameModel;
 
@@ -132,6 +135,8 @@ class Frame {
   private _securityOrigin: string;
   private _unreachableUrl: string;
 
+  _childFrames: Map<Cdp.Page.FrameId, Frame> = new Map();
+
   constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrame?: Frame) {
     this.cdp = cdp;
     this.model = model;
@@ -139,7 +144,7 @@ class Frame {
     this.id = frameId;
     this._url = '';
     if (this.parentFrame)
-      this.parentFrame.childFrames.set(this.id, this);
+      this.parentFrame._childFrames.set(this.id, this);
   }
 
   _navigate(payload: Cdp.Page.Frame) {
@@ -170,14 +175,18 @@ class Frame {
     return !this.parentFrame;
   }
 
+  childFrames(): Frame[] {
+    return Array.from(this._childFrames.values());
+  }
+
   _removeChildFrame(frame: Frame) {
-    this.childFrames.delete(frame.id);
+    this._childFrames.delete(frame.id);
     frame._remove();
   }
 
   _removeChildFrames() {
-    const frames = Array.from(this.childFrames.values());
-    this.childFrames.clear();
+    const frames = Array.from(this._childFrames.values());
+    this._childFrames.clear();
     for (let i = 0; i < frames.length; ++i)
       frames[i]._remove();
   }

@@ -81,6 +81,10 @@ export class Thread {
     return this._sourceContainer;
   }
 
+  executionContexts(): Cdp.Runtime.ExecutionContextDescription[] {
+    return Array.from(this._executionContexts.values());
+  }
+
   async resume(): Promise<boolean> {
     return !!await this._cdp.Debugger.resume({});
   }
@@ -167,12 +171,12 @@ export class Thread {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
-    this._reportExecutionContexts();
+    this._target.manager.reportExecutionContexts();
   }
 
   _executionContextDestroyed(contextId: number) {
     this._executionContexts.delete(contextId);
-    this._reportExecutionContexts();
+    this._target.manager.reportExecutionContexts();
   }
 
   _executionContextsCleared() {
@@ -180,22 +184,7 @@ export class Thread {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this._reportExecutionContexts();
-  }
-
-  _reportExecutionContexts() {
-    const result: Dap.ExecutionContext[] = [];
-    for (const context of this._executionContexts.values()) {
-      const id = `${this._threadId}:${context.id}`;
-      let name = context.name || context.origin;
-      if (context.auxData && context.auxData['isDefault'] && context.auxData['frameId']) {
-        const frame = this._target.manager.frameModel.frameForId(context.auxData['frameId']);
-        if (frame)
-          name = frame.displayName();
-      }
-      result.push({ id, name });
-    }
-    this._dap.executionContextsChanged({ threadId: this._threadId, contexts: result });
+    this._target.manager.reportExecutionContexts();
   }
 
   _onResumed() {

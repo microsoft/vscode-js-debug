@@ -15,7 +15,7 @@ export function registerExecutionContextsUI(context: vscode.ExtensionContext) {
   vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
     if (e.event === 'executionContextsChanged') {
       const params = e.body as Dap.ExecutionContextsChangedEventParams;
-      provider.executionContextsChanged(params.threadId, params.contexts);
+      provider.executionContextsChanged(params.contexts);
     }
   });
 }
@@ -23,36 +23,27 @@ export function registerExecutionContextsUI(context: vscode.ExtensionContext) {
 class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
   private _onDidChangeTreeData: vscode.EventEmitter<ExecutionContext | undefined> = new vscode.EventEmitter<ExecutionContext | undefined>();
   readonly onDidChangeTreeData: vscode.Event<ExecutionContext | undefined> = this._onDidChangeTreeData.event;
-  private _contexts: Map<number, ExecutionContext[]> = new Map();
+  private _contexts: ExecutionContext[] = [];
 
   constructor(context: vscode.ExtensionContext) {
   }
 
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
-    return new vscode.TreeItem(item.name, item.threadId ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+    return new vscode.TreeItem(item.name, item.children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
   }
 
   async getChildren(item?: ExecutionContext): Promise<ExecutionContext[]> {
-    if (item && !item.threadId)
-      return [];
-    if (item && item.threadId)
-      return (this._contexts.get(item.threadId) || []).filter(c => !c.threadId);
-    const result: ExecutionContext[] = [];
-    for (const [, contexts] of this._contexts) {
-      if (contexts.length)
-        result.push(contexts[0]);
-    }
-    return result;
+    if (!item)
+      return this._contexts;
+    return item.children;
   }
 
   async getParent(item: Dap.ExecutionContext): Promise<Dap.ExecutionContext | undefined> {
     return undefined;
   }
 
-  executionContextsChanged(threadId: number, contexts: ExecutionContext[]): void {
-    this._contexts.set(threadId, contexts);
-    if (contexts.length)
-      contexts[0].threadId = threadId;
+  executionContextsChanged(contexts: ExecutionContext[]): void {
+    this._contexts = contexts;
     this._onDidChangeTreeData.fire(undefined);
   }
 }
