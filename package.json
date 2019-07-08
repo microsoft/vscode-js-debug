@@ -92,8 +92,8 @@
         }
       },
       {
-        "command": "cdp.blackboxActiveDocument",
-        "title": "Blackbox active document"
+        "command": "cdp.toggleActiveDocumentBlackboxed",
+        "title": "Toggle active document blackbox status"
       }
     ],
     "menus": {

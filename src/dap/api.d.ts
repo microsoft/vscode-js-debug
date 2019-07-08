@@ -315,9 +315,9 @@ export namespace Dap {
     on(request: 'updateCustomBreakpoints', handler: (params: UpdateCustomBreakpointsParams) => Promise<UpdateCustomBreakpointsResult | Error>): void;
 
     /**
-     * Blackboxes/unblackboxes a particular source.
+     * Toggles the blackboxed state of a particular source.
      */
-    on(request: 'setSourceBlackboxed', handler: (params: SetSourceBlackboxedParams) => Promise<SetSourceBlackboxedResult | Error>): void;
+    on(request: 'toggleSourceBlackboxed', handler: (params: ToggleSourceBlackboxedParams) => Promise<ToggleSourceBlackboxedResult | Error>): void;
 
     /**
      * The event indicates that execution contexts have changed.
@@ -1210,21 +1210,6 @@ export namespace Dap {
     breakpoints: Breakpoint[];
   }
 
-  export interface SetSourceBlackboxedParams {
-    /**
-     * The source to be blackboxed or unblackboxed.
-     */
-    source: Source;
-
-    /**
-     * Whether the source should blackboxed.
-     */
-    blackboxed: boolean;
-  }
-
-  export interface SetSourceBlackboxedResult {
-  }
-
   export interface SetVariableParams {
     /**
      * The reference of the variable container.
@@ -1467,6 +1452,16 @@ export namespace Dap {
      * All threads.
      */
     threads: Thread[];
+  }
+
+  export interface ToggleSourceBlackboxedParams {
+    /**
+     * The source to be blackboxed or unblackboxed.
+     */
+    source: Source;
+  }
+
+  export interface ToggleSourceBlackboxedResult {
   }
 
   export interface UpdateCustomBreakpointsParams {
@@ -1845,9 +1840,9 @@ export namespace Dap {
    * A Module object represents a row in the modules view.
    * Two attributes are mandatory: an id identifies a module in the modules view and is used in a ModuleEvent for identifying a module for adding, updating or deleting.
    * The name is used to minimally render the module in the UI.
-   *
+   * 
    * Additional attributes can be added to the module. They will show up in the module View if they have a corresponding ColumnDescriptor.
-   *
+   * 
    * To avoid an unnecessary proliferation of additional attributes with similar semantics but different names
    * we recommend to re-use attributes from the 'recommended' list below first, and only introduce new attributes if nothing appropriate could be found.
    */
@@ -1865,7 +1860,7 @@ export namespace Dap {
     /**
      * optional but recommended attributes.
      * always try to use these first before introducing additional attributes.
-     *
+     * 
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
     path?: string;
@@ -2070,12 +2065,7 @@ export namespace Dap {
     /**
      * Context id.
      */
-    contextId: number;
-
-    /**
-     * Thread id.
-     */
-    threadId: number;
+    contextId?: number;
 
     /**
      * Human-readable context name.
@@ -2083,8 +2073,10 @@ export namespace Dap {
     name: string;
 
     /**
-     * Nested contexts.
+     * Thread id.
      */
+    threadId: number;
+
     children: ExecutionContext[];
   }
 

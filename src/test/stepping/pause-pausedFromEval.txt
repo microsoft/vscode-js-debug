@@ -15,6 +15,7 @@ Connected
             presentationHint : normal
             source : {
                 name : eval.js
+                path : eval.js
                 sourceReference : <number>
             }
         }

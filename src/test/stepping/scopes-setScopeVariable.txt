@@ -14,7 +14,8 @@ stackTrace: {
             name : paused
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -25,7 +26,8 @@ stackTrace: {
             name : <anonymous>
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -43,7 +45,8 @@ scopes: {
             name : paused
             presentationHint : locals
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
