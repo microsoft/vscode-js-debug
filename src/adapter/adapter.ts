@@ -64,7 +64,7 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
-    this._dap.on('setSourceBlackboxed', params => this._onSetSourceBlackboxed(params));
+    this._dap.on('toggleSourceBlackboxed', params => this._onToggleSourceBlackboxed(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
@@ -506,10 +506,8 @@ export class Adapter {
     return result;
   }
 
-  async _onSetSourceBlackboxed(params: Dap.SetSourceBlackboxedParams): Promise<Dap.SetSourceBlackboxedResult | Dap.Error> {
-    const source = this._sourceContainer.source(params.source);
-    if (!source)
-      return createSilentError(localize('error.sourceNotFound', 'Source not found'));
+  async _onToggleSourceBlackboxed(params: Dap.ToggleSourceBlackboxedParams): Promise<Dap.ToggleSourceBlackboxedResult | Dap.Error> {
+    this._sourceContainer.toggleSourceBlackboxed(params.source);
     return {};
   }
 }

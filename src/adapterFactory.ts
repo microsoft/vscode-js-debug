@@ -20,6 +20,11 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     context.subscriptions.push(this);
 
     this._disposables = [
+      vscode.debug.onDidStartDebugSession(session => {
+        const value = this._sessions.get(session);
+        if (value)
+          this._onAdapterAddedEmitter.fire(value.adapter);
+      }),
       vscode.debug.onDidTerminateDebugSession(session => {
         const value = this._sessions.get(session);
         this._sessions.delete(session);
@@ -53,7 +58,6 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       const connection = new DapConnection(socket, socket);
       const adapter = new Adapter(connection.dap(), this.context.storagePath || this.context.extensionPath);
       this._sessions.set(session, {server, adapter});
-      this._onAdapterAddedEmitter.fire(adapter);
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }

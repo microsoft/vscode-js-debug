@@ -7,7 +7,7 @@ import * as events from 'events';
 
 type HandlerFunction = (...args: any[]) => void;
 
-interface Listener {
+export interface Listener {
    emitter: events.EventEmitter;
    eventName: string;
    handler: HandlerFunction;
@@ -56,4 +56,46 @@ export function isValidUrl(url: string): boolean {
   } catch (e) {
     return false;
   }
+}
+
+export function escapeForRegExp(s: string): string {
+  const chars = '^[]{}()\\.^$*+?|-,';
+
+  let foundChar = false;
+  for (let i = 0; i < chars.length; ++i) {
+    if (s.indexOf(chars.charAt(i)) !== -1) {
+      foundChar = true;
+      break;
+    }
+  }
+  if (!foundChar)
+    return s;
+
+  let result = '';
+  for (let i = 0; i < s.length; ++i) {
+    if (chars.indexOf(s.charAt(i)) !== -1)
+      result += '\\';
+    result += s.charAt(i);
+  }
+  return result;
+}
+
+export function urlToRegExString(urlString: string): string {
+  let url: URL;
+  try {
+    url = new URL(urlString);
+  } catch (e) {
+    return '^' + escapeForRegExp(urlString) + '$';
+  }
+  if (url.protocol === 'about:' && url.pathname === 'blank')
+    return '';
+  if (url.protocol === 'data:')
+    return '';
+  let prefix = '';
+  if (url.protocol && url.protocol !== 'http:' && url.protocol !== 'https') {
+    prefix = '^' + url.protocol + '//';
+    if (url.protocol === 'chrome-extension:')
+      prefix += url.hostname + '\\b';
+  }
+  return prefix + escapeForRegExp(url.pathname) + (url.search ? '\\b' : '$');
 }

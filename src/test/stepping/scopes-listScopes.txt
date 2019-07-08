@@ -14,7 +14,8 @@ stackTrace: {
             name : paused
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -25,7 +26,8 @@ stackTrace: {
             name : chained
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -36,7 +38,8 @@ stackTrace: {
             name : chained
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -47,7 +50,8 @@ stackTrace: {
             name : chained
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -58,7 +62,8 @@ stackTrace: {
             name : <anonymous>
             presentationHint : normal
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
         }
@@ -76,7 +81,8 @@ frame #0: {
             name : paused
             presentationHint : locals
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -109,7 +115,8 @@ frame #1: {
             name : chained
             presentationHint : locals
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -123,7 +130,8 @@ frame #1: {
             name : Closure (chain)
             presentationHint : arguments
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -166,7 +174,8 @@ frame #2: {
             name : chained
             presentationHint : locals
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -180,7 +189,8 @@ frame #2: {
             name : Closure (chain)
             presentationHint : arguments
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -223,7 +233,8 @@ frame #3: {
             name : chained
             presentationHint : locals
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -237,7 +248,8 @@ frame #3: {
             name : Closure (chain)
             presentationHint : arguments
             source : {
-                name : VM11
+                name : <anonymous>
+                path : <anonymous>
                 sourceReference : <number>
             }
             variablesReference : <number>

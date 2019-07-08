@@ -45,6 +45,7 @@ export class Thread {
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
   readonly target: Target;
   readonly replVariables: VariableStore;
+  private _eventListeners: utils.Listener[] = [];
 
   constructor(target: Target, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
     this.target = target;
@@ -146,8 +147,21 @@ export class Thread {
       if (this._state === 'normal')
         this._reportPaused();
     });
-    this._cdp.Debugger.on('resumed', () => this._onResumed);
+    this._cdp.Debugger.on('resumed', () => this._onResumed());
+
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
+    this._eventListeners.push(utils.addEventListener(this._sourceContainer, SourceContainer.Events.BlackboxedPatternsChanged, () => {
+      this._setBlackboxedPatterns();
+      this._refreshStackTrace();
+    }));
+    this._eventListeners.push(utils.addEventListener(this._sourceContainer, SourceContainer.Events.BlackboxedPositionsChanged, (source: Source) => {
+      const scriptId = source[kScriptIdSymbol];
+      if (scriptId)
+        this._cdp.Debugger.setBlackboxedRanges({scriptId: scriptId, positions: source.blackboxedPositions() || []});
+      this._refreshStackTrace();
+    }));
+    this._setBlackboxedPatterns();
+
     if (!await this._cdp.Debugger.enable({}))
       return false;
     if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
@@ -207,6 +221,7 @@ export class Thread {
       this.target.manager.threads.delete(this._threadId);
       this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
+    utils.removeEventListeners(this._eventListeners);
     this._state = 'disposed';
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
   }
@@ -403,31 +418,45 @@ export class Thread {
   _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
-    this._sourceContainer.removeSources(...scripts);
+    for (const script of scripts)
+      this._sourceContainer.removeSource(script);
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    const readableUrl = event.url || `VM${event.scriptId}`;
-    const source = this._sourceContainer.createSource(readableUrl, async () => {
+    const contentGetter = async () => {
       const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
       return response ? response.scriptSource : undefined;
-    });
-    if (event.startLine || event.startColumn) {
-      source.setInlineSourceRange({
-        startLine: event.startLine,
-        startColumn: event.startColumn,
-        endLine: event.endLine,
-        endColumn: event.endColumn
-      });
-    }
-    this._scripts.set(event.scriptId, source);
-    this._sourceContainer.addSource(source);
+    };
+    const inlineSourceRange = (event.startLine || event.startColumn)
+        ? {startLine: event.startLine, startColumn: event.startColumn, endLine: event.endLine, endColumn: event.endColumn}
+        : undefined;
+    let resolvedSourceMapUrl: string | undefined;
     if (event.sourceMapURL) {
-      // TODO(dgozman): reload source map when target url changes.
+      // TODO(dgozman): reload source map when thread url changes.
       const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
-      const resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
-      if (resolvedSourceMapUrl)
-        this._sourceContainer.attachSourceMap(source, resolvedSourceMapUrl);
+      resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+    }
+    // TODO(dgozman): pass VMxx as a readable name.
+    const source = new Source(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
+    this._scripts.set(event.scriptId, source);
+    source[kScriptIdSymbol] = event.scriptId;
+    this._sourceContainer.addSource(source);
+    const positions = source.blackboxedPositions();
+    if (positions)
+      this._cdp.Debugger.setBlackboxedRanges({scriptId: source[kScriptIdSymbol], positions});
+  }
+
+  _setBlackboxedPatterns() {
+    const patterns = this._sourceContainer.blackboxedPatterns().filter(pattern => !!pattern);
+    return this._cdp.Debugger.setBlackboxPatterns({patterns});
+  }
+
+  _refreshStackTrace() {
+    if (this._state === 'normal' && this._pausedDetails) {
+      this._dap.continued({threadId: this._threadId});
+      this._reportPaused();
     }
   }
 };
+
+const kScriptIdSymbol = Symbol('scriptId');
