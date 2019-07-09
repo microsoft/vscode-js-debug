@@ -198,15 +198,9 @@ export class Frame {
   }
 
   displayName(): string {
-    if (this.isMainFrame())
-      return 'top';
-    const subtitle = displayName(this._url);
-    if (subtitle) {
-      if (!this._name)
-        return subtitle;
-      return this._name + ' (' + subtitle + ')';
-    }
-    return '<iframe>';
+    const icon = '\uD83D\uDCC4 '
+    const name = this._name ? this._name + ' - ' : '';
+    return icon + name + displayName(this._url);
   }
 };
 

@@ -111,7 +111,8 @@ export class TargetManager extends EventEmitter {
           const name = frame!.parentFrame ? frame!.displayName() : thread.threadName();
           const dapContext = toDap(thread, context, name);
           mainForFrameId.set(frameId, dapContext);
-          mainForTarget.set(thread.target, dapContext);
+          if (!frame!.parentFrame)
+            mainForTarget.set(thread.target, dapContext);
         } else if (frameId) {
           let contexts = worldsForFrameId.get(frameId);
           if (!contexts) {

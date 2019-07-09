@@ -29,13 +29,11 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   }
 
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
-    return new vscode.TreeItem(item.name, item.children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+    return new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
   }
 
   async getChildren(item?: ExecutionContext): Promise<ExecutionContext[]> {
-    if (!item)
-      return this._contexts;
-    return item.children;
+    return item ? [] : this._contexts;
   }
 
   async getParent(item: Dap.ExecutionContext): Promise<Dap.ExecutionContext | undefined> {
@@ -43,7 +41,16 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   }
 
   executionContextsChanged(contexts: ExecutionContext[]): void {
-    this._contexts = contexts;
+    this._contexts = [];
+    const tab = '\u00A0\u00A0\u00A0\u00A0';
+    const visit = (indentation: string, item: ExecutionContext) => {
+      this._contexts.push({
+        ...item,
+        name: indentation + item.name
+      });
+      item.children.forEach(item => visit(indentation + tab, item));
+    };
+    contexts.forEach(item => visit('', item));
     this._onDidChangeTreeData.fire(undefined);
   }
 }
