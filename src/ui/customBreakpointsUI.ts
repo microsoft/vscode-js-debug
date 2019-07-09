@@ -103,7 +103,6 @@ export function registerCustomBreakpointsUI(factory: AdapterFactory) {
     const quickPick = vscode.window.createQuickPick();
     const items = provider.breakpoints.filter(b => !b.enabled);
     quickPick.items = items;
-    quickPick.canSelectMany = true;
     quickPick.onDidAccept(e => {
       provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
       quickPick.dispose();
