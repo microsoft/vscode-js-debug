@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
+import * as errors from './errors';
 
 const localize = nls.loadMessageBundle();
 
@@ -156,7 +157,11 @@ export class Source {
   toDap(): Dap.Source {
     // TODO(dgozman): provide Dap.Source.origin?
     let {absolutePath, name} = this._resolvedPath!;
-    const isBlackboxed = this._container ? this._container._blackboxedUrlToPattern.has(this._url) : false;
+    let isBlackboxed = false;
+    if (this._origin && this._origin.blackboxed)
+      isBlackboxed = true;
+    if (this._container && this._container._blackboxedUrlToPattern.has(this._url))
+      isBlackboxed = true;
     let presentationHint = isBlackboxed ? 'deemphasize' : undefined;
     let origin: string | undefined;
     if (this._origin && !absolutePath) {
@@ -350,6 +355,8 @@ export class SourceContainer extends EventEmitter {
     if (!sourceMap || this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return;
 
+    for (const error of sourceMap.map!.errors())
+      errors.reportToConsole(this._dap, error);
     for (const anyCompiled of sourceMap.compiled)
       this._addSourceMapSources(anyCompiled, sourceMap.map!);
   }
@@ -381,6 +388,7 @@ export class SourceContainer extends EventEmitter {
   _addSourceMapSources(compiled: Source, map: SourceMap) {
     compiled._sourceMapSourceByUrl = new Map();
     for (const url of map.sourceUrls()) {
+      // TODO(dgozman): |resolvedUrl| may be equal to compiled url - we may need to distinguish them.
       const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const content = map.sourceContent(url);
       const inlined = content !== undefined;

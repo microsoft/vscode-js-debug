@@ -56,4 +56,5 @@ bar variables: {
         }
     ]
 }
+setVariable failure: ReferenceError: baz is not defined
 Disconnected

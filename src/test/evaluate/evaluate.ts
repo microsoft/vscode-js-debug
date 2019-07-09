@@ -24,6 +24,7 @@ async function setVariable(p: test.Params) {
   const r2 = p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: '{bar: 17}'}), 'setVariable: ');
   p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables after: ');
   p.log(await p.dap.variables({variablesReference: r2.variablesReference}), 'bar variables: ');
+  p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: 'baz'}), 'setVariable failure: ');
 }
 
 export default async function runTests() {

@@ -11,6 +11,7 @@ export class SourceMap {
   private _url: string;
   private _mappings?: SourceMapEntry[];
   private _sourceInfos: Map<string, SourceInfo> = new Map();
+  private _errors: string[] = [];
 
   static async load(url: string): Promise<SourceMap | undefined> {
     let content;
@@ -37,10 +38,8 @@ export class SourceMap {
     this._mappings = undefined;
     if (this._json.sections) {
       const sectionWithUrl = !!this._json.sections.find(section => !!section['url']);
-      if (sectionWithUrl) {
-        // TODO(dgozman): report this error.
-        console.error(localize('error.sourceMapUnsupportedSectionUrl', 'SourceMap "{0}" contains unsupported "URL" field in one of its sections.', this._url));
-      }
+      if (sectionWithUrl)
+        this._errors.push(localize('error.sourceMapUnsupportedSectionUrl', 'SourceMap "{0}" contains unsupported "URL" field in one of its sections.', this._url));
     }
     this._forEachSection(map => {
       let sourceRoot = map.sourceRoot || '';
@@ -50,10 +49,13 @@ export class SourceMap {
         const url = sourceRoot + map.sources[i];
         map.sources[i] = url;
         const source = map.sourcesContent && map.sourcesContent[i];
-        // TODO(dgozman): |url| may be equal to compiled url - we may need to distinguish them.
         this._sourceInfos.set(url, new SourceInfo(source));
       }
     });
+  }
+
+  errors(): string[] {
+    return this._errors;
   }
 
   url(): string {
@@ -71,9 +73,7 @@ export class SourceMap {
 
   findEntry(lineNumber: number, columnNumber: number): SourceMapEntry | undefined {
     const mappings = this.mappings();
-    // TODO(dgozman): can use a simpler version of upperBound.
-    const index = upperBound(
-        mappings, undefined, (unused, entry) => lineNumber - entry.lineNumber || columnNumber - entry.columnNumber);
+    const index = upperBound(mappings, entry => lineNumber - entry.lineNumber || columnNumber - entry.columnNumber);
     return index ? mappings[index - 1] : undefined;
   }
 
@@ -258,16 +258,12 @@ const VLQ_BASE_SHIFT = 5;
 const VLQ_BASE_MASK = (1 << 5) - 1;
 const VLQ_CONTINUATION_MASK = 1 << 5;
 
-function upperBound<T, S>(array: S[], object: T, comparator?: (t: T, s: S) => number, left?: number, right?: number): number {
-  function defaultComparator(a, b) {
-    return a < b ? -1 : (a > b ? 1 : 0);
-  }
-  comparator = comparator || defaultComparator;
-  let l = left || 0;
-  let r = right !== undefined ? right : array.length;
+function upperBound<S>(array: S[], comparator: (s: S) => number): number {
+  let l = 0;
+  let r = array.length;
   while (l < r) {
     const m = (l + r) >> 1;
-    if (comparator(object, array[m]) >= 0)
+    if (comparator(array[m]) >= 0)
       l = m + 1;
     else
       r = m;

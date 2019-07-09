@@ -273,13 +273,14 @@ export class Thread {
     return breakpoint.apply(this._cdp, enabled);
   }
 
-  _reportPaused() {
+  _reportPaused(preserveFocusHint?: boolean) {
     const details = this._pausedDetails!;
     this._dap.stopped({
       reason: details.reason,
       description: details.description,
       threadId: this._threadId,
       text: details.text,
+      preserveFocusHint,
       allThreadsStopped: false
     });
   }
@@ -451,9 +452,10 @@ export class Thread {
   }
 
   _refreshStackTrace() {
+    // TODO(dgozman): only refresh if something has changed.
     if (this._state === 'normal' && this._pausedDetails) {
       this._dap.continued({threadId: this._threadId});
-      this._reportPaused();
+      this._reportPaused(true);
     }
   }
 };
