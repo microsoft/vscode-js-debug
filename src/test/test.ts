@@ -84,7 +84,7 @@ export async function runStartupTest(testFunc: (log: Log) => Promise<any>) {
 function _log(results: string[], item: any, title?: string, stabilizeNames?: string[]): any {
   if (typeof item === 'object')
     return _logObject(results, item, title, stabilizeNames);
-  results.push('' + item);
+  results.push((title || '') + item);
   return item;
 }
 

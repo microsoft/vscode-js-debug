@@ -145,7 +145,7 @@ export default class Connection {
         if (!callback) {
           response.success = false;
           response.body = {error: {
-            id: 9220,
+            id: 9221,
             format: `Unrecognized request: ${msg.command}`,
             showUser: false,
             sendTelemetry: false
@@ -156,11 +156,12 @@ export default class Connection {
           const result = await callback(msg.arguments!);
           if (result.__errorMarker) {
             response.success = false;
+            response.message = result.error.format;
             response.body = {error: result.error};
           } else {
             response.body = result;
-            this._send(response);
           }
+          this._send(response);
         }
       } catch (e) {
         console.error(e);

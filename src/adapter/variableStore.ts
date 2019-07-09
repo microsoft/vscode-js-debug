@@ -6,6 +6,10 @@ import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import {StackTrace} from './stackTrace';
+import * as errors from './errors';
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
@@ -79,22 +83,28 @@ export class VariableStore {
     return variables;
   }
 
-  async setVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | undefined> {
+  async setVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
     const object = this._referenceToObject.get(params.variablesReference);
     if (!object)
-      return;
+      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
 
     const expression = this._wrapObjectLiteral(params.value.trim());
-    // TODO(dgozman): report error to the user.
     if (!expression)
-      return;
+      return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
     const evaluateResponse = await object.cdp.Runtime.evaluate({expression, silent: true});
-    // TODO(dgozman): report exception to the user.
-    if (!evaluateResponse || evaluateResponse.exceptionDetails)
-      return;
+    if (!evaluateResponse)
+      return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
+    if (evaluateResponse.exceptionDetails)
+      return errors.createUserError(objectPreview.previewExceptionDetails(evaluateResponse.exceptionDetails));
 
-    let success = false;
+    function release(error: Dap.Error): Dap.Error {
+      const objectId = evaluateResponse!.result.objectId;
+      if (objectId)
+        object!.cdp.Runtime.releaseObject({objectId});
+      return error;
+    }
+
     if (object.scopeRef) {
       const setResponse = await object.cdp.Debugger.setVariableValue({
         callFrameId: object.scopeRef.callFrameId,
@@ -102,7 +112,8 @@ export class VariableStore {
         variableName: params.name,
         newValue: this._toCallArgument(evaluateResponse.result),
       });
-      success = !!setResponse;
+      if (!setResponse)
+        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
     } else {
       const setResponse = await object.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
@@ -110,28 +121,24 @@ export class VariableStore {
         arguments: [this._toCallArgument(params.name), this._toCallArgument(evaluateResponse.result)],
         silent: true
       });
-      // TODO(dgozman): report exception to the user.
-      success = !!setResponse && !setResponse.exceptionDetails;
+      if (!setResponse)
+        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
+      if (setResponse.exceptionDetails)
+        return release(errors.createUserError(objectPreview.previewExceptionDetails(setResponse.exceptionDetails)));
     }
 
-    let result: Dap.SetVariableResult | undefined;
-    if (success) {
-      const variable = await this._createVariable(params.name, new RemoteObject(object.cdp, evaluateResponse.result));
-      result = {
-        value: variable.value,
-        type: variable.type,
-        variablesReference: variable.variablesReference,
-        namedVariables: variable.namedVariables,
-        indexedVariables: variable.indexedVariables,
-      };
-      if (object.scopeVariables) {
-        const index = object.scopeVariables.findIndex(v => v.name === params.name);
-        if (index !== -1)
-          object.scopeVariables[index] = variable;
-      }
-    } else {
-      if (evaluateResponse.result.objectId)
-        object.cdp.Runtime.releaseObject({objectId: evaluateResponse.result.objectId});
+    const variable = await this._createVariable(params.name, new RemoteObject(object.cdp, evaluateResponse.result));
+    const result = {
+      value: variable.value,
+      type: variable.type,
+      variablesReference: variable.variablesReference,
+      namedVariables: variable.namedVariables,
+      indexedVariables: variable.indexedVariables,
+    };
+    if (object.scopeVariables) {
+      const index = object.scopeVariables.findIndex(v => v.name === params.name);
+      if (index !== -1)
+        object.scopeVariables[index] = variable;
     }
     return result;
   }

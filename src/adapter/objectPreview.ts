@@ -240,3 +240,9 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): {title: s
     stackTrace: description.substring(firstCallFrame.index + 2),
   };
 }
+
+export function previewExceptionDetails(exceptionDetails: Cdp.Runtime.ExceptionDetails): string {
+  if (exceptionDetails.exception)
+    return previewException(exceptionDetails.exception).title;
+  return exceptionDetails.text;
+}
