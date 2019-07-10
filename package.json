@@ -30,7 +30,6 @@
     "compile": "tsc -p ./src",
     "tslint": "tslint ./src/**/*.ts",
     "watch": "tsc -w -p ./src",
-    "postinstall": "node ./node_modules/vscode/bin/install",
     "package": "vsce package",
     "publish": "vsce publish",
     "test": "tsc -p ./src && node ./out/runTests.js"
@@ -42,11 +41,11 @@
   "devDependencies": {
     "@types/debug": "^4.1.4",
     "@types/node": "^8.9.3",
+    "@types/vscode": "^1.30.0",
     "@types/ws": "^6.0.1",
     "tslint": "5.11.0",
     "typescript": "^3.1.6",
-    "vsce": "1.53.2",
-    "vscode": "1.1.21"
+    "vsce": "1.53.2"
   },
   "main": "./out/extension",
   "activationEvents": [
