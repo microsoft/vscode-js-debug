@@ -437,7 +437,6 @@ export class Thread {
       const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
       resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
     }
-    // TODO(dgozman): pass VMxx as a readable name.
     const source = new Source(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
     this._scripts.set(event.scriptId, source);
     source[kScriptIdSymbol] = event.scriptId;

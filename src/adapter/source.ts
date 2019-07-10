@@ -156,7 +156,6 @@ export class Source {
   }
 
   toDap(): Dap.Source {
-    // TODO(dgozman): provide Dap.Source.origin?
     let {absolutePath, name} = this._resolvedPath!;
     let isBlackboxed = false;
     if (this._origin && this._origin.blackboxed)
@@ -180,7 +179,7 @@ export class Source {
       : undefined;
     if (absolutePath) {
       return {
-        name: name || '<anonymous>',
+        name: name || ('VM' + this._sourceReference),
         path: absolutePath,
         sourceReference: 0,
         presentationHint,
@@ -195,8 +194,8 @@ export class Source {
         name = name + ':' + (this._inlineSourceRange.startColumn + 1);
     }
     return {
-      name: name || '<anonymous>',
-      path: name || '<anonymous>',
+      name: name || ('VM' + this._sourceReference),
+      path: name || ('VM' + this._sourceReference),
       sourceReference: this._sourceReference,
       presentationHint,
       origin,
@@ -257,20 +256,24 @@ export class SourceContainer extends EventEmitter {
   }
 
   uiLocation(rawLocation: Location): Location {
-    const oneBased = {
-      lineNumber: rawLocation.lineNumber + 1,
-      columnNumber: rawLocation.columnNumber + 1,
-      url: rawLocation.url,
-      source: rawLocation.source,
+    const location = this._uiLocation(rawLocation);
+    return {
+      lineNumber: location.lineNumber + 1,
+      columnNumber: location.columnNumber + 1,
+      url: location.url,
+      source: location.source,
     };
+  }
+
+  _uiLocation(rawLocation: Location): Location {
     if (!rawLocation.source)
-      return oneBased;
+      return rawLocation;
 
     if (!rawLocation.source._sourceMapUrl || !rawLocation.source._sourceMapSourceByUrl)
-      return oneBased;
+      return rawLocation;
     const map = this._sourceMaps.get(rawLocation.source._sourceMapUrl)!.map;
     if (!map)
-      return oneBased;
+      return rawLocation;
 
     let {lineNumber, columnNumber} = rawLocation;
     if (rawLocation.source._inlineSourceRange) {
@@ -280,18 +283,18 @@ export class SourceContainer extends EventEmitter {
     }
     const entry = map.findEntry(lineNumber, columnNumber);
     if (!entry || !entry.sourceUrl)
-      return oneBased;
+      return rawLocation;
 
     const source = rawLocation.source._sourceMapSourceByUrl.get(entry.sourceUrl);
     if (!source)
-      return oneBased;
-    // TODO(dgozman): support recursive source maps?
-    return {
-      lineNumber: (entry.sourceLineNumber || 0) + 1,
-      columnNumber: (entry.sourceColumnNumber || 0) + 1,
+      return rawLocation;
+
+    return this._uiLocation({
+      lineNumber: entry.sourceLineNumber || 0,
+      columnNumber: entry.sourceColumnNumber || 0,
       url: source._url,
       source: source
-    };
+    });
   }
 
   toggleSourceBlackboxed(ref: Dap.Source) {
