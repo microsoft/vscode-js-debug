@@ -98,7 +98,7 @@ function _logObject(results: string[], object: Object, title?: string, stabilize
       else
         dumpProperties(value, prefix, prefixWithName);
     } else {
-      lines.push(prefixWithName + String(value).replace(/\n/g, ' '));
+      lines.push(prefixWithName + String(value).replace(/\n/g, ' ').replace(/VM\d+/g, 'VM<xx>'));
     }
   }
 
