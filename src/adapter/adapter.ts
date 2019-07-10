@@ -4,7 +4,7 @@
 import Dap from '../dap/api';
 
 import CdpConnection from '../cdp/connection';
-import {Target, TargetEvents, TargetManager} from './targetManager';
+import {Target, TargetManager, ExecutionContext} from './targetManager';
 import findChrome from '../chrome/findChrome';
 import * as launcher from '../chrome/launcher';
 import * as completionz from './completions';
@@ -35,6 +35,7 @@ export class Adapter {
   private _sourceContainer: SourceContainer;
   private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
+  private _currentExecutionContext: ExecutionContext | undefined;
 
   constructor(dap: Dap.Api, storagePath: string) {
     this._dap = dap;
@@ -70,6 +71,10 @@ export class Adapter {
 
   testConnection(): Promise<CdpConnection> {
     return this._connection.clone();
+  }
+
+  targetManager(): TargetManager {
+    return this._targetManager;
   }
 
   _isUnderTest(): boolean {
@@ -154,8 +159,8 @@ export class Adapter {
     // sharing the browser instance.
     this._mainTarget = this._targetManager.mainTarget();
     if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._targetManager.once(TargetEvents.TargetAttached, f)) as Target;
-    this._targetManager.on(TargetEvents.TargetDetached, (target: Target) => {
+      this._mainTarget = await new Promise(f => this._targetManager.onTargetAdded(f)) as Target;
+    this._targetManager.onTargetRemoved((target: Target) => {
       if (target === this._mainTarget) {
         this._dap.terminated({});
       }
@@ -401,6 +406,14 @@ export class Adapter {
     return {variables: await variableStore.getVariables(params)};
   }
 
+  _targetForThreadId(threadId: number): Target | null {
+    for (const target of this._targetManager.targets()) {
+      if (target.thread() && target.thread()!.threadId() === threadId)
+        return target;
+    }
+    return null;
+  }
+
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
@@ -412,8 +425,13 @@ export class Adapter {
       if (exception && args.expression === this._exceptionEvaluateName)
         return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception);
     }
-    const response = await this._mainTarget.cdp().Runtime.evaluate({
+    let target = this._currentExecutionContext ? this._targetForThreadId(this._currentExecutionContext.threadId) : null;
+    if (!target)
+      target = this._mainTarget;
+
+    const response = await target.cdp().Runtime.evaluate({
       expression: args.expression,
+      contextId: this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined,
       includeCommandLineAPI: true,
       objectGroup: 'console',
       generatePreview: true
@@ -421,8 +439,7 @@ export class Adapter {
 
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
-    const thread = this._mainTarget.thread()!;
-    return this._evaluateResult(thread.replVariables, response.result, args.context);
+    return this._evaluateResult(target.thread()!.replVariables, response.result, args.context);
   }
 
   async _evaluateResult(variableStore: VariableStore, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
@@ -506,5 +523,9 @@ export class Adapter {
   async _onToggleSourceBlackboxed(params: Dap.ToggleSourceBlackboxedParams): Promise<Dap.ToggleSourceBlackboxedResult | Dap.Error> {
     this._sourceContainer.toggleSourceBlackboxed(params.source);
     return {};
+  }
+
+  setCurrentExecutionContext(item: ExecutionContext | undefined) {
+    this._currentExecutionContext = item;
   }
 }

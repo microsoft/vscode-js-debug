@@ -2,20 +2,20 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import Dap from '../dap/api';
+import { AdapterFactory } from '../adapterFactory';
+import { Adapter } from '../adapter/adapter';
+import { ExecutionContext } from '../adapter/targetManager';
 
-type ExecutionContext = Dap.ExecutionContext & {
-  threadId?: number;
-}
+export function registerExecutionContextsUI(factory: AdapterFactory) {
+  const provider = new ExecutionContextDataProvider(factory);
 
-export function registerExecutionContextsUI(context: vscode.ExtensionContext) {
-  const provider = new ExecutionContextDataProvider(context);
-  vscode.window.createTreeView('executionContexts', { treeDataProvider: provider });
-  vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
-    if (e.event === 'executionContextsChanged') {
-      const params = e.body as Dap.ExecutionContextsChangedEventParams;
-      provider.executionContextsChanged(params.contexts);
-    }
+  const treeView = vscode.window.createTreeView('executionContexts', { treeDataProvider: provider });
+  treeView.onDidChangeSelection(() => {
+    const item = treeView.selection[0];
+    const adapter = factory.activeAdapter();
+    if (!adapter)
+      return;
+    adapter.setCurrentExecutionContext(item);
   });
 }
 
@@ -23,8 +23,17 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   private _onDidChangeTreeData: vscode.EventEmitter<ExecutionContext | undefined> = new vscode.EventEmitter<ExecutionContext | undefined>();
   readonly onDidChangeTreeData: vscode.Event<ExecutionContext | undefined> = this._onDidChangeTreeData.event;
   private _contexts: ExecutionContext[] = [];
+  private _disposables: vscode.Disposable[] = [];
 
-  constructor(context: vscode.ExtensionContext) {
+  constructor(factory: AdapterFactory) {
+    factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter));
+  }
+
+  _setActiveAdapter(adapter: Adapter) {
+    for (const disposable of this._disposables)
+      disposable.dispose();
+    this._disposables = [];
+    adapter.targetManager().onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
   }
 
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
@@ -35,7 +44,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     return item ? [] : this._contexts;
   }
 
-  async getParent(item: Dap.ExecutionContext): Promise<Dap.ExecutionContext | undefined> {
+  async getParent(item: ExecutionContext): Promise<ExecutionContext | undefined> {
     return undefined;
   }
 

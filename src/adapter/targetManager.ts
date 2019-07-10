@@ -5,8 +5,8 @@ import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import * as debug from 'debug';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { URL } from 'url';
-import { EventEmitter } from 'events';
 import { Thread } from './thread';
 import { SourceContainer } from './source';
 import Dap from '../dap/api';
@@ -14,14 +14,16 @@ import { FrameModel, Frame } from '../cdp/frameModel';
 
 const debugTarget = debug('target');
 
-export const TargetEvents = {
-  TargetAttached: Symbol('TargetAttached'),
-  TargetDetached: Symbol('TargetDetached'),
-}
-
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class TargetManager extends EventEmitter {
+export interface ExecutionContext {
+  contextId?: number;
+  name: string;
+  threadId: number;
+  children: ExecutionContext[];
+}
+
+export class TargetManager {
   private _connection: CdpConnection;
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
@@ -33,8 +35,14 @@ export class TargetManager extends EventEmitter {
   public threads: Map<number, Thread> = new Map();
   readonly frameModel = new FrameModel();
 
+  private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
+  private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
+  private _onExecutionContextsChangedEmitter: vscode.EventEmitter<ExecutionContext[]> = new vscode.EventEmitter<ExecutionContext[]>();
+  readonly onTargetAdded = this._onTargetAddedEmitter.event;
+  readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
+  readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
+
   constructor(connection: CdpConnection, dap: Dap.Api, sourceContainer: SourceContainer) {
-    super();
     this._connection = connection;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
@@ -98,9 +106,9 @@ export class TargetManager extends EventEmitter {
     };
 
     // Go over the contexts, bind them to frames.
-    const mainForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext> = new Map();
-    const mainForTarget: Map<Target, Dap.ExecutionContext> = new Map();
-    const worldsForFrameId: Map<Cdp.Page.FrameId, Dap.ExecutionContext[]> = new Map();
+    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContext> = new Map();
+    const mainForTarget: Map<Target, ExecutionContext> = new Map();
+    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContext[]> = new Map();
     for (const thread of this.threads.values()) {
       for (const context of thread.executionContexts()) {
         const frameId = context.auxData ? context.auxData['frameId'] : null;
@@ -124,7 +132,7 @@ export class TargetManager extends EventEmitter {
     }
 
     // Visit frames and use bindings above to build context tree.
-    const visitFrames = (frame: Frame, container: Dap.ExecutionContext[]) => {
+    const visitFrames = (frame: Frame, container: ExecutionContext[]) => {
       const main = mainForFrameId.get(frame.id);
       const worlds = worldsForFrameId.get(frame.id) || [];
       if (main) {
@@ -139,7 +147,7 @@ export class TargetManager extends EventEmitter {
       }
     };
 
-    const result: Dap.ExecutionContext[] = [];
+    const result: ExecutionContext[] = [];
     const mainFrame = this.frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
@@ -164,7 +172,7 @@ export class TargetManager extends EventEmitter {
         container.push(toDap(thread, context));
       }
     }
-    this._dap.executionContextsChanged({ contexts: result });
+    this._onExecutionContextsChangedEmitter.fire(result);
   }
 
   _attachToFirstPage() {
@@ -219,7 +227,7 @@ export class TargetManager extends EventEmitter {
       return cleanupOnFailure();
     if (!this._mainTarget)
       this._mainTarget = target;
-    this.emit(TargetEvents.TargetAttached, target);
+    this._onTargetAddedEmitter.fire(target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
     this._targetStructureChanged();
   }
@@ -240,7 +248,7 @@ export class TargetManager extends EventEmitter {
 
     if (this._mainTarget === target)
       this._mainTarget = undefined;
-    this.emit(TargetEvents.TargetDetached, target);
+    this._onTargetRemovedEmitter.fire(target);
     debugTarget(`Detached from target ${targetId}`);
     this._targetStructureChanged();
   }
