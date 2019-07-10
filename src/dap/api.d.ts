@@ -319,11 +319,6 @@ export namespace Dap {
      * Toggles the blackboxed state of a particular source.
      */
     on(request: 'toggleSourceBlackboxed', handler: (params: ToggleSourceBlackboxedParams) => Promise<ToggleSourceBlackboxedResult | Error>): void;
-
-    /**
-     * The event indicates that execution contexts have changed.
-     */
-    executionContextsChanged(params: ExecutionContextsChangedEventParams): void;
   }
 
   export interface AttachParams {
@@ -591,10 +586,6 @@ export namespace Dap {
      * Detailed information about the exception.
      */
     details?: ExceptionDetails;
-  }
-
-  export interface ExecutionContextsChangedEventParams {
-    contexts: ExecutionContext[];
   }
 
   export interface ExitedEventParams {
@@ -1841,9 +1832,9 @@ export namespace Dap {
    * A Module object represents a row in the modules view.
    * Two attributes are mandatory: an id identifies a module in the modules view and is used in a ModuleEvent for identifying a module for adding, updating or deleting.
    * The name is used to minimally render the module in the UI.
-   * 
+   *
    * Additional attributes can be added to the module. They will show up in the module View if they have a corresponding ColumnDescriptor.
-   * 
+   *
    * To avoid an unnecessary proliferation of additional attributes with similar semantics but different names
    * we recommend to re-use attributes from the 'recommended' list below first, and only introduce new attributes if nothing appropriate could be found.
    */
@@ -1861,7 +1852,7 @@ export namespace Dap {
     /**
      * optional but recommended attributes.
      * always try to use these first before introducing additional attributes.
-     * 
+     *
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
     path?: string;
@@ -2057,28 +2048,6 @@ export namespace Dap {
      * Value of the checksum.
      */
     checksum: string;
-  }
-
-  /**
-   * Execution context definition.
-   */
-  export interface ExecutionContext {
-    /**
-     * Context id.
-     */
-    contextId?: number;
-
-    /**
-     * Human-readable context name.
-     */
-    name: string;
-
-    /**
-     * Thread id.
-     */
-    threadId: number;
-
-    children: ExecutionContext[];
   }
 
   /**

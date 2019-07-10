@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cdp', new DebugConfigurationProvider()));
 
   registerCustomBreakpointsUI(factory);
-  registerExecutionContextsUI(context);
+  registerExecutionContextsUI(factory);
 
   context.subscriptions.push(vscode.commands.registerCommand('cdp.toggleActiveDocumentBlackboxed', e => {
     const session = vscode.debug.activeDebugSession;
