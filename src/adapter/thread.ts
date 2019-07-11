@@ -9,7 +9,6 @@ import {StackTrace, StackFrame} from './stackTrace';
 import * as objectPreview from './objectPreview';
 import { VariableStore } from './variableStore';
 import Dap from '../dap/api';
-import { Target } from './targetManager';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
@@ -175,12 +174,12 @@ export class Thread {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
-    this.manager.reportExecutionContexts();
+    this.manager.refreshExecutionContexts();
   }
 
   _executionContextDestroyed(contextId: number) {
     this._executionContexts.delete(contextId);
-    this.manager.reportExecutionContexts();
+    this.manager.refreshExecutionContexts();
   }
 
   _executionContextsCleared() {
@@ -188,7 +187,7 @@ export class Thread {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this.manager.reportExecutionContexts();
+    this.manager.refreshExecutionContexts();
   }
 
   _onResumed() {

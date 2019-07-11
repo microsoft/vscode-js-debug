@@ -7,22 +7,13 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread } from './thread';
-import { SourceContainer } from './source';
-import Dap from '../dap/api';
+import { Thread } from '../adapter/thread';
 import { FrameModel, Frame } from '../cdp/frameModel';
-import { ThreadManager } from './threadManager';
+import { ThreadManager, ExecutionContext } from '../adapter/threadManager';
 
 const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
-
-export interface ExecutionContext {
-  contextId?: number;
-  name: string;
-  threadId: number;
-  children: ExecutionContext[];
-}
 
 export class TargetManager {
   private _connection: CdpConnection;
@@ -34,15 +25,12 @@ export class TargetManager {
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
   private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
-  private _onExecutionContextsChangedEmitter: vscode.EventEmitter<ExecutionContext[]> = new vscode.EventEmitter<ExecutionContext[]>();
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
-  readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
 
   constructor(connection: CdpConnection, threadManager: ThreadManager) {
     this._connection = connection;
     this._threadManager = threadManager;
-    this._threadManager.onExecutionContextsChanged(() => this._reportExecutionContexts());
     this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
@@ -58,7 +46,7 @@ export class TargetManager {
     return Array.from(this._targets.values());
   }
 
-  _reportExecutionContexts() {
+  executionContexts(): ExecutionContext[] {
     const reported: Set<string> = new Set();
     const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);
@@ -144,7 +132,7 @@ export class TargetManager {
         container.push(toDap(thread, context));
       }
     }
-    this._onExecutionContextsChangedEmitter.fire(result);
+    return result;
   }
 
   _attachToFirstPage() {
@@ -234,7 +222,7 @@ export class TargetManager {
   }
 
   _targetStructureChanged() {
-    this._reportExecutionContexts();
+    this._threadManager.refreshExecutionContexts();
   }
 }
 

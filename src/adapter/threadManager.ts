@@ -29,12 +29,18 @@ export class ThreadManager {
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
+  private _executionContextProvider: () => ExecutionContext[];
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, executionContextProvider: () => ExecutionContext[]) {
     this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
+    this._executionContextProvider = executionContextProvider;
+  }
+
+  mainThread(): Thread | undefined {
+    return this._threads.values().next().value;
   }
 
   createThread(cdp: Cdp.Api, supportsCustomBreakpoints: boolean): Thread {
@@ -54,8 +60,8 @@ export class ThreadManager {
     this._onThreadRemovedEmitter.fire(thread);
   }
 
-  reportExecutionContexts() {
-    this._onExecutionContextsChangedEmitter.fire();
+  refreshExecutionContexts() {
+    this._onExecutionContextsChangedEmitter.fire(this._executionContextProvider());
   }
 
   threads(): Thread[] {
