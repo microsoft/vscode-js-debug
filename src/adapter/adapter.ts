@@ -175,7 +175,7 @@ export class Adapter {
 
     // params.noDebug
     this._launchParams = params;
-    this._sourcePathResolver.initialize(params.webRoot);
+    this._sourcePathResolver.initialize(params);
     this._sourceContainer.initialize();
     await this._mainTarget!.cdp().Page.navigate({url: params.url});
     return {};
