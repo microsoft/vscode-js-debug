@@ -109,11 +109,10 @@ export class Adapter {
     };
   }
 
-  async launch(url: string, webRoot: string | undefined): Promise<Dap.LaunchResult> {
+  async launch(url: string, webRoot: string | undefined) {
     this._sourcePathResolver.initialize(url, webRoot);
     this._sourceContainer.initialize();
     this._breakpointManager.initialize();
-    return {};
   }
 
   _mainThreadNotAvailable(): Dap.Error {

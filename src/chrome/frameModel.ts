@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Cdp from './api';
+import Cdp from '../cdp/api';
 import { EventEmitter } from 'events';
 import { URL } from 'url';
 import * as path from 'path';
