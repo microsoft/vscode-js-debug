@@ -4,9 +4,9 @@
 
 import {LaunchParams, SourcePathResolver, Location, SourceContainer} from './source';
 import Dap from '../dap/api';
-import {TargetManager} from './targetManager';
 import Cdp from '../cdp/api';
 import {Thread} from './thread';
+import { ThreadManager } from './threadManager';
 
 type SetResult = {
   id: string;
@@ -71,17 +71,17 @@ export class Breakpoint {
   }
 
   async _setInThreads(rawLocation: Location): Promise<void> {
-    const targetManager = this._manager._targetManager;
+    const threadManager = this._manager._threadManager;
     const promises: Promise<void>[] = [];
-    for (const [threadId, thread] of targetManager.threads) {
+    for (const thread of threadManager.threads()) {
       const promise = rawLocation.url ? this._setByUrl(thread, rawLocation) : this._setByScriptId(thread, rawLocation);
       promises.push(promise.then(result => {
-        if (!result || targetManager.threads.get(threadId) !== thread)
+        if (!result || threadManager.thread(thread.threadId()) !== thread)
           return;
-        let ids = this._perThread.get(threadId);
+        let ids = this._perThread.get(thread.threadId());
         if (!ids) {
           ids = [];
-          this._perThread.set(threadId, ids);
+          this._perThread.set(thread.threadId(), ids);
         }
         ids.push(result.id);
         this._updateResolvedLocation(thread, result.resolved);
@@ -118,7 +118,7 @@ export class Breakpoint {
   async remove(): Promise<void> {
     const promises: Promise<any>[] = [];
     for (const [threadId, ids] of this._perThread) {
-      const thread = this._manager._targetManager.threads.get(threadId)!;
+      const thread = this._manager._threadManager.thread(threadId)!;
       for (const id of ids)
         promises.push(thread.cdp().Debugger.removeBreakpoint({breakpointId: id}));
     }
@@ -143,13 +143,13 @@ export class BreakpointManager {
   _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
-  _targetManager: TargetManager;
+  _threadManager: ThreadManager;
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, targetManager: TargetManager) {
+  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
     this._sourcePathResolver = sourcePathResolver;
     this._sourceContainer = sourceContainer;
-    this._targetManager = targetManager;
+    this._threadManager = threadManager;
 
     // TODO(dgozman): listen to Debugger.breakpointsResolved on each thread.
     // TODO(dgozman): put new breakpoints in onThreadAdded, cleanup in onThreadRemoved.

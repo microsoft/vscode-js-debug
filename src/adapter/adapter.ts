@@ -19,6 +19,7 @@ import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import {BreakpointManager} from './breakpoints';
+import { ThreadManager } from './threadManager';
 
 const localize = nls.loadMessageBundle();
 
@@ -32,6 +33,7 @@ export class Adapter {
   private _storagePath: string;
   private _initializeParams: Dap.InitializeParams;
   private _targetManager: TargetManager;
+  private _threadManager: ThreadManager;
   private _launchParams: LaunchParams;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
@@ -113,7 +115,8 @@ export class Adapter {
     this._sourcePathResolver = new SourcePathResolver();
     this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
-    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this._targetManager);
+    this._threadManager = this._targetManager.threadManager;
+    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this._threadManager);
 
     // params.supportsVariableType
     // params.supportsVariablePaging
@@ -213,13 +216,13 @@ export class Adapter {
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
-    for (const thread of this._targetManager.threads.values())
+    for (const thread of this._threadManager.threads())
       threads.push({id: thread.threadId(), name: thread.threadNameWithIndentation()});
     return {threads};
   }
 
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.resume())
@@ -228,7 +231,7 @@ export class Adapter {
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.pause())
@@ -237,7 +240,7 @@ export class Adapter {
   }
 
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOver())
@@ -246,7 +249,7 @@ export class Adapter {
   }
 
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     // TODO(dgozman): support |params.targetId|.
@@ -256,7 +259,7 @@ export class Adapter {
   }
 
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOut())
@@ -277,7 +280,7 @@ export class Adapter {
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
@@ -308,7 +311,7 @@ export class Adapter {
   }
 
   _findStackTrace(frameId: number): StackTrace | undefined {
-    for (const thread of this._targetManager.threads.values()) {
+    for (const thread of this._threadManager.threads()) {
       const details = thread.pausedDetails();
       if (details && details.stackTrace.frame(frameId))
         return details.stackTrace;
@@ -487,16 +490,16 @@ export class Adapter {
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     if (params.filters.includes('caught'))
-      this._targetManager.setPauseOnExceptionsState('all');
+      this._threadManager.setPauseOnExceptionsState('all');
     else if (params.filters.includes('uncaught'))
-      this._targetManager.setPauseOnExceptionsState('uncaught');
+      this._threadManager.setPauseOnExceptionsState('uncaught');
     else
-      this._targetManager.setPauseOnExceptionsState('none');
+      this._threadManager.setPauseOnExceptionsState('none');
     return {};
   }
 
   async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
-    const thread = this._targetManager.threads.get(params.threadId);
+    const thread = this._threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
@@ -506,7 +509,7 @@ export class Adapter {
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
-      breakMode: this._targetManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
+      breakMode: this._threadManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
         // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
@@ -516,7 +519,7 @@ export class Adapter {
   }
 
   async onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
-    await this._targetManager.updateCustomBreakpoints(params.breakpoints);
+    await this._threadManager.updateCustomBreakpoints(params.breakpoints);
     return {};
   }
 

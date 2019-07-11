@@ -12,6 +12,7 @@ import { Thread } from './thread';
 import { SourceContainer } from './source';
 import Dap from '../dap/api';
 import { FrameModel, Frame } from '../cdp/frameModel';
+import { ThreadManager } from './threadManager';
 
 const debugTarget = debug('target');
 
@@ -26,15 +27,12 @@ export interface ExecutionContext {
 
 export class TargetManager {
   private _connection: CdpConnection;
-  private _pauseOnExceptionsState: PauseOnExceptionsState;
-  private _customBreakpoints: Set<string>;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _mainTarget?: Target;
   private _browser: Cdp.Api;
   private _dap: Dap.Api;
-  private _sourceContainer: SourceContainer;
-  public threads: Map<number, Thread> = new Map();
   readonly frameModel = new FrameModel();
+  readonly threadManager: ThreadManager;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
   private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
@@ -45,10 +43,9 @@ export class TargetManager {
 
   constructor(connection: CdpConnection, dap: Dap.Api, sourceContainer: SourceContainer) {
     this._connection = connection;
-    this._pauseOnExceptionsState = 'none';
-    this._customBreakpoints = new Set();
     this._dap = dap;
-    this._sourceContainer = sourceContainer;
+    this.threadManager = new ThreadManager(sourceContainer);
+    this.threadManager.onExecutionContextsChanged(() => this._reportExecutionContexts());
     this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
@@ -64,37 +61,7 @@ export class TargetManager {
     return Array.from(this._targets.values());
   }
 
-  pauseOnExceptionsState(): PauseOnExceptionsState {
-    return this._pauseOnExceptionsState;
-  }
-
-  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
-    this._pauseOnExceptionsState = state;
-    for (const thread of this.threads.values())
-      thread.updatePauseOnExceptionsState();
-  }
-
-  updateCustomBreakpoints(breakpoints: Dap.CustomBreakpoint[]): Promise<any> {
-    const promises: Promise<boolean>[] = [];
-    for (const breakpoint of breakpoints) {
-      if (breakpoint.enabled && !this._customBreakpoints.has(breakpoint.id)) {
-        this._customBreakpoints.add(breakpoint.id);
-        for (const thread of this.threads.values())
-          promises.push(thread.updateCustomBreakpoint(breakpoint.id, true));
-      } else if (!breakpoint.enabled && this._customBreakpoints.has(breakpoint.id)) {
-        this._customBreakpoints.delete(breakpoint.id);
-        for (const thread of this.threads.values())
-          promises.push(thread.updateCustomBreakpoint(breakpoint.id, false));
-      }
-    }
-    return Promise.all(promises);
-  }
-
-  customBreakpoints(): Set<string> {
-    return this._customBreakpoints;
-  }
-
-  reportExecutionContexts() {
+  _reportExecutionContexts() {
     const reported: Set<string> = new Set();
     const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);
@@ -110,7 +77,10 @@ export class TargetManager {
     const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContext> = new Map();
     const mainForTarget: Map<Target, ExecutionContext> = new Map();
     const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContext[]> = new Map();
-    for (const thread of this.threads.values()) {
+    for (const target of this.targets()) {
+      const thread = target.thread();
+      if (!thread)
+        continue;
       for (const context of thread.executionContexts()) {
         const frameId = context.auxData ? context.auxData['frameId'] : null;
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
@@ -120,7 +90,7 @@ export class TargetManager {
           const dapContext = toDap(thread, context, name);
           mainForFrameId.set(frameId, dapContext);
           if (!frame!.parentFrame)
-            mainForTarget.set(thread.target, dapContext);
+            mainForTarget.set(target, dapContext);
         } else if (frameId) {
           let contexts = worldsForFrameId.get(frameId);
           if (!contexts) {
@@ -154,17 +124,21 @@ export class TargetManager {
       visitFrames(mainFrame, result);
 
     // Traverse remaining contexts, use target hierarchy.
-    for (const thread of this.threads.values()) {
+    for (const target of this.targets()) {
       let container = result;
 
       // Which target should own the context?
-      for (let target: Target| undefined = thread.target; target; target = target.parentTarget) {
-        const parentContext = mainForTarget.get(target);
+      for (let t: Target| undefined = target; t; t = t.parentTarget) {
+        const parentContext = mainForTarget.get(t);
         if (parentContext) {
           container = parentContext.children;
           break;
         }
       }
+
+      const thread = target.thread();
+      if (!thread)
+        continue;
 
       // Put all contexts there.
       for (const context of thread.executionContexts()) {
@@ -199,7 +173,7 @@ export class TargetManager {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new Target(this, this._sourceContainer, targetInfo, cdp, this._dap, parentTarget, target => {
+    const target = new Target(this, targetInfo, cdp, this._dap, parentTarget, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -263,7 +237,7 @@ export class TargetManager {
   }
 
   _targetStructureChanged() {
-    this.reportExecutionContexts();
+    this._reportExecutionContexts();
   }
 }
 
@@ -281,12 +255,12 @@ export class Target {
 
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(targetManager: TargetManager, sourceContainer: SourceContainer, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, dap: Dap.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, dap: Dap.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
     this.manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = new Thread(this, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
+      this._thread = targetManager.threadManager.createThread(cdp, dap, domDebuggerTypes.has(targetInfo.type));
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
