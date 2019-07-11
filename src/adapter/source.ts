@@ -29,7 +29,7 @@ type ContentGetter = () => Promise<string | undefined>;
 type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
 type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string, isDirectDependency?: boolean};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
-type SourceOrigin = {compiled: Set<Source>, inlined: boolean};
+type SourceOrigin = {compiledToSourceUrl: Map<Source, string>, inlined: boolean};
 
 export class SourcePathResolver {
   private _basePath?: string;
@@ -304,6 +304,16 @@ export class SourceContainer extends EventEmitter {
     };
   }
 
+  rawLocations(uiLocation: Location): Location[] {
+    uiLocation = {
+      lineNumber: uiLocation.lineNumber - 1,
+      columnNumber: uiLocation.columnNumber - 1,
+      url: uiLocation.url,
+      source: uiLocation.source,
+    };
+    return this._rawLocations(uiLocation);
+  }
+
   _uiLocation(rawLocation: Location): Location {
     if (!rawLocation.source)
       return rawLocation;
@@ -334,6 +344,27 @@ export class SourceContainer extends EventEmitter {
       url: source._url,
       source: source
     });
+  }
+
+  _rawLocations(uiLocation: Location): Location[] {
+    if (!uiLocation.source || !uiLocation.source._origin)
+      return [uiLocation];
+    const result: Location[] = [];
+    for (const [compiled, sourceUrl] of uiLocation.source._origin.compiledToSourceUrl) {
+      const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
+      if (!map)
+        continue;
+      const entry = map.findReverseEntry(sourceUrl, uiLocation.lineNumber, uiLocation.columnNumber);
+      if (!entry)
+        continue;
+      result.push(...this._rawLocations({
+        lineNumber: entry.lineNumber + (compiled._inlineSourceRange ? compiled._inlineSourceRange.startLine : 0),
+        columnNumber: entry.columnNumber + ((compiled._inlineSourceRange && !entry.lineNumber) ? compiled._inlineSourceRange.startColumn : 0),
+        url: compiled.url(),
+        source: compiled
+      }));
+    }
+    return result;
   }
 
   async addSource(source: Source) {
@@ -409,13 +440,13 @@ export class SourceContainer extends EventEmitter {
       if (!inlined)
         source = this._fetchedSourceMapSources.get(resolvedUrl);
       if (source) {
-        source._origin!.compiled.add(compiled);
+        source._origin!.compiledToSourceUrl.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
         continue;
       }
       // TODO(dgozman): support recursive source maps?
       source = new Source(resolvedUrl, inlined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
-      source._origin = {compiled: new Set([compiled]), inlined};
+      source._origin = {compiledToSourceUrl: new Map([[compiled, url]]), inlined};
       compiled._sourceMapSourceByUrl.set(url, source);
       this.addSource(source);
     }
@@ -425,9 +456,9 @@ export class SourceContainer extends EventEmitter {
     for (const url of map.sourceUrls()) {
       const source = compiled._sourceMapSourceByUrl!.get(url)!;
       compiled._sourceMapSourceByUrl!.delete(url);
-      console.assert(source._origin!.compiled.has(compiled));
-      source._origin!.compiled.delete(compiled);
-      if (source._origin!.compiled.size)
+      console.assert(source._origin!.compiledToSourceUrl.has(compiled));
+      source._origin!.compiledToSourceUrl.delete(compiled);
+      if (source._origin!.compiledToSourceUrl.size)
         continue;
       this.removeSource(source);
     }
