@@ -6,17 +6,13 @@ import * as vscode from 'vscode';
 import {WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken} from 'vscode';
 import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
 import {registerExecutionContextsUI} from './ui/executionContextsUI';
-import * as querystring from 'querystring';
-import Dap from './dap/api';
 import {AdapterFactory} from './adapterFactory';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
 export function activate(context: vscode.ExtensionContext) {
-  const factory = new AdapterFactory(context);
-
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cdp', new DebugConfigurationProvider()));
-
+  const factory = new AdapterFactory(context);
   registerCustomBreakpointsUI(factory);
   registerExecutionContextsUI(factory);
 }
