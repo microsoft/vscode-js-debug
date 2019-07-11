@@ -3,7 +3,6 @@
 
 import Cdp from '../cdp/api';
 import * as messageFormat from './messageFormat';
-import * as Color from 'color';
 
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
@@ -248,69 +247,13 @@ function formatAsString(param: Cdp.Runtime.RemoteObject): string {
   return String(typeof param.value !== 'undefined' ? param.value : param.description);
 }
 
-function escapeAnsiColor(colorString: string): number | undefined {
-  try {
-    // Color can parse hex and color names
-    const color = new Color(colorString);
-    return color.ansi16().object().ansi16;
-  } catch (ex) {
-    // Unable to parse Color
-    // For instance, "inherit" color will throw
-  }
-  return undefined;
-}
-
-function formatAsColor(param: Cdp.Runtime.RemoteObject): string {
-  const cssRegex = /\s*(.*?)\s*:\s*(.*?)\s*(?:;|$)/g;
-  let escapedSequence = '';
-  let match = cssRegex.exec(param.value);
-  while (match != null) {
-    if (match.length === 3) {
-      switch (match[1]) {
-        case 'color':
-          const color = escapeAnsiColor(match[2]);
-          if (color) {
-            escapedSequence += `;${color}`;
-          }
-          break;
-        case 'background':
-          const background = escapeAnsiColor(match[2]);
-          if (background) {
-            escapedSequence += `;${background + 10}`;
-          }
-          break;
-        case 'font-weight':
-          if (match[2] === 'bold') {
-            escapedSequence += ';1';
-          }
-          break;
-        case 'text-decoration':
-          if (match[2] === 'underline') {
-            escapedSequence += ';4';
-          }
-          break;
-        default:
-        // css not mapped, skip
-      }
-    }
-
-    match = cssRegex.exec(param.value);
-  }
-
-  if (escapedSequence.length > 0) {
-    escapedSequence = `\x1b[0${escapedSequence}m`;
-  }
-
-  return escapedSequence;
-}
-
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
   ['', param => formatAsString(param)],
   ['s', param => formatAsString(param)],
   ['i', param => formatAsNumber(param, true)],
   ['d', param => formatAsNumber(param, true)],
   ['f', param => formatAsNumber(param, false)],
-  ['c', param => formatAsColor(param)],
+  ['c', param => messageFormat.formatCssAsColor(param.value)],
   ['o', param => renderValue(param, false)],
   ['O', param => renderValue(param, false)],
 ]);
