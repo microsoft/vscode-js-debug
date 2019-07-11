@@ -33,18 +33,28 @@ type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
 type SourceOrigin = {compiled: Set<Source>, inlined: boolean};
 
 export class SourcePathResolver {
-  private _webRoot?: string;
+  private _basePath?: string;
+  private _baseUrl?: URL;
   private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
   private _gitRoot?: string;
   private _nodeModulesRoot?: string;
   private _directDependencies = new Set<string>();
 
-  initialize(webRoot?: string) {
-    this._webRoot = webRoot ? path.normalize(webRoot) : undefined;
-    if (!this._webRoot)
+  initialize(launchParams: LaunchParams) {
+    this._basePath = launchParams.webRoot ? path.normalize(launchParams.webRoot) : undefined;
+    try {
+      this._baseUrl = new URL(launchParams.url);
+      this._baseUrl.pathname = '/';
+      this._baseUrl.search = '';
+      this._baseUrl.hash = '';
+    } catch (e) {
+      this._baseUrl = undefined;
+    }
+
+    if (!this._basePath)
       return;
     const substitute = (s: string): string => {
-      return s.replace(/${webRoot}/g, this._webRoot!);
+      return s.replace(/${webRoot}/g, this._basePath!);
     };
     this._rules = [
       {urlPrefix: 'webpack:///./~/', pathPrefix: substitute('${webRoot}/node_modules/')},
@@ -68,7 +78,7 @@ export class SourcePathResolver {
   }
 
   _findProjectDirWith(entryName: string): string | undefined {
-    let dir = this._webRoot!;
+    let dir = this._basePath!;
     while (true) {
       try {
         if (fs.existsSync(path.join(dir, entryName)))
@@ -109,6 +119,17 @@ export class SourcePathResolver {
     return {absolutePath, name};
   }
 
+  resolveUrl(absolutePath: string): string | undefined {
+    absolutePath = path.normalize(absolutePath);
+    if (!this._baseUrl || !this._basePath || !absolutePath.startsWith(this._basePath))
+      return 'file://' + absolutePath;
+    const relative = path.relative(this._basePath, absolutePath);
+    try {
+      return new URL(relative, this._baseUrl).toString();
+    } catch (e) {
+    }
+  }
+
   _resolveAbsolutePath(url: string): string | undefined {
     // TODO(dgozman): make sure all platform paths are supported.
     if (url.startsWith('file://'))
@@ -117,16 +138,25 @@ export class SourcePathResolver {
       if (url.startsWith(rule.urlPrefix))
         return rule.pathPrefix + url.substring(rule.pathPrefix.length);
     }
-    if (this._webRoot) {
-      try {
-        let relative = new URL(url).pathname;
-        if (relative === '' || relative === '/')
-          relative = 'index.html';
-        return path.join(this._webRoot, relative);
-      } catch (e) {
-      }
+    if (!this._basePath || !this._baseUrl)
+      return;
+
+    try {
+      const u = new URL(url);
+      if (u.origin !== this._baseUrl.origin)
+        return;
+      const pathname = path.normalize(u.pathname);
+      let basepath = path.normalize(this._baseUrl.pathname);
+      if (!basepath.endsWith(path.sep))
+        basepath += path.sep;
+      if (!pathname.startsWith(basepath))
+        return;
+      let relative = basepath === pathname ? '' : path.normalize(path.relative(basepath, pathname));
+      if (relative === '' || relative === '/')
+        relative = 'index.html';
+      return path.join(this._basePath, relative);
+    } catch (e) {
     }
-    return undefined;
   }
 
   _checkExists(absolutePath: string): boolean {

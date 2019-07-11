@@ -132,6 +132,9 @@
         "language": "javascript"
       },
       {
+        "language": "typescript"
+      },
+      {
         "language": "typescriptreact"
       },
       {
