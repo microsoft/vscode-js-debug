@@ -35,11 +35,13 @@
     "test": "tsc -p ./src && node ./out/runTests.js"
   },
   "dependencies": {
+    "color": "^3.1.2",
     "debug": "^4.1.1",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
   "devDependencies": {
+    "@types/color": "^3.0.0",
     "@types/debug": "^4.1.4",
     "@types/node": "^8.9.3",
     "@types/vscode": "^1.30.0",
