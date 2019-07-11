@@ -343,8 +343,9 @@ export class Thread {
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
     switch (event.type) {
       case 'endGroup': return;
-      case 'clear': return;
+      case 'clear': this._clearDebuggerConsole(); return;
     }
+
     let stackTrace: StackTrace | undefined;
     let uiLocation: Location | undefined;
     if (event.stackTrace) {

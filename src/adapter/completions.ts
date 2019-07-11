@@ -5,6 +5,32 @@ import * as ts from 'typescript';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 
+const commandLineAPI = [
+  'dir',
+  'dirxml',
+  'keys',
+  'values',
+  'profile',
+  'profileEnd',
+  'monitorEvents',
+  'unmonitorEvents',
+  'inspect',
+  'copy',
+  'clear',
+  'getEventListeners',
+  'debug',
+  'undebug',
+  'monitor',
+  'unmonitor',
+  'table',
+  'queryObjects',
+  '$',
+  '$$',
+  '$x',
+  '$0',
+  '$_'
+];
+
 export async function completions(cdp: Cdp.Api, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
@@ -13,17 +39,17 @@ export async function completions(cdp: Cdp.Api, expression: string, line: number
     /*setParentNodes */ true);
 
   const offset = positionToOffset(expression, line, column);
-  let result: Promise<Dap.CompletionItem[]> | undefined;
+  let items: Promise<Dap.CompletionItem[]> | undefined;
   traverse(sourceFile);
 
   function traverse(node: ts.Node) {
-    if (result)
+    if (items)
       return;
     if (node.pos < offset && offset <= node.end) {
       switch (node.kind) {
         case ts.SyntaxKind.Identifier: {
           const prefix = node.getText().substring(0, offset - node.getStart());
-          result = completePropertyAccess(cdp, 'self', prefix);
+          items = completePropertyAccess(cdp, 'self', prefix);
           break;
         }
         case ts.SyntaxKind.PropertyAccessExpression: {
@@ -31,16 +57,20 @@ export async function completions(cdp: Cdp.Api, expression: string, line: number
           if (hasSideEffects(pe.expression))
             break;
           const prefix = pe.name.getText().substring(0, offset - pe.name.getStart());
-          result = completePropertyAccess(cdp, pe.expression.getText(), prefix);
+          items = completePropertyAccess(cdp, pe.expression.getText(), prefix);
           break;
         }
       }
     }
 
-    if (!result)
+    if (!items)
       ts.forEachChild(node, traverse);
   }
-  return result || Promise.resolve([]);
+  const result = items ? await items : [];
+  result.push(...commandLineAPI.map(name => {
+    return { label: name, type: 'function' };
+  }));
+  return result;
 }
 
 async function completePropertyAccess(cdp: Cdp.Api, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
