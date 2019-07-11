@@ -70,11 +70,11 @@ export class TargetManager {
         const frameId = context.auxData ? context.auxData['frameId'] : null;
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
         const frame = frameId ? this._frameModel.frameForId(frameId) : null;
-        if (frameId && isDefault) {
-          const name = frame!.parentFrame ? frame!.displayName() : thread.threadName();
+        if (frame && isDefault) {
+          const name = frame.parentFrame ? frame.displayName() : thread.threadName();
           const dapContext = toDap(thread, context, name);
           mainForFrameId.set(frameId, dapContext);
-          if (!frame!.parentFrame)
+          if (!frame.parentFrame)
             mainForTarget.set(target, dapContext);
         } else if (frameId) {
           let contexts = worldsForFrameId.get(frameId);
