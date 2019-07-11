@@ -18,6 +18,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
+import {BreakpointManager} from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 
@@ -33,6 +34,7 @@ export class Adapter {
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
   private _sourcePathResolver: SourcePathResolver;
+  private _breakpointManager: BreakpointManager;
   private _sourceContainer: SourceContainer;
   private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
@@ -111,6 +113,7 @@ export class Adapter {
     this._sourcePathResolver = new SourcePathResolver();
     this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
+    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this._targetManager);
 
     // params.supportsVariableType
     // params.supportsVariablePaging
@@ -178,6 +181,7 @@ export class Adapter {
     this._launchParams = params;
     this._sourcePathResolver.initialize(params);
     this._sourceContainer.initialize();
+    this._breakpointManager.initialize(params);
     await this._mainTarget!.cdp().Page.navigate({url: params.url});
     return {};
   }
@@ -477,8 +481,8 @@ export class Adapter {
     return {content, mimeType: source.mimeType()};
   }
 
-  async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult> {
-    return {breakpoints: []};
+  async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+    return this._breakpointManager.setBreakpoints(params);
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {

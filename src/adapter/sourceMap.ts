@@ -88,6 +88,19 @@ export class SourceMap {
     return this._mappings;
   }
 
+  findReverseEntry(sourceUrl: string, lineNumber: number, columnNumber: number): SourceMapEntry | undefined {
+    const mappings = this._reversedMappings(sourceUrl);
+    const first = lowerBound(mappings, (mapping: SourceMapEntry) => lineNumber - (mapping.sourceLineNumber || 0));
+    const last = upperBound(mappings, (mapping: SourceMapEntry) => lineNumber - (mapping.sourceLineNumber || 0));
+    if (first >= mappings.length || mappings[first].sourceLineNumber !== lineNumber)
+      return;
+    const columnMappings = mappings.slice(first, last);
+    if (!columnMappings.length)
+      return;
+    const index = lowerBound(columnMappings, (mapping: SourceMapEntry) => columnNumber - (mapping.sourceColumnNumber || 0));
+    return index >= columnMappings.length ? columnMappings[columnMappings.length - 1] : columnMappings[index];
+  }
+
   _parseMap(mappings: SourceMapEntry[], map: SourceMapV3, lineNumber: number, columnNumber: number) {
     let sourceIndex = 0;
     let sourceLineNumber = 0;
@@ -146,6 +159,26 @@ export class SourceMap {
     }
     for (const section of json.sections)
       callback(section.map, section.offset.line, section.offset.column);
+  }
+
+  _reversedMappings(sourceUrl: string): SourceMapEntry[] {
+    const mappings = this.mappings();
+    const info = this._sourceInfos.get(sourceUrl);
+    if (!info)
+      return [];
+    if (!info.reverseMappings)
+      info.reverseMappings = mappings.filter(mapping => mapping.sourceUrl === sourceUrl).sort(sourceMappingComparator);
+    return info.reverseMappings;
+
+    function sourceMappingComparator(a: SourceMapEntry, b: SourceMapEntry): number {
+      if (a.sourceLineNumber !== b.sourceLineNumber)
+        return (a.sourceLineNumber || 0) - (b.sourceLineNumber || 0);
+      if (a.sourceColumnNumber !== b.sourceColumnNumber)
+        return (a.sourceColumnNumber || 0) - (b.sourceColumnNumber || 0);
+      if (a.lineNumber !== b.lineNumber)
+        return a.lineNumber - b.lineNumber;
+      return a.columnNumber - b.columnNumber;
+    }
   }
 };
 
@@ -265,6 +298,19 @@ function upperBound<S>(array: S[], comparator: (s: S) => number): number {
   while (l < r) {
     const m = (l + r) >> 1;
     if (comparator(array[m]) >= 0)
+      l = m + 1;
+    else
+      r = m;
+  }
+  return r;
+}
+
+function lowerBound<S>(array: S[], comparator: (s: S) => number): number {
+  let l = 0;
+  let r = array.length;
+  while (l < r) {
+    const m = (l + r) >> 1;
+    if (comparator(array[m]) > 0)
       l = m + 1;
     else
       r = m;

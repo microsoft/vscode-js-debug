@@ -14852,7 +14852,7 @@ export namespace Cdp {
        * - `url`: document location
        * - `pageNumber`: current page number
        * - `totalPages`: total pages in the document
-       * 
+       *
        * For example, `<span class=title></span>` would generate span containing the title.
        */
       headerTemplate?: string;
@@ -19177,9 +19177,9 @@ export namespace Cdp {
     /**
      * Inject object to the target's main frame that provides a communication
      * channel with browser target.
-     * 
+     *
      * Injected object will be available as `window[bindingName]`.
-     * 
+     *
      * The object has the follwing API:
      * - `binding.send(json)` - a method to send messages over the remote debugging protocol
      * - `binding.onmessage = json => handleMessage(json)` - a callback that will be called for the protocol notifications and command responses.
