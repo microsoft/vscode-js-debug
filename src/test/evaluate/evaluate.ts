@@ -27,7 +27,8 @@ async function setVariable(p: test.Params) {
   p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: 'baz'}), 'setVariable failure: ');
 }
 
-export default async function runTests() {
-  await test.runTest(evaluateBasic);
-  await test.runTest(setVariable);
-}
+const tests = [
+  evaluateBasic,
+  setVariable,
+];
+export default {tests};

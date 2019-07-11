@@ -60,10 +60,11 @@ async function pauseOnInnerHtml(p: test.Params) {
   p.log(await p.dap.continue({threadId: event.threadId}));
 }
 
-export default async function runTests() {
-  await test.runTest(pausedFromInitialScript);
-  await test.runTest(pausedFromEval);
-  await test.runTest(pauseOnExceptions);
-  await test.runTest(pauseOnInnerHtml);
-  // TODO(dgozman): test restartFrame.
-}
+// TODO(dgozman): test restartFrame.
+const tests = [
+  pausedFromInitialScript,
+  pausedFromEval,
+  pauseOnExceptions,
+  pauseOnInnerHtml,
+];
+export default {tests};

@@ -35,8 +35,11 @@ async function threadEventOnStartup(log: test.Log) {
   await test.disconnect(connection, dap);
 }
 
-export default async function runTests() {
-  await test.runTest(threadsOnPause);
-  await test.runTest(threadsNotOnPause);
-  await test.runStartupTest(threadEventOnStartup);
-}
+const tests = [
+  threadsOnPause,
+  threadsNotOnPause,
+];
+const startup = [
+  threadEventOnStartup,
+];
+export default {tests, startup};

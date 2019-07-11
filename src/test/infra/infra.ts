@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as test from './test';
+import * as test from '../test';
 
 async function initialize(log: test.Log) {
   const {adapter, dap} = await test.setup();
@@ -11,6 +11,7 @@ async function initialize(log: test.Log) {
   await test.disconnect(connection, dap);
 }
 
-export default async function runTests() {
-  await test.runStartupTest(initialize);
-}
+const startup = [
+  initialize,
+];
+export default {startup};

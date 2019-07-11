@@ -32,7 +32,7 @@
     "watch": "tsc -w -p ./src",
     "package": "vsce package",
     "publish": "vsce publish",
-    "test": "tsc -p ./src && node ./out/runTests.js"
+    "test": "node ./out/test/runTest.js"
   },
   "dependencies": {
     "color": "^3.1.2",
@@ -48,7 +48,8 @@
     "@types/ws": "^6.0.1",
     "tslint": "5.11.0",
     "typescript": "^3.1.6",
-    "vsce": "1.53.2"
+    "vsce": "1.53.2",
+    "vscode-test": "^1.0.0"
   },
   "main": "./out/extension",
   "activationEvents": [
