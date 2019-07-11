@@ -4,11 +4,11 @@
 
 import Cdp from '../cdp/api';
 import * as debug from 'debug';
-import {Source, Location, SourceContainer} from './source';
+import {Source, Location, SourceContainer} from './sources';
 import * as utils from '../utils';
 import {StackTrace, StackFrame} from './stackTrace';
 import * as objectPreview from './objectPreview';
-import { VariableStore } from './variableStore';
+import { VariableStore } from './variables';
 import Dap from '../dap/api';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';

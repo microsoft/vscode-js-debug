@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import {Thread} from "./threads";
-import {Location, SourceContainer} from "./source";
+import {Location, SourceContainer} from "./sources";
 import Cdp from "../cdp/api";
 
 export interface StackFrame {
