@@ -83,7 +83,8 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
   for (let i = 0; i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))
       continue;
-    result.push(' ');
+    if (i)
+      result.push(' ');
     result.push(defaultFormat(substitutions[i]));
   }
 

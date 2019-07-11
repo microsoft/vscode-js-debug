@@ -248,12 +248,12 @@ function formatAsString(param: Cdp.Runtime.RemoteObject): string {
 }
 
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
-  ['', param => formatAsString(param)],
+  ['', param => previewRemoteObject(param)],
   ['s', param => formatAsString(param)],
   ['i', param => formatAsNumber(param, true)],
   ['d', param => formatAsNumber(param, true)],
   ['f', param => formatAsNumber(param, false)],
   ['c', param => messageFormat.formatCssAsColor(param.value)],
-  ['o', param => renderValue(param, false)],
-  ['O', param => renderValue(param, false)],
+  ['o', param => previewRemoteObject(param)],
+  ['O', param => previewRemoteObject(param)],
 ]);
