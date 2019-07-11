@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { SourcePathResolver, Location, SourceContainer } from './source';
+import { SourcePathResolver, Location, SourceContainer } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager } from './threads';

@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
 import { Thread, ThreadManager, ExecutionContext } from '../adapter/threads';
-import { FrameModel, Frame } from './frameModel';
+import { FrameModel, Frame } from './frames';
 
 const debugTarget = debug('target');
 
