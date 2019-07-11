@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
 import { Adapter } from '../adapter/adapter';
-import { ExecutionContext } from '../adapter/targetManager';
+import { ExecutionContext } from '../adapter/threadManager';
 
 export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);
@@ -34,7 +34,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
-    adapter.targetManager().onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
+    adapter.threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
   }
 
   getTreeItem(item: ExecutionContext): vscode.TreeItem {

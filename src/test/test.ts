@@ -10,6 +10,7 @@ import {ConfigurationDoneResult, Adapter} from '../adapter/adapter';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
+import { ChromeAdapter } from '../chrome/chromeAdapter';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -35,7 +36,7 @@ export async function setup(): Promise<{adapter: Adapter, dap: Dap.TestApi}> {
   const adapterToTest = new Stream();
   const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
   const testConnection = new DapConnection(adapterToTest, testToAdapter);
-  const adapter = new Adapter(adapterConnection.dap(), path.join(__dirname, '../..'));
+  const adapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..')).adapter();
   return {adapter, dap: testConnection.createTestApi()};
 }
 

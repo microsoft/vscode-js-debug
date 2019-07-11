@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {LaunchParams, SourcePathResolver, Location, SourceContainer} from './source';
+import { SourcePathResolver, Location, SourceContainer } from './source';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import {Thread} from './thread';
+import { Thread } from './thread';
 import { ThreadManager } from './threadManager';
 
 type SetResult = {
@@ -139,7 +139,7 @@ export class BreakpointManager {
   private _byPath: Map<string, Breakpoint[]> = new Map();
   private _byRef: Map<number, Breakpoint[]> = new Map();
 
-  private _launchParams?: LaunchParams;
+  private _initialized = false;
   _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
@@ -158,8 +158,8 @@ export class BreakpointManager {
     // TODO(dgozman): update breakpoints if source map source with matching path arrives.
   }
 
-  async initialize(launchParams: LaunchParams): Promise<void> {
-    this._launchParams = launchParams;
+  async initialize(): Promise<void> {
+    this._initialized = true;
     const promises: Promise<void>[] = [];
     for (const breakpoints of this._byPath.values())
       promises.push(...breakpoints.map(b => b.set(true)));
@@ -178,7 +178,7 @@ export class BreakpointManager {
     }
     if (previous)
       await Promise.all(previous.map(b => b.remove()));
-    if (this._launchParams)
+    if (this._initialized)
       await Promise.all(breakpoints.map(b => b.set(false)));
     return {breakpoints: breakpoints.map(b => b.toDap())};
   }

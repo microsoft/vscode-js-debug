@@ -5,20 +5,16 @@
 import Dap from '../dap/api';
 
 import CdpConnection from '../cdp/connection';
-import {Target, TargetManager, ExecutionContext} from './targetManager';
-import findChrome from '../chrome/findChrome';
-import * as launcher from '../chrome/launcher';
+import { ExecutionContext } from './threadManager';
 import * as completionz from './completions';
-import {StackTrace} from './stackTrace';
+import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
-import {VariableStore, ScopeRef} from './variableStore';
-import {SourceContainer, LaunchParams, SourcePathResolver} from './source';
-import * as path from 'path';
-import * as fs from 'fs';
+import { VariableStore, ScopeRef } from './variableStore';
+import { SourceContainer, SourcePathResolver } from './source';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
-import {BreakpointManager} from './breakpoints';
+import { BreakpointManager } from './breakpoints';
 import { ThreadManager } from './threadManager';
 
 const localize = nls.loadMessageBundle();
@@ -30,27 +26,16 @@ export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
 export class Adapter {
   private _dap: Dap.Api;
   private _connection: CdpConnection;
-  private _storagePath: string;
-  private _initializeParams: Dap.InitializeParams;
-  private _targetManager: TargetManager;
-  private _threadManager: ThreadManager;
-  private _launchParams: LaunchParams;
+  readonly threadManager: ThreadManager;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
   private _sourceContainer: SourceContainer;
-  private _mainTarget?: Target;
   private _exceptionEvaluateName: string;
   private _currentExecutionContext: ExecutionContext | undefined;
 
-  constructor(dap: Dap.Api, storagePath: string) {
+  constructor(dap: Dap.Api, connection: CdpConnection, executionContextProvider: () => ExecutionContext[]) {
     this._dap = dap;
-    this._storagePath = storagePath;
-    this._dap.on('initialize', params => this._onInitialize(params));
-    this._dap.on('configurationDone', params => this._onConfigurationDone(params));
-    this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
-    this._dap.on('terminate', params => this._onTerminate(params));
-    this._dap.on('disconnect', params => this._onDisconnect(params));
-    this._dap.on('restart', params => this._onRestart(params));
+    this._connection = connection;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
     this._dap.on('pause', params => this._onPause(params));
@@ -71,53 +56,18 @@ export class Adapter {
     this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
+
+    this._sourcePathResolver = new SourcePathResolver();
+    this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
+    this.threadManager = new ThreadManager(this._dap, this._sourceContainer, executionContextProvider);
+    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this.threadManager);
   }
 
   testConnection(): Promise<CdpConnection> {
     return this._connection.clone();
   }
 
-  targetManager(): TargetManager {
-    return this._targetManager;
-  }
-
-  _isUnderTest(): boolean {
-    return this._initializeParams.clientID === 'cdp-test';
-  }
-
-  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
-    this._initializeParams = params;
-    console.assert(params.linesStartAt1);
-    console.assert(params.columnsStartAt1);
-    console.assert(params.pathFormat === 'path');
-
-    const executablePath = findChrome().pop();
-    if (!executablePath)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to find Chrome'));
-    const args: string[] = [];
-    if (this._isUnderTest()) {
-      args.push('--remote-debugging-port=0');
-      args.push('--headless');
-    }
-
-    try {
-      fs.mkdirSync(this._storagePath);
-    } catch (e) {
-    }
-    this._connection = await launcher.launch(
-      executablePath, {
-        args,
-        userDataDir: path.join(this._storagePath, this._isUnderTest() ? '.headless-profile' : 'profile'),
-        pipe: true,
-      });
-    this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
-
-    this._sourcePathResolver = new SourcePathResolver();
-    this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
-    this._threadManager = new ThreadManager(this._dap, this._sourceContainer);
-    this._targetManager = new TargetManager(this._connection, this._threadManager);
-    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this._threadManager);
-
+  async initialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     // params.supportsVariableType
     // params.supportsVariablePaging
     // params.supportsRunInTerminalRequest
@@ -160,69 +110,26 @@ export class Adapter {
     };
   }
 
-  async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<ConfigurationDoneResult> {
-    // TODO(dgozman): assuming first page is our main target breaks multiple debugging sessions
-    // sharing the browser instance.
-    this._mainTarget = this._targetManager.mainTarget();
-    if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._targetManager.onTargetAdded(f)) as Target;
-    this._targetManager.onTargetRemoved((target: Target) => {
-      if (target === this._mainTarget) {
-        this._dap.terminated({});
-      }
-    });
-    if (this._isUnderTest())
-      return {targetId: this._mainTarget.targetId()};
-    return {};
-  }
-
-  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult> {
-    if (!this._mainTarget)
-      await this._onConfigurationDone({});
-
-    // params.noDebug
-    this._launchParams = params;
-    this._sourcePathResolver.initialize(params);
+  async launch(url: string, webRoot: string | undefined): Promise<Dap.LaunchResult> {
+    this._sourcePathResolver.initialize(url, webRoot);
     this._sourceContainer.initialize();
-    this._breakpointManager.initialize(params);
-    await this._mainTarget!.cdp().Page.navigate({url: params.url});
+    this._breakpointManager.initialize();
     return {};
   }
 
-  _mainTargetNotAvailable(): Dap.Error {
+  _mainThreadNotAvailable(): Dap.Error {
     return errors.createSilentError('Page is not available');
-  }
-
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    if (!this._mainTarget)
-      return this._mainTargetNotAvailable();
-    this._mainTarget.cdp().Page.navigate({url: 'about:blank'});
-    return {};
-  }
-
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    if (!this._targetManager)
-      return this._mainTargetNotAvailable();
-    await this._connection.browser().Browser.close({});
-    return {};
-  }
-
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
-    if (!this._mainTarget)
-      return this._mainTargetNotAvailable();
-    await this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
-    return {};
   }
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
-    for (const thread of this._threadManager.threads())
+    for (const thread of this.threadManager.threads())
       threads.push({id: thread.threadId(), name: thread.threadNameWithIndentation()});
     return {threads};
   }
 
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.resume())
@@ -231,7 +138,7 @@ export class Adapter {
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.pause())
@@ -240,7 +147,7 @@ export class Adapter {
   }
 
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOver())
@@ -249,7 +156,7 @@ export class Adapter {
   }
 
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     // TODO(dgozman): support |params.targetId|.
@@ -259,7 +166,7 @@ export class Adapter {
   }
 
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     if (!await thread.stepOut())
@@ -280,7 +187,7 @@ export class Adapter {
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
@@ -311,7 +218,7 @@ export class Adapter {
   }
 
   _findStackTrace(frameId: number): StackTrace | undefined {
-    for (const thread of this._threadManager.threads()) {
+    for (const thread of this.threadManager.threads()) {
       const details = thread.pausedDetails();
       if (details && details.stackTrace.frame(frameId))
         return details.stackTrace;
@@ -397,10 +304,7 @@ export class Adapter {
   }
 
   _findVariableStore(variablesReference: number): VariableStore | null {
-    for (const target of this._targetManager.targets()) {
-      const thread = target.thread()
-      if (!thread)
-        continue;
+    for (const thread of this.threadManager.threads()) {
       if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
         return thread.pausedVariables();
       if (thread.replVariables.hasVariables(variablesReference))
@@ -416,17 +320,10 @@ export class Adapter {
     return {variables: await variableStore.getVariables(params)};
   }
 
-  _targetForThreadId(threadId: number): Target | null {
-    for (const target of this._targetManager.targets()) {
-      if (target.thread() && target.thread()!.threadId() === threadId)
-        return target;
-    }
-    return null;
-  }
-
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    if (!this._mainTarget)
-      return this._mainTargetNotAvailable();
+    const mainThread = this.threadManager.mainThread();
+    if (!mainThread)
+      return this._mainThreadNotAvailable();
     if (args.frameId !== undefined) {
       const stackTrace = this._findStackTrace(args.frameId);
       if (!stackTrace)
@@ -435,11 +332,11 @@ export class Adapter {
       if (exception && args.expression === this._exceptionEvaluateName)
         return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception);
     }
-    let target = this._currentExecutionContext ? this._targetForThreadId(this._currentExecutionContext.threadId) : null;
-    if (!target)
-      target = this._mainTarget;
+    let thread = this._currentExecutionContext ? this.threadManager.thread(this._currentExecutionContext.threadId) : null;
+    if (!thread)
+      thread = mainThread;
 
-    const response = await target.cdp().Runtime.evaluate({
+    const response = await thread.cdp().Runtime.evaluate({
       expression: args.expression,
       contextId: this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined,
       includeCommandLineAPI: true,
@@ -449,7 +346,7 @@ export class Adapter {
 
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
-    return this._evaluateResult(target.thread()!.replVariables, response.result, args.context);
+    return this._evaluateResult(thread.replVariables, response.result, args.context);
   }
 
   async _evaluateResult(variableStore: VariableStore, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
@@ -464,10 +361,11 @@ export class Adapter {
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult> {
-    if (!this._mainTarget)
+    const mainThread = this.threadManager.mainThread();
+    if (!mainThread)
       return {targets: []};
     const line = params.line === undefined ? 0 : params.line - 1;
-    return {targets: await completionz.completions(this._mainTarget.cdp(), params.text, line, params.column)};
+    return {targets: await completionz.completions(mainThread.cdp(), params.text, line, params.column)};
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
@@ -490,16 +388,16 @@ export class Adapter {
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     if (params.filters.includes('caught'))
-      this._threadManager.setPauseOnExceptionsState('all');
+      this.threadManager.setPauseOnExceptionsState('all');
     else if (params.filters.includes('uncaught'))
-      this._threadManager.setPauseOnExceptionsState('uncaught');
+      this.threadManager.setPauseOnExceptionsState('uncaught');
     else
-      this._threadManager.setPauseOnExceptionsState('none');
+      this.threadManager.setPauseOnExceptionsState('none');
     return {};
   }
 
   async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
-    const thread = this._threadManager.thread(params.threadId);
+    const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
@@ -509,7 +407,7 @@ export class Adapter {
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
-      breakMode: this._threadManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
+      breakMode: this.threadManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
         // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
@@ -519,7 +417,7 @@ export class Adapter {
   }
 
   async onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
-    await this._threadManager.updateCustomBreakpoints(params.breakpoints);
+    await this.threadManager.updateCustomBreakpoints(params.breakpoints);
     return {};
   }
 

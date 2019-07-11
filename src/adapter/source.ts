@@ -14,11 +14,6 @@ import * as errors from './errors';
 
 const localize = nls.loadMessageBundle();
 
-export interface LaunchParams extends Dap.LaunchParams {
-  url: string;
-  webRoot?: string;
-}
-
 export interface Location {
   lineNumber: number;
   columnNumber: number;
@@ -40,10 +35,10 @@ export class SourcePathResolver {
   private _nodeModulesRoot?: string;
   private _directDependencies = new Set<string>();
 
-  initialize(launchParams: LaunchParams) {
-    this._basePath = launchParams.webRoot ? path.normalize(launchParams.webRoot) : undefined;
+  initialize(url: string, webRoot: string | undefined) {
+    this._basePath = webRoot ? path.normalize(webRoot) : undefined;
     try {
-      this._baseUrl = new URL(launchParams.url);
+      this._baseUrl = new URL(url);
       this._baseUrl.pathname = '/';
       this._baseUrl.search = '';
       this._baseUrl.hash = '';
