@@ -29,9 +29,8 @@ export class TargetManager {
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _mainTarget?: Target;
   private _browser: Cdp.Api;
-  private _dap: Dap.Api;
-  readonly frameModel = new FrameModel();
-  readonly threadManager: ThreadManager;
+  _frameModel = new FrameModel();
+  _threadManager: ThreadManager;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
   private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
@@ -40,11 +39,10 @@ export class TargetManager {
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
 
-  constructor(connection: CdpConnection, dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(connection: CdpConnection, threadManager: ThreadManager) {
     this._connection = connection;
-    this._dap = dap;
-    this.threadManager = new ThreadManager(sourceContainer);
-    this.threadManager.onExecutionContextsChanged(() => this._reportExecutionContexts());
+    this._threadManager = threadManager;
+    this._threadManager.onExecutionContextsChanged(() => this._reportExecutionContexts());
     this._browser = connection.browser();
     this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
@@ -83,7 +81,7 @@ export class TargetManager {
       for (const context of thread.executionContexts()) {
         const frameId = context.auxData ? context.auxData['frameId'] : null;
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
-        const frame = frameId ? this.frameModel.frameForId(frameId) : null;
+        const frame = frameId ? this._frameModel.frameForId(frameId) : null;
         if (frameId && isDefault) {
           const name = frame!.parentFrame ? frame!.displayName() : thread.threadName();
           const dapContext = toDap(thread, context, name);
@@ -118,7 +116,7 @@ export class TargetManager {
     };
 
     const result: ExecutionContext[] = [];
-    const mainFrame = this.frameModel.mainFrame();
+    const mainFrame = this._frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
 
@@ -172,7 +170,7 @@ export class TargetManager {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new Target(this, targetInfo, cdp, this._dap, parentTarget, target => {
+    const target = new Target(this, targetInfo, cdp, parentTarget, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -244,9 +242,9 @@ const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class Target {
-  readonly manager: TargetManager;
   readonly parentTarget?: Target;
 
+  private _manager: TargetManager;
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
@@ -254,12 +252,12 @@ export class Target {
 
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, dap: Dap.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
     this._cdp = cdp;
-    this.manager = targetManager;
+    this._manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager.threadManager.createThread(cdp, dap, domDebuggerTypes.has(targetInfo.type));
+      this._thread = targetManager._threadManager.createThread(cdp, domDebuggerTypes.has(targetInfo.type));
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
@@ -279,7 +277,7 @@ export class Target {
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread && !await this._thread.initialize())
       return false;
-    if (domDebuggerTypes.has(this._targetInfo.type) && !await this.manager.frameModel.addTarget(this._cdp))
+    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager._frameModel.addTarget(this._cdp))
       return false;
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;
