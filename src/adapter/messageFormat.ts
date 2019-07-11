@@ -104,7 +104,7 @@ function escapeAnsiColor(colorString: string): number | undefined {
   return undefined;
 }
 
-export function formatCssAsColor(style: string): string {
+export function formatCssAsAnsi(style: string): string {
   const cssRegex = /\s*(.*?)\s*:\s*(.*?)\s*(?:;|$)/g;
   let escapedSequence = '\x1b[0m';
   let match = cssRegex.exec(style);

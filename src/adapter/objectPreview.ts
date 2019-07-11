@@ -254,7 +254,7 @@ export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObjec
   ['i', param => formatAsNumber(param, true)],
   ['d', param => formatAsNumber(param, true)],
   ['f', param => formatAsNumber(param, false)],
-  ['c', param => messageFormat.formatCssAsColor(param.value)],
+  ['c', param => messageFormat.formatCssAsAnsi(param.value)],
   ['o', param => previewRemoteObject(param)],
   ['O', param => previewRemoteObject(param)],
 ]);
