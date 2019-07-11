@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as Color from 'color';
+
 export interface FormatToken {
   type: string;
   value?: string;
@@ -82,9 +84,62 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
   for (let i = 0; i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))
       continue;
-    const format = formatters.get('')!;
+    result.push(' ');
     result.push(defaultFormat(substitutions[i]));
   }
 
-  return result.join(' ');
-};
+  return result.join('');
+}
+
+function escapeAnsiColor(colorString: string): number | undefined {
+  try {
+    // Color can parse hex and color names
+    const color = new Color(colorString);
+    return color.ansi256().object().ansi256;
+  } catch (ex) {
+    // Unable to parse Color
+    // For instance, "inherit" color will throw
+  }
+  return undefined;
+}
+
+export function formatCssAsColor(style: string): string {
+  const cssRegex = /\s*(.*?)\s*:\s*(.*?)\s*(?:;|$)/g;
+  let escapedSequence = '\x1b[0m';
+  let match = cssRegex.exec(style);
+  while (match != null) {
+    if (match.length === 3) {
+      switch (match[1]) {
+        case 'color':
+          const color = escapeAnsiColor(match[2]);
+          if (color)
+            escapedSequence += `\x1b[38;5;${color}m`;
+          break;
+        case 'background':
+        case 'background-color':
+          const background = escapeAnsiColor(match[2]);
+          if (background)
+            escapedSequence += `\x1b[48;5;${background}m`;
+          break;
+        case 'font-weight':
+          if (match[2] === 'bold')
+            escapedSequence += '\x1b[1m';
+          break;
+        case 'font-style':
+          if (match[2] === 'italic')
+            escapedSequence += '\x1b[3m';
+          break;
+        case 'text-decoration':
+          if (match[2] === 'underline')
+            escapedSequence += '\x1b[4m';
+          break;
+        default:
+        // css not mapped, skip
+      }
+    }
+
+    match = cssRegex.exec(style);
+  }
+
+  return escapedSequence;
+}
