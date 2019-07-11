@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {Thread} from "./thread";
+import {Thread} from "./threads";
 import {Location, SourceContainer} from "./source";
 import Cdp from "../cdp/api";
 

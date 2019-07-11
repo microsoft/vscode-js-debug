@@ -5,8 +5,7 @@
 import { SourcePathResolver, Location, SourceContainer } from './source';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { Thread } from './thread';
-import { ThreadManager } from './threadManager';
+import { Thread, ThreadManager } from './threads';
 
 type SetResult = {
   id: string;
