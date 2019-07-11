@@ -149,17 +149,6 @@ export class Thread {
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
-    this._eventListeners.push(utils.addEventListener(this._sourceContainer, SourceContainer.Events.BlackboxedPatternsChanged, () => {
-      this._setBlackboxedPatterns();
-      this._refreshStackTrace();
-    }));
-    this._eventListeners.push(utils.addEventListener(this._sourceContainer, SourceContainer.Events.BlackboxedPositionsChanged, (source: Source) => {
-      const scriptId = source[kScriptIdSymbol];
-      if (scriptId)
-        this._cdp.Debugger.setBlackboxedRanges({scriptId: scriptId, positions: source.blackboxedPositions() || []});
-      this._refreshStackTrace();
-    }));
-    this._setBlackboxedPatterns();
 
     if (!await this._cdp.Debugger.enable({}))
       return false;
@@ -440,22 +429,6 @@ export class Thread {
     this._scripts.set(event.scriptId, source);
     source[kScriptIdSymbol] = event.scriptId;
     this._sourceContainer.addSource(source);
-    const positions = source.blackboxedPositions();
-    if (positions)
-      this._cdp.Debugger.setBlackboxedRanges({scriptId: source[kScriptIdSymbol], positions});
-  }
-
-  _setBlackboxedPatterns() {
-    const patterns = this._sourceContainer.blackboxedPatterns().filter(pattern => !!pattern);
-    return this._cdp.Debugger.setBlackboxPatterns({patterns});
-  }
-
-  _refreshStackTrace() {
-    // TODO(dgozman): only refresh if something has changed.
-    if (this._state === 'normal' && this._pausedDetails) {
-      this._dap.continued({threadId: this._threadId});
-      this._reportPaused(true);
-    }
   }
 };
 

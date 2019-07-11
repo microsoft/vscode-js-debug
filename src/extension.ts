@@ -19,26 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCustomBreakpointsUI(factory);
   registerExecutionContextsUI(factory);
-
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.toggleActiveDocumentBlackboxed', e => {
-    const session = vscode.debug.activeDebugSession;
-    if (!session || session.type !== 'cdp')
-      return;
-    if (!vscode.window.activeTextEditor)
-      return;
-    const uri = vscode.window.activeTextEditor.document.uri;
-    if (uri.scheme === 'file') {
-      const params: Dap.ToggleSourceBlackboxedParams = {source: {path: uri.path}};
-      session.customRequest('toggleSourceBlackboxed', params);
-    } else if (uri.scheme === 'debug') {
-      const ref = querystring.parse(uri.query).ref;
-      const refNumber = parseInt(typeof ref === 'string' ? ref : '');
-      if (refNumber && String(refNumber) === ref) {
-        const params: Dap.ToggleSourceBlackboxedParams = {source: {sourceReference: refNumber}};
-        session.customRequest('toggleSourceBlackboxed', params);
-      }
-    }
-  }));
 }
 
 export function deactivate() {
