@@ -19,12 +19,13 @@ export class FrameModel extends EventEmitter {
 
   _frames: Map<string, Frame> = new Map();
 
-  addTarget(cdp: Cdp.Api) {
-    cdp.Page.enable({});
-    cdp.Page.getResourceTree({}).then(r => {
-      if (r)
-        this._processCachedResources(cdp, r.frameTree);
-    });
+  async addTarget(cdp: Cdp.Api): Promise<boolean> {
+    await cdp.Page.enable({});
+    const result = await cdp.Page.getResourceTree({});
+    if (!result)
+      return false;
+    this._processCachedResources(cdp, result.frameTree);
+    return true;
   }
 
   mainFrame(): Frame | undefined {
