@@ -49,7 +49,8 @@ async function setScopeVariable(p: test.Params) {
   p.log(await p.dap.variables({variablesReference: scopeVar.variablesReference}), 'scope after: ');
 }
 
-export default async function runTests() {
-  await test.runTest(listScopes);
-  await test.runTest(setScopeVariable);
-}
+const tests = [
+  listScopes,
+  setScopeVariable,
+]
+export default {tests};

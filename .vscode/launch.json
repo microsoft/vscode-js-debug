@@ -14,21 +14,6 @@
       "program": "${workspaceFolder}/scripts/generate-dap-api.js"
     },
     {
-      "type": "node",
-      "request": "launch",
-      "name": "Run tests",
-      "preLaunchTask": "npm: compile",
-      "program": "${workspaceFolder}/out/runTests.js"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Reset results",
-      "preLaunchTask": "npm: compile",
-      "program": "${workspaceFolder}/out/runTests.js",
-      "args": ["--reset-results"]
-    },
-    {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
@@ -41,27 +26,32 @@
       ],
       "preLaunchTask": "npm: watch"
     },
-    {
-      "name": "Server",
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/src/debugAdapter.ts",
-      "args": [
-        "--server=4711"
+		{
+			"name": "Run Tests",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
+			],
+			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+			"preLaunchTask": "npm: watch"
+    },
+		{
+			"name": "Reset Results",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
       ],
-      "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
-      ]
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Extension + Server",
-      "configurations": [
-        "Extension",
-        "Server"
-      ]
+      "env": {
+        "RESET_RESULTS": "true"
+      },
+			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+			"preLaunchTask": "npm: watch"
     }
   ]
 }

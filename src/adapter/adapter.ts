@@ -62,10 +62,6 @@ export class Adapter {
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this.threadManager);
   }
 
-  testConnection(): Promise<CdpConnection> {
-    return this._connection.clone();
-  }
-
   async initialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     // params.supportsVariableType
     // params.supportsVariablePaging
