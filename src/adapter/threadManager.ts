@@ -21,6 +21,7 @@ export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
   private _threads: Map<number, Thread> = new Map();
+  private _dap: Dap.Api;
 
   private _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
@@ -30,14 +31,15 @@ export class ThreadManager {
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
 
-  constructor(sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+    this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
   }
 
-  createThread(cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean): Thread {
-    return new Thread(this, cdp, dap, supportsCustomBreakpoints);
+  createThread(cdp: Cdp.Api, supportsCustomBreakpoints: boolean): Thread {
+    return new Thread(this, cdp, this._dap, supportsCustomBreakpoints);
   }
 
   addThread(threadId: number, thread: Thread) {

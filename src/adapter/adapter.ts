@@ -114,8 +114,8 @@ export class Adapter {
 
     this._sourcePathResolver = new SourcePathResolver();
     this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
-    this._targetManager = new TargetManager(this._connection, this._dap, this._sourceContainer);
-    this._threadManager = this._targetManager.threadManager;
+    this._threadManager = new ThreadManager(this._dap, this._sourceContainer);
+    this._targetManager = new TargetManager(this._connection, this._threadManager);
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this._threadManager);
 
     // params.supportsVariableType
