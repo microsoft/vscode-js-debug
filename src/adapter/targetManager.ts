@@ -286,8 +286,6 @@ export class Target {
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = new Thread(this, sourceContainer, cdp, dap, domDebuggerTypes.has(targetInfo.type));
-    if (domDebuggerTypes.has(targetInfo.type))
-      targetManager.frameModel.addTarget(cdp);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
@@ -306,6 +304,8 @@ export class Target {
 
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread && !await this._thread.initialize())
+      return false;
+    if (domDebuggerTypes.has(this._targetInfo.type) && !await this.manager.frameModel.addTarget(this._cdp))
       return false;
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;

@@ -164,10 +164,7 @@ class CDPSession extends EventEmitter {
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
-    return this._sendOrDie(method, params).catch(e => {
-      console.error(e);
-      return undefined;
-    });
+    return this._sendOrDie(method, params).catch(e => undefined);
   }
 
   _sendOrDie(method: string, params: object | undefined = {}): Promise<object | undefined> {
