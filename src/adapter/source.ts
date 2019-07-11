@@ -10,7 +10,6 @@ import {URL} from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
-import Cdp from '../cdp/api';
 import * as errors from './errors';
 
 const localize = nls.loadMessageBundle();
@@ -29,14 +28,16 @@ export interface Location {
 
 type ContentGetter = () => Promise<string | undefined>;
 type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
-type ResolvedPath = {name: string, absolutePath?: string};
+type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string, isDirectDependency?: boolean};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
-type SourceOrigin = {compiled: Set<Source>, inlined: boolean, blackboxed: boolean};
+type SourceOrigin = {compiled: Set<Source>, inlined: boolean};
 
 export class SourcePathResolver {
   private _webRoot?: string;
   private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
-  private _projectRoot?: string;
+  private _gitRoot?: string;
+  private _nodeModulesRoot?: string;
+  private _directDependencies = new Set<string>();
 
   initialize(webRoot?: string) {
     this._webRoot = webRoot ? path.normalize(webRoot) : undefined;
@@ -53,21 +54,37 @@ export class SourcePathResolver {
     ];
     // TODO(dgozman): perhaps some sort of auto-mapping could be useful here.
 
-    let projectRoot = this._webRoot;
-    while (true) {
-      if (fs.existsSync(path.join(projectRoot, '.git'))) {
-        this._projectRoot = projectRoot;
-        break;
+    this._gitRoot = this._findProjectDirWith('.git') + path.sep;
+    const packageRoot = this._findProjectDirWith('package.json');
+    if (packageRoot) {
+      this._nodeModulesRoot = path.join(packageRoot, 'node_modules') + path.sep;
+      try {
+        const json = fs.readFileSync(path.join(packageRoot, 'package.json'), {encoding: 'utf-8'});
+        const pkg = JSON.parse(json);
+        this._directDependencies = new Set(Object.keys(pkg.dependencies || {}));
+      } catch (e) {
       }
-      const parent = path.dirname(projectRoot);
-      if (projectRoot === parent)
+    }
+  }
+
+  _findProjectDirWith(entryName: string): string | undefined {
+    let dir = this._webRoot!;
+    while (true) {
+      try {
+        if (fs.existsSync(path.join(dir, entryName)))
+          return dir;
+      } catch (e) {
+        return undefined;
+      }
+      const parent = path.dirname(dir);
+      if (dir === parent)
         break;
-      projectRoot = parent;
+      dir = parent;
     }
   }
 
   resolveSourceMapSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
-    if (this._projectRoot && sourceUrl.startsWith(this._projectRoot) && !utils.isValidUrl(sourceUrl))
+    if (this._gitRoot && sourceUrl.startsWith(this._gitRoot) && !utils.isValidUrl(sourceUrl))
       sourceUrl = 'file://' + sourceUrl;
     const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
@@ -82,6 +99,13 @@ export class SourcePathResolver {
     const name = path.basename(absolutePath);
     if (!this._checkExists(absolutePath))
       return {name};
+    if (this._nodeModulesRoot && absolutePath.startsWith(this._nodeModulesRoot)) {
+      const relative = absolutePath.substring(this._nodeModulesRoot.length);
+      const sepIndex = relative.indexOf(path.sep);
+      const nodeModule = sepIndex === -1 ? relative : relative.substring(0, sepIndex);
+      const isDirectDependency = this._directDependencies.has(nodeModule);
+      return {absolutePath, name, nodeModule, isDirectDependency}
+    }
     return {absolutePath, name};
   }
 
@@ -156,24 +180,22 @@ export class Source {
   }
 
   toDap(): Dap.Source {
-    let {absolutePath, name} = this._resolvedPath!;
-    let isBlackboxed = false;
-    if (this._origin && this._origin.blackboxed)
-      isBlackboxed = true;
-    if (this._container && this._container._blackboxedUrlToPattern.has(this._url))
-      isBlackboxed = true;
-    let presentationHint = isBlackboxed ? 'deemphasize' : undefined;
+    let {absolutePath, name, nodeModule, isDirectDependency} = this._resolvedPath!;
+    let deemphasize = false;
+    let subtle = false;
     let origin: string | undefined;
     if (this._origin && !absolutePath) {
       origin = this._origin.inlined
         ? localize('sourceOrigin.inlinedInSourceMap', 'from source map, inlined')
         : localize('sourceOrigin.fetchedFromSourceMap', 'from source map, {0}', this._url);
+      deemphasize = true;
+    } else if (nodeModule && !isDirectDependency) {
+      origin = nodeModule;
+      deemphasize = true;
+    } else if (nodeModule) {
+      subtle = true;
     }
-    if (isBlackboxed) {
-      origin = origin
-        ? localize('sourceOrigin.blackboxed', 'blackboxed: {0}', origin)
-        : localize('sourceOrigin.blackboxed', 'blackboxed');
-    }
+    const presentationHint = deemphasize ? 'deemphasize' : (subtle ? 'subtle' : undefined);
     const sources = this._sourceMapSourceByUrl
       ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
       : undefined;
@@ -202,23 +224,11 @@ export class Source {
       sources,
     };
   }
-
-  blackboxedPositions(): Cdp.Debugger.ScriptPosition[] | undefined {
-    return this._container ? this._container._blackboxedPositions(this) : undefined;
-  }
 };
 
 export class SourceContainer extends EventEmitter {
-  public static Events = {
-    BlackboxedPatternsChanged: 'BlackboxedPatternsChanged',
-    BlackboxedPositionsChanged: 'BlackboxedPositionsChanged',
-  };
-
   private _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
-
-  // Map from a blackboxed url to a precomputed pattern (regex).
-  _blackboxedUrlToPattern: Map<string, string> = new Map();
 
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceByPath: Map<string, Source> = new Map();
@@ -295,36 +305,6 @@ export class SourceContainer extends EventEmitter {
       url: source._url,
       source: source
     });
-  }
-
-  toggleSourceBlackboxed(ref: Dap.Source) {
-    const source = this.source(ref);
-    if (!source) {
-      if (ref.path) {
-        // TODO(dgozman): translate path to url and blackbox.
-      }
-      return;
-    }
-    if (!source._url)
-      return;
-    if (source._origin) {
-      source._origin.blackboxed = !source._origin.blackboxed;
-      // TODO(dgozman): support recursive source maps?
-      for (const compiled of source._origin.compiled)
-        this.emit(SourceContainer.Events.BlackboxedPositionsChanged, compiled);
-    } else {
-      if (this._blackboxedUrlToPattern.has(source._url)) {
-        this._blackboxedUrlToPattern.delete(source._url);
-      } else {
-        const pattern = utils.urlToRegExString(source._url);
-        this._blackboxedUrlToPattern.set(source._url, pattern);
-      }
-      this.emit(SourceContainer.Events.BlackboxedPatternsChanged);
-    }
-  }
-
-  blackboxedPatterns(): string[] {
-    return Array.from(this._blackboxedUrlToPattern.values());
   }
 
   async addSource(source: Source) {
@@ -406,7 +386,7 @@ export class SourceContainer extends EventEmitter {
       }
       // TODO(dgozman): support recursive source maps?
       source = new Source(resolvedUrl, inlined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
-      source._origin = {compiled: new Set([compiled]), inlined, blackboxed: false};
+      source._origin = {compiled: new Set([compiled]), inlined};
       compiled._sourceMapSourceByUrl.set(url, source);
       this.addSource(source);
     }
@@ -429,35 +409,5 @@ export class SourceContainer extends EventEmitter {
     if (source._resolvedPath.absolutePath)
       this._sourceByPath.set(source._resolvedPath.absolutePath, source);
     this._dap.loadedSource({reason: 'new', source: source.toDap()});
-  }
-
-  _blackboxedPositions(compiled: Source): Cdp.Debugger.ScriptPosition[] | undefined {
-    if (!compiled._sourceMapUrl || !compiled._sourceMapSourceByUrl)
-      return undefined;
-    const map = this._sourceMaps.get(compiled._sourceMapUrl)!.map;
-    if (!map)
-      return undefined;
-    const mappings = map.mappings();
-
-    const positions: Cdp.Debugger.ScriptPosition[] = [];
-    let currentPositionBlackboxed = false;
-    if (mappings[0].lineNumber !== 0 || mappings[0].columnNumber !== 0) {
-      positions.push({lineNumber: 0, columnNumber: 0});
-      currentPositionBlackboxed = true;
-    }
-    for (const mapping of mappings) {
-      if (!mapping.sourceUrl)
-        continue;
-      const source = compiled._sourceMapSourceByUrl.get(mapping.sourceUrl);
-      if (!source)
-        continue;
-      // TODO(dgozman): support recursive source maps?
-      const isBlackboxed = this._blackboxedUrlToPattern.has(source._url);
-      if (currentPositionBlackboxed !== isBlackboxed) {
-        positions.push({lineNumber: mapping.lineNumber, columnNumber: mapping.columnNumber});
-        currentPositionBlackboxed = !currentPositionBlackboxed;
-      }
-    }
-    return !positions.length ? undefined : positions;
   }
 };

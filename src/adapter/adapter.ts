@@ -66,7 +66,6 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
-    this._dap.on('toggleSourceBlackboxed', params => this._onToggleSourceBlackboxed(params));
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
   }
 
@@ -289,13 +288,16 @@ export class Adapter {
     for (let index = from; index < to; index++) {
       const stackFrame = frames[index];
       const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
+      const source = uiLocation.source ? uiLocation.source.toDap() : undefined;
+      const presentationHint = stackFrame.isAsyncSeparator ? 'label' :
+        (source && source.presentationHint === 'subtle' ? 'subtle' : 'normal');
       result.push({
         id: stackFrame.id,
         name: stackFrame.name,
         line: uiLocation.lineNumber,
         column: uiLocation.columnNumber,
-        source: uiLocation.source ? uiLocation.source.toDap() : undefined,
-        presentationHint: stackFrame.isAsyncSeparator ? 'label' : 'normal'
+        source,
+        presentationHint,
       });
     }
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
@@ -519,11 +521,6 @@ export class Adapter {
     if (!variableStore)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
     return variableStore.setVariable(params);
-  }
-
-  async _onToggleSourceBlackboxed(params: Dap.ToggleSourceBlackboxedParams): Promise<Dap.ToggleSourceBlackboxedResult | Dap.Error> {
-    this._sourceContainer.toggleSourceBlackboxed(params.source);
-    return {};
   }
 
   setCurrentExecutionContext(item: ExecutionContext | undefined) {
