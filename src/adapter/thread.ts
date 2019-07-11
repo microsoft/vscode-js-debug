@@ -13,6 +13,7 @@ import { Target } from './targetManager';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
+import { ThreadManager } from './threadManager';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -29,9 +30,7 @@ export interface PausedDetails {
 
 export class Thread {
   private static _lastThreadId: number = 0;
-
   private _dap: Dap.Api;
-  private _sourceContainer: SourceContainer;
   private _cdp: Cdp.Api;
   private _state: ('init' | 'normal' | 'disposed') = 'init';
   private _threadId: number;
@@ -43,13 +42,14 @@ export class Thread {
   private _scripts: Map<string, Source> = new Map();
   private _supportsCustomBreakpoints: boolean;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
-  readonly target: Target;
   readonly replVariables: VariableStore;
+  readonly manager: ThreadManager;
+  readonly sourceContainer: SourceContainer;
   private _eventListeners: utils.Listener[] = [];
 
-  constructor(target: Target, sourceContainer: SourceContainer, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
-    this.target = target;
-    this._sourceContainer = sourceContainer;
+  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
+    this.manager = manager;
+    this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = ++Thread._lastThreadId;
@@ -81,10 +81,6 @@ export class Thread {
 
   pausedVariables(): VariableStore | null {
     return this._pausedVariables;
-  }
-
-  sourceContainer() {
-    return this._sourceContainer;
   }
 
   executionContexts(): Cdp.Runtime.ExecutionContextDescription[] {
@@ -160,7 +156,7 @@ export class Thread {
       return false;
 
     const customBreakpointPromises: Promise<boolean>[] = [];
-    for (const id of this.target.manager.customBreakpoints())
+    for (const id of this.manager.customBreakpoints())
       customBreakpointPromises.push(this.updateCustomBreakpoint(id, true));
     // Do not fail for custom breakpoints not set, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
@@ -170,8 +166,7 @@ export class Thread {
       return true;
 
     this._state = 'normal';
-    console.assert(!this.target.manager.threads.has(this._threadId));
-    this.target.manager.threads.set(this._threadId, this);
+    this.manager.addThread(this._threadId, this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
@@ -180,12 +175,12 @@ export class Thread {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
-    this.target.manager.reportExecutionContexts();
+    this.manager.reportExecutionContexts();
   }
 
   _executionContextDestroyed(contextId: number) {
     this._executionContexts.delete(contextId);
-    this.target.manager.reportExecutionContexts();
+    this.manager.reportExecutionContexts();
   }
 
   _executionContextsCleared() {
@@ -193,7 +188,7 @@ export class Thread {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this.target.manager.reportExecutionContexts();
+    this.manager.reportExecutionContexts();
   }
 
   _onResumed() {
@@ -207,8 +202,7 @@ export class Thread {
     this._executionContextsCleared();
     this._removeAllScripts();
     if (this._state === 'normal') {
-      console.assert(this.target.manager.threads.get(this._threadId) === this);
-      this.target.manager.threads.delete(this._threadId);
+      this.manager.removeThread(this._threadId);
       this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
     utils.removeEventListeners(this._eventListeners);
@@ -252,7 +246,7 @@ export class Thread {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this.target.manager.pauseOnExceptionsState()});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this.manager.pauseOnExceptionsState()});
   }
 
   async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
@@ -352,7 +346,7 @@ export class Thread {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this._sourceContainer.uiLocation(frames[0].location);
+        uiLocation = this.sourceContainer.uiLocation(frames[0].location);
       if (event.type !== 'error' && event.type !== 'warning')
         stackTrace = undefined;
     }
@@ -405,7 +399,7 @@ export class Thread {
       stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
     const frames: StackFrame[] = stackTrace ? await stackTrace.loadFrames(50) : [];
     if (frames.length)
-      uiLocation = this._sourceContainer.uiLocation(frames[0].location);
+      uiLocation = this.sourceContainer.uiLocation(frames[0].location);
     const description = details.exception && details.exception.description || '';
     let message = description.split('\n').filter(line => !line.startsWith('    at')).join('\n');
     if (stackTrace)
@@ -423,7 +417,7 @@ export class Thread {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
     for (const script of scripts)
-      this._sourceContainer.removeSource(script);
+      this.sourceContainer.removeSource(script);
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
@@ -443,7 +437,7 @@ export class Thread {
     const source = new Source(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
     this._scripts.set(event.scriptId, source);
     source[kScriptIdSymbol] = event.scriptId;
-    this._sourceContainer.addSource(source);
+    this.sourceContainer.addSource(source);
   }
 };
 
