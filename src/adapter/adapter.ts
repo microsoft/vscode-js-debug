@@ -4,7 +4,6 @@
 import Dap from '../dap/api';
 
 import CdpConnection from '../cdp/connection';
-import { ExecutionContext } from './threadManager';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
@@ -14,7 +13,7 @@ import { SourceContainer, SourcePathResolver } from './source';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
-import { ThreadManager } from './threadManager';
+import { ExecutionContext, ThreadManager } from './threads';
 
 const localize = nls.loadMessageBundle();
 

@@ -4,7 +4,7 @@
 import Dap from '../dap/api';
 
 import CdpConnection from '../cdp/connection';
-import { Target, TargetManager } from './targetManager';
+import { Target, TargetManager } from './targets';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import * as path from 'path';

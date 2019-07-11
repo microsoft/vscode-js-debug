@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
 import { Adapter } from '../adapter/adapter';
-import { ExecutionContext } from '../adapter/threadManager';
+import { ExecutionContext } from '../adapter/threads';
 
 export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);

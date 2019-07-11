@@ -12,7 +12,7 @@ import Dap from '../dap/api';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
-import { ThreadManager } from './threadManager';
+import * as vscode from 'vscode';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -25,7 +25,103 @@ export interface PausedDetails {
   stackTrace: StackTrace;
   text?: string;
   exception?: Cdp.Runtime.RemoteObject;
-};
+}
+
+export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
+
+export interface ExecutionContext {
+  contextId?: number;
+  name: string;
+  threadId: number;
+  children: ExecutionContext[];
+}
+
+export class ThreadManager {
+  private _pauseOnExceptionsState: PauseOnExceptionsState;
+  private _customBreakpoints: Set<string>;
+  private _threads: Map<number, Thread> = new Map();
+  private _dap: Dap.Api;
+
+  private _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
+  private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
+  private _onExecutionContextsChangedEmitter: vscode.EventEmitter<ExecutionContext[]> = new vscode.EventEmitter<ExecutionContext[]>();
+  readonly onThreadAdded = this._onThreadAddedEmitter.event;
+  readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
+  readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
+  readonly sourceContainer: SourceContainer;
+  private _executionContextProvider: () => ExecutionContext[];
+
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, executionContextProvider: () => ExecutionContext[]) {
+    this._dap = dap;
+    this._pauseOnExceptionsState = 'none';
+    this._customBreakpoints = new Set();
+    this.sourceContainer = sourceContainer;
+    this._executionContextProvider = executionContextProvider;
+  }
+
+  mainThread(): Thread | undefined {
+    return this._threads.values().next().value;
+  }
+
+  createThread(cdp: Cdp.Api, supportsCustomBreakpoints: boolean): Thread {
+    return new Thread(this, cdp, this._dap, supportsCustomBreakpoints);
+  }
+
+  _addThread(thread: Thread) {
+    console.assert(!this._threads.has(thread.threadId()));
+    this._threads.set(thread.threadId(), thread);
+    this._onThreadAddedEmitter.fire(thread);
+  }
+
+  _removeThread(threadId: number) {
+    const thread = this._threads.get(threadId);
+    console.assert(thread);
+    this._threads.delete(threadId);
+    this._onThreadRemovedEmitter.fire(thread);
+  }
+
+  refreshExecutionContexts() {
+    this._onExecutionContextsChangedEmitter.fire(this._executionContextProvider());
+  }
+
+  threads(): Thread[] {
+    return Array.from(this._threads.values());
+  }
+
+  thread(threadId: number): Thread | undefined {
+    return this._threads.get(threadId);
+  }
+
+  pauseOnExceptionsState(): PauseOnExceptionsState {
+    return this._pauseOnExceptionsState;
+  }
+
+  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
+    this._pauseOnExceptionsState = state;
+    for (const thread of this._threads.values())
+      thread.updatePauseOnExceptionsState();
+  }
+
+  updateCustomBreakpoints(breakpoints: Dap.CustomBreakpoint[]): Promise<any> {
+    const promises: Promise<boolean>[] = [];
+    for (const breakpoint of breakpoints) {
+      if (breakpoint.enabled && !this._customBreakpoints.has(breakpoint.id)) {
+        this._customBreakpoints.add(breakpoint.id);
+        for (const thread of this._threads.values())
+          promises.push(thread.updateCustomBreakpoint(breakpoint.id, true));
+      } else if (!breakpoint.enabled && this._customBreakpoints.has(breakpoint.id)) {
+        this._customBreakpoints.delete(breakpoint.id);
+        for (const thread of this._threads.values())
+          promises.push(thread.updateCustomBreakpoint(breakpoint.id, false));
+      }
+    }
+    return Promise.all(promises);
+  }
+
+  customBreakpoints(): Set<string> {
+    return this._customBreakpoints;
+  }
+}
 
 export class Thread {
   private static _lastThreadId: number = 0;
@@ -165,7 +261,7 @@ export class Thread {
       return true;
 
     this._state = 'normal';
-    this.manager.addThread(this._threadId, this);
+    this.manager._addThread(this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
@@ -201,7 +297,7 @@ export class Thread {
     this._executionContextsCleared();
     this._removeAllScripts();
     if (this._state === 'normal') {
-      this.manager.removeThread(this._threadId);
+      this.manager._removeThread(this._threadId);
       this._dap.thread({reason: 'exited', threadId: this._threadId});
     }
     utils.removeEventListeners(this._eventListeners);
