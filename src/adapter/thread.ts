@@ -12,6 +12,7 @@ import Dap from '../dap/api';
 import { Target } from './targetManager';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
+import * as messageFormat from './messageFormat';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -127,6 +128,7 @@ export class Thread {
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
       this.replVariables.clear();
+      this._clearDebuggerConsole();
       this._executionContextsCleared();
     });
     this._cdp.Runtime.on('consoleAPICalled', event => {
@@ -339,6 +341,10 @@ export class Thread {
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
+    switch (event.type) {
+      case 'endGroup': return;
+      case 'clear': return;
+    }
     let stackTrace: StackTrace | undefined;
     let uiLocation: Location | undefined;
     if (event.stackTrace) {
@@ -356,30 +362,38 @@ export class Thread {
     if (event.type === 'warning')
       category = 'console';
 
-    const tokens: string[] = [];
-    for (const arg of event.args)
-      tokens.push(objectPreview.renderValue(arg, false));
-    const messageText = tokens.join(' ');
+    const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
+    const formatString = useMessageFormat ? event.args[0].value as string : '';
+    const messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
 
     const allPrimitive = !event.args.find(a => !!a.objectId);
     if (allPrimitive && !stackTrace) {
       this._dap.output({
         category,
-        output: messageText,
+        output: messageText + '\n',
         variablesReference: 0,
+        source: uiLocation && uiLocation.source ? uiLocation.source.toDap() : undefined,
         line: uiLocation ? uiLocation.lineNumber : undefined,
         column: uiLocation ? uiLocation.columnNumber : undefined,
       });
       return;
     }
 
-    const variablesReference = await this.replVariables.createVariableForMessageFormat(messageText, event.args, stackTrace);
+    const variablesReference = await this.replVariables.createVariableForMessageFormat(messageText + '\n', event.args, stackTrace);
     this._dap.output({
       category,
       output: '',
       variablesReference,
+      source: uiLocation && uiLocation.source ? uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
+    });
+  }
+
+  _clearDebuggerConsole() {
+    this._dap.output({
+      category: 'console',
+      output: '\x1b[2J',
     });
   }
 
