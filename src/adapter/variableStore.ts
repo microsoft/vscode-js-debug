@@ -154,7 +154,6 @@ export class VariableStore {
   }
 
   async createVariableForMessageFormat(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
-    const resultReference = ++VariableStore._lastVariableReference;
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {
       name: '',
@@ -162,13 +161,20 @@ export class VariableStore {
       variablesReference: rootObjectReference,
       namedVariables: args.length + (stackTrace ? 1 : 0)
     };
-    this._referenceToVariables.set(resultReference, [rootObjectVariable]);
 
-    const params: Promise<Dap.Variable>[] = [];
-    for (let i = 0; i < args.length; ++i) {
-      if (!args[i].objectId)
-        continue;
-      params.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
+    const params: Dap.Variable[] = [];
+    if (args.length === 1 && args[0].objectId) {
+      // Inline properties for single object parameters.
+      const object = new RemoteObject(this._cdp, args[0]);
+      params.push(... await this._getObjectProperties(object));
+    } else {
+      const promiseParams: Promise<Dap.Variable>[] = [];
+      for (let i = 0; i < args.length; ++i) {
+        if (!args[i].objectId)
+          continue;
+          promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
+      }
+      params.push(...await Promise.all(promiseParams));
     }
 
     if (stackTrace) {
@@ -177,10 +183,13 @@ export class VariableStore {
         value: await stackTrace.format(),
         variablesReference: 0
       };
-      params.push(Promise.resolve(stackTraceVariable));
+      params.push(stackTraceVariable);
     }
 
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
+
+    const resultReference = ++VariableStore._lastVariableReference;
+    this._referenceToVariables.set(resultReference, [rootObjectVariable]);
     return resultReference;
   }
 
