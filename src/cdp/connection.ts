@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {EventEmitter} from 'events';
 import {Transport} from './transport';
 import * as debug from 'debug';
+import * as vscode from 'vscode';
+import {EventEmitter} from 'events';
 import Cdp from './api';
 
 const debugConnection = debug('connection');
@@ -36,19 +37,16 @@ interface ProtocolCallback {
   method: string;
 }
 
-export default class Connection extends EventEmitter {
-  public static Events = {
-    Disconnected: Symbol('Disconnected')
-  };
-
+export default class Connection {
   private _lastId: number;
   private _transport: Transport;
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _browserSession: CDPSession;
+  private _onDisconnectedEmitter = new vscode.EventEmitter();
+  readonly onDisconnected = this._onDisconnectedEmitter.event;
 
   constructor(transport: Transport) {
-    super();
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -98,7 +96,7 @@ export default class Connection extends EventEmitter {
     for (const session of this._sessions.values())
       session._onClose();
     this._sessions.clear();
-    this.emit(Connection.Events.Disconnected);
+    this._onDisconnectedEmitter.fire();
   }
 
   dispose() {

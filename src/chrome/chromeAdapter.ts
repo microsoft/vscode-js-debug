@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 import * as errors from '../adapter/errors';
+import * as vscode from 'vscode';
 import { Adapter } from '../adapter/adapter';
 
 const localize = nls.loadMessageBundle();
@@ -33,6 +34,7 @@ export class ChromeAdapter {
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
   private _mainTarget?: Target;
+  private _disposables: vscode.Disposable[] = [];
 
   constructor(dap: Dap.Api, storagePath: string) {
     this._dap = dap;
@@ -86,7 +88,7 @@ export class ChromeAdapter {
         userDataDir: path.join(this._storagePath, this._isUnderTest() ? '.headless-profile' : 'profile'),
         pipe: true,
       });
-    this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
+    this._connection.onDisconnected(() => this._dap.exited({exitCode: 0}), undefined, this._disposables);
     this._adapter = new Adapter(this._dap, () => {
       return this._targetManager.executionContexts();
     });

@@ -27,8 +27,8 @@ class Breakpoint {
 }
 
 class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
-  private _onDidChangeTreeData: vscode.EventEmitter<Breakpoint | undefined> = new vscode.EventEmitter<Breakpoint | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<Breakpoint | undefined> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData = new vscode.EventEmitter<Breakpoint | undefined>();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private _factory: AdapterFactory;
   breakpoints: Breakpoint[];

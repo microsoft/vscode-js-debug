@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import {SourceMap} from './sourceMap';
-import {EventEmitter} from 'events';
 import * as utils from '../utils';
 import Dap from '../dap/api';
 import {URL} from 'url';
@@ -268,7 +267,7 @@ export class Source {
   }
 };
 
-export class SourceContainer extends EventEmitter {
+export class SourceContainer {
   private _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
 
@@ -282,7 +281,6 @@ export class SourceContainer extends EventEmitter {
   private _initialized = false;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
-    super();
     this._dap = dap;
     this._sourcePathResolver = sourcePathResolver;
   }
