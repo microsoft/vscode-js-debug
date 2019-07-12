@@ -206,16 +206,13 @@ export class Source {
 
   toDap(): Dap.Source {
     let {absolutePath, name, nodeModule} = this._resolvedPath!;
-    let deemphasize = false;
     let origin: string | undefined;
     if (this._origin && this._origin.inlined && !absolutePath) {
       origin = localize('sourceOrigin.inlinedInSourceMap', 'source map');
-      deemphasize = true;
     } else if (nodeModule) {
       origin = nodeModule;
-      deemphasize = true;
     }
-    const presentationHint = deemphasize ? 'deemphasize' : undefined;
+    const presentationHint = origin ? 'deemphasize' : undefined;
     const sources = this._sourceMapSourceByUrl
       ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
       : undefined;

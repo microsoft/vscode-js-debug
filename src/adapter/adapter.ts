@@ -193,6 +193,10 @@ export class Adapter {
       const stackFrame = frames[index];
       const uiLocation = this.sourceContainer.uiLocation(stackFrame.location);
       const source = uiLocation.source ? uiLocation.source.toDap() : undefined;
+      if (!index && source) {
+        source.presentationHint = undefined;
+        source.origin = undefined;
+      }
       const presentationHint = stackFrame.isAsyncSeparator ? 'label' : 'normal';
       result.push({
         id: stackFrame.id,
