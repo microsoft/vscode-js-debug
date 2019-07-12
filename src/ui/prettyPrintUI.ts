@@ -8,22 +8,38 @@ import { AdapterFactory } from '../adapterFactory';
 import { Source } from '../adapter/sources';
 
 let isDebugging = false;
+let neverSuggestPrettyPrinting = false;
+let prettyPrintedUris: Set<string> = new Set();
 
 export function registerPrettyPrintActions(context: vscode.ExtensionContext, factory: AdapterFactory) {
   context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()));
   context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()));
 
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
-    if (!isDebugging || !editor || editor.document.languageId !== 'javascript')
+    if (neverSuggestPrettyPrinting ||
+        !isDebugging ||
+        !editor ||
+        editor.document.languageId !== 'javascript' ||
+        editor.document.uri.scheme !== 'debug' ||
+        prettyPrintedUris.has(editor.document.uri.toString()) ||
+        !isMinified(editor.document)) {
       return;
-    if (editor.document.uri.scheme !== 'debug' || !isMinified(editor.document))
-      return;
+    }
+
     const source = await sourceForUri(factory, editor.document.uri);
     if (!source || !source.canPrettyPrint())
       return;
+
+    prettyPrintedUris.add(editor.document.uri.toString());
     const response = await vscode.window.showInformationMessage(
       'This JavaScript file seems to be minified.\nWould you like to pretty print it?',
-      'Yes', 'No');
+      'Yes', 'No', 'Never');
+
+    if (response === 'Never') {
+      neverSuggestPrettyPrinting = true;
+      return;
+    }
+
     if (response === 'Yes')
       vscode.commands.executeCommand('cdp.prettyPrint');
   }));
@@ -54,6 +70,8 @@ function sourceForUri(factory: AdapterFactory, uri: vscode.Uri): Source | undefi
 
 function updateDebuggingStatus() {
   isDebugging = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'cdp';
+  if (!isDebugging)
+    prettyPrintedUris.clear();
 }
 
 function isMinified(document: vscode.TextDocument): boolean {
