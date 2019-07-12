@@ -8,6 +8,8 @@ import {WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken} 
 import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
 import {registerExecutionContextsUI} from './ui/executionContextsUI';
 import {AdapterFactory} from './adapterFactory';
+import * as queryString from 'querystring';
+import Dap from './dap/api';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -21,7 +23,21 @@ export function activate(context: vscode.ExtensionContext) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !factory.activeAdapter())
       return;
-    await factory.activeAdapter()!.sourceContainer.prettyPrintSource(editor.document.uri.path);
+    const uri = editor.document.uri;
+    if (uri.scheme !== 'debug')
+      return;
+    const query = queryString.parse(uri.query);
+    const dapSource: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
+    const sessionId = query['session'] as string;
+    const adapter = factory.adapter(sessionId || '');
+    if (!adapter)
+      return;
+    const source = await adapter.sourceContainer.prettyPrintSource(dapSource);
+    if (!source)
+      return;
+    const prettyUri = vscode.Uri.parse(`debug:${uri.path}?session=${sessionId}&ref=${source.sourceReference()}`);
+    const document = await vscode.workspace.openTextDocument(prettyUri);
+    vscode.window.showTextDocument(document);
   }));
 }
 
