@@ -323,6 +323,18 @@ export class SourceContainer extends EventEmitter {
     };
   }
 
+  uiLocationInSource(rawLocation: Location, source: Source): Location | undefined {
+    const location = this._uiLocation(rawLocation, source);
+    if (location.source !== source)
+      return undefined;
+    return {
+      lineNumber: location.lineNumber + 1,
+      columnNumber: location.columnNumber + 1,
+      url: location.url,
+      source: location.source,
+    };
+  }
+
   rawLocations(uiLocation: Location): Location[] {
     uiLocation = {
       lineNumber: uiLocation.lineNumber - 1,
@@ -333,8 +345,8 @@ export class SourceContainer extends EventEmitter {
     return this._rawLocations(uiLocation);
   }
 
-  _uiLocation(rawLocation: Location): Location {
-    if (!rawLocation.source)
+  _uiLocation(rawLocation: Location, preferredSource?: Source): Location {
+    if (!rawLocation.source || rawLocation.source === preferredSource)
       return rawLocation;
 
     if (!rawLocation.source._sourceMapUrl || !rawLocation.source._sourceMapSourceByUrl)

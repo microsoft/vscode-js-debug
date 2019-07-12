@@ -37,6 +37,8 @@ export interface ExecutionContext {
   children: ExecutionContext[];
 }
 
+export type Script = {scriptId: string, source: Source, thread: Thread};
+
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
@@ -122,9 +124,11 @@ export class ThreadManager {
   customBreakpoints(): Set<string> {
     return this._customBreakpoints;
   }
-}
 
-type Script = {scriptId: string, source: Source};
+  scriptsFromSource(source: Source): Set<Script> {
+    return source[kScriptsSymbol] || new Set();
+  }
+}
 
 export class Thread {
   private static _lastThreadId: number = 0;
@@ -546,7 +550,7 @@ export class Thread {
       source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
     }
 
-    const script = {scriptId: event.scriptId, source};
+    const script = {scriptId: event.scriptId, source, thread: this};
     this._scripts.set(event.scriptId, script);
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();
