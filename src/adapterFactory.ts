@@ -10,12 +10,12 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   private _disposables: vscode.Disposable[];
   private _activeAdapter?: Adapter;
 
-  private _onAdapterAddedEmitter: vscode.EventEmitter<Adapter> = new vscode.EventEmitter<Adapter>();
-  private _onAdapterRemovedEmitter: vscode.EventEmitter<Adapter> = new vscode.EventEmitter<Adapter>();
-  private _onActiveAdapterChangedEmitter: vscode.EventEmitter<Adapter> = new vscode.EventEmitter<Adapter>();
-  readonly onAdapterAdded: vscode.Event<Adapter> = this._onAdapterAddedEmitter.event;
-  readonly onAdapterRemoved: vscode.Event<Adapter> = this._onAdapterRemovedEmitter.event;
-  readonly onActiveAdapterChanged: vscode.Event<Adapter> = this._onActiveAdapterChangedEmitter.event;
+  private _onAdapterAddedEmitter = new vscode.EventEmitter<Adapter>();
+  private _onAdapterRemovedEmitter = new vscode.EventEmitter<Adapter>();
+  private _onActiveAdapterChangedEmitter = new vscode.EventEmitter<Adapter>();
+  readonly onAdapterAdded = this._onAdapterAddedEmitter.event;
+  readonly onAdapterRemoved = this._onAdapterRemovedEmitter.event;
+  readonly onActiveAdapterChanged = this._onActiveAdapterChangedEmitter.event;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;

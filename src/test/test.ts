@@ -55,7 +55,10 @@ export async function configure(connection: CdpConnection, dap: Dap.TestApi): Pr
 
 export function disconnect(connection: CdpConnection, dap: Dap.TestApi): Promise<void> {
   return new Promise(cb => {
-    connection.on(CdpConnection.Events.Disconnected, cb);
+    const disposable = connection.onDisconnected(() => {
+      cb();
+      disposable.dispose();
+    });
     dap.disconnect({});
   });
 }

@@ -3,19 +3,19 @@
  *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
-import { EventEmitter } from 'events';
 import { URL } from 'url';
 import * as path from 'path';
+import * as vscode from 'vscode';
 
-export const FrameModelEvents = {
-  FrameAdded: Symbol('FrameAdded'),
-  FrameDetached: Symbol('FrameDetached'),
-  FrameNavigated: Symbol('FrameNavigated'),
-  MainFrameNavigated: Symbol('MainFrameNavigated'),
-};
-
-export class FrameModel extends EventEmitter {
+export class FrameModel {
   private _mainFrame?: Frame;
+  private _onFrameAddedEmitter = new vscode.EventEmitter<Frame>();
+  _onFrameRemovedEmitter = new vscode.EventEmitter<Frame>();
+  private _onFrameNavigatedEmitter = new vscode.EventEmitter<Frame>();
+
+  readonly onFrameAdded = this._onFrameAddedEmitter.event;
+  readonly onFrameRemoved = this._onFrameRemovedEmitter.event;
+  readonly onFrameNavigated = this._onFrameNavigatedEmitter.event;
 
   _frames: Map<string, Frame> = new Map();
 
@@ -54,7 +54,7 @@ export class FrameModel extends EventEmitter {
     this._frames.set(frame.id, frame);
     if (frame.isMainFrame())
       this._mainFrame = frame;
-    this.emit(FrameModelEvents.FrameAdded, frame);
+    this._onFrameAddedEmitter.fire(frame);
     return frame;
   }
 
@@ -77,7 +77,7 @@ export class FrameModel extends EventEmitter {
     }
 
     frame._navigate(framePayload);
-    this.emit(FrameModelEvents.FrameNavigated, frame);
+    this._onFrameNavigatedEmitter.fire(frame);
     this._frameStructureUpdated();
   }
 
@@ -106,7 +106,7 @@ export class FrameModel extends EventEmitter {
     let frame = this._frames.get(framePayload.id);
     if (frame) {
       frame._navigate(framePayload);
-      this.emit(FrameModelEvents.FrameNavigated, frame);
+      this._onFrameNavigatedEmitter.fire(frame);
     } else {
       frame = this._addFrame(cdp, framePayload.id, parentFrame);
       frame._navigate(framePayload);
@@ -195,7 +195,7 @@ export class Frame {
   _remove() {
     this._removeChildFrames();
     this.model._frames.delete(this.id);
-    this.model.emit(FrameModelEvents.FrameDetached, this);
+    this.model._onFrameRemovedEmitter.fire(this);
   }
 
   displayName(): string {

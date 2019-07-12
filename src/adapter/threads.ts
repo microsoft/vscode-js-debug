@@ -47,7 +47,7 @@ export class ThreadManager {
 
   private _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
-  private _onExecutionContextsChangedEmitter: vscode.EventEmitter<ExecutionContext[]> = new vscode.EventEmitter<ExecutionContext[]>();
+  private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContext[]>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
