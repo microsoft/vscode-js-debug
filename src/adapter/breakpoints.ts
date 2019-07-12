@@ -40,17 +40,10 @@ export class Breakpoint {
 
   async set(report: boolean): Promise<void> {
     const source = this._manager._sourceContainer.source(this._source);
-    let url: string | undefined;
-    if (!source) {
-      if (!this._source.path)
-        return;
+    let url = source ? source.url() : undefined;
+    if (!url && this._source.path)
       url = this._manager._sourcePathResolver.resolveUrl(this._source.path);
-    } else if (!source.url()) {
-      if (this._source.path)
-        url = this._manager._sourcePathResolver.resolveUrl(this._source.path);
-    } else {
-      url = source.url();
-    }
+
     await this._set({
       lineNumber: this._params.line,
       columnNumber: this._params.column || 1,
