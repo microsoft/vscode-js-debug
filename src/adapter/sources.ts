@@ -371,6 +371,7 @@ export class SourceContainer extends EventEmitter {
     const map = prettyPrintAsSourceMap(prettyPath,  content);
     if (!map)
       return;
+    source._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = {compiled: new Set([source]), map };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
     const result = this._addSourceMapSources(source, map);
