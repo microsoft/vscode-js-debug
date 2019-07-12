@@ -365,7 +365,7 @@ export class SourceContainer extends EventEmitter {
 
   async prettyPrintSource(ref: Dap.Source): Promise<Source | undefined> {
     const source = this.source(ref);
-    if (!source)
+    if (!source || source._sourceMapUrl)
       return;
     const content = await source.content();
     if (!content)
@@ -420,7 +420,7 @@ export class SourceContainer extends EventEmitter {
     // TODO(dgozman): do we need stub source while source map is loading?
     sourceMap.map = await SourceMap.load(sourceMapUrl);
     // Source map could have been detached while loading.
-    if (!sourceMap || this._sourceMaps.get(sourceMapUrl) !== sourceMap)
+    if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return;
     if (!sourceMap.map) {
       errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}`);
