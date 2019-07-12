@@ -9,7 +9,7 @@ import { ChromeAdapter } from './chrome/chromeAdapter';
 
 export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   readonly context: vscode.ExtensionContext;
-  private _sessions = new Map<vscode.DebugSession, {server: Net.Server, adapter: ChromeAdapter}>();
+  private _sessions = new Map<string, { session: vscode.DebugSession, server: Net.Server, adapter: ChromeAdapter }>();
   private _disposables: vscode.Disposable[];
   private _activeAdapter?: Adapter;
 
@@ -27,20 +27,20 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
     this._disposables = [
       vscode.debug.onDidStartDebugSession(session => {
-        const value = this._sessions.get(session);
+        const value = this._sessions.get(session.id);
         if (value)
           this._onAdapterAddedEmitter.fire(value.adapter.adapter());
       }),
       vscode.debug.onDidTerminateDebugSession(session => {
-        const value = this._sessions.get(session);
-        this._sessions.delete(session);
+        const value = this._sessions.get(session.id);
+        this._sessions.delete(session.id);
         if (value) {
           value.server.close();
           this._onAdapterRemovedEmitter.fire(value.adapter.adapter());
         }
       }),
       vscode.debug.onDidChangeActiveDebugSession(session => {
-        const value = session ? this._sessions.get(session) : undefined;
+        const value = session ? this._sessions.get(session.id) : undefined;
         if (value)
           this._activeAdapter = value.adapter.adapter();
         else
@@ -57,6 +57,11 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     return this._activeAdapter;
   }
 
+  adapter(sessionId: string): Adapter | undefined {
+    const value = this._sessions.get(sessionId);
+    return value ? value.adapter.adapter() : undefined;
+  }
+
   adapters(): Adapter[] {
     return Array.from(this._sessions.values()).map(v => v.adapter.adapter());
   }
@@ -65,7 +70,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     const server = Net.createServer(socket => {
       const connection = new DapConnection(socket, socket);
       const adapter = new ChromeAdapter(connection.dap(), this.context.storagePath || this.context.extensionPath);
-      this._sessions.set(session, {server, adapter});
+      this._sessions.set(session.id, {session, server, adapter});
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }

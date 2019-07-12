@@ -256,7 +256,7 @@ export class SourceContainer extends EventEmitter {
   _sourcePathResolver: SourcePathResolver;
 
   private _sourceByReference: Map<number, Source> = new Map();
-  private _sourceByPath: Map<string, Source> = new Map();
+  private _sourceByAbsolutePath: Map<string, Source> = new Map();
   // Sources originating from source maps, fetched from a url
   // (as opposite to inlined sources with content provided in the source map).
   // We merge them to a single source per url.
@@ -280,7 +280,7 @@ export class SourceContainer extends EventEmitter {
     if (ref.sourceReference)
       return this._sourceByReference.get(ref.sourceReference);
     if (ref.path)
-      return this._sourceByPath.get(ref.path);
+      return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
   }
 
@@ -363,30 +363,22 @@ export class SourceContainer extends EventEmitter {
     return result;
   }
 
-  async prettyPrintSource(path: string): Promise<string | undefined> {
-    // TODO(dgozman): figure out path vs absolute path.
-    let source: Source | null = null;
-    for (const s of this.sources()) {
-      if (s._resolvedPath && s._resolvedPath.name === path) {
-        source = s;
-        break;
-      }
-    }
+  async prettyPrintSource(ref: Dap.Source): Promise<Source | undefined> {
+    const source = this.source(ref);
     if (!source)
       return;
     const content = await source.content();
     if (!content)
       return;
     const sourceMapUrl = source.url() + '@map';
-    // TODO(dgozman): paths are confusing.
     const prettyPath = source._resolvedPath!.name + '-pretty.js';
     const map = prettyPrintAsSourceMap(prettyPath,  content);
     if (!map)
       return;
     const sourceMap: SourceMapData = {compiled: new Set([source]), map };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    this._addSourceMapSources(source, map);
-    return prettyPath;
+    const result = this._addSourceMapSources(source, map);
+    return result[0];
   }
 
   async addSource(source: Source) {
@@ -420,6 +412,10 @@ export class SourceContainer extends EventEmitter {
     // Source map could have been detached while loading.
     if (!sourceMap || this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return;
+    if (!sourceMap.map) {
+      errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}`);
+      return;
+    }
 
     for (const error of sourceMap.map!.errors())
       errors.reportToConsole(this._dap, error);
@@ -432,7 +428,7 @@ export class SourceContainer extends EventEmitter {
       this._dap.loadedSource({reason: 'removed', source: source.toDap()});
     this._sourceByReference.delete(source.sourceReference());
     if (source._resolvedPath && source._resolvedPath.absolutePath)
-      this._sourceByPath.delete(source._resolvedPath.absolutePath);
+      this._sourceByAbsolutePath.delete(source._resolvedPath.absolutePath);
     if (source._origin && !source._origin.inlined)
       this._fetchedSourceMapSources.delete(source._url);
     source._container = undefined;
@@ -451,8 +447,9 @@ export class SourceContainer extends EventEmitter {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: SourceMap) {
+  _addSourceMapSources(compiled: Source, map: SourceMap): Source[] {
     compiled._sourceMapSourceByUrl = new Map();
+    const addedSources: Source[] = [];
     for (const url of map.sourceUrls()) {
       // TODO(dgozman): |resolvedUrl| may be equal to compiled url - we may need to distinguish them.
       const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
@@ -471,7 +468,9 @@ export class SourceContainer extends EventEmitter {
       source._origin = {compiledToSourceUrl: new Map([[compiled, url]]), inlined};
       compiled._sourceMapSourceByUrl.set(url, source);
       this.addSource(source);
+      addedSources.push(source);
     }
+    return addedSources;
   }
 
   _removeSourceMapSources(compiled: Source, map: SourceMap) {
@@ -489,7 +488,7 @@ export class SourceContainer extends EventEmitter {
   _initializeAndReportSource(source: Source) {
     source._resolvedPath = this._sourcePathResolver.resolveSourcePath(source._url);
     if (source._resolvedPath.absolutePath)
-      this._sourceByPath.set(source._resolvedPath.absolutePath, source);
+      this._sourceByAbsolutePath.set(source._resolvedPath.absolutePath, source);
     this._dap.loadedSource({reason: 'new', source: source.toDap()});
   }
 };
