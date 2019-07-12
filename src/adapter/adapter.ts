@@ -193,8 +193,7 @@ export class Adapter {
       const stackFrame = frames[index];
       const uiLocation = this.sourceContainer.uiLocation(stackFrame.location);
       const source = uiLocation.source ? uiLocation.source.toDap() : undefined;
-      const presentationHint = stackFrame.isAsyncSeparator ? 'label' :
-        (source && source.presentationHint === 'subtle' ? 'subtle' : 'normal');
+      const presentationHint = stackFrame.isAsyncSeparator ? 'label' : 'normal';
       result.push({
         id: stackFrame.id,
         name: stackFrame.name,
@@ -204,7 +203,32 @@ export class Adapter {
         presentationHint,
       });
     }
+    this._collapseStackFrameSourceOrigins(result);
     return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
+  }
+
+  _collapseStackFrameSourceOrigins(frames: Dap.StackFrame[]) {
+    const origins = new Set<string>();
+    let first = 0;
+
+    function collapse(last: number) {
+      if (!origins.size)
+        return;
+      const s = Array.from(origins).sort((a: string, b: string) => a.localeCompare(b)).join(', ');
+      for (let index = first; index < last; index++)
+        frames[index].source!.origin = s;
+    }
+
+    for (let index = 0; index < frames.length; index++) {
+      const frame = frames[index];
+      if (!frame.source || frame.source.presentationHint !== 'deemphasize') {
+        collapse(index);
+        first = index + 1;
+      } else if (frame.source.origin) {
+        origins.add(frame.source.origin);
+      }
+    }
+    collapse(frames.length);
   }
 
   _findStackTrace(frameId: number): StackTrace | undefined {

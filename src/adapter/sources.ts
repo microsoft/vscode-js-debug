@@ -205,22 +205,17 @@ export class Source {
   }
 
   toDap(): Dap.Source {
-    let {absolutePath, name, nodeModule, isDirectDependency} = this._resolvedPath!;
+    let {absolutePath, name, nodeModule} = this._resolvedPath!;
     let deemphasize = false;
-    let subtle = false;
     let origin: string | undefined;
-    if (this._origin && !absolutePath) {
-      origin = this._origin.inlined
-        ? localize('sourceOrigin.inlinedInSourceMap', 'from source map, inlined')
-        : localize('sourceOrigin.fetchedFromSourceMap', 'from source map, {0}', this._url);
-      deemphasize = true;
-    } else if (nodeModule && !isDirectDependency) {
-      origin = nodeModule;
+    if (this._origin && this._origin.inlined && !absolutePath) {
+      origin = localize('sourceOrigin.inlinedInSourceMap', 'source map');
       deemphasize = true;
     } else if (nodeModule) {
-      subtle = true;
+      origin = nodeModule;
+      deemphasize = true;
     }
-    const presentationHint = deemphasize ? 'deemphasize' : (subtle ? 'subtle' : undefined);
+    const presentationHint = deemphasize ? 'deemphasize' : undefined;
     const sources = this._sourceMapSourceByUrl
       ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
       : undefined;

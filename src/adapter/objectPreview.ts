@@ -221,7 +221,7 @@ function formatFunctionDescription(description: string, includePreview: boolean 
 
 export function previewException(exception: Cdp.Runtime.RemoteObject): {title: string, stackTrace?: string} {
   if (exception.type !== 'object')
-    return {title: previewRemoteObject(exception)};
+    return {title: renderValue(exception, false)};
   const description = exception.description!;
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame)
