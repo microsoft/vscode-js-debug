@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
+import { prettyPrintAsSourceMap } from './prettyPrint';
 
 const localize = nls.loadMessageBundle();
 
@@ -360,6 +361,32 @@ export class SourceContainer extends EventEmitter {
       }));
     }
     return result;
+  }
+
+  async prettyPrintSource(path: string): Promise<string | undefined> {
+    // TODO(dgozman): figure out path vs absolute path.
+    let source: Source | null = null;
+    for (const s of this.sources()) {
+      if (s._resolvedPath && s._resolvedPath.name === path) {
+        source = s;
+        break;
+      }
+    }
+    if (!source)
+      return;
+    const content = await source.content();
+    if (!content)
+      return;
+    const sourceMapUrl = source.url() + '@map';
+    // TODO(dgozman): paths are confusing.
+    const prettyPath = source._resolvedPath!.name + '-pretty.js';
+    const map = prettyPrintAsSourceMap(prettyPath,  content);
+    if (!map)
+      return;
+    const sourceMap: SourceMapData = {compiled: new Set([source]), map };
+    this._sourceMaps.set(sourceMapUrl, sourceMap);
+    this._addSourceMapSources(source, map);
+    return prettyPath;
   }
 
   async addSource(source: Source) {

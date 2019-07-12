@@ -37,12 +37,15 @@
   "dependencies": {
     "color": "^3.1.2",
     "debug": "^4.1.1",
+    "js-beautify": "^1.10.0",
+    "source-map": "^0.7.3",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
   "devDependencies": {
     "@types/color": "^3.0.0",
     "@types/debug": "^4.1.4",
+    "@types/js-beautify": "^1.8.1",
     "@types/node": "^8.9.3",
     "@types/vscode": "^1.30.0",
     "@types/ws": "^6.0.1",
@@ -93,6 +96,10 @@
           "light": "resources/remove-all-light.svg",
           "dark": "resources/remove-all-dark.svg"
         }
+      },
+      {
+        "command": "cdp.prettyPrint",
+        "title": "Pretty print for debugging"
       }
     ],
     "menus": {

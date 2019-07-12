@@ -87,7 +87,7 @@ export class ChromeAdapter {
         pipe: true,
       });
     this._connection.on(CdpConnection.Events.Disconnected, () => this._dap.exited({exitCode: 0}));
-    this._adapter = new Adapter(this._dap, this._connection, () => {
+    this._adapter = new Adapter(this._dap, () => {
       return this._targetManager.executionContexts();
     });
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);

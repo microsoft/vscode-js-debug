@@ -15,6 +15,13 @@ export function activate(context: vscode.ExtensionContext) {
   const factory = new AdapterFactory(context);
   registerCustomBreakpointsUI(factory);
   registerExecutionContextsUI(factory);
+
+  context.subscriptions.push(vscode.commands.registerCommand('cdp.prettyPrint', async e => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !factory.activeAdapter())
+      return;
+    await factory.activeAdapter()!.sourceContainer.prettyPrintSource(editor.document.uri.path);
+  }));
 }
 
 export function deactivate() {

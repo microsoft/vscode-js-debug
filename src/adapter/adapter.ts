@@ -3,7 +3,6 @@
 
 import Dap from '../dap/api';
 
-import CdpConnection from '../cdp/connection';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
@@ -23,17 +22,15 @@ export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
 
 export class Adapter {
   private _dap: Dap.Api;
-  private _connection: CdpConnection;
   readonly threadManager: ThreadManager;
+  readonly sourceContainer: SourceContainer;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
-  private _sourceContainer: SourceContainer;
   private _exceptionEvaluateName: string;
   private _currentExecutionContext: ExecutionContext | undefined;
 
-  constructor(dap: Dap.Api, connection: CdpConnection, executionContextProvider: () => ExecutionContext[]) {
+  constructor(dap: Dap.Api, executionContextProvider: () => ExecutionContext[]) {
     this._dap = dap;
-    this._connection = connection;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
     this._dap.on('pause', params => this._onPause(params));
@@ -56,9 +53,9 @@ export class Adapter {
     this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
 
     this._sourcePathResolver = new SourcePathResolver();
-    this._sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
-    this.threadManager = new ThreadManager(this._dap, this._sourceContainer, executionContextProvider);
-    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this._sourceContainer, this.threadManager);
+    this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
+    this.threadManager = new ThreadManager(this._dap, this.sourceContainer, executionContextProvider);
+    this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 
   async initialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -106,7 +103,7 @@ export class Adapter {
 
   async launch(url: string, webRoot: string | undefined) {
     this._sourcePathResolver.initialize(url, webRoot);
-    this._sourceContainer.initialize();
+    this.sourceContainer.initialize();
     this._breakpointManager.initialize();
   }
 
@@ -194,7 +191,7 @@ export class Adapter {
     const result: Dap.StackFrame[] = [];
     for (let index = from; index < to; index++) {
       const stackFrame = frames[index];
-      const uiLocation = this._sourceContainer.uiLocation(stackFrame.location);
+      const uiLocation = this.sourceContainer.uiLocation(stackFrame.location);
       const source = uiLocation.source ? uiLocation.source.toDap() : undefined;
       const presentationHint = stackFrame.isAsyncSeparator ? 'label' :
         (source && source.presentationHint === 'subtle' ? 'subtle' : 'normal');
@@ -269,10 +266,10 @@ export class Adapter {
       const scopeRef: ScopeRef = {callFrameId: stackFrame.callFrameId!, scopeNumber: index};
       const variable = await thread.pausedVariables()!.createScope(scope.object, scopeRef);
       const uiStartLocation = scope.startLocation
-        ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
+        ? this.sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
         : undefined;
       const uiEndLocation = scope.endLocation
-        ? this._sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
+        ? this.sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
         : undefined;
       if (scope.name && scope.type === 'closure') {
         name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
@@ -362,11 +359,11 @@ export class Adapter {
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return {sources: this._sourceContainer.sources().map(source => source.toDap())};
+    return {sources: this.sourceContainer.sources().map(source => source.toDap())};
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
-    const source = this._sourceContainer.source(params.source!);
+    const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
