@@ -124,6 +124,8 @@ export class ThreadManager {
   }
 }
 
+type Script = {scriptId: string, source: Source};
+
 export class Thread {
   private static _lastThreadId: number = 0;
   private _dap: Dap.Api;
@@ -135,7 +137,7 @@ export class Thread {
   private _threadUrl: string;
   private _pausedDetails: PausedDetails | null;
   private _pausedVariables: VariableStore | null = null;
-  private _scripts: Map<string, Source> = new Map();
+  private _scripts: Map<string, Script> = new Map();
   private _supportsCustomBreakpoints: boolean;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
   readonly replVariables: VariableStore;
@@ -314,30 +316,32 @@ export class Thread {
   }
 
   locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
+    const script = this._scripts.get(callFrame.location.scriptId);
     return {
       url: callFrame.url,
       lineNumber: callFrame.location.lineNumber,
       columnNumber: callFrame.location.columnNumber || 0,
-      source: this._scripts.get(callFrame.location.scriptId)
+      source: script ? script.source : undefined
     };
   }
 
   locationFromRuntimeCallFrame(callFrame: Cdp.Runtime.CallFrame): Location {
+    const script = this._scripts.get(callFrame.scriptId);
     return {
       url: callFrame.url,
       lineNumber: callFrame.lineNumber,
       columnNumber: callFrame.columnNumber,
-      source: this._scripts.get(callFrame.scriptId)
+      source: script ? script.source : undefined
     };
   }
 
   locationFromDebugger(location: Cdp.Debugger.Location): Location {
     const script = this._scripts.get(location.scriptId);
     return {
-      url: script ? script.url() : '',
+      url: script ? script.source.url() : '',
       lineNumber: location.lineNumber,
       columnNumber: location.columnNumber || 0,
-      source: script
+      source: script ? script.source : undefined
     };
   }
 
@@ -512,29 +516,42 @@ export class Thread {
   _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
-    for (const script of scripts)
-      this.sourceContainer.removeSource(script);
+    for (const script of scripts) {
+      const set = script.source[kScriptsSymbol];
+      set.delete(script);
+      if (!set.size)
+        this.sourceContainer.removeSource(script.source);
+    }
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    const contentGetter = async () => {
-      const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
-      return response ? response.scriptSource : undefined;
-    };
-    const inlineSourceRange = (event.startLine || event.startColumn)
-        ? {startLine: event.startLine, startColumn: event.startColumn, endLine: event.endLine, endColumn: event.endColumn}
-        : undefined;
-    let resolvedSourceMapUrl: string | undefined;
-    if (event.sourceMapURL) {
-      // TODO(dgozman): reload source map when thread url changes.
-      const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
-      resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+    if (!this.sourceContainer.initialized())
+      return;
+
+    let source = event.url ? this.sourceContainer.sourceByUrl(event.url) : undefined;
+    if (!source) {
+      const contentGetter = async () => {
+        const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
+        return response ? response.scriptSource : undefined;
+      };
+      const inlineSourceRange = (event.startLine || event.startColumn)
+          ? {startLine: event.startLine, startColumn: event.startColumn, endLine: event.endLine, endColumn: event.endColumn}
+          : undefined;
+      let resolvedSourceMapUrl: string | undefined;
+      if (event.sourceMapURL) {
+        // TODO(dgozman): reload source map when thread url changes.
+        const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
+        resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+      }
+      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
     }
-    const source = new Source(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
-    this._scripts.set(event.scriptId, source);
-    source[kScriptIdSymbol] = event.scriptId;
-    this.sourceContainer.addSource(source);
+
+    const script = {scriptId: event.scriptId, source};
+    this._scripts.set(event.scriptId, script);
+    if (!source[kScriptsSymbol])
+      source[kScriptsSymbol] = new Set();
+    source[kScriptsSymbol].add(script);
   }
 };
 
-const kScriptIdSymbol = Symbol('scriptId');
+const kScriptsSymbol = Symbol('script');
