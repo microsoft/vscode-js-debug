@@ -34,8 +34,10 @@ export function activate(context: vscode.ExtensionContext) {
     const source = await adapter.sourceContainer.prettyPrintSource(dapSource);
     if (!source)
       return;
-    const prettyUri = vscode.Uri.parse(`debug:${uri.path}?session=${sessionId}&ref=${source.sourceReference()}`);
+    const prettyUri = uri.with({ path: uri.path, query: `session=${sessionId}&ref=${source.sourceReference()}`});
+    debugger;
     const document = await vscode.workspace.openTextDocument(prettyUri);
+    // console.log('DOCUMENT 2', document2);
     vscode.window.showTextDocument(document);
   }));
 }
