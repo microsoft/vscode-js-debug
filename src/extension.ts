@@ -3,12 +3,11 @@
 
 import * as nls from 'vscode-nls';
 import * as vscode from 'vscode';
-import {WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken} from 'vscode';
-import {registerCustomBreakpointsUI} from './ui/customBreakpointsUI';
-import {registerExecutionContextsUI} from './ui/executionContextsUI';
-import {AdapterFactory} from './adapterFactory';
-import * as queryString from 'querystring';
-import Dap from './dap/api';
+import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
+import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
+import { registerExecutionContextsUI } from './ui/executionContextsUI';
+import { registerPrettyPrintActions } from './ui/prettyPrintUI';
+import { AdapterFactory } from './adapterFactory';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -17,29 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
   const factory = new AdapterFactory(context);
   registerCustomBreakpointsUI(factory);
   registerExecutionContextsUI(factory);
-
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.prettyPrint', async e => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !factory.activeAdapter())
-      return;
-    const uri = editor.document.uri;
-    if (uri.scheme !== 'debug')
-      return;
-    const query = queryString.parse(uri.query);
-    const dapSource: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
-    const sessionId = query['session'] as string;
-    const adapter = factory.adapter(sessionId || '');
-    if (!adapter)
-      return;
-    const source = await adapter.sourceContainer.prettyPrintSource(dapSource);
-    if (!source)
-      return;
-    const prettyUri = uri.with({ path: uri.path, query: `session=${sessionId}&ref=${source.sourceReference()}`});
-    debugger;
-    const document = await vscode.workspace.openTextDocument(prettyUri);
-    // console.log('DOCUMENT 2', document2);
-    vscode.window.showTextDocument(document);
-  }));
+  registerPrettyPrintActions(context, factory);
 }
 
 export function deactivate() {

@@ -206,6 +206,29 @@ export class Source {
     return 'text/javascript';
   }
 
+  canPrettyPrint(): boolean {
+    // TODO(pfeldman): consider checking !this._sourceMapUrl
+    return !!this._container;
+  }
+
+  async prettyPrint(): Promise<Source | undefined> {
+    if (!this._container || !this.canPrettyPrint())
+      return;
+    const content = await this.content();
+    if (!content)
+      return;
+    const sourceMapUrl = this.url() + '@map';
+    const prettyPath = this._resolvedPath.name + '-pretty.js';
+    const map = prettyPrintAsSourceMap(prettyPath,  content);
+    if (!map)
+      return;
+    this._sourceMapUrl = sourceMapUrl;
+    const sourceMap: SourceMapData = {compiled: new Set([this]), map };
+    this._container._sourceMaps.set(sourceMapUrl, sourceMap);
+    const result = this._container._addSourceMapSources(this, map);
+    return result[0];
+  }
+
   toDap(): Dap.Source {
     let {absolutePath, name, nodeModule} = this._resolvedPath;
     let origin: string | undefined;
@@ -255,7 +278,7 @@ export class SourceContainer extends EventEmitter {
   private _sourceByAbsolutePath: Map<string, Source> = new Map();
 
   // All source maps by url.
-  private _sourceMaps: Map<string, SourceMapData> = new Map();
+  _sourceMaps: Map<string, SourceMapData> = new Map();
   private _initialized = false;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
@@ -360,25 +383,6 @@ export class SourceContainer extends EventEmitter {
       }));
     }
     return result;
-  }
-
-  async prettyPrintSource(ref: Dap.Source): Promise<Source | undefined> {
-    const source = this.source(ref);
-    if (!source || source._sourceMapUrl)
-      return;
-    const content = await source.content();
-    if (!content)
-      return;
-    const sourceMapUrl = source.url() + '@map';
-    const prettyPath = source._resolvedPath.name + '-pretty.js';
-    const map = prettyPrintAsSourceMap(prettyPath,  content);
-    if (!map)
-      return;
-    source._sourceMapUrl = sourceMapUrl;
-    const sourceMap: SourceMapData = {compiled: new Set([source]), map };
-    this._sourceMaps.set(sourceMapUrl, sourceMap);
-    const result = this._addSourceMapSources(source, map);
-    return result[0];
   }
 
   addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineSourceRange): Source {
