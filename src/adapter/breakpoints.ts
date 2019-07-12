@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { SourcePathResolver, Location, SourceContainer } from './sources';
+import { SourcePathResolver, Location, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager } from './threads';
-
-type SetResult = {
-  id: string;
-  resolved: Cdp.Debugger.Location[];
-};
+import * as vscode from 'vscode';
 
 export class Breakpoint {
   private static _lastDapId = 0;
@@ -17,8 +13,9 @@ export class Breakpoint {
   private _dapId: number;
   private _source: Dap.Source;
   private _params: Dap.SourceBreakpoint;
+  private _disposables: vscode.Disposable[] = [];
 
-  private _perThread = new Map<number, string[]>();
+  private _perThread = new Map<number, Set<string>>();
   private _resolvedUiLocation?: Location;
 
   constructor(manager: BreakpointManager, source: Dap.Source, params: Dap.SourceBreakpoint) {
@@ -39,71 +36,104 @@ export class Breakpoint {
   }
 
   async set(report: boolean): Promise<void> {
-    const source = this._manager._sourceContainer.source(this._source);
-    let url = source ? source.url() : undefined;
-    if (!url && this._source.path)
-      url = this._manager._sourcePathResolver.resolveUrl(this._source.path);
+    const threadManager = this._manager._threadManager;
 
-    await this._set({
+    const onBreakpointResolved = (thread: Thread) => {
+      thread.cdp().Debugger.on('breakpointResolved', event => this._breakpointResolved(thread, event.breakpointId, [event.location]));
+    };
+    threadManager.threads().forEach(onBreakpointResolved);
+    threadManager.onThreadAdded(onBreakpointResolved, undefined, this._disposables);
+
+    threadManager.onThreadRemoved(thread => {
+      this._perThread.delete(thread.threadId());
+      if (!this._perThread.size) {
+        this._resolvedUiLocation = undefined;
+        this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
+      }
+    }, undefined, this._disposables);
+
+    const source = this._manager._sourceContainer.source(this._source);
+    const url = source
+      ? source.url() :
+      (this._source.path ? this._manager._sourcePathResolver.resolveUrl(this._source.path) : undefined);
+    const promises: Promise<void>[] = [];
+
+    if (url) {
+      // When url is available, set by url in all threads, including future ones.
+      const lineNumber = this._params.line - 1;
+      const columnNumber = this._params.column || 0;
+      promises.push(...threadManager.threads().map(thread => {
+        return this._setByUrl(thread, url, lineNumber, columnNumber);
+      }));
+      threadManager.onThreadAdded(thread => {
+        this._setByUrl(thread, url, lineNumber, columnNumber);
+      }, undefined, this._disposables);
+    }
+
+    const rawLocations = this._manager._sourceContainer.rawLocations({
+      url: url || '',
       lineNumber: this._params.line,
       columnNumber: this._params.column || 1,
-      url: url || '',
       source
     });
+    promises.push(...rawLocations.map(rawLocation => this._setByRawLocation(rawLocation)));
+
+    await Promise.all(promises);
     if (report)
       this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
   }
 
-  async _set(uiLocation: Location): Promise<void> {
-    this._resolvedUiLocation = undefined;
-    const rawLocations = this._manager._sourceContainer.rawLocations(uiLocation);
-    const promises = rawLocations.map(rawLocation => this._setInThreads(rawLocation));
-    await Promise.all(promises);
+  _breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
+    if (this._manager._threadManager.thread(thread.threadId()) !== thread)
+      return;
+    let ids = this._perThread.get(thread.threadId());
+    if (!ids) {
+      ids = new Set<string>();
+      this._perThread.set(thread.threadId(), ids);
+    }
+    ids.add(cdpId);
+
+    if (this._resolvedUiLocation || !resolvedLocations.length)
+      return;
+    const rawLocation = thread.locationFromDebugger(resolvedLocations[0]);
+    const source = this._manager._sourceContainer.source(this._source);
+    if (source)
+      this._resolvedUiLocation = this._manager._sourceContainer.uiLocationInSource(rawLocation, source);
   }
 
-  async _setInThreads(rawLocation: Location): Promise<void> {
+  async _setByRawLocation(rawLocation: Location): Promise<void> {
     const threadManager = this._manager._threadManager;
     const promises: Promise<void>[] = [];
     for (const thread of threadManager.threads()) {
-      const promise = rawLocation.url ? this._setByUrl(thread, rawLocation) : this._setByScriptId(thread, rawLocation);
-      promises.push(promise.then(result => {
-        if (!result || threadManager.thread(thread.threadId()) !== thread)
-          return;
-        let ids = this._perThread.get(thread.threadId());
-        if (!ids) {
-          ids = [];
-          this._perThread.set(thread.threadId(), ids);
-        }
-        ids.push(result.id);
-        this._updateResolvedLocation(thread, result.resolved);
-      }));
+      if (rawLocation.url) {
+        promises.push(this._setByUrl(thread, rawLocation.url, rawLocation.lineNumber, rawLocation.columnNumber));
+      } else if (rawLocation.source) {
+        const scripts = this._manager._threadManager.scriptsFromSource(rawLocation.source);
+        for (const script of scripts)
+          promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
+      }
     }
     await Promise.all(promises);
   }
 
-  async _setByUrl(thread: Thread, rawLocation: Location): Promise<SetResult | undefined> {
+  async _setByUrl(thread: Thread, url: string, lineNumber: number, columnNumber: number): Promise<void> {
     const result = await thread.cdp().Debugger.setBreakpointByUrl({
-      url: rawLocation.url,
-      lineNumber: rawLocation.lineNumber,
-      columnNumber: rawLocation.columnNumber,
+      url,
+      lineNumber,
+      columnNumber,
       condition: this._params.condition,
     });
     if (result)
-      return {id: result.breakpointId, resolved: result.locations};
+      this._breakpointResolved(thread, result.breakpointId, result.locations);
   }
 
-  async _setByScriptId(thread: Thread, rawLocation: Location): Promise<SetResult | undefined> {
+  async _setByScriptId(thread: Thread, scriptId: string, lineNumber: number, columnNumber: number): Promise<void> {
     const result = await thread.cdp().Debugger.setBreakpoint({
-      location: {
-        // TODO(dgozman): get script id.
-        scriptId: '',
-        lineNumber: rawLocation.lineNumber,
-        columnNumber: rawLocation.columnNumber,
-      },
+      location: {scriptId, lineNumber, columnNumber},
       condition: this._params.condition,
     });
     if (result)
-      return {id: result.breakpointId, resolved: [result.actualLocation]};
+      this._breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
   }
 
   async remove(): Promise<void> {
@@ -115,14 +145,10 @@ export class Breakpoint {
     }
     this._resolvedUiLocation = undefined;
     this._perThread.clear();
+    for (const disposable of this._disposables)
+      disposable.dispose();
+    this._disposables = [];
     await promises;
-  }
-
-  _updateResolvedLocation(thread: Thread, locations: Cdp.Debugger.Location[]) {
-    if (this._resolvedUiLocation || !locations.length)
-      return;
-    const rawLocation = thread.locationFromDebugger(locations[0]);
-    this._resolvedUiLocation = this._manager._sourceContainer.uiLocation(rawLocation);
   }
 };
 
@@ -142,11 +168,8 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
     this._threadManager = threadManager;
 
-    // TODO(dgozman): listen to Debugger.breakpointsResolved on each thread.
-    // TODO(dgozman): put new breakpoints in onThreadAdded, cleanup in onThreadRemoved.
     // TODO(dgozman): provide breakpointsHit in paused event.
     // TODO(dgozman): pause on script run to set breakpoints in source maps.
-    // TODO(dgozman): update breakpoints if source map source with matching path arrives.
   }
 
   async initialize(): Promise<void> {
