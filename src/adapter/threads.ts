@@ -13,6 +13,7 @@ import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
 import * as vscode from 'vscode';
+import {SourceMap} from './sourceMap';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -47,9 +48,11 @@ export class ThreadManager {
   private _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
   private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContext[]>();
+  _onScriptWithSourceMapLoadedEmitter = new vscode.EventEmitter<{script: Script, sources: Source[]}>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
+  readonly onScriptWithSourceMapLoaded = this._onScriptWithSourceMapLoadedEmitter.event;
   readonly sourceContainer: SourceContainer;
   private _executionContextProvider: () => ExecutionContext[];
 
@@ -152,6 +155,7 @@ export class Thread {
   private _threadUrl: string;
   private _pausedDetails: PausedDetails | null;
   private _pausedVariables: VariableStore | null = null;
+  private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
   private _supportsCustomBreakpoints: boolean;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
@@ -252,6 +256,10 @@ export class Thread {
       return false;
 
     this._cdp.Debugger.on('paused', event => {
+      if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
+        this._handleSourceMapPause(event.data['scriptId'] as string);
+        return;
+      }
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedVariables = new VariableStore(this._cdp);
       if (this._state === 'normal')
@@ -265,6 +273,8 @@ export class Thread {
       return false;
     if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
       return false;
+    // We ignore the result to support older versions.
+    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
     if (!await this.updatePauseOnExceptionsState())
       return false;
 
@@ -570,6 +580,20 @@ export class Thread {
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();
     source[kScriptsSymbol].add(script);
+  }
+
+  async _handleSourceMapPause(scriptId: string) {
+    this._pausedForSourceMapScriptId = scriptId;
+    const script = this._scripts.get(scriptId);
+    if (script) {
+      const sources = await this.sourceContainer.waitForSourceMapSources(script.source);
+      if (sources)
+        this.manager._onScriptWithSourceMapLoadedEmitter.fire({script, sources});
+    }
+    if (this._pausedForSourceMapScriptId === scriptId) {
+      this._pausedForSourceMapScriptId = undefined;
+      this._cdp.Debugger.resume({});
+    }
   }
 };
 

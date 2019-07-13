@@ -23,7 +23,7 @@ export interface Location {
 type ContentGetter = () => Promise<string | undefined>;
 type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
 type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string, isDirectDependency?: boolean};
-type SourceMapData = {compiled: Set<Source>, map?: SourceMap};
+type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
 
 export class SourcePathResolver {
   private _basePath?: string;
@@ -222,7 +222,7 @@ export class Source {
     if (!map)
       return;
     this._sourceMapUrl = sourceMapUrl;
-    const sourceMap: SourceMapData = {compiled: new Set([this]), map };
+    const sourceMap: SourceMapData = {compiled: new Set([this]), map, loaded: Promise.resolve()};
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
     const result = this._container._addSourceMapSources(this, map);
     return result[0];
@@ -261,6 +261,10 @@ export class Source {
       origin,
       sources,
     };
+  }
+
+  absolutePath(): string | undefined {
+    return this._resolvedPath.absolutePath;
   }
 };
 
@@ -425,22 +429,25 @@ export class SourceContainer {
       return;
     }
 
-    sourceMap = {compiled: new Set([source])};
+    let callback: () => void;
+    const promise = new Promise<void>(f => callback = f);
+    sourceMap = {compiled: new Set([source]), loaded: promise};
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    // TODO(dgozman): do we need stub source while source map is loading?
+    // TODO(dgozman): use timeout to avoid long pauses on script loading.
     sourceMap.map = await SourceMap.load(sourceMapUrl);
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
-      return;
+      return callback!();
     if (!sourceMap.map) {
       errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}`);
-      return;
+      return callback!();
     }
 
     for (const error of sourceMap.map!.errors())
       errors.reportToConsole(this._dap, error);
     for (const anyCompiled of sourceMap.compiled)
       this._addSourceMapSources(anyCompiled, sourceMap.map!);
+    callback!();
   }
 
   removeSource(source: Source) {
@@ -502,5 +509,15 @@ export class SourceContainer {
         continue;
       this.removeSource(source);
     }
+  }
+
+  async waitForSourceMapSources(source: Source): Promise<Source[]> {
+    if (!source._sourceMapUrl)
+      return [];
+    const sourceMap = this._sourceMaps.get(source._sourceMapUrl)!;
+    await sourceMap.loaded;
+    if (!source._sourceMapSourceByUrl)
+      return [];
+    return Array.from(source._sourceMapSourceByUrl.values());
   }
 };

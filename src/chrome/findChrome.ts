@@ -85,6 +85,7 @@ function linux() {
     installations = installations.concat(findChromeExecutables(folder));
   });
 
+  // TODO(dgozman): search for google-chrome-unstable?
   // Look for google-chrome(-stable) & chromium(-browser) executables by using the which command
   const executables = [
     'google-chrome-stable',
