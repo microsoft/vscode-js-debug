@@ -7,27 +7,43 @@ import * as queryString from 'querystring';
 import Dap from '../dap/api';
 import { AdapterFactory } from '../adapterFactory';
 import { Source } from '../adapter/sources';
+import { Adapter } from '../adapter/adapter';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
 let prettyPrintedUris: Set<string> = new Set();
+let revealingSource: Source | undefined;
 
 export function registerPrettyPrintActions(context: vscode.ExtensionContext, factory: AdapterFactory) {
   context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()));
   context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()));
 
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
-    if (neverSuggestPrettyPrinting ||
-        !isDebugging ||
-        !editor ||
+    if (!editor || !isDebugging ||
         editor.document.languageId !== 'javascript' ||
         editor.document.uri.scheme !== 'debug' ||
+        neverSuggestPrettyPrinting) {
+      return;
+    }
+
+    const { source, adapter } = await sourceForUri(factory, editor.document.uri);
+
+    let revealSourceMatched = revealingSource && source === revealingSource;
+    if (revealingSource) {
+      // If we are in the process of revealing source, no matter if we revealed that source - cancel.
+      adapter!.cancelRevealSource();
+      revealingSource = undefined;
+    }
+
+    // The rest of the code is about suggesting the pretty printing upon editor change.
+    // We only want to do it once per document.
+
+    if (revealSourceMatched ||
         prettyPrintedUris.has(editor.document.uri.toString()) ||
         !isMinified(editor.document)) {
       return;
     }
 
-    const source = await sourceForUri(factory, editor.document.uri);
     if (!source || !source.canPrettyPrint())
       return;
 
@@ -52,21 +68,37 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     const uri = editor.document.uri;
     if (uri.scheme !== 'debug')
       return;
-    const source = await sourceForUri(factory, editor.document.uri);
-    if (!source || !source.canPrettyPrint())
+    const { adapter, source } = await sourceForUri(factory, editor.document.uri);
+    if (!source || !adapter || !source.canPrettyPrint())
       return;
-    await source.prettyPrint();
+    const prettySource = await source.prettyPrint();
+
+    // Either refresh stacks on breakpoint.
+    if (adapter.threadManager.refreshStackTraces())
+      return;
+
+    // Or reveal this source manually.
+    if (prettySource) {
+      const location = adapter.sourceContainer.uiLocation({
+        source,
+        url: source.url(),
+        lineNumber: editor.selection.start.line,
+        columnNumber: editor.selection.start.character,
+      });
+      revealingSource = prettySource;
+      adapter!.revealSource(prettySource, location);
+    }
   }));
 }
 
-function sourceForUri(factory: AdapterFactory, uri: vscode.Uri): Source | undefined {
+function sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: Adapter | undefined, source: Source | undefined } {
   const query = queryString.parse(uri.query);
   const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
   const sessionId = query['session'] as string;
   const adapter = factory.adapter(sessionId || '');
   if (!adapter)
-    return;
-  return adapter.sourceContainer.source(ref);
+    return { adapter: undefined, source: undefined };
+  return { adapter, source: adapter.sourceContainer.source(ref) };
 }
 
 function updateDebuggingStatus() {

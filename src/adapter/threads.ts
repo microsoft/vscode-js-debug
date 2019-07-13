@@ -87,6 +87,18 @@ export class ThreadManager {
     this._onExecutionContextsChangedEmitter.fire(this._executionContextProvider());
   }
 
+  refreshStackTraces(): boolean {
+    let refreshed = false;
+    for (const thread of this.threads()) {
+      if (thread.pausedDetails()) {
+        thread._reportResumed();
+        thread._reportPaused();
+        refreshed = true;
+      }
+    }
+    return refreshed;
+  }
+
   threads(): Thread[] {
     return Array.from(this._threads.values());
   }
@@ -297,7 +309,7 @@ export class Thread {
     this._pausedDetails = null;
     this._pausedVariables = null;
     if (this._state === 'normal')
-      this._dap.continued({threadId: this._threadId});
+      this._reportResumed();
   }
 
   async dispose() {
@@ -360,6 +372,10 @@ export class Thread {
     if (!breakpoint)
       return false;
     return breakpoint.apply(this._cdp, enabled);
+  }
+
+  _reportResumed() {
+    this._dap.continued({threadId: this._threadId, allThreadsContinued: false });
   }
 
   _reportPaused(preserveFocusHint?: boolean) {
