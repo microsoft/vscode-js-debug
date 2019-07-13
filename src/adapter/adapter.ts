@@ -3,7 +3,6 @@
 
 import Dap from '../dap/api';
 
-import * as vscode from 'vscode';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
@@ -14,6 +13,7 @@ import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
 import { ExecutionContext, ThreadManager } from './threads';
+import * as evaluator from './evaluator';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
@@ -22,13 +22,18 @@ export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
 }
 
+type EvaluatePrep = {
+  error?: Dap.Error;
+  evaluator?: evaluator.Evaluator;
+  variableStore?: VariableStore;
+};
+
 export class Adapter {
   private _dap: Dap.Api;
   readonly threadManager: ThreadManager;
   readonly sourceContainer: SourceContainer;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
-  private _exceptionEvaluateName: string;
   private _currentExecutionContext: ExecutionContext | undefined;
   private _sourceToReveal: { source: Source, location: Location } | undefined;
 
@@ -53,7 +58,6 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
-    this._exceptionEvaluateName = '-$-$cdp-exception$-$-';
 
     this._sourcePathResolver = new SourcePathResolver();
     this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
@@ -346,60 +350,49 @@ export class Adapter {
     return {variables: await variableStore.getVariables(params)};
   }
 
-  async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    if (args.frameId !== undefined)
-      return this._evaluateOnCallFrame(args);
+  _prepareForEvaluate(frameId?: number): EvaluatePrep {
+    if (frameId !== undefined) {
+      const stackTrace = this._findStackTrace(frameId);
+      if (!stackTrace)
+        return {error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'))};
 
-    let thread = this._currentExecutionContext ? this.threadManager.thread(this._currentExecutionContext.threadId) : null;
-    if (!thread) {
-      thread = this.threadManager.mainThread();
-      if (!thread)
-        return this._mainThreadNotAvailable();
+      const stackFrame = stackTrace.frame(frameId)!;
+      if (!stackFrame.callFrameId)
+        return {error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'))};
+
+      return {
+        evaluator: evaluator.fromCallFrame(stackTrace.thread().cdp(), stackFrame.callFrameId),
+        variableStore: stackTrace.thread().pausedVariables()!
+      };
+    } else {
+      let thread = this._currentExecutionContext ? this.threadManager.thread(this._currentExecutionContext.threadId) : null;
+      if (!thread) {
+        thread = this.threadManager.mainThread();
+        if (!thread)
+          return {error: this._mainThreadNotAvailable()};
+      }
+
+      return {
+        evaluator: evaluator.fromContextId(thread.cdp(), this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined),
+        variableStore: thread.replVariables
+      };
     }
-
-    const response = await thread.cdp().Runtime.evaluate({
-      expression: args.expression,
-      contextId: this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined,
-      includeCommandLineAPI: true,
-      silent: true,
-      objectGroup: 'console',
-      generatePreview: true
-    });
-
-    if (!response)
-      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
-    return this._evaluateResult(thread.replVariables, response.result, args.context);
   }
 
-  async _evaluateOnCallFrame(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    const stackTrace = this._findStackTrace(args.frameId!);
-    if (!stackTrace)
-      return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-
-    const exception = stackTrace.thread().pausedDetails()!.exception;
-    if (exception && args.expression === this._exceptionEvaluateName)
-      return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception, args.context);
-
-    const stackFrame = stackTrace.frame(args.frameId!)!;
-    if (!stackFrame.callFrameId)
-      return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
-
-    const response = await stackTrace.thread().cdp().Debugger.evaluateOnCallFrame({
-      callFrameId: stackFrame.callFrameId,
+  async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
+    const prep = this._prepareForEvaluate(args.frameId);
+    if (prep.error)
+      return prep.error;
+    const response = await prep.evaluator!({
       expression: args.expression,
       includeCommandLineAPI: true,
-      silent: true,
       objectGroup: 'console',
       generatePreview: true
     });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
-    return this._evaluateResult(stackTrace.thread().pausedVariables()!, response.result, args.context);
-  }
-
-  async _evaluateResult(variableStore: VariableStore, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
-    const variable = await variableStore.createVariable(result, context);
-    const prefix = context === 'repl' ? '↳ ' : '';
+    const variable = await prep.variableStore!.createVariable(response.result, args.context);
+    const prefix = args.context === 'repl' ? '↳ ' : '';
     return {
       result: prefix + variable.value,
       variablesReference: variable.variablesReference,
@@ -408,12 +401,12 @@ export class Adapter {
     };
   }
 
-  async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult> {
-    const mainThread = this.threadManager.mainThread();
-    if (!mainThread)
-      return {targets: []};
+  async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
+    const prep = this._prepareForEvaluate(params.frameId);
+    if (prep.error)
+      return prep.error;
     const line = params.line === undefined ? 0 : params.line - 1;
-    return {targets: await completionz.completions(mainThread.cdp(), params.text, line, params.column)};
+    return {targets: await completionz.completions(prep.evaluator!, params.text, line, params.column)};
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
@@ -458,8 +451,6 @@ export class Adapter {
       breakMode: this.threadManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
-        // TODO(dgozman): |evaluateName| is not used by VSCode yet. Remove?
-        evaluateName: this._exceptionEvaluateName,
       }
     };
   }
