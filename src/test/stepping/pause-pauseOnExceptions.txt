@@ -14,7 +14,6 @@ Evaluating#4: setTimeout(() => { throw new Error('hello'); })
 {
     breakMode : unhandled
     details : {
-        evaluateName : -$-$cdp-exception$-$-
         stackTrace :   at eval4.js:1:26
     }
     exceptionId : Error: hello
@@ -33,7 +32,6 @@ Evaluating#5: setTimeout(() => { throw new Error('hello'); })
 {
     breakMode : always
     details : {
-        evaluateName : -$-$cdp-exception$-$-
         stackTrace :   at eval5.js:1:26
     }
     exceptionId : Error: hello
@@ -51,7 +49,6 @@ Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}}
 {
     breakMode : always
     details : {
-        evaluateName : -$-$cdp-exception$-$-
         stackTrace :   at eval6.js:1:32
     }
     exceptionId : Error: hello
