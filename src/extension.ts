@@ -31,10 +31,6 @@ class DebugConfigurationProvider implements vscode.DebugConfigurationProvider {
       config.name = localize('debugConfig.launch.name', 'Run in Chrome with CDP');
       config.request = 'launch';
     }
-    if (!config.url)
-      config.url = 'http://localhost:8000';
-    if (folder && !config.webRoot)
-      config.webRoot = folder.uri.fsPath;
     return config;
   }
 }

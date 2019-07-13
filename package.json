@@ -166,13 +166,23 @@
             "properties": {
               "url": {
                 "type": "string",
-                "description": "Page url",
-                "default": "http://localhost:8080"
+                "description": "Page url"
               },
               "webRoot": {
                 "type": "string",
-                "description": "Path to source files",
-                "default": "${workspaceFolder}"
+                "description": "Path to source files"
+              },
+              "runtime": {
+                "type": "string",
+                "description": "Path to runtime"
+              },
+              "program": {
+                "type": "string",
+                "description": "Program name"
+              },
+              "ags": {
+                "type": "array",
+                "description": "Program arguments"
               }
             }
           }
@@ -194,6 +204,17 @@
               "name": "Run in Chrome with CDP",
               "url": "http://localhost:8080",
               "webRoot": "${workspaceFolder}"
+            }
+          },
+          {
+            "label": "Run as a Node program with CDP",
+            "description": "A new configuration for running Node program with CDP",
+            "body": {
+              "type": "cdp",
+              "request": "launch",
+              "name": "Run as a Node program with CDP",
+              "runtime": "node",
+              "program": "index.js"
             }
           }
         ]
