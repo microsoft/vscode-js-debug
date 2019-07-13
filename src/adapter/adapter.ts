@@ -348,26 +348,21 @@ export class Adapter {
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    const mainThread = this.threadManager.mainThread();
-    if (!mainThread)
-      return this._mainThreadNotAvailable();
-    if (args.frameId !== undefined) {
-      // TODO(dgozman): evalute on call frame.
-      const stackTrace = this._findStackTrace(args.frameId);
-      if (!stackTrace)
-        return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-      const exception = stackTrace.thread().pausedDetails()!.exception;
-      if (exception && args.expression === this._exceptionEvaluateName)
-        return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception);
-    }
+    if (args.frameId !== undefined)
+      return this._evaluateOnCallFrame(args);
+
     let thread = this._currentExecutionContext ? this.threadManager.thread(this._currentExecutionContext.threadId) : null;
-    if (!thread)
-      thread = mainThread;
+    if (!thread) {
+      thread = this.threadManager.mainThread();
+      if (!thread)
+        return this._mainThreadNotAvailable();
+    }
 
     const response = await thread.cdp().Runtime.evaluate({
       expression: args.expression,
       contextId: this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined,
       includeCommandLineAPI: true,
+      silent: true,
       objectGroup: 'console',
       generatePreview: true
     });
@@ -375,6 +370,32 @@ export class Adapter {
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
     return this._evaluateResult(thread.replVariables, response.result, args.context);
+  }
+
+  async _evaluateOnCallFrame(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
+    const stackTrace = this._findStackTrace(args.frameId!);
+    if (!stackTrace)
+      return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+
+    const exception = stackTrace.thread().pausedDetails()!.exception;
+    if (exception && args.expression === this._exceptionEvaluateName)
+      return this._evaluateResult(stackTrace.thread().pausedVariables()!, exception, args.context);
+
+    const stackFrame = stackTrace.frame(args.frameId!)!;
+    if (!stackFrame.callFrameId)
+      return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
+
+    const response = await stackTrace.thread().cdp().Debugger.evaluateOnCallFrame({
+      callFrameId: stackFrame.callFrameId,
+      expression: args.expression,
+      includeCommandLineAPI: true,
+      silent: true,
+      objectGroup: 'console',
+      generatePreview: true
+    });
+    if (!response)
+      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+    return this._evaluateResult(stackTrace.thread().pausedVariables()!, response.result, args.context);
   }
 
   async _evaluateResult(variableStore: VariableStore, result: Cdp.Runtime.RemoteObject, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.EvaluateResult> {
