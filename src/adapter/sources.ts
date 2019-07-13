@@ -236,7 +236,6 @@ export class Source {
     } else if (nodeModule) {
       origin = nodeModule;
     }
-    const presentationHint = origin ? 'deemphasize' : undefined;
     const sources = this._sourceMapSourceByUrl
       ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
       : undefined;
@@ -245,7 +244,6 @@ export class Source {
         name: name || ('VM' + this._sourceReference),
         path: absolutePath,
         sourceReference: 0,
-        presentationHint,
         origin,
         sources,
       };
@@ -260,7 +258,6 @@ export class Source {
       name: name || ('VM' + this._sourceReference),
       path: name || ('VM' + this._sourceReference),
       sourceReference: this._sourceReference,
-      presentationHint,
       origin,
       sources,
     };

@@ -17,8 +17,6 @@ export function prettyPrintAsSourceMap(fileName: string, minified: string): Sour
   generator.setSourceContent(fileName, source)
 
   for (let i = 0; i < from.length; i += 2) {
-    if (from[i] === to[i] && from[i + 1] === to[i + 1])
-      continue;
     generator.addMapping({
       source: fileName,
       original: { line: from[i], column: from[i + 1] },

@@ -3,18 +3,20 @@
 
 import Dap from '../dap/api';
 
+import * as vscode from 'vscode';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import { VariableStore, ScopeRef } from './variables';
-import { SourceContainer, SourcePathResolver } from './sources';
+import { SourceContainer, SourcePathResolver, Source, Location } from './sources';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
 import { ExecutionContext, ThreadManager } from './threads';
 
 const localize = nls.loadMessageBundle();
+const threadForSourceRevealId = 9999999999999;
 
 export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
   targetId?: string;
@@ -28,6 +30,7 @@ export class Adapter {
   private _breakpointManager: BreakpointManager;
   private _exceptionEvaluateName: string;
   private _currentExecutionContext: ExecutionContext | undefined;
+  private _sourceToReveal: { source: Source, location: Location } | undefined;
 
   constructor(dap: Dap.Api, executionContextProvider: () => ExecutionContext[]) {
     this._dap = dap;
@@ -115,6 +118,8 @@ export class Adapter {
     const threads: Dap.Thread[] = [];
     for (const thread of this.threadManager.threads())
       threads.push({id: thread.threadId(), name: thread.threadNameWithIndentation()});
+    if (this._sourceToReveal)
+      threads.push({id: threadForSourceRevealId, name: ''});
     return {threads};
   }
 
@@ -177,6 +182,9 @@ export class Adapter {
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
+    if (params.threadId === threadForSourceRevealId)
+      return this._syntheticStackTraceForSourceReveal(params);
+
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
@@ -448,5 +456,39 @@ export class Adapter {
 
   setCurrentExecutionContext(item: ExecutionContext | undefined) {
     this._currentExecutionContext = item;
+  }
+
+  revealSource(source: Source, location: Location) {
+    if (this._sourceToReveal)
+      return;
+    this._sourceToReveal = { source, location };
+    this._dap.thread({ reason: 'started', threadId: threadForSourceRevealId });
+    this._dap.stopped({
+      reason: 'goto',
+      threadId: threadForSourceRevealId,
+      allThreadsStopped: false,
+    });
+  }
+
+  cancelRevealSource() {
+    if (!this._sourceToReveal)
+      return;
+    this._dap.continued({ threadId: threadForSourceRevealId, allThreadsContinued: false });
+    this._dap.thread({ reason: 'exited', threadId: threadForSourceRevealId });
+    this._sourceToReveal = undefined;
+  }
+
+  async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult>  {
+    if (!this._sourceToReveal || params.startFrame)
+      return { stackFrames: [] };
+    return {
+      stackFrames: [{
+        id: 1,
+        name: '',
+        line: this._sourceToReveal.location.lineNumber,
+        column: this._sourceToReveal.location.columnNumber,
+        source: this._sourceToReveal.source.toDap()
+      }]
+    };
   }
 }
