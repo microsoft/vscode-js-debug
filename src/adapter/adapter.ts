@@ -65,13 +65,7 @@ export class Adapter {
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 
-  async initialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
-    // params.supportsVariableType
-    // params.supportsVariablePaging
-    // params.supportsRunInTerminalRequest
-    // params.supportsMemoryReferences
-
-    this._dap.initialized({});
+  static capabilities(): Dap.InitializeResult {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,

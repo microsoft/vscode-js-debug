@@ -35,10 +35,16 @@ export class ChromeAdapter {
   private _launchParams: LaunchParams;
   private _mainTarget?: Target;
   private _disposables: vscode.Disposable[] = [];
+  private _adapterReadyCallback: (adapter: Adapter) => void;
 
-  constructor(dap: Dap.Api, storagePath: string) {
+  static async create(dap: Dap.Api, storagePath: string): Promise<Adapter> {
+    return new Promise<Adapter>(f => new ChromeAdapter(dap, storagePath, f));
+  }
+
+  constructor(dap: Dap.Api, storagePath: string, adapterReadyCallback: (adapter: Adapter) => void) {
     this._dap = dap;
     this._storagePath = storagePath;
+    this._adapterReadyCallback = adapterReadyCallback;
     this._dap.on('initialize', params => this._onInitialize(params));
     this._dap.on('configurationDone', params => this._onConfigurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
@@ -94,7 +100,8 @@ export class ChromeAdapter {
       return this._targetManager.executionContexts();
     });
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
-    return this._adapter.initialize(params);
+    this._dap.initialized({});
+    return Adapter.capabilities();
   }
 
   async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<ConfigurationDoneResult> {
@@ -121,6 +128,7 @@ export class ChromeAdapter {
     this._launchParams = params;
     this._adapter.launch(params.url, params.webRoot);
     await this._mainTarget!.cdp().Page.navigate({url: params.url});
+    this._adapterReadyCallback(this._adapter);
     return {};
   }
 
