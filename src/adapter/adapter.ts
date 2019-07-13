@@ -72,9 +72,9 @@ export class Adapter {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
-      supportsConditionalBreakpoints: false,
+      supportsConditionalBreakpoints: true,
       supportsHitConditionalBreakpoints: false,
-      supportsEvaluateForHovers: false,
+      supportsEvaluateForHovers: false, // TODO(dgozman): support this.
       exceptionBreakpointFilters: [
         {filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false},
         {filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false},
@@ -90,12 +90,12 @@ export class Adapter {
       supportedChecksumAlgorithms: [],
       supportsRestartRequest: true,
       supportsExceptionOptions: false,
-      supportsValueFormattingOptions: false,
+      supportsValueFormattingOptions: false, // TODO(dgozman): support this.
       supportsExceptionInfoRequest: true,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
       supportsLoadedSourcesRequest: true,
-      supportsLogPoints: false,
+      supportsLogPoints: false, // TODO(dgozman): support this.
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
       supportsTerminateRequest: false,
@@ -352,6 +352,7 @@ export class Adapter {
     if (!mainThread)
       return this._mainThreadNotAvailable();
     if (args.frameId !== undefined) {
+      // TODO(dgozman): evalute on call frame.
       const stackTrace = this._findStackTrace(args.frameId);
       if (!stackTrace)
         return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));

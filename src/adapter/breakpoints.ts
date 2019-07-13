@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourcePathResolver, Location, SourceContainer, Source } from './sources';
+import { SourcePathResolver, Location, SourceContainer } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { Thread, ThreadManager } from './threads';
+import { Thread, ThreadManager, Script } from './threads';
 import * as vscode from 'vscode';
 
 export class Breakpoint {
@@ -38,13 +38,6 @@ export class Breakpoint {
 
   async set(report: boolean): Promise<void> {
     const threadManager = this._manager._threadManager;
-
-    const onBreakpointResolved = (thread: Thread) => {
-      thread.cdp().Debugger.on('breakpointResolved', event => this._breakpointResolved(thread, event.breakpointId, [event.location]));
-    };
-    threadManager.threads().forEach(onBreakpointResolved);
-    threadManager.onThreadAdded(onBreakpointResolved, undefined, this._disposables);
-
     threadManager.onThreadRemoved(thread => {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
@@ -60,7 +53,8 @@ export class Breakpoint {
     const promises: Promise<void>[] = [];
 
     if (url) {
-      // When url is available, set by url in all threads, including future ones.
+      // For breakpoints set before launch, we don't know whether they are in a compiled or
+      // a source map source. To make them work, we always set by url to not miss compiled.
       const lineNumber = this._params.line - 1;
       const columnNumber = this._params.column || 0;
       promises.push(...threadManager.threads().map(thread => {
@@ -84,7 +78,7 @@ export class Breakpoint {
       this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
   }
 
-  _breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
+  breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
     if (this._manager._threadManager.thread(thread.threadId()) !== thread)
       return;
     let ids = this._perThread.get(thread.threadId());
@@ -93,6 +87,7 @@ export class Breakpoint {
       this._perThread.set(thread.threadId(), ids);
     }
     ids.add(cdpId);
+    this._manager._perThread.get(thread.threadId())!.set(cdpId, this);
 
     if (this._resolvedUiLocation || !resolvedLocations.length)
       return;
@@ -102,17 +97,39 @@ export class Breakpoint {
       this._resolvedUiLocation = this._manager._sourceContainer.uiLocationInSource(rawLocation, source);
   }
 
-  async _setByRawLocation(rawLocation: Location): Promise<void> {
-    const threadManager = this._manager._threadManager;
+  async updateForSourceMap(script: Script) {
+    const source = this._manager._sourceContainer.source(this._source);
+    if (!source)
+      return;
+    const rawLocations = this._manager._sourceContainer.rawLocations({
+      url: source.url(),
+      lineNumber: this._params.line,
+      columnNumber: this._params.column || 1,
+      source
+    });
+    const resolvedUiLocation = this._resolvedUiLocation;
     const promises: Promise<void>[] = [];
-    for (const thread of threadManager.threads()) {
-      if (rawLocation.url) {
+    for (const rawLocation of rawLocations) {
+      if (rawLocation.source === script.source)
+        promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
+    }
+    await Promise.all(promises);
+    if (resolvedUiLocation !== this._resolvedUiLocation)
+      this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
+  }
+
+  async _setByRawLocation(rawLocation: Location): Promise<void> {
+    const promises: Promise<void>[] = [];
+    if (rawLocation.source) {
+      const scripts = this._manager._threadManager.scriptsFromSource(rawLocation.source);
+      for (const script of scripts)
+        promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
+    }
+    if (rawLocation.url) {
+      // We only do this to support older versions which do not implement 'pause before source map'.
+      // TODO(dgozman): feature detect it?
+      for (const thread of this._manager._threadManager.threads())
         promises.push(this._setByUrl(thread, rawLocation.url, rawLocation.lineNumber, rawLocation.columnNumber));
-      } else if (rawLocation.source) {
-        const scripts = this._manager._threadManager.scriptsFromSource(rawLocation.source);
-        for (const script of scripts)
-          promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
-      }
     }
     await Promise.all(promises);
   }
@@ -125,7 +142,7 @@ export class Breakpoint {
       condition: this._params.condition,
     });
     if (result)
-      this._breakpointResolved(thread, result.breakpointId, result.locations);
+      this.breakpointResolved(thread, result.breakpointId, result.locations);
   }
 
   async _setByScriptId(thread: Thread, scriptId: string, lineNumber: number, columnNumber: number): Promise<void> {
@@ -134,15 +151,17 @@ export class Breakpoint {
       condition: this._params.condition,
     });
     if (result)
-      this._breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
+      this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
   }
 
   async remove(): Promise<void> {
     const promises: Promise<any>[] = [];
     for (const [threadId, ids] of this._perThread) {
       const thread = this._manager._threadManager.thread(threadId)!;
-      for (const id of ids)
+      for (const id of ids) {
+        this._manager._perThread.get(threadId)!.delete(id);
         promises.push(thread.cdp().Debugger.removeBreakpoint({breakpointId: id}));
+      }
     }
     this._resolvedUiLocation = undefined;
     this._perThread.clear();
@@ -162,6 +181,8 @@ export class BreakpointManager {
   _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
   _threadManager: ThreadManager;
+  _disposables: vscode.Disposable[] = [];
+  _perThread = new Map<number, Map<string, Breakpoint>>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
@@ -170,7 +191,6 @@ export class BreakpointManager {
     this._threadManager = threadManager;
 
     // TODO(dgozman): provide breakpointsHit in paused event.
-    // TODO(dgozman): pause on script run to set breakpoints in source maps.
   }
 
   async initialize(): Promise<void> {
@@ -178,6 +198,34 @@ export class BreakpointManager {
     const promises: Promise<void>[] = [];
     for (const breakpoints of this._byPath.values())
       promises.push(...breakpoints.map(b => b.set(true)));
+
+    const onThread = (thread: Thread) => {
+      this._perThread.set(thread.threadId(), new Map());
+      thread.cdp().Debugger.on('breakpointResolved', event => {
+        const map = this._perThread.get(thread.threadId());
+        const breakpoint = map ? map.get(event.breakpointId) : undefined;
+        if (breakpoint)
+          breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
+      });
+    };
+    this._threadManager.threads().forEach(onThread);
+    this._threadManager.onThreadAdded(onThread, undefined, this._disposables);
+    this._threadManager.onThreadRemoved(thread => {
+      this._perThread.delete(thread.threadId());
+    }, undefined, this._disposables);
+
+    this._threadManager.onScriptWithSourceMapLoaded(({script, sources}) => {
+      for (const source of sources) {
+        const path = source.absolutePath();
+        const byPath = path ? this._byPath.get(path) : undefined;
+        for (const breakpoint of byPath || [])
+          breakpoint.updateForSourceMap(script);
+        const byRef = this._byRef.get(source.sourceReference());
+        for (const breakpoint of byRef || [])
+          breakpoint.updateForSourceMap(script);
+      }
+    }, undefined, this._disposables);
+
     await Promise.all(promises);
   }
 

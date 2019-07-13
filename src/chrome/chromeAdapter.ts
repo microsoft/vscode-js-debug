@@ -70,7 +70,8 @@ export class ChromeAdapter {
     console.assert(params.columnsStartAt1);
     console.assert(params.pathFormat === 'path');
 
-    const executablePath = findChrome().pop();
+    // Prefer canary over stable, it comes earlier in the list.
+    const executablePath = findChrome()[0];
     if (!executablePath)
       return errors.createUserError(localize('error.executableNotFound', 'Unable to find Chrome'));
     const args: string[] = [];
