@@ -60,7 +60,7 @@ export class Breakpoint {
       promises.push(...threadManager.threads().map(thread => {
         return this._setByUrl(thread, url, lineNumber, columnNumber);
       }));
-      threadManager.onThreadAdded(thread => {
+      threadManager.onThreadInitialized(thread => {
         this._setByUrl(thread, url, lineNumber, columnNumber);
       }, undefined, this._disposables);
     }
@@ -209,7 +209,7 @@ export class BreakpointManager {
       });
     };
     this._threadManager.threads().forEach(onThread);
-    this._threadManager.onThreadAdded(onThread, undefined, this._disposables);
+    this._threadManager.onThreadInitialized(onThread, undefined, this._disposables);
     this._threadManager.onThreadRemoved(thread => {
       this._perThread.delete(thread.threadId());
     }, undefined, this._disposables);

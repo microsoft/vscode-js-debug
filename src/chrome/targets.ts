@@ -263,8 +263,8 @@ export class Target {
   }
 
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
-    if (this._thread && !await this._thread.initialize())
-      return false;
+    if (this._thread)
+      await this._thread.initialize();
     if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager._frameModel.addTarget(this._cdp))
       return false;
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))

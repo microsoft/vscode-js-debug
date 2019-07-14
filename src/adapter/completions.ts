@@ -45,15 +45,17 @@ export async function completions(evaluator: Evaluator, expression: string, line
     return [];
 
   if (toevaluate)
-    return await completePropertyAccess(evaluator, toevaluate, prefix);
+    return (await completePropertyAccess(evaluator, toevaluate, prefix)) || [];
 
-    let items = await completePropertyAccess(evaluator, 'self', prefix);
-  if (!items.length)
-    items = await completePropertyAccess(evaluator, 'global', prefix);
-  return items;
+  for (const global of ['self', 'this', 'global']) {
+    const items = await completePropertyAccess(evaluator, global, prefix);
+    if (items)
+      return items;
+  }
+  return [];
 }
 
-async function completePropertyAccess(evaluator: Evaluator, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
+async function completePropertyAccess(evaluator: Evaluator, expression: string, prefix: string): Promise<Dap.CompletionItem[] | null> {
   const response = await evaluator({
     expression: `
       (() => {
@@ -83,12 +85,8 @@ async function completePropertyAccess(evaluator: Evaluator, expression: string, 
     includeCommandLineAPI: true,
     returnByValue: true
   });
-  if (!response)
-    return [];
-  if (response.exceptionDetails) {
-    console.log(response.exceptionDetails);
-    return [];
-  }
+  if (!response || response.exceptionDetails)
+    return null;
 
   return response.result.value as Dap.CompletionItem[];
 }

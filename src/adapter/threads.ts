@@ -14,7 +14,6 @@ import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
 import * as vscode from 'vscode';
-import {SourceMap} from './sourceMap';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -46,23 +45,26 @@ export class ThreadManager {
   private _threads: Map<number, Thread> = new Map();
   private _dap: Dap.Api;
 
-  private _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
+  _onThreadInitializedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
   private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContext[]>();
   _onScriptWithSourceMapLoadedEmitter = new vscode.EventEmitter<{script: Script, sources: Source[]}>();
-  readonly onThreadAdded = this._onThreadAddedEmitter.event;
+  readonly onThreadInitialized = this._onThreadInitializedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly onScriptWithSourceMapLoaded = this._onScriptWithSourceMapLoadedEmitter.event;
   readonly sourceContainer: SourceContainer;
-  private _executionContextProvider: () => ExecutionContext[];
+  private _externalExecutionContextProvider: () => ExecutionContext[] | undefined;
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer, executionContextProvider: () => ExecutionContext[]) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
-    this._executionContextProvider = executionContextProvider;
+  }
+
+  setExternalExecutionContextProvider(executionContextProvider: () => ExecutionContext[]) {
+    this._externalExecutionContextProvider = executionContextProvider;
   }
 
   mainThread(): Thread | undefined {
@@ -76,7 +78,6 @@ export class ThreadManager {
   _addThread(thread: Thread) {
     console.assert(!this._threads.has(thread.threadId()));
     this._threads.set(thread.threadId(), thread);
-    this._onThreadAddedEmitter.fire(thread);
   }
 
   _removeThread(threadId: number) {
@@ -87,7 +88,29 @@ export class ThreadManager {
   }
 
   refreshExecutionContexts() {
-    this._onExecutionContextsChangedEmitter.fire(this._executionContextProvider());
+    if (this._externalExecutionContextProvider) {
+      this._onExecutionContextsChangedEmitter.fire(this._externalExecutionContextProvider());
+      return;
+    }
+
+    const result: ExecutionContext[] = [];
+    for (const thread of this._threads.values()) {
+      const threadContext: ExecutionContext = {
+        name: thread.threadName() || `thread #${thread.threadId()}`,
+        threadId: thread.threadId(),
+        children: [],
+      };
+      result.push(threadContext);
+      threadContext.children = thread.executionContexts().map(context => {
+        return {
+          name: context.name || `context #${context.id}`,
+          threadId: thread.threadId(),
+          contextId: context.id,
+          children: [],
+        };
+      });
+    }
+    this._onExecutionContextsChangedEmitter.fire(result);
   }
 
   refreshStackTraces(): boolean {
@@ -108,6 +131,11 @@ export class ThreadManager {
 
   thread(threadId: number): Thread | undefined {
     return this._threads.get(threadId);
+  }
+
+  disposeThreads() {
+    for (const thread of this.threads())
+      thread.dispose();
   }
 
   pauseOnExceptionsState(): PauseOnExceptionsState {
@@ -174,6 +202,7 @@ export class Thread {
     this._threadName = '';
     this._supportsCustomBreakpoints = supportsCustomBreakpoints;
     this.replVariables = new VariableStore(this._cdp);
+    this.manager._addThread(this);
     debugThread(`Thread created #${this._threadId}`);
   }
 
@@ -240,7 +269,7 @@ export class Thread {
     return true;
   }
 
-  async initialize(): Promise<boolean> {
+  async initialize() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
@@ -260,8 +289,7 @@ export class Thread {
       if (this._state === 'normal')
         this._onExceptionThrown(event.exceptionDetails);
     });
-    if (!await this._cdp.Runtime.enable({}))
-      return false;
+    await this._cdp.Runtime.enable({});
 
     this._cdp.Debugger.on('paused', event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
@@ -277,14 +305,11 @@ export class Thread {
 
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
-    if (!await this._cdp.Debugger.enable({}))
-      return false;
-    if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
-      return false;
+    await this._cdp.Debugger.enable({});
+    await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
     // We ignore the result to support older versions.
-    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'}).catch(() => {});
-    if (!await this.updatePauseOnExceptionsState())
-      return false;
+    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
+    await this.updatePauseOnExceptionsState();
 
     const customBreakpointPromises: Promise<boolean>[] = [];
     for (const id of this.manager.customBreakpoints())
@@ -294,14 +319,13 @@ export class Thread {
     await Promise.all(customBreakpointPromises);
 
     if (this._state === 'disposed')
-      return true;
+      return;
 
     this._state = 'normal';
-    this.manager._addThread(this);
+    this.manager._onThreadInitializedEmitter.fire(this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
-    return true;
   }
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
@@ -332,10 +356,9 @@ export class Thread {
   async dispose() {
     this._executionContextsCleared();
     this._removeAllScripts();
-    if (this._state === 'normal') {
-      this.manager._removeThread(this._threadId);
+    this.manager._removeThread(this._threadId);
+    if (this._state === 'normal')
       this._dap.thread({reason: 'exited', threadId: this._threadId});
-    }
     utils.removeEventListeners(this._eventListeners);
     this._state = 'disposed';
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
