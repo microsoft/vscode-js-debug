@@ -34,6 +34,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
       disposable.dispose();
     this._disposables = [];
     adapter.threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
+    adapter.threadManager.refreshExecutionContexts();
   }
 
   getTreeItem(item: ExecutionContext): vscode.TreeItem {

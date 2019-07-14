@@ -61,7 +61,7 @@ export class NodeAdapter {
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     // params.noDebug
 
-    this._adapter = new Adapter(this._dap, () => { return []; });
+    this._adapter = new Adapter(this._dap);
     this._adapter.launch('', '');
     this._adapterReadyCallback(this._adapter);
     const pipe = this._startServer();
@@ -85,14 +85,17 @@ export class NodeAdapter {
   }
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+    this._adapter.threadManager.disposeThreads();
     return {};
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+    this._adapter.threadManager.disposeThreads();
     return {};
   }
 
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+    this._adapter.threadManager.disposeThreads();
     return {};
   }
 
@@ -116,8 +119,8 @@ export class NodeAdapter {
     const connection = new Connection(transport);
     const cdp = connection.createSession('');
     const thread = this._adapter.threadManager.createThread(cdp, false);
-    if (await thread.initialize())
-      connection.onDisconnected(() => thread.dispose());
+    connection.onDisconnected(() => thread.dispose());
+    await thread.initialize();
   }
 }
 

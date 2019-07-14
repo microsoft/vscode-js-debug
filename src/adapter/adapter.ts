@@ -37,7 +37,7 @@ export class Adapter {
   private _currentExecutionContext: ExecutionContext | undefined;
   private _sourceToReveal: { source: Source, location: Location } | undefined;
 
-  constructor(dap: Dap.Api, executionContextProvider: () => ExecutionContext[]) {
+  constructor(dap: Dap.Api) {
     this._dap = dap;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
@@ -61,7 +61,7 @@ export class Adapter {
 
     this._sourcePathResolver = new SourcePathResolver();
     this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
-    this.threadManager = new ThreadManager(this._dap, this.sourceContainer, executionContextProvider);
+    this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 
@@ -106,6 +106,10 @@ export class Adapter {
     this._sourcePathResolver.initialize(url, webRoot);
     this.sourceContainer.initialize();
     this._breakpointManager.initialize();
+  }
+
+  setExternalExecutionContextProvider(executionContextProvider: () => ExecutionContext[]) {
+    this.threadManager.setExternalExecutionContextProvider(executionContextProvider);
   }
 
   _mainThreadNotAvailable(): Dap.Error {
