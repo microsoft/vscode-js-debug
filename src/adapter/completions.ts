@@ -12,35 +12,44 @@ export async function completions(evaluator: Evaluator, expression: string, line
     ts.ScriptTarget.ESNext,
     /*setParentNodes */ true);
 
-  const offset = positionToOffset(expression, line, column);
-  let items: Promise<Dap.CompletionItem[]> | undefined;
-  traverse(sourceFile);
-
+  let prefix;
+  let toevaluate;
   function traverse(node: ts.Node) {
-    if (items)
+    if (prefix !== undefined)
       return;
     if (node.pos < offset && offset <= node.end) {
       switch (node.kind) {
         case ts.SyntaxKind.Identifier: {
-          const prefix = node.getText().substring(0, offset - node.getStart());
-          items = completePropertyAccess(evaluator, 'self', prefix);
+          prefix = node.getText().substring(0, offset - node.getStart());
+          toevaluate = '';
           break;
         }
         case ts.SyntaxKind.PropertyAccessExpression: {
           const pe = node as ts.PropertyAccessExpression;
           if (hasSideEffects(pe.expression))
             break;
-          const prefix = pe.name.getText().substring(0, offset - pe.name.getStart());
-          items = completePropertyAccess(evaluator, pe.expression.getText(), prefix);
+          prefix = pe.name.getText().substring(0, offset - pe.name.getStart());
+          toevaluate = pe.expression.getText();
           break;
         }
       }
     }
-
-    if (!items)
+    if (prefix === undefined)
       ts.forEachChild(node, traverse);
   }
-  return items ? await items : [];
+
+  const offset = positionToOffset(expression, line, column);
+  traverse(sourceFile);
+  if (!prefix)
+    return [];
+
+  if (toevaluate)
+    return await completePropertyAccess(evaluator, toevaluate, prefix);
+
+    let items = await completePropertyAccess(evaluator, 'self', prefix);
+  if (!items.length)
+    items = await completePropertyAccess(evaluator, 'global', prefix);
+  return items;
 }
 
 async function completePropertyAccess(evaluator: Evaluator, expression: string, prefix: string): Promise<Dap.CompletionItem[]> {
