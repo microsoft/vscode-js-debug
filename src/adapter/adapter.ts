@@ -13,7 +13,7 @@ import { SourceContainer, SourcePathResolver, Source, Location } from './sources
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
-import { ExecutionContext, ThreadManager } from './threads';
+import { ExecutionContext, ThreadManager, Thread } from './threads';
 import * as evaluator from './evaluator';
 
 const localize = nls.loadMessageBundle();
@@ -110,7 +110,7 @@ export class Adapter {
   }
 
   _mainThreadNotAvailable(): Dap.Error {
-    return errors.createSilentError('Page is not available');
+    return errors.createSilentError('Thread is not available');
   }
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
@@ -360,15 +360,21 @@ export class Adapter {
         variableStore: stackTrace.thread().pausedVariables()!
       };
     } else {
-      let thread = this._currentExecutionContext ? this.threadManager.thread(this._currentExecutionContext.threadId) : null;
-      if (!thread) {
+      let thread: Thread | undefined;
+      let executionContextId: number | undefined;
+      if (this._currentExecutionContext) {
+        executionContextId = this._currentExecutionContext.contextId;
+        thread = this.threadManager.thread(this._currentExecutionContext.threadId);
+      } else {
         thread = this.threadManager.mainThread();
-        if (!thread)
-          return {error: this._mainThreadNotAvailable()};
+        const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
+        executionContextId = defaultContext ? defaultContext.id : undefined;
       }
+      if (!thread || !executionContextId)
+        return { error: this._mainThreadNotAvailable() };
 
       return {
-        evaluator: evaluator.fromContextId(thread.cdp(), this._currentExecutionContext ? this._currentExecutionContext.contextId : undefined),
+        evaluator: evaluator.fromContextId(thread.cdp(), executionContextId),
         variableStore: thread.replVariables
       };
     }

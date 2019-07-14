@@ -205,6 +205,13 @@ export class Thread {
     return Array.from(this._executionContexts.values());
   }
 
+  defaultExecutionContext() : Cdp.Runtime.ExecutionContextDescription | undefined {
+    for (const context of this._executionContexts.values()) {
+      if (context.auxData && context.auxData['isDefault'])
+        return context;
+    }
+  }
+
   async resume(): Promise<boolean> {
     return !!await this._cdp.Debugger.resume({});
   }
@@ -275,7 +282,7 @@ export class Thread {
     if (!await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32}))
       return false;
     // We ignore the result to support older versions.
-    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
+    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'}).catch(() => {});
     if (!await this.updatePauseOnExceptionsState())
       return false;
 
