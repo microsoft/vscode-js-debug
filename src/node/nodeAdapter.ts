@@ -5,7 +5,7 @@ import Dap from '../dap/api';
 import CdpConnection from '../cdp/connection';
 import { Adapter } from '../adapter/adapter';
 
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -25,12 +25,17 @@ interface Endpoint {
   inspectorUrl: string;
 }
 
+let counter = 0;
+
 export class NodeAdapter {
   private _dap: Dap.Api;
   private _adapter: Adapter;
-  private _disposables: vscode.Disposable[] = [];
   private _adapterReadyCallback: (adapter: Adapter) => void;
-  private _server: net.Server;
+  private _server: net.Server | undefined;
+  private _runtime: ChildProcess | undefined;
+  private _connections: Connection[] = [];
+  private _launchParams: LaunchParams | undefined;
+  private _pipe: string | undefined;
 
   static async create(dap: Dap.Api): Promise<Adapter> {
     return new Promise<Adapter>(f => new NodeAdapter(dap, f));
@@ -60,63 +65,76 @@ export class NodeAdapter {
 
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     // params.noDebug
+    this._launchParams = params;
 
     this._adapter = new Adapter(this._dap);
     this._adapter.launch('', '');
     this._adapterReadyCallback(this._adapter);
-    const pipe = this._startServer();
-
-    const executable = await resolvePath('node');
-    if (!executable)
-      return errors.createSilentError('Could not locate Node.js executable');
-
-    const p = spawn(executable, [params.program], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-      env: { ...process.env, ...env(pipe) },
-      stdio: ['inherit', 'pipe', 'pipe']
-    });
-    p.stderr.on('data', data => {
-      console.log('OUT>', data.toString());
-    });
-    p.stdout.on('data', data => {
-      console.log('ERR>', data.toString());
-    });
+    await this._startServer();
+    await this._relaunch();
     return {};
   }
 
+  async _relaunch() {
+    const executable = await resolvePath(this._launchParams!.runtime);
+    if (!executable)
+      return errors.createSilentError('Could not locate Node.js executable');
+
+    this._runtime = spawn(executable, [this._launchParams!.program], {
+      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+      env: { ...process.env, ...env(this._pipe!) },
+      stdio: 'ignore'
+    });
+  }
+
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    this._adapter.threadManager.disposeThreads();
+    if (this._runtime)
+      this._runtime.kill();
+    this._stopServer();
+    this._adapter.threadManager.disposeAllThreads();
     return {};
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    this._adapter.threadManager.disposeThreads();
+    this._stopServer();
+    this._adapter.threadManager.disposeAllThreads();
     return {};
   }
 
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
-    this._adapter.threadManager.disposeThreads();
+    for (const c of this._connections)
+      c.dispose();
+    this._connections = [];
+    this._adapter.threadManager.disposeAllThreads();
+    this._relaunch();
     return {};
   }
 
-  _startServer(): string {
-    if (this._server)
-      this._server.close();
+  _startServer() {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
-    const pipe = path.join(pipePrefix, `node-cdp.${process.pid}.sock`);
+    this._pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     this._server = net.createServer(socket => {
       socket.on('data', d => {
         const payload = Buffer.from(d.toString(), 'base64').toString();
         this._startSession(JSON.parse(payload) as Endpoint);
       });
       socket.on('error', e => console.error(e));
-    }).listen(pipe);
-    return pipe;
+    }).listen(this._pipe);
+  }
+
+  _stopServer() {
+    if (this._server)
+      this._server.close();
+    this._server = undefined;
+    for (const c of this._connections)
+      c.dispose();
+    this._connections = [];
   }
 
   async _startSession(info: Endpoint) {
     const transport = await WebSocketTransport.create(info.inspectorUrl);
     const connection = new Connection(transport);
+    this._connections.push(connection);
     const cdp = connection.createSession('');
     const thread = this._adapter.threadManager.createThread(cdp, false);
     connection.onDisconnected(() => thread.dispose());

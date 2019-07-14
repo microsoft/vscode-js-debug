@@ -38,6 +38,8 @@ export interface ExecutionContext {
 
 export type Script = {scriptId: string, source: Source, thread: Thread};
 
+let lastThreadId = 0;
+
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
@@ -132,7 +134,8 @@ export class ThreadManager {
     return this._threads.get(threadId);
   }
 
-  disposeThreads() {
+  disposeAllThreads() {
+    lastThreadId = 0;
     for (const thread of this.threads())
       thread.dispose();
   }
@@ -173,10 +176,9 @@ export class ThreadManager {
 }
 
 export class Thread {
-  private static _lastThreadId: number = 0;
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
-  private _state: ('init' | 'normal' | 'disposed') = 'init';
+  private _disposed = false;
   private _threadId: number;
   private _threadName: string;
   private _threadNameWithIndentation: string;
@@ -197,7 +199,7 @@ export class Thread {
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
-    this._threadId = ++Thread._lastThreadId;
+    this._threadId = ++lastThreadId;
     this._threadName = '';
     this._supportsCustomBreakpoints = supportsCustomBreakpoints;
     this.replVariables = new VariableStore(this._cdp);
@@ -281,12 +283,10 @@ export class Thread {
       this._executionContextsCleared();
     });
     this._cdp.Runtime.on('consoleAPICalled', event => {
-      if (this._state === 'normal')
-        this._onConsoleMessage(event);
+      this._onConsoleMessage(event);
     });
     this._cdp.Runtime.on('exceptionThrown', event => {
-      if (this._state === 'normal')
-        this._onExceptionThrown(event.exceptionDetails);
+      this._onExceptionThrown(event.exceptionDetails);
     });
     await this._cdp.Runtime.enable({});
 
@@ -297,8 +297,7 @@ export class Thread {
       }
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedVariables = new VariableStore(this._cdp);
-      if (this._state === 'normal')
-        this._reportPaused();
+      this._reportPaused();
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 
@@ -317,10 +316,9 @@ export class Thread {
     // future changes in cdp vs stale breakpoints saved in the workspace.
     await Promise.all(customBreakpointPromises);
 
-    if (this._state === 'disposed')
+    if (this._disposed)
       return;
 
-    this._state = 'normal';
     this.manager._onThreadInitializedEmitter.fire(this);
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
@@ -348,18 +346,16 @@ export class Thread {
   _onResumed() {
     this._pausedDetails = null;
     this._pausedVariables = null;
-    if (this._state === 'normal')
-      this._reportResumed();
+    this._reportResumed();
   }
 
   async dispose() {
     this._executionContextsCleared();
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
-    if (this._state === 'normal')
-      this._dap.thread({reason: 'exited', threadId: this._threadId});
+    this._dap.thread({reason: 'exited', threadId: this._threadId});
     utils.removeEventListeners(this._eventListeners);
-    this._state = 'disposed';
+    this._disposed = true;
     debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
   }
 
