@@ -23,6 +23,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 interface Endpoint {
   pid: string;
+  scriptName: string | undefined;
   inspectorUrl: string;
 }
 
@@ -138,6 +139,12 @@ export class NodeAdapter {
     this._connections.push(connection);
     const cdp = connection.createSession('');
     const thread = this._adapter.threadManager.createThread(cdp, false);
+    let threadName;
+    if (info.scriptName)
+      threadName = `${path.basename(info.scriptName)} [${info.pid}]`;
+    else
+      threadName = `[${info.pid}]`;
+    thread.setThreadDetails(threadName, threadName, '');
     connection.onDisconnected(() => thread.dispose());
     await thread.initialize();
   }
