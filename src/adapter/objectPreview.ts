@@ -6,10 +6,15 @@ import Cdp from '../cdp/api';
 import * as messageFormat from './messageFormat';
 
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
+  const tokenBudget = context === 'repl' ? 8 : 3;
+  return previewRemoveObjectInternal(object, tokenBudget, true);
+}
+
+function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, tokenBudget: number, quoteString: boolean): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description || '');
-  return object.preview ? renderPreview(object.preview, context) : renderValue(object, true);
+  return object.preview ? renderPreview(object.preview, tokenBudget) : renderValue(object, quoteString);
 }
 
 export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
@@ -33,21 +38,20 @@ export function internalPropertyWeight(prop: Cdp.Runtime.InternalPropertyDescrip
   return 10;
 }
 
-function renderPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
+function renderPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
   if (preview.subtype === 'array')
-    return renderArrayPreview(preview, context);
+    return renderArrayPreview(preview, tokenBudget);
   if (preview.subtype as string === 'internal#entry')
     return preview.description || '';
   if (preview.type === 'object')
-    return renderObjectPreview(preview, context);
+    return renderObjectPreview(preview, tokenBudget);
   if (preview.type === 'function')
     return formatFunctionDescription(preview.description || '');
-  return renderPrimitivePreview(preview, context);
+  return renderPrimitivePreview(preview);
 }
 
-function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
+function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
   const tokens: string[] = [];
-  const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
   // Indexed
@@ -83,10 +87,9 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, context?: string
   return `${preview.description} [${tokens.join(', ')}]`;
 }
 
-function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
+function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
   const tokens: string[] = [];
-  const tokenBudget = context === 'repl' ? 8 : 3;
   let overflow = false;
 
   for (const prop of preview.properties) {
@@ -103,9 +106,9 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: strin
       continue;
     }
     if (entry.key)
-      tokens.push(`${renderPreview(entry.key)} => ${renderPreview(entry.value)}`);
+      tokens.push(`${renderPreview(entry.key, tokenBudget)} => ${renderPreview(entry.value, tokenBudget)}`);
     else
-      tokens.push(`${renderPreview(entry.value)}`);
+      tokens.push(`${renderPreview(entry.value, tokenBudget)}`);
   }
 
   if (overflow)
@@ -114,7 +117,7 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, context?: strin
   return `${description}{${tokens.join(', ')}}`;
 }
 
-function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, context?: string): string {
+function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview): string {
   if (preview.subtype === 'null')
     return 'null';
   if (preview.type === 'undefined')
@@ -249,7 +252,7 @@ function formatAsString(param: Cdp.Runtime.RemoteObject): string {
 }
 
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
-  ['', param => previewRemoteObject(param)],
+  ['', param => previewRemoveObjectInternal(param, 8, false)],
   ['s', param => formatAsString(param)],
   ['i', param => formatAsNumber(param, true)],
   ['d', param => formatAsNumber(param, true)],

@@ -160,7 +160,7 @@
     "debuggers": [
       {
         "type": "cdp",
-        "label": "Run in Chrome with CDP",
+        "label": "Launch Chrome with CDP",
         "program": "./out/debugAdapter.js",
         "runtime": "node",
         "configurationAttributes": {
@@ -193,28 +193,28 @@
           {
             "type": "cdp",
             "request": "launch",
-            "name": "Run in Chrome"
+            "name": "Launch Chrome"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Run in Chrome with CDP",
+            "label": "Launch Chrome with CDP",
             "description": "A new configuration for running Chrome with CDP",
             "body": {
               "type": "cdp",
               "request": "launch",
-              "name": "Run in Chrome with CDP",
+              "name": "Launch Chrome with CDP",
               "url": "http://localhost:8080",
               "webRoot": "${workspaceFolder}"
             }
           },
           {
-            "label": "Run as a Node program with CDP",
+            "label": "Launch program with CDP",
             "description": "A new configuration for running Node program with CDP",
             "body": {
               "type": "cdp",
               "request": "launch",
-              "name": "Run as a Node program with CDP",
+              "name": "Launch program with CDP",
               "runtime": "node",
               "program": "index.js"
             }
