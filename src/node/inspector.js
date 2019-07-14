@@ -33,5 +33,7 @@
   else
     execFileSync('/bin/sh', ['-c', `/bin/echo ${base64} | nc -U ${process.env.NODE_INSPECTOR_IPC}`]);
 
+  inspector.open(0, undefined, true);
+
 })();
 //# sourceURL=inspector.js
