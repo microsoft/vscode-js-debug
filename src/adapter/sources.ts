@@ -8,11 +8,8 @@ import Dap from '../dap/api';
 import {URL} from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { prettyPrintAsSourceMap } from './prettyPrint';
-
-const localize = nls.loadMessageBundle();
 
 export interface Location {
   lineNumber: number;
@@ -23,7 +20,7 @@ export interface Location {
 
 type ContentGetter = () => Promise<string | undefined>;
 type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
-type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string, isDirectDependency?: boolean};
+type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
 
 export class SourcePathResolver {
@@ -32,7 +29,6 @@ export class SourcePathResolver {
   private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
   private _gitRoot?: string;
   private _nodeModulesRoot?: string;
-  private _directDependencies = new Set<string>();
 
   initialize(url: string, webRoot: string | undefined) {
     this._basePath = webRoot ? path.normalize(webRoot) : undefined;
@@ -56,19 +52,11 @@ export class SourcePathResolver {
       {urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/')},
       {urlPrefix: 'webpack:///', pathPrefix: substitute('/')},
     ];
-    // TODO(dgozman): perhaps some sort of auto-mapping could be useful here.
 
     this._gitRoot = this._findProjectDirWith('.git') + path.sep;
     const packageRoot = this._findProjectDirWith('package.json');
-    if (packageRoot) {
+    if (packageRoot)
       this._nodeModulesRoot = path.join(packageRoot, 'node_modules') + path.sep;
-      try {
-        const json = fs.readFileSync(path.join(packageRoot, 'package.json'), {encoding: 'utf-8'});
-        const pkg = JSON.parse(json);
-        this._directDependencies = new Set(Object.keys(pkg.dependencies || {}));
-      } catch (e) {
-      }
-    }
   }
 
   _findProjectDirWith(entryName: string): string | undefined {
@@ -107,8 +95,7 @@ export class SourcePathResolver {
       const relative = absolutePath.substring(this._nodeModulesRoot.length);
       const sepIndex = relative.indexOf(path.sep);
       const nodeModule = sepIndex === -1 ? relative : relative.substring(0, sepIndex);
-      const isDirectDependency = this._directDependencies.has(nodeModule);
-      return {absolutePath, name, nodeModule, isDirectDependency}
+      return {absolutePath, name, nodeModule};
     }
     return {absolutePath, name};
   }
@@ -231,12 +218,6 @@ export class Source {
 
   toDap(): Dap.Source {
     let {absolutePath, name, nodeModule} = this._resolvedPath;
-    let origin: string | undefined;
-    if (this._compiledToSourceUrl && !absolutePath) {
-      origin = localize('sourceOrigin.sourceMap', 'source map');
-    } else if (nodeModule) {
-      origin = nodeModule;
-    }
     const sources = this._sourceMapSourceByUrl
       ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
       : undefined;
@@ -245,7 +226,7 @@ export class Source {
         name: name || ('VM' + this._sourceReference),
         path: absolutePath,
         sourceReference: 0,
-        origin,
+        origin: nodeModule,
         sources,
       };
     }
@@ -256,7 +237,7 @@ export class Source {
       name: name || ('VM' + this._sourceReference),
       path: name || ('VM' + this._sourceReference),
       sourceReference: this._sourceReference,
-      origin,
+      origin: nodeModule,
       sources,
     };
   }
