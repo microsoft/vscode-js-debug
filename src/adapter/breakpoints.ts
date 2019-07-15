@@ -133,10 +133,11 @@ export class Breakpoint {
         promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
     }
     if (rawLocation.url) {
-      // We only do this to support older versions which do not implement 'pause before source map'.
-      // TODO(dgozman): feature detect it?
-      for (const thread of this._manager._threadManager.threads())
-        promises.push(this._setByUrl(thread, rawLocation.url, rawLocation.lineNumber, rawLocation.columnNumber));
+      for (const thread of this._manager._threadManager.threads()) {
+        // We only do this to support older versions which do not implement 'pause before source map'.
+        if (!thread.supportsSourceMapPause())
+          promises.push(this._setByUrl(thread, rawLocation.url, rawLocation.lineNumber, rawLocation.columnNumber));
+      }
     }
     await Promise.all(promises);
   }

@@ -194,6 +194,7 @@ export class Thread {
   readonly sourceContainer: SourceContainer;
   private _eventListeners: utils.Listener[] = [];
   private _userData: any;
+  private _supportsSourceMapPause = false;
 
   constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, capabilities: ThreadCapabilities, userData: any) {
     this.manager = manager;
@@ -242,6 +243,10 @@ export class Thread {
       if (context.auxData && context.auxData['isDefault'])
         return context;
     }
+  }
+
+  supportsSourceMapPause() {
+    return this._supportsSourceMapPause;
   }
 
   async resume(): Promise<boolean> {
@@ -308,7 +313,8 @@ export class Thread {
     await this._cdp.Debugger.enable({});
     await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
     // We ignore the result to support older versions.
-    await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
+    this._supportsSourceMapPause =
+        !!await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
     await this.updatePauseOnExceptionsState();
 
     const customBreakpointPromises: Promise<boolean>[] = [];
