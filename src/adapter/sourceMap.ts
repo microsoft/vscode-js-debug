@@ -147,7 +147,6 @@ export class SourceMap {
     }
 
     // As per spec, mappings are not necessarily sorted.
-    // TODO(dgozman): do we need stable sort here?
     mappings.sort(SourceMapEntry.compare);
   }
 

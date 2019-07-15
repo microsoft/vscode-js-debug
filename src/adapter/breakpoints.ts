@@ -196,8 +196,6 @@ export class BreakpointManager {
     this._sourcePathResolver = sourcePathResolver;
     this._sourceContainer = sourceContainer;
     this._threadManager = threadManager;
-
-    // TODO(dgozman): provide breakpointsHit in paused event.
   }
 
   async initialize(): Promise<void> {

@@ -190,7 +190,6 @@ export class TargetManager implements ThreadManagerDelegate {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
     });
     cdp.Target.on('detachedFromTarget', async event => {
-      // TODO(dgozman): targetId is deprecated, we should use sessionId.
       this._detachedFromTarget(event.targetId!);
     });
 
