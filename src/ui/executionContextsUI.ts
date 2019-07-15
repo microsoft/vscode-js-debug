@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
 import { Adapter } from '../adapter/adapter';
-import { ExecutionContext } from '../adapter/threads';
+import { ExecutionContextTree } from '../adapter/threads';
 
 export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);
@@ -19,10 +19,10 @@ export function registerExecutionContextsUI(factory: AdapterFactory) {
   });
 }
 
-class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<ExecutionContext | undefined>();
+class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionContextTree> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<ExecutionContextTree | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private _contexts: ExecutionContext[] = [];
+  private _contexts: ExecutionContextTree[] = [];
   private _disposables: vscode.Disposable[] = [];
 
   constructor(factory: AdapterFactory) {
@@ -37,22 +37,22 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     adapter.threadManager.refreshExecutionContexts();
   }
 
-  getTreeItem(item: ExecutionContext): vscode.TreeItem {
+  getTreeItem(item: ExecutionContextTree): vscode.TreeItem {
     return new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
   }
 
-  async getChildren(item?: ExecutionContext): Promise<ExecutionContext[]> {
+  async getChildren(item?: ExecutionContextTree): Promise<ExecutionContextTree[]> {
     return item ? [] : this._contexts;
   }
 
-  async getParent(item: ExecutionContext): Promise<ExecutionContext | undefined> {
+  async getParent(item: ExecutionContextTree): Promise<ExecutionContextTree | undefined> {
     return undefined;
   }
 
-  executionContextsChanged(contexts: ExecutionContext[]): void {
+  executionContextsChanged(contexts: ExecutionContextTree[]): void {
     this._contexts = [];
     const tab = '\u00A0\u00A0\u00A0\u00A0';
-    const visit = (indentation: string, item: ExecutionContext) => {
+    const visit = (indentation: string, item: ExecutionContextTree) => {
       this._contexts.push({
         ...item,
         name: indentation + item.name

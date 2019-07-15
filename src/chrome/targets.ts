@@ -7,14 +7,14 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContext } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 
 const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class TargetManager {
+export class TargetManager implements ThreadManagerDelegate {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _mainTarget?: Target;
@@ -45,22 +45,31 @@ export class TargetManager {
     return Array.from(this._targets.values());
   }
 
-  executionContexts(): ExecutionContext[] {
+  threadForest(threads: Thread[]) {
+    return threads.map(thread => {
+      return {
+        thread,
+        children: []
+      }
+    });
+  }
+
+  executionContextForest(threads: Thread[]): ExecutionContextTree[] {
     const reported: Set<string> = new Set();
     const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);
       return {
         contextId: context.id,
-        name: name || context.name || thread.threadName(),
+        name: name || context.name || thread.name(),
         threadId: thread.threadId(),
         children: []
       };
     };
 
     // Go over the contexts, bind them to frames.
-    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContext> = new Map();
-    const mainForTarget: Map<Target, ExecutionContext> = new Map();
-    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContext[]> = new Map();
+    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContextTree> = new Map();
+    const mainForTarget: Map<Target, ExecutionContextTree> = new Map();
+    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContextTree[]> = new Map();
     for (const target of this.targets()) {
       const thread = target.thread();
       if (!thread)
@@ -70,7 +79,7 @@ export class TargetManager {
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
         const frame = frameId ? this._frameModel.frameForId(frameId) : null;
         if (frame && isDefault) {
-          const name = frame.parentFrame ? frame.displayName() : thread.threadName();
+          const name = frame.parentFrame ? frame.displayName() : thread.name();
           const dapContext = toDap(thread, context, name);
           mainForFrameId.set(frameId, dapContext);
           if (!frame.parentFrame)
@@ -87,7 +96,7 @@ export class TargetManager {
     }
 
     // Visit frames and use bindings above to build context tree.
-    const visitFrames = (frame: Frame, container: ExecutionContext[]) => {
+    const visitFrames = (frame: Frame, container: ExecutionContextTree[]) => {
       const main = mainForFrameId.get(frame.id);
       const worlds = worldsForFrameId.get(frame.id) || [];
       if (main) {
@@ -102,7 +111,7 @@ export class TargetManager {
       }
     };
 
-    const result: ExecutionContext[] = [];
+    const result: ExecutionContextTree[] = [];
     const mainFrame = this._frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
@@ -244,7 +253,7 @@ export class Target {
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager._threadManager.createThread(cdp, domDebuggerTypes.has(targetInfo.type));
+      this._thread = targetManager._threadManager.createThread(cdp, this, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
@@ -276,13 +285,6 @@ export class Target {
     if (!this._thread)
       return;
 
-    let indentation = '';
-    for (let parent = this.parentTarget; parent; parent = parent.parentTarget) {
-      if (parent._targetInfo.type === 'service_worker')
-        continue;
-      indentation += '\u00A0\u00A0\u00A0\u00A0';
-    }
-
     let icon = '';
     if (targetInfo.type === 'page')
       icon = '\uD83D\uDCC4 ';
@@ -301,8 +303,8 @@ export class Target {
     } catch (e) {
       threadName += targetInfo.url;
     }
-
-    this._thread.setThreadDetails(threadName, indentation + threadName, targetInfo.url);
+    this._thread.setName(threadName);
+    this._thread.setBaseUrl(targetInfo.url);
   }
 
   async _dispose() {

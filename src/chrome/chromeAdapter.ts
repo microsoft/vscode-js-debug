@@ -13,6 +13,7 @@ import * as nls from 'vscode-nls';
 import * as errors from '../adapter/errors';
 import * as vscode from 'vscode';
 import { Adapter } from '../adapter/adapter';
+import { Thread } from '../adapter/threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -97,10 +98,8 @@ export class ChromeAdapter {
       });
     this._connection.onDisconnected(() => this._dap.exited({exitCode: 0}), undefined, this._disposables);
     this._adapter = new Adapter(this._dap);
-    this._adapter.setExternalExecutionContextProvider(() => {
-      return this._targetManager.executionContexts();
-    });
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
+    this._adapter.threadManager.setDelegate(this._targetManager);
     this._dap.initialized({});
     return Adapter.capabilities();
   }
