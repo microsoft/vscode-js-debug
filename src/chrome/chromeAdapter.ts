@@ -14,7 +14,6 @@ import * as nls from 'vscode-nls';
 import * as errors from '../adapter/errors';
 import * as vscode from 'vscode';
 import { Adapter } from '../adapter/adapter';
-import { Thread } from '../adapter/threads';
 
 const localize = nls.loadMessageBundle();
 

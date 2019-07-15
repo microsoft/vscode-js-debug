@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import Dap from '../dap/api';
-import CdpConnection from '../cdp/connection';
 import { Adapter } from '../adapter/adapter';
 
 import { spawn, ChildProcess } from 'child_process';
@@ -15,6 +14,7 @@ import * as which from 'which';
 import * as errors from '../adapter/errors';
 import { WebSocketTransport } from '../cdp/transport';
 import Connection from '../cdp/connection';
+import { ThreadManagerDelegate, ThreadTree, ExecutionContextTree } from '../adapter/threads';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
@@ -23,13 +23,14 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 interface Endpoint {
   pid: string;
+  ppid: string;
   scriptName: string | undefined;
   inspectorUrl: string;
 }
 
 let counter = 0;
 
-export class NodeAdapter {
+export class NodeAdapter implements ThreadManagerDelegate {
   private _dap: Dap.Api;
   private _adapter: Adapter;
   private _adapterReadyCallback: (adapter: Adapter) => void;
@@ -70,6 +71,7 @@ export class NodeAdapter {
     this._launchParams = params;
 
     this._adapter = new Adapter(this._dap);
+    this._adapter.threadManager.setDelegate(this);
     this._adapter.launch('', '');
     this._adapterReadyCallback(this._adapter);
     await this._startServer();
@@ -148,6 +150,33 @@ export class NodeAdapter {
     connection.onDisconnected(() => thread.dispose());
     await thread.initialize();
     cdp.Runtime.runIfWaitingForDebugger({});
+  }
+
+  threadForest(): ThreadTree[] | undefined {
+    const result: ThreadTree[] = [];
+    const trees = new Map<string, ThreadTree>();
+    const threads = this._adapter.threadManager.threads();
+    for (const thread of threads) {
+      const endpoint = thread.userData() as Endpoint;
+      const tree = { thread, children: [] };
+      trees.set(endpoint.pid, tree);
+    }
+
+    for (const thread of threads) {
+      const endpoint = thread.userData() as Endpoint;
+      const tree = trees.get(endpoint.pid)!;
+      const parentTree = trees.get(endpoint.ppid);
+      if (parentTree)
+        parentTree.children.push(tree);
+      else
+        result.push(tree)
+    }
+
+    return result;
+  }
+
+  executionContextForest(): ExecutionContextTree[] | undefined {
+    return undefined;
   }
 }
 
