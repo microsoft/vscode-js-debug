@@ -7,7 +7,7 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate, ThreadTree } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 
 const debugTarget = debug('target');
@@ -45,16 +45,29 @@ export class TargetManager implements ThreadManagerDelegate {
     return Array.from(this._targets.values());
   }
 
-  threadForest(threads: Thread[]) {
-    return threads.map(thread => {
-      return {
-        thread,
-        children: []
-      }
-    });
+  threadForest(): ThreadTree[] | undefined {
+    const result: ThreadTree[] = [];
+    const trees = new Map<Thread, ThreadTree>();
+    for (const target of this.targets()) {
+      const thread = target.thread();
+      if (!thread)
+        continue;
+
+      const tree = { thread, children: [] };
+      trees.set(thread, tree);
+
+      let p = target.parentTarget;
+      while (p && !p.thread())
+        p = p.parentTarget;
+      if (p)
+        trees.get(p.thread()!)!.children.push(tree);
+      else
+        result.push(tree);
+    }
+    return result;
   }
 
-  executionContextForest(threads: Thread[]): ExecutionContextTree[] {
+  executionContextForest(): ExecutionContextTree[] | undefined {
     const reported: Set<string> = new Set();
     const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);

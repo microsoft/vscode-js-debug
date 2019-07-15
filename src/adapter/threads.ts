@@ -50,8 +50,8 @@ export interface ThreadTree {
 }
 
 export interface ThreadManagerDelegate {
-  threadForest(threads: Thread[]): ThreadTree[];
-  executionContextForest(threads: Thread[]): ExecutionContextTree[];
+  threadForest(): ThreadTree[] | undefined;
+  executionContextForest(): ExecutionContextTree[] | undefined;
 }
 
 export class ThreadManager {
@@ -70,13 +70,15 @@ export class ThreadManager {
   readonly onScriptWithSourceMapLoaded = this._onScriptWithSourceMapLoadedEmitter.event;
   readonly sourceContainer: SourceContainer;
   private _delegate: ThreadManagerDelegate;
+  private _defaultDelegate: DefaultThreadManagerDelegate;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
-    this._delegate = new DefaultThreadManagerDelegate();
+    this._defaultDelegate = new DefaultThreadManagerDelegate(this);
+    this._delegate = this._defaultDelegate;
   }
 
   mainThread(): Thread | undefined {
@@ -104,7 +106,7 @@ export class ThreadManager {
   }
 
   refreshExecutionContexts() {
-    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest(this.threads()));
+    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest() || this._defaultDelegate.executionContextForest());
   }
 
   refreshStackTraces(): boolean {
@@ -125,6 +127,10 @@ export class ThreadManager {
 
   thread(threadId: number): Thread | undefined {
     return this._threads.get(threadId);
+  }
+
+  threadForest(): ThreadTree[] {
+    return this._delegate.threadForest() || this._defaultDelegate.threadForest();
   }
 
   disposeAllThreads() {
@@ -620,8 +626,14 @@ export class Thread {
 };
 
 export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
-  threadForest(threads: Thread[]): ThreadTree[] {
-    return threads.map(thread => {
+  private _manager: ThreadManager;
+
+  constructor(manager: ThreadManager) {
+    this._manager = manager;
+  }
+
+  threadForest(): ThreadTree[] {
+    return this._manager.threads().map(thread => {
       return {
         thread,
         children: []
@@ -629,9 +641,9 @@ export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
     });
   }
 
-  executionContextForest(threads: Thread[]): ExecutionContextTree[] {
+  executionContextForest(): ExecutionContextTree[] {
     const result: ExecutionContextTree[] = [];
-    for (const thread of threads.values()) {
+    for (const thread of this._manager.threads()) {
       const threadContext: ExecutionContextTree = {
         name: thread.name() || `thread #${thread.threadId()}`,
         threadId: thread.threadId(),
