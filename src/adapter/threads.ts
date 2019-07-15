@@ -472,11 +472,17 @@ export class Thread {
         reason: 'exception',
         description: localize('pause.oom', 'Paused before Out Of Memory exception')
       };
-      default: return {
-        stackTrace,
-        reason: 'step',
-        description: localize('pause.default', 'Paused')
-      };
+      default:
+        if (event.hitBreakpoints && event.hitBreakpoints.length)  return {
+          stackTrace,
+          reason: 'breakpoint',
+          description: localize('pause.breakpoint', 'Paused on breakpoint')
+        };
+        return {
+          stackTrace,
+          reason: 'step',
+          description: localize('pause.default', 'Paused')
+        };
     }
   }
 
