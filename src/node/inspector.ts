@@ -26,13 +26,17 @@
     scriptName: scriptName
   })).toString('base64');
 
-  const { execFileSync } = require('child_process');
-  if (process.platform === 'win32')
-    execFileSync('cmd', ['/C', `echo "${base64}" > ${process.env.NODE_INSPECTOR_IPC}`]);
-  else
-    execFileSync('/bin/sh', ['-c', `/bin/echo ${base64} | nc -U ${process.env.NODE_INSPECTOR_IPC}`]);
+  console.log('EXECING');
+  try {
+    const { execFileSync } = require('child_process');
+    if (process.platform === 'win32')
+      execFileSync('cmd', ['/C', `echo "${base64}" > ${process.env.NODE_INSPECTOR_IPC}`]);
+    else
+      execFileSync('/bin/sh', ['-c', `/bin/echo ${base64} | nc -U ${process.env.NODE_INSPECTOR_IPC}`]);
+  } catch (e) {
+    console.log(e);
+  }
 
   inspector.open(0, undefined, true);
-
 })();
 //# sourceURL=inspector.js

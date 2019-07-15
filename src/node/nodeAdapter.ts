@@ -86,7 +86,7 @@ export class NodeAdapter {
       env: { ...process.env, ...env(this._pipe!) },
       stdio: 'ignore'
     });
-  }
+}
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     if (this._runtime)
@@ -138,7 +138,7 @@ export class NodeAdapter {
     this._connections.push(connection);
     const cdp = connection.createSession('');
     const thread = this._adapter.threadManager.createThread(cdp, false);
-    let threadName;
+    let threadName: string;
     if (info.scriptName)
       threadName = `${path.basename(info.scriptName)} [${info.pid}]`;
     else
@@ -146,6 +146,7 @@ export class NodeAdapter {
     thread.setThreadDetails(threadName, threadName, '');
     connection.onDisconnected(() => thread.dispose());
     await thread.initialize();
+    cdp.Runtime.runIfWaitingForDebugger({})
   }
 }
 
