@@ -11,6 +11,8 @@ type EvaluateParams = {
   returnByValue?: boolean;
   generatePreview?: boolean;
   userGesture?: boolean;
+  throwOnSideEffect?: boolean;
+  timeout?: Cdp.Runtime.TimeDelta;
 };
 
 type EvaluateResult = {

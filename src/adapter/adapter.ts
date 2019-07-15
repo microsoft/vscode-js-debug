@@ -70,7 +70,7 @@ export class Adapter {
       supportsFunctionBreakpoints: false,
       supportsConditionalBreakpoints: true,
       supportsHitConditionalBreakpoints: false,
-      supportsEvaluateForHovers: false, // TODO(dgozman): support this.
+      supportsEvaluateForHovers: true,
       exceptionBreakpointFilters: [
         {filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false},
         {filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false},
@@ -392,7 +392,9 @@ export class Adapter {
       expression: args.expression,
       includeCommandLineAPI: true,
       objectGroup: 'console',
-      generatePreview: true
+      generatePreview: true,
+      throwOnSideEffect: args.context === 'hover' ? true : undefined,
+      timeout: args.context === 'hover' ? 500 : undefined,
     });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));

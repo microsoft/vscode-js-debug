@@ -21,7 +21,7 @@ initialized
     supportsConditionalBreakpoints : true
     supportsConfigurationDoneRequest : true
     supportsDelayedStackTraceLoading : true
-    supportsEvaluateForHovers : false
+    supportsEvaluateForHovers : true
     supportsExceptionInfoRequest : true
     supportsExceptionOptions : false
     supportsFunctionBreakpoints : false
