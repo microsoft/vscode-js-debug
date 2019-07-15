@@ -86,7 +86,7 @@ export class Adapter {
       supportedChecksumAlgorithms: [],
       supportsRestartRequest: true,
       supportsExceptionOptions: false,
-      supportsValueFormattingOptions: false, // TODO(dgozman): support this.
+      supportsValueFormattingOptions: false,  // This is not used by vscode.
       supportsExceptionInfoRequest: true,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
@@ -457,6 +457,7 @@ export class Adapter {
       breakMode: this.threadManager.pauseOnExceptionsState() === 'all' ? 'always' : 'unhandled',
       details: {
         stackTrace: preview.stackTrace,
+        evaluateName: undefined  // This is not used by vscode.
       }
     };
   }

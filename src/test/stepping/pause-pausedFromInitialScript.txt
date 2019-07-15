@@ -14,8 +14,8 @@ Connected
             name : <anonymous>
             presentationHint : normal
             source : {
-                name : script>@1:9
-                path : script>@1:9
+                name : script>(VM<xx>)
+                path : script>(VM<xx>)
                 sourceReference : <number>
             }
         }
