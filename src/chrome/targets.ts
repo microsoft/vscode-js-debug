@@ -171,7 +171,6 @@ export class TargetManager implements ThreadManagerDelegate {
         this._attachedToTarget(targetInfo, response.sessionId, false);
     });
     this._browser.Target.on('detachedFromTarget', event => {
-      // TODO(dgozman): targetId is deprecated, we should use sessionId.
       this._detachedFromTarget(event.targetId!);
     });
   }

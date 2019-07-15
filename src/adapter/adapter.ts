@@ -92,7 +92,7 @@ export class Adapter {
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
       supportsLoadedSourcesRequest: true,
-      supportsLogPoints: false, // TODO(dgozman): support this.
+      supportsLogPoints: true,
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
       supportsTerminateRequest: false,
@@ -158,7 +158,6 @@ export class Adapter {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
-    // TODO(dgozman): support |params.targetId|.
     if (!await thread.stepInto())
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};

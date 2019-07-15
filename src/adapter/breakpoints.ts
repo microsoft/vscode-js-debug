@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourcePathResolver, Location, SourceContainer } from './sources';
+import {SourcePathResolver, Location, SourceContainer} from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { Thread, ThreadManager, Script } from './threads';
+import {Thread, ThreadManager, Script} from './threads';
 import * as vscode from 'vscode';
 
 export class Breakpoint {
@@ -13,7 +13,9 @@ export class Breakpoint {
   private _manager: BreakpointManager;
   private _dapId: number;
   private _source: Dap.Source;
-  private _params: Dap.SourceBreakpoint;
+  private _condition?: string;
+  private _lineNumber: number;  // 1-based
+  private _columnNumber: number;  // 1-based
   private _disposables: vscode.Disposable[] = [];
 
   private _perThread = new Map<number, Set<string>>();
@@ -23,7 +25,12 @@ export class Breakpoint {
     this._dapId = ++Breakpoint._lastDapId;
     this._manager = manager;
     this._source = source;
-    this._params = params;
+    this._lineNumber = params.line;
+    this._columnNumber = params.column || 1;
+    if (params.logMessage)
+      this._condition = logMessageToExpression(params.logMessage);
+    if (params.condition)
+      this._condition = this._condition ? `(${params.condition}) && ${this._condition}` : params.condition;
   }
 
   toDap(): Dap.Breakpoint {
@@ -55,8 +62,8 @@ export class Breakpoint {
     if (url) {
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
-      const lineNumber = this._params.line - 1;
-      const columnNumber = this._params.column || 0;
+      const lineNumber = this._lineNumber - 1;
+      const columnNumber = this._columnNumber - 1;
       promises.push(...threadManager.threads().map(thread => {
         return this._setByUrl(thread, url, lineNumber, columnNumber);
       }));
@@ -67,8 +74,8 @@ export class Breakpoint {
 
     const rawLocations = this._manager._sourceContainer.rawLocations({
       url: url || '',
-      lineNumber: this._params.line,
-      columnNumber: this._params.column || 1,
+      lineNumber: this._lineNumber,
+      columnNumber: this._columnNumber,
       source
     });
     promises.push(...rawLocations.map(rawLocation => this._setByRawLocation(rawLocation)));
@@ -103,8 +110,8 @@ export class Breakpoint {
       return;
     const rawLocations = this._manager._sourceContainer.rawLocations({
       url: source.url(),
-      lineNumber: this._params.line,
-      columnNumber: this._params.column || 1,
+      lineNumber: this._lineNumber,
+      columnNumber: this._columnNumber,
       source
     });
     const resolvedUiLocation = this._resolvedUiLocation;
@@ -139,7 +146,7 @@ export class Breakpoint {
       url,
       lineNumber,
       columnNumber,
-      condition: this._params.condition,
+      condition: this._condition,
     });
     if (result)
       this.breakpointResolved(thread, result.breakpointId, result.locations);
@@ -148,7 +155,7 @@ export class Breakpoint {
   async _setByScriptId(thread: Thread, scriptId: string, lineNumber: number, columnNumber: number): Promise<void> {
     const result = await thread.cdp().Debugger.setBreakpoint({
       location: {scriptId, lineNumber, columnNumber},
-      condition: this._params.condition,
+      condition: this._condition,
     });
     if (result)
       this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
@@ -245,4 +252,26 @@ export class BreakpointManager {
       await Promise.all(breakpoints.map(b => b.set(false)));
     return {breakpoints: breakpoints.map(b => b.toDap())};
   }
+}
+
+export const kLogPointUrl = 'logpoint.cdp';
+
+function logMessageToExpression(msg: string): string {
+  msg = msg.replace('%', '%%');
+
+  const args: string[] = [];
+  let format = msg.replace(/{(.*?)}/g, (match, group) => {
+    const a = group.trim();
+    if (a) {
+      args.push(`(${a})`);
+      return '%O';
+    } else {
+      return '';
+    }
+  });
+
+  format = format.replace('\'', '\\\'');
+
+  const argStr = args.length ? `, ${args.join(', ')}` : '';
+  return `console.log('${format}'${argStr});\n//# sourceURL=${kLogPointUrl}`;
 }

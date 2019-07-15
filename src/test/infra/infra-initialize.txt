@@ -28,7 +28,7 @@ initialized
     supportsGotoTargetsRequest : false
     supportsHitConditionalBreakpoints : false
     supportsLoadedSourcesRequest : true
-    supportsLogPoints : false
+    supportsLogPoints : true
     supportsModulesRequest : false
     supportsRestartFrame : true
     supportsRestartRequest : true
