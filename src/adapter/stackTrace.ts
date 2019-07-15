@@ -2,8 +2,9 @@
 // Licensed under the MIT license.
 
 import {Thread} from "./threads";
-import {Location, SourceContainer} from "./sources";
+import {Location} from "./sources";
 import Cdp from "../cdp/api";
+import {kLogPointUrl} from "./breakpoints";
 
 export interface StackFrame {
   id: number;
@@ -24,6 +25,9 @@ export class StackTrace {
 
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
+    const callFrames = stack.callFrames;
+    if (callFrames.length && callFrames[0].url === kLogPointUrl)
+      callFrames.splice(0, 1);
     for (const callFrame of stack.callFrames) {
       result._frames.push({
         id: ++StackTrace._lastFrameId,
