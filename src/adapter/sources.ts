@@ -81,14 +81,14 @@ export class SourcePathResolver {
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
   }
 
-  resolveSourcePath(url?: string): ResolvedPath {
+  async resolveSourcePath(url?: string): Promise<ResolvedPath> {
     if (!url)
       return {name: ''};
     let absolutePath = this._resolveAbsolutePath(url);
     if (!absolutePath)
       return {name: path.basename(url || '')};
     const name = path.basename(absolutePath);
-    if (!this._checkExists(absolutePath))
+    if (!await this._checkExists(absolutePath))
       return {name};
     if (this._nodeModulesRoot && absolutePath.startsWith(this._nodeModulesRoot)) {
       const relative = absolutePath.substring(this._nodeModulesRoot.length);
@@ -139,9 +139,8 @@ export class SourcePathResolver {
     }
   }
 
-  _checkExists(absolutePath: string): boolean {
-    // TODO(dgozman): this does not scale. Read it once?
-    return fs.existsSync(absolutePath);
+  _checkExists(absolutePath: string): Promise<boolean> {
+    return new Promise(f => fs.exists(absolutePath, f));
   }
 }
 
@@ -154,7 +153,7 @@ export class Source {
   _sourceMapUrl?: string;
   _inlineSourceRange?: InlineSourceRange;
   _container: SourceContainer;
-  _resolvedPath: ResolvedPath;
+  _resolvedPath: Promise<ResolvedPath>;
 
   // Sources generated for this compiled from it's source map. Exclusive with |_origin|.
   _sourceMapSourceByUrl?: Map<string, Source>;
@@ -204,7 +203,7 @@ export class Source {
     if (!content)
       return;
     const sourceMapUrl = this.url() + '@map';
-    const prettyPath = this._resolvedPath.name + '-pretty.js';
+    const prettyPath = (await this._resolvedPath).name + '-pretty.js';
     const map = prettyPrintAsSourceMap(prettyPath,  content);
     if (!map)
       return;
@@ -215,10 +214,10 @@ export class Source {
     return result[0];
   }
 
-  toDap(): Dap.Source {
-    let {absolutePath, name, nodeModule} = this._resolvedPath;
+  async toDap(): Promise<Dap.Source> {
+    let {absolutePath, name, nodeModule} = await this._resolvedPath;
     const sources = this._sourceMapSourceByUrl
-      ? Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap())
+      ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
       : undefined;
     if (absolutePath) {
       return {
@@ -241,8 +240,8 @@ export class Source {
     };
   }
 
-  absolutePath(): string | undefined {
-    return this._resolvedPath.absolutePath;
+  async absolutePath(): Promise<string | undefined> {
+    return (await this._resolvedPath).absolutePath;
   }
 };
 
@@ -388,9 +387,14 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.set(source._url, source);
     else if (source._url)
       this._compiledByUrl.set(source._url, source);
-    if (source._resolvedPath.absolutePath)
-      this._sourceByAbsolutePath.set(source._resolvedPath.absolutePath, source);
-    this._dap.loadedSource({reason: 'new', source: source.toDap()});
+
+    source._resolvedPath.then(resolvedPath => {
+      if (resolvedPath.absolutePath && this._sourceByReference.get(source.sourceReference()) === source)
+        this._sourceByAbsolutePath.set(resolvedPath.absolutePath, source);
+    });
+    source.toDap().then(payload => {
+      this._dap.loadedSource({reason: 'new', source: payload});
+    });
 
     const sourceMapUrl = source._sourceMapUrl;
     if (!sourceMapUrl)
@@ -431,14 +435,19 @@ export class SourceContainer {
   removeSource(source: Source) {
     console.assert(this._initialized);
     console.assert(this._sourceByReference.get(source.sourceReference()) === source);
-    this._dap.loadedSource({reason: 'removed', source: source.toDap()});
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.delete(source._url);
     else if (source._url)
       this._compiledByUrl.delete(source._url);
-    if (source._resolvedPath.absolutePath)
-      this._sourceByAbsolutePath.delete(source._resolvedPath.absolutePath);
+
+    source._resolvedPath.then(resolvedPath => {
+      if (resolvedPath.absolutePath && this._sourceByAbsolutePath.get(resolvedPath.absolutePath) === source)
+        this._sourceByAbsolutePath.delete(resolvedPath.absolutePath);
+    });
+    source.toDap().then(payload => {
+      this._dap.loadedSource({reason: 'removed', source: payload});
+    });
 
     const sourceMapUrl = source._sourceMapUrl;
     if (!sourceMapUrl)

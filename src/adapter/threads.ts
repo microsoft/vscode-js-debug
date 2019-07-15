@@ -54,6 +54,8 @@ export interface ThreadManagerDelegate {
   executionContextForest(): ExecutionContextTree[] | undefined;
 }
 
+export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
+
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
@@ -63,14 +65,13 @@ export class ThreadManager {
   _onThreadInitializedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
   private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContextTree[]>();
-  _onScriptWithSourceMapLoadedEmitter = new vscode.EventEmitter<{script: Script, sources: Source[]}>();
   readonly onThreadInitialized = this._onThreadInitializedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
-  readonly onScriptWithSourceMapLoaded = this._onScriptWithSourceMapLoadedEmitter.event;
   readonly sourceContainer: SourceContainer;
   private _delegate: ThreadManagerDelegate;
   private _defaultDelegate: DefaultThreadManagerDelegate;
+  _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
@@ -91,6 +92,10 @@ export class ThreadManager {
 
   setDelegate(delegate: ThreadManagerDelegate) {
     this._delegate = delegate;
+  }
+
+  setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
+    this._scriptWithSourceMapHandler = handler;
   }
 
   _addThread(thread: Thread) {
@@ -546,7 +551,7 @@ export class Thread {
         category,
         output: messageText + '\n',
         variablesReference: 0,
-        source: uiLocation && uiLocation.source ? uiLocation.source.toDap() : undefined,
+        source: uiLocation && uiLocation.source ? await uiLocation.source.toDap() : undefined,
         line: uiLocation ? uiLocation.lineNumber : undefined,
         column: uiLocation ? uiLocation.columnNumber : undefined,
       });
@@ -558,7 +563,7 @@ export class Thread {
       category,
       output: '',
       variablesReference,
-      source: uiLocation && uiLocation.source ? uiLocation.source.toDap() : undefined,
+      source: uiLocation && uiLocation.source ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
     });
@@ -593,7 +598,7 @@ export class Thread {
       category: 'stderr',
       output: message,
       variablesReference,
-      source: (uiLocation && uiLocation.source) ? uiLocation.source.toDap() : undefined,
+      source: (uiLocation && uiLocation.source) ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
     });
@@ -644,8 +649,8 @@ export class Thread {
     const script = this._scripts.get(scriptId);
     if (script) {
       const sources = await this.sourceContainer.waitForSourceMapSources(script.source);
-      if (sources)
-        this.manager._onScriptWithSourceMapLoadedEmitter.fire({script, sources});
+      if (sources && this.manager._scriptWithSourceMapHandler)
+        this.manager._scriptWithSourceMapHandler(script, sources);
     }
     if (this._pausedForSourceMapScriptId === scriptId) {
       this._pausedForSourceMapScriptId = undefined;
