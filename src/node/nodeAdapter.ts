@@ -148,6 +148,10 @@ export class NodeAdapter implements ThreadManagerDelegate {
       threadName = `[${info.pid}]`;
     thread.setName(threadName);
     connection.onDisconnected(() => thread.dispose());
+    this._adapter.threadManager.onExecutionContextsChanged(() => {
+      if (thread.defaultContextDestroyed())
+        connection.dispose();
+    });
     await thread.initialize();
     cdp.Runtime.runIfWaitingForDebugger({});
   }
@@ -176,7 +180,26 @@ export class NodeAdapter implements ThreadManagerDelegate {
   }
 
   executionContextForest(): ExecutionContextTree[] | undefined {
-    return undefined;
+    const result: ExecutionContextTree[] = [];
+    const visit = (tree: ThreadTree, container: ExecutionContextTree[]) => {
+      const context = tree.thread.defaultExecutionContext();
+      if (context) {
+        const contextTree = {
+          name: tree.thread.name(),
+          threadId: tree.thread.threadId(),
+          contextId: context.id,
+          children: [],
+        };
+        container.push(contextTree);
+        for (const child of tree.children)
+          visit(child, contextTree.children);
+      } else {
+        for (const child of tree.children)
+          visit(child, container);
+      }
+    };
+    this.threadForest()!.forEach(t => visit(t, result));
+    return result;
   }
 }
 

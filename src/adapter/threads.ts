@@ -195,6 +195,7 @@ export class Thread {
   private _eventListeners: utils.Listener[] = [];
   private _userData: any;
   private _supportsSourceMapPause = false;
+  private _defaultContextDestroyed: boolean;
 
   constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, capabilities: ThreadCapabilities, userData: any) {
     this.manager = manager;
@@ -339,8 +340,17 @@ export class Thread {
   }
 
   _executionContextDestroyed(contextId: number) {
+    const context = this._executionContexts.get(contextId);
+    if (!context)
+      return;
+    if (context.auxData && context.auxData['isDefault'])
+      this._defaultContextDestroyed = true;
     this._executionContexts.delete(contextId);
     this.manager.refreshExecutionContexts();
+  }
+
+  defaultContextDestroyed(): boolean {
+    return this._defaultContextDestroyed || false;
   }
 
   _executionContextsCleared() {
@@ -358,12 +368,12 @@ export class Thread {
   }
 
   async dispose() {
-    this._executionContextsCleared();
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
     this._dap.thread({reason: 'exited', threadId: this._threadId});
     utils.removeEventListeners(this._eventListeners);
     this._disposed = true;
+    this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
   }
 
