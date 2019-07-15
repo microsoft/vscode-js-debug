@@ -134,13 +134,13 @@ export class StackTrace {
 
   async format(): Promise<string> {
     const stackFrames = await this.loadFrames(50);
-    const frames: string[] = stackFrames.map(frame => {
+    const promises = stackFrames.map(async frame => {
       if (frame.isAsyncSeparator)
         return `    ◀ ${frame.name} ▶`;
       const uiLocation = this._thread.sourceContainer.uiLocation(frame.location);
       let fileName = uiLocation.url;
       if (uiLocation.source) {
-        const source = uiLocation.source.toDap();
+        const source = await uiLocation.source.toDap();
         fileName = source.path || fileName;
       }
       let location = `${fileName}:${uiLocation.lineNumber}`;
@@ -148,6 +148,6 @@ export class StackTrace {
         location += `:${uiLocation.columnNumber}`;
       return `    ${frame.name} @ ${location}`;
     });
-    return frames.join('\n') + '\n';
+    return (await Promise.all(promises)).join('\n') + '\n';
   }
 };

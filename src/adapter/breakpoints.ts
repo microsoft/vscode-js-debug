@@ -33,11 +33,11 @@ export class Breakpoint {
       this._condition = this._condition ? `(${params.condition}) && ${this._condition}` : params.condition;
   }
 
-  toDap(): Dap.Breakpoint {
+  async toDap(): Promise<Dap.Breakpoint> {
     return {
       id: this._dapId,
       verified: !!this._resolvedUiLocation,
-      source: (this._resolvedUiLocation && this._resolvedUiLocation.source) ? this._resolvedUiLocation.source.toDap() : undefined,
+      source: (this._resolvedUiLocation && this._resolvedUiLocation.source) ? await this._resolvedUiLocation.source.toDap() : undefined,
       line: this._resolvedUiLocation ? this._resolvedUiLocation.lineNumber : undefined,
       column: this._resolvedUiLocation ? this._resolvedUiLocation.columnNumber : undefined,
     }
@@ -49,7 +49,7 @@ export class Breakpoint {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
         this._resolvedUiLocation = undefined;
-        this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
+        this._manager._dap.breakpoint({reason: 'changed', breakpoint: {id: this._dapId, verified: false}});
       }
     }, undefined, this._disposables);
 
@@ -82,7 +82,7 @@ export class Breakpoint {
 
     await Promise.all(promises);
     if (report)
-      this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
+      this._manager._dap.breakpoint({reason: 'changed', breakpoint: await this.toDap()});
   }
 
   breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
@@ -122,7 +122,7 @@ export class Breakpoint {
     }
     await Promise.all(promises);
     if (resolvedUiLocation !== this._resolvedUiLocation)
-      this._manager._dap.breakpoint({reason: 'changed', breakpoint: this.toDap()});
+      this._manager._dap.breakpoint({reason: 'changed', breakpoint: await this.toDap()});
   }
 
   async _setByRawLocation(rawLocation: Location): Promise<void> {
@@ -220,9 +220,9 @@ export class BreakpointManager {
       this._perThread.delete(thread.threadId());
     }, undefined, this._disposables);
 
-    this._threadManager.onScriptWithSourceMapLoaded(({script, sources}) => {
+    this._threadManager.setScriptSourceMapHandler(async (script, sources) => {
       for (const source of sources) {
-        const path = source.absolutePath();
+        const path = await source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
           breakpoint.updateForSourceMap(script);
@@ -230,7 +230,7 @@ export class BreakpointManager {
         for (const breakpoint of byRef || [])
           breakpoint.updateForSourceMap(script);
       }
-    }, undefined, this._disposables);
+    });
 
     await Promise.all(promises);
   }
@@ -249,7 +249,7 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     if (this._initialized)
       await Promise.all(breakpoints.map(b => b.set(false)));
-    return {breakpoints: breakpoints.map(b => b.toDap())};
+    return {breakpoints: await Promise.all(breakpoints.map(b => b.toDap()))};
   }
 }
 

@@ -203,7 +203,7 @@ export class Adapter {
     for (let index = from; index < to; index++) {
       const stackFrame = frames[index];
       const uiLocation = this.sourceContainer.uiLocation(stackFrame.location);
-      const source = uiLocation.source ? uiLocation.source.toDap() : undefined;
+      const source = uiLocation.source ? await uiLocation.source.toDap() : undefined;
       if (!index && source) {
         source.presentationHint = undefined;
         source.origin = undefined;
@@ -322,7 +322,7 @@ export class Adapter {
         namedVariables: variable.namedVariables,
         indexedVariables: variable.indexedVariables,
         variablesReference: variable.variablesReference,
-        source: uiStartLocation && uiStartLocation.source ? uiStartLocation.source.toDap() : undefined,
+        source: uiStartLocation && uiStartLocation.source ? await uiStartLocation.source.toDap() : undefined,
         line: uiStartLocation ? uiStartLocation.lineNumber : undefined,
         column: uiStartLocation ? uiStartLocation.columnNumber : undefined,
         endLine: uiEndLocation ? uiEndLocation.lineNumber : undefined,
@@ -417,7 +417,7 @@ export class Adapter {
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return {sources: this.sourceContainer.sources().map(source => source.toDap())};
+    return {sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap()))};
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
@@ -508,7 +508,7 @@ export class Adapter {
         name: '',
         line: this._sourceToReveal.location.lineNumber,
         column: this._sourceToReveal.location.columnNumber,
-        source: this._sourceToReveal.source.toDap()
+        source: await this._sourceToReveal.source.toDap()
       }]
     };
   }
