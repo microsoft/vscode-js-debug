@@ -557,21 +557,28 @@ export class Thread {
   }
 
   async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<void> {
-    let stackTrace: StackTrace | undefined;
-    let uiLocation: Location | undefined;
-    if (details.stackTrace)
-      stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
-    const frames: StackFrame[] = stackTrace ? await stackTrace.loadFrames(50) : [];
-    if (frames.length)
-      uiLocation = this.sourceContainer.uiLocation(frames[0].location);
     const description = details.exception && details.exception.description || '';
     let message = description.split('\n').filter(line => !line.startsWith('    at')).join('\n');
-    if (stackTrace)
-      message += '\n' + (await stackTrace.format());
+    if (!message.startsWith('Uncaught'))
+      message = 'Uncaught ' + message;
+
+    let stackTrace: StackTrace | undefined;
+    let uiLocation: Location | undefined;
+    let variablesReference = 0;
+    if (details.stackTrace)
+      stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
+    if (stackTrace) {
+      variablesReference = await this.replVariables.createVariableForMessageFormat(message, [], stackTrace);
+      const frames = await stackTrace.loadFrames(1);
+      if (frames.length)
+        uiLocation = this.sourceContainer.uiLocation(frames[0].location);
+    }
+
     this._dap.output({
       category: 'stderr',
       output: message,
-      variablesReference: 0,
+      variablesReference,
+      source: (uiLocation && uiLocation.source) ? uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
     });

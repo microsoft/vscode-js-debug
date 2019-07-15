@@ -250,10 +250,7 @@ export class Source {
       };
     }
     if (name && this._inlineSourceRange) {
-      // TODO(dgozman): show real html contents if possible.
-      name = name + '@' + (this._inlineSourceRange.startLine + 1);
-      if (this._inlineSourceRange.startColumn)
-        name = name + ':' + (this._inlineSourceRange.startColumn + 1);
+      name = name + '(VM' + this._sourceReference + ')';
     }
     return {
       name: name || ('VM' + this._sourceReference),

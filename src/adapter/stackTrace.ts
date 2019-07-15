@@ -16,7 +16,6 @@ export interface StackFrame {
   callFrameId?: Cdp.Debugger.CallFrameId;
 };
 
-// TODO(dgozman): use stack trace format.
 export class StackTrace {
   private static _lastFrameId = 0;
   private _thread: Thread;
@@ -134,22 +133,21 @@ export class StackTrace {
   }
 
   async format(): Promise<string> {
-    // This loads all available frames.
     const stackFrames = await this.loadFrames(50);
     const frames: string[] = stackFrames.map(frame => {
-      const text = frame.name;
-      // TODO(dgozman): use stack trace format.
-      // TODO(dgozman): figure out paths vs urls.
-      const uiLocation = this._thread.sourceContainer.uiLocation(frame.location);
-      let location = `${uiLocation.url}:${uiLocation.lineNumber}`;
-      if (uiLocation.columnNumber)
-        location += `:${uiLocation.columnNumber}`;
       if (frame.isAsyncSeparator)
-        return `    ◀ ${text} ▶`;
-      if (uiLocation.url)
-        return `    at ${text} (${location})`;
-      return `    at ${text}${location}`;
+        return `    ◀ ${frame.name} ▶`;
+      const uiLocation = this._thread.sourceContainer.uiLocation(frame.location);
+      let fileName = uiLocation.url;
+      if (uiLocation.source) {
+        const source = uiLocation.source.toDap();
+        fileName = source.path || fileName;
+      }
+      let location = `${fileName}:${uiLocation.lineNumber}`;
+      if (uiLocation.columnNumber > 1)
+        location += `:${uiLocation.columnNumber}`;
+      return `    ${frame.name} @ ${location}`;
     });
-    return frames.join('\n');
+    return frames.join('\n') + '\n';
   }
 };
