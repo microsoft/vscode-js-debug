@@ -59,6 +59,8 @@ export class NodeAdapter implements ThreadManagerDelegate {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     this._dap.initialized({});
+    this._adapter = new Adapter(this._dap);
+    this._adapter.threadManager.setDelegate(this);
     return Adapter.capabilities();
   }
 
@@ -70,16 +72,14 @@ export class NodeAdapter implements ThreadManagerDelegate {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap);
-    this._adapter.threadManager.setDelegate(this);
     this._adapter.launch('', '');
     this._adapterReadyCallback(this._adapter);
     await this._startServer();
-    await this._relaunch();
-    return {};
+    const error = await this._relaunch();
+    return error || {};
   }
 
-  async _relaunch() {
+  async _relaunch(): Promise<Dap.LaunchResult | undefined> {
     const executable = await resolvePath(this._launchParams!.runtime);
     if (!executable)
       return errors.createSilentError('Could not locate Node.js executable');
