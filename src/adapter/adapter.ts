@@ -7,13 +7,12 @@ import Dap from '../dap/api';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
-import Cdp from '../cdp/api';
 import { VariableStore, ScopeRef } from './variables';
 import { SourceContainer, SourcePathResolver, Source, Location } from './sources';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
-import { ExecutionContext, ThreadManager, Thread } from './threads';
+import { ExecutionContextTree, Thread, ThreadManager } from './threads';
 import * as evaluator from './evaluator';
 
 const localize = nls.loadMessageBundle();
@@ -35,7 +34,7 @@ export class Adapter {
   readonly sourceContainer: SourceContainer;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
-  private _currentExecutionContext: ExecutionContext | undefined;
+  private _currentExecutionContext: ExecutionContextTree | undefined;
   private _sourceToReveal: { source: Source, location: Location } | undefined;
 
   constructor(dap: Dap.Api) {
@@ -109,10 +108,6 @@ export class Adapter {
     this._breakpointManager.initialize();
   }
 
-  setExternalExecutionContextProvider(executionContextProvider: () => ExecutionContext[]) {
-    this.threadManager.setExternalExecutionContextProvider(executionContextProvider);
-  }
-
   _mainThreadNotAvailable(): Dap.Error {
     return errors.createSilentError('Thread is not available');
   }
@@ -120,7 +115,7 @@ export class Adapter {
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
     for (const thread of this.threadManager.threads())
-      threads.push({id: thread.threadId(), name: thread.threadNameWithIndentation()});
+      threads.push({id: thread.threadId(), name: thread.name()});
     if (this._sourceToReveal)
       threads.push({id: threadForSourceRevealId, name: ''});
     return {threads};
@@ -472,7 +467,7 @@ export class Adapter {
     return variableStore.setVariable(params);
   }
 
-  setCurrentExecutionContext(item: ExecutionContext | undefined) {
+  setCurrentExecutionContext(item: ExecutionContextTree | undefined) {
     this._currentExecutionContext = item;
   }
 

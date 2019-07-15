@@ -138,16 +138,16 @@ export class NodeAdapter {
     const connection = new Connection(transport);
     this._connections.push(connection);
     const cdp = connection.createSession('');
-    const thread = this._adapter.threadManager.createThread(cdp, false);
+    const thread = this._adapter.threadManager.createThread(cdp, info, {});
     let threadName: string;
     if (info.scriptName)
       threadName = `${path.basename(info.scriptName)} [${info.pid}]`;
     else
       threadName = `[${info.pid}]`;
-    thread.setThreadDetails(threadName, threadName, '');
+    thread.setName(threadName);
     connection.onDisconnected(() => thread.dispose());
     await thread.initialize();
-    cdp.Runtime.runIfWaitingForDebugger({})
+    cdp.Runtime.runIfWaitingForDebugger({});
   }
 }
 

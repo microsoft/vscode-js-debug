@@ -30,16 +30,30 @@ export interface PausedDetails {
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export interface ExecutionContext {
+export interface ExecutionContextTree {
   contextId?: number;
   name: string;
   threadId: number;
-  children: ExecutionContext[];
+  children: ExecutionContextTree[];
 }
 
 export type Script = {scriptId: string, source: Source, thread: Thread};
 
 let lastThreadId = 0;
+
+export interface ThreadCapabilities {
+  supportsCustomBreakpoints?: boolean
+}
+
+export interface ThreadTree {
+  thread: Thread;
+  children: ThreadTree[];
+}
+
+export interface ThreadManagerDelegate {
+  threadForest(threads: Thread[]): ThreadTree[];
+  executionContextForest(threads: Thread[]): ExecutionContextTree[];
+}
 
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
@@ -49,32 +63,33 @@ export class ThreadManager {
 
   _onThreadInitializedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
-  private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContext[]>();
+  private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContextTree[]>();
   _onScriptWithSourceMapLoadedEmitter = new vscode.EventEmitter<{script: Script, sources: Source[]}>();
   readonly onThreadInitialized = this._onThreadInitializedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly onScriptWithSourceMapLoaded = this._onScriptWithSourceMapLoadedEmitter.event;
   readonly sourceContainer: SourceContainer;
-  private _externalExecutionContextProvider: () => ExecutionContext[] | undefined;
+  private _delegate: ThreadManagerDelegate;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
-  }
-
-  setExternalExecutionContextProvider(executionContextProvider: () => ExecutionContext[]) {
-    this._externalExecutionContextProvider = executionContextProvider;
+    this._delegate = new DefaultThreadManagerDelegate();
   }
 
   mainThread(): Thread | undefined {
     return this._threads.values().next().value;
   }
 
-  createThread(cdp: Cdp.Api, supportsCustomBreakpoints: boolean): Thread {
-    return new Thread(this, cdp, this._dap, supportsCustomBreakpoints);
+  createThread(cdp: Cdp.Api, userData: any, capabilities: ThreadCapabilities): Thread {
+    return new Thread(this, cdp, this._dap, capabilities, userData);
+  }
+
+  setDelegate(delegate: ThreadManagerDelegate) {
+    this._delegate = delegate;
   }
 
   _addThread(thread: Thread) {
@@ -90,29 +105,7 @@ export class ThreadManager {
   }
 
   refreshExecutionContexts() {
-    if (this._externalExecutionContextProvider) {
-      this._onExecutionContextsChangedEmitter.fire(this._externalExecutionContextProvider());
-      return;
-    }
-
-    const result: ExecutionContext[] = [];
-    for (const thread of this._threads.values()) {
-      const threadContext: ExecutionContext = {
-        name: thread.threadName() || `thread #${thread.threadId()}`,
-        threadId: thread.threadId(),
-        children: [],
-      };
-      result.push(threadContext);
-      threadContext.children = thread.executionContexts().map(context => {
-        return {
-          name: context.name || `context #${context.id}`,
-          threadId: thread.threadId(),
-          contextId: context.id,
-          children: [],
-        };
-      });
-    }
-    this._onExecutionContextsChangedEmitter.fire(result);
+    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest(this.threads()));
   }
 
   refreshStackTraces(): boolean {
@@ -182,9 +175,8 @@ export class Thread {
   private _cdp: Cdp.Api;
   private _disposed = false;
   private _threadId: number;
-  private _threadName: string;
-  private _threadNameWithIndentation: string;
-  private _threadUrl: string;
+  private _name: string;
+  private _threadBaseUrl: string;
   private _pausedDetails: PausedDetails | null;
   private _pausedVariables: VariableStore | null = null;
   private _pausedForSourceMapScriptId?: string;
@@ -195,15 +187,17 @@ export class Thread {
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
   private _eventListeners: utils.Listener[] = [];
+  private _userData: any;
 
-  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, supportsCustomBreakpoints: boolean) {
+  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, capabilities: ThreadCapabilities, userData: any) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
+    this._userData = userData;
     this._threadId = ++lastThreadId;
-    this._threadName = '';
-    this._supportsCustomBreakpoints = supportsCustomBreakpoints;
+    this._name = '';
+    this._supportsCustomBreakpoints = capabilities.supportsCustomBreakpoints || false;
     this.replVariables = new VariableStore(this._cdp);
     this.manager._addThread(this);
     debugThread(`Thread created #${this._threadId}`);
@@ -217,12 +211,12 @@ export class Thread {
     return this._threadId;
   }
 
-  threadName(): string {
-    return this._threadName;
+  name(): string {
+    return this._name;
   }
 
-  threadNameWithIndentation(): string {
-    return this._threadNameWithIndentation;
+  userData(): any {
+    return this._userData;
   }
 
   pausedDetails(): PausedDetails | null {
@@ -358,14 +352,15 @@ export class Thread {
     this._dap.thread({reason: 'exited', threadId: this._threadId});
     utils.removeEventListeners(this._eventListeners);
     this._disposed = true;
-    debugThread(`Thread destroyed #${this._threadId}: ${this._threadName}`);
+    debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
   }
 
-  setThreadDetails(threadName: string, threadNameWithIndentation: string, threadUrl: string) {
-    this._threadName = threadName;
-    this._threadNameWithIndentation = threadNameWithIndentation;
-    this._threadUrl = threadUrl;
-    debugThread(`Thread renamed #${this._threadId}: ${this._threadName}`);
+  setName(name: string) {
+    this._name = name;
+  }
+
+  setBaseUrl(threadUrl: string) {
+    this._threadBaseUrl = threadUrl;
   }
 
   locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
@@ -597,7 +592,7 @@ export class Thread {
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL) {
         // TODO(dgozman): reload source map when thread url changes.
-        const resolvedSourceUrl = utils.completeUrl(this._threadUrl, event.url);
+        const resolvedSourceUrl = utils.completeUrl(this._threadBaseUrl, event.url);
         resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
       }
       source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
@@ -624,5 +619,37 @@ export class Thread {
     }
   }
 };
+
+export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
+  threadForest(threads: Thread[]): ThreadTree[] {
+    return threads.map(thread => {
+      return {
+        thread,
+        children: []
+      }
+    });
+  }
+
+  executionContextForest(threads: Thread[]): ExecutionContextTree[] {
+    const result: ExecutionContextTree[] = [];
+    for (const thread of threads.values()) {
+      const threadContext: ExecutionContextTree = {
+        name: thread.name() || `thread #${thread.threadId()}`,
+        threadId: thread.threadId(),
+        children: [],
+      };
+      result.push(threadContext);
+      threadContext.children = thread.executionContexts().map(context => {
+        return {
+          name: context.name || `context #${context.id}`,
+          threadId: thread.threadId(),
+          contextId: context.id,
+          children: [],
+        };
+      });
+    }
+    return result;
+  }
+}
 
 const kScriptsSymbol = Symbol('script');
