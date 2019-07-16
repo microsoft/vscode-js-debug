@@ -11,15 +11,18 @@ import * as fs from 'fs';
 import * as errors from './errors';
 import { prettyPrintAsSourceMap } from './prettyPrint';
 
+// This is a ui location. Usually it corresponds to a position
+// in the document user can see (Source, Dap.Source). When no source
+// is available, it just holds a url to show in the ui.
 export interface Location {
-  lineNumber: number;
-  columnNumber: number;
+  lineNumber: number; // 1-based
+  columnNumber: number;  // 1-based
   url: string;
   source?: Source;
 };
 
 type ContentGetter = () => Promise<string | undefined>;
-type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
+type InlineScriptOffset = {lineOffset: number, columnOffset: number};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
 
 export interface LocationRevealer {
@@ -147,7 +150,7 @@ export class Source {
   _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
-  _inlineSourceRange?: InlineSourceRange;
+  _inlineScriptOffset?: InlineScriptOffset;
   _container: SourceContainer;
   _absolutePath: Promise<string>;
 
@@ -159,12 +162,12 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineSourceRange) {
+  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
     this._contentGetter = contentGetter;
     this._sourceMapUrl = sourceMapUrl;
-    this._inlineSourceRange = inlineSourceRange;
+    this._inlineScriptOffset = inlineScriptOffset;
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
@@ -261,7 +264,7 @@ export class Source {
     }
     if (fqname.endsWith('/'))
       fqname = fqname.substring(0, fqname.length - 1);
-    if (this._inlineSourceRange)
+    if (this._inlineScriptOffset)
       return fqname + '/VM' + this._sourceReference;
     return fqname;
   }
@@ -315,92 +318,82 @@ export class SourceContainer {
     this._initialized = true;
   }
 
-  uiLocation(rawLocation: Location): Location {
-    const location = this._uiLocation(rawLocation);
-    return {
-      lineNumber: location.lineNumber + 1,
-      columnNumber: location.columnNumber + 1,
-      url: location.url,
-      source: location.source,
-    };
+  preferredLocation(location: Location): Location {
+    return this._locations(location)[0];
   }
 
-  uiLocationInSource(rawLocation: Location, source: Source): Location | undefined {
-    const location = this._uiLocation(rawLocation, source);
-    if (location.source !== source)
-      return undefined;
-    return {
-      lineNumber: location.lineNumber + 1,
-      columnNumber: location.columnNumber + 1,
-      url: location.url,
-      source: location.source,
-    };
+  siblingLocations(location: Location, inSource?: Source): Location[] {
+    return this._locations(location).filter(location => !inSource || location.source === inSource);
   }
 
-  rawLocations(uiLocation: Location): Location[] {
-    uiLocation = {
-      lineNumber: uiLocation.lineNumber - 1,
-      columnNumber: uiLocation.columnNumber - 1,
-      url: uiLocation.url,
-      source: uiLocation.source,
-    };
-    return this._rawLocations(uiLocation);
-  }
-
-  _uiLocation(rawLocation: Location, preferredSource?: Source): Location {
-    if (!rawLocation.source || rawLocation.source === preferredSource)
-      return rawLocation;
-
-    if (!rawLocation.source._sourceMapUrl || !rawLocation.source._sourceMapSourceByUrl)
-      return rawLocation;
-    const map = this._sourceMaps.get(rawLocation.source._sourceMapUrl)!.map;
-    if (!map)
-      return rawLocation;
-
-    let {lineNumber, columnNumber} = rawLocation;
-    if (rawLocation.source._inlineSourceRange) {
-      lineNumber -= rawLocation.source._inlineSourceRange.startLine;
-      if (!lineNumber)
-        columnNumber -= rawLocation.source._inlineSourceRange.startColumn;
-    }
-    const entry = map.findEntry(lineNumber, columnNumber);
-    if (!entry || !entry.sourceUrl)
-      return rawLocation;
-
-    const source = rawLocation.source._sourceMapSourceByUrl.get(entry.sourceUrl);
-    if (!source)
-      return rawLocation;
-
-    return this._uiLocation({
-      lineNumber: entry.sourceLineNumber || 0,
-      columnNumber: entry.sourceColumnNumber || 0,
-      url: source._url,
-      source: source
-    });
-  }
-
-  _rawLocations(uiLocation: Location): Location[] {
-    if (!uiLocation.source || !uiLocation.source._compiledToSourceUrl)
-      return [uiLocation];
+  _locations(location: Location): Location[] {
     const result: Location[] = [];
-    for (const [compiled, sourceUrl] of uiLocation.source._compiledToSourceUrl) {
-      const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
-      if (!map)
-        continue;
-      const entry = map.findReverseEntry(sourceUrl, uiLocation.lineNumber, uiLocation.columnNumber);
-      if (!entry)
-        continue;
-      result.push(...this._rawLocations({
-        lineNumber: entry.lineNumber + (compiled._inlineSourceRange ? compiled._inlineSourceRange.startLine : 0),
-        columnNumber: entry.columnNumber + ((compiled._inlineSourceRange && !entry.lineNumber) ? compiled._inlineSourceRange.startColumn : 0),
-        url: compiled.url(),
-        source: compiled
-      }));
-    }
+    this._addSourceMapLocations(location, result);
+    result.push(location);
+    this._addCompiledLocations(location, result);
     return result;
   }
 
-  addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineSourceRange): Source {
+  _addSourceMapLocations(location: Location, result: Location[]) {
+    if (!location.source)
+      return;
+    if (!location.source._sourceMapUrl || !location.source._sourceMapSourceByUrl)
+      return;
+    const map = this._sourceMaps.get(location.source._sourceMapUrl)!.map;
+    if (!map)
+      return;
+
+    let {lineNumber, columnNumber} = location;
+    if (location.source._inlineScriptOffset) {
+      lineNumber -= location.source._inlineScriptOffset.lineOffset;
+      if (lineNumber === 1)
+        columnNumber -= location.source._inlineScriptOffset.columnOffset;
+    }
+    const entry = map.findEntry(lineNumber - 1, columnNumber - 1);
+    if (!entry || !entry.sourceUrl)
+      return;
+
+    const source = location.source._sourceMapSourceByUrl.get(entry.sourceUrl);
+    if (!source)
+      return;
+
+    const sourceMapLocation = {
+      lineNumber: (entry.sourceLineNumber || 0) + 1,
+      columnNumber: (entry.sourceColumnNumber || 0) + 1,
+      url: source._url,
+      source: source
+    };
+    this._addSourceMapLocations(sourceMapLocation, result);
+    result.push(sourceMapLocation);
+  }
+
+  _addCompiledLocations(location: Location, result: Location[]) {
+    if (!location.source || !location.source._compiledToSourceUrl)
+      return;
+    for (const [compiled, sourceUrl] of location.source._compiledToSourceUrl) {
+      const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
+      if (!map)
+        continue;
+      const entry = map.findReverseEntry(sourceUrl, location.lineNumber - 1, location.columnNumber - 1);
+      if (!entry)
+        continue;
+      const compiledLocation = {
+        lineNumber: entry.lineNumber + 1,
+        columnNumber: entry.columnNumber + 1,
+        url: compiled.url(),
+        source: compiled
+      };
+      if (compiled._inlineScriptOffset) {
+        compiledLocation.lineNumber += compiled._inlineScriptOffset.lineOffset;
+        if (compiledLocation.lineNumber === 1)
+          compiledLocation.columnNumber += compiled._inlineScriptOffset.columnOffset;
+      }
+      result.push(compiledLocation);
+      this._addCompiledLocations(compiledLocation, result);
+    }
+  }
+
+  addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset): Source {
     console.assert(this._initialized);
     console.assert(!url || !this._compiledByUrl.has(url));
     const source = new Source(this, url, contentGetter, sourceMapUrl, inlineSourceRange);

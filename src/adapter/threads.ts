@@ -425,36 +425,36 @@ export class Thread implements VariableStoreDelegate {
 
   locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
     const script = this._scripts.get(callFrame.location.scriptId);
-    return {
+    return this.sourceContainer.preferredLocation({
       url: callFrame.url,
-      lineNumber: callFrame.location.lineNumber,
-      columnNumber: callFrame.location.columnNumber || 0,
+      lineNumber: callFrame.location.lineNumber + 1,
+      columnNumber: (callFrame.location.columnNumber || 0) + 1,
       source: script ? script.source : undefined
-    };
+    });
   }
 
   locationFromRuntimeCallFrame(callFrame: Cdp.Runtime.CallFrame): Location {
     const script = this._scripts.get(callFrame.scriptId);
-    return {
+    return this.sourceContainer.preferredLocation({
       url: callFrame.url,
-      lineNumber: callFrame.lineNumber,
-      columnNumber: callFrame.columnNumber,
+      lineNumber: callFrame.lineNumber + 1,
+      columnNumber: callFrame.columnNumber + 1,
       source: script ? script.source : undefined
-    };
+    });
   }
 
   locationFromDebugger(location: Cdp.Debugger.Location): Location {
     const script = this._scripts.get(location.scriptId);
-    return {
+    return this.sourceContainer.preferredLocation({
       url: script ? script.source.url() : '',
-      lineNumber: location.lineNumber,
-      columnNumber: location.columnNumber || 0,
+      lineNumber: location.lineNumber + 1,
+      columnNumber: (location.columnNumber || 0) + 1,
       source: script ? script.source : undefined
-    };
+    });
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
-    const location = this.sourceContainer.uiLocation(this.locationFromDebugger(loc));
+    const location = this.locationFromDebugger(loc);
     let path: string | undefined;
     if (location.source)
       path = await location.source.absolutePath();
@@ -569,12 +569,12 @@ export class Thread implements VariableStoreDelegate {
     }
 
     let stackTrace: StackTrace | undefined;
-    let uiLocation: Location | undefined;
+    let location: Location | undefined;
     if (event.stackTrace) {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this.sourceContainer.uiLocation(frames[0].uiLocation());
+        location = frames[0].location();
       if (event.type !== 'error' && event.type !== 'warning')
         stackTrace = undefined;
     }
@@ -593,9 +593,9 @@ export class Thread implements VariableStoreDelegate {
       category,
       output: '',
       variablesReference,
-      source: uiLocation && uiLocation.source ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
+      source: location && location.source ? await location.source.toDap() : undefined,
+      line: location ? location.lineNumber : undefined,
+      column: location ? location.columnNumber : undefined,
     };
   }
 
@@ -613,13 +613,13 @@ export class Thread implements VariableStoreDelegate {
       message = 'Uncaught ' + message;
 
     let stackTrace: StackTrace | undefined;
-    let uiLocation: Location | undefined;
+    let location: Location | undefined;
     if (details.stackTrace)
       stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
     if (stackTrace) {
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this.sourceContainer.uiLocation(frames[0].uiLocation());
+        location = frames[0].location();
     }
 
     const args = (details.exception && !preview.stackTrace) ? [details.exception] : [];
@@ -631,9 +631,9 @@ export class Thread implements VariableStoreDelegate {
       category: 'stderr',
       output: message,
       variablesReference,
-      source: (uiLocation && uiLocation.source) ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
+      source: (location && location.source) ? await location.source.toDap() : undefined,
+      line: location ? location.lineNumber : undefined,
+      column: location ? location.columnNumber : undefined,
     };
   }
 
@@ -658,8 +658,8 @@ export class Thread implements VariableStoreDelegate {
         const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
         return response ? response.scriptSource : undefined;
       };
-      const inlineSourceRange = (event.startLine || event.startColumn)
-          ? {startLine: event.startLine, startColumn: event.startColumn, endLine: event.endLine, endColumn: event.endColumn}
+      const inlineSourceOffset = (event.startLine || event.startColumn)
+          ? {lineOffset: event.startLine, columnOffset: event.startColumn}
           : undefined;
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL) {
@@ -667,7 +667,7 @@ export class Thread implements VariableStoreDelegate {
         const resolvedSourceUrl = utils.completeUrl(this._threadBaseUrl, event.url);
         resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
       }
-      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceRange);
+      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset);
     }
 
     const script = {scriptId: event.scriptId, source, thread: this};
@@ -704,8 +704,7 @@ export class Thread implements VariableStoreDelegate {
       if (p.name !== '[[FunctionLocation]]' || !p.value || p.value.subtype as string !== 'internal#location')
         continue;
       const loc = p.value.value as Cdp.Debugger.Location;
-      const uiLocation = this.sourceContainer.uiLocation(this.locationFromDebugger(loc));
-      this.sourceContainer.revealLocation(uiLocation);
+      this.sourceContainer.revealLocation(this.locationFromDebugger(loc));
       break;
     }
   }

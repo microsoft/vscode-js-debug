@@ -223,13 +223,13 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const uiStartLocation = this.thread().sourceContainer.uiLocation(this.thread().locationFromDebugger(scope.startLocation));
+        const uiStartLocation = this.thread().locationFromDebugger(scope.startLocation);
         dap.line = uiStartLocation.lineNumber;
         dap.column = uiStartLocation.columnNumber;
         if (uiStartLocation.source)
           dap.source = await uiStartLocation.source.toDap();
         if (scope.endLocation) {
-          const uiEndLocation = this.thread().sourceContainer.uiLocation(this.thread().locationFromDebugger(scope.endLocation));
+          const uiEndLocation = this.thread().locationFromDebugger(scope.endLocation);
           dap.endLine = uiEndLocation.lineNumber;
           dap.endColumn = uiEndLocation.columnNumber;
         }
@@ -241,14 +241,13 @@ export class StackFrame {
   }
 
   async toDap(): Promise<Dap.StackFrame> {
-    const uiLocation = this.thread().sourceContainer.uiLocation(this._location);
-    const source = uiLocation.source ? await uiLocation.source.toDap() : undefined;
+    const source = this._location.source ? await this._location.source.toDap() : undefined;
     const presentationHint = this._isAsyncSeparator ? 'label' : 'normal';
     return {
       id: this._id,
       name: this._name,
-      line: uiLocation.lineNumber,
-      column: uiLocation.columnNumber,
+      line: this._location.lineNumber,
+      column: this._location.columnNumber,
       source,
       presentationHint,
     };
@@ -257,20 +256,19 @@ export class StackFrame {
   async format(): Promise<string> {
     if (this._isAsyncSeparator)
       return `◀ ${this._name} ▶`;
-    const uiLocation = this.uiLocation();
-    let fileName = uiLocation.url;
-    if (uiLocation.source) {
-      const source = await uiLocation.source.toDap();
+    let fileName = this._location.url;
+    if (this._location.source) {
+      const source = await this._location.source.toDap();
       fileName = source.path || fileName;
     }
-    let location = `${fileName}:${uiLocation.lineNumber}`;
-    if (uiLocation.columnNumber > 1)
-      location += `:${uiLocation.columnNumber}`;
+    let location = `${fileName}:${this._location.lineNumber}`;
+    if (this._location.columnNumber > 1)
+      location += `:${this._location.columnNumber}`;
     return `${this._name} @ ${location}`;
   }
 
-  uiLocation(): Location {
-    return this.thread().sourceContainer.uiLocation(this._location);
+  location(): Location {
+    return this._location;
   }
 
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {

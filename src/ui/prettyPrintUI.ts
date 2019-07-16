@@ -67,14 +67,14 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 
     // Or reveal this source manually.
     if (prettySource) {
-      const originalUILocation: Location = {
+      const originalLocation: Location = {
         source,
         url: source.url(),
         lineNumber: editor.selection.start.line,
         columnNumber: editor.selection.start.character,
       };
-      const newUILocation = adapter.sourceContainer.uiLocation(originalUILocation);
-      adapter.sourceContainer.revealLocation(newUILocation);
+      const newLocation = adapter.sourceContainer.preferredLocation(originalLocation);
+      adapter.sourceContainer.revealLocation(newLocation);
     }
   }));
 }
