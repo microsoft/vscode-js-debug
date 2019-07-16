@@ -86,8 +86,10 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._runtime = spawn(executable, [this._launchParams!.program], {
       cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
       env: { ...process.env, ...env(this._pipe!) },
-      stdio: 'ignore'
+      stdio: 'ignore' // ['ignore', 'pipe', 'pipe']
     });
+    // this._runtime.stdout.on('data', data => console.log(data.toString()));
+    // this._runtime.stderr.on('data', data => console.log(data.toString()));
 }
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
@@ -119,6 +121,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._server = net.createServer(socket => {
       socket.on('data', d => {
         const payload = Buffer.from(d.toString(), 'base64').toString();
+        socket.destroy();
         this._startSession(JSON.parse(payload) as Endpoint);
       });
       socket.on('error', e => console.error(e));
