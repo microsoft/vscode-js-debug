@@ -8,11 +8,12 @@ import {Source, Location, SourceContainer} from './sources';
 import * as utils from '../utils';
 import {StackTrace, StackFrame} from './stackTrace';
 import * as objectPreview from './objectPreview';
-import { VariableStore } from './variables';
+import { VariableStore, VariableStoreDelegate } from './variables';
 import Dap from '../dap/api';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 const localize = nls.loadMessageBundle();
@@ -181,7 +182,7 @@ export class ThreadManager {
   }
 }
 
-export class Thread {
+export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _disposed = false;
@@ -212,7 +213,7 @@ export class Thread {
     this._threadId = ++lastThreadId;
     this._name = '';
     this._supportsCustomBreakpoints = capabilities.supportsCustomBreakpoints || false;
-    this.replVariables = new VariableStore(this._cdp);
+    this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
     debugThread(`Thread created #${this._threadId}`);
@@ -311,7 +312,7 @@ export class Thread {
         return;
       }
       this._pausedDetails = this._createPausedDetails(event);
-      this._pausedVariables = new VariableStore(this._cdp);
+      this._pausedVariables = new VariableStore(this._cdp, this);
       this._reportPaused();
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
@@ -430,6 +431,13 @@ export class Thread {
       columnNumber: location.columnNumber || 0,
       source: script ? script.source : undefined
     };
+  }
+
+  renderDebuggerLocation(loc: Cdp.Debugger.Location): string {
+    const location = this.locationFromDebugger(loc);
+    const uiLocation = this.sourceContainer.uiLocation(location);
+    const url = path.basename(uiLocation.url);
+    return `${url}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`;
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
