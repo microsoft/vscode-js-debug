@@ -15,7 +15,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -27,7 +27,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -46,7 +46,7 @@ scopes: {
             presentationHint : locals
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
