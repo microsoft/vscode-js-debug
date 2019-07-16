@@ -211,14 +211,13 @@ export class Adapter {
     return stackFrame.scopes();
   }
 
-  _findVariableStore(variablesReference: number): VariableStore | null {
+  _findVariableStore(variablesReference: number): VariableStore | undefined {
     for (const thread of this.threadManager.threads()) {
       if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
         return thread.pausedVariables();
       if (thread.replVariables.hasVariables(variablesReference))
         return thread.replVariables;
     }
-    return null;
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {

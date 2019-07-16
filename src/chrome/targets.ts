@@ -88,9 +88,9 @@ export class TargetManager implements ThreadManagerDelegate {
       if (!thread)
         continue;
       for (const context of thread.executionContexts()) {
-        const frameId = context.auxData ? context.auxData['frameId'] : null;
+        const frameId = context.auxData ? context.auxData['frameId'] : undefined;
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
-        const frame = frameId ? this._frameModel.frameForId(frameId) : null;
+        const frame = frameId ? this._frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
           const dapContext = toDap(thread, context, name);
