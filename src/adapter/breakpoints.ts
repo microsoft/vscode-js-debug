@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {SourcePathResolver, Location, SourceContainer} from './sources';
+import {SourcePathResolver, Location, SourceContainer, Source} from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import {Thread, ThreadManager, Script} from './threads';
@@ -18,7 +18,7 @@ export class Breakpoint {
   private _disposables: vscode.Disposable[] = [];
 
   private _perThread = new Map<number, Set<string>>();
-  private _resolvedUiLocation?: Location;
+  private _resolvedLocation?: Location;
 
   constructor(manager: BreakpointManager, source: Dap.Source, params: Dap.SourceBreakpoint) {
     this._dapId = ++Breakpoint._lastDapId;
@@ -35,10 +35,10 @@ export class Breakpoint {
   async toDap(): Promise<Dap.Breakpoint> {
     return {
       id: this._dapId,
-      verified: !!this._resolvedUiLocation,
-      source: (this._resolvedUiLocation && this._resolvedUiLocation.source) ? await this._resolvedUiLocation.source.toDap() : undefined,
-      line: this._resolvedUiLocation ? this._resolvedUiLocation.lineNumber : undefined,
-      column: this._resolvedUiLocation ? this._resolvedUiLocation.columnNumber : undefined,
+      verified: !!this._resolvedLocation,
+      source: (this._resolvedLocation && this._resolvedLocation.source) ? await this._resolvedLocation.source.toDap() : undefined,
+      line: this._resolvedLocation ? this._resolvedLocation.lineNumber : undefined,
+      column: this._resolvedLocation ? this._resolvedLocation.columnNumber : undefined,
     }
   }
 
@@ -47,7 +47,7 @@ export class Breakpoint {
     threadManager.onThreadRemoved(thread => {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
-        this._resolvedUiLocation = undefined;
+        this._resolvedLocation = undefined;
         this._manager._dap.breakpoint({reason: 'changed', breakpoint: {id: this._dapId, verified: false}});
       }
     }, undefined, this._disposables);
@@ -71,13 +71,13 @@ export class Breakpoint {
       }, undefined, this._disposables);
     }
 
-    const rawLocations = this._manager._sourceContainer.rawLocations({
+    const locations = this._manager._sourceContainer.siblingLocations({
       url: url || '',
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
       source
     });
-    promises.push(...rawLocations.map(rawLocation => this._setByRawLocation(rawLocation)));
+    promises.push(...locations.map(location => this._setByLocation(location, source)));
 
     await Promise.all(promises);
     if (report)
@@ -95,47 +95,45 @@ export class Breakpoint {
     ids.add(cdpId);
     this._manager._perThread.get(thread.threadId())!.set(cdpId, this);
 
-    if (this._resolvedUiLocation || !resolvedLocations.length)
+    if (this._resolvedLocation || !resolvedLocations.length)
       return;
-    const rawLocation = thread.locationFromDebugger(resolvedLocations[0]);
+    const location = thread.locationFromDebugger(resolvedLocations[0]);
     const source = this._manager._sourceContainer.source(this._source);
     if (source)
-      this._resolvedUiLocation = this._manager._sourceContainer.uiLocationInSource(rawLocation, source);
+      this._resolvedLocation = this._manager._sourceContainer.siblingLocations(location, source)[0];
   }
 
   async updateForSourceMap(script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
       return;
-    const rawLocations = this._manager._sourceContainer.rawLocations({
+    const locations = this._manager._sourceContainer.siblingLocations({
       url: source.url(),
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
       source
-    });
-    const resolvedUiLocation = this._resolvedUiLocation;
+    }, script.source);
+    const resolvedLocation = this._resolvedLocation;
     const promises: Promise<void>[] = [];
-    for (const rawLocation of rawLocations) {
-      if (rawLocation.source === script.source)
-        promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
-    }
+    for (const location of locations)
+      promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
-    if (resolvedUiLocation !== this._resolvedUiLocation)
+    if (resolvedLocation !== this._resolvedLocation)
       this._manager._dap.breakpoint({reason: 'changed', breakpoint: await this.toDap()});
   }
 
-  async _setByRawLocation(rawLocation: Location): Promise<void> {
+  async _setByLocation(location: Location, originalSource?: Source): Promise<void> {
     const promises: Promise<void>[] = [];
-    if (rawLocation.source) {
-      const scripts = this._manager._threadManager.scriptsFromSource(rawLocation.source);
+    if (location.source) {
+      const scripts = this._manager._threadManager.scriptsFromSource(location.source);
       for (const script of scripts)
-        promises.push(this._setByScriptId(script.thread, script.scriptId, rawLocation.lineNumber, rawLocation.columnNumber));
+        promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     }
-    if (rawLocation.url) {
+    if (location.url && (!originalSource || location.source !== originalSource)) {
       for (const thread of this._manager._threadManager.threads()) {
         // We only do this to support older versions which do not implement 'pause before source map'.
         if (!thread.supportsSourceMapPause())
-          promises.push(this._setByUrl(thread, rawLocation.url, rawLocation.lineNumber, rawLocation.columnNumber));
+          promises.push(this._setByUrl(thread, location.url, location.lineNumber - 1, location.columnNumber - 1));
       }
     }
     await Promise.all(promises);
@@ -170,7 +168,7 @@ export class Breakpoint {
         promises.push(thread.cdp().Debugger.removeBreakpoint({breakpointId: id}));
       }
     }
-    this._resolvedUiLocation = undefined;
+    this._resolvedLocation = undefined;
     this._perThread.clear();
     for (const disposable of this._disposables)
       disposable.dispose();
