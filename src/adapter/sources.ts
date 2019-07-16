@@ -242,15 +242,13 @@ export class Source {
 
   _fullyQualifiedName(): string {
     if (!this._url)
-      return 'VM' + this._sourceReference;
+      return 'VM/VM' + this._sourceReference;
     let fqname = this._url;
     try {
       const tokens: string[] = [];
       const url = new URL(this._url);
       if (url.protocol === 'data:')
-        return 'VM' + this._sourceReference;
-      if (url.protocol)
-        tokens.push(url.protocol.replace(':', '') + '\uA789 ');  // : in unicode
+        return 'VM/VM' + this._sourceReference;
       if (url.hostname)
         tokens.push(url.hostname);
       if (url.port)
@@ -263,9 +261,9 @@ export class Source {
     } catch (e) {
     }
     if (fqname.endsWith('/'))
-      fqname = fqname.substring(0, fqname.length - 1);
+      fqname += '(index)';
     if (this._inlineScriptOffset)
-      return fqname + '/VM' + this._sourceReference;
+      fqname = `${fqname}\uA789${this._inlineScriptOffset.lineOffset + 1}:${this._inlineScriptOffset.columnOffset + 1}`;
     return fqname;
   }
 };
