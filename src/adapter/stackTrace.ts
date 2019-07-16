@@ -135,7 +135,7 @@ export class StackTrace {
     const stackFrames = await this.loadFrames(50);
     const promises = stackFrames.map(async frame => {
       if (frame.isAsyncSeparator)
-        return `    ◀ ${frame.name} ▶`;
+        return `◀ ${frame.name} ▶`;
       const uiLocation = this._thread.sourceContainer.uiLocation(frame.location);
       let fileName = uiLocation.url;
       if (uiLocation.source) {
@@ -145,7 +145,7 @@ export class StackTrace {
       let location = `${fileName}:${uiLocation.lineNumber}`;
       if (uiLocation.columnNumber > 1)
         location += `:${uiLocation.columnNumber}`;
-      return `    ${frame.name} @ ${location}`;
+      return `${frame.name} @ ${location}`;
     });
     return (await Promise.all(promises)).join('\n') + '\n';
   }

@@ -200,6 +200,7 @@ export class Thread {
   private _userData: any;
   private _supportsSourceMapPause = false;
   private _defaultContextDestroyed: boolean;
+  private _serializedOutput: Promise<void>;
 
   constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, capabilities: ThreadCapabilities, userData: any) {
     this.manager = manager;
@@ -212,6 +213,7 @@ export class Thread {
     this._supportsCustomBreakpoints = capabilities.supportsCustomBreakpoints || false;
     this.replVariables = new VariableStore(this._cdp);
     this.manager._addThread(this);
+    this._serializedOutput = Promise.resolve();
     debugThread(`Thread created #${this._threadId}`);
   }
 
@@ -290,15 +292,15 @@ export class Thread {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
+      this.output(this._clearDebuggerConsole());
       this.replVariables.clear();
-      this._clearDebuggerConsole();
       this._executionContextsCleared();
     });
     this._cdp.Runtime.on('consoleAPICalled', event => {
-      this._onConsoleMessage(event);
+      this.output(this._onConsoleMessage(event));
     });
     this._cdp.Runtime.on('exceptionThrown', event => {
-      this._onExceptionThrown(event.exceptionDetails);
+      this.output(this._onExceptionThrown(event.exceptionDetails));
     });
     await this._cdp.Runtime.enable({});
 
@@ -336,6 +338,16 @@ export class Thread {
     this._dap.thread({reason: 'started', threadId: this._threadId});
     if (this._pausedDetails)
       this._reportPaused();
+  }
+
+  async output(producer?: Promise<Dap.OutputEventParams | undefined>): Promise<void> {
+    // TODO(dgozman): add timeout.
+    this._serializedOutput = this._serializedOutput.then(async () => {
+      const payload = await producer;
+      if (payload)
+        this._dap.output(payload);
+    });
+    return this._serializedOutput;
   }
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
@@ -518,10 +530,10 @@ export class Thread {
     return {stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener')};
   }
 
-  async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<void> {
+  async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<Dap.OutputEventParams | undefined> {
     switch (event.type) {
       case 'endGroup': return;
-      case 'clear': this._clearDebuggerConsole(); return;
+      case 'clear': return this._clearDebuggerConsole();
     }
 
     let stackTrace: StackTrace | undefined;
@@ -544,64 +556,53 @@ export class Thread {
     const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
     const formatString = useMessageFormat ? event.args[0].value as string : '';
     const messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
-
-    const allPrimitive = !event.args.find(a => !!a.objectId);
-    if (allPrimitive && !stackTrace) {
-      this._dap.output({
-        category,
-        output: messageText + '\n',
-        variablesReference: 0,
-        source: uiLocation && uiLocation.source ? await uiLocation.source.toDap() : undefined,
-        line: uiLocation ? uiLocation.lineNumber : undefined,
-        column: uiLocation ? uiLocation.columnNumber : undefined,
-      });
-      return;
-    }
-
-    const variablesReference = await this.replVariables.createVariableForMessageFormat(messageText + '\n', event.args, stackTrace);
-    this._dap.output({
+    const variablesReference = await this.replVariables.createVariableForOutput(messageText + '\n', event.args, stackTrace);
+    return {
       category,
       output: '',
       variablesReference,
       source: uiLocation && uiLocation.source ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
-    });
+    };
   }
 
-  _clearDebuggerConsole() {
-    this._dap.output({
+  _clearDebuggerConsole(): Promise<Dap.OutputEventParams> {
+    return Promise.resolve({
       category: 'console',
       output: '\x1b[2J',
     });
   }
 
-  async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<void> {
-    const description = details.exception && details.exception.description || '';
-    let message = description.split('\n').filter(line => !line.startsWith('    at')).join('\n');
+  async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<Dap.OutputEventParams | undefined> {
+    const preview = details.exception ? objectPreview.previewException(details.exception) : {title: ''};
+    let message = preview.title;
     if (!message.startsWith('Uncaught'))
       message = 'Uncaught ' + message;
 
     let stackTrace: StackTrace | undefined;
     let uiLocation: Location | undefined;
-    let variablesReference = 0;
     if (details.stackTrace)
       stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
     if (stackTrace) {
-      variablesReference = await this.replVariables.createVariableForMessageFormat(message, [], stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
         uiLocation = this.sourceContainer.uiLocation(frames[0].location);
     }
 
-    this._dap.output({
+    const args = (details.exception && !preview.stackTrace) ? [details.exception] : [];
+    let variablesReference = 0;
+    if (stackTrace || args.length)
+      variablesReference = await this.replVariables.createVariableForOutput(message, args, stackTrace);
+
+    return {
       category: 'stderr',
       output: message,
       variablesReference,
       source: (uiLocation && uiLocation.source) ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
-    });
+    };
   }
 
   _removeAllScripts() {
