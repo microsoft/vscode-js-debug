@@ -303,6 +303,9 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Runtime.on('exceptionThrown', event => {
       this.output(this._onExceptionThrown(event.exceptionDetails));
     });
+    this._cdp.Runtime.on('inspectRequested', event => {
+      this._revealObject(event.object);
+    });
     await this._cdp.Runtime.enable({});
 
     this._cdp.Debugger.on('paused', event => {
@@ -432,11 +435,14 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  renderDebuggerLocation(loc: Cdp.Debugger.Location): string {
-    const location = this.locationFromDebugger(loc);
-    const uiLocation = this.sourceContainer.uiLocation(location);
-    const url = path.basename(uiLocation.url);
-    return `${url}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`;
+  async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
+    const location = this.sourceContainer.uiLocation(this.locationFromDebugger(loc));
+    let path: string | undefined;
+    if (location.source)
+      path = await location.source.absolutePath();
+    if (!path)
+      path = location.url;
+    return `@ ${path}:${location.lineNumber}`;
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
@@ -664,6 +670,25 @@ export class Thread implements VariableStoreDelegate {
     if (this._pausedForSourceMapScriptId === scriptId) {
       this._pausedForSourceMapScriptId = undefined;
       this._cdp.Debugger.resume({});
+    }
+  }
+
+  async _revealObject(object: Cdp.Runtime.RemoteObject) {
+    if (object.type !== 'function')
+      return;
+    const response = await this._cdp.Runtime.getProperties({
+      objectId: object.objectId!,
+      ownProperties: true
+    });
+    if (!response)
+      return;
+    for (const p of response.internalProperties || []) {
+      if (p.name !== '[[FunctionLocation]]' || !p.value || p.value.subtype as string !== 'internal#location')
+        continue;
+      const loc = p.value.value as Cdp.Debugger.Location;
+      const uiLocation = this.sourceContainer.uiLocation(this.locationFromDebugger(loc));
+      this.sourceContainer.revealLocation(uiLocation);
+      break;
     }
   }
 };

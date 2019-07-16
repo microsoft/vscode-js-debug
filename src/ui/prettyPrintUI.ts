@@ -2,16 +2,12 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import * as queryString from 'querystring';
-import Dap from '../dap/api';
 import { AdapterFactory } from '../adapterFactory';
-import { Source } from '../adapter/sources';
-import { Adapter } from '../adapter/adapter';
+import { Location } from '../adapter/sources';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
 let prettyPrintedUris: Set<string> = new Set();
-let revealingSource: Source | undefined;
 
 export function registerPrettyPrintActions(context: vscode.ExtensionContext, factory: AdapterFactory) {
   context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()));
@@ -25,20 +21,12 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       return;
     }
 
-    const { source, adapter } = await sourceForUri(factory, editor.document.uri);
-
-    let revealSourceMatched = revealingSource && source === revealingSource;
-    if (revealingSource) {
-      // If we are in the process of revealing source, no matter if we revealed that source - cancel.
-      adapter!.cancelRevealSource();
-      revealingSource = undefined;
-    }
+    const { source } = await factory.sourceForUri(factory, editor.document.uri);
 
     // The rest of the code is about suggesting the pretty printing upon editor change.
     // We only want to do it once per document.
 
-    if (revealSourceMatched ||
-        prettyPrintedUris.has(editor.document.uri.toString()) ||
+    if (prettyPrintedUris.has(editor.document.uri.toString()) ||
         !isMinified(editor.document)) {
       return;
     }
@@ -67,7 +55,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     const uri = editor.document.uri;
     if (uri.scheme !== 'debug')
       return;
-    const { adapter, source } = await sourceForUri(factory, editor.document.uri);
+    const { adapter, source } = await factory.sourceForUri(factory, editor.document.uri);
     if (!source || !adapter || !source.canPrettyPrint())
       return;
     const prettySource = await source.prettyPrint();
@@ -78,26 +66,16 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 
     // Or reveal this source manually.
     if (prettySource) {
-      const location = adapter.sourceContainer.uiLocation({
+      const originalUILocation: Location = {
         source,
         url: source.url(),
         lineNumber: editor.selection.start.line,
         columnNumber: editor.selection.start.character,
-      });
-      revealingSource = prettySource;
-      adapter!.revealSource(prettySource, location);
+      };
+      const newUILocation = adapter.sourceContainer.uiLocation(originalUILocation);
+      adapter.sourceContainer.revealLocation(newUILocation);
     }
   }));
-}
-
-function sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: Adapter | undefined, source: Source | undefined } {
-  const query = queryString.parse(uri.query);
-  const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
-  const sessionId = query['session'] as string;
-  const adapter = factory.adapter(sessionId || '');
-  if (!adapter)
-    return { adapter: undefined, source: undefined };
-  return { adapter, source: adapter.sourceContainer.source(ref) };
 }
 
 function updateDebuggingStatus() {
