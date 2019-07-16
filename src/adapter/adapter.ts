@@ -12,7 +12,7 @@ import { SourceContainer, SourcePathResolver, Location } from './sources';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
-import { ExecutionContextTree, Thread, ThreadManager, ThreadTree } from './threads';
+import { ExecutionContextTree, Thread, ThreadManager } from './threads';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
@@ -113,17 +113,9 @@ export class Adapter {
   }
 
   async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
-    const threads: Dap.Thread[] = [];
-    const visit = (tree: ThreadTree, indentation: string) => {
-      threads.push({id: tree.thread.threadId(), name: indentation + tree.thread.name()})
-      for (const child of tree.children)
-        visit(child, indentation + '\u00A0\u00A0\u00A0\u00A0');
-    }
-    this.threadManager.threadForest().forEach(tree => visit(tree, ''));
-
+    const threads = this.threadManager.threadLabels();
     if (this._locationToReveal)
       threads.push({id: threadForSourceRevealId, name: ''});
-
     return {threads};
   }
 

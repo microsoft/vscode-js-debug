@@ -8,7 +8,7 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate, ThreadTree } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 
 const debugTarget = debug('target');
@@ -44,28 +44,6 @@ export class TargetManager implements ThreadManagerDelegate {
 
   targets(): Target[] {
     return Array.from(this._targets.values());
-  }
-
-  threadForest(): ThreadTree[] | undefined {
-    const result: ThreadTree[] = [];
-    const trees = new Map<Thread, ThreadTree>();
-    for (const target of this.targets()) {
-      const thread = target.thread();
-      if (!thread)
-        continue;
-
-      const tree = { thread, children: [] };
-      trees.set(thread, tree);
-
-      let p = target.parentTarget;
-      while (p && !p.thread())
-        p = p.parentTarget;
-      if (p)
-        trees.get(p.thread()!)!.children.push(tree);
-      else
-        result.push(tree);
-    }
-    return result;
   }
 
   executionContextForest(): ExecutionContextTree[] | undefined {
@@ -264,8 +242,12 @@ export class Target {
     this._cdp = cdp;
     this._manager = targetManager;
     this.parentTarget = parentTarget;
-    if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager._threadManager.createThread(cdp, this, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
+    if (jsTypes.has(targetInfo.type)) {
+      let parentThread: Thread | undefined;
+      for(let p = parentTarget; p && !parentThread; p = p.parentTarget)
+        parentThread = p.thread();
+      this._thread = targetManager._threadManager.createThread(cdp, parentThread, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
+    }
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }

@@ -14,7 +14,7 @@ import * as which from 'which';
 import * as errors from '../adapter/errors';
 import { WebSocketTransport } from '../cdp/transport';
 import Connection from '../cdp/connection';
-import { ThreadManagerDelegate, ThreadTree, ExecutionContextTree } from '../adapter/threads';
+import { ThreadManagerDelegate, ExecutionContextTree, Thread } from '../adapter/threads';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
@@ -39,6 +39,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
+  private _threadsByPid = new Map<string, Thread>();
 
   static async create(dap: Dap.Api): Promise<Adapter> {
     return new Promise<Adapter>(f => new NodeAdapter(dap, f));
@@ -143,14 +144,19 @@ export class NodeAdapter implements ThreadManagerDelegate {
     const connection = new Connection(transport);
     this._connections.push(connection);
     const cdp = connection.createSession('');
-    const thread = this._adapter.threadManager.createThread(cdp, info, {});
+    const parentThread = this._threadsByPid.get(info.ppid);
+    const thread = this._adapter.threadManager.createThread(cdp, parentThread, {});
+    this._threadsByPid.set(info.pid, thread);
     let threadName: string;
     if (info.scriptName)
       threadName = `${path.basename(info.scriptName)} [${info.pid}]`;
     else
       threadName = `[${info.pid}]`;
     thread.setName(threadName);
-    connection.onDisconnected(() => thread.dispose());
+    connection.onDisconnected(() => {
+      this._threadsByPid.set(info.pid, thread);
+      thread.dispose();
+    });
     this._adapter.threadManager.onExecutionContextsChanged(() => {
       if (thread.defaultContextDestroyed())
         connection.dispose();
@@ -159,49 +165,26 @@ export class NodeAdapter implements ThreadManagerDelegate {
     cdp.Runtime.runIfWaitingForDebugger({});
   }
 
-  threadForest(): ThreadTree[] | undefined {
-    const result: ThreadTree[] = [];
-    const trees = new Map<string, ThreadTree>();
-    const threads = this._adapter.threadManager.threads();
-    for (const thread of threads) {
-      const endpoint = thread.userData() as Endpoint;
-      const tree = { thread, children: [] };
-      trees.set(endpoint.pid, tree);
-    }
-
-    for (const thread of threads) {
-      const endpoint = thread.userData() as Endpoint;
-      const tree = trees.get(endpoint.pid)!;
-      const parentTree = trees.get(endpoint.ppid);
-      if (parentTree)
-        parentTree.children.push(tree);
-      else
-        result.push(tree)
-    }
-
-    return result;
-  }
-
   executionContextForest(): ExecutionContextTree[] | undefined {
     const result: ExecutionContextTree[] = [];
-    const visit = (tree: ThreadTree, container: ExecutionContextTree[]) => {
-      const context = tree.thread.defaultExecutionContext();
+    const visit = (thread: Thread, container: ExecutionContextTree[]) => {
+      const context = thread.defaultExecutionContext();
       if (context) {
         const contextTree = {
-          name: tree.thread.name(),
-          threadId: tree.thread.threadId(),
+          name: thread.name(),
+          threadId: thread.threadId(),
           contextId: context.id,
           children: [],
         };
         container.push(contextTree);
-        for (const child of tree.children)
+        for (const child of thread.childThreads())
           visit(child, contextTree.children);
       } else {
-        for (const child of tree.children)
+        for (const child of thread.childThreads())
           visit(child, container);
       }
     };
-    this.threadForest()!.forEach(t => visit(t, result));
+    this._adapter.threadManager.topLevelThreads().forEach(t => visit(t, result));
     return result;
   }
 }

@@ -13,7 +13,6 @@ import Dap from '../dap/api';
 import customBreakpoints from './customBreakpoints';
 import * as nls from 'vscode-nls';
 import * as messageFormat from './messageFormat';
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 const localize = nls.loadMessageBundle();
@@ -46,13 +45,7 @@ export interface ThreadCapabilities {
   supportsCustomBreakpoints?: boolean
 }
 
-export interface ThreadTree {
-  thread: Thread;
-  children: ThreadTree[];
-}
-
 export interface ThreadManagerDelegate {
-  threadForest(): ThreadTree[] | undefined;
   executionContextForest(): ExecutionContextTree[] | undefined;
 }
 
@@ -88,8 +81,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(cdp: Cdp.Api, userData: any, capabilities: ThreadCapabilities): Thread {
-    return new Thread(this, cdp, this._dap, capabilities, userData);
+  createThread(cdp: Cdp.Api, parent: Thread | undefined, capabilities: ThreadCapabilities): Thread {
+    return new Thread(this, cdp, this._dap, parent, capabilities);
   }
 
   setDelegate(delegate: ThreadManagerDelegate) {
@@ -132,12 +125,26 @@ export class ThreadManager {
     return Array.from(this._threads.values());
   }
 
-  thread(threadId: number): Thread | undefined {
-    return this._threads.get(threadId);
+  topLevelThreads(): Thread[] {
+    return this.threads().filter(t => !t.parentThread);
   }
 
-  threadForest(): ThreadTree[] {
-    return this._delegate.threadForest() || this._defaultDelegate.threadForest();
+  threadLabels(): Dap.Thread[] {
+    const result: Dap.Thread[] = [];
+    const visit = (thread: Thread, indentation: string) => {
+      result.push({
+        id: thread.threadId(),
+        name: indentation + thread.name()
+      });
+      for (const child of thread._childThreads)
+        visit(child, indentation + '\u00A0\u00A0\u00A0\u00A0');
+    };
+    this.topLevelThreads().forEach(t => visit(t, ''));
+    return result;
+  }
+
+  thread(threadId: number): Thread | undefined {
+    return this._threads.get(threadId);
   }
 
   disposeAllThreads() {
@@ -199,17 +206,20 @@ export class Thread implements VariableStoreDelegate {
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
   private _eventListeners: utils.Listener[] = [];
-  private _userData: any;
+  parentThread?: Thread;
+  _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
   private _defaultContextDestroyed: boolean;
   private _serializedOutput: Promise<void>;
 
-  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, capabilities: ThreadCapabilities, userData: any) {
+  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, capabilities: ThreadCapabilities) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
-    this._userData = userData;
+    this.parentThread = parent;
+    if (parent)
+      parent._childThreads.push(this);
     this._threadId = ++lastThreadId;
     this._name = '';
     this._supportsCustomBreakpoints = capabilities.supportsCustomBreakpoints || false;
@@ -231,8 +241,8 @@ export class Thread implements VariableStoreDelegate {
     return this._name;
   }
 
-  userData(): any {
-    return this._userData;
+  childThreads(): Thread[] {
+    return this._childThreads.slice();
   }
 
   pausedDetails(): PausedDetails | undefined {
@@ -392,6 +402,10 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async dispose() {
+    if (this.parentThread) {
+      this.parentThread._childThreads.splice(this.parentThread._childThreads.indexOf(this), 1);
+      this.parentThread._childThreads.push(...this._childThreads);
+    }
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
     this._dap.thread({reason: 'exited', threadId: this._threadId});
@@ -702,15 +716,6 @@ export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
 
   constructor(manager: ThreadManager) {
     this._manager = manager;
-  }
-
-  threadForest(): ThreadTree[] {
-    return this._manager.threads().map(thread => {
-      return {
-        thread,
-        children: []
-      }
-    });
   }
 
   executionContextForest(): ExecutionContextTree[] {
