@@ -278,7 +278,10 @@ export class Thread implements VariableStoreDelegate {
     return !!await this._cdp.Debugger.stepOut({});
   }
 
-  async restartFrame(callFrameId: Cdp.Debugger.CallFrameId): Promise<boolean> {
+  async restartFrame(stackFrame: StackFrame): Promise<boolean> {
+    const callFrameId = stackFrame.callFrameId();
+    if (!callFrameId)
+      return false;
     const response = await this._cdp.Debugger.restartFrame({callFrameId});
     if (!response || !this._pausedDetails)
       return false;
@@ -557,7 +560,7 @@ export class Thread implements VariableStoreDelegate {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this.sourceContainer.uiLocation(frames[0].location);
+        uiLocation = this.sourceContainer.uiLocation(frames[0].uiLocation());
       if (event.type !== 'error' && event.type !== 'warning')
         stackTrace = undefined;
     }
@@ -602,7 +605,7 @@ export class Thread implements VariableStoreDelegate {
     if (stackTrace) {
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        uiLocation = this.sourceContainer.uiLocation(frames[0].location);
+        uiLocation = this.sourceContainer.uiLocation(frames[0].uiLocation());
     }
 
     const args = (details.exception && !preview.stackTrace) ? [details.exception] : [];

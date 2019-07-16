@@ -14,8 +14,8 @@ Connected
             name : <anonymous>
             presentationHint : normal
             source : {
-                name : script>(VM<xx>)
-                path : script>(VM<xx>)
+                name : VM<xx>
+                path : data꞉ text/html,<script>debugger;</script>/VM<xx>
                 sourceReference : <number>
             }
         }

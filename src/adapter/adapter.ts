@@ -4,8 +4,8 @@
 
 import Dap from '../dap/api';
 
-import * as completionz from './completions';
-import { StackTrace } from './stackTrace';
+import * as completions from './completions';
+import { StackTrace, StackFrame } from './stackTrace';
 import * as objectPreview from './objectPreview';
 import { VariableStore } from './variables';
 import { SourceContainer, SourcePathResolver, Location } from './sources';
@@ -13,7 +13,6 @@ import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
 import { ExecutionContextTree, Thread, ThreadManager, ThreadTree } from './threads';
-import * as evaluator from './evaluator';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
@@ -23,10 +22,10 @@ export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
 }
 
 type EvaluatePrep = {
-  error?: Dap.Error;
-  evaluator?: evaluator.Evaluator;
-  variableStore?: VariableStore;
-  thread?: Thread;
+  variableStore: VariableStore;
+  thread: Thread;
+  stackFrame?: StackFrame;
+  executionContextId?: number;
 };
 
 export class Adapter {
@@ -174,14 +173,11 @@ export class Adapter {
   }
 
   async _onRestartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
-    const stackTrace = this._findStackTrace(params.frameId);
-    if (!stackTrace)
+    const stackFrame = this._findStackFrame(params.frameId);
+    if (!stackFrame)
       return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-    const callFrameId = stackTrace.frame(params.frameId)!.callFrameId;
-    if (!callFrameId)
+    if (!stackFrame.thread().restartFrame(stackFrame))
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
-    if (!await stackTrace.thread().restartFrame(callFrameId))
-      return errors.createSilentError(localize('error.restartFrameDidFail', 'Unable to restart frame'));
     return {};
   }
 
@@ -197,20 +193,23 @@ export class Adapter {
     return details.stackTrace.toDap(params);
   }
 
-  _findStackTrace(frameId: number): StackTrace | undefined {
+  _findStackFrame(frameId: number): StackFrame | undefined {
     for (const thread of this.threadManager.threads()) {
       const details = thread.pausedDetails();
-      if (details && details.stackTrace.frame(frameId))
-        return details.stackTrace;
+      if (!details)
+        continue;
+      const stackFrame = details.stackTrace.frame(frameId);
+      if (stackFrame)
+        return stackFrame;
     }
     return undefined;
   }
 
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
-    const stackTrace = this._findStackTrace(params.frameId);
-    if (!stackTrace)
+    const stackFrame = this._findStackFrame(params.frameId);
+    if (!stackFrame)
       return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-    return stackTrace.scopes(params.frameId);
+    return stackFrame.scopes();
   }
 
   _findVariableStore(variablesReference: number): VariableStore | null {
@@ -230,20 +229,19 @@ export class Adapter {
     return {variables: await variableStore.getVariables(params)};
   }
 
-  _prepareForEvaluate(frameId?: number): EvaluatePrep {
+  _prepareForEvaluate(frameId?: number): EvaluatePrep | Dap.Error {
     if (frameId !== undefined) {
-      const stackTrace = this._findStackTrace(frameId);
-      if (!stackTrace)
-        return {error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'))};
+      const stackFrame = this._findStackFrame(frameId);
+      if (!stackFrame)
+        return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+      if (!stackFrame.callFrameId())
+        return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
 
-      const stackFrame = stackTrace.frame(frameId)!;
-      if (!stackFrame.callFrameId)
-        return {error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'))};
-
+      const variableStore = stackFrame.thread().pausedVariables()!;
       return {
-        evaluator: evaluator.fromCallFrame(stackTrace.thread().cdp(), stackFrame.callFrameId),
-        variableStore: stackTrace.thread().pausedVariables()!,
-        thread: stackTrace.thread()
+        stackFrame,
+        variableStore,
+        thread: stackFrame.thread(),
       };
     } else {
       let thread: Thread | undefined;
@@ -257,33 +255,38 @@ export class Adapter {
         executionContextId = defaultContext ? defaultContext.id : undefined;
       }
       if (!thread || !executionContextId)
-        return { error: this._mainThreadNotAvailable() };
+        return this._mainThreadNotAvailable();
 
       return {
-        evaluator: evaluator.fromContextId(thread.cdp(), executionContextId),
         variableStore: thread.replVariables,
-        thread
+        thread,
+        executionContextId
       };
     }
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    const prep = this._prepareForEvaluate(args.frameId);
-    if (prep.error)
-      return prep.error;
-    const response = await prep.evaluator!({
+    const prepOrError = this._prepareForEvaluate(args.frameId);
+    if ((prepOrError as Dap.Error).__errorMarker)
+      return prepOrError as Dap.Error;
+    const prep = prepOrError as EvaluatePrep;
+
+    const params = {
       expression: args.expression,
       includeCommandLineAPI: true,
       objectGroup: 'console',
       generatePreview: true,
       throwOnSideEffect: args.context === 'hover' ? true : undefined,
       timeout: args.context === 'hover' ? 500 : undefined,
-    });
+    };
+    const response = prep.stackFrame
+        ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({...params, callFrameId: prep.stackFrame.callFrameId()!})
+        : await prep.thread.cdp().Runtime.evaluate({...params, contextId: prep.executionContextId});
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
     if (args.context !== 'repl') {
-      const variable = await prep.variableStore!.createVariable(response.result, args.context);
+      const variable = await prep.variableStore.createVariable(response.result, args.context);
       return {
         result: variable.value,
         variablesReference: variable.variablesReference,
@@ -292,9 +295,9 @@ export class Adapter {
       };
     }
 
-    prep.thread!.output((async () => {
+    prep.thread.output((async () => {
       const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
-      const variablesReference = await prep.variableStore!.createVariableForOutput(text, [response.result]);
+      const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
       return {
         category: 'stdout',
         output: '',
@@ -305,11 +308,13 @@ export class Adapter {
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    const prep = this._prepareForEvaluate(params.frameId);
-    if (prep.error)
-      return prep.error;
+    const prepOrError = this._prepareForEvaluate(params.frameId);
+    if ((prepOrError as Dap.Error).__errorMarker)
+      return prepOrError as Dap.Error;
+    const prep = prepOrError as EvaluatePrep;
+
     const line = params.line === undefined ? 0 : params.line - 1;
-    return {targets: await completionz.completions(prep.evaluator!, params.text, line, params.column)};
+    return {targets: await completions.completions(prep.thread.cdp(), prep.executionContextId, prep.stackFrame, params.text, line, params.column)};
   }
 
   async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
