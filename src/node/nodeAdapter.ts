@@ -157,8 +157,11 @@ export class NodeAdapter implements ThreadManagerDelegate {
       thread.dispose();
     });
     this._adapter.threadManager.onExecutionContextsChanged(() => {
-      if (thread.defaultContextDestroyed())
+      if (thread.defaultContextDestroyed()) {
         connection.dispose();
+        if (!this._adapter.threadManager.mainThread())
+          this._dap.terminated({});
+      }
     });
     await thread.initialize();
     cdp.Runtime.runIfWaitingForDebugger({});
