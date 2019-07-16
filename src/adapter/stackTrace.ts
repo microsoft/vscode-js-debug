@@ -124,11 +124,14 @@ export class StackFrame {
   private _stack: StackTrace;
 
   static fromRuntime(stack: StackTrace, callFrame: Cdp.Runtime.CallFrame): StackFrame {
-    return new StackFrame(stack, callFrame.functionName, stack._thread.locationFromRuntimeCallFrame(callFrame));
+    return new StackFrame(stack, callFrame.functionName, stack._thread.rawLocationToUiLocation(callFrame));
   }
 
   static fromDebugger(stack: StackTrace, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(stack, callFrame.functionName, stack._thread.locationFromDebuggerCallFrame(callFrame));
+    const result = new StackFrame(stack, callFrame.functionName, stack._thread.rawLocationToUiLocation({
+      ...callFrame.location,
+      url: callFrame.url,
+    }));
     result._scope = {
       chain: callFrame.scopeChain,
       variables: new Array(callFrame.scopeChain.length).fill(undefined),
@@ -222,15 +225,15 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const uiStartLocation = this.thread().locationFromDebugger(scope.startLocation);
-        dap.line = uiStartLocation.lineNumber;
-        dap.column = uiStartLocation.columnNumber;
-        if (uiStartLocation.source)
-          dap.source = await uiStartLocation.source.toDap();
+        const startLocation = this.thread().rawLocationToUiLocation(scope.startLocation);
+        dap.line = startLocation.lineNumber;
+        dap.column = startLocation.columnNumber;
+        if (startLocation.source)
+          dap.source = await startLocation.source.toDap();
         if (scope.endLocation) {
-          const uiEndLocation = this.thread().locationFromDebugger(scope.endLocation);
-          dap.endLine = uiEndLocation.lineNumber;
-          dap.endColumn = uiEndLocation.columnNumber;
+          const endLocation = this.thread().rawLocationToUiLocation(scope.endLocation);
+          dap.endLine = endLocation.lineNumber;
+          dap.endColumn = endLocation.columnNumber;
         }
       }
       scopes.push(dap);
