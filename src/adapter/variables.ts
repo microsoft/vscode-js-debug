@@ -153,7 +153,7 @@ export class VariableStore {
     return this._createVariable('', object);
   }
 
-  async createVariableForMessageFormat(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
+  async createVariableForOutput(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {
       name: '',
@@ -185,6 +185,9 @@ export class VariableStore {
       };
       params.push(stackTraceVariable);
     }
+
+    if (!params.length)
+      rootObjectVariable.variablesReference = 0;
 
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
 

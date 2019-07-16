@@ -26,6 +26,7 @@ type EvaluatePrep = {
   error?: Dap.Error;
   evaluator?: evaluator.Evaluator;
   variableStore?: VariableStore;
+  thread?: Thread;
 };
 
 export class Adapter {
@@ -361,7 +362,8 @@ export class Adapter {
 
       return {
         evaluator: evaluator.fromCallFrame(stackTrace.thread().cdp(), stackFrame.callFrameId),
-        variableStore: stackTrace.thread().pausedVariables()!
+        variableStore: stackTrace.thread().pausedVariables()!,
+        thread: stackTrace.thread()
       };
     } else {
       let thread: Thread | undefined;
@@ -379,7 +381,8 @@ export class Adapter {
 
       return {
         evaluator: evaluator.fromContextId(thread.cdp(), executionContextId),
-        variableStore: thread.replVariables
+        variableStore: thread.replVariables,
+        thread
       };
     }
   }
@@ -398,14 +401,26 @@ export class Adapter {
     });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
-    const variable = await prep.variableStore!.createVariable(response.result, args.context);
-    const prefix = args.context === 'repl' ? '↳ ' : '';
-    return {
-      result: prefix + variable.value,
-      variablesReference: variable.variablesReference,
-      namedVariables: variable.namedVariables,
-      indexedVariables: variable.indexedVariables,
-    };
+    if (args.context !== 'repl') {
+      const variable = await prep.variableStore!.createVariable(response.result, args.context);
+      return {
+        result: variable.value,
+        variablesReference: variable.variablesReference,
+        namedVariables: variable.namedVariables,
+        indexedVariables: variable.indexedVariables,
+      };
+    }
+
+    prep.thread!.output((async () => {
+      const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
+      const variablesReference = await prep.variableStore!.createVariableForOutput(text, [response.result]);
+      return {
+        category: 'stdout',
+        output: '',
+        variablesReference,
+      } as Dap.OutputEventParams;
+    })());
+    return {result: '', variablesReference: 0};
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {

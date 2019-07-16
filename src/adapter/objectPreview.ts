@@ -228,8 +228,12 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): {title: s
     return {title: renderValue(exception, false)};
   const description = exception.description!;
   const firstCallFrame = /^\s+at\s/m.exec(description);
-  if (!firstCallFrame)
-    return {title: description.substring(0, description.lastIndexOf('\n'))};
+  if (!firstCallFrame) {
+    const lastLineBreak = description.lastIndexOf('\n');
+    if (lastLineBreak === -1)
+      return {title: description};
+    return {title: description.substring(0, lastLineBreak)};
+  }
   return {
     title: description.substring(0, firstCallFrame.index - 1),
     stackTrace: description.substring(firstCallFrame.index + 2),
