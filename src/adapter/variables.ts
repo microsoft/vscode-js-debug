@@ -38,15 +38,21 @@ export interface ScopeRef {
   scopeNumber: number;
 }
 
+export interface VariableStoreDelegate {
+  renderDebuggerLocation(location: Cdp.Debugger.Location): string;
+}
+
 export class VariableStore {
   private _cdp: Cdp.Api;
   private static _lastVariableReference: number = 0;
   private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
   private _referenceToObject: Map<number, RemoteObject> = new Map();
+  private _delegate: VariableStoreDelegate;
 
-  constructor(cdp: Cdp.Api) {
+  constructor(cdp: Cdp.Api, delegate: VariableStoreDelegate) {
     this._cdp = cdp;
+    this._delegate = delegate;
   }
 
   hasVariables(variablesReference: number): boolean {
@@ -213,7 +219,7 @@ export class VariableStore {
     const properties: Promise<Dap.Variable>[] = [];
     const weight: Map<string, number> = new Map();
     for (const p of response.result) {
-      properties.push(this._createVariable(p.name, object.wrap(p.value)));
+      properties.push(...this._createVariablesForProperty(p, object));
       weight.set(p.name, objectPreview.propertyWeight(p));
     }
     for (const p of (response.privateProperties || [])) {
@@ -221,8 +227,17 @@ export class VariableStore {
       weight.set(p.name, objectPreview.privatePropertyWeight(p));
     }
     for (const p of (response.internalProperties || [])) {
-      properties.push(this._createVariable(p.name, object.wrap(p.value)));
       weight.set(p.name, objectPreview.internalPropertyWeight(p));
+      if (p.name === '[[FunctionLocation]]' && p.value && p.value.subtype as string === 'internal#location') {
+        const loc = p.value.value as Cdp.Debugger.Location;
+        properties.push(Promise.resolve({
+          name: p.name,
+          value: this._delegate.renderDebuggerLocation(loc),
+          variablesReference: 0
+        }));
+        continue;
+      }
+      properties.push(this._createVariable(p.name, object.wrap(p.value)));
     }
     const result = await Promise.all(properties);
     result.sort((a, b) => {
@@ -287,6 +302,17 @@ export class VariableStore {
     this._referenceToObject.set(reference, object);
     this._objectToReference.set(object.objectId, reference);
     return reference;
+  }
+
+  private _createVariablesForProperty(p: Cdp.Runtime.PropertyDescriptor, owner: RemoteObject): Promise<Dap.Variable>[] {
+    const result: Promise<Dap.Variable>[] = [];
+    if (p.value)
+      result.push(this._createVariable(p.name, owner.wrap(p.value)));
+    if (p.get)
+      result.push(this._createVariable(`get ${p.name}`, owner.wrap(p.get)));
+    if (p.set)
+      result.push(this._createVariable(`set ${p.name}`, owner.wrap(p.set)));
+    return result;
   }
 
   private async _createVariable(name: string, value?: RemoteObject, context?: string): Promise<Dap.Variable> {

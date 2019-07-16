@@ -166,7 +166,7 @@ function formatFunctionDescription(description: string, includePreview: boolean 
   const firstArrowIndex = text.indexOf('=>');
   const isArrow = !asyncMatch && !isGenerator && !isBasic && !isClass && firstArrowIndex > 0;
 
-  let textAfterPrefix;
+  let textAfterPrefix: string;
   if (isClass) {
     textAfterPrefix = text.substring('class'.length);
     const classNameMatch = /^[^{\s]+/.exec(textAfterPrefix.trim());
@@ -187,7 +187,7 @@ function formatFunctionDescription(description: string, includePreview: boolean 
     textAfterPrefix = text.substring('function'.length);
     addToken('ƒ', textAfterPrefix, nameAndArguments(textAfterPrefix));
   } else if (isArrow) {
-    const maxArrowFunctionCharacterLength = 60;
+    const maxArrowFunctionCharacterLength = 30;
     let abbreviation = text;
     if (defaultName)
       abbreviation = defaultName + '()';
