@@ -19,7 +19,6 @@ export interface Location {
 
 type ContentGetter = () => Promise<string | undefined>;
 type InlineSourceRange = {startLine: number, startColumn: number, endLine: number, endColumn: number};
-type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
 
 export interface LocationRevealer {
@@ -31,7 +30,6 @@ export class SourcePathResolver {
   private _baseUrl?: URL;
   private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
   private _gitRoot?: string;
-  private _nodeModulesRoot?: string;
 
   initialize(url: string, webRoot: string | undefined) {
     this._basePath = webRoot ? path.normalize(webRoot) : undefined;
@@ -56,10 +54,8 @@ export class SourcePathResolver {
       {urlPrefix: 'webpack:///', pathPrefix: substitute('/')},
     ];
 
+    // TODO(dgozman): use workspace folder.
     this._gitRoot = this._findProjectDirWith('.git') + path.sep;
-    const packageRoot = this._findProjectDirWith('package.json');
-    if (packageRoot)
-      this._nodeModulesRoot = path.join(packageRoot, 'node_modules') + path.sep;
   }
 
   _findProjectDirWith(entryName: string): string | undefined {
@@ -85,22 +81,15 @@ export class SourcePathResolver {
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
   }
 
-  async resolveSourcePath(url?: string): Promise<ResolvedPath> {
+  async resolveExistingAbsolutePath(url?: string): Promise<string> {
     if (!url)
-      return {name: ''};
+      return '';
     let absolutePath = this._resolveAbsolutePath(url);
     if (!absolutePath)
-      return {name: path.basename(url || '')};
-    const name = path.basename(absolutePath);
+      return '';
     if (!await this._checkExists(absolutePath))
-      return {name};
-    if (this._nodeModulesRoot && absolutePath.startsWith(this._nodeModulesRoot)) {
-      const relative = absolutePath.substring(this._nodeModulesRoot.length);
-      const sepIndex = relative.indexOf(path.sep);
-      const nodeModule = sepIndex === -1 ? relative : relative.substring(0, sepIndex);
-      return {absolutePath, name, nodeModule};
-    }
-    return {absolutePath, name};
+      return '';
+    return absolutePath;
   }
 
   resolveUrl(absolutePath: string): string | undefined {
@@ -153,11 +142,13 @@ export class Source {
 
   _sourceReference: number;
   _url: string;
+  _name: string;
+  _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
   _inlineSourceRange?: InlineSourceRange;
   _container: SourceContainer;
-  _resolvedPath: Promise<ResolvedPath>;
+  _absolutePath: Promise<string>;
 
   // Sources generated for this compiled from it's source map. Exclusive with |_origin|.
   _sourceMapSourceByUrl?: Map<string, Source>;
@@ -174,7 +165,9 @@ export class Source {
     this._sourceMapUrl = sourceMapUrl;
     this._inlineSourceRange = inlineSourceRange;
     this._container = container;
-    this._resolvedPath = container._sourcePathResolver.resolveSourcePath(url);
+    this._fqname = this._fullyQualifiedName();
+    this._name = path.basename(this._fqname);
+    this._absolutePath = container._sourcePathResolver.resolveExistingAbsolutePath(url);
   }
 
   url(): string {
@@ -207,7 +200,7 @@ export class Source {
     if (!content)
       return;
     const sourceMapUrl = this.url() + '@map';
-    const prettyPath = (await this._resolvedPath).name + '-pretty.js';
+    const prettyPath = this._fqname + '-pretty.js';
     const map = prettyPrintAsSourceMap(prettyPath,  content);
     if (!map)
       return;
@@ -219,33 +212,55 @@ export class Source {
   }
 
   async toDap(): Promise<Dap.Source> {
-    let {absolutePath, name, nodeModule} = await this._resolvedPath;
+    let absolutePath = await this._absolutePath;
     const sources = this._sourceMapSourceByUrl
       ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
       : undefined;
     if (absolutePath) {
       return {
-        name: name || ('VM' + this._sourceReference),
+        name: this._name,
         path: absolutePath,
         sourceReference: 0,
-        origin: nodeModule,
         sources,
       };
     }
-    if (name && this._inlineSourceRange) {
-      name = name + '(VM' + this._sourceReference + ')';
-    }
     return {
-      name: name || ('VM' + this._sourceReference),
-      path: name || ('VM' + this._sourceReference),
+      name: this._name,
+      path: this._fqname,
       sourceReference: this._sourceReference,
-      origin: nodeModule,
       sources,
     };
   }
 
   async absolutePath(): Promise<string | undefined> {
-    return (await this._resolvedPath).absolutePath;
+    return this._absolutePath;
+  }
+
+  _fullyQualifiedName(): string {
+    if (!this._url)
+      return 'VM' + this._sourceReference;
+    let fqname = this._url;
+    try {
+      const tokens: string[] = [];
+      const url = new URL(this._url);
+      if (url.protocol)
+        tokens.push(url.protocol.replace(':', '') + '\uA789 ');  // : in unicode
+      if (url.hostname)
+        tokens.push(url.hostname);
+      if (url.port)
+        tokens.push('\uA789' + url.port);  // : in unicode
+      if (url.pathname)
+        tokens.push(url.pathname);
+      if (url.searchParams)
+        tokens.push(url.searchParams.toString());
+      fqname = tokens.join('');
+    } catch (e) {
+    }
+    if (fqname.endsWith('/'))
+      fqname = fqname.substring(0, fqname.length - 1);
+    if (this._inlineSourceRange)
+      return fqname + '/VM' + this._sourceReference;
+    return fqname;
   }
 };
 
@@ -397,9 +412,9 @@ export class SourceContainer {
     else if (source._url)
       this._compiledByUrl.set(source._url, source);
 
-    source._resolvedPath.then(resolvedPath => {
-      if (resolvedPath.absolutePath && this._sourceByReference.get(source.sourceReference()) === source)
-        this._sourceByAbsolutePath.set(resolvedPath.absolutePath, source);
+    source._absolutePath.then(absolutePath => {
+      if (absolutePath && this._sourceByReference.get(source.sourceReference()) === source)
+        this._sourceByAbsolutePath.set(absolutePath, source);
     });
     source.toDap().then(payload => {
       this._dap.loadedSource({reason: 'new', source: payload});
@@ -450,9 +465,9 @@ export class SourceContainer {
     else if (source._url)
       this._compiledByUrl.delete(source._url);
 
-    source._resolvedPath.then(resolvedPath => {
-      if (resolvedPath.absolutePath && this._sourceByAbsolutePath.get(resolvedPath.absolutePath) === source)
-        this._sourceByAbsolutePath.delete(resolvedPath.absolutePath);
+    source.absolutePath().then(absolutePath => {
+      if (absolutePath && this._sourceByAbsolutePath.get(absolutePath) === source)
+        this._sourceByAbsolutePath.delete(absolutePath);
     });
     source.toDap().then(payload => {
       this._dap.loadedSource({reason: 'removed', source: payload});
