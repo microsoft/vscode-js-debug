@@ -40,7 +40,7 @@ export interface ScopeRef {
 }
 
 export interface VariableStoreDelegate {
-  renderDebuggerLocation(location: Cdp.Debugger.Location): string;
+  renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
 }
 
 export class VariableStore {
@@ -233,7 +233,7 @@ export class VariableStore {
         const loc = p.value.value as Cdp.Debugger.Location;
         properties.push(Promise.resolve({
           name: p.name,
-          value: this._delegate.renderDebuggerLocation(loc),
+          value: await this._delegate.renderDebuggerLocation(loc),
           variablesReference: 0
         }));
         continue;

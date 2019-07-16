@@ -23,6 +23,10 @@ type InlineSourceRange = {startLine: number, startColumn: number, endLine: numbe
 type ResolvedPath = {name: string, absolutePath?: string, nodeModule?: string};
 type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
 
+export interface LocationRevealer {
+  revealLocation(location: Location): Promise<void>;
+}
+
 export class SourcePathResolver {
   private _basePath?: string;
   private _baseUrl?: URL;
@@ -258,10 +262,15 @@ export class SourceContainer {
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
   private _initialized = false;
+  private _revealer?: LocationRevealer;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
     this._dap = dap;
     this._sourcePathResolver = sourcePathResolver;
+  }
+
+  installRevealer(revealer: LocationRevealer) {
+    this._revealer = revealer;
   }
 
   initialized() {
@@ -507,5 +516,10 @@ export class SourceContainer {
     if (!source._sourceMapSourceByUrl)
       return [];
     return Array.from(source._sourceMapSourceByUrl.values());
+  }
+
+  async revealLocation(location: Location): Promise<void> {
+    if (this._revealer)
+      this._revealer.revealLocation(location);
   }
 };

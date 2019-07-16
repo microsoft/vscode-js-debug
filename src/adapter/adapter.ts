@@ -8,7 +8,7 @@ import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
 import { VariableStore } from './variables';
-import { SourceContainer, SourcePathResolver, Source, Location } from './sources';
+import { SourceContainer, SourcePathResolver, Location } from './sources';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import { BreakpointManager } from './breakpoints';
@@ -36,7 +36,7 @@ export class Adapter {
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
   private _currentExecutionContext: ExecutionContextTree | undefined;
-  private _sourceToReveal: { source: Source, location: Location } | undefined;
+  private _locationToReveal: Location | undefined;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -122,7 +122,7 @@ export class Adapter {
     }
     this.threadManager.threadForest().forEach(tree => visit(tree, ''));
 
-    if (this._sourceToReveal)
+    if (this._locationToReveal)
       threads.push({id: threadForSourceRevealId, name: ''});
 
     return {threads};
@@ -375,36 +375,34 @@ export class Adapter {
     this._currentExecutionContext = item;
   }
 
-  revealSource(source: Source, location: Location) {
-    if (this._sourceToReveal)
+  async revealLocation(location: Location, revealConfirmed: Promise<void>) {
+    if (this._locationToReveal)
       return;
-    this._sourceToReveal = { source, location };
+    this._locationToReveal = location;
     this._dap.thread({ reason: 'started', threadId: threadForSourceRevealId });
     this._dap.stopped({
       reason: 'goto',
       threadId: threadForSourceRevealId,
       allThreadsStopped: false,
     });
-  }
 
-  cancelRevealSource() {
-    if (!this._sourceToReveal)
-      return;
+    await revealConfirmed;
+
     this._dap.continued({ threadId: threadForSourceRevealId, allThreadsContinued: false });
     this._dap.thread({ reason: 'exited', threadId: threadForSourceRevealId });
-    this._sourceToReveal = undefined;
+    this._locationToReveal = undefined;
   }
 
   async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult>  {
-    if (!this._sourceToReveal || params.startFrame)
+    if (!this._locationToReveal || params.startFrame)
       return { stackFrames: [] };
     return {
       stackFrames: [{
         id: 1,
         name: '',
-        line: this._sourceToReveal.location.lineNumber,
-        column: this._sourceToReveal.location.columnNumber,
-        source: await this._sourceToReveal.source.toDap()
+        line: this._locationToReveal.lineNumber,
+        column: this._locationToReveal.columnNumber,
+        source: await this._locationToReveal.source!.toDap()
       }]
     };
   }

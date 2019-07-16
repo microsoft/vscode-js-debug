@@ -1,9 +1,12 @@
-import * as vscode from 'vscode';
 import * as Net from 'net';
+import * as queryString from 'querystring';
+import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
 import {Adapter} from './adapter/adapter';
 import { ChromeAdapter } from './chrome/chromeAdapter';
 import { NodeAdapter } from './node/nodeAdapter';
+import { Source } from './adapter/sources';
+import Dap from './dap/api';
 
 export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   readonly context: vscode.ExtensionContext;
@@ -73,6 +76,16 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       this._sessions.set(session.id, {session, server, adapter});
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
+  }
+
+  sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: Adapter | undefined, source: Source | undefined } {
+    const query = queryString.parse(uri.query);
+    const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
+    const sessionId = query['session'] as string;
+    const adapter = factory.adapter(sessionId || '');
+    if (!adapter)
+      return { adapter: undefined, source: undefined };
+    return { adapter, source: adapter.sourceContainer.source(ref) };
   }
 
   dispose() {
