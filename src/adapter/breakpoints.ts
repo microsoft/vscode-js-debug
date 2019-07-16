@@ -98,7 +98,7 @@ export class Breakpoint {
 
     if (this._resolvedLocation || !resolvedLocations.length)
       return;
-    const location = thread.locationFromDebugger(resolvedLocations[0]);
+    const location = thread.rawLocationToUiLocation(resolvedLocations[0]);
     const source = this._manager._sourceContainer.source(this._source);
     if (source)
       this._resolvedLocation = this._manager._sourceContainer.siblingLocations(location, source)[0];

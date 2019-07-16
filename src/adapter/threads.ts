@@ -423,38 +423,18 @@ export class Thread implements VariableStoreDelegate {
     this._threadBaseUrl = threadUrl;
   }
 
-  locationFromDebuggerCallFrame(callFrame: Cdp.Debugger.CallFrame): Location {
-    const script = this._scripts.get(callFrame.location.scriptId);
+  rawLocationToUiLocation(rawLocation: {lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId}): Location {
+    const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     return this.sourceContainer.preferredLocation({
-      url: callFrame.url,
-      lineNumber: callFrame.location.lineNumber + 1,
-      columnNumber: (callFrame.location.columnNumber || 0) + 1,
-      source: script ? script.source : undefined
-    });
-  }
-
-  locationFromRuntimeCallFrame(callFrame: Cdp.Runtime.CallFrame): Location {
-    const script = this._scripts.get(callFrame.scriptId);
-    return this.sourceContainer.preferredLocation({
-      url: callFrame.url,
-      lineNumber: callFrame.lineNumber + 1,
-      columnNumber: callFrame.columnNumber + 1,
-      source: script ? script.source : undefined
-    });
-  }
-
-  locationFromDebugger(location: Cdp.Debugger.Location): Location {
-    const script = this._scripts.get(location.scriptId);
-    return this.sourceContainer.preferredLocation({
-      url: script ? script.source.url() : '',
-      lineNumber: location.lineNumber + 1,
-      columnNumber: (location.columnNumber || 0) + 1,
+      url: script ? script.source.url() : (rawLocation.url || ''),
+      lineNumber: rawLocation.lineNumber + 1,
+      columnNumber: (rawLocation.columnNumber || 0) + 1,
       source: script ? script.source : undefined
     });
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
-    const location = this.locationFromDebugger(loc);
+    const location = this.rawLocationToUiLocation(loc);
     let path: string | undefined;
     if (location.source)
       path = await location.source.absolutePath();
@@ -704,7 +684,7 @@ export class Thread implements VariableStoreDelegate {
       if (p.name !== '[[FunctionLocation]]' || !p.value || p.value.subtype as string !== 'internal#location')
         continue;
       const loc = p.value.value as Cdp.Debugger.Location;
-      this.sourceContainer.revealLocation(this.locationFromDebugger(loc));
+      this.sourceContainer.revealLocation(this.rawLocationToUiLocation(loc));
       break;
     }
   }
