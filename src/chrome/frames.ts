@@ -32,7 +32,7 @@ export class FrameModel {
     return this._mainFrame;
   }
 
-  _processCachedResources(cdp: Cdp.Api, mainFramePayload: Cdp.Page.FrameResourceTree | null) {
+  _processCachedResources(cdp: Cdp.Api, mainFramePayload?: Cdp.Page.FrameResourceTree) {
     if (mainFramePayload) {
       const parentFrame = mainFramePayload.frame.parentId ? this._frames.get(mainFramePayload.frame.parentId) : undefined;
       this._addFramesRecursively(cdp, mainFramePayload, parentFrame);
@@ -58,9 +58,9 @@ export class FrameModel {
     return frame;
   }
 
-  _frameAttached(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId: Cdp.Page.FrameId | null): Frame | null {
+  _frameAttached(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId): Frame | undefined {
     if (this._frames.has(frameId))
-      return null;
+      return;
 
     const parentFrame = parentFrameId ? (this._frames.get(parentFrameId)) : undefined;
     const frame = this._addFrame(cdp, frameId, parentFrame);
@@ -69,7 +69,7 @@ export class FrameModel {
   }
 
   _frameNavigated(cdp: Cdp.Api, framePayload: Cdp.Page.Frame) {
-    let frame: Frame | null = this._frames.get(framePayload.id) || null;
+    let frame: Frame | undefined = this._frames.get(framePayload.id);
     if (!frame) {
       // Simulate missed "frameAttached" for a main frame navigation to the new backend process.
       frame = this._frameAttached(cdp, framePayload.id, framePayload.parentId || '') as Frame;

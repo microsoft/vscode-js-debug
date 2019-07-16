@@ -189,8 +189,8 @@ export class Thread implements VariableStoreDelegate {
   private _threadId: number;
   private _name: string;
   private _threadBaseUrl: string;
-  private _pausedDetails: PausedDetails | null;
-  private _pausedVariables: VariableStore | null = null;
+  private _pausedDetails?: PausedDetails;
+  private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
   private _supportsCustomBreakpoints: boolean;
@@ -235,11 +235,11 @@ export class Thread implements VariableStoreDelegate {
     return this._userData;
   }
 
-  pausedDetails(): PausedDetails | null {
+  pausedDetails(): PausedDetails | undefined {
     return this._pausedDetails;
   }
 
-  pausedVariables(): VariableStore | null {
+  pausedVariables(): VariableStore | undefined {
     return this._pausedVariables;
   }
 
@@ -386,8 +386,8 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onResumed() {
-    this._pausedDetails = null;
-    this._pausedVariables = null;
+    this._pausedDetails = undefined;
+    this._pausedVariables = undefined;
     this._reportResumed();
   }
 

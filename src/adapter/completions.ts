@@ -65,7 +65,7 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   return [];
 }
 
-async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, prefix: string): Promise<Dap.CompletionItem[] | null> {
+async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, prefix: string): Promise<Dap.CompletionItem[] | undefined> {
   const params = {
     expression: `
       (() => {
@@ -99,7 +99,7 @@ async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number |
       ? await cdp.Debugger.evaluateOnCallFrame({...params, callFrameId: stackFrame.callFrameId()!})
       : await cdp.Runtime.evaluate({...params, contextId: executionContextId});
   if (!response || response.exceptionDetails)
-    return null;
+    return;
 
   return response.result.value as Dap.CompletionItem[];
 }
