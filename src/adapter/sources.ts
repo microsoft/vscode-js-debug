@@ -244,6 +244,8 @@ export class Source {
     try {
       const tokens: string[] = [];
       const url = new URL(this._url);
+      if (url.protocol === 'data:')
+        return 'VM' + this._sourceReference;
       if (url.protocol)
         tokens.push(url.protocol.replace(':', '') + '\uA789 ');  // : in unicode
       if (url.hostname)
