@@ -3,9 +3,10 @@
 
 import * as ts from 'typescript';
 import Dap from '../dap/api';
-import {Evaluator} from './evaluator';
+import Cdp from '../cdp/api';
+import {StackFrame} from './stackTrace';
 
-export async function completions(evaluator: Evaluator, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
+export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
@@ -40,22 +41,31 @@ export async function completions(evaluator: Evaluator, expression: string, line
 
   const offset = positionToOffset(expression, line, column);
   traverse(sourceFile);
-  if (!prefix)
-    return [];
 
   if (toevaluate)
-    return (await completePropertyAccess(evaluator, toevaluate, prefix)) || [];
+    return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix)) || [];
 
   for (const global of ['self', 'this', 'global']) {
-    const items = await completePropertyAccess(evaluator, global, prefix);
-    if (items)
-      return items;
+    const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix);
+    if (!items)
+      continue;
+
+    if (stackFrame) {
+      const names = new Set(items.map(item => item.label));
+      for (const completion of await stackFrame.completions()) {
+        if (names.has(completion.label))
+          continue;
+        names.add(completion.label);
+        items.push(completion);
+      }
+    }
+    return items;
   }
   return [];
 }
 
-async function completePropertyAccess(evaluator: Evaluator, expression: string, prefix: string): Promise<Dap.CompletionItem[] | null> {
-  const response = await evaluator({
+async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, prefix: string): Promise<Dap.CompletionItem[] | null> {
+  const params = {
     expression: `
       (() => {
         const result = [];
@@ -83,7 +93,10 @@ async function completePropertyAccess(evaluator: Evaluator, expression: string, 
     silent: true,
     includeCommandLineAPI: true,
     returnByValue: true
-  });
+  };
+  const response = (stackFrame && stackFrame.callFrameId())
+      ? await cdp.Debugger.evaluateOnCallFrame({...params, callFrameId: stackFrame.callFrameId()!})
+      : await cdp.Runtime.evaluate({...params, contextId: executionContextId});
   if (!response || response.exceptionDetails)
     return null;
 
