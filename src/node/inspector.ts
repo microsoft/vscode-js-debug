@@ -14,7 +14,6 @@
 
   const ppid = process.env.INSPECTOR_PPID || '';
   process.env.INSPECTOR_PPID = '' + process.pid;
-  process.versions['ndb'] = '1.1.3';
   const inspector = require('inspector');
   inspector.open(0, undefined, false);
 
@@ -27,7 +26,6 @@
     scriptName: scriptName
   })).toString('base64');
 
-  console.log('EXECING');
   try {
     const { execFileSync } = require('child_process');
     if (process.platform === 'win32')
