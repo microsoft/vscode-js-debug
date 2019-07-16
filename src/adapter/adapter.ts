@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import * as completionz from './completions';
 import { StackTrace } from './stackTrace';
 import * as objectPreview from './objectPreview';
-import { VariableStore, ScopeRef } from './variables';
+import { VariableStore } from './variables';
 import { SourceContainer, SourcePathResolver, Source, Location } from './sources';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
@@ -188,63 +188,13 @@ export class Adapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === threadForSourceRevealId)
       return this._syntheticStackTraceForSourceReveal(params);
-
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     const details = thread.pausedDetails();
     if (!details)
       return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
-
-    const from = params.startFrame || 0;
-    let to = params.levels ? from + params.levels : from + 1;
-    const frames = await details.stackTrace.loadFrames(to);
-    to = Math.min(frames.length, params.levels ? to : frames.length);
-    const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to; index++) {
-      const stackFrame = frames[index];
-      const uiLocation = this.sourceContainer.uiLocation(stackFrame.location);
-      const source = uiLocation.source ? await uiLocation.source.toDap() : undefined;
-      if (!index && source) {
-        source.presentationHint = undefined;
-        source.origin = undefined;
-      }
-      const presentationHint = stackFrame.isAsyncSeparator ? 'label' : 'normal';
-      result.push({
-        id: stackFrame.id,
-        name: stackFrame.name,
-        line: uiLocation.lineNumber,
-        column: uiLocation.columnNumber,
-        source,
-        presentationHint,
-      });
-    }
-    this._collapseStackFrameSourceOrigins(result);
-    return {stackFrames: result, totalFrames: details.stackTrace.canLoadMoreFrames() ? 1000000 : frames.length};
-  }
-
-  _collapseStackFrameSourceOrigins(frames: Dap.StackFrame[]) {
-    const origins = new Set<string>();
-    let first = 0;
-
-    function collapse(last: number) {
-      if (!origins.size)
-        return;
-      const s = Array.from(origins).sort((a: string, b: string) => a.localeCompare(b)).join(', ');
-      for (let index = first; index < last; index++)
-        frames[index].source!.origin = s;
-    }
-
-    for (let index = 0; index < frames.length; index++) {
-      const frame = frames[index];
-      if (!frame.source || frame.source.presentationHint !== 'deemphasize') {
-        collapse(index);
-        first = index + 1;
-      } else if (frame.source.origin) {
-        origins.add(frame.source.origin);
-      }
-    }
-    collapse(frames.length);
+    return details.stackTrace.toDap(params);
   }
 
   _findStackTrace(frameId: number): StackTrace | undefined {
@@ -260,77 +210,7 @@ export class Adapter {
     const stackTrace = this._findStackTrace(params.frameId);
     if (!stackTrace)
       return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-    const stackFrame = stackTrace.frame(params.frameId)!;
-    const thread = stackTrace.thread();
-    if (!stackFrame.scopeChain)
-      return {scopes: []};
-    const scopes: Dap.Scope[] = [];
-    for (let index = 0; index < stackFrame.scopeChain.length; index++) {
-      const scope = stackFrame.scopeChain[index];
-      let name: string = '';
-      let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
-      switch (scope.type) {
-        case 'global':
-          name = localize('scope.global', 'Global');
-          break;
-        case 'local':
-          name = localize('scope.local', 'Local');
-          presentationHint = 'locals';
-          break;
-        case 'with':
-          name = localize('scope.with', 'With Block');
-          presentationHint = 'locals';
-          break;
-        case 'closure':
-          name = localize('scope.closure', 'Closure');
-          presentationHint = 'arguments';
-          break;
-        case 'catch':
-          name = localize('scope.catch', 'Catch Block');
-          presentationHint = 'locals';
-          break;
-        case 'block':
-          name = localize('scope.block', 'Block');
-          presentationHint = 'locals';
-          break;
-        case 'script':
-          name = localize('scope.script', 'Script');
-          break;
-        case 'eval':
-          name = localize('scope.eval', 'Eval');
-          break;
-        case 'module':
-          name = localize('scope.module', 'Module');
-          break;
-      }
-      const scopeRef: ScopeRef = {callFrameId: stackFrame.callFrameId!, scopeNumber: index};
-      const variable = await thread.pausedVariables()!.createScope(scope.object, scopeRef);
-      const uiStartLocation = scope.startLocation
-        ? this.sourceContainer.uiLocation(thread.locationFromDebugger(scope.startLocation))
-        : undefined;
-      const uiEndLocation = scope.endLocation
-        ? this.sourceContainer.uiLocation(thread.locationFromDebugger(scope.endLocation))
-        : undefined;
-      if (scope.name && scope.type === 'closure') {
-        name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
-      } else if (scope.name) {
-        name = scope.name;
-      }
-      scopes.push({
-        name,
-        presentationHint,
-        expensive: scope.type === 'global',
-        namedVariables: variable.namedVariables,
-        indexedVariables: variable.indexedVariables,
-        variablesReference: variable.variablesReference,
-        source: uiStartLocation && uiStartLocation.source ? await uiStartLocation.source.toDap() : undefined,
-        line: uiStartLocation ? uiStartLocation.lineNumber : undefined,
-        column: uiStartLocation ? uiStartLocation.columnNumber : undefined,
-        endLine: uiEndLocation ? uiEndLocation.lineNumber : undefined,
-        endColumn: uiEndLocation ? uiEndLocation.columnNumber : undefined,
-      });
-    }
-    return {scopes};
+    return stackTrace.scopes(params.frameId);
   }
 
   _findVariableStore(variablesReference: number): VariableStore | null {
@@ -401,6 +281,7 @@ export class Adapter {
     });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+
     if (args.context !== 'repl') {
       const variable = await prep.variableStore!.createVariable(response.result, args.context);
       return {
