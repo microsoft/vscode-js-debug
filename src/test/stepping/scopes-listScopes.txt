@@ -15,7 +15,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -27,7 +27,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -39,7 +39,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -51,7 +51,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -63,7 +63,7 @@ stackTrace: {
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
         }
@@ -82,7 +82,7 @@ frame #0: {
             presentationHint : locals
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -116,7 +116,7 @@ frame #1: {
             presentationHint : locals
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -131,7 +131,7 @@ frame #1: {
             presentationHint : arguments
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -175,7 +175,7 @@ frame #2: {
             presentationHint : locals
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -190,7 +190,7 @@ frame #2: {
             presentationHint : arguments
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -234,7 +234,7 @@ frame #3: {
             presentationHint : locals
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
@@ -249,7 +249,7 @@ frame #3: {
             presentationHint : arguments
             source : {
                 name : VM<xx>
-                path : VM<xx>
+                path : VM/VM<xx>
                 sourceReference : <number>
             }
             variablesReference : <number>
