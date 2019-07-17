@@ -310,7 +310,7 @@ export class Thread implements VariableStoreDelegate {
     });
     this._cdp.Runtime.on('exceptionThrown', async event => {
       const slot = this.claimOutputSlot();
-      slot(await this._onExceptionThrown(event.exceptionDetails));
+      slot(await this.formatException(event.exceptionDetails));
     });
     this._cdp.Runtime.on('inspectRequested', event => {
       this._revealObject(event.object);
@@ -435,12 +435,8 @@ export class Thread implements VariableStoreDelegate {
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
     const location = this.rawLocationToUiLocation(loc);
-    let path: string | undefined;
-    if (location.source)
-      path = await location.source.absolutePath();
-    if (!path)
-      path = location.url;
-    return `@ ${path}:${location.lineNumber}`;
+    const name = (location.source && await location.source.prettyName()) || location.url;
+    return `@ ${name}:${location.lineNumber}`;
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
@@ -586,11 +582,12 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<Dap.OutputEventParams | undefined> {
+  async formatException(details: Cdp.Runtime.ExceptionDetails, prefix?: string): Promise<Dap.OutputEventParams | undefined> {
     const preview = details.exception ? objectPreview.previewException(details.exception) : { title: '' };
     let message = preview.title;
     if (!message.startsWith('Uncaught'))
       message = 'Uncaught ' + message;
+    message = (prefix || '') + message;
 
     let stackTrace: StackTrace | undefined;
     let location: Location | undefined;
@@ -661,15 +658,16 @@ export class Thread implements VariableStoreDelegate {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
     if (script) {
-      const sources = await this.sourceContainer.waitForSourceMapSources(script.source);
+      const sources = await Promise.race([
+        this.sourceContainer.waitForSourceMapSources(script.source),
+        new Promise<Source[]>(f => setTimeout(() => f([]), 1000))
+      ]);
       if (sources && this.manager._scriptWithSourceMapHandler)
         await this.manager._scriptWithSourceMapHandler(script, sources);
     }
-    // TODO(dgozman): replace with assert.
-    if (this._pausedForSourceMapScriptId === scriptId) {
-      this._pausedForSourceMapScriptId = undefined;
-      this._cdp.Debugger.resume({});
-    }
+    console.assert(this._pausedForSourceMapScriptId === scriptId);
+    this._pausedForSourceMapScriptId = undefined;
+    this._cdp.Debugger.resume({});
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {

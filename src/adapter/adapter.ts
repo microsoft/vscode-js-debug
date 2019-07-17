@@ -294,14 +294,18 @@ export class Adapter {
     }
 
     const outputSlot = prep.thread.claimOutputSlot();
-    const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
-    const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
-    const output = {
-      category: 'stdout',
-      output: '',
-      variablesReference,
-    } as Dap.OutputEventParams;
-    outputSlot(output);
+    if (response.exceptionDetails) {
+      outputSlot(await prep.thread.formatException(response.exceptionDetails, '↳ '));
+    } else {
+      const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
+      const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
+      const output = {
+        category: 'stdout',
+        output: '',
+        variablesReference,
+      } as Dap.OutputEventParams;
+      outputSlot(output);
+    }
 
     return { result: '', variablesReference: 0 };
   }
