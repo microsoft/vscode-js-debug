@@ -100,9 +100,9 @@ export default class Connection {
     this._onDisconnectedEmitter.fire();
   }
 
-  dispose() {
+  async close(): Promise<void> {
     this._onTransportClose();
-    this._transport.close();
+    return this._transport.close();
   }
 
   createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {

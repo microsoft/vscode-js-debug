@@ -40,6 +40,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
   private _threadsByPid = new Map<string, Thread>();
+  private _isRestarting: boolean;
 
   static async create(dap: Dap.Api): Promise<Adapter> {
     return new Promise<Adapter>(f => new NodeAdapter(dap, f));
@@ -103,13 +104,13 @@ export class NodeAdapter implements ThreadManagerDelegate {
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     await this._killRuntime();
-    this._stopServer();
+    await this._stopServer();
     return {};
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
     await this._killRuntime();
-    this._stopServer();
+    await this._stopServer();
     return {};
   }
 
@@ -125,10 +126,12 @@ export class NodeAdapter implements ThreadManagerDelegate {
 
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     // Dispose all the connections - Node would not exit child processes otherwise.
+    this._isRestarting = true;
     await this._killRuntime();
-    this._stopServer();
-    this._startServer();
-    this._relaunch();
+    await this._stopServer();
+    await this._startServer();
+    await this._relaunch();
+    this._isRestarting = false;
     return {};
   }
 
@@ -145,12 +148,11 @@ export class NodeAdapter implements ThreadManagerDelegate {
     }).listen(this._pipe);
   }
 
-  _stopServer() {
+  async _stopServer() {
     if (this._server)
       this._server.close();
     this._server = undefined;
-    for (const c of this._connections)
-      c.dispose();
+    await Promise.all(this._connections.map(c => c.close()));
     this._connections = [];
   }
 
@@ -172,10 +174,10 @@ export class NodeAdapter implements ThreadManagerDelegate {
       this._threadsByPid.delete(info.pid);
       thread.dispose();
     });
-    this._adapter.threadManager.onExecutionContextsChanged(() => {
+    this._adapter.threadManager.onExecutionContextsChanged(async () => {
       if (thread.defaultContextDestroyed()) {
-        connection.dispose();
-        if (!this._adapter.threadManager.mainThread())
+        await connection.close();
+        if (!this._isRestarting && !this._adapter.threadManager.mainThread())
           this._dap.terminated({});
       }
     });
