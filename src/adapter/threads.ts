@@ -644,7 +644,8 @@ export class Thread implements VariableStoreDelegate {
         : undefined;
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL) {
-        // TODO(dgozman): reload source map when thread url changes.
+        // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
+        // but in practice that usually means new scripts with new source maps anyway.
         const resolvedSourceUrl = utils.completeUrl(this._threadBaseUrl, event.url);
         resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
       }

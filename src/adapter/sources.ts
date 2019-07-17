@@ -492,13 +492,12 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sourceUrls()) {
-      // TODO(dgozman): |resolvedUrl| may be equal to compiled url - we may need to distinguish them.
       const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
       const content = map.sourceContent(url);
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
-        // TODO(dgozman): support recursive source maps?
+        // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
         source = new Source(this, resolvedUrl, content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
         source._compiledToSourceUrl = new Map();
       }
