@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Cdp from '../cdp/api';
 import * as debug from 'debug';
-import { Source, Location, SourceContainer } from './sources';
-import * as utils from '../utils';
-import { StackTrace, StackFrame } from './stackTrace';
-import * as objectPreview from './objectPreview';
-import { VariableStore, VariableStoreDelegate } from './variables';
-import Dap from '../dap/api';
-import customBreakpoints from './customBreakpoints';
-import * as nls from 'vscode-nls';
-import * as messageFormat from './messageFormat';
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import Dap from '../dap/api';
+import * as utils from '../utils';
+import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
+import * as messageFormat from './messageFormat';
+import * as objectPreview from './objectPreview';
+import { Location, Source, SourceContainer } from './sources';
+import { StackFrame, StackTrace } from './stackTrace';
+import { VariableStore, VariableStoreDelegate } from './variables';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -157,20 +157,24 @@ export class ThreadManager {
       thread.updatePauseOnExceptionsState();
   }
 
-  updateCustomBreakpoints(breakpoints: Dap.CustomBreakpoint[]): Promise<any> {
+  async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
     const promises: Promise<boolean>[] = [];
-    for (const breakpoint of breakpoints) {
-      if (breakpoint.enabled && !this._customBreakpoints.has(breakpoint.id)) {
-        this._customBreakpoints.add(breakpoint.id);
-        for (const thread of this._threads.values())
-          promises.push(thread.updateCustomBreakpoint(breakpoint.id, true));
-      } else if (!breakpoint.enabled && this._customBreakpoints.has(breakpoint.id)) {
-        this._customBreakpoints.delete(breakpoint.id);
-        for (const thread of this._threads.values())
-          promises.push(thread.updateCustomBreakpoint(breakpoint.id, false));
-      }
+    for (const id of ids) {
+      this._customBreakpoints.add(id);
+      for (const thread of this._threads.values())
+        promises.push(thread.updateCustomBreakpoint(id, true));
     }
-    return Promise.all(promises);
+    await Promise.all(promises);
+  }
+
+  async disableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+    const promises: Promise<boolean>[] = [];
+    for (const id of ids) {
+      this._customBreakpoints.add(id);
+      for (const thread of this._threads.values())
+        promises.push(thread.updateCustomBreakpoint(id, false));
+    }
+    await Promise.all(promises);
   }
 
   customBreakpoints(): Set<string> {
@@ -443,7 +447,7 @@ export class Thread implements VariableStoreDelegate {
     return !!await this._cdp.Debugger.setPauseOnExceptions({ state: this.manager.pauseOnExceptionsState() });
   }
 
-  async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
+  async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
     if (!this._supportsCustomBreakpoints)
       return true;
     const breakpoint = customBreakpoints().get(id);

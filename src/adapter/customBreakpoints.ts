@@ -5,6 +5,8 @@
 import Cdp from "../cdp/api";
 import * as nls from 'vscode-nls';
 
+export type CustomBreakpointId = string;
+
 export interface CustomBreakpoint {
   id: string;
   title: string;

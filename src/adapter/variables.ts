@@ -102,7 +102,7 @@ export class VariableStore {
     if (!evaluateResponse)
       return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
     if (evaluateResponse.exceptionDetails)
-      return errors.createUserError(objectPreview.previewExceptionDetails(evaluateResponse.exceptionDetails));
+      return errorFromException(evaluateResponse.exceptionDetails);
 
     function release(error: Dap.Error): Dap.Error {
       const objectId = evaluateResponse!.result.objectId;
@@ -130,7 +130,7 @@ export class VariableStore {
       if (!setResponse)
         return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
       if (setResponse.exceptionDetails)
-        return release(errors.createUserError(objectPreview.previewExceptionDetails(setResponse.exceptionDetails)));
+        return release(errorFromException(setResponse.exceptionDetails));
     }
 
     const variable = await this._createVariable(params.name, new RemoteObject(object.cdp, evaluateResponse.result));
@@ -402,4 +402,9 @@ export class VariableStore {
       return { unserializableValue: object.unserializableValue };
     return { value: object.value };
   }
+}
+
+function errorFromException(details: Cdp.Runtime.ExceptionDetails): Dap.Error {
+  const message = (details.exception && objectPreview.previewException(details.exception).title) || details.text;
+  return errors.createUserError(message);
 }

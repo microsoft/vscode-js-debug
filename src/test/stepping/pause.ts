@@ -55,7 +55,7 @@ async function pauseOnInnerHtml(p: test.Params) {
   await test.evaluate(p, `document.querySelector('div').innerHTML = 'foo';`);
 
   p.log('Pausing on innerHTML');
-  p.log(await p.dap.updateCustomBreakpoints({breakpoints: [{id: 'instrumentation:Element.setInnerHTML', enabled: true}]}));
+  await p.adapter.threadManager.enableCustomBreakpoints(['instrumentation:Element.setInnerHTML']);
   test.evaluate(p, `document.querySelector('div').innerHTML = 'bar';`);
   const event = p.log(await p.dap.once('stopped'));
   p.log(await p.dap.continue({threadId: event.threadId}));
