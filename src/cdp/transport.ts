@@ -1,34 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as utils from '../utils';
+import * as net from 'net';
 import * as WebSocket from 'ws';
+import * as utils from '../utils';
 
 export interface Transport {
   send(message: string): void;
-  close(): Promise<void>;
+  close();
   onmessage?: (message: string) => void;
   onclose?: () => void;
   clone(): Promise<Transport>;
 }
 
 export class PipeTransport implements Transport {
-  private _pipeWrite?: NodeJS.WritableStream;
-  private _pipeRead?: NodeJS.ReadableStream;
+  private _pipeWrite: NodeJS.WritableStream | undefined;
+  private _socket: net.Socket | undefined;
   private _pendingMessage: string;
   private _eventListeners: any[];
   onmessage?: (message: string) => void;
   onclose?: () => void;
 
-  constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
-    this._pipeWrite = pipeWrite;
-    this._pipeRead = pipeRead;
+  constructor(socket: net.Socket);
+  constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
+
+  constructor(pipeWrite: net.Socket | NodeJS.WritableStream, pipeRead?: NodeJS.ReadableStream) {
+    this._pipeWrite = pipeWrite as NodeJS.WritableStream;
+    if (!pipeRead)
+      this._socket = pipeWrite as net.Socket;
     this._pendingMessage = '';
     this._eventListeners = [
-      utils.addEventListener(pipeRead, 'data', buffer => this._dispatch(buffer)),
-      utils.addEventListener(pipeRead, 'close', () => {
+      utils.addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
+      utils.addEventListener(pipeRead || pipeWrite, 'close', () => {
         this._pipeWrite = undefined;
-        this._pipeRead = undefined;
         if (this.onclose)
           this.onclose.call(null);
       })
@@ -63,16 +67,12 @@ export class PipeTransport implements Transport {
     this._pendingMessage = buffer.toString(undefined, start);
   }
 
-  async close(): Promise<void> {
-    if (!this._pipeRead)
-      return;
-    let callback: () => void;
-    const result = new Promise<void>(f => callback = f);
-    utils.addEventListener(this._pipeRead!, 'close', () => callback());
+  async close() {
+    if (this._socket)
+      this._socket.destroy();
+    this._socket = undefined;
     this._pipeWrite = undefined;
-    this._pipeRead = undefined;
     utils.removeEventListeners(this._eventListeners);
-    return result;
   }
 
   clone(): Promise<Transport> {

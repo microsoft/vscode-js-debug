@@ -11,20 +11,13 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
 import * as errors from '../adapter/errors';
-import { WebSocketTransport } from '../cdp/transport';
+import { PipeTransport } from '../cdp/transport';
 import Connection from '../cdp/connection';
 import { ThreadManagerDelegate, ExecutionContextTree, Thread } from '../adapter/threads';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
   runtime: string;
-}
-
-interface Endpoint {
-  pid: string;
-  ppid: string;
-  scriptName: string | undefined;
-  inspectorUrl: string;
 }
 
 let counter = 0;
@@ -38,7 +31,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
-  private _threadsByPid = new Map<string, Thread>();
+  private _targets = new Map<string, Thread>();
   private _isRestarting: boolean;
 
   static async create(dap: Dap.Api): Promise<Adapter> {
@@ -92,11 +85,15 @@ export class NodeAdapter implements ThreadManagerDelegate {
       env: { ...process.env, ...env(this._pipe!) },
       stdio: ['ignore', 'pipe', 'pipe']
     });
-    const output = vscode.window.createOutputChannel(this._launchParams!.program);
-    this._runtime.stdout.on('data', data => output.append(data.toString()));
-    this._runtime.stderr.on('data', data => output.append(data.toString()));
+    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(this._launchParams!.program);
+    this._runtime.stdout.on('data', data => {
+      if (output)
+        output.append(data.toString())
+    });
+    this._runtime.stderr.on('data', data => output && output.append(data.toString()));
     this._runtime.on('exit', () => {
-      output.dispose();
+      output!.dispose();
+      output = undefined;
       this._runtime = undefined;
     });
   }
@@ -114,7 +111,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
   }
 
   async _killRuntime() {
-    if (!this._runtime)
+    if (!this._runtime || this._runtime.killed)
       return;
     this._runtime.kill();
     let callback = () => {};
@@ -127,7 +124,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
     await this._killRuntime();
-    await this._stopServer();
+    this._stopServer();
     await this._startServer();
     await this._relaunch();
     this._isRestarting = false;
@@ -138,49 +135,43 @@ export class NodeAdapter implements ThreadManagerDelegate {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     this._pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     this._server = net.createServer(socket => {
-      socket.on('data', d => {
-        const payload = Buffer.from(d.toString(), 'base64').toString();
-        socket.destroy();
-        this._startSession(JSON.parse(payload) as Endpoint);
-      });
-      socket.on('error', e => console.error(e));
+      this._startSession(socket);
     }).listen(this._pipe);
   }
 
-  async _stopServer() {
+  _stopServer() {
     if (this._server)
       this._server.close();
     this._server = undefined;
-    await Promise.all(this._connections.map(c => c.close()));
+    this._connections.forEach(c => c.close());
     this._connections = [];
   }
 
-  async _startSession(info: Endpoint) {
-    const transport = await WebSocketTransport.create(info.inspectorUrl);
+  async _startSession(socket: net.Socket) {
+    const transport = new PipeTransport(socket);
     const connection = new Connection(transport);
     this._connections.push(connection);
     const cdp = connection.createSession('');
-    const parentThread = this._threadsByPid.get(info.ppid);
+    const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f));
+    const parentThread = this._targets.get(targetInfo.openerId!);
     const thread = this._adapter.threadManager.createThread(cdp, parentThread, {});
-    this._threadsByPid.set(info.pid, thread);
+    this._targets.set(targetInfo.targetId, thread);
     let threadName: string;
-    if (info.scriptName)
-      threadName = `${path.basename(info.scriptName)} [${info.pid}]`;
+    if (targetInfo.title)
+      threadName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
-      threadName = `[${info.pid}]`;
+      threadName = `[${targetInfo.targetId}]`;
     thread.setName(threadName);
     connection.onDisconnected(() => {
-      this._threadsByPid.delete(info.pid);
+      this._targets.delete(targetInfo.targetId);
       thread.dispose();
-    });
-    this._adapter.threadManager.onExecutionContextsChanged(async () => {
-      if (thread.defaultContextDestroyed()) {
-        await connection.close();
-        if (!this._isRestarting && !this._adapter.threadManager.mainThread())
-          this._dap.terminated({});
-      }
+      if (!this._targets.size && !this._isRestarting)
+        this._dap.terminated({});
     });
     await thread.initialize();
+    cdp.Runtime.on('executionContextDestroyed', () => {
+      connection.close();
+    });
     cdp.Runtime.runIfWaitingForDebugger({});
   }
 
@@ -210,7 +201,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
 
 function env(pipe: string) {
   return {
-    NODE_OPTIONS: `--require inspector.js`,
+    NODE_OPTIONS: `--require bootloader.js`,
     NODE_PATH: `${process.env.NODE_PATH || ''}${path.delimiter}${path.join(__dirname)}`,
     NODE_INSPECTOR_IPC: pipe
   };
