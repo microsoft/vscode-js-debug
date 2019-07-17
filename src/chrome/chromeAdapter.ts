@@ -96,7 +96,7 @@ export class ChromeAdapter {
         userDataDir: path.join(this._storagePath, this._isUnderTest() ? '.headless-profile' : 'profile'),
         pipe: true,
       });
-    this._connection.onDisconnected(() => this._dap.exited({exitCode: 0}), undefined, this._disposables);
+    this._connection.onDisconnected(() => this._dap.exited({ exitCode: 0 }), undefined, this._disposables);
     this._adapter = new Adapter(this._dap);
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
     this._adapter.threadManager.setDelegate(this._targetManager);
@@ -116,7 +116,7 @@ export class ChromeAdapter {
       }
     });
     if (this._isUnderTest())
-      return {targetId: this._mainTarget.targetId()};
+      return { targetId: this._mainTarget.targetId() };
     return {};
   }
 
@@ -127,7 +127,7 @@ export class ChromeAdapter {
     // params.noDebug
     this._launchParams = params;
     this._adapter.launch(params.url, params.webRoot);
-    await this._mainTarget!.cdp().Page.navigate({url: params.url});
+    await this._mainTarget!.cdp().Page.navigate({ url: params.url });
     this._adapterReadyCallback(this._adapter);
     return {};
   }
@@ -139,7 +139,7 @@ export class ChromeAdapter {
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
-    this._mainTarget.cdp().Page.navigate({url: 'about:blank'});
+    this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
     return {};
   }
 
@@ -153,7 +153,7 @@ export class ChromeAdapter {
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
-    await this._mainTarget.cdp().Page.navigate({url: this._launchParams.url});
+    await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
     return {};
   }
 }

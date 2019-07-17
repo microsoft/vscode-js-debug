@@ -113,7 +113,7 @@ export class TargetManager implements ThreadManagerDelegate {
       let container = result;
 
       // Which target should own the context?
-      for (let t: Target| undefined = target; t; t = t.parentTarget) {
+      for (let t: Target | undefined = target; t; t = t.parentTarget) {
         const parentContext = mainForTarget.get(t);
         if (parentContext) {
           container = parentContext.children;
@@ -164,7 +164,7 @@ export class TargetManager implements ThreadManagerDelegate {
     if (parentTarget)
       parentTarget._children.set(targetInfo.targetId, target);
 
-      cdp.Target.on('attachedToTarget', async event => {
+    cdp.Target.on('attachedToTarget', async event => {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
     });
     cdp.Target.on('detachedFromTarget', async event => {
@@ -176,7 +176,7 @@ export class TargetManager implements ThreadManagerDelegate {
       this._connection.disposeSession(sessionId);
     }
 
-    if (!await cdp.Target.setAutoAttach({autoAttach: true, waitForDebuggerOnStart: true, flatten: true}))
+    if (!await cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true }))
       return cleanupOnFailure();
     if (!await target._initialize(waitingForDebugger))
       return cleanupOnFailure();
@@ -234,17 +234,17 @@ export class Target {
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
   private _targetInfo: Cdp.Target.TargetInfo;
-  private _ondispose: (t:Target) => void;
+  private _ondispose: (t: Target) => void;
 
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
 
-  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t:Target) => void) {
+  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t: Target) => void) {
     this._cdp = cdp;
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type)) {
       let parentThread: Thread | undefined;
-      for(let p = parentTarget; p && !parentThread; p = p.parentTarget)
+      for (let p = parentTarget; p && !parentThread; p = p.parentTarget)
         parentThread = p.thread();
       this._thread = targetManager._threadManager.createThread(cdp, parentThread, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
     }

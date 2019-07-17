@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-(function() {
+(function () {
   if (!process.env.NODE_INSPECTOR_IPC)
     return;
 

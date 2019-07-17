@@ -9,7 +9,7 @@ export interface CustomBreakpoint {
   id: string;
   title: string;
   group: string;
-  details: (data: object) => {short: string, long: string};
+  details: (data: object) => { short: string, long: string };
   apply: (cdp: Cdp.Api, enabled: boolean) => Promise<boolean>;
 };
 
@@ -34,7 +34,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       id: 'instrumentation:' + instrumentation,
       title,
       group: '',
-      details: (data: object): {short: string, long: string} => {
+      details: (data: object): { short: string, long: string } => {
         if (instrumentation === 'webglErrorFired') {
           let errorName = data['webglErrorName'];
           // If there is a hex code of the error, display only this.
@@ -57,9 +57,9 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       },
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
         if (enabled)
-          return !!await cdp.DOMDebugger.setInstrumentationBreakpoint({eventName: instrumentation!});
+          return !!await cdp.DOMDebugger.setInstrumentationBreakpoint({ eventName: instrumentation! });
         else
-          return !!await cdp.DOMDebugger.removeInstrumentationBreakpoint({eventName: instrumentation!});
+          return !!await cdp.DOMDebugger.removeInstrumentationBreakpoint({ eventName: instrumentation! });
       }
     };
   }
@@ -70,7 +70,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       id: 'listener:' + eventName,
       title: title || eventName,
       group: '',
-      details: (data: object): {short: string, long: string} => {
+      details: (data: object): { short: string, long: string } => {
         const eventTargetName = (data['targetName'] || '*').toLowerCase();
         return {
           short: eventTargetName + '.' + eventName,
@@ -81,9 +81,9 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
         let result = true;
         for (const eventTarget of eventTargets) {
           if (enabled)
-            result = result && !!await cdp.DOMDebugger.setEventListenerBreakpoint({eventName, targetName: eventTarget});
+            result = result && !!await cdp.DOMDebugger.setEventListenerBreakpoint({ eventName, targetName: eventTarget });
           else
-            result = result && !!await cdp.DOMDebugger.removeEventListenerBreakpoint({eventName, targetName: eventTarget});
+            result = result && !!await cdp.DOMDebugger.removeEventListenerBreakpoint({ eventName, targetName: eventTarget });
         }
         return result;
       }

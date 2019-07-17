@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {Thread} from "./threads";
-import {Location} from "./sources";
+import { Thread } from "./threads";
+import { Location } from "./sources";
 import Cdp from "../cdp/api";
-import {kLogPointUrl} from "./breakpoints";
+import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
-import {ScopeRef} from "./variables";
+import { ScopeRef } from "./variables";
 import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
@@ -53,7 +53,7 @@ export class StackTrace {
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
-      const response = await this._thread.cdp().Debugger.getStackTrace({stackTraceId: this._asyncStackTraceId});
+      const response = await this._thread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
       this._asyncStackTraceId = undefined;
       if (response)
         this._appendStackTrace(response.stackTrace);
@@ -110,7 +110,7 @@ export class StackTrace {
     const result: Dap.StackFrame[] = [];
     for (let index = from; index < to; index++)
       result.push(await frames[index].toDap());
-    return {stackFrames: result, totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length};
+    return { stackFrames: result, totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length };
   }
 };
 
@@ -121,7 +121,7 @@ export class StackFrame {
   private _name: string;
   private _location: Location;
   private _isAsyncSeparator = false;
-  private _scope: {chain: Cdp.Debugger.Scope[], variables: (Dap.Variable | undefined)[], callFrameId: string};
+  private _scope: { chain: Cdp.Debugger.Scope[], variables: (Dap.Variable | undefined)[], callFrameId: string };
   private _stack: StackTrace;
 
   static fromRuntime(stack: StackTrace, callFrame: Cdp.Runtime.CallFrame): StackFrame {
@@ -142,7 +142,7 @@ export class StackFrame {
   }
 
   static asyncSeparator(stack: StackTrace, name: string): StackFrame {
-    const result = new StackFrame(stack, name, {lineNumber: 1, columnNumber: 1, url: ''});
+    const result = new StackFrame(stack, name, { lineNumber: 1, columnNumber: 1, url: '' });
     result._isAsyncSeparator = true;
     return result;
   }
@@ -168,7 +168,7 @@ export class StackFrame {
 
   async scopes(): Promise<Dap.ScopesResult> {
     if (!this._scope)
-      return {scopes: []};
+      return { scopes: [] };
 
     const scopes: Dap.Scope[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
@@ -240,7 +240,7 @@ export class StackFrame {
       scopes.push(dap);
     }
 
-    return {scopes};
+    return { scopes };
   }
 
   async toDap(): Promise<Dap.StackFrame> {
@@ -277,7 +277,7 @@ export class StackFrame {
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {
     const scope = this._scope!;
     if (!scope.variables[scopeNumber]) {
-      const scopeRef: ScopeRef = {callFrameId: scope.callFrameId, scopeNumber};
+      const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
       const variable = await this.thread().pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
       scope.variables[scopeNumber] = variable;
     }
@@ -293,8 +293,8 @@ export class StackFrame {
       promises.push(this._scopeVariable(scopeNumber).then(async scopeVariable => {
         if (!scopeVariable.variablesReference)
           return [];
-        const variables = await variableStore.getVariables({variablesReference: scopeVariable.variablesReference});
-        return variables.map(variable => ({label: variable.name, type: 'property'}));
+        const variables = await variableStore.getVariables({ variablesReference: scopeVariable.variablesReference });
+        return variables.map(variable => ({ label: variable.name, type: 'property' }));
       }));
     }
     const completions = await Promise.all(promises);

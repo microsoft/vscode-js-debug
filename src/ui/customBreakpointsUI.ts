@@ -3,10 +3,10 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import {CustomBreakpoint, customBreakpoints} from '../adapter/customBreakpoints';
+import { CustomBreakpoint, customBreakpoints } from '../adapter/customBreakpoints';
 import Dap from '../dap/api';
-import {AdapterFactory} from '../adapterFactory';
-import {Adapter} from '../adapter/adapter';
+import { AdapterFactory } from '../adapterFactory';
+import { Adapter } from '../adapter/adapter';
 
 class Breakpoint {
   id: string;
@@ -42,7 +42,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
 
     const sendState = (adapter: Adapter) => {
       const params: Dap.UpdateCustomBreakpointsParams = {
-        breakpoints: this._collectState().map(id => ({id, enabled: true}))
+        breakpoints: this._collectState().map(id => ({ id, enabled: true }))
       };
       adapter.onUpdateCustomBreakpoints(params);
     };
@@ -65,14 +65,14 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   }
 
   addBreakpoints(breakpoints: Breakpoint[]) {
-    const payload: Dap.CustomBreakpoint[] = breakpoints.map(b => ({id: b.id, enabled: true}));
+    const payload: Dap.CustomBreakpoint[] = breakpoints.map(b => ({ id: b.id, enabled: true }));
     this._changeBreakpoints(payload);
   }
 
   removeBreakpoints(breakpointIds: string[]) {
     const payload: Dap.CustomBreakpoint[] = [];
     for (const id of breakpointIds)
-      payload.push({id, enabled: false});
+      payload.push({ id, enabled: false });
     this._changeBreakpoints(payload);
   }
 
@@ -85,7 +85,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
         b.enabled = state.get(b.id) as boolean;
     }
 
-    const params: Dap.UpdateCustomBreakpointsParams = {breakpoints: payload};
+    const params: Dap.UpdateCustomBreakpointsParams = { breakpoints: payload };
     this._factory.adapters().forEach(adapter => adapter.onUpdateCustomBreakpoints(params));
     this._onDidChangeTreeData.fire(undefined);
   }

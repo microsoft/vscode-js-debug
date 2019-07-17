@@ -223,16 +223,16 @@ function formatFunctionDescription(description: string, includePreview: boolean 
   }
 }
 
-export function previewException(exception: Cdp.Runtime.RemoteObject): {title: string, stackTrace?: string} {
+export function previewException(exception: Cdp.Runtime.RemoteObject): { title: string, stackTrace?: string } {
   if (exception.type !== 'object')
-    return {title: renderValue(exception, false)};
+    return { title: renderValue(exception, false) };
   const description = exception.description!;
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame) {
     const lastLineBreak = description.lastIndexOf('\n');
     if (lastLineBreak === -1)
-      return {title: description};
-    return {title: description.substring(0, lastLineBreak)};
+      return { title: description };
+    return { title: description.substring(0, lastLineBreak) };
   }
   return {
     title: description.substring(0, firstCallFrame.index - 1),

@@ -5,6 +5,7 @@
 import * as beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
+// TODO(dgozman): remove it in favour of Mozilla.
 import { SourceMap } from './sourceMap';
 
 export function prettyPrintAsSourceMap(fileName: string, minified: string): SourceMap | undefined {

@@ -5,7 +5,7 @@
 import * as stream from 'stream';
 import * as path from 'path';
 import DapConnection from '../dap/connection';
-import {ConfigurationDoneResult, Adapter} from '../adapter/adapter';
+import { ConfigurationDoneResult } from '../adapter/adapter';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
@@ -24,15 +24,15 @@ class Stream extends stream.Duplex {
 }
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
-export type Params = {cdp: Cdp.Api, dap: Dap.TestApi, log: Log, initializeResult: Dap.InitializeResult};
+export type Params = { cdp: Cdp.Api, dap: Dap.TestApi, log: Log, initializeResult: Dap.InitializeResult };
 
-export async function setup(): Promise<{adapter: ChromeAdapter, dap: Dap.TestApi}> {
+export async function setup(): Promise<{ adapter: ChromeAdapter, dap: Dap.TestApi }> {
   const testToAdapter = new Stream();
   const adapterToTest = new Stream();
   const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
   const testConnection = new DapConnection(adapterToTest, testToAdapter);
-  const adapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), () => {});
-  return {adapter, dap: testConnection.createTestApi()};
+  const adapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), () => { });
+  return { adapter, dap: testConnection.createTestApi() };
 }
 
 export function initialize(dap: Dap.TestApi) {
@@ -49,7 +49,7 @@ export function initialize(dap: Dap.TestApi) {
 export async function configure(connection: CdpConnection, dap: Dap.TestApi): Promise<Cdp.Api> {
   const result = (await dap.configurationDone({}) as ConfigurationDoneResult)!;
   const targetId = result.targetId!;
-  const {sessionId} = (await connection.browser().Target.attachToTarget({ targetId, flatten: true }))!;
+  const { sessionId } = (await connection.browser().Target.attachToTarget({ targetId, flatten: true }))!;
   return connection.createSession(sessionId);
 }
 
@@ -67,7 +67,7 @@ let evaluateCounter = 0;
 export async function evaluate(p: Params, expression: string) {
   ++evaluateCounter;
   p.log(`Evaluating#${evaluateCounter}: ${expression}`);
-  return p.cdp.Runtime.evaluate({expression: expression + `\n//# sourceURL=eval${evaluateCounter}.js`}).then(result => {
+  return p.cdp.Runtime.evaluate({ expression: expression + `\n//# sourceURL=eval${evaluateCounter}.js` }).then(result => {
     if (!result) {
       p.log(expression, 'Error evaluating');
       debugger;
@@ -82,7 +82,7 @@ export async function evaluate(p: Params, expression: string) {
 export async function launchAndLoad(p: Params, url: string) {
   await p.cdp.Page.enable({});
   await Promise.all([
-    p.dap.launch({url}),
+    p.dap.launch({ url }),
     new Promise(f => p.cdp.Page.on('loadEventFired', f))
   ]);
   await p.cdp.Page.disable({});

@@ -2,7 +2,7 @@ import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
-import {Adapter} from './adapter/adapter';
+import { Adapter } from './adapter/adapter';
 import { ChromeAdapter } from './chrome/chromeAdapter';
 import { NodeAdapter } from './node/nodeAdapter';
 import { Source } from './adapter/sources';
@@ -73,14 +73,14 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       const adapter = session.configuration['program'] ?
         await NodeAdapter.create(connection.dap()) :
         await ChromeAdapter.create(connection.dap(), this.context.storagePath || this.context.extensionPath);
-      this._sessions.set(session.id, {session, server, adapter});
+      this._sessions.set(session.id, { session, server, adapter });
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }
 
   sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: Adapter | undefined, source: Source | undefined } {
     const query = queryString.parse(uri.query);
-    const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string)};
+    const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string) };
     const sessionId = query['session'] as string;
     const adapter = factory.adapter(sessionId || '');
     if (!adapter)
