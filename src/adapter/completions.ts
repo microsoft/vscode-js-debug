@@ -4,7 +4,7 @@
 import * as ts from 'typescript';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import {StackFrame} from './stackTrace';
+import { StackFrame } from './stackTrace';
 
 export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
@@ -95,8 +95,8 @@ async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number |
     returnByValue: true
   };
   const response = (stackFrame && stackFrame.callFrameId())
-      ? await cdp.Debugger.evaluateOnCallFrame({...params, callFrameId: stackFrame.callFrameId()!})
-      : await cdp.Runtime.evaluate({...params, contextId: executionContextId});
+    ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId: stackFrame.callFrameId()! })
+    : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
   if (!response || response.exceptionDetails)
     return;
 
@@ -112,6 +112,7 @@ function positionToOffset(text: string, line: number, column: number): number {
   return offset;
 }
 
+//TODO(pfeldman): document why noSideEffects does not work here.
 function hasSideEffects(node: ts.Node): boolean {
   let result = false;
   traverse(node);
@@ -123,8 +124,8 @@ function hasSideEffects(node: ts.Node): boolean {
       node.kind === ts.SyntaxKind.NewExpression ||
       node.kind === ts.SyntaxKind.DeleteExpression ||
       node.kind === ts.SyntaxKind.ClassExpression) {
-        result = true;
-        return;
+      result = true;
+      return;
     }
     ts.forEachChild(node, traverse);
   }

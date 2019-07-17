@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {SourcePathResolver, Location, SourceContainer, Source} from './sources';
+import { SourcePathResolver, Location, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import {Thread, ThreadManager, Script} from './threads';
+import { Thread, ThreadManager, Script } from './threads';
 import * as vscode from 'vscode';
 
 export class Breakpoint {
@@ -17,7 +17,7 @@ export class Breakpoint {
   private _columnNumber: number;  // 1-based
   private _disposables: vscode.Disposable[] = [];
 
-  private _perThread = new Map<number, Set<string>>();
+  private _perThread = new Map<number, Set<Cdp.Debugger.BreakpointId>>();
   private _resolvedLocation?: Location;
 
   constructor(manager: BreakpointManager, source: Dap.Source, params: Dap.SourceBreakpoint) {
@@ -33,13 +33,19 @@ export class Breakpoint {
   }
 
   async toDap(): Promise<Dap.Breakpoint> {
+    if (!this._resolvedLocation) {
+      return {
+        id: this._dapId,
+        verified: false
+      };
+    }
     return {
       id: this._dapId,
-      verified: !!this._resolvedLocation,
-      source: (this._resolvedLocation && this._resolvedLocation.source) ? await this._resolvedLocation.source.toDap() : undefined,
-      line: this._resolvedLocation ? this._resolvedLocation.lineNumber : undefined,
-      column: this._resolvedLocation ? this._resolvedLocation.columnNumber : undefined,
-    }
+      verified: true,
+      source: this._resolvedLocation.source ? await this._resolvedLocation.source.toDap() : undefined,
+      line: this._resolvedLocation.lineNumber,
+      column: this._resolvedLocation.columnNumber
+    };
   }
 
   async set(report: boolean): Promise<void> {
@@ -48,7 +54,7 @@ export class Breakpoint {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
         this._resolvedLocation = undefined;
-        this._manager._dap.breakpoint({reason: 'changed', breakpoint: {id: this._dapId, verified: false}});
+        this._manager._dap.breakpoint({ reason: 'changed', breakpoint: { id: this._dapId, verified: false } });
       }
     }, undefined, this._disposables);
 
@@ -81,7 +87,7 @@ export class Breakpoint {
 
     await Promise.all(promises);
     if (report)
-      this._manager._dap.breakpoint({reason: 'changed', breakpoint: await this.toDap()});
+      this._manager._dap.breakpoint({ reason: 'changed', breakpoint: await this.toDap() });
   }
 
   breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
@@ -119,7 +125,7 @@ export class Breakpoint {
       promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
     if (resolvedLocation !== this._resolvedLocation)
-      this._manager._dap.breakpoint({reason: 'changed', breakpoint: await this.toDap()});
+      this._manager._dap.breakpoint({ reason: 'changed', breakpoint: await this.toDap() });
   }
 
   async _setByLocation(location: Location, originalSource?: Source): Promise<void> {
@@ -152,7 +158,7 @@ export class Breakpoint {
 
   async _setByScriptId(thread: Thread, scriptId: string, lineNumber: number, columnNumber: number): Promise<void> {
     const result = await thread.cdp().Debugger.setBreakpoint({
-      location: {scriptId, lineNumber, columnNumber},
+      location: { scriptId, lineNumber, columnNumber },
       condition: this._condition,
     });
     if (result)
@@ -165,7 +171,7 @@ export class Breakpoint {
       const thread = this._manager._threadManager.thread(threadId)!;
       for (const id of ids) {
         this._manager._perThread.get(threadId)!.delete(id);
-        promises.push(thread.cdp().Debugger.removeBreakpoint({breakpointId: id}));
+        promises.push(thread.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
       }
     }
     this._resolvedLocation = undefined;
@@ -187,7 +193,7 @@ export class BreakpointManager {
   _sourceContainer: SourceContainer;
   _threadManager: ThreadManager;
   _disposables: vscode.Disposable[] = [];
-  _perThread = new Map<number, Map<string, Breakpoint>>();
+  _perThread = new Map<number, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
@@ -211,6 +217,7 @@ export class BreakpointManager {
           breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
       });
     };
+    // TODO(dgozman): threads already contains non-initialized threads.
     this._threadManager.threads().forEach(onThread);
     this._threadManager.onThreadInitialized(onThread, undefined, this._disposables);
     this._threadManager.onThreadRemoved(thread => {
@@ -246,7 +253,7 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     if (this._initialized)
       await Promise.all(breakpoints.map(b => b.set(false)));
-    return {breakpoints: await Promise.all(breakpoints.map(b => b.toDap()))};
+    return { breakpoints: await Promise.all(breakpoints.map(b => b.toDap())) };
   }
 }
 

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {SourceMap} from './sourceMap';
+import { SourceMap } from './sourceMap';
 import * as utils from '../utils';
 import Dap from '../dap/api';
-import {URL} from 'url';
+import { URL } from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as errors from './errors';
@@ -21,8 +21,8 @@ export interface Location {
 };
 
 type ContentGetter = () => Promise<string | undefined>;
-type InlineScriptOffset = {lineOffset: number, columnOffset: number};
-type SourceMapData = {compiled: Set<Source>, map?: SourceMap, loaded: Promise<void>};
+type InlineScriptOffset = { lineOffset: number, columnOffset: number };
+type SourceMapData = { compiled: Set<Source>, map?: SourceMap, loaded: Promise<void> };
 
 export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
@@ -31,7 +31,7 @@ export interface LocationRevealer {
 export class SourcePathResolver {
   private _basePath?: string;
   private _baseUrl?: URL;
-  private _rules: {urlPrefix: string, pathPrefix: string}[] = [];
+  private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
   private _gitRoot?: string;
 
   initialize(url: string, webRoot: string | undefined) {
@@ -51,10 +51,10 @@ export class SourcePathResolver {
       return s.replace(/${webRoot}/g, this._basePath!);
     };
     this._rules = [
-      {urlPrefix: 'webpack:///./~/', pathPrefix: substitute('${webRoot}/node_modules/')},
-      {urlPrefix: 'webpack:///./', pathPrefix: substitute('${webRoot}/')},
-      {urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/')},
-      {urlPrefix: 'webpack:///', pathPrefix: substitute('/')},
+      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('${webRoot}/node_modules/') },
+      { urlPrefix: 'webpack:///./', pathPrefix: substitute('${webRoot}/') },
+      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/') },
+      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
     ];
 
     // TODO(dgozman): use workspace folder.
@@ -204,11 +204,11 @@ export class Source {
       return;
     const sourceMapUrl = this.url() + '@map';
     const prettyPath = this._fqname + '-pretty.js';
-    const map = prettyPrintAsSourceMap(prettyPath,  content);
+    const map = prettyPrintAsSourceMap(prettyPath, content);
     if (!map)
       return;
     this._sourceMapUrl = sourceMapUrl;
-    const sourceMap: SourceMapData = {compiled: new Set([this]), map, loaded: Promise.resolve()};
+    const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
     const result = this._container._addSourceMapSources(this, map);
     return result[0];
@@ -340,7 +340,7 @@ export class SourceContainer {
     if (!map)
       return;
 
-    let {lineNumber, columnNumber} = location;
+    let { lineNumber, columnNumber } = location;
     if (location.source._inlineScriptOffset) {
       lineNumber -= location.source._inlineScriptOffset.lineOffset;
       if (lineNumber === 1)
@@ -410,7 +410,7 @@ export class SourceContainer {
         this._sourceByAbsolutePath.set(absolutePath, source);
     });
     source.toDap().then(payload => {
-      this._dap.loadedSource({reason: 'new', source: payload});
+      this._dap.loadedSource({ reason: 'new', source: payload });
     });
 
     const sourceMapUrl = source._sourceMapUrl;
@@ -430,7 +430,7 @@ export class SourceContainer {
 
     let callback: () => void;
     const promise = new Promise<void>(f => callback = f);
-    sourceMap = {compiled: new Set([source]), loaded: promise};
+    sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
     // TODO(dgozman): use timeout to avoid long pauses on script loading.
     sourceMap.map = await SourceMap.load(sourceMapUrl);
@@ -463,7 +463,7 @@ export class SourceContainer {
         this._sourceByAbsolutePath.delete(absolutePath);
     });
     source.toDap().then(payload => {
-      this._dap.loadedSource({reason: 'removed', source: payload});
+      this._dap.loadedSource({ reason: 'removed', source: payload });
     });
 
     const sourceMapUrl = source._sourceMapUrl;

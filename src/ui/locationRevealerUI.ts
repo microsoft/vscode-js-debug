@@ -12,9 +12,9 @@ export class LocationRevealerUI {
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
       if (this._revealRequests.size === 0 ||
-          !editor ||
-          editor.document.languageId !== 'javascript' ||
-          editor.document.uri.scheme !== 'debug') {
+        !editor ||
+        editor.document.languageId !== 'javascript' ||
+        editor.document.uri.scheme !== 'debug') {
         return;
       }
 

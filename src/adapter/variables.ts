@@ -4,7 +4,7 @@
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
-import {StackTrace} from './stackTrace';
+import { StackTrace } from './stackTrace';
 import * as errors from './errors';
 import * as nls from 'vscode-nls';
 
@@ -12,7 +12,7 @@ const localize = nls.loadMessageBundle();
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
-  objectId:  Cdp.Runtime.RemoteObjectId;
+  objectId: Cdp.Runtime.RemoteObjectId;
   cdp: Cdp.Api;
 
   scopeRef?: ScopeRef;
@@ -57,7 +57,7 @@ export class VariableStore {
 
   hasVariables(variablesReference: number): boolean {
     return this._referenceToVariables.has(variablesReference) ||
-        this._referenceToObject.has(variablesReference);
+      this._referenceToObject.has(variablesReference);
   }
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
@@ -97,7 +97,7 @@ export class VariableStore {
     if (!expression)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
-    const evaluateResponse = await object.cdp.Runtime.evaluate({expression, silent: true});
+    const evaluateResponse = await object.cdp.Runtime.evaluate({ expression, silent: true });
     if (!evaluateResponse)
       return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
     if (evaluateResponse.exceptionDetails)
@@ -106,7 +106,7 @@ export class VariableStore {
     function release(error: Dap.Error): Dap.Error {
       const objectId = evaluateResponse!.result.objectId;
       if (objectId)
-        object!.cdp.Runtime.releaseObject({objectId});
+        object!.cdp.Runtime.releaseObject({ objectId });
       return error;
     }
 
@@ -177,7 +177,7 @@ export class VariableStore {
       for (let i = 0; i < args.length; ++i) {
         if (!args[i].objectId)
           continue;
-          promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
+        promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
       }
       params.push(...await Promise.all(promiseParams));
     }
@@ -289,7 +289,7 @@ export class VariableStore {
         }
       `,
       generatePreview: true,
-      arguments: [ { value: params.start }, { value: params.count } ]
+      arguments: [{ value: params.start }, { value: params.count }]
     });
     if (!response)
       return [];
@@ -394,12 +394,12 @@ export class VariableStore {
 
   _toCallArgument(value: string | Cdp.Runtime.RemoteObject): Cdp.Runtime.CallArgument {
     if (typeof value === 'string')
-      return {value};
+      return { value };
     const object = value as Cdp.Runtime.RemoteObject;
     if (object.objectId)
-      return {objectId: object.objectId};
+      return { objectId: object.objectId };
     if (object.unserializableValue)
-      return {unserializableValue: object.unserializableValue};
-    return {value: object.value};
+      return { unserializableValue: object.unserializableValue };
+    return { value: object.value };
   }
 }

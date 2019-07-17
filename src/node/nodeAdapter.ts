@@ -91,7 +91,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     });
     // this._runtime.stdout.on('data', data => console.log(data.toString()));
     // this._runtime.stderr.on('data', data => console.log(data.toString()));
-}
+  }
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     if (this._runtime)
@@ -199,6 +199,6 @@ function env(pipe: string) {
   };
 }
 
-function resolvePath(command: string): Promise<string|undefined> {
+function resolvePath(command: string): Promise<string | undefined> {
   return new Promise(resolve => which(command, (error: Error | null, path: string | undefined) => resolve(path)));
 }

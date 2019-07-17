@@ -64,7 +64,7 @@ export default class Connection {
         if (methodName === 'off')
           return (requestName, handler) => this._requestHandlers.delete(requestName);
         return params => {
-          const e = {seq: 0, type: 'event', event: methodName, body: params};
+          const e = { seq: 0, type: 'event', event: methodName, body: params };
           this._send(e);
         };
       }
@@ -106,7 +106,7 @@ export default class Connection {
           return once;
         return params => {
           return new Promise(cb => {
-            const request: Message = {seq: 0, type: 'request', command: methodName};
+            const request: Message = { seq: 0, type: 'request', command: methodName };
             if (params && Object.keys(params).length > 0)
               request.arguments = params;
             this._pendingRequests.set(this._sequence, cb);
@@ -138,17 +138,19 @@ export default class Connection {
 
   async _onMessage(msg: Message): Promise<void> {
     if (msg.type === 'request') {
-      const response: Message = {seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true};
+      const response: Message = { seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true };
       try {
         const callback = this._requestHandlers.get(msg.command!);
         if (!callback) {
           response.success = false;
-          response.body = {error: {
-            id: 9221,
-            format: `Unrecognized request: ${msg.command}`,
-            showUser: false,
-            sendTelemetry: false
-          }};
+          response.body = {
+            error: {
+              id: 9221,
+              format: `Unrecognized request: ${msg.command}`,
+              showUser: false,
+              sendTelemetry: false
+            }
+          };
           console.error(`Unknown request: ${msg.command}`);
           // this._send(response);
         } else {
@@ -156,7 +158,7 @@ export default class Connection {
           if (result.__errorMarker) {
             response.success = false;
             response.message = result.error.format;
-            response.body = {error: result.error};
+            response.body = { error: result.error };
           } else {
             response.body = result;
           }
@@ -165,12 +167,14 @@ export default class Connection {
       } catch (e) {
         console.error(e);
         response.success = false;
-        response.body = {error: {
-          id: 9221,
-          format: `Error processing ${msg.command}: ${e.stack || e.message}`,
-          showUser: false,
-          sendTelemetry: false
-        }};
+        response.body = {
+          error: {
+            id: 9221,
+            format: `Error processing ${msg.command}: ${e.stack || e.message}`,
+            showUser: false,
+            sendTelemetry: false
+          }
+        };
         this._send(response);
       }
     }

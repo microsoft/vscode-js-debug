@@ -1,17 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Dap from '../dap/api';
-
-import * as completions from './completions';
-import { StackTrace, StackFrame } from './stackTrace';
-import * as objectPreview from './objectPreview';
-import { VariableStore } from './variables';
-import { SourceContainer, SourcePathResolver, Location } from './sources';
 import * as nls from 'vscode-nls';
-import * as errors from './errors';
+import Dap from '../dap/api';
 import { BreakpointManager } from './breakpoints';
+import * as completions from './completions';
+import * as errors from './errors';
+import * as objectPreview from './objectPreview';
+import { Location, SourceContainer, SourcePathResolver } from './sources';
+import { StackFrame } from './stackTrace';
 import { ExecutionContextTree, Thread, ThreadManager } from './threads';
+import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
@@ -28,9 +27,10 @@ type EvaluatePrep = {
 };
 
 export class Adapter {
-  private _dap: Dap.Api;
   readonly threadManager: ThreadManager;
   readonly sourceContainer: SourceContainer;
+
+  private _dap: Dap.Api;
   private _sourcePathResolver: SourcePathResolver;
   private _breakpointManager: BreakpointManager;
   private _currentExecutionContext: ExecutionContextTree | undefined;
@@ -55,9 +55,11 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
+    // TODO(dgozman): remove custom dap.
     this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
+    // TODO(dgozman): consider moving into adapter embedder.
     this._sourcePathResolver = new SourcePathResolver();
     this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
@@ -72,8 +74,8 @@ export class Adapter {
       supportsHitConditionalBreakpoints: false,
       supportsEvaluateForHovers: true,
       exceptionBreakpointFilters: [
-        {filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false},
-        {filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false},
+        { filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false },
+        { filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false },
       ],
       supportsStepBack: false,
       supportsSetVariable: true,
@@ -102,35 +104,36 @@ export class Adapter {
   }
 
   async launch(url: string, webRoot: string | undefined) {
+    // TODO(dgozman): should we launch in launch?
     this._sourcePathResolver.initialize(url, webRoot);
     this.sourceContainer.initialize();
     this._breakpointManager.initialize();
   }
 
-  _mainThreadNotAvailable(): Dap.Error {
-    return errors.createSilentError('Thread is not available');
+  _threadNotAvailableError(): Dap.Error {
+    return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  async _onThreads(params: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
+  async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads = this.threadManager.threadLabels();
     if (this._locationToReveal)
-      threads.push({id: threadForSourceRevealId, name: ''});
-    return {threads};
+      threads.push({ id: threadForSourceRevealId, name: '' });
+    return { threads };
   }
 
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     if (!await thread.resume())
       return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
-    return {allThreadsContinued: false};
+    return { allThreadsContinued: false };
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     if (!await thread.pause())
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
@@ -139,7 +142,7 @@ export class Adapter {
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     if (!await thread.stepOver())
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
@@ -148,7 +151,7 @@ export class Adapter {
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     if (!await thread.stepInto())
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
@@ -157,7 +160,7 @@ export class Adapter {
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     if (!await thread.stepOut())
       return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
     return {};
@@ -177,7 +180,7 @@ export class Adapter {
       return this._syntheticStackTraceForSourceReveal(params);
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     const details = thread.pausedDetails();
     if (!details)
       return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
@@ -215,23 +218,25 @@ export class Adapter {
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
     let variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
-      return {variables: []};
-    return {variables: await variableStore.getVariables(params)};
+      return { variables: [] };
+    return { variables: await variableStore.getVariables(params) };
   }
 
-  _prepareForEvaluate(frameId?: number): EvaluatePrep | Dap.Error {
+  _prepareForEvaluate(frameId?: number): { result?: EvaluatePrep, error?: Dap.Error } {
     if (frameId !== undefined) {
       const stackFrame = this._findStackFrame(frameId);
       if (!stackFrame)
-        return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+        return { error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found')) };
       if (!stackFrame.callFrameId())
-        return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
+        return { error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame')) };
 
       const variableStore = stackFrame.thread().pausedVariables()!;
       return {
-        stackFrame,
-        variableStore,
-        thread: stackFrame.thread(),
+        result: {
+          stackFrame,
+          variableStore,
+          thread: stackFrame.thread(),
+        }
       };
     } else {
       let thread: Thread | undefined;
@@ -245,21 +250,23 @@ export class Adapter {
         executionContextId = defaultContext ? defaultContext.id : undefined;
       }
       if (!thread || !executionContextId)
-        return this._mainThreadNotAvailable();
+        return { error: this._threadNotAvailableError() };
 
       return {
-        variableStore: thread.replVariables,
-        thread,
-        executionContextId
+        result: {
+          variableStore: thread.replVariables,
+          thread,
+          executionContextId
+        }
       };
     }
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    const prepOrError = this._prepareForEvaluate(args.frameId);
-    if ((prepOrError as Dap.Error).__errorMarker)
-      return prepOrError as Dap.Error;
-    const prep = prepOrError as EvaluatePrep;
+    const { result: maybePrep, error } = this._prepareForEvaluate(args.frameId);
+    if (error)
+      return error;
+    const prep = maybePrep as EvaluatePrep;
 
     const params = {
       expression: args.expression,
@@ -270,8 +277,8 @@ export class Adapter {
       timeout: args.context === 'hover' ? 500 : undefined,
     };
     const response = prep.stackFrame
-        ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({...params, callFrameId: prep.stackFrame.callFrameId()!})
-        : await prep.thread.cdp().Runtime.evaluate({...params, contextId: prep.executionContextId});
+      ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
+      : await prep.thread.cdp().Runtime.evaluate({ ...params, contextId: prep.executionContextId });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
@@ -285,30 +292,30 @@ export class Adapter {
       };
     }
 
-    prep.thread.output((async () => {
-      const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
-      const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
-      return {
-        category: 'stdout',
-        output: '',
-        variablesReference,
-      } as Dap.OutputEventParams;
-    })());
-    return {result: '', variablesReference: 0};
+    const outputSlot = prep.thread.claimOutputSlot();
+    const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
+    const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
+    const output = {
+      category: 'stdout',
+      output: '',
+      variablesReference,
+    } as Dap.OutputEventParams;
+    outputSlot(output);
+
+    return { result: '', variablesReference: 0 };
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    const prepOrError = this._prepareForEvaluate(params.frameId);
-    if ((prepOrError as Dap.Error).__errorMarker)
-      return prepOrError as Dap.Error;
-    const prep = prepOrError as EvaluatePrep;
-
+    const { result: maybePrep, error } = this._prepareForEvaluate(params.frameId);
+    if (error)
+      return error;
+    const prep = maybePrep as EvaluatePrep;
     const line = params.line === undefined ? 0 : params.line - 1;
-    return {targets: await completions.completions(prep.thread.cdp(), prep.executionContextId, prep.stackFrame, params.text, line, params.column)};
+    return { targets: await completions.completions(prep.thread.cdp(), prep.executionContextId, prep.stackFrame, params.text, line, params.column) };
   }
 
-  async _onLoadedSources(params: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return {sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap()))};
+  async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
+    return { sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap())) };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
@@ -318,7 +325,7 @@ export class Adapter {
     const content = await source.content();
     if (content === undefined)
       return errors.createSilentError(localize('error.sourceContentDidFail', 'Unable to retrieve source content'));
-    return {content, mimeType: source.mimeType()};
+    return { content, mimeType: source.mimeType() };
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
@@ -338,7 +345,7 @@ export class Adapter {
   async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
     const thread = this.threadManager.thread(params.threadId);
     if (!thread)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return this._threadNotAvailableError();
     const details = thread.pausedDetails();
     const exception = details && details.exception;
     if (!exception)
@@ -388,7 +395,7 @@ export class Adapter {
     this._locationToReveal = undefined;
   }
 
-  async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult>  {
+  async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
     if (!this._locationToReveal || params.startFrame)
       return { stackFrames: [] };
     return {

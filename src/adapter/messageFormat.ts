@@ -22,11 +22,11 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
     if (tokens.length && tokens[tokens.length - 1].type === 'string')
       tokens[tokens.length - 1].value += str;
     else
-      tokens.push({type: 'string', value: str});
+      tokens.push({ type: 'string', value: str });
   }
 
   function addSpecifierToken(specifier: string, precision: number | undefined, substitutionIndex: number) {
-    tokens.push({type: 'specifier', specifier: specifier, precision: precision, substitutionIndex});
+    tokens.push({ type: 'specifier', specifier: specifier, precision: precision, substitutionIndex });
   }
 
   let textStart = 0;
@@ -40,7 +40,7 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
     if (match[0] === '%%') {
       addStringToken('%');
     } else {
-      const [_, substitionString, precisionString, specifierString] = match;
+      const [, substitionString, precisionString, specifierString] = match;
       if (substitionString && Number(substitionString) > 0)
         substitutionIndex = Number(substitionString) - 1;
       const precision = precisionString ? Number(precisionString) : undefined;
@@ -67,7 +67,7 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
     }
 
     const index = token.substitutionIndex!;
-    if (index! >= substitutions.length) {
+    if (index >= substitutions.length) {
       // If there are not enough substitutions for the current substitutionIndex
       // just output the format specifier literally and move on.
       result.push('%' + (token.precision || '') + token.specifier);
@@ -78,7 +78,7 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
     result.push(format(substitutions[index]));
   }
 
-  result.push('\x1b[0m');
+  result.push('\x1b[0m');  // clear format
 
   for (let i = 0; i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))

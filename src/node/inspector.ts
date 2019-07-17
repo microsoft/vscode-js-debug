@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-(function() {
+(function () {
   if (!process.env.NODE_INSPECTOR_IPC)
     return;
 

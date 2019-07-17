@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {URL} from 'url';
+import { URL } from 'url';
 import * as events from 'events';
 
 type HandlerFunction = (...args: any[]) => void;
 
 export interface Listener {
-   emitter: events.EventEmitter;
-   eventName: string;
-   handler: HandlerFunction;
+  emitter: events.EventEmitter;
+  eventName: string;
+  handler: HandlerFunction;
 }
 
 export function addEventListener(emitter: events.EventEmitter, eventName: string, handler: HandlerFunction): Listener {

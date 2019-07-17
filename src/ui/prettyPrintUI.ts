@@ -15,9 +15,9 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
     if (!editor || !isDebugging ||
-        editor.document.languageId !== 'javascript' ||
-        editor.document.uri.scheme !== 'debug' ||
-        neverSuggestPrettyPrinting) {
+      editor.document.languageId !== 'javascript' ||
+      editor.document.uri.scheme !== 'debug' ||
+      neverSuggestPrettyPrinting) {
       return;
     }
 
@@ -27,7 +27,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     // We only want to do it once per document.
 
     if (prettyPrintedUris.has(editor.document.uri.toString()) ||
-        !isMinified(editor.document)) {
+      !isMinified(editor.document)) {
       return;
     }
 

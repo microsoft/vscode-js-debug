@@ -3,9 +3,9 @@
 
 import Cdp from '../cdp/api';
 import * as debug from 'debug';
-import {Source, Location, SourceContainer} from './sources';
+import { Source, Location, SourceContainer } from './sources';
 import * as utils from '../utils';
-import {StackTrace, StackFrame} from './stackTrace';
+import { StackTrace, StackFrame } from './stackTrace';
 import * as objectPreview from './objectPreview';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import Dap from '../dap/api';
@@ -36,7 +36,7 @@ export interface ExecutionContextTree {
   children: ExecutionContextTree[];
 }
 
-export type Script = {scriptId: string, source: Source, thread: Thread};
+export type Script = { scriptId: string, source: Source, thread: Thread };
 
 let lastThreadId = 0;
 
@@ -256,7 +256,7 @@ export class Thread implements VariableStoreDelegate {
     return Array.from(this._executionContexts.values());
   }
 
-  defaultExecutionContext() : Cdp.Runtime.ExecutionContextDescription | undefined {
+  defaultExecutionContext(): Cdp.Runtime.ExecutionContextDescription | undefined {
     for (const context of this._executionContexts.values()) {
       if (context.auxData && context.auxData['isDefault'])
         return context;
@@ -291,7 +291,7 @@ export class Thread implements VariableStoreDelegate {
     const callFrameId = stackFrame.callFrameId();
     if (!callFrameId)
       return false;
-    const response = await this._cdp.Debugger.restartFrame({callFrameId});
+    const response = await this._cdp.Debugger.restartFrame({ callFrameId });
     if (!response || !this._pausedDetails)
       return false;
     this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
@@ -306,15 +306,17 @@ export class Thread implements VariableStoreDelegate {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      this.output(this._clearDebuggerConsole());
       this.replVariables.clear();
       this._executionContextsCleared();
+      this.claimOutputSlot()(this._clearDebuggerConsole());
     });
-    this._cdp.Runtime.on('consoleAPICalled', event => {
-      this.output(this._onConsoleMessage(event));
+    this._cdp.Runtime.on('consoleAPICalled', async event => {
+      const slot = this.claimOutputSlot();
+      slot(await this._onConsoleMessage(event));
     });
-    this._cdp.Runtime.on('exceptionThrown', event => {
-      this.output(this._onExceptionThrown(event.exceptionDetails));
+    this._cdp.Runtime.on('exceptionThrown', async event => {
+      const slot = this.claimOutputSlot();
+      slot(await this._onExceptionThrown(event.exceptionDetails));
     });
     this._cdp.Runtime.on('inspectRequested', event => {
       this._revealObject(event.object);
@@ -335,10 +337,10 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
     await this._cdp.Debugger.enable({});
-    await this._cdp.Debugger.setAsyncCallStackDepth({maxDepth: 32});
+    await this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     // We ignore the result to support older versions.
     this._supportsSourceMapPause =
-        !!await this._cdp.Debugger.setInstrumentationBreakpoint({instrumentation: 'beforeScriptWithSourceMapExecution'});
+      !!await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
     await this.updatePauseOnExceptionsState();
 
     const customBreakpointPromises: Promise<boolean>[] = [];
@@ -352,19 +354,24 @@ export class Thread implements VariableStoreDelegate {
       return;
 
     this.manager._onThreadInitializedEmitter.fire(this);
-    this._dap.thread({reason: 'started', threadId: this._threadId});
+    this._dap.thread({ reason: 'started', threadId: this._threadId });
     if (this._pausedDetails)
       this._reportPaused();
   }
 
-  async output(producer?: Promise<Dap.OutputEventParams | undefined>): Promise<void> {
-    // TODO(dgozman): add timeout.
-    this._serializedOutput = this._serializedOutput.then(async () => {
-      const payload = await producer;
+  claimOutputSlot(): (payload: Dap.OutputEventParams | undefined) => void {
+    const slot = this._serializedOutput;
+    let callback: () => void;
+    const result = async (payload: Dap.OutputEventParams | undefined) => {
+      await slot;
       if (payload)
         this._dap.output(payload);
-    });
-    return this._serializedOutput;
+      callback();
+    };
+    const p = new Promise<void>(f => callback = f);
+    this._serializedOutput = slot.then(() => p);
+    setTimeout(callback!, 1000);
+    return result;
   }
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
@@ -407,7 +414,7 @@ export class Thread implements VariableStoreDelegate {
     }
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
-    this._dap.thread({reason: 'exited', threadId: this._threadId});
+    this._dap.thread({ reason: 'exited', threadId: this._threadId });
     utils.removeEventListeners(this._eventListeners);
     this._disposed = true;
     this._executionContextsCleared();
@@ -422,7 +429,7 @@ export class Thread implements VariableStoreDelegate {
     this._threadBaseUrl = threadUrl;
   }
 
-  rawLocationToUiLocation(rawLocation: {lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId}): Location {
+  rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Location {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     return this.sourceContainer.preferredLocation({
       url: script ? script.source.url() : (rawLocation.url || ''),
@@ -443,7 +450,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({state: this.manager.pauseOnExceptionsState()});
+    return !!await this._cdp.Debugger.setPauseOnExceptions({ state: this.manager.pauseOnExceptionsState() });
   }
 
   async updateCustomBreakpoint(id: string, enabled: boolean): Promise<boolean> {
@@ -456,7 +463,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _reportResumed() {
-    this._dap.continued({threadId: this._threadId, allThreadsContinued: false });
+    this._dap.continued({ threadId: this._threadId, allThreadsContinued: false });
   }
 
   _reportPaused(preserveFocusHint?: boolean) {
@@ -517,7 +524,7 @@ export class Thread implements VariableStoreDelegate {
         description: localize('pause.oom', 'Paused before Out Of Memory exception')
       };
       default:
-        if (event.hitBreakpoints && event.hitBreakpoints.length)  return {
+        if (event.hitBreakpoints && event.hitBreakpoints.length) return {
           stackTrace,
           reason: 'breakpoint',
           description: localize('pause.breakpoint', 'Paused on breakpoint')
@@ -536,9 +543,9 @@ export class Thread implements VariableStoreDelegate {
     const breakpoint = customBreakpoints().get(id);
     if (breakpoint) {
       const details = breakpoint.details(data!);
-      return {stackTrace, reason: 'function breakpoint', description: details.short, text: details.long};
+      return { stackTrace, reason: 'function breakpoint', description: details.short, text: details.long };
     }
-    return {stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener')};
+    return { stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener') };
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<Dap.OutputEventParams | undefined> {
@@ -578,15 +585,15 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  _clearDebuggerConsole(): Promise<Dap.OutputEventParams> {
-    return Promise.resolve({
+  _clearDebuggerConsole(): Dap.OutputEventParams {
+    return {
       category: 'console',
       output: '\x1b[2J',
-    });
+    };
   }
 
   async _onExceptionThrown(details: Cdp.Runtime.ExceptionDetails): Promise<Dap.OutputEventParams | undefined> {
-    const preview = details.exception ? objectPreview.previewException(details.exception) : {title: ''};
+    const preview = details.exception ? objectPreview.previewException(details.exception) : { title: '' };
     let message = preview.title;
     if (!message.startsWith('Uncaught'))
       message = 'Uncaught ' + message;
@@ -634,12 +641,12 @@ export class Thread implements VariableStoreDelegate {
     let source = event.url ? this.sourceContainer.sourceByUrl(event.url) : undefined;
     if (!source) {
       const contentGetter = async () => {
-        const response = await this._cdp.Debugger.getScriptSource({scriptId: event.scriptId});
+        const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
         return response ? response.scriptSource : undefined;
       };
       const inlineSourceOffset = (event.startLine || event.startColumn)
-          ? {lineOffset: event.startLine, columnOffset: event.startColumn}
-          : undefined;
+        ? { lineOffset: event.startLine, columnOffset: event.startColumn }
+        : undefined;
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL) {
         // TODO(dgozman): reload source map when thread url changes.
@@ -649,7 +656,7 @@ export class Thread implements VariableStoreDelegate {
       source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset);
     }
 
-    const script = {scriptId: event.scriptId, source, thread: this};
+    const script = { scriptId: event.scriptId, source, thread: this };
     this._scripts.set(event.scriptId, script);
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();
@@ -662,8 +669,9 @@ export class Thread implements VariableStoreDelegate {
     if (script) {
       const sources = await this.sourceContainer.waitForSourceMapSources(script.source);
       if (sources && this.manager._scriptWithSourceMapHandler)
-        this.manager._scriptWithSourceMapHandler(script, sources);
+        await this.manager._scriptWithSourceMapHandler(script, sources);
     }
+    // TODO(dgozman): replace with assert.
     if (this._pausedForSourceMapScriptId === scriptId) {
       this._pausedForSourceMapScriptId = undefined;
       this._cdp.Debugger.resume({});
@@ -696,6 +704,7 @@ export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
     this._manager = manager;
   }
 
+  // TODO(pfeldman): get rid of this forest.
   executionContextForest(): ExecutionContextTree[] {
     const result: ExecutionContextTree[] = [];
     for (const thread of this._manager.threads()) {
