@@ -9,7 +9,6 @@ import { Thread, ThreadManager, Script } from './threads';
 import * as vscode from 'vscode';
 
 export class Breakpoint {
-  private static _lastDapId = 0;
   private _manager: BreakpointManager;
   private _dapId: number;
   private _source: Dap.Source;
@@ -21,9 +20,9 @@ export class Breakpoint {
   private _perThread = new Map<number, Set<Cdp.Debugger.BreakpointId>>();
   private _resolvedLocation?: Location;
 
-  constructor(manager: BreakpointManager, source: Dap.Source, params: Dap.SourceBreakpoint) {
-    this._dapId = ++Breakpoint._lastDapId;
+  constructor(manager: BreakpointManager, dapId: number, source: Dap.Source, params: Dap.SourceBreakpoint) {
     this._manager = manager;
+    this._dapId = dapId;
     this._source = source;
     this._lineNumber = params.line;
     this._columnNumber = params.column || 1;
@@ -33,29 +32,35 @@ export class Breakpoint {
       this._condition = this._condition ? `(${params.condition}) && ${this._condition}` : params.condition;
   }
 
-  async toDap(): Promise<Dap.Breakpoint> {
-    if (!this._resolvedLocation) {
-      return {
-        id: this._dapId,
-        verified: false
-      };
-    }
+  toProvisionalDap(): Dap.Breakpoint {
     return {
       id: this._dapId,
-      verified: true,
-      source: this._resolvedLocation.source ? await this._resolvedLocation.source.toDap() : undefined,
-      line: this._resolvedLocation.lineNumber,
-      column: this._resolvedLocation.columnNumber
+      verified: false
     };
   }
 
-  async set(report: boolean): Promise<void> {
+  async _notifyResolved(): Promise<void> {
+    if (!this._resolvedLocation)
+      return;
+    this._manager._dap.breakpoint({
+      reason: 'changed',
+      breakpoint: {
+        id: this._dapId,
+        verified: true,
+        source: this._resolvedLocation.source ? await this._resolvedLocation.source.toDap() : undefined,
+        line: this._resolvedLocation.lineNumber,
+        column: this._resolvedLocation.columnNumber
+      }
+    });
+  }
+
+  async set(): Promise<void> {
     const threadManager = this._manager._threadManager;
     threadManager.onThreadRemoved(thread => {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
         this._resolvedLocation = undefined;
-        this._manager._dap.breakpoint({ reason: 'changed', breakpoint: { id: this._dapId, verified: false } });
+        this._manager._dap.breakpoint({ reason: 'changed', breakpoint: this.toProvisionalDap() });
       }
     }, undefined, this._disposables);
 
@@ -87,8 +92,7 @@ export class Breakpoint {
     promises.push(...locations.map(location => this._setByLocation(location, source)));
 
     await Promise.all(promises);
-    if (report)
-      this._manager._dap.breakpoint({ reason: 'changed', breakpoint: await this.toDap() });
+    await this._notifyResolved();
   }
 
   breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
@@ -126,7 +130,7 @@ export class Breakpoint {
       promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
     if (resolvedLocation !== this._resolvedLocation)
-      this._manager._dap.breakpoint({ reason: 'changed', breakpoint: await this.toDap() });
+      await this._notifyResolved();
   }
 
   async _setByLocation(location: Location, originalSource?: Source): Promise<void> {
@@ -188,7 +192,6 @@ export class BreakpointManager {
   private _byPath: Map<string, Breakpoint[]> = new Map();
   private _byRef: Map<number, Breakpoint[]> = new Map();
 
-  private _initialized = false;
   _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
@@ -201,13 +204,6 @@ export class BreakpointManager {
     this._sourcePathResolver = sourcePathResolver;
     this._sourceContainer = sourceContainer;
     this._threadManager = threadManager;
-  }
-
-  async initialize(): Promise<void> {
-    this._initialized = true;
-    const promises: Promise<void>[] = [];
-    for (const breakpoints of this._byPath.values())
-      promises.push(...breakpoints.map(b => b.set(true)));
 
     const onThread = (thread: Thread) => {
       this._perThread.set(thread.threadId(), new Map());
@@ -236,12 +232,15 @@ export class BreakpointManager {
           breakpoint.updateForSourceMap(script);
       }
     });
-
-    await Promise.all(promises);
   }
 
-  async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    const breakpoints: Breakpoint[] = (params.breakpoints || []).map(b => new Breakpoint(this, params.source, b));
+  async setBreakpoints(params: Dap.SetBreakpointsParams, ids?: number[]): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+    const breakpoints: Breakpoint[] = [];
+    const inBreakpoints = params.breakpoints || [];
+    for (let index = 0; index < inBreakpoints.length; index++) {
+      const id = ids ? ids[index] : generateBreakpointId();
+      breakpoints.push(new Breakpoint(this, id, params.source, inBreakpoints[index]));
+    }
     let previous: Breakpoint[] | undefined;
     if (params.source.path) {
       previous = this._byPath.get(params.source.path);
@@ -252,9 +251,8 @@ export class BreakpointManager {
     }
     if (previous)
       await Promise.all(previous.map(b => b.remove()));
-    if (this._initialized)
-      await Promise.all(breakpoints.map(b => b.set(false)));
-    return { breakpoints: await Promise.all(breakpoints.map(b => b.toDap())) };
+    breakpoints.forEach(b => b.set());
+    return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }
 }
 
@@ -278,4 +276,10 @@ function logMessageToExpression(msg: string): string {
 
   const argStr = args.length ? `, ${args.join(', ')}` : '';
   return `console.log('${format}'${argStr});\n//# sourceURL=${kLogPointUrl}`;
+}
+
+let lastBreakpointId = 0;
+
+export function generateBreakpointId(): number {
+  return ++lastBreakpointId;
 }

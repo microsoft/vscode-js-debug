@@ -2,19 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from '../dap/api';
-import { Adapter } from '../adapter/adapter';
-
-import { spawn, ChildProcess } from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
+import { Adapter } from '../adapter/adapter';
+import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
 import { PipeTransport } from '../cdp/transport';
+import { ExecutionContextTree, Thread, ThreadManagerDelegate } from '../adapter/threads';
 import Connection from '../cdp/connection';
-import { ThreadManagerDelegate, ExecutionContextTree, Thread } from '../adapter/threads';
+import Dap from '../dap/api';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
@@ -25,6 +25,7 @@ let counter = 0;
 
 export class NodeAdapter implements ThreadManagerDelegate {
   private _dap: Dap.Api;
+  private _configurator: Configurator;
   private _adapter: Adapter;
   private _adapterReadyCallback: (adapter: Adapter) => void;
   private _server: net.Server | undefined;
@@ -42,6 +43,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
   constructor(dap: Dap.Api, adapterReadyCallback: (adapter: Adapter) => void) {
     this._dap = dap;
     this._adapterReadyCallback = adapterReadyCallback;
+    this._configurator = new Configurator(dap);
     this._dap.on('initialize', params => this._onInitialize(params));
     this._dap.on('configurationDone', params => this._onConfigurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
@@ -54,12 +56,10 @@ export class NodeAdapter implements ThreadManagerDelegate {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     this._dap.initialized({});
-    this._adapter = new Adapter(this._dap);
-    this._adapter.threadManager.setDelegate(this);
-    return Adapter.capabilities();
+    return this._configurator.capabilities();
   }
 
-  async _onConfigurationDone(params: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
+  async _onConfigurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
     return {};
   }
 
@@ -67,7 +67,10 @@ export class NodeAdapter implements ThreadManagerDelegate {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter.launch('', '');
+    this._adapter = new Adapter(this._dap, '', '');
+    this._adapter.threadManager.setDelegate(this);
+    await this._adapter.configure(this._configurator);
+
     this._adapterReadyCallback(this._adapter);
     await this._startServer();
     const error = await this._relaunch();

@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as test from '../test';
+import {TestP} from '../test';
 
-async function evaluateBasic(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,blank');
+async function evaluateBasic(p: TestP) {
+  await p.launchAndLoad('data:text/html,blank');
 
   const r1 = p.log(await p.dap.evaluate({expression: `42`}));
   p.log(`No variables: ${r1.variablesReference === 0}`);
@@ -17,8 +17,8 @@ async function evaluateBasic(p: test.Params) {
   p.log(await p.dap.variables({variablesReference: r3.variablesReference}), 'Variables: ');
 }
 
-async function setVariable(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,blank');
+async function setVariable(p: TestP) {
+  await p.launchAndLoad('data:text/html,blank');
 
   const r1 = p.log(await p.dap.evaluate({expression: `window.x = ({foo: 42}); x`}), 'evaluate: ');
   p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables before: ');

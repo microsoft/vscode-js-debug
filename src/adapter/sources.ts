@@ -35,7 +35,7 @@ export class SourcePathResolver {
   private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
   private _gitRoot?: string;
 
-  initialize(url: string, webRoot: string | undefined) {
+  constructor(url: string, webRoot: string | undefined) {
     this._basePath = webRoot ? path.normalize(webRoot) : undefined;
     try {
       this._baseUrl = new URL(url);
@@ -287,7 +287,6 @@ export class SourceContainer {
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
-  private _initialized = false;
   private _revealer?: LocationRevealer;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
@@ -297,10 +296,6 @@ export class SourceContainer {
 
   installRevealer(revealer: LocationRevealer) {
     this._revealer = revealer;
-  }
-
-  initialized() {
-    return this._initialized;
   }
 
   sources(): Source[] {
@@ -317,11 +312,6 @@ export class SourceContainer {
 
   sourceByUrl(url: string): Source | undefined {
     return this._compiledByUrl.get(url);
-  }
-
-  initialize() {
-    console.assert(!this._sourceByReference.size);
-    this._initialized = true;
   }
 
   preferredLocation(location: Location): Location {
@@ -400,7 +390,6 @@ export class SourceContainer {
   }
 
   addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset): Source {
-    console.assert(this._initialized);
     console.assert(!url || !this._compiledByUrl.has(url));
     const source = new Source(this, url, contentGetter, sourceMapUrl, inlineSourceRange);
     this._addSource(source);
@@ -458,7 +447,6 @@ export class SourceContainer {
   }
 
   removeSource(source: Source) {
-    console.assert(this._initialized);
     console.assert(this._sourceByReference.get(source.sourceReference()) === source);
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl)

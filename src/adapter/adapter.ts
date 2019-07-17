@@ -6,6 +6,7 @@ import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import { BreakpointManager } from './breakpoints';
 import * as completions from './completions';
+import { Configurator } from './configurator';
 import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
@@ -15,10 +16,6 @@ import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
-
-export interface ConfigurationDoneResult extends Dap.ConfigurationDoneResult {
-  targetId?: string;
-}
 
 type EvaluatePrep = {
   variableStore: VariableStore;
@@ -37,7 +34,7 @@ export class Adapter {
   private _currentExecutionContext: ExecutionContextTree | undefined;
   private _locationToReveal: Location | undefined;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, url: string, webRoot: string | undefined) {
     this._dap = dap;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
@@ -59,54 +56,16 @@ export class Adapter {
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
     // TODO(dgozman): consider moving into adapter embedder.
-    this._sourcePathResolver = new SourcePathResolver();
+    this._sourcePathResolver = new SourcePathResolver(url, webRoot);
     this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 
-  static capabilities(): Dap.InitializeResult {
-    return {
-      supportsConfigurationDoneRequest: true,
-      supportsFunctionBreakpoints: false,
-      supportsConditionalBreakpoints: true,
-      supportsHitConditionalBreakpoints: false,
-      supportsEvaluateForHovers: true,
-      exceptionBreakpointFilters: [
-        { filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false },
-        { filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false },
-      ],
-      supportsStepBack: false,
-      supportsSetVariable: true,
-      supportsRestartFrame: true,
-      supportsGotoTargetsRequest: false,
-      supportsStepInTargetsRequest: false,
-      supportsCompletionsRequest: true,
-      supportsModulesRequest: false,
-      additionalModuleColumns: [],
-      supportedChecksumAlgorithms: [],
-      supportsRestartRequest: true,
-      supportsExceptionOptions: false,
-      supportsValueFormattingOptions: false,  // This is not used by vscode.
-      supportsExceptionInfoRequest: true,
-      supportTerminateDebuggee: false,
-      supportsDelayedStackTraceLoading: true,
-      supportsLoadedSourcesRequest: true,
-      supportsLogPoints: true,
-      supportsTerminateThreadsRequest: false,
-      supportsSetExpression: false,
-      supportsTerminateRequest: false,
-      //supportsDataBreakpoints: false,
-      //supportsReadMemoryRequest: false,
-      //supportsDisassembleRequest: false,
-    };
-  }
-
-  async launch(url: string, webRoot: string | undefined) {
-    // TODO(dgozman): should we launch in launch?
-    this._sourcePathResolver.initialize(url, webRoot);
-    this.sourceContainer.initialize();
-    this._breakpointManager.initialize();
+  async configure(configurator: Configurator): Promise<void> {
+    await this.threadManager.setPauseOnExceptionsState(configurator.pausedOnExceptionsState());
+    for (const request of configurator.setBreakpointRequests())
+      await this._breakpointManager.setBreakpoints(request.params, request.generatedIds);
   }
 
   _threadNotAvailableError(): Dap.Error {
@@ -336,12 +295,7 @@ export class Adapter {
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
-    if (params.filters.includes('caught'))
-      this.threadManager.setPauseOnExceptionsState('all');
-    else if (params.filters.includes('uncaught'))
-      this.threadManager.setPauseOnExceptionsState('uncaught');
-    else
-      this.threadManager.setPauseOnExceptionsState('none');
+    this.threadManager.setPauseOnExceptionsState(Configurator.resolvePausedOnExceptionsState(params));
     return {};
   }
 

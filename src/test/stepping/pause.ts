@@ -2,61 +2,61 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as test from '../test';
+import {TestP} from '../test';
 
-async function pausedFromInitialScript(p: test.Params) {
-  p.dap.launch({url: 'data:text/html,<script>debugger;</script>'});
+async function pausedFromInitialScript(p: TestP) {
+  p.launch('data:text/html,<script>debugger;</script>');
   const event = await p.dap.once('stopped');
   p.log(event);
   p.log(await p.dap.stackTrace({threadId: event.threadId}));
   p.log(await p.dap.continue({threadId: event.threadId}));
 }
 
-async function pausedFromEval(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,blank');
+async function pausedFromEval(p: TestP) {
+  await p.launchAndLoad('data:text/html,blank');
   p.cdp.Runtime.evaluate({expression: '\n\ndebugger;\n//# sourceURL=eval.js'});
   const event = p.log(await p.dap.once('stopped'));
   p.log(await p.dap.stackTrace({threadId: event.threadId}));
   p.log(await p.dap.continue({threadId: event.threadId}));
 }
 
-async function pauseOnExceptions(p: test.Params) {
+async function pauseOnExceptions(p: TestP) {
   async function waitForPauseOnException() {
     const event = p.log(await p.dap.once('stopped'));
     p.log(await p.dap.exceptionInfo({threadId: event.threadId}));
     p.log(await p.dap.continue({threadId: event.threadId}));
   }
 
-  await test.launchAndLoad(p, 'data:text/html,blank');
+  await p.launchAndLoad('data:text/html,blank');
 
   p.log('Not pausing on exceptions');
   await p.dap.setExceptionBreakpoints({filters: []});
-  await test.evaluate(p, `setTimeout(() => { throw new Error('hello'); })`);
-  await test.evaluate(p, `setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
+  await p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
+  await p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
 
   p.log('Pausing on uncaught exceptions');
   await p.dap.setExceptionBreakpoints({filters: ['uncaught']});
-  await test.evaluate(p, `setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
-  test.evaluate(p, `setTimeout(() => { throw new Error('hello'); })`);
+  await p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
+  p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
   await waitForPauseOnException();
 
   p.log('Pausing on caught exceptions');
   await p.dap.setExceptionBreakpoints({filters: ['caught']});
-  test.evaluate(p, `setTimeout(() => { throw new Error('hello'); })`);
+  p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
   await waitForPauseOnException();
-  test.evaluate(p, `setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
+  p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
   await waitForPauseOnException();
 }
 
-async function pauseOnInnerHtml(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,<div>text</div>');
+async function pauseOnInnerHtml(p: TestP) {
+  await p.launchAndLoad('data:text/html,<div>text</div>');
 
   p.log('Not pausing on innerHTML');
-  await test.evaluate(p, `document.querySelector('div').innerHTML = 'foo';`);
+  await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);
 
   p.log('Pausing on innerHTML');
   await p.adapter.threadManager.enableCustomBreakpoints(['instrumentation:Element.setInnerHTML']);
-  test.evaluate(p, `document.querySelector('div').innerHTML = 'bar';`);
+  p.evaluate(`document.querySelector('div').innerHTML = 'bar';`);
   const event = p.log(await p.dap.once('stopped'));
   p.log(await p.dap.continue({threadId: event.threadId}));
 }
