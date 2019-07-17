@@ -66,7 +66,7 @@ function resolveChromePath() {
  * Look for linux executables in 3 ways
  * 1. Look into CHROME_PATH env variable
  * 2. Look into the directories where .desktop are saved on gnome based distro's
- * 3. Look for google-chrome-stable & google-chrome executables by using the which command
+ * 3. Look for google-chrome{,-stable,-unstable} and chromium{-browser} executables by using the which command
  */
 function linux() {
   let installations: string[] = [];
@@ -86,9 +86,9 @@ function linux() {
     installations = installations.concat(findChromeExecutables(folder));
   });
 
-  // TODO(dgozman): search for google-chrome-unstable?
-  // Look for google-chrome(-stable) & chromium(-browser) executables by using the which command
+  // 3. Look for google-chrome & chromium executables by using the which command
   const executables = [
+    'google-chrome-unstable',
     'google-chrome-stable',
     'google-chrome',
     'chromium-browser',
@@ -112,7 +112,8 @@ function linux() {
   }
 
   const priorities = [
-    { regex: /chrome-wrapper$/, weight: 51 },
+    { regex: /chrome-wrapper$/, weight: 52 },
+    { regex: /google-chrome-unstable$/, weight: 51 },
     { regex: /google-chrome-stable$/, weight: 50 },
     { regex: /google-chrome$/, weight: 49 },
     { regex: /chromium-browser$/, weight: 48 },
