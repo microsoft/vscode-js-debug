@@ -206,7 +206,6 @@ export class Thread implements VariableStoreDelegate {
   parentThread?: Thread;
   _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
-  private _defaultContextDestroyed: boolean;
   private _serializedOutput: Promise<void>;
 
   constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, capabilities: ThreadCapabilities) {
@@ -381,14 +380,8 @@ export class Thread implements VariableStoreDelegate {
     const context = this._executionContexts.get(contextId);
     if (!context)
       return;
-    if (context.auxData && context.auxData['isDefault'])
-      this._defaultContextDestroyed = true;
     this._executionContexts.delete(contextId);
     this.manager.refreshExecutionContexts();
-  }
-
-  defaultContextDestroyed(): boolean {
-    return this._defaultContextDestroyed || false;
   }
 
   _executionContextsCleared() {
