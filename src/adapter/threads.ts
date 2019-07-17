@@ -150,10 +150,12 @@ export class ThreadManager {
     return this._pauseOnExceptionsState;
   }
 
-  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
+  async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
     this._pauseOnExceptionsState = state;
+    const promises: Promise<boolean>[] = [];
     for (const thread of this._threads.values())
-      thread.updatePauseOnExceptionsState();
+      promises.push(thread.updatePauseOnExceptionsState());
+    await Promise.all(promises);
   }
 
   async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
@@ -622,9 +624,6 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    if (!this.sourceContainer.initialized())
-      return;
-
     let source = event.url ? this.sourceContainer.sourceByUrl(event.url) : undefined;
     if (!source) {
       const contentGetter = async () => {

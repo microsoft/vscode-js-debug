@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as test from './test';
+import {TestP, Log, kStabilizeNames} from './test';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -9,20 +9,18 @@ let suitePath = '';
 let total = 0;
 const failures: string[] = [];
 
-async function runTest(testFunc: (params: test.Params) => any) {
-  return _runTest(async (log: test.Log) => {
-    const {adapter, dap} = await test.setup();
+async function runTest(testFunc: (p: TestP) => any) {
+  return _runTest(async (log: Log) => {
+    const p = new TestP(log);
     log('Connected');
-    const initializeResult = await test.initialize(dap);
-    const connection = await adapter.testConnection();
-    const cdp = await test.configure(connection, dap);
-    await testFunc({cdp, dap, log, adapter: adapter.adapter(), initializeResult});
-    await test.disconnect(connection, dap);
+    await p.initialize;
+    await testFunc(p);
+    await p.disconnect();
     log('Disconnected');
   }, testFunc.name);
 }
 
-async function runStartupTest(testFunc: (log: test.Log) => Promise<any>) {
+async function runStartupTest(testFunc: (log: Log) => Promise<any>) {
   return _runTest(testFunc, testFunc.name);
 }
 
@@ -34,7 +32,7 @@ function _log(results: string[], item: any, title?: string, stabilizeNames?: str
 }
 
 function _logObject(results: string[], object: Object, title?: string, stabilizeNames?: string[]): any {
-  stabilizeNames = stabilizeNames || test.kStabilizeNames;
+  stabilizeNames = stabilizeNames || kStabilizeNames;
   const lines: string[] = [];
 
   function dumpValue(value, prefix, prefixWithName) {
@@ -82,7 +80,7 @@ function _logObject(results: string[], object: Object, title?: string, stabilize
   return object;
 }
 
-async function _runTest(testFunc: (log: test.Log) => Promise<any>, testName: string) {
+async function _runTest(testFunc: (log: Log) => Promise<any>, testName: string) {
   const name = `${suitePath}-${testName}`;
   console.log(`----- [RUN] ${name}`);
   const results: string[] = [];

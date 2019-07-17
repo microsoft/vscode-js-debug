@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as test from '../test';
+import {TestP} from '../test';
 
-async function listScopes(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,blank');
+async function listScopes(p: TestP) {
+  await p.launchAndLoad('data:text/html,blank');
   p.cdp.Runtime.evaluate({expression: `
     function paused() {
       let y = 'paused';
@@ -31,8 +31,8 @@ async function listScopes(p: test.Params) {
   }
 }
 
-async function setScopeVariable(p: test.Params) {
-  await test.launchAndLoad(p, 'data:text/html,blank');
+async function setScopeVariable(p: TestP) {
+  await p.launchAndLoad('data:text/html,blank');
   p.cdp.Runtime.evaluate({expression: `
     (function paused() {
       let y = 'paused';

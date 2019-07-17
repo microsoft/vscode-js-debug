@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as stream from 'stream';
 import * as path from 'path';
-import DapConnection from '../dap/connection';
-import { ConfigurationDoneResult, Adapter } from '../adapter/adapter';
-import Dap from '../dap/api';
+import * as stream from 'stream';
+import { Adapter } from '../adapter/adapter';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import { ChromeAdapter } from '../chrome/chromeAdapter';
+import Dap from '../dap/api';
+import DapConnection from '../dap/connection';
+import { Target } from '../chrome/targets';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -23,66 +24,90 @@ class Stream extends stream.Duplex {
 }
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
-export type Params = { cdp: Cdp.Api, dap: Dap.TestApi, adapter: Adapter, log: Log, initializeResult: Dap.InitializeResult };
 
-export async function setup(): Promise<{ adapter: ChromeAdapter, dap: Dap.TestApi }> {
-  const testToAdapter = new Stream();
-  const adapterToTest = new Stream();
-  const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
-  const testConnection = new DapConnection(adapterToTest, testToAdapter);
-  const adapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), () => { });
-  return { adapter, dap: testConnection.createTestApi() };
-}
+export class TestP {
+  readonly dap: Dap.TestApi;
+  readonly log: Log;
+  readonly initialize: Promise<Dap.InitializeResult>;
+  cdp: Cdp.Api;
+  adapter: Adapter;
 
-export function initialize(dap: Dap.TestApi) {
-  return dap.initialize({
-    clientID: 'cdp-test',
-    adapterID: 'cdp',
-    linesStartAt1: true,
-    columnsStartAt1: true,
-    pathFormat: 'path',
-    supportsVariablePaging: true
-  });
-}
+  private _chromeAdapter: ChromeAdapter;
+  private _connection: CdpConnection;
+  private _evaluateCounter = 0;
 
-export async function configure(connection: CdpConnection, dap: Dap.TestApi): Promise<Cdp.Api> {
-  const result = (await dap.configurationDone({}) as ConfigurationDoneResult)!;
-  const targetId = result.targetId!;
-  const { sessionId } = (await connection.browser().Target.attachToTarget({ targetId, flatten: true }))!;
-  return connection.createSession(sessionId);
-}
-
-export function disconnect(connection: CdpConnection, dap: Dap.TestApi): Promise<void> {
-  return new Promise(cb => {
-    const disposable = connection.onDisconnected(() => {
-      cb();
-      disposable.dispose();
+  constructor(log: Log) {
+    this.log = log;
+    const testToAdapter = new Stream();
+    const adapterToTest = new Stream();
+    const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
+    const testConnection = new DapConnection(adapterToTest, testToAdapter);
+    this._chromeAdapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), () => { });
+    this.dap = testConnection.createTestApi();
+    this.initialize = this._chromeAdapter.initialize({
+      clientID: 'cdp-test',
+      adapterID: 'cdp',
+      linesStartAt1: true,
+      columnsStartAt1: true,
+      pathFormat: 'path',
+      supportsVariablePaging: true
+    }, true /* isUnderTest */).then(async result => {
+      this._connection = await this._chromeAdapter.connection().clone();
+      return result as Dap.InitializeResult;
     });
-    dap.disconnect({});
-  });
-}
+  }
 
-let evaluateCounter = 0;
-export async function evaluate(p: Params, expression: string) {
-  ++evaluateCounter;
-  p.log(`Evaluating#${evaluateCounter}: ${expression}`);
-  return p.cdp.Runtime.evaluate({ expression: expression + `\n//# sourceURL=eval${evaluateCounter}.js` }).then(result => {
-    if (!result) {
-      p.log(expression, 'Error evaluating');
-      debugger;
-    } else if (result.exceptionDetails) {
-      p.log(result.exceptionDetails, 'Error evaluating');
-      debugger;
-    }
-    return result;
-  });
-}
+  async _launch(url: string): Promise<Target> {
+    await this.initialize;
+    await this._chromeAdapter.configurationDone({});
+    const mainTarget = await this._chromeAdapter.prepareLaunch({url});
+    this.adapter = this._chromeAdapter.adapter();
+    const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId(), flatten: true }))!;
+    this.cdp = this._connection.createSession(sessionId);
+    return mainTarget;
+  }
 
-export async function launchAndLoad(p: Params, url: string) {
-  await p.cdp.Page.enable({});
-  await Promise.all([
-    p.dap.launch({ url }),
-    new Promise(f => p.cdp.Page.on('loadEventFired', f))
-  ]);
-  await p.cdp.Page.disable({});
+  async launch(url: string): Promise<void> {
+    const mainTarget = await this._launch(url);
+    await this._chromeAdapter.finishLaunch(mainTarget);
+  }
+
+  async launchAndLoad(url: string): Promise<void> {
+    const mainTarget = await this._launch(url);
+    await this.cdp.Page.enable({});
+    await Promise.all([
+      this._chromeAdapter.finishLaunch(mainTarget),
+      new Promise(f => this.cdp.Page.on('loadEventFired', f))
+    ]);
+    await this.cdp.Page.disable({});
+  }
+
+  disconnect(): Promise<void> {
+    return new Promise(cb => {
+      this.initialize.then(() => {
+        const disposable = this._connection.onDisconnected(() => {
+          cb();
+          disposable.dispose();
+        });
+        this.dap.disconnect({});
+      });
+    });
+  }
+
+  async evaluate(expression: string): Promise<Cdp.Runtime.EvaluateResult> {
+    ++this._evaluateCounter;
+    this.log(`Evaluating#${this._evaluateCounter}: ${expression}`);
+    return this.cdp.Runtime.evaluate({ expression: expression + `\n//# sourceURL=eval${this._evaluateCounter}.js` }).then(result => {
+      if (!result) {
+        this.log(expression, 'Error evaluating');
+        debugger;
+        throw new Error('Error evaluating "' + expression + '"');
+      } else if (result.exceptionDetails) {
+        this.log(result.exceptionDetails, 'Error evaluating');
+        debugger;
+        throw new Error('Error evaluating "' + expression + '"');
+      }
+      return result;
+    });
+  }
 }

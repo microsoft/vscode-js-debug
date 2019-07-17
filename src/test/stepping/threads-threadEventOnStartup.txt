@@ -1,5 +1,6 @@
 Initializing
-{
+Launching
+Thread event: {
     reason : started
     threadId : <number>
 }
@@ -12,9 +13,17 @@ Requesting threads
         }
     ]
 }
-Launching
-Disconnecting
+Launched, requesting threads
 {
+    threads : [
+        [0] : {
+            id : <number>
+            name : 📄 blank
+        }
+    ]
+}
+Disconnecting
+Thread event: {
     reason : exited
     threadId : <number>
 }
