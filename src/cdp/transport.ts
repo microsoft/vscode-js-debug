@@ -6,7 +6,7 @@ import * as WebSocket from 'ws';
 
 export interface Transport {
   send(message: string): void;
-  close(): void;
+  close(): Promise<void>;
   onmessage?: (message: string) => void;
   onclose?: () => void;
   clone(): Promise<Transport>;
@@ -14,6 +14,7 @@ export interface Transport {
 
 export class PipeTransport implements Transport {
   private _pipeWrite?: NodeJS.WritableStream;
+  private _pipeRead?: NodeJS.ReadableStream;
   private _pendingMessage: string;
   private _eventListeners: any[];
   onmessage?: (message: string) => void;
@@ -21,10 +22,13 @@ export class PipeTransport implements Transport {
 
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream) {
     this._pipeWrite = pipeWrite;
+    this._pipeRead = pipeRead;
     this._pendingMessage = '';
     this._eventListeners = [
       utils.addEventListener(pipeRead, 'data', buffer => this._dispatch(buffer)),
       utils.addEventListener(pipeRead, 'close', () => {
+        this._pipeWrite = undefined;
+        this._pipeRead = undefined;
         if (this.onclose)
           this.onclose.call(null);
       })
@@ -59,9 +63,16 @@ export class PipeTransport implements Transport {
     this._pendingMessage = buffer.toString(undefined, start);
   }
 
-  close() {
+  async close(): Promise<void> {
+    if (!this._pipeRead)
+      return;
+    let callback: () => void;
+    const result = new Promise<void>(f => callback = f);
+    utils.addEventListener(this._pipeRead!, 'close', () => callback());
     this._pipeWrite = undefined;
+    this._pipeRead = undefined;
     utils.removeEventListeners(this._eventListeners);
+    return result;
   }
 
   clone(): Promise<Transport> {
@@ -70,7 +81,7 @@ export class PipeTransport implements Transport {
 }
 
 export class WebSocketTransport implements Transport {
-  private _ws: WebSocket;
+  private _ws: WebSocket | undefined;
   private _wsUrl: string;
   onmessage?: (message: string) => void;
   onclose?: () => void;
@@ -96,6 +107,7 @@ export class WebSocketTransport implements Transport {
     this._ws.addEventListener('close', event => {
       if (this.onclose)
         this.onclose.call(null);
+      this._ws = undefined;
     });
     // Silently ignore all errors - we don't know what to do with them.
     this._ws.addEventListener('error', () => { });
@@ -104,11 +116,18 @@ export class WebSocketTransport implements Transport {
   }
 
   send(message: string) {
-    this._ws.send(message);
+    if (this._ws)
+      this._ws.send(message);
   }
 
-  close() {
+  async close(): Promise<void> {
+    if (!this._ws)
+      return;
+    let callback: () => void;
+    const result = new Promise<void>(f => callback = f);
+    this._ws.addEventListener('close', () => callback());
     this._ws.close();
+    return result;
   }
 
   clone(): Promise<Transport> {
