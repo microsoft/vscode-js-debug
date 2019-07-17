@@ -6,6 +6,7 @@ import * as ts from 'typescript';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { StackFrame } from './stackTrace';
+import { positionToOffset } from '../utils';
 
 export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
@@ -14,8 +15,8 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
     ts.ScriptTarget.ESNext,
     /*setParentNodes */ true);
 
-  let prefix;
-  let toevaluate;
+  let prefix: string | undefined;
+  let toevaluate: string | undefined;
   function traverse(node: ts.Node) {
     if (prefix !== undefined)
       return;
@@ -44,10 +45,10 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   traverse(sourceFile);
 
   if (toevaluate)
-    return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix)) || [];
+    return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!)) || [];
 
   for (const global of ['self', 'this', 'global']) {
-    const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix);
+    const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix || '');
     if (!items)
       continue;
 
@@ -94,6 +95,7 @@ async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number |
     silent: true,
     includeCommandLineAPI: true,
     returnByValue: true
+    // completePropertyAccess has numerous false positive side effects, so we can't use throwOnSideEffect.
   };
   const response = (stackFrame && stackFrame.callFrameId())
     ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId: stackFrame.callFrameId()! })
@@ -104,16 +106,6 @@ async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number |
   return response.result.value as Dap.CompletionItem[];
 }
 
-function positionToOffset(text: string, line: number, column: number): number {
-  let offset = 0;
-  const lines = text.split('\n');
-  for (let l = 1; l < line; ++l)
-    offset += lines[l - 1].length + 1;
-  offset += column - 1;
-  return offset;
-}
-
-//TODO(pfeldman): document why noSideEffects does not work here.
 function hasSideEffects(node: ts.Node): boolean {
   let result = false;
   traverse(node);

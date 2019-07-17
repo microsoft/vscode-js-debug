@@ -59,23 +59,23 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     const { adapter, source } = await factory.sourceForUri(factory, editor.document.uri);
     if (!source || !adapter || !source.canPrettyPrint())
       return;
-    const prettySource = await source.prettyPrint();
+    const success = await source.prettyPrint();
+    if (!success)
+      return;
 
     // Either refresh stacks on breakpoint.
     if (adapter.threadManager.refreshStackTraces())
       return;
 
     // Or reveal this source manually.
-    if (prettySource) {
-      const originalLocation: Location = {
-        source,
-        url: source.url(),
-        lineNumber: editor.selection.start.line,
-        columnNumber: editor.selection.start.character,
-      };
-      const newLocation = adapter.sourceContainer.preferredLocation(originalLocation);
-      adapter.sourceContainer.revealLocation(newLocation);
-    }
+    const originalLocation: Location = {
+      source,
+      url: source.url(),
+      lineNumber: editor.selection.start.line + 1,
+      columnNumber: editor.selection.start.character + 1,
+    };
+    const newLocation = adapter.sourceContainer.preferredLocation(originalLocation);
+    adapter.sourceContainer.revealLocation(newLocation);
   }));
 }
 
