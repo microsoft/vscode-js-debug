@@ -16,7 +16,7 @@ async function runTest(testFunc: (params: test.Params) => any) {
     const initializeResult = await test.initialize(dap);
     const connection = await adapter.testConnection();
     const cdp = await test.configure(connection, dap);
-    await testFunc({cdp, dap, log, initializeResult});
+    await testFunc({cdp, dap, log, adapter: adapter.adapter(), initializeResult});
     await test.disconnect(connection, dap);
     log('Disconnected');
   }, testFunc.name);

@@ -239,12 +239,6 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): { title: 
   };
 }
 
-export function previewExceptionDetails(exceptionDetails: Cdp.Runtime.ExceptionDetails): string {
-  if (exceptionDetails.exception)
-    return previewException(exceptionDetails.exception).title;
-  return exceptionDetails.text;
-}
-
 function formatAsNumber(param: Cdp.Runtime.RemoteObject, round: boolean): string {
   const value = typeof param.value === 'number' ? param.value : +param.description!;
   return String(round ? Math.floor(value) : value);

@@ -308,11 +308,6 @@ export namespace Dap {
      * Disassembles code stored at the provided location.
      */
     on(request: 'disassemble', handler: (params: DisassembleParams) => Promise<DisassembleResult | Error>): void;
-
-    /**
-     * Updates custom breakpoints (instrumentation, event listeners, etc).
-     */
-    on(request: 'updateCustomBreakpoints', handler: (params: UpdateCustomBreakpointsParams) => Promise<UpdateCustomBreakpointsResult | Error>): void;
   }
 
   export interface AttachParams {
@@ -1440,13 +1435,6 @@ export namespace Dap {
     threads: Thread[];
   }
 
-  export interface UpdateCustomBreakpointsParams {
-    breakpoints: CustomBreakpoint[];
-  }
-
-  export interface UpdateCustomBreakpointsResult {
-  }
-
   export interface VariablesParams {
     /**
      * The Variable reference.
@@ -1536,26 +1524,6 @@ export namespace Dap {
      * Optional memory reference for the variable if the variable represents executable code, such as a function pointer.
      */
     memoryReference?: string;
-  }
-
-  /**
-   * Custom breakpoint definition.
-   */
-  export interface CustomBreakpoint {
-    /**
-     * Breakpoint id.
-     */
-    id: string;
-
-    /**
-     * Whether breakpoint should be enabled or disabled.
-     */
-    enabled: boolean;
-
-    /**
-     * Any custom data.
-     */
-    data?: any;
   }
 
   /**

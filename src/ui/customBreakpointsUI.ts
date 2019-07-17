@@ -2,13 +2,12 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { CustomBreakpoint, customBreakpoints } from '../adapter/customBreakpoints';
-import Dap from '../dap/api';
+import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
 import { AdapterFactory } from '../adapterFactory';
 import { Adapter } from '../adapter/adapter';
 
 class Breakpoint {
-  id: string;
+  id: CustomBreakpointId;
   label: string;
   enabled: boolean;
   treeItem: vscode.TreeItem;
@@ -40,10 +39,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
       this.breakpoints.push(new Breakpoint(cb, false));
 
     const sendState = (adapter: Adapter) => {
-      const params: Dap.UpdateCustomBreakpointsParams = {
-        breakpoints: this._collectState().map(id => ({ id, enabled: true }))
-      };
-      adapter.onUpdateCustomBreakpoints(params);
+      adapter.threadManager.enableCustomBreakpoints(this.breakpoints.filter(b => b.enabled).map(b => b.id));
     };
     factory.onAdapterAdded(sendState);
     factory.adapters().forEach(sendState);
@@ -64,33 +60,21 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   }
 
   addBreakpoints(breakpoints: Breakpoint[]) {
-    const payload: Dap.CustomBreakpoint[] = breakpoints.map(b => ({ id: b.id, enabled: true }));
-    this._changeBreakpoints(payload);
-  }
-
-  removeBreakpoints(breakpointIds: string[]) {
-    const payload: Dap.CustomBreakpoint[] = [];
-    for (const id of breakpointIds)
-      payload.push({ id, enabled: false });
-    this._changeBreakpoints(payload);
-  }
-
-  _changeBreakpoints(payload: Dap.CustomBreakpoint[]) {
-    const state = new Map<string, boolean>();
-    for (const p of payload)
-      state.set(p.id, p.enabled);
-    for (const b of this.breakpoints) {
-      if (state.has(b.id))
-        b.enabled = state.get(b.id) as boolean;
-    }
-
-    const params: Dap.UpdateCustomBreakpointsParams = { breakpoints: payload };
-    this._factory.adapters().forEach(adapter => adapter.onUpdateCustomBreakpoints(params));
+    for (const breakpoint of breakpoints)
+      breakpoint.enabled = true;
+    const ids = breakpoints.map(b => b.id);
+    this._factory.adapters().forEach(adapter => adapter.threadManager.enableCustomBreakpoints(ids));
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  _collectState(): string[] {
-    return this.breakpoints.filter(b => b.enabled).map(b => b.id);
+  removeBreakpoints(breakpointIds: CustomBreakpointId[]) {
+    const ids = new Set(breakpointIds);
+    for (const breakpoint of this.breakpoints) {
+      if (ids.has(breakpoint.id))
+        breakpoint.enabled = false;
+    }
+    this._factory.adapters().forEach(adapter => adapter.threadManager.disableCustomBreakpoints(breakpointIds));
+    this._onDidChangeTreeData.fire(undefined);
   }
 }
 

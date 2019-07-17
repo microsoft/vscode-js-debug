@@ -4,7 +4,7 @@
 import * as stream from 'stream';
 import * as path from 'path';
 import DapConnection from '../dap/connection';
-import { ConfigurationDoneResult } from '../adapter/adapter';
+import { ConfigurationDoneResult, Adapter } from '../adapter/adapter';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
@@ -23,7 +23,7 @@ class Stream extends stream.Duplex {
 }
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
-export type Params = { cdp: Cdp.Api, dap: Dap.TestApi, log: Log, initializeResult: Dap.InitializeResult };
+export type Params = { cdp: Cdp.Api, dap: Dap.TestApi, adapter: Adapter, log: Log, initializeResult: Dap.InitializeResult };
 
 export async function setup(): Promise<{ adapter: ChromeAdapter, dap: Dap.TestApi }> {
   const testToAdapter = new Stream();

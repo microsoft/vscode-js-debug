@@ -55,8 +55,6 @@ export class Adapter {
     this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
-    // TODO(dgozman): remove custom dap.
-    this._dap.on('updateCustomBreakpoints', params => this.onUpdateCustomBreakpoints(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
     // TODO(dgozman): consider moving into adapter embedder.
@@ -297,7 +295,7 @@ export class Adapter {
       outputSlot(await prep.thread.formatException(response.exceptionDetails, '↳ '));
     } else {
       const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
-      const variablesReference = await prep.variableStore.createVariableForOutput(text, [response.result]);
+      const variablesReference = await prep.thread.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
         output: '',
@@ -363,11 +361,6 @@ export class Adapter {
         evaluateName: undefined  // This is not used by vscode.
       }
     };
-  }
-
-  async onUpdateCustomBreakpoints(params: Dap.UpdateCustomBreakpointsParams): Promise<Dap.UpdateCustomBreakpointsResult> {
-    await this.threadManager.updateCustomBreakpoints(params.breakpoints);
-    return {};
   }
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
