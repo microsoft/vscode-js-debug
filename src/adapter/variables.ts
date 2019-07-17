@@ -317,7 +317,6 @@ export class VariableStore {
 
   private async _createVariable(name: string, value?: RemoteObject, context?: string): Promise<Dap.Variable> {
     if (!value) {
-      // TODO(pfeldman): implement getters / setters
       return {
         name,
         value: '',

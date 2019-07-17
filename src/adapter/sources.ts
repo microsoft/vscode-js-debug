@@ -192,26 +192,27 @@ export class Source {
   }
 
   canPrettyPrint(): boolean {
-    // TODO(pfeldman): consider checking !this._sourceMapUrl
-    return !!this._container;
+    return this._container && !this._name.endsWith('-pretty.js');
   }
 
-  async prettyPrint(): Promise<Source | undefined> {
+  async prettyPrint(): Promise<boolean> {
     if (!this._container || !this.canPrettyPrint())
-      return;
+      return false;
+    if (this._sourceMapUrl && this._sourceMapUrl.endsWith('-pretty.map'))
+      return true;
     const content = await this.content();
     if (!content)
-      return;
-    const sourceMapUrl = this.url() + '@map';
+      return false;
+    const sourceMapUrl = this.url() + '-pretty.map';
     const prettyPath = this._fqname + '-pretty.js';
     const map = prettyPrintAsSourceMap(prettyPath, content);
     if (!map)
-      return;
+      return false;
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    const result = this._container._addSourceMapSources(this, map);
-    return result[0];
+    this._container._addSourceMapSources(this, map);
+    return true;
   }
 
   async toDap(): Promise<Dap.Source> {
@@ -480,7 +481,7 @@ export class SourceContainer {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: SourceMap): Source[] {
+  _addSourceMapSources(compiled: Source, map: SourceMap) {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sourceUrls()) {
@@ -500,7 +501,6 @@ export class SourceContainer {
         this._addSource(source);
       addedSources.push(source);
     }
-    return addedSources;
   }
 
   _removeSourceMapSources(compiled: Source, map: SourceMap) {

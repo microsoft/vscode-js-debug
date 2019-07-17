@@ -98,3 +98,12 @@ export function urlToRegExString(urlString: string): string {
   }
   return prefix + escapeForRegExp(url.pathname) + (url.search ? '\\b' : '$');
 }
+
+export function positionToOffset(text: string, line: number, column: number): number {
+  let offset = 0;
+  const lines = text.split('\n');
+  for (let l = 1; l < line; ++l)
+    offset += lines[l - 1].length + 1;
+  offset += column - 1;
+  return offset;
+}
