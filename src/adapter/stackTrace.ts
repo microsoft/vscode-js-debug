@@ -258,12 +258,8 @@ export class StackFrame {
   async format(): Promise<string> {
     if (this._isAsyncSeparator)
       return `◀ ${this._name} ▶`;
-    let fileName = this._location.url;
-    if (this._location.source) {
-      const source = await this._location.source.toDap();
-      fileName = source.path || fileName;
-    }
-    let location = `${fileName}:${this._location.lineNumber}`;
+    let prettyName = (this._location.source && await this._location.source.prettyName()) || this._location.url;
+    let location = `${prettyName}:${this._location.lineNumber}`;
     if (this._location.columnNumber > 1)
       location += `:${this._location.columnNumber}`;
     return `${this._name} @ ${location}`;

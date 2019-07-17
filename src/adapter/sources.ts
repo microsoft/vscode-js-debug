@@ -240,6 +240,13 @@ export class Source {
     return this._absolutePath;
   }
 
+  async prettyName(): Promise<string> {
+    const path = await this._absolutePath;
+    if (path)
+      return path;
+    return this._fqname;
+  }
+
   _fullyQualifiedName(): string {
     if (!this._url)
       return 'VM/VM' + this._sourceReference;
@@ -433,7 +440,6 @@ export class SourceContainer {
     const promise = new Promise<void>(f => callback = f);
     sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    // TODO(dgozman): use timeout to avoid long pauses on script loading.
     sourceMap.map = await SourceMap.load(sourceMapUrl);
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)

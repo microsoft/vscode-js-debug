@@ -1,3 +1,15 @@
+# Features
+- attaching to all threads: page, out of process iframes, web workers, related service workers
+- evaluate in selected execution context
+- node debugging attaches to all processes
+- serialized console messages, exceptions and evaluations
+- breakpoints set in source map always work, even immediately after launch
+- instrumentation breakpoints (e.g. setTimeout fired)
+- inspect(function)
+- pretty print minified source
+- console message formatting options
+- function locations go through source maps
+- stacks in console.foo methods and exceptions go through source maps
 
 # Contributing
 
