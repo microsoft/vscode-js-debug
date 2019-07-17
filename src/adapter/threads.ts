@@ -146,13 +146,6 @@ export class ThreadManager {
     return this._threads.get(threadId);
   }
 
-  disposeAllThreads() {
-    lastThreadId = 0;
-    for (const thread of this.threads())
-      thread.dispose();
-    this.refreshExecutionContexts();
-  }
-
   pauseOnExceptionsState(): PauseOnExceptionsState {
     return this._pauseOnExceptionsState;
   }

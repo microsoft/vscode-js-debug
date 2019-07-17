@@ -80,6 +80,8 @@ export class NodeAdapter implements ThreadManagerDelegate {
   }
 
   async _relaunch(): Promise<Dap.LaunchResult | undefined> {
+    await this._killRuntime();
+
     const executable = await resolvePath(this._launchParams!.runtime);
     if (!executable)
       return errors.createSilentError('Could not locate Node.js executable');
@@ -87,31 +89,44 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._runtime = spawn(executable, [this._launchParams!.program], {
       cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
       env: { ...process.env, ...env(this._pipe!) },
-      stdio: 'ignore' // ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe']
     });
-    // this._runtime.stdout.on('data', data => console.log(data.toString()));
-    // this._runtime.stderr.on('data', data => console.log(data.toString()));
+    const output = vscode.window.createOutputChannel(this._launchParams!.program);
+    this._runtime.stdout.on('data', data => output.append(data.toString()));
+    this._runtime.stderr.on('data', data => output.append(data.toString()));
+    this._runtime.on('exit', () => {
+      output.dispose();
+      this._runtime = undefined;
+    });
   }
 
   async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    if (this._runtime)
-      this._runtime.kill();
+    await this._killRuntime();
     this._stopServer();
-    this._adapter.threadManager.disposeAllThreads();
     return {};
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+    await this._killRuntime();
     this._stopServer();
-    this._adapter.threadManager.disposeAllThreads();
     return {};
   }
 
+  async _killRuntime() {
+    if (!this._runtime)
+      return;
+    this._runtime.kill();
+    let callback = () => {};
+    const result = new Promise(f => callback = f);
+    this._runtime.on('exit', callback);
+    return result;
+  }
+
   async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
-    for (const c of this._connections)
-      c.dispose();
-    this._connections = [];
-    this._adapter.threadManager.disposeAllThreads();
+    // Dispose all the connections - Node would not exit child processes otherwise.
+    await this._killRuntime();
+    this._stopServer();
+    this._startServer();
     this._relaunch();
     return {};
   }
@@ -153,7 +168,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
       threadName = `[${info.pid}]`;
     thread.setName(threadName);
     connection.onDisconnected(() => {
-      this._threadsByPid.set(info.pid, thread);
+      this._threadsByPid.delete(info.pid);
       thread.dispose();
     });
     this._adapter.threadManager.onExecutionContextsChanged(() => {
