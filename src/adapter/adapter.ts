@@ -233,6 +233,9 @@ export class Adapter {
       throwOnSideEffect: args.context === 'hover' ? true : undefined,
       timeout: args.context === 'hover' ? 500 : undefined,
     };
+    if (args.context === 'repl')
+      params.expression = this._wrapObjectLiteral(params.expression);
+
     const response = prep.stackFrame
       ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
       : await prep.thread.cdp().Runtime.evaluate({ ...params, contextId: prep.executionContextId });
@@ -321,6 +324,8 @@ export class Adapter {
     let variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
+
+    params.value = this._wrapObjectLiteral(params.value.trim());
     return variableStore.setVariable(params);
   }
 
@@ -358,5 +363,25 @@ export class Adapter {
         source: await this._locationToReveal.source!.toDap()
       }]
     };
+  }
+
+  _wrapObjectLiteral(code: string): string {
+    // Only parenthesize what appears to be an object literal.
+    if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
+      return code;
+
+    const parse = (async () => 0).constructor;
+    try {
+      // Check if the code can be interpreted as an expression.
+      parse('return ' + code + ';');
+
+      // No syntax error! Does it work parenthesized?
+      const wrappedCode = '(' + code + ')';
+      parse(wrappedCode);
+
+      return wrappedCode;
+    } catch (e) {
+      return code;
+    }
   }
 }
