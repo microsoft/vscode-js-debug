@@ -44,6 +44,7 @@
     "ws": "^7.0.1"
   },
   "devDependencies": {
+    "@pptr/testrunner": "^0.7.0",
     "@types/color": "^3.0.0",
     "@types/debug": "^4.1.4",
     "@types/js-beautify": "^1.8.1",
