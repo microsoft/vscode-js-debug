@@ -3,13 +3,16 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Adapter } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
+import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
 import Dap from '../dap/api';
+import * as utils from '../utils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import { Target, TargetManager } from './targets';
@@ -97,7 +100,7 @@ export class ChromeAdapter {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, this._rootPath, params.url, params.webRoot);
+    this._adapter = new Adapter(this._dap, new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot));
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
     this._adapter.threadManager.setDelegate(this._targetManager);
     await this._adapter.configure(this._configurator);
@@ -151,5 +154,99 @@ export class ChromeAdapter {
       return this._mainTargetNotAvailable();
     await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
     return {};
+  }
+}
+
+class ChromeSourcePathResolver implements SourcePathResolver {
+  private _basePath?: string;
+  private _baseUrl?: URL;
+  private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
+  private _rootPath: string | undefined;
+
+  constructor(rootPath: string | undefined, url: string, webRoot: string | undefined) {
+    this._rootPath = rootPath;
+    this._basePath = webRoot ? path.normalize(webRoot) : undefined;
+    try {
+      this._baseUrl = new URL(url);
+      this._baseUrl.pathname = '/';
+      this._baseUrl.search = '';
+      this._baseUrl.hash = '';
+      if (this._baseUrl.protocol === 'data:')
+        this._baseUrl = undefined;
+    } catch (e) {
+      this._baseUrl = undefined;
+    }
+
+    if (!this._basePath)
+      return;
+    const substitute = (s: string): string => {
+      return s.replace(/{webRoot}/g, this._basePath!);
+    };
+    this._rules = [
+      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}/node_modules/') },
+      { urlPrefix: 'webpack:///./', pathPrefix: substitute('{webRoot}/') },
+      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}/') },
+      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
+    ];
+  }
+
+  rewriteSourceUrl(sourceUrl: string): string {
+    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
+      return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
+    return sourceUrl;
+  }
+
+  async urlToExistingAbsolutePath(url: string): Promise<string> {
+    let absolutePath = this._resolveAbsolutePath(url);
+    if (!absolutePath)
+      return '';
+    if (!await this._checkExists(absolutePath))
+      return '';
+    return absolutePath;
+  }
+
+  absolutePathToUrl(absolutePath: string): string | undefined {
+    absolutePath = path.normalize(absolutePath);
+    if (!this._baseUrl || !this._basePath || !absolutePath.startsWith(this._basePath))
+      return utils.absolutePathToFileUrl(absolutePath);
+    const relative = path.relative(this._basePath, absolutePath);
+    try {
+      return new URL(relative, this._baseUrl).toString();
+    } catch (e) {
+    }
+  }
+
+  _resolveAbsolutePath(url: string): string | undefined {
+    const absolutePath = utils.fileUrlToAbsolutePath(url);
+    if (absolutePath)
+      return absolutePath;
+
+    for (const rule of this._rules) {
+      if (url.startsWith(rule.urlPrefix))
+        return rule.pathPrefix + url.substring(rule.pathPrefix.length);
+    }
+
+    if (!this._basePath || !this._baseUrl)
+      return;
+    try {
+      const u = new URL(url);
+      if (u.origin !== this._baseUrl.origin)
+        return;
+      const pathname = path.normalize(u.pathname);
+      let basepath = path.normalize(this._baseUrl.pathname);
+      if (!basepath.endsWith(path.sep))
+        basepath += '/';
+      if (!pathname.startsWith(basepath))
+        return;
+      let relative = basepath === pathname ? '' : path.normalize(path.relative(basepath, pathname));
+      if (relative === '' || relative === '/')
+        relative = 'index.html';
+      return path.join(this._basePath, relative);
+    } catch (e) {
+    }
+  }
+
+  _checkExists(absolutePath: string): Promise<boolean> {
+    return new Promise(f => fs.exists(absolutePath, f));
   }
 }

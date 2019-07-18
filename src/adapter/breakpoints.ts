@@ -66,7 +66,7 @@ export class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
     const url = source
       ? source.url() :
-      (this._source.path ? this._manager._sourcePathResolver.resolveUrl(this._source.path) : undefined);
+      (this._source.path ? this._manager._sourcePathResolver.absolutePathToUrl(this._source.path) : undefined);
     const promises: Promise<void>[] = [];
 
     if (url) {

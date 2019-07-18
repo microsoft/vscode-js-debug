@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import { ChildProcess, spawn } from 'child_process';
+import * as fs from 'fs';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -10,11 +11,13 @@ import * as which from 'which';
 import { Adapter } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
-import { PipeTransport } from '../cdp/transport';
+import { SourcePathResolver } from '../adapter/sources';
 import { ExecutionContextTree, Thread, ThreadManagerDelegate } from '../adapter/threads';
-import Connection from '../cdp/connection';
-import Dap from '../dap/api';
 import Cdp from '../cdp/api';
+import Connection from '../cdp/connection';
+import { PipeTransport } from '../cdp/transport';
+import Dap from '../dap/api';
+import * as utils from '../utils';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
@@ -64,7 +67,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, this._rootPath, '', '');
+    this._adapter = new Adapter(this._dap, new NodeSourcePathResolver(this._rootPath));
     this._adapter.threadManager.setDelegate(this);
     await this._adapter.configure(this._configurator);
 
@@ -210,4 +213,33 @@ function env(pipe: string) {
 
 function resolvePath(command: string): Promise<string | undefined> {
   return new Promise(resolve => which(command, (error: Error | null, path: string | undefined) => resolve(path)));
+}
+
+class NodeSourcePathResolver implements SourcePathResolver {
+  private _rootPath: string | undefined;
+
+  constructor(rootPath: string | undefined) {
+    this._rootPath = rootPath;
+  }
+
+  rewriteSourceUrl(sourceUrl: string): string {
+    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
+      return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
+    return sourceUrl;
+  }
+
+  async urlToExistingAbsolutePath(url: string): Promise<string> {
+    const absolutePath = utils.fileUrlToAbsolutePath(url);
+    if (!absolutePath || !await this._checkExists(absolutePath))
+      return '';
+    return absolutePath;
+  }
+
+  absolutePathToUrl(absolutePath: string): string | undefined {
+    return utils.absolutePathToFileUrl(path.normalize(absolutePath));
+  }
+
+  _checkExists(absolutePath: string): Promise<boolean> {
+    return new Promise(f => fs.exists(absolutePath, f));
+  }
 }

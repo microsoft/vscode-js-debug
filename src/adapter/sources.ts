@@ -6,7 +6,6 @@ import * as utils from '../utils';
 import Dap from '../dap/api';
 import { URL } from 'url';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as errors from './errors';
 import { prettyPrintAsSourceMap } from './prettyPrint';
 
@@ -28,98 +27,10 @@ export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
 }
 
-export class SourcePathResolver {
-  private _basePath?: string;
-  private _baseUrl?: URL;
-  private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
-  private _rootPath: string | undefined;
-
-  constructor(rootPath: string | undefined, url: string, webRoot: string | undefined) {
-    this._rootPath = rootPath;
-    this._basePath = webRoot ? path.normalize(webRoot) : undefined;
-    try {
-      this._baseUrl = new URL(url);
-      this._baseUrl.pathname = '/';
-      this._baseUrl.search = '';
-      this._baseUrl.hash = '';
-    } catch (e) {
-      this._baseUrl = undefined;
-    }
-
-    if (!this._basePath)
-      return;
-    const substitute = (s: string): string => {
-      return s.replace(/${webRoot}/g, this._basePath!);
-    };
-    this._rules = [
-      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('${webRoot}/node_modules/') },
-      { urlPrefix: 'webpack:///./', pathPrefix: substitute('${webRoot}/') },
-      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/') },
-      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
-    ];
-  }
-
-  resolveSourceMapSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
-    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
-      sourceUrl = 'file://' + sourceUrl;
-    const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
-    return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
-  }
-
-  async resolveExistingAbsolutePath(url?: string): Promise<string> {
-    if (!url)
-      return '';
-    let absolutePath = this._resolveAbsolutePath(url);
-    if (!absolutePath)
-      return '';
-    if (!await this._checkExists(absolutePath))
-      return '';
-    return absolutePath;
-  }
-
-  resolveUrl(absolutePath: string): string | undefined {
-    absolutePath = path.normalize(absolutePath);
-    if (!this._baseUrl || !this._basePath || !absolutePath.startsWith(this._basePath))
-      return 'file://' + absolutePath;
-    const relative = path.relative(this._basePath, absolutePath);
-    try {
-      return new URL(relative, this._baseUrl).toString();
-    } catch (e) {
-    }
-  }
-
-  _resolveAbsolutePath(url: string): string | undefined {
-    // TODO(dgozman): make sure all platform paths are supported.
-    if (url.startsWith('file://'))
-      return url.substring(7);
-    for (const rule of this._rules) {
-      if (url.startsWith(rule.urlPrefix))
-        return rule.pathPrefix + url.substring(rule.pathPrefix.length);
-    }
-    if (!this._basePath || !this._baseUrl)
-      return;
-
-    try {
-      const u = new URL(url);
-      if (u.origin !== this._baseUrl.origin)
-        return;
-      const pathname = path.normalize(u.pathname);
-      let basepath = path.normalize(this._baseUrl.pathname);
-      if (!basepath.endsWith(path.sep))
-        basepath += path.sep;
-      if (!pathname.startsWith(basepath))
-        return;
-      let relative = basepath === pathname ? '' : path.normalize(path.relative(basepath, pathname));
-      if (relative === '' || relative === '/')
-        relative = 'index.html';
-      return path.join(this._basePath, relative);
-    } catch (e) {
-    }
-  }
-
-  _checkExists(absolutePath: string): Promise<boolean> {
-    return new Promise(f => fs.exists(absolutePath, f));
-  }
+export interface SourcePathResolver {
+  rewriteSourceUrl(sourceUrl: string): string;
+  urlToExistingAbsolutePath(url: string): Promise<string>;
+  absolutePathToUrl(absolutePath: string): string | undefined;
 }
 
 export class Source {
@@ -152,7 +63,7 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._absolutePath = container._sourcePathResolver.resolveExistingAbsolutePath(url);
+    this._absolutePath = container._sourcePathResolver.urlToExistingAbsolutePath(url);
   }
 
   url(): string {
@@ -461,7 +372,9 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sourceUrls()) {
-      const resolvedUrl = this._sourcePathResolver.resolveSourceMapSourceUrl(map, compiled, url);
+      const sourceUrl = this._sourcePathResolver.rewriteSourceUrl(url);
+      const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
+      const resolvedUrl = utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
       const content = map.sourceContent(url);
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
