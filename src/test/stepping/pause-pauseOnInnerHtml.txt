@@ -1,4 +1,3 @@
-Connected
 Not pausing on innerHTML
 Evaluating#1: document.querySelector('div').innerHTML = 'foo';
 Pausing on innerHTML
@@ -13,4 +12,3 @@ Evaluating#2: document.querySelector('div').innerHTML = 'bar';
 {
     allThreadsContinued : false
 }
-Disconnected

@@ -1,4 +1,3 @@
-Connected
 {
     threads : [
         [0] : {
@@ -7,4 +6,3 @@ Connected
         }
     ]
 }
-Disconnected

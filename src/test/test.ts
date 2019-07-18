@@ -10,6 +10,7 @@ import { ChromeAdapter } from '../chrome/chromeAdapter';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
 import { Target } from '../chrome/targets';
+import { GoldenText } from './goldenText';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -23,12 +24,11 @@ class Stream extends stream.Duplex {
   }
 }
 
-export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
-
 export class TestP {
   readonly dap: Dap.TestApi;
-  readonly log: Log;
   readonly initialize: Promise<Dap.InitializeResult>;
+  readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
+  readonly assertLog: () => void;
   cdp: Cdp.Api;
   adapter: Adapter;
 
@@ -36,8 +36,9 @@ export class TestP {
   private _connection: CdpConnection;
   private _evaluateCounter = 0;
 
-  constructor(log: Log) {
-    this.log = log;
+  constructor(goldenText: GoldenText) {
+    this.log = goldenText.log.bind(goldenText);
+    this.assertLog = goldenText.assertLog.bind(goldenText);
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
     const adapterConnection = new DapConnection(testToAdapter, adapterToTest);

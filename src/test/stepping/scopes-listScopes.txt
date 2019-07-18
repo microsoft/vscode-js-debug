@@ -1,4 +1,3 @@
-Connected
 stopped: {
     allThreadsStopped : false
     description : Paused
@@ -8,7 +7,7 @@ stopped: {
 stackTrace: {
     stackFrames : [
         [0] : {
-            column : 7
+            column : 9
             id : <number>
             line : 4
             name : paused
@@ -20,7 +19,7 @@ stackTrace: {
             }
         }
         [1] : {
-            column : 21
+            column : 23
             id : <number>
             line : 11
             name : chained
@@ -32,7 +31,7 @@ stackTrace: {
             }
         }
         [2] : {
-            column : 21
+            column : 23
             id : <number>
             line : 11
             name : chained
@@ -44,7 +43,7 @@ stackTrace: {
             }
         }
         [3] : {
-            column : 21
+            column : 23
             id : <number>
             line : 11
             name : chained
@@ -56,7 +55,7 @@ stackTrace: {
             }
         }
         [4] : {
-            column : 13
+            column : 15
             id : <number>
             line : 14
             name : <anonymous>
@@ -73,8 +72,8 @@ stackTrace: {
 frame #0: {
     scopes : [
         [0] : {
-            column : 20
-            endColumn : 6
+            column : 22
+            endColumn : 8
             endLine : 5
             expensive : false
             line : 2
@@ -107,8 +106,8 @@ scope #0.0: {
 frame #1: {
     scopes : [
         [0] : {
-            column : 30
-            endColumn : 8
+            column : 32
+            endColumn : 10
             endLine : 12
             expensive : false
             line : 9
@@ -122,8 +121,8 @@ frame #1: {
             variablesReference : <number>
         }
         [1] : {
-            column : 19
-            endColumn : 6
+            column : 21
+            endColumn : 8
             endLine : 13
             expensive : false
             line : 6
@@ -166,8 +165,8 @@ scope #1.1: {
 frame #2: {
     scopes : [
         [0] : {
-            column : 30
-            endColumn : 8
+            column : 32
+            endColumn : 10
             endLine : 12
             expensive : false
             line : 9
@@ -181,8 +180,8 @@ frame #2: {
             variablesReference : <number>
         }
         [1] : {
-            column : 19
-            endColumn : 6
+            column : 21
+            endColumn : 8
             endLine : 13
             expensive : false
             line : 6
@@ -225,8 +224,8 @@ scope #2.1: {
 frame #3: {
     scopes : [
         [0] : {
-            column : 30
-            endColumn : 8
+            column : 32
+            endColumn : 10
             endLine : 12
             expensive : false
             line : 9
@@ -240,8 +239,8 @@ frame #3: {
             variablesReference : <number>
         }
         [1] : {
-            column : 19
-            endColumn : 6
+            column : 21
+            endColumn : 8
             endLine : 13
             expensive : false
             line : 6
@@ -290,4 +289,3 @@ frame #4: {
         }
     ]
 }
-Disconnected

@@ -2,15 +2,18 @@
 // Licensed under the MIT license.
 
 import * as test from '../test';
+import { GoldenText } from '../goldenText';
 
-async function initialize(log: test.Log) {
-  const p = new test.TestP(log);
-  p.dap.on('initialized', () => log('initialized'));
-  log(await p.initialize);
-  await p.disconnect();
+export function addStartupTests(testRunner) {
+  // @ts-ignore unused xit/fit variables.
+  const {it, fit, xit} = testRunner;
+
+  it('initialize', async({goldenText} : {goldenText: GoldenText}) => {
+    const p = new test.TestP(goldenText);
+    p.dap.on('initialized', () => p.log('initialized'));
+    p.log(await p.initialize);
+    await p.disconnect();
+    p.assertLog();
+  });
 }
 
-const startup = [
-  initialize,
-];
-export default {startup};
