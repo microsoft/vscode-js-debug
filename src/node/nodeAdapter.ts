@@ -169,7 +169,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
       if (!this._targets.size && !this._isRestarting)
         this._dap.terminated({});
     });
-    await thread.initialize();
+    thread.initialize();
     cdp.Runtime.on('executionContextDestroyed', () => {
       connection.close();
     });

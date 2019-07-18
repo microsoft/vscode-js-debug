@@ -188,15 +188,15 @@ export class TargetManager implements ThreadManagerDelegate {
     return target;
   }
 
-  async _detachedFromTarget(targetId: string) {
+  _detachedFromTarget(targetId: string) {
     const target = this._targets.get(targetId);
     if (!target)
       return;
     debugTarget(`Detaching from target ${targetId}`);
 
     for (const childTargetId of target._children.keys())
-      await this._detachedFromTarget(childTargetId);
-    await target._dispose();
+      this._detachedFromTarget(childTargetId);
+    target._dispose();
 
     this._targets.delete(targetId);
     if (target.parentTarget)
@@ -262,7 +262,7 @@ export class Target {
 
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread)
-      await this._thread.initialize();
+      this._thread.initialize();
     if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager._frameModel.addTarget(this._cdp))
       return false;
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
@@ -297,9 +297,9 @@ export class Target {
     this._thread.setBaseUrl(targetInfo.url);
   }
 
-  async _dispose() {
+  _dispose() {
     if (this._thread)
-      await this._thread.dispose();
+      this._thread.dispose();
     this._ondispose(this);
   }
 
