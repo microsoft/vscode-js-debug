@@ -57,10 +57,10 @@ export class ThreadManager {
   private _threads: Map<number, Thread> = new Map();
   private _dap: Dap.Api;
 
-  _onThreadInitializedEmitter = new vscode.EventEmitter<Thread>();
+  _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
   private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
   private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContextTree[]>();
-  readonly onThreadInitialized = this._onThreadInitializedEmitter.event;
+  readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
@@ -155,7 +155,7 @@ export class ThreadManager {
     this._pauseOnExceptionsState = state;
     const promises: Promise<boolean>[] = [];
     for (const thread of this._threads.values())
-      promises.push(thread.updatePauseOnExceptionsState());
+      promises.push(thread._updatePauseOnExceptionsState());
     await Promise.all(promises);
   }
 
@@ -191,7 +191,6 @@ export class ThreadManager {
 export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
-  private _disposed = false;
   private _threadId: number;
   private _name: string;
   private _threadBaseUrl: string;
@@ -297,7 +296,7 @@ export class Thread implements VariableStoreDelegate {
     return true;
   }
 
-  async initialize() {
+  initialize() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
@@ -307,7 +306,8 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Runtime.on('executionContextsCleared', () => {
       this.replVariables.clear();
       this._executionContextsCleared();
-      this.claimOutputSlot()(this._clearDebuggerConsole());
+      const slot = this.claimOutputSlot();
+      slot(this._clearDebuggerConsole());
     });
     this._cdp.Runtime.on('consoleAPICalled', async event => {
       const slot = this.claimOutputSlot();
@@ -320,7 +320,7 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Runtime.on('inspectRequested', event => {
       this._revealObject(event.object);
     });
-    await this._cdp.Runtime.enable({});
+    this._cdp.Runtime.enable({});
 
     this._cdp.Debugger.on('paused', event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
@@ -335,27 +335,18 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
-    await this._cdp.Debugger.enable({});
-    await this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    // We ignore the result to support older versions.
-    this._supportsSourceMapPause =
-      !!await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
-    await this.updatePauseOnExceptionsState();
+    this._cdp.Debugger.enable({});
+    this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
+    this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' }).then(result => {
+      this._supportsSourceMapPause = !!result;
+    });
+    this._updatePauseOnExceptionsState();
 
-    const customBreakpointPromises: Promise<boolean>[] = [];
     for (const id of this.manager.customBreakpoints())
-      customBreakpointPromises.push(this.updateCustomBreakpoint(id, true));
-    // Do not fail for custom breakpoints not set, to account for
-    // future changes in cdp vs stale breakpoints saved in the workspace.
-    await Promise.all(customBreakpointPromises);
+      this.updateCustomBreakpoint(id, true);
 
-    if (this._disposed)
-      return;
-
-    this.manager._onThreadInitializedEmitter.fire(this);
+    this.manager._onThreadAddedEmitter.fire(this);
     this._dap.thread({ reason: 'started', threadId: this._threadId });
-    if (this._pausedDetails)
-      this._reportPaused();
   }
 
   claimOutputSlot(): (payload: Dap.OutputEventParams | undefined) => void {
@@ -369,6 +360,7 @@ export class Thread implements VariableStoreDelegate {
     };
     const p = new Promise<void>(f => callback = f);
     this._serializedOutput = slot.then(() => p);
+    // Timeout to avoid blocking future slots if this one does stall.
     setTimeout(callback!, 1000);
     return result;
   }
@@ -400,7 +392,7 @@ export class Thread implements VariableStoreDelegate {
     this._reportResumed();
   }
 
-  async dispose() {
+  dispose() {
     if (this.parentThread) {
       this.parentThread._childThreads.splice(this.parentThread._childThreads.indexOf(this), 1);
       this.parentThread._childThreads.push(...this._childThreads);
@@ -409,7 +401,6 @@ export class Thread implements VariableStoreDelegate {
     this.manager._removeThread(this._threadId);
     this._dap.thread({ reason: 'exited', threadId: this._threadId });
     utils.removeEventListeners(this._eventListeners);
-    this._disposed = true;
     this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
   }
@@ -438,17 +429,20 @@ export class Thread implements VariableStoreDelegate {
     return `@ ${name}:${location.lineNumber}`;
   }
 
-  async updatePauseOnExceptionsState(): Promise<boolean> {
+  async _updatePauseOnExceptionsState(): Promise<boolean> {
     return !!await this._cdp.Debugger.setPauseOnExceptions({ state: this.manager.pauseOnExceptionsState() });
   }
 
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
+    // Do not fail for custom breakpoints, to account for
+    // future changes in cdp vs stale breakpoints saved in the workspace.
     if (!this._supportsCustomBreakpoints)
       return true;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
-      return false;
-    return breakpoint.apply(this._cdp, enabled);
+      return true;
+    breakpoint.apply(this._cdp, enabled);
+    return true;
   }
 
   _reportResumed() {
