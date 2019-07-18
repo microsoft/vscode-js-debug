@@ -1,4 +1,3 @@
-Connected
 {
     allThreadsStopped : false
     description : Paused
@@ -25,4 +24,3 @@ Connected
 {
     allThreadsContinued : false
 }
-Disconnected

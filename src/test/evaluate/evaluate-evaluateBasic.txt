@@ -1,4 +1,3 @@
-Connected
 {
     result : 42
     variablesReference : <number>
@@ -29,4 +28,3 @@ Variables: {
         }
     ]
 }
-Disconnected

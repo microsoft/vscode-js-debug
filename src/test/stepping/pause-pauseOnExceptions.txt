@@ -1,4 +1,3 @@
-Connected
 Not pausing on exceptions
 Evaluating#1: setTimeout(() => { throw new Error('hello'); })
 Evaluating#2: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
@@ -56,4 +55,3 @@ Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}}
 {
     allThreadsContinued : false
 }
-Disconnected
