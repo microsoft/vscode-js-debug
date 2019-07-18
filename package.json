@@ -161,8 +161,6 @@
       {
         "type": "cdp",
         "label": "Launch Chrome with CDP",
-        "program": "./out/debugAdapter.js",
-        "runtime": "node",
         "configurationAttributes": {
           "launch": {
             "properties": {
