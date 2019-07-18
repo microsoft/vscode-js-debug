@@ -14,6 +14,7 @@ import { PipeTransport } from '../cdp/transport';
 import { ExecutionContextTree, Thread, ThreadManagerDelegate } from '../adapter/threads';
 import Connection from '../cdp/connection';
 import Dap from '../dap/api';
+import Cdp from '../cdp/api';
 
 export interface LaunchParams extends Dap.LaunchParams {
   program: string;
@@ -157,7 +158,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     const connection = new Connection(transport);
     this._connections.push(connection);
     const cdp = connection.createSession('');
-    const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f));
+    const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
     const parentThread = this._targets.get(targetInfo.openerId!);
     const thread = this._adapter.threadManager.createThread(cdp, parentThread, {});
     this._targets.set(targetInfo.targetId, thread);
