@@ -1,0 +1,4 @@
+{
+    result : {a: 1}
+    variablesReference : <number>
+}
