@@ -46,7 +46,6 @@ export class ChromeAdapter {
     this._adapterReadyCallback = adapterReadyCallback;
     this._configurator = new Configurator(dap);
     this._dap.on('initialize', params => this.initialize(params));
-    this._dap.on('configurationDone', params => this.configurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
@@ -93,10 +92,6 @@ export class ChromeAdapter {
     this._connection.onDisconnected(() => this._dap.exited({ exitCode: 0 }), undefined, this._disposables);
     this._dap.initialized({});
     return this._configurator.capabilities();
-  }
-
-  async configurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
-    return {};
   }
 
   async prepareLaunch(params: LaunchParams): Promise<Target | undefined> {
