@@ -324,12 +324,14 @@ export class SourceContainer {
     const promise = new Promise<void>(f => callback = f);
     sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    sourceMap.map = await loadSourceMap(sourceMapUrl);
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return callback!();
-    if (!sourceMap.map) {
-      errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}`);
+
+    try {
+      sourceMap.map = await loadSourceMap(sourceMapUrl);
+    } catch (e) {
+      errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
       return callback!();
     }
 
@@ -424,18 +426,8 @@ export class SourceContainer {
 };
 
 async function loadSourceMap(url: string): Promise<SourceMapConsumer | undefined> {
-  let content: string;
-  try {
-    content = await utils.fetch(url);
-  } catch (e) {
-    return;
-  }
-
+  let content = await utils.fetch(url);
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));
-  try {
-    const result = await new sourcemap.SourceMapConsumer(content);
-    return result || undefined;
-  } catch (e) {
-  }
+  return await new sourcemap.SourceMapConsumer(content);
 }

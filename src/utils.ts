@@ -4,6 +4,7 @@
 
 import { URL } from 'url';
 import * as events from 'events';
+import * as fs from 'fs';
 
 type HandlerFunction = (...args: any[]) => void;
 
@@ -24,22 +25,44 @@ export function removeEventListeners(listeners: Listener[]) {
   listeners.splice(0, listeners.length);
 }
 
-export function fetch(url: string): Promise<string> {
-  let fulfill, reject;
-  const promise: Promise<string> = new Promise((res, rej) => {
-    fulfill = res;
-    reject = rej;
-  });
+export async function fetch(url: string): Promise<string> {
+  if (url.startsWith('data:')) {
+    const prefix = url.substring(0, url.indexOf(','));
+    const match = prefix.match(/data:[^;]*(;[^;]*)?(;[^;]*)?(;[^;]*)?/);
+    if (!match)
+      throw new Error(`Malformed data url prefix '${prefix}'`);
+    const params = new Set<string>(match.slice(1));
+    const data = url.substring(prefix.length + 1);
+    const result = new Buffer(data, params.has(';base64') ? 'base64' : undefined).toString();
+    return result;
+  }
+
+  if (url.startsWith('file://')) {
+    const path = fileUrlToAbsolutePath(url);
+    if (!path)
+      throw new Error(`Can't fetch from '${url}'`);
+
+    return new Promise<string>((fulfill, reject) => {
+      fs.readFile(path!, (err: NodeJS.ErrnoException, data: Buffer) => {
+        if (err)
+          reject(err);
+        else
+          fulfill(data.toString());
+      });
+    });
+  }
+
   const driver = url.startsWith('https://') ? require('https') : require('http');
-  const request = driver.get(url, response => {
-    let data = '';
-    response.setEncoding('utf8');
-    response.on('data', chunk => data += chunk);
-    response.on('end', () => fulfill(data));
-    response.on('error', reject);
+  return new Promise((fulfill, reject) => {
+    const request = driver.get(url, response => {
+      let data = '';
+      response.setEncoding('utf8');
+      response.on('data', chunk => data += chunk);
+      response.on('end', () => fulfill(data));
+      response.on('error', reject);
+    });
+    request.on('error', reject);
   });
-  request.on('error', reject);
-  return promise;
 };
 
 export function completeUrl(base: string, relative: string): string | undefined {
