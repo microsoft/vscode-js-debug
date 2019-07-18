@@ -21,7 +21,7 @@ export interface Location {
 };
 
 type ContentGetter = () => Promise<string | undefined>;
-type InlineScriptOffset = { lineOffset: number, columnOffset: number };
+export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
 type SourceMapConsumer = sourcemap.BasicSourceMapConsumer | sourcemap.IndexedSourceMapConsumer;
 type SourceMapData = { compiled: Set<Source>, map?: SourceMapConsumer, loaded: Promise<void> };
 
