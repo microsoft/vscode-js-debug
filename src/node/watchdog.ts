@@ -8,6 +8,7 @@ import { WebSocketTransport, PipeTransport } from '../cdp/transport';
 const targetInfo = JSON.parse(process.env.NODE_INSPECTOR_TARGET_INFO!);
 
 function debugLog(text: string) {
+  // require('fs').appendFileSync('LOG.txt', `[${targetInfo.targetId}] ${text} (${targetInfo.title})\n`);
 }
 
 process.on('exit', () => {
