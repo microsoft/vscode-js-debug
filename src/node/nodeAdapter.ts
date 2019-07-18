@@ -98,6 +98,8 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._runtime.on('exit', () => {
       output = undefined;
       this._runtime = undefined;
+      if (!this._isRestarting)
+        this._dap.terminated({});
     });
   }
 
@@ -170,8 +172,6 @@ export class NodeAdapter implements ThreadManagerDelegate {
     connection.onDisconnected(() => {
       this._targets.delete(targetInfo.targetId);
       thread.dispose();
-      if (!this._targets.size && !this._isRestarting)
-        this._dap.terminated({});
     });
     thread.initialize();
     cdp.Runtime.on('executionContextDestroyed', () => {
