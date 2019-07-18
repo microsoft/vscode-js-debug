@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourceMap } from './sourceMap';
+import * as sourcemap from 'source-map';
 import * as utils from '../utils';
 import Dap from '../dap/api';
 import { URL } from 'url';
@@ -22,7 +22,8 @@ export interface Location {
 
 type ContentGetter = () => Promise<string | undefined>;
 type InlineScriptOffset = { lineOffset: number, columnOffset: number };
-type SourceMapData = { compiled: Set<Source>, map?: SourceMap, loaded: Promise<void> };
+type SourceMapConsumer = sourcemap.BasicSourceMapConsumer | sourcemap.IndexedSourceMapConsumer;
+type SourceMapData = { compiled: Set<Source>, map?: SourceMapConsumer, loaded: Promise<void> };
 
 export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
@@ -98,14 +99,14 @@ export class Source {
     if (!content)
       return false;
     const sourceMapUrl = this.url() + '-pretty.map';
-    const prettyPath = this._fqname + '-pretty.js';
-    const map = prettyPrintAsSourceMap(prettyPath, content);
+    const fileName = this.url() + '-pretty.js';
+    const map = await prettyPrintAsSourceMap(fileName, content);
     if (!map)
       return false;
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    this._container._addSourceMapSources(this, map);
+    this._container._addSourceMapSources(this, map, sourceMapUrl);
     return true;
   }
 
@@ -238,17 +239,17 @@ export class SourceContainer {
       if (lineNumber === 1)
         columnNumber -= location.source._inlineScriptOffset.columnOffset;
     }
-    const entry = map.findEntry(lineNumber - 1, columnNumber - 1);
-    if (!entry || !entry.sourceUrl)
+    const entry = map.originalPositionFor({line: lineNumber, column: columnNumber});
+    if (!entry.source)
       return;
 
-    const source = location.source._sourceMapSourceByUrl.get(entry.sourceUrl);
+    const source = location.source._sourceMapSourceByUrl.get(entry.source);
     if (!source)
       return;
 
     const sourceMapLocation = {
-      lineNumber: (entry.sourceLineNumber || 0) + 1,
-      columnNumber: (entry.sourceColumnNumber || 0) + 1,
+      lineNumber: entry.line === null ? 1 : entry.line,
+      columnNumber: entry.column === null ? 1 : entry.column,
       url: source._url,
       source: source
     };
@@ -263,12 +264,12 @@ export class SourceContainer {
       const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
       if (!map)
         continue;
-      const entry = map.findReverseEntry(sourceUrl, location.lineNumber - 1, location.columnNumber - 1);
-      if (!entry)
+      const entry = map.generatedPositionFor({source: sourceUrl, line: location.lineNumber, column: location.columnNumber});
+      if (entry.line === null)
         continue;
       const compiledLocation = {
-        lineNumber: entry.lineNumber + 1,
-        columnNumber: entry.columnNumber + 1,
+        lineNumber: entry.line === null ? 1 : entry.line,
+        columnNumber: entry.column === null ? 1 : entry.column,
         url: compiled.url(),
         source: compiled
       };
@@ -314,7 +315,7 @@ export class SourceContainer {
       if (sourceMap.map) {
         // If source map has been already loaded, we add sources here.
         // Otheriwse, we'll add sources for all compiled after loading the map.
-        this._addSourceMapSources(source, sourceMap.map);
+        this._addSourceMapSources(source, sourceMap.map, sourceMapUrl);
       }
       return;
     }
@@ -323,7 +324,7 @@ export class SourceContainer {
     const promise = new Promise<void>(f => callback = f);
     sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    sourceMap.map = await SourceMap.load(sourceMapUrl);
+    sourceMap.map = await loadSourceMap(sourceMapUrl);
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return callback!();
@@ -332,10 +333,8 @@ export class SourceContainer {
       return callback!();
     }
 
-    for (const error of sourceMap.map!.errors())
-      errors.reportToConsole(this._dap, error);
     for (const anyCompiled of sourceMap.compiled)
-      this._addSourceMapSources(anyCompiled, sourceMap.map!);
+      this._addSourceMapSources(anyCompiled, sourceMap.map!, sourceMapUrl);
     callback!();
   }
 
@@ -362,21 +361,25 @@ export class SourceContainer {
     const sourceMap = this._sourceMaps.get(sourceMapUrl)!;
     console.assert(sourceMap.compiled.has(source));
     sourceMap.compiled.delete(source);
-    if (!sourceMap.compiled.size)
+    if (!sourceMap.compiled.size) {
+      if (sourceMap.map)
+        sourceMap.map.destroy();
       this._sourceMaps.delete(sourceMapUrl);
+    }
     // Source map could still be loading, or failed to load.
     if (sourceMap.map)
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: SourceMap) {
+  _addSourceMapSources(compiled: Source, map: SourceMapConsumer, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
-    for (const url of map.sourceUrls()) {
+    for (const url of map.sources) {
       const sourceUrl = this._sourcePathResolver.rewriteSourceUrl(url);
-      const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
+      const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
       const resolvedUrl = utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
-      const content = map.sourceContent(url);
+      const contentOrNull = map.sourceContentFor(url);
+      const content = contentOrNull === null ? undefined : contentOrNull;
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
@@ -392,8 +395,8 @@ export class SourceContainer {
     }
   }
 
-  _removeSourceMapSources(compiled: Source, map: SourceMap) {
-    for (const url of map.sourceUrls()) {
+  _removeSourceMapSources(compiled: Source, map: SourceMapConsumer) {
+    for (const url of map.sources) {
       const source = compiled._sourceMapSourceByUrl!.get(url)!;
       compiled._sourceMapSourceByUrl!.delete(url);
       console.assert(source._compiledToSourceUrl!.has(compiled));
@@ -419,3 +422,20 @@ export class SourceContainer {
       this._revealer.revealLocation(location);
   }
 };
+
+async function loadSourceMap(url: string): Promise<SourceMapConsumer | undefined> {
+  let content: string;
+  try {
+    content = await utils.fetch(url);
+  } catch (e) {
+    return;
+  }
+
+  if (content.slice(0, 3) === ')]}')
+    content = content.substring(content.indexOf('\n'));
+  try {
+    const result = await new sourcemap.SourceMapConsumer(content);
+    return result || undefined;
+  } catch (e) {
+  }
+}
