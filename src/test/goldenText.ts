@@ -51,7 +51,8 @@ export class GoldenText {
     if (!testFilePath)
       throw new Error('GoldenText failed to get filename!');
     this._hasNonAssertedLogs = false;
-    const actualFilePath = testFilePath.substring(0, testFilePath.lastIndexOf('.')) + '-' + this._testName + '.txt';
+    const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
+    const actualFilePath = testFilePath.substring(0, testFilePath.lastIndexOf('.')) + '-' + fileFriendlyName + '.txt';
     const index = actualFilePath.lastIndexOf('out/test');
     const goldenFilePath = actualFilePath.substring(0, index) + 'src/test' + actualFilePath.substring(index + 'out/test'.length);
     fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});

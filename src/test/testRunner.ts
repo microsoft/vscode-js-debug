@@ -20,7 +20,7 @@ export async function run(): Promise<void> {
   });
 
   afterEach(async (state: {goldenText: GoldenText}, t) => {
-    if (state.goldenText.hasNonAssertedLogs())
+    if (t.result === 'ok' && state.goldenText.hasNonAssertedLogs())
       throw new Error(`Whoa, test "${t.fullName}" has some logs that it did not assert!`);
     delete state.goldenText;
   });
