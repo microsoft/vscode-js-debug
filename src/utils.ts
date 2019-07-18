@@ -52,7 +52,7 @@ export async function fetch(url: string): Promise<string> {
   }
 
   const driver = url.startsWith('https://') ? require('https') : require('http');
-  return new Promise((fulfill, reject) => {
+  return new Promise<string>((fulfill, reject) => {
     const request = driver.get(url, response => {
       let data = '';
       response.setEncoding('utf8');
