@@ -18,7 +18,6 @@ export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 export class TargetManager implements ThreadManagerDelegate {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
-  private _mainTarget?: Target;
   private _browser: Cdp.Api;
   _frameModel = new FrameModel();
   _threadManager: ThreadManager;
@@ -32,14 +31,9 @@ export class TargetManager implements ThreadManagerDelegate {
     this._connection = connection;
     this._threadManager = threadManager;
     this._browser = connection.browser();
-    this._attachToFirstPage();
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
-  }
-
-  mainTarget(): Target | undefined {
-    return this._mainTarget;
   }
 
   targets(): Target[] {
@@ -135,7 +129,9 @@ export class TargetManager implements ThreadManagerDelegate {
     return result;
   }
 
-  _attachToFirstPage() {
+  waitForMainTarget(): Promise<Target | undefined> {
+    let callback: (result: Target | undefined) => void;
+    const promise = new Promise<Target | undefined>(f => callback = f);
     this._browser.Target.setDiscoverTargets({ discover: true });
     this._browser.Target.on('targetCreated', async event => {
       if (this._targets.size)
@@ -144,16 +140,19 @@ export class TargetManager implements ThreadManagerDelegate {
       if (targetInfo.type !== 'page')
         return;
       const response = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
-      // TODO(dgozman): handle error.
-      if (response)
-        this._attachedToTarget(targetInfo, response.sessionId, false);
+      if (!response) {
+        callback(undefined);
+        return;
+      }
+      callback(await this._attachedToTarget(targetInfo, response.sessionId, false));
     });
     this._browser.Target.on('detachedFromTarget', event => {
       this._detachedFromTarget(event.targetId!);
     });
+    return promise;
   }
 
-  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: Target) {
+  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: Target): Promise<Target | undefined> {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
@@ -171,9 +170,10 @@ export class TargetManager implements ThreadManagerDelegate {
       this._detachedFromTarget(event.targetId!);
     });
 
-    const cleanupOnFailure = () => {
+    const cleanupOnFailure = (): undefined => {
       this._targets.delete(targetInfo.targetId);
       this._connection.disposeSession(sessionId);
+      return undefined;
     }
 
     if (!await cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true }))
@@ -183,11 +183,10 @@ export class TargetManager implements ThreadManagerDelegate {
 
     if (!this._targets.has(targetInfo.targetId))
       return cleanupOnFailure();
-    if (!this._mainTarget)
-      this._mainTarget = target;
     this._onTargetAddedEmitter.fire(target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
     this._targetStructureChanged();
+    return target;
   }
 
   async _detachedFromTarget(targetId: string) {
@@ -204,8 +203,6 @@ export class TargetManager implements ThreadManagerDelegate {
     if (target.parentTarget)
       target.parentTarget._children.delete(targetId);
 
-    if (this._mainTarget === target)
-      this._mainTarget = undefined;
     this._onTargetRemovedEmitter.fire(target);
     debugTarget(`Detached from target ${targetId}`);
     this._targetStructureChanged();

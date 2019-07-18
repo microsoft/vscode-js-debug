@@ -61,7 +61,7 @@ export class TestP {
   async _launch(url: string): Promise<Target> {
     await this.initialize;
     await this._chromeAdapter.configurationDone({});
-    const mainTarget = await this._chromeAdapter.prepareLaunch({url});
+    const mainTarget = (await this._chromeAdapter.prepareLaunch({url}))!;
     this.adapter = this._chromeAdapter.adapter();
     const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId(), flatten: true }))!;
     this.cdp = this._connection.createSession(sessionId);
