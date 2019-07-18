@@ -157,7 +157,9 @@ export class NodeAdapter implements ThreadManagerDelegate {
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
     const parentThread = this._targets.get(targetInfo.openerId!);
-    const thread = this._adapter.threadManager.createThread(cdp, parentThread, {});
+    const thread = this._adapter.threadManager.createThread(cdp, parentThread, {
+      defaultScriptOffset: {lineOffset: 0, columnOffset: 62}
+    });
     this._targets.set(targetInfo.targetId, thread);
     let threadName: string;
     if (targetInfo.title)

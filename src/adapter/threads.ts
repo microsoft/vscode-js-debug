@@ -10,7 +10,7 @@ import * as utils from '../utils';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { Location, Source, SourceContainer } from './sources';
+import { Location, Source, SourceContainer, InlineScriptOffset } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
@@ -40,8 +40,9 @@ export type Script = { scriptId: string, source: Source, thread: Thread };
 
 let lastThreadId = 0;
 
-export interface ThreadCapabilities {
-  supportsCustomBreakpoints?: boolean
+export interface ThreadConfiguration {
+  supportsCustomBreakpoints?: boolean;
+  defaultScriptOffset?: InlineScriptOffset;
 }
 
 export interface ThreadManagerDelegate {
@@ -80,8 +81,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(cdp: Cdp.Api, parent: Thread | undefined, capabilities: ThreadCapabilities): Thread {
-    return new Thread(this, cdp, this._dap, parent, capabilities);
+  createThread(cdp: Cdp.Api, parent: Thread | undefined, configuration: ThreadConfiguration): Thread {
+    return new Thread(this, cdp, this._dap, parent, configuration);
   }
 
   setDelegate(delegate: ThreadManagerDelegate) {
@@ -198,6 +199,7 @@ export class Thread implements VariableStoreDelegate {
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
   private _supportsCustomBreakpoints: boolean;
+  private _defaultScriptOffset?: InlineScriptOffset;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
@@ -208,7 +210,7 @@ export class Thread implements VariableStoreDelegate {
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
 
-  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, capabilities: ThreadCapabilities) {
+  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, configuration: ThreadConfiguration) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
@@ -218,7 +220,8 @@ export class Thread implements VariableStoreDelegate {
       parent._childThreads.push(this);
     this._threadId = ++lastThreadId;
     this._name = '';
-    this._supportsCustomBreakpoints = capabilities.supportsCustomBreakpoints || false;
+    this._supportsCustomBreakpoints = configuration.supportsCustomBreakpoints || false;
+    this._defaultScriptOffset = configuration.defaultScriptOffset;
     this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
@@ -414,10 +417,17 @@ export class Thread implements VariableStoreDelegate {
 
   rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Location {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
+    let {lineNumber, columnNumber} = rawLocation;
+    columnNumber = columnNumber || 0;
+    if (this._defaultScriptOffset) {
+      lineNumber -= this._defaultScriptOffset.lineOffset;
+      if (!lineNumber)
+        columnNumber = Math.max(columnNumber - this._defaultScriptOffset.columnOffset, 0);
+    }
     return this.sourceContainer.preferredLocation({
       url: script ? script.source.url() : (rawLocation.url || ''),
-      lineNumber: rawLocation.lineNumber + 1,
-      columnNumber: (rawLocation.columnNumber || 0) + 1,
+      lineNumber: lineNumber + 1,
+      columnNumber: columnNumber + 1,
       source: script ? script.source : undefined
     });
   }
@@ -624,7 +634,6 @@ export class Thread implements VariableStoreDelegate {
         const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
         return response ? response.scriptSource : undefined;
       };
-      // TODO(dgozman): provide correct offset for node scripts.
       const inlineSourceOffset = (event.startLine || event.startColumn)
         ? { lineOffset: event.startLine, columnOffset: event.startColumn }
         : undefined;
