@@ -4,18 +4,18 @@
 import * as beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
-// TODO(dgozman): remove it in favour of Mozilla.
-import { SourceMap } from './sourceMap';
 
-export function prettyPrintAsSourceMap(fileName: string, minified: string): SourceMap | undefined {
+type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
+
+export function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
   const to = generatePositions(minified);
   if (from.length !== to.length)
-    return;
+    return Promise.resolve(undefined);
 
   const generator = new sourceMap.SourceMapGenerator();
-  generator.setSourceContent(fileName, source)
+  generator.setSourceContent(fileName, source);
 
   for (let i = 0; i < from.length; i += 2) {
     generator.addMapping({
@@ -24,10 +24,7 @@ export function prettyPrintAsSourceMap(fileName: string, minified: string): Sour
       generated: { line: to[i], column: to[i + 1] }
     });
   }
-  const result = new SourceMap('', generator.toJSON());
-  if (result.errors().length)
-    return;
-  return result;
+  return sourceMap.SourceMapConsumer.fromSourceMap(generator);
 }
 
 function generatePositions(text: string) {
