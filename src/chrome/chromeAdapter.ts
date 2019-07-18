@@ -98,7 +98,7 @@ export class ChromeAdapter {
     return {};
   }
 
-  async prepareLaunch(params: LaunchParams): Promise<Target> {
+  async prepareLaunch(params: LaunchParams): Promise<Target | undefined> {
     // params.noDebug
     this._launchParams = params;
 
@@ -109,9 +109,9 @@ export class ChromeAdapter {
 
     // TODO(dgozman): assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance.
-    this._mainTarget = this._targetManager.mainTarget();
+    this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
-      this._mainTarget = await new Promise(f => this._targetManager.onTargetAdded(f)) as Target;
+      return;
     this._targetManager.onTargetRemoved((target: Target) => {
       if (target === this._mainTarget) {
         this._dap.terminated({});
@@ -125,8 +125,10 @@ export class ChromeAdapter {
     this._adapterReadyCallback(this._adapter);
   }
 
-  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult> {
+  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     const mainTarget = await this.prepareLaunch(params);
+    if (!mainTarget)
+      return errors.createUserError(localize('errors.launchDidFail', 'Unable to launch Chrome'));
     await this.finishLaunch(mainTarget);
     return {};
   }
