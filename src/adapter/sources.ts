@@ -3,6 +3,7 @@
 
 import * as sourcemap from 'source-map';
 import * as utils from '../utils';
+import * as fs from 'fs';
 import Dap from '../dap/api';
 import { URL } from 'url';
 import * as path from 'path';
@@ -30,8 +31,9 @@ export interface LocationRevealer {
 
 export interface SourcePathResolver {
   rewriteSourceUrl(sourceUrl: string): string;
-  urlToExistingAbsolutePath(url: string): Promise<string>;
+  urlToAbsolutePath(url: string): string;
   absolutePathToUrl(absolutePath: string): string | undefined;
+  scriptUrlToUrl(url: string): string;
 }
 
 export class Source {
@@ -45,7 +47,8 @@ export class Source {
   _sourceMapUrl?: string;
   _inlineScriptOffset?: InlineScriptOffset;
   _container: SourceContainer;
-  _absolutePath: Promise<string>;
+  _absolutePath: string;
+  _existingAbsolutePath: Promise<string | undefined>;
 
   // Sources generated for this compiled from it's source map. Exclusive with |_origin|.
   _sourceMapSourceByUrl?: Map<string, Source>;
@@ -64,7 +67,8 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._absolutePath = container._sourcePathResolver.urlToExistingAbsolutePath(url);
+    this._absolutePath = container._sourcePathResolver.urlToAbsolutePath(url);
+    this._existingAbsolutePath = checkExists(this._absolutePath);
   }
 
   url(): string {
@@ -110,14 +114,14 @@ export class Source {
   }
 
   async toDap(): Promise<Dap.Source> {
-    let absolutePath = await this._absolutePath;
+    let existingAbsolutePath = await this._existingAbsolutePath;
     const sources = this._sourceMapSourceByUrl
       ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
       : undefined;
-    if (absolutePath) {
+    if (existingAbsolutePath) {
       return {
         name: this._name,
-        path: absolutePath,
+        path: existingAbsolutePath,
         sourceReference: 0,
         sources,
       };
@@ -130,12 +134,16 @@ export class Source {
     };
   }
 
-  async absolutePath(): Promise<string | undefined> {
+  absolutePath(): string {
     return this._absolutePath;
   }
 
+  existingAbsolutePath(): Promise<string | undefined> {
+    return this._existingAbsolutePath;
+  }
+
   async prettyName(): Promise<string> {
-    const path = await this._absolutePath;
+    const path = await this._existingAbsolutePath;
     if (path)
       return path;
     return this._fqname;
@@ -143,13 +151,13 @@ export class Source {
 
   _fullyQualifiedName(): string {
     if (!this._url)
-      return 'VM/VM' + this._sourceReference;
+      return '<eval>/VM' + this._sourceReference;
     let fqname = this._url;
     try {
       const tokens: string[] = [];
       const url = new URL(this._url);
       if (url.protocol === 'data:')
-        return 'VM/VM' + this._sourceReference;
+        return '<eval>/VM' + this._sourceReference;
       if (url.hostname)
         tokens.push(url.hostname);
       if (url.port)
@@ -295,11 +303,7 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.set(source._url, source);
     else if (source._url)
       this._compiledByUrl.set(source._url, source);
-
-    source._absolutePath.then(absolutePath => {
-      if (absolutePath && this._sourceByReference.get(source.sourceReference()) === source)
-        this._sourceByAbsolutePath.set(absolutePath, source);
-    });
+    this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(payload => {
       this._dap.loadedSource({ reason: 'new', source: payload });
     });
@@ -346,11 +350,7 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.delete(source._url);
     else if (source._url)
       this._compiledByUrl.delete(source._url);
-
-    source.absolutePath().then(absolutePath => {
-      if (absolutePath && this._sourceByAbsolutePath.get(absolutePath) === source)
-        this._sourceByAbsolutePath.delete(absolutePath);
-    });
+    this._sourceByAbsolutePath.delete(source._absolutePath);
     source.toDap().then(payload => {
       this._dap.loadedSource({ reason: 'removed', source: payload });
     });
@@ -429,4 +429,8 @@ async function loadSourceMap(url: string): Promise<SourceMapConsumer | undefined
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));
   return await new sourcemap.SourceMapConsumer(content);
+}
+
+function checkExists(absolutePath: string): Promise<string | undefined> {
+  return new Promise(f => fs.exists(absolutePath, exists => f(exists ? absolutePath : undefined)));
 }

@@ -132,6 +132,7 @@ class CDPSession extends EventEmitter {
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
+  private _queue?: ProtocolResponse[];
 
   constructor(connection: Connection, sessionId: string) {
     super();
@@ -139,6 +140,13 @@ class CDPSession extends EventEmitter {
     this._connection = connection;
     this._sessionId = sessionId;
     this._cdp = this._createApi();
+
+    const nodeVersion = +process.version.substring(1).split('.')[0];
+    if (nodeVersion < 11) {
+      // Node versions before 11 do not guarantee relative order of tasks and microstasks.
+      // We artificially queue protocol messages to achieve this.
+      this._queue = [];
+    }
   }
 
   cdp(): Cdp.Api {
@@ -179,6 +187,25 @@ class CDPSession extends EventEmitter {
   }
 
   _onMessage(object: ProtocolResponse) {
+    if (!this._queue) {
+      this._processResponse(object);
+      return;
+    }
+    this._queue.push(object);
+    if (this._queue.length === 1)
+      this._processQueue();
+  }
+
+  _processQueue() {
+    setTimeout(() => {
+      const object = this._queue!.shift()!;
+      this._processResponse(object);
+      if (this._queue!.length)
+        this._processQueue();
+    }, 0);
+  }
+
+  _processResponse(object: ProtocolResponse) {
     if (object.id && this._callbacks.has(object.id)) {
       const callback = this._callbacks.get(object.id)!;
       this._callbacks.delete(object.id);

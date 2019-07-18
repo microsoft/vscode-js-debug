@@ -4,13 +4,14 @@
 import * as debug from 'debug';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
+import * as errors from './errors';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as utils from '../utils';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { Location, Source, SourceContainer, InlineScriptOffset } from './sources';
+import { Location, Source, SourceContainer, InlineScriptOffset, SourcePathResolver } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
@@ -64,12 +65,14 @@ export class ThreadManager {
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
+  _sourcePathResolver: SourcePathResolver;
   private _delegate: ThreadManagerDelegate;
   private _defaultDelegate: DefaultThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer) {
     this._dap = dap;
+    this._sourcePathResolver = sourcePathResolver;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
@@ -628,6 +631,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+    event.url = this.manager._sourcePathResolver.scriptUrlToUrl(event.url);
     let source = event.url ? this.sourceContainer.sourceByUrl(event.url) : undefined;
     if (!source) {
       const contentGetter = async () => {
@@ -643,6 +647,8 @@ export class Thread implements VariableStoreDelegate {
         // but in practice that usually means new scripts with new source maps anyway.
         const resolvedSourceUrl = utils.completeUrl(this._threadBaseUrl, event.url);
         resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+        if (!resolvedSourceMapUrl)
+          errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }
       source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset);
     }
@@ -652,6 +658,13 @@ export class Thread implements VariableStoreDelegate {
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();
     source[kScriptsSymbol].add(script);
+
+    if (!this._supportsSourceMapPause && event.sourceMapURL) {
+      this.sourceContainer.waitForSourceMapSources(source).then(sources => {
+        if (sources.length && this.manager._scriptWithSourceMapHandler)
+          this.manager._scriptWithSourceMapHandler(script, sources);
+      });
+    }
   }
 
   async _handleSourceMapPause(scriptId: string) {
