@@ -21,8 +21,9 @@ import Dap from '../dap/api';
 import * as utils from '../utils';
 
 export interface LaunchParams extends Dap.LaunchParams {
-  program: string;
-  runtime: string;
+  args: string[];
+  runtimeExecutable: string;
+  cwd: string;
 }
 
 let counter = 0;
@@ -81,23 +82,21 @@ export class NodeAdapter implements ThreadManagerDelegate {
   async _relaunch(): Promise<Dap.LaunchResult | undefined> {
     await this._killRuntime();
 
-    const executable = await resolvePath(this._launchParams!.runtime);
+    const executable = await resolvePath(this._launchParams!.runtimeExecutable);
     if (!executable)
       return errors.createSilentError('Could not locate Node.js executable');
 
-    this._runtime = spawn(executable, [this._launchParams!.program], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-      env: { ...process.env, ...env(this._pipe!) },
+    this._runtime = spawn(executable, this._launchParams!.args || [], {
+      cwd: this._launchParams!.cwd,
+      env: env(this._pipe!),
       stdio: ['ignore', 'pipe', 'pipe']
     });
-    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(this._launchParams!.program);
-    this._runtime.stdout.on('data', data => {
-      if (output)
-        output.append(data.toString())
-    });
+    const outputName = [executable, ...(this._launchParams!.args || [])].join(' ');
+    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(outputName);
+    output.show();
+    this._runtime.stdout.on('data', data => output && output.append(data.toString()));
     this._runtime.stderr.on('data', data => output && output.append(data.toString()));
     this._runtime.on('exit', () => {
-      output!.dispose();
       output = undefined;
       this._runtime = undefined;
     });
@@ -205,11 +204,14 @@ export class NodeAdapter implements ThreadManagerDelegate {
 }
 
 function env(pipe: string) {
-  return {
-    NODE_OPTIONS: `--require bootloader.js`,
+  const result = {
+    ...process.env,
+    NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require bootloader.js`,
     NODE_PATH: `${process.env.NODE_PATH || ''}${path.delimiter}${path.join(__dirname)}`,
     NODE_INSPECTOR_IPC: pipe
   };
+  delete result['ELECTRON_RUN_AS_NODE'];
+  return result;
 }
 
 function resolvePath(command: string): Promise<string | undefined> {

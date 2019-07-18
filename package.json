@@ -160,7 +160,7 @@
     "debuggers": [
       {
         "type": "cdp",
-        "label": "Launch Chrome with CDP",
+        "label": "Launch with CDP",
         "configurationAttributes": {
           "launch": {
             "properties": {
@@ -172,15 +172,15 @@
                 "type": "string",
                 "description": "Path to source files"
               },
-              "runtime": {
+              "runtimeExecutable": {
                 "type": "string",
                 "description": "Path to runtime"
               },
-              "program": {
+              "cwd": {
                 "type": "string",
-                "description": "Program name"
+                "description": "Current working directory"
               },
-              "ags": {
+              "args": {
                 "type": "array",
                 "description": "Program arguments"
               }
@@ -202,8 +202,8 @@
               "type": "cdp",
               "request": "launch",
               "name": "Launch Chrome with CDP",
-              "url": "http://localhost:8080",
-              "webRoot": "${workspaceFolder}"
+              "url": "http://localhost:${1:8080}",
+              "webRoot": "^\"\\${workspaceFolder}\""
             }
           },
           {
@@ -213,8 +213,11 @@
               "type": "cdp",
               "request": "launch",
               "name": "Launch program with CDP",
-              "runtime": "node",
-              "program": "index.js"
+              "runtimeExecutable": "node",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "args": [
+                "^\"\\${workspaceFolder}/${1:index.js}\""
+              ]
             }
           }
         ]

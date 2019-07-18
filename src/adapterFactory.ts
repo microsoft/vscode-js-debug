@@ -73,7 +73,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       let rootPath = vscode.workspace.rootPath;
       if (session.workspaceFolder && session.workspaceFolder.uri.scheme === 'file:')
         rootPath = session.workspaceFolder.uri.path;
-      const adapter = session.configuration['program'] ?
+      const adapter = session.configuration['runtimeExecutable'] ?
         await NodeAdapter.create(connection.dap(), rootPath) :
         await ChromeAdapter.create(connection.dap(), this.context.storagePath || this.context.extensionPath, rootPath);
       this._sessions.set(session.id, { session, server, adapter });
