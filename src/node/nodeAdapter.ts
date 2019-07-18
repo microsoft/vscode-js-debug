@@ -26,6 +26,7 @@ let counter = 0;
 export class NodeAdapter implements ThreadManagerDelegate {
   private _dap: Dap.Api;
   private _configurator: Configurator;
+  private _rootPath: string | undefined;
   private _adapter: Adapter;
   private _adapterReadyCallback: (adapter: Adapter) => void;
   private _server: net.Server | undefined;
@@ -36,12 +37,13 @@ export class NodeAdapter implements ThreadManagerDelegate {
   private _targets = new Map<string, Thread>();
   private _isRestarting: boolean;
 
-  static async create(dap: Dap.Api): Promise<Adapter> {
-    return new Promise<Adapter>(f => new NodeAdapter(dap, f));
+  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<Adapter> {
+    return new Promise<Adapter>(f => new NodeAdapter(dap, rootPath, f));
   }
 
-  constructor(dap: Dap.Api, adapterReadyCallback: (adapter: Adapter) => void) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: Adapter) => void) {
     this._dap = dap;
+    this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
     this._configurator = new Configurator(dap);
     this._dap.on('initialize', params => this._onInitialize(params));
@@ -67,7 +69,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, '', '');
+    this._adapter = new Adapter(this._dap, this._rootPath, '', '');
     this._adapter.threadManager.setDelegate(this);
     await this._adapter.configure(this._configurator);
 

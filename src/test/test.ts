@@ -43,7 +43,7 @@ export class TestP {
     const adapterToTest = new Stream();
     const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
     const testConnection = new DapConnection(adapterToTest, testToAdapter);
-    this._chromeAdapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), () => { });
+    this._chromeAdapter = new ChromeAdapter(adapterConnection.dap(), path.join(__dirname, '../..'), '', () => { });
     this.dap = testConnection.createTestApi();
     this.initialize = this._chromeAdapter.initialize({
       clientID: 'cdp-test',

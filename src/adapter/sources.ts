@@ -33,9 +33,10 @@ export class SourcePathResolver {
   private _basePath?: string;
   private _baseUrl?: URL;
   private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
-  private _gitRoot?: string;
+  private _rootPath: string | undefined;
 
-  constructor(url: string, webRoot: string | undefined) {
+  constructor(rootPath: string | undefined, url: string, webRoot: string | undefined) {
+    this._rootPath = rootPath;
     this._basePath = webRoot ? path.normalize(webRoot) : undefined;
     try {
       this._baseUrl = new URL(url);
@@ -57,29 +58,10 @@ export class SourcePathResolver {
       { urlPrefix: 'webpack:///src/', pathPrefix: substitute('${webRoot}/') },
       { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
     ];
-
-    // TODO(dgozman): use workspace folder.
-    this._gitRoot = this._findProjectDirWith('.git') + path.sep;
-  }
-
-  _findProjectDirWith(entryName: string): string | undefined {
-    let dir = this._basePath!;
-    while (true) {
-      try {
-        if (fs.existsSync(path.join(dir, entryName)))
-          return dir;
-      } catch (e) {
-        return undefined;
-      }
-      const parent = path.dirname(dir);
-      if (dir === parent)
-        break;
-      dir = parent;
-    }
   }
 
   resolveSourceMapSourceUrl(map: SourceMap, compiled: Source, sourceUrl: string): string {
-    if (this._gitRoot && sourceUrl.startsWith(this._gitRoot) && !utils.isValidUrl(sourceUrl))
+    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
       sourceUrl = 'file://' + sourceUrl;
     const baseUrl = map.url().startsWith('data:') ? compiled.url() : map.url();
     return utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;

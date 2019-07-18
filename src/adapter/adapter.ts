@@ -34,7 +34,7 @@ export class Adapter {
   private _currentExecutionContext: ExecutionContextTree | undefined;
   private _locationToReveal: Location | undefined;
 
-  constructor(dap: Dap.Api, url: string, webRoot: string | undefined) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, url: string, webRoot: string | undefined) {
     this._dap = dap;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
@@ -56,7 +56,7 @@ export class Adapter {
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
     // TODO(dgozman): consider moving into adapter embedder.
-    this._sourcePathResolver = new SourcePathResolver(url, webRoot);
+    this._sourcePathResolver = new SourcePathResolver(rootPath, url, webRoot);
     this.sourceContainer = new SourceContainer(this._dap, this._sourcePathResolver);
     this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
     this._breakpointManager = new BreakpointManager(this._dap, this._sourcePathResolver, this.sourceContainer, this.threadManager);
