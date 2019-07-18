@@ -20,6 +20,7 @@ export class Configurator {
   constructor(dap: Dap.Api) {
     dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
+    dap.on('configurationDone', params => this._onConfigurationDone(params));
   }
 
   capabilities(): Dap.InitializeResult {
@@ -92,6 +93,10 @@ export class Configurator {
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     this._pausedOnExceptionsState = Configurator.resolvePausedOnExceptionsState(params);
+    return {};
+  }
+
+  async _onConfigurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
     return {};
   }
 }

@@ -47,7 +47,6 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._adapterReadyCallback = adapterReadyCallback;
     this._configurator = new Configurator(dap);
     this._dap.on('initialize', params => this._onInitialize(params));
-    this._dap.on('configurationDone', params => this._onConfigurationDone(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
@@ -59,10 +58,6 @@ export class NodeAdapter implements ThreadManagerDelegate {
     console.assert(params.columnsStartAt1);
     this._dap.initialized({});
     return this._configurator.capabilities();
-  }
-
-  async _onConfigurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
-    return {};
   }
 
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
