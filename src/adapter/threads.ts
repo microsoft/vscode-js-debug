@@ -697,7 +697,6 @@ export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
     this._manager = manager;
   }
 
-  // TODO(pfeldman): get rid of this forest.
   executionContextForest(): ExecutionContextTree[] {
     const result: ExecutionContextTree[] = [];
     for (const thread of this._manager.threads()) {
