@@ -94,10 +94,12 @@ export class VariableStore {
     if (!object)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
 
-    const expression = this._wrapObjectLiteral(params.value.trim());
+    const expression = params.value;
     if (!expression)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
+    // TODO(dgozman): this should be evaluateOnCallFrame for variables from a specific call frame,
+    // or pass selected execution context id otherwise.
     const evaluateResponse = await object.cdp.Runtime.evaluate({ expression, silent: true });
     if (!evaluateResponse)
       return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
@@ -370,26 +372,6 @@ export class VariableStore {
       variablesReference,
       indexedVariables
     };
-  }
-
-  private _wrapObjectLiteral(code: string): string {
-    // Only parenthesize what appears to be an object literal.
-    if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
-      return code;
-
-    const parse = (async () => 0).constructor;
-    try {
-      // Check if the code can be interpreted as an expression.
-      parse('return ' + code + ';');
-
-      // No syntax error! Does it work parenthesized?
-      const wrappedCode = '(' + code + ')';
-      parse(wrappedCode);
-
-      return wrappedCode;
-    } catch (e) {
-      return code;
-    }
   }
 
   _toCallArgument(value: string | Cdp.Runtime.RemoteObject): Cdp.Runtime.CallArgument {
