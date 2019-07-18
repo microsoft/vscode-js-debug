@@ -60,7 +60,6 @@ async function pauseOnInnerHtml(p: TestP) {
   p.log(await p.dap.continue({threadId: event.threadId}));
 }
 
-// TODO(dgozman): test restartFrame.
 const tests = [
   pausedFromInitialScript,
   pausedFromEval,

@@ -105,8 +105,8 @@ export class ChromeAdapter {
     this._adapter.threadManager.setDelegate(this._targetManager);
     await this._adapter.configure(this._configurator);
 
-    // TODO(dgozman): assuming first page is our main target breaks multiple debugging sessions
-    // sharing the browser instance.
+    // Note: assuming first page is our main target breaks multiple debugging sessions
+    // sharing the browser instance. This can be fixed.
     this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
       return;
