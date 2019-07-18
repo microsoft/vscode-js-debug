@@ -625,6 +625,7 @@ export class Thread implements VariableStoreDelegate {
         const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
         return response ? response.scriptSource : undefined;
       };
+      // TODO(dgozman): provide correct offset for node scripts.
       const inlineSourceOffset = (event.startLine || event.startColumn)
         ? { lineOffset: event.startLine, columnOffset: event.startColumn }
         : undefined;

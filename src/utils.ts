@@ -4,6 +4,7 @@
 
 import { URL } from 'url';
 import * as events from 'events';
+import * as vscode from 'vscode';
 
 type HandlerFunction = (...args: any[]) => void;
 
@@ -107,4 +108,24 @@ export function positionToOffset(text: string, line: number, column: number): nu
     offset += lines[l - 1].length + 1;
   offset += column - 1;
   return offset;
+}
+
+export function fileUrlToAbsolutePath(url: string): string | undefined {
+  if (!isValidUrl(url))
+    return;
+  try {
+    const uri = vscode.Uri.parse(url);
+    if (uri.scheme !== 'file')
+      return;
+    return uri.fsPath;
+  } catch (e) {
+  }
+}
+
+export function absolutePathToFileUrl(absolutePath: string): string | undefined {
+  try {
+    const uri = vscode.Uri.file(absolutePath);
+    return uri.toString();
+  } catch (e) {
+  }
 }
