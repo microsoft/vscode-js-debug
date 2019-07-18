@@ -55,7 +55,7 @@ export class Adapter {
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
     this.sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
-    this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
+    this.threadManager = new ThreadManager(this._dap, sourcePathResolver, this.sourceContainer);
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 

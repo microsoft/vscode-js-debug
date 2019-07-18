@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { ChildProcess, spawn } from 'child_process';
-import * as fs from 'fs';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -233,18 +232,16 @@ class NodeSourcePathResolver implements SourcePathResolver {
     return sourceUrl;
   }
 
-  async urlToExistingAbsolutePath(url: string): Promise<string> {
-    const absolutePath = utils.fileUrlToAbsolutePath(url);
-    if (!absolutePath || !await this._checkExists(absolutePath))
-      return '';
-    return absolutePath;
+  urlToAbsolutePath(url: string): string {
+    return utils.fileUrlToAbsolutePath(url) || '';
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {
     return utils.absolutePathToFileUrl(path.normalize(absolutePath));
   }
 
-  _checkExists(absolutePath: string): Promise<boolean> {
-    return new Promise(f => fs.exists(absolutePath, f));
+  scriptUrlToUrl(url: string): string {
+    const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
+    return isPath ? (utils.absolutePathToFileUrl(url) || url) : url;
   }
 }

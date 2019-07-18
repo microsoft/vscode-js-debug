@@ -14,7 +14,7 @@
             presentationHint : normal
             source : {
                 name : VM<xx>
-                path : VM/VM<xx>
+                path : <eval>/VM<xx>
                 sourceReference : <number>
             }
         }

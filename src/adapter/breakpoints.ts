@@ -112,6 +112,7 @@ export class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
     if (source)
       this._resolvedLocation = this._manager._sourceContainer.siblingLocations(location, source)[0];
+    this._notifyResolved();
   }
 
   async updateForSourceMap(script: Script) {
@@ -222,7 +223,7 @@ export class BreakpointManager {
 
     this._threadManager.setScriptSourceMapHandler(async (script, sources) => {
       for (const source of sources) {
-        const path = await source.absolutePath();
+        const path = source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
           breakpoint.updateForSourceMap(script);

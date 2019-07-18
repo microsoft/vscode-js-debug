@@ -197,15 +197,6 @@ class ChromeSourcePathResolver implements SourcePathResolver {
     return sourceUrl;
   }
 
-  async urlToExistingAbsolutePath(url: string): Promise<string> {
-    let absolutePath = this._resolveAbsolutePath(url);
-    if (!absolutePath)
-      return '';
-    if (!await this._checkExists(absolutePath))
-      return '';
-    return absolutePath;
-  }
-
   absolutePathToUrl(absolutePath: string): string | undefined {
     absolutePath = path.normalize(absolutePath);
     if (!this._baseUrl || !this._basePath || !absolutePath.startsWith(this._basePath))
@@ -217,7 +208,7 @@ class ChromeSourcePathResolver implements SourcePathResolver {
     }
   }
 
-  _resolveAbsolutePath(url: string): string | undefined {
+  urlToAbsolutePath(url: string): string {
     const absolutePath = utils.fileUrlToAbsolutePath(url);
     if (absolutePath)
       return absolutePath;
@@ -228,26 +219,27 @@ class ChromeSourcePathResolver implements SourcePathResolver {
     }
 
     if (!this._basePath || !this._baseUrl)
-      return;
+      return '';
     try {
       const u = new URL(url);
       if (u.origin !== this._baseUrl.origin)
-        return;
+        return '';
       const pathname = path.normalize(u.pathname);
       let basepath = path.normalize(this._baseUrl.pathname);
       if (!basepath.endsWith(path.sep))
         basepath += '/';
       if (!pathname.startsWith(basepath))
-        return;
+        return '';
       let relative = basepath === pathname ? '' : path.normalize(path.relative(basepath, pathname));
       if (relative === '' || relative === '/')
         relative = 'index.html';
       return path.join(this._basePath, relative);
     } catch (e) {
+      return '';
     }
   }
 
-  _checkExists(absolutePath: string): Promise<boolean> {
-    return new Promise(f => fs.exists(absolutePath, f));
+  scriptUrlToUrl(url: string): string {
+    return url;
   }
 }

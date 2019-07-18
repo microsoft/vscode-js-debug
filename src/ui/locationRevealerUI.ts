@@ -49,7 +49,7 @@ class Revealer implements LocationRevealer {
   async revealLocation(location: Location): Promise<undefined> {
     if (!location.source || this._revealerUI._revealRequests.has(location.source))
       return;
-    const absolutePath = await location.source.absolutePath();
+    const absolutePath = await location.source.existingAbsolutePath();
     if (absolutePath) {
       const document = await vscode.workspace.openTextDocument(absolutePath);
       if (!document)
