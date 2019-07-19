@@ -17,7 +17,7 @@ import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
-import * as utils from '../utils';
+import * as utils from '../utils/urlUtils';
 
 export interface LaunchParams extends Dap.LaunchParams {
   args: string[];

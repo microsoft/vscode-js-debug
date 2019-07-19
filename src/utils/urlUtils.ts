@@ -3,27 +3,7 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import * as events from 'events';
 import * as fs from 'fs';
-
-type HandlerFunction = (...args: any[]) => void;
-
-export interface Listener {
-  emitter: events.EventEmitter;
-  eventName: string;
-  handler: HandlerFunction;
-}
-
-export function addEventListener(emitter: events.EventEmitter, eventName: string, handler: HandlerFunction): Listener {
-  emitter.on(eventName, handler);
-  return { emitter, eventName, handler };
-}
-
-export function removeEventListeners(listeners: Listener[]) {
-  for (const listener of listeners)
-    listener.emitter.removeListener(listener.eventName, listener.handler);
-  listeners.splice(0, listeners.length);
-}
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {

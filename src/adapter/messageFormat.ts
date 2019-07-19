@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as Color from 'color';
+import { BudgetStringBuilder } from '../utils/budgetStringBuilder';
 
 export interface FormatToken {
   type: string;
@@ -12,7 +13,9 @@ export interface FormatToken {
   substitutionIndex?: number;
 }
 
-export type Formatters<T> = Map<string, (a: T) => string>;
+const maxMessageFormatLength = 10000;
+
+export type Formatters<T> = Map<string, (a: T, characterBudget: number) => string>;
 
 function tokenizeFormatString(format: string, formatterNames: string[]): FormatToken[] {
   const tokens: FormatToken[] = [];
@@ -55,16 +58,15 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
 };
 
 export function formatMessage<T>(format: string, substitutions: any[], formatters: Formatters<T>): string {
-  const result: string[] = [];
   const tokens = tokenizeFormatString(format, Array.from(formatters.keys()));
   const usedSubstitutionIndexes = new Set<number>();
-  const defaultFormat = formatters.get('')!;
-
+  const defaultFormatter = formatters.get('')!;
+  const builder = new BudgetStringBuilder(maxMessageFormatLength);
   let cssFormatApplied = false;
-  for (let i = 0; i < tokens.length; ++i) {
+  for (let i = 0; builder.hasBudget() && i < tokens.length; ++i) {
     const token = tokens[i];
     if (token.type === 'string') {
-      result.push(token.value!);
+      builder.appendCanSkip(token.value!);
       continue;
     }
 
@@ -72,28 +74,28 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
     if (index >= substitutions.length) {
       // If there are not enough substitutions for the current substitutionIndex
       // just output the format specifier literally and move on.
-      result.push('%' + (token.precision || '') + token.specifier);
+      builder.appendCanSkip('%' + (token.precision || '') + token.specifier);
       continue;
     }
     usedSubstitutionIndexes.add(index);
     if (token.specifier === 'c')
       cssFormatApplied = true;
-    const format = formatters.get(token.specifier!) || defaultFormat;
-    result.push(format(substitutions[index]));
+    const formatter = formatters.get(token.specifier!) || defaultFormatter;
+    builder.appendCanSkip(formatter(substitutions[index], builder.budget()));
   }
 
   if (cssFormatApplied)
-    result.push('\x1b[0m');  // clear format
+    builder.appendCanSkip('\x1b[0m');  // clear format
 
-  for (let i = 0; i < substitutions.length; ++i) {
+  for (let i = 0; builder.hasBudget() && i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))
       continue;
     if (format || i)  // either we are second argument or we had format.
-      result.push(' ');
-    result.push(defaultFormat(substitutions[i]));
+      builder.appendCanSkip(' ');
+    builder.appendCanSkip(defaultFormatter(substitutions[i], builder.budget()));
   }
 
-  return result.join('');
+  return builder.build();
 }
 
 function escapeAnsiColor(colorString: string): number | undefined {

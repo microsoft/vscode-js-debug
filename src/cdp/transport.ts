@@ -4,7 +4,7 @@
 
 import * as net from 'net';
 import * as WebSocket from 'ws';
-import * as utils from '../utils';
+import * as eventUtils from '../utils/eventUtils';
 
 export interface Transport {
   send(message: string): void;
@@ -31,8 +31,8 @@ export class PipeTransport implements Transport {
       this._socket = pipeWrite as net.Socket;
     this._pendingMessage = '';
     this._eventListeners = [
-      utils.addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
-      utils.addEventListener(pipeRead || pipeWrite, 'close', () => {
+      eventUtils.addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
+      eventUtils.addEventListener(pipeRead || pipeWrite, 'close', () => {
         this._pipeWrite = undefined;
         if (this.onclose)
           this.onclose.call(null);
@@ -73,7 +73,7 @@ export class PipeTransport implements Transport {
       this._socket.destroy();
     this._socket = undefined;
     this._pipeWrite = undefined;
-    utils.removeEventListeners(this._eventListeners);
+    eventUtils.removeEventListeners(this._eventListeners);
   }
 
   clone(): Promise<Transport> {

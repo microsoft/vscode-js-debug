@@ -1,3 +1,82 @@
 Evaluating: 'console.log(regex1)'
-stdout> /^url\(\s*(?:(?:"(?:[^\\\"]|(?:\\[\da-f]{1,6}\s?|\.))*"|'(?:[^\\\']|(?:\\[\da-f]{1,6}\s?|\.))*')|(?:[!#$%&*-~\w]|(?:\\[\da-f]{1,6}\s?|\.))*)\s*\)/i {lastIndex: 0}
+stdout> /^url\(\s*(?:(?:"(?:[^\\\"]|(?:\\[\da-f]{1,6}\s?|\.))*"|'(?:[^\\\']|(?:\\[\da-f]{1,6}\s?|\.))*')|(?:[!#$%&*-~\w]|(?:\\[\da-f]{1,6}\s?|\.))*)\s*\)/i
+
+Evaluating: 'console.log(regex2)'
+stdout> /foo\\bar\sbaz/i
+
+Evaluating: 'console.log(str)'
+stdout> test
+
+Evaluating: 'console.log(str2)'
+stdout> test named "test"
+
+Evaluating: 'console.log(error)'
+stdout> Error
+    at console-format:11:23
+
+Evaluating: 'console.log(errorWithMessage)'
+stdout> Error: my error message
+    at console-format:12:34
+
+Evaluating: 'console.log(errorWithMultilineMessage)'
+stdout> Error: my multiline
+error message
+    at console-format:13:43
+
+Evaluating: 'console.log(func)'
+stdout> ƒ () { return 1; }  //  named=8
+
+Evaluating: 'console.log(multilinefunc)'
+stdout> ƒ () {
+              return 2;
+          }  //  named=8
+
+Evaluating: 'console.log(num)'
+stdout> 0.12
+
+Evaluating: 'console.log(null)'
+stdout> null
+
+Evaluating: 'console.log(undefined)'
+stdout> undefined
+
+Evaluating: 'console.log(NaN)'
+stdout> NaN
+
+Evaluating: 'console.log(Number.POSITIVE_INFINITY)'
+stdout> Infinity
+
+Evaluating: 'console.log(Number.NEGATIVE_INFINITY)'
+stdout> -Infinity
+
+Evaluating: 'console.log({})'
+stdout> {}  //  named=1
+
+Evaluating: 'console.log([function() {}])'
+stdout> (1) [ƒ]  //  named=3
+
+Evaluating: 'console.log(objectWithNonEnumerables)'
+stdout> {enumerableProp: 4, __underscoreEnumerableProp__: 5, __underscoreNonEnumerableProp: 2, abc: 3, getFoo: ƒ}  //  named=8
+
+Evaluating: 'console.log(negZero)'
+stdout> -0
+
+Evaluating: 'console.log(Object.create(null))'
+stdout> {}
+
+Evaluating: 'console.log(Object)'
+stdout> ƒ Object() { [native code] }  //  named=30
+
+Evaluating: 'console.log(Object.prototype)'
+stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ}  //  named=13
+
+Evaluating: 'console.log(new Number(42))'
+stdout> Number {[[PrimitiveValue]]: 42}  //  named=2
+
+Evaluating: 'console.log(new String('abc'))'
+stdout> String {[[PrimitiveValue]]: 'abc'}  //  named=6
+
+Evaluating: 'console.log(arrayLikeFunction)'
+stdout> ƒ ( /**/ foo/**/, /*/**/bar,
+          /**/baz) {}  //  named=9
 

@@ -3,15 +3,18 @@
  *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
-import * as utils from '../utils';
+import * as utils from '../utils/urlUtils';
+import { BudgetStringBuilder } from '../utils/budgetStringBuilder'
 import * as messageFormat from './messageFormat';
 
 const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 50;
 const maxEntryPreviewLength = 20;
-const maxFunctionBodyLength = 200;
-const maxMessageFormatParamLength = 1000;
 const maxExceptionTitleLength = 10000;
+const maxBriefPreviewLength = 100;
+export const primitiveSubtypes = new Set<string|undefined>(
+  ['null', 'regexp', 'date', 'error', 'proxy', 'promise', 'typedarray', 'arraybuffer', 'dataview']
+);
 
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   const characterBudget = context === 'repl' ? 1000 : 100;
@@ -22,7 +25,7 @@ export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: 
 function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, characterBudget: number, quoteString: boolean): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
-    return formatFunctionDescription(object.description || '');
+    return formatFunctionDescription(object.description!, characterBudget);
   if (object.subtype === 'node')
     return object.description!;
   return object.preview ? renderPreview(object.preview, characterBudget) : renderValue(object, characterBudget, quoteString);
@@ -31,7 +34,7 @@ function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, character
 export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
-    return formatFunctionDescription(object.description || '');
+    return formatFunctionDescription(object.description!, maxBriefPreviewLength);
   return object.description || '';
 }
 
@@ -54,21 +57,21 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: numb
     return renderArrayPreview(preview, characterBudget);
   if (preview.subtype as string === 'internal#entry')
     return preview.description || '';
-  if (preview.type === 'object')
+  if (preview.type === 'object' && !primitiveSubtypes.has(preview.subtype))
     return renderObjectPreview(preview, characterBudget);
   if (preview.type === 'function')
-    return formatFunctionDescription(preview.description || '');
+    return formatFunctionDescription(preview.description!, characterBudget);
   return renderPrimitivePreview(preview, characterBudget);
 }
 
 function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
-  const builder = new StringBuilder(characterBudget);
+  const builder = new BudgetStringBuilder(characterBudget);
   let description = preview.description!;
   if (description.startsWith('Array'))
     description = description.substring('Array'.length);
   builder.appendCanTrim(description);
   builder.appendCanSkip(' ');
-  const propsBuilder = new StringBuilder(builder.budget() - 2);  // for []
+  const propsBuilder = new BudgetStringBuilder(builder.budget() - 2);  // for []
 
   // Indexed
   let lastIndex = -1;
@@ -97,10 +100,10 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
 }
 
 function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
-  const builder = new StringBuilder(characterBudget);
+  const builder = new BudgetStringBuilder(characterBudget);
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
   builder.appendCanTrim(description);
-  const propsBuilder = new StringBuilder(builder.budget() - 2);  // for {}
+  const propsBuilder = new BudgetStringBuilder(builder.budget() - 2);  // for {}
 
   for (const prop of preview.properties) {
     if (!propsBuilder.hasBudget())
@@ -160,8 +163,8 @@ export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: n
   return utils.trimEnd(object.description || '', characterBudget);
 }
 
-function formatFunctionDescription(description: string, includePreview: boolean = false, defaultName: string = ''): string {
-  const tokens: string[] = [];
+function formatFunctionDescription(description: string, characterBudget: number): string {
+  const builder = new BudgetStringBuilder(characterBudget);
   const text = description
     .replace(/^function [gs]et /, 'function ')
     .replace(/^function [gs]et\(/, 'function\(')
@@ -181,9 +184,9 @@ function formatFunctionDescription(description: string, includePreview: boolean 
   if (isClass) {
     textAfterPrefix = text.substring('class'.length);
     const classNameMatch = /^[^{\s]+/.exec(textAfterPrefix.trim());
-    let className = defaultName;
+    let className = '';
     if (classNameMatch)
-      className = classNameMatch[0].trim() || defaultName;
+      className = classNameMatch[0].trim() || '';
     addToken('class', textAfterPrefix, className);
   } else if (asyncMatch) {
     textAfterPrefix = text.substring(asyncMatch[1].length);
@@ -199,35 +202,36 @@ function formatFunctionDescription(description: string, includePreview: boolean 
     addToken('ƒ', textAfterPrefix, nameAndArguments(textAfterPrefix));
   } else if (isArrow) {
     let abbreviation = text;
-    if (defaultName)
-      abbreviation = defaultName + '()';
-    else if (text.length > maxArrowFunctionCharacterLength)
+    if (text.length > maxArrowFunctionCharacterLength)
       abbreviation = text.substring(0, firstArrowIndex + 2) + ' {…}';
     addToken('', text, abbreviation);
   } else {
     addToken('ƒ', text, nameAndArguments(text));
   }
-  return tokens.join('');
+  return builder.build();
 
   function nameAndArguments(contents: string): string {
     const startOfArgumentsIndex = contents.indexOf('(');
     const endOfArgumentsMatch = contents.match(/\)\s*{/);
     const endIndex = endOfArgumentsMatch && endOfArgumentsMatch.index || 0;
     if (startOfArgumentsIndex !== -1 && endOfArgumentsMatch && endIndex > startOfArgumentsIndex) {
-      const name = contents.substring(0, startOfArgumentsIndex).trim() || defaultName;
+      const name = contents.substring(0, startOfArgumentsIndex).trim() || '';
       const args = contents.substring(startOfArgumentsIndex, endIndex + 1);
       return name + args;
     }
-    return defaultName + '()';
+    return '()';
   }
 
   function addToken(prefix: string, body: string, abbreviation: string) {
+    if (!builder.hasBudget())
+      return;
     if (prefix.length)
-      tokens.push(prefix + ' ');
-    if (includePreview)
-      tokens.push(utils.trimEnd(body.trim(), maxFunctionBodyLength));
+      builder.appendCanSkip(prefix + ' ');
+    body = body.trim();
+    if (builder.budget() > body.length)
+      builder.appendCanSkip(body);
     else
-      tokens.push(abbreviation.replace(/\n/g, ' '));
+      builder.appendCanSkip(abbreviation.replace(/\n/g, ' '));
   }
 }
 
@@ -248,68 +252,22 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): { title: 
   };
 }
 
-function formatAsNumber(param: Cdp.Runtime.RemoteObject, round: boolean): string {
+function formatAsNumber(param: Cdp.Runtime.RemoteObject, round: boolean, characterBudget: number): string {
   const value = typeof param.value === 'number' ? param.value : +param.description!;
-  return String(round ? Math.floor(value) : value);
+  return utils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }
 
-function formatAsString(param: Cdp.Runtime.RemoteObject): string {
-  return String(typeof param.value !== 'undefined' ? param.value : param.description);
+function formatAsString(param: Cdp.Runtime.RemoteObject, characterBudget: number): string {
+  return utils.trimEnd(String(typeof param.value !== 'undefined' ? param.value : param.description), characterBudget);
 }
 
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
-  ['', param => previewRemoveObjectInternal(param, maxMessageFormatParamLength, false)],
-  ['s', param => formatAsString(param)],
-  ['i', param => formatAsNumber(param, true)],
-  ['d', param => formatAsNumber(param, true)],
-  ['f', param => formatAsNumber(param, false)],
-  ['c', param => messageFormat.formatCssAsAnsi(param.value)],
-  ['o', param => previewRemoteObject(param)],
-  ['O', param => previewRemoteObject(param)],
+  ['', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)],
+  ['s', (param, characterBudget: number) => formatAsString(param, characterBudget)],
+  ['i', (param, characterBudget: number) => formatAsNumber(param, true, characterBudget)],
+  ['d', (param, characterBudget: number) => formatAsNumber(param, true, characterBudget)],
+  ['f', (param, characterBudget: number) => formatAsNumber(param, false, characterBudget)],
+  ['c', (param) => messageFormat.formatCssAsAnsi(param.value)],
+  ['o', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)],
+  ['O', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)]
 ]);
-
-class StringBuilder {
-  private _tokens: string[] = [];
-  private _budget: number;
-
-  constructor(budget: number) {
-    this._budget = budget;
-  }
-
-  appendCanSkip(text: string) {
-    if (!this.hasBudget())
-      return;
-    if (text.length < this._budget) {
-      this._tokens.push(text);
-      this._budget -= text.length;
-    } else {
-      this._tokens.push('…');
-      this._budget = 0;
-    }
-  }
-
-  appendCanTrim(text: string) {
-    if (!this.hasBudget())
-      return;
-    const trimmed = utils.trimEnd(text, this._budget)
-    this._tokens.push(trimmed);
-    this._budget = Math.max(0, this._budget - trimmed.length);
-  }
-
-  forceAppend(text: string) {
-    this._tokens.push(text);
-    this._budget = Math.max(0, this._budget - text.length);
-  }
-
-  hasBudget(): boolean {
-    return this._budget > 0;
-  }
-
-  budget(): number {
-    return this._budget;
-  }
-
-  build(join?: string): string {
-    return this._tokens.join(join || '');
-  }
-}

@@ -6,7 +6,7 @@ import * as ts from 'typescript';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { StackFrame } from './stackTrace';
-import { positionToOffset } from '../utils';
+import { positionToOffset } from '../utils/urlUtils';
 
 export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
