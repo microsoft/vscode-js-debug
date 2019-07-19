@@ -1,0 +1,33 @@
+{
+    result : 42
+    type : number
+    variablesReference : <number>
+}
+No variables: true
+{
+    result : '42'
+    type : string
+    variablesReference : <number>
+}
+No variables: true
+{
+    result : {foo: 42}
+    type : object
+    variablesReference : <number>
+}
+Variables: {
+    variables : [
+        [0] : {
+            name : foo
+            type : number
+            value : 42
+            variablesReference : <number>
+        }
+        [1] : {
+            name : __proto__
+            type : Object
+            value : Object
+            variablesReference : <number>
+        }
+    ]
+}

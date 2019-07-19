@@ -1,0 +1,84 @@
+stopped: {
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+stackTrace: {
+    stackFrames : [
+        [0] : {
+            column : 9
+            id : <number>
+            line : 4
+            name : paused
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+        [1] : {
+            column : 9
+            id : <number>
+            line : 5
+            name : <anonymous>
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+    ]
+    totalFrames : 2
+}
+scopes: {
+    scopes : [
+        [0] : {
+            column : 23
+            endColumn : 8
+            endLine : 5
+            expensive : false
+            line : 2
+            name : paused
+            presentationHint : locals
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [1] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
+scope before: {
+    variables : [
+        [0] : {
+            name : y
+            type : string
+            value : 'paused'
+            variablesReference : <number>
+        }
+    ]
+}
+setVariable: {
+    type : string
+    value : 'foo'
+    variablesReference : <number>
+}
+scope after: {
+    variables : [
+        [0] : {
+            name : y
+            type : string
+            value : 'foo'
+            variablesReference : <number>
+        }
+    ]
+}

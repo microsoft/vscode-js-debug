@@ -1,0 +1,14 @@
+Not pausing on innerHTML
+Evaluating#1: document.querySelector('div').innerHTML = 'foo';
+Pausing on innerHTML
+Evaluating#2: document.querySelector('div').innerHTML = 'bar';
+{
+    allThreadsStopped : false
+    description : Set innerHTML
+    reason : function breakpoint
+    text : Paused on instrumentation breakpoint "Set innerHTML"
+    threadId : <number>
+}
+{
+    allThreadsContinued : false
+}

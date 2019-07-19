@@ -1,0 +1,68 @@
+empty.js: {
+    reason : new
+    source : {
+        name : empty.js
+        path : ${workspaceFolder}/web/empty.js
+        sourceReference : <number>
+    }
+}
+Evaluating#1: 123
+does not exist: {
+    reason : new
+    source : {
+        name : doesnotexist.js
+        path : localhost꞉8001/doesnotexist.js
+        sourceReference : <number>
+    }
+}
+dir/helloworld.js: {
+    reason : new
+    source : {
+        name : helloworld.js
+        path : ${workspaceFolder}/web/dir/helloworld.js
+        sourceReference : <number>
+    }
+}
+Evaluating#2: 123
+eval: {
+    reason : new
+    source : {
+        name : VM<xx>
+        path : <eval>/VM<xx>
+        sourceReference : <number>
+    }
+}
+Loaded sources: {
+    sources : [
+        [0] : {
+            name : VM<xx>
+            path : <eval>/VM<xx>
+            sourceReference : <number>
+        }
+        [1] : {
+            name : empty.js
+            path : ${workspaceFolder}/web/empty.js
+            sourceReference : <number>
+        }
+        [2] : {
+            name : doesnotexist.js
+            path : localhost꞉8001/doesnotexist.js
+            sourceReference : <number>
+        }
+        [3] : {
+            name : VM<xx>
+            path : <eval>/VM<xx>
+            sourceReference : <number>
+        }
+        [4] : {
+            name : helloworld.js
+            path : ${workspaceFolder}/web/dir/helloworld.js
+            sourceReference : <number>
+        }
+        [5] : {
+            name : VM<xx>
+            path : <eval>/VM<xx>
+            sourceReference : <number>
+        }
+    ]
+}

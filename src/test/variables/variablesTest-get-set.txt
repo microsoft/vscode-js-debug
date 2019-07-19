@@ -1,0 +1,6 @@
+result: {getter: <accessor>, accessor: <accessor>}  // type=object
+    get accessor: () => {}  // type=Function
+    set accessor: () => {}  // type=Function
+    get getter: () => {}  // type=Function
+    set setter: () => {}  // type=Function
+    __proto__: Object  // type=Object

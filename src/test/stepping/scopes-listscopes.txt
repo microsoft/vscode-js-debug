@@ -1,0 +1,291 @@
+stopped: {
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+stackTrace: {
+    stackFrames : [
+        [0] : {
+            column : 9
+            id : <number>
+            line : 4
+            name : paused
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+        [1] : {
+            column : 23
+            id : <number>
+            line : 11
+            name : chained
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+        [2] : {
+            column : 23
+            id : <number>
+            line : 11
+            name : chained
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+        [3] : {
+            column : 23
+            id : <number>
+            line : 11
+            name : chained
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+        [4] : {
+            column : 15
+            id : <number>
+            line : 14
+            name : <anonymous>
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+    ]
+    totalFrames : 5
+}
+frame #0: {
+    scopes : [
+        [0] : {
+            column : 22
+            endColumn : 8
+            endLine : 5
+            expensive : false
+            line : 2
+            name : paused
+            presentationHint : locals
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [1] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
+scope #0.0: {
+    variables : [
+        [0] : {
+            name : y
+            type : string
+            value : 'paused'
+            variablesReference : <number>
+        }
+    ]
+}
+frame #1: {
+    scopes : [
+        [0] : {
+            column : 32
+            endColumn : 10
+            endLine : 12
+            expensive : false
+            line : 9
+            name : chained
+            presentationHint : locals
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [1] : {
+            column : 21
+            endColumn : 8
+            endLine : 13
+            expensive : false
+            line : 6
+            name : Closure (chain)
+            presentationHint : arguments
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [2] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
+scope #1.0: {
+    variables : [
+        [0] : {
+            name : x
+            type : string
+            value : 'x1'
+            variablesReference : <number>
+        }
+    ]
+}
+scope #1.1: {
+    variables : [
+        [0] : {
+            name : n
+            type : number
+            value : 1
+            variablesReference : <number>
+        }
+    ]
+}
+frame #2: {
+    scopes : [
+        [0] : {
+            column : 32
+            endColumn : 10
+            endLine : 12
+            expensive : false
+            line : 9
+            name : chained
+            presentationHint : locals
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [1] : {
+            column : 21
+            endColumn : 8
+            endLine : 13
+            expensive : false
+            line : 6
+            name : Closure (chain)
+            presentationHint : arguments
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [2] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
+scope #2.0: {
+    variables : [
+        [0] : {
+            name : x
+            type : string
+            value : 'x2'
+            variablesReference : <number>
+        }
+    ]
+}
+scope #2.1: {
+    variables : [
+        [0] : {
+            name : n
+            type : number
+            value : 2
+            variablesReference : <number>
+        }
+    ]
+}
+frame #3: {
+    scopes : [
+        [0] : {
+            column : 32
+            endColumn : 10
+            endLine : 12
+            expensive : false
+            line : 9
+            name : chained
+            presentationHint : locals
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [1] : {
+            column : 21
+            endColumn : 8
+            endLine : 13
+            expensive : false
+            line : 6
+            name : Closure (chain)
+            presentationHint : arguments
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            variablesReference : <number>
+        }
+        [2] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
+scope #3.0: {
+    variables : [
+        [0] : {
+            name : x
+            type : string
+            value : 'x3'
+            variablesReference : <number>
+        }
+    ]
+}
+scope #3.1: {
+    variables : [
+        [0] : {
+            name : n
+            type : number
+            value : 3
+            variablesReference : <number>
+        }
+    ]
+}
+frame #4: {
+    scopes : [
+        [0] : {
+            expensive : true
+            name : Global
+            variablesReference : <number>
+        }
+    ]
+}
