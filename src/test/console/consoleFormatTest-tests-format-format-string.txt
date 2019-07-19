@@ -1,21 +1,38 @@
-stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]
-  //  named=6
+Evaluating: 'console.log(array)'
+stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]  //  named=6
 stdout>     0: 'test'  // type=string
 stdout>     1: 'test2'  // type=string
 stdout>     4: 'test4'  // type=string
 stdout>     foo: {}  // type=Object
 stdout>     length: 10  // type=number
 stdout>     __proto__: (0) [constructor: ƒ, concat: ƒ, copyWithin: ƒ, fill: ƒ, find: ƒ]  // type=Array named=1
-stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]
-  //  named=1
+
+Evaluating: 'console.log("%o", array)'
+stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]  //  named=1
 stdout>     arg1: (10) ['test', 'test2', …, 'test4', foo: {…}]  // type=Array named=1 indexed=10
-stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]
-  //  named=1
+
+Evaluating: 'console.log("%O", array)'
+stdout> (10) ['test', 'test2', …, 'test4', foo: {…}]  //  named=1
 stdout>     arg1: (10) ['test', 'test2', …, 'test4', foo: {…}]  // type=Array named=1 indexed=10
+
+Evaluating: 'console.log("Test for zero \"%f\" in formatter", 0)'
 stdout> Test for zero "0" in formatter
-stdout> % self-escape1dummy
-stdout> %s self-escape2dummy
-stdout> %ss self-escape3dummy
+
+Evaluating: 'console.log("%% self-escape1", "dummy")'
+stdout> % self-escape1 dummy
+
+Evaluating: 'console.log("%%s self-escape2", "dummy")'
+stdout> %s self-escape2 dummy
+
+Evaluating: 'console.log("%%ss self-escape3", "dummy")'
+stdout> %ss self-escape3 dummy
+
+Evaluating: 'console.log("%%s%s%%s self-escape4", "dummy")'
 stdout> %sdummy%s self-escape4
-stdout> %%% self-escape5dummy
+
+Evaluating: 'console.log("%%%%% self-escape5", "dummy")'
+stdout> %%% self-escape5 dummy
+
+Evaluating: 'console.log("%%%s self-escape6", "dummy");'
 stdout> %dummy self-escape6
+

@@ -88,7 +88,7 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
   for (let i = 0; i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))
       continue;
-    if (i)
+    if (format || i)  // either we are second argument or we had format.
       result.push(' ');
     result.push(defaultFormat(substitutions[i]));
   }

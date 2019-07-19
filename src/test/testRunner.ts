@@ -11,7 +11,7 @@ import {TestRunner, Reporter} from '@pptr/testrunner';
 
 export async function run(): Promise<void> {
   const testRunner = new TestRunner({
-    timeout: 10000,
+    timeout: 30000,
     // Somehow "inspector" is always enabled in this electron context.
     disableTimeoutWhenInspectorIsEnabled: false,
   });
