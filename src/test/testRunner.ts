@@ -3,6 +3,8 @@
 
 import {TestP} from './test';
 import {GoldenText} from './goldenText';
+import * as child_process from 'child_process';
+import * as path from 'path';
 
 import {TestRunner, Reporter} from '@pptr/testrunner';
 
@@ -14,8 +16,15 @@ export async function run(): Promise<void> {
   });
   const {beforeEach, afterEach, describe} = testRunner;
 
+  let server: child_process.ChildProcess;
+
+  await new Promise(callback => {
+    server = child_process.fork(path.join(__dirname, 'testServer.js'));
+    server.on('message', callback);
+  })
+
   beforeEach(async (state, t) => {
-    state.goldenText = new GoldenText(t.name);
+    state.goldenText = new GoldenText(t.name, path.join(__dirname, '..', '..', 'testWorkspace'));
   });
 
   afterEach(async (state: {goldenText: GoldenText}, t) => {
@@ -41,6 +50,7 @@ export async function run(): Promise<void> {
     });
 
     (await import('./evaluate/evaluate')).addTests(testRunner);
+    (await import('./sources/sourcesTest')).addTests(testRunner);
     (await import('./stepping/pause')).addTests(testRunner);
     (await import('./stepping/scopes')).addTests(testRunner);
     (await import('./stepping/threads')).addTests(testRunner);
@@ -54,6 +64,7 @@ export async function run(): Promise<void> {
     projectFolder: __dirname,
   });
   await testRunner.run();
+  server!.kill();
   if (process.exitCode && process.exitCode !== 0)
     throw new Error('Tests Failed');
 }
