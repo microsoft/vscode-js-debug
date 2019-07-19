@@ -23,3 +23,7 @@ Launched, requesting threads
     ]
 }
 Disconnecting
+Thread event: {
+    reason : exited
+    threadId : <number>
+}

@@ -47,7 +47,10 @@ export function addStartupTests(testRunner) {
     p.log(await p.dap.threads({}));
 
     p.log('Disconnecting');
-    await p.disconnect();
+    await Promise.all([
+      p.disconnect(),
+      p.dap.once('thread')
+    ]);
     p.assertLog();
   });
 }
