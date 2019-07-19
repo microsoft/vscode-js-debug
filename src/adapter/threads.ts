@@ -716,7 +716,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      vscode.env.clipboard.writeText(objectPreview.renderValue(object, false /* quote */));
+      vscode.env.clipboard.writeText(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 

@@ -211,42 +211,85 @@ export class VariableStore {
   }
 
   private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {
-    const response = await object.cdp.Runtime.getProperties({
-      objectId: object.objectId,
-      ownProperties: true,
-      generatePreview: true
-    });
-    if (!response)
+    const [ accessorsProperties, ownProperties] = await Promise.all([
+      object.cdp.Runtime.getProperties({
+        objectId: object.objectId,
+        accessorPropertiesOnly: true,
+        ownProperties: false,
+        generatePreview: true
+      }),
+      object.cdp.Runtime.getProperties({
+        objectId: object.objectId,
+        ownProperties: true,
+        generatePreview: true
+      })
+    ]);
+    if (!accessorsProperties || !ownProperties)
       return [];
-    const properties: Promise<Dap.Variable>[] = [];
+
+    // Merge own properties and all accessors.
+    const propertiesMap = new Map<string, Cdp.Runtime.PropertyDescriptor>();
+    const propertySymbols: Cdp.Runtime.PropertyDescriptor[] = [];
+    for (const property of accessorsProperties.result) {
+      if (property.symbol)
+        propertySymbols.push(property);
+      else
+        propertiesMap.set(property.name, property);
+    }
+    for (const property of ownProperties.result) {
+      if (property.get || property.set)
+        continue;
+      if (property.symbol)
+        propertySymbols.push(property);
+      else
+        propertiesMap.set(property.name, property);
+    }
+
+    const propertyPromises: Promise<Dap.Variable>[] = [];
     const weight: Map<string, number> = new Map();
-    for (const p of response.result) {
-      properties.push(...this._createVariablesForProperty(p, object));
+
+    // Push own properties & accessors
+    for (const p of propertiesMap.values()) {
+      propertyPromises.push(...this._createVariablesForProperty(p, object));
       weight.set(p.name, objectPreview.propertyWeight(p));
     }
-    for (const p of (response.privateProperties || [])) {
-      properties.push(this._createVariable(p.name, object.wrap(p.value)));
+
+    // Push symbols
+    for (const p of propertySymbols.values()) {
+      propertyPromises.push(...this._createVariablesForProperty(p, object));
+      weight.set(p.name, objectPreview.propertyWeight(p));
+    }
+
+    // Push private properties
+    for (const p of ownProperties.privateProperties || []) {
+      propertyPromises.push(this._createVariable(p.name, object.wrap(p.value)));
       weight.set(p.name, objectPreview.privatePropertyWeight(p));
     }
-    for (const p of (response.internalProperties || [])) {
+
+    // Push internal properties
+    for (const p of (ownProperties.internalProperties || [])) {
       if (p.name === '[[StableObjectId]]')
         continue;
       weight.set(p.name, objectPreview.internalPropertyWeight(p));
       if (p.name === '[[FunctionLocation]]' && p.value && p.value.subtype as string === 'internal#location') {
         const loc = p.value.value as Cdp.Debugger.Location;
-        properties.push(Promise.resolve({
+        propertyPromises.push(Promise.resolve({
           name: p.name,
           value: await this._delegate.renderDebuggerLocation(loc),
           variablesReference: 0
         }));
         continue;
       }
-      properties.push(this._createVariable(p.name, object.wrap(p.value)));
+      propertyPromises.push(this._createVariable(p.name, object.wrap(p.value)));
     }
-    const result = await Promise.all(properties);
+
+    // Wrap up
+    const result = await Promise.all(propertyPromises);
     result.sort((a, b) => {
-      const delta = weight.get(b.name)! - weight.get(a.name)!;
-      return delta ? delta : a.name.localeCompare(b.name);
+      const aname = a.name.includes(' ') ? a.name.split(' ')[1] : a.name;
+      const bname = b.name.includes(' ') ? b.name.split(' ')[1] : b.name;
+      const delta = weight.get(bname)! - weight.get(aname)!;
+      return delta ? delta : aname.localeCompare(bname);
     });
     return result;
   }
@@ -310,12 +353,12 @@ export class VariableStore {
 
   private _createVariablesForProperty(p: Cdp.Runtime.PropertyDescriptor, owner: RemoteObject): Promise<Dap.Variable>[] {
     const result: Promise<Dap.Variable>[] = [];
-    if (p.value)
-      result.push(this._createVariable(p.name, owner.wrap(p.value)));
-    if (p.get)
-      result.push(this._createVariable(`get ${p.name}`, owner.wrap(p.get)));
-    if (p.set)
-      result.push(this._createVariable(`set ${p.name}`, owner.wrap(p.set)));
+    if ('value' in p)
+      result.push(this._createVariable(p.name, owner.wrap(p.value), 'propertyValue'));
+    if (p.get && p.get.type !== "undefined")
+      result.push(this._createVariable(`get ${p.name}`, owner.wrap(p.get), 'propertyValue'));
+    if (p.set && p.set.type !== "undefined")
+      result.push(this._createVariable(`set ${p.name}`, owner.wrap(p.set), 'propertyValue'));
     return result;
   }
 
