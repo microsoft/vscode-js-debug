@@ -7,9 +7,9 @@
 {
     breakMode : unhandled
     details : {
-        stackTrace :   at <data-url>:7:15
+        stackTrace :   at <data-url>:7:17
     }
-    exceptionId : Error: this is an uncaught error
+    exceptionId : Error: this error is uncaught
 }
 {
     allThreadsContinued : false
