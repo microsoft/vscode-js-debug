@@ -11,7 +11,7 @@ export function addTests(testRunner) {
   describe('basic', () => {
     it('basic object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(p, '({a: 1})');
+      await p.logger.logEvaluateResult('({a: 1})');
       p.assertLog();
     });
 
@@ -20,7 +20,7 @@ export function addTests(testRunner) {
         <script>
           console.log('Hello world');
         </script>`);
-      await p.logger.logOutput(p, await p.dap.once('output'));
+      await p.logger.logOutput(await p.dap.once('output'));
       p.assertLog();
     });
 
@@ -41,7 +41,7 @@ export function addTests(testRunner) {
         if (params.category === 'stderr')
           complete();
         else
-          await p.logger.logOutput(p, params);
+          await p.logger.logOutput(params);
       });
 
       await result;
@@ -52,13 +52,13 @@ export function addTests(testRunner) {
   describe('object', () => {
     it('simple array', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(p, 'var a = [1, 2, 3]; a.foo = 1; a');
+      await p.logger.logEvaluateResult('var a = [1, 2, 3]; a.foo = 1; a');
       p.assertLog();
     });
 
     it('get set', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(p, `
+      await p.logger.logEvaluateResult(`
         const a = {};
         Object.defineProperty(a, 'getter', { get: () => {} });
         Object.defineProperty(a, 'setter', { set: () => {} });
@@ -69,7 +69,7 @@ export function addTests(testRunner) {
 
     it('deep accessor', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(p, `
+      await p.logger.logEvaluateResult(`
         class Foo { get getter() {} }
         class Bar extends Foo { }
         new Bar();`);
@@ -83,7 +83,7 @@ export function addTests(testRunner) {
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
       </head>`);
-      await p.logger.logEvaluateResult(p, 'document.head.children');
+      await p.logger.logEvaluateResult('document.head.children');
       p.assertLog();
     });
   });

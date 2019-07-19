@@ -59,19 +59,19 @@ export class Logger {
     }
   }
 
-  async logOutput(p: TestP, params: Dap.OutputEventParams) {
+  async logOutput(params: Dap.OutputEventParams) {
     const prefix = `${params.category}> `;
     if (params.output)
       this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
-      const result = await p.dap.variables({ variablesReference: params.variablesReference });
+      const result = await this._testP.dap.variables({ variablesReference: params.variablesReference });
       for (const variable of result.variables)
         await this.logVariable(variable, 1, prefix);
     }
   }
 
-  async logEvaluateResult(p: TestP, expression: string, depth: number = 1) {
-    const result = await p.dap.evaluate({ expression });
+  async logEvaluateResult(expression: string, depth: number = 1) {
+    const result = await this._testP.dap.evaluate({ expression });
     await this.logVariable({ name: 'result', value: result.result, ...result }, depth);
   }
 }
