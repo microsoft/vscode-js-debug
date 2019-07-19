@@ -242,6 +242,7 @@ export class Adapter {
     if (args.context !== 'repl') {
       const variable = await prep.variableStore.createVariable(response.result, args.context);
       return {
+        type: response.result.type,
         result: variable.value,
         variablesReference: variable.variablesReference,
         namedVariables: variable.namedVariables,

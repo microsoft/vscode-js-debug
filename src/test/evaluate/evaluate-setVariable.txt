@@ -1,5 +1,6 @@
 evaluate: {
     result : {foo: 42}
+    type : object
     variablesReference : <number>
 }
 variables before: {
