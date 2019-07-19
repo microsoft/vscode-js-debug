@@ -1,0 +1,5 @@
+result: HTMLCollection(2) [meta, title, foo: meta]  // type=object named=1 indexed=2
+    foo: meta  // type=HTMLMetaElement
+    __proto__: HTMLCollection  // type=HTMLCollection
+    0: meta  // type=HTMLMetaElement
+    1: title  // type=HTMLTitleElement

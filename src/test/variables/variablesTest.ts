@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { TestP } from '../test';
-import { logVariable, logOutput } from './helper';
+import { logOutput, logEvaluateResult } from './helper';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -12,8 +12,7 @@ export function addTests(testRunner) {
   describe('basic', () => {
     it('basic object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      const object = await p.dap.evaluate({ expression: `({a: 1})`, });
-      await logVariable(p, { name: 'result', value: object.result, ...object });
+      await logEvaluateResult(p, '({a: 1})');
       p.assertLog();
     });
 
@@ -49,7 +48,24 @@ export function addTests(testRunner) {
       await result;
       p.assertLog();
     });
+  });
 
+  describe('object', () => {
+    it('array slow', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad(`blank`);
+      await logEvaluateResult(p, 'var a = [1, 2, 3]; a.foo = 1; a');
+      p.assertLog();
+    });
+  });
+
+  describe('web', () => {
+    it('tags', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad(`<head>
+        <meta name='foo' content='bar'></meta>
+        <title>Title</title>
+      </head>`);
+      await logEvaluateResult(p, 'document.head.children');
+      p.assertLog();
+    });
   });
 }
-
