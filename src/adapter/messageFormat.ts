@@ -59,6 +59,7 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
   const usedSubstitutionIndexes = new Set<number>();
   const defaultFormat = formatters.get('')!;
 
+  let cssFormatApplied = false;
   for (let i = 0; i < tokens.length; ++i) {
     const token = tokens[i];
     if (token.type === 'string') {
@@ -74,11 +75,14 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
       continue;
     }
     usedSubstitutionIndexes.add(index);
+    if (token.specifier === 'c')
+      cssFormatApplied = true;
     const format = formatters.get(token.specifier!) || defaultFormat;
     result.push(format(substitutions[index]));
   }
 
-  result.push('\x1b[0m');  // clear format
+  if (cssFormatApplied)
+    result.push('\x1b[0m');  // clear format
 
   for (let i = 0; i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))

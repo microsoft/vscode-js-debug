@@ -8,7 +8,7 @@ export function addTests(testRunner) {
   const {it, xit, fit} = testRunner;
 
   it('listScopes', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `
       function paused() {
         let y = 'paused';
@@ -37,7 +37,7 @@ export function addTests(testRunner) {
   });
 
   it('setScopeVariable', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `
       (function paused() {
         let y = 'paused';
