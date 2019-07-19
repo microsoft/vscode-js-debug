@@ -1,0 +1,82 @@
+Evaluating#1: 
+        function bar() {
+          return 2;
+        }
+        function foo() {
+          debugger;
+          bar();
+          bar();
+        }
+        foo();
+      
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ eval1.js:6:11
+<anonymous> @ eval1.js:10:9
+
+step over
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ eval1.js:7:11
+<anonymous> @ eval1.js:10:9
+
+step over
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ eval1.js:8:11
+<anonymous> @ eval1.js:10:9
+
+step in
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+bar @ eval1.js:3:11
+foo @ eval1.js:8:11
+<anonymous> @ eval1.js:10:9
+
+step out
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ eval1.js:9:9
+<anonymous> @ eval1.js:10:9
+
+resume
+{
+    allThreadsContinued : false
+    threadId : <number>
+}

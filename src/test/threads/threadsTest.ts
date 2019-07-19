@@ -24,6 +24,54 @@ export function addTests(testRunner) {
     });
   });
 
+  describe('stepping', () => {
+    it('basic', async({p} : {p: TestP}) => {
+      await p.launchUrl('index.html');
+      p.evaluate(`
+        function bar() {
+          return 2;
+        }
+        function foo() {
+          debugger;
+          bar();
+          bar();
+        }
+        foo();
+      `);
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep out');
+      p.dap.stepOut({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
+  });
+
   describe('pause on exceptions', () => {
     async function waitForPauseOnException(p: TestP) {
       const event = p.log(await p.dap.once('stopped'));
