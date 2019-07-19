@@ -57,7 +57,7 @@ export function addTests(testRunner) {
       var foo2 = new Foo(2);
     `});
     p.dap.evaluate({expression: 'queryObjects(Foo)'});
-    await p.logger.logOutput(p, await p.dap.once('output'));
+    await p.logger.logOutput(await p.dap.once('output'));
     p.assertLog();
   });
 }
