@@ -324,7 +324,10 @@ export class Thread implements VariableStoreDelegate {
       slot(await this.formatException(event.exceptionDetails));
     });
     this._cdp.Runtime.on('inspectRequested', event => {
-      this._revealObject(event.object);
+      if (event.hints['copyToClipboard'])
+        this._copyObjectToClipboard(event.object);
+      else
+        this._revealObject(event.object);
     });
     this._cdp.Runtime.enable({});
 
@@ -706,6 +709,38 @@ export class Thread implements VariableStoreDelegate {
       this.sourceContainer.revealLocation(this.rawLocationToUiLocation(loc));
       break;
     }
+  }
+
+  async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
+    if (!object.objectId) {
+      vscode.env.clipboard.writeText(objectPreview.renderValue(object, false /* quote */));
+      return;
+    }
+
+    const toStringForClipboard = `
+      function toStringForClipboard(subtype) {
+        if (subtype === 'node')
+          return this.outerHTML;
+        if (subtype && typeof this === 'undefined')
+          return subtype + '';
+        try {
+          return JSON.stringify(this, null, '  ');
+        } catch (e) {
+          return '' + this;
+        }
+      }
+    `;
+
+    const response = await this.cdp().Runtime.callFunctionOn({
+      objectId: object.objectId,
+      functionDeclaration: toStringForClipboard,
+      arguments: [{value: object.subtype}],
+      silent: true,
+      returnByValue: true
+    });
+    if (response && response.result)
+      vscode.env.clipboard.writeText('' + response.result.value);
+    this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 };
 
