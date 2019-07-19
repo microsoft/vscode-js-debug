@@ -103,7 +103,7 @@ export class StackTrace {
 
   async toDap(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
     const from = params.startFrame || 0;
-    let to = params.levels ? from + params.levels : from + 1;
+    let to = (params.levels || 50) + from;
     const frames = await this.loadFrames(to);
     to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
