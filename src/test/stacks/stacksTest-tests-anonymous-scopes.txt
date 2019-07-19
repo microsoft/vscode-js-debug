@@ -1,0 +1,29 @@
+
+paused @ <eval>/VM<xx>:4:9
+  scope #0: paused
+      y: 'paused'  // type=string
+  scope #1: Global [expensive]
+
+chained @ <eval>/VM<xx>:11:23
+  scope #0: chained
+      x: 'x1'  // type=string
+  scope #1: Closure (chain)
+      n: 1  // type=number
+  scope #2: Global [expensive]
+
+chained @ <eval>/VM<xx>:11:23
+  scope #0: chained
+      x: 'x2'  // type=string
+  scope #1: Closure (chain)
+      n: 2  // type=number
+  scope #2: Global [expensive]
+
+chained @ <eval>/VM<xx>:11:23
+  scope #0: chained
+      x: 'x3'  // type=string
+  scope #1: Closure (chain)
+      n: 3  // type=number
+  scope #2: Global [expensive]
+
+<anonymous> @ <eval>/VM<xx>:14:15
+  scope #0: Global [expensive]

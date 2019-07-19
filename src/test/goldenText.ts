@@ -70,11 +70,17 @@ export class GoldenText {
     }
   }
 
+  _sanitize(value: any): string {
+    return String(value)
+        .replace(/VM\d+/g, 'VM<xx>')
+        .replace(this._workspaceFolder, '${workspaceFolder}');
+  }
+
   log(item: any, title?: string, stabilizeNames?: string[]): any {
     this._hasNonAssertedLogs = true;
     if (typeof item === 'object')
       return this._logObject(item, title, stabilizeNames);
-    this._results.push((title || '') + item);
+    this._results.push((title || '') + this._sanitize(item));
     return item;
   }
 
@@ -89,11 +95,7 @@ export class GoldenText {
         else
           dumpProperties(value, prefix, prefixWithName);
       } else {
-        const replaced = String(value)
-          .replace(/\n/g, ' ')
-          .replace(/VM\d+/g, 'VM<xx>')
-          .replace(this._workspaceFolder, '${workspaceFolder}');
-        lines.push(prefixWithName + replaced);
+        lines.push(prefixWithName + this._sanitize(value).replace(/\n/g, ' '));
       }
     };
 

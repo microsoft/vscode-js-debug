@@ -77,4 +77,44 @@ export class Logger {
     const result = await this._testP.dap.evaluate({ expression });
     await this.logVariable({ name: 'result', value: result.result, ...result }, depth);
   }
+
+  async logStackTrace(threadId: number, withScopes?: boolean) {
+    const initial = await this._testP.dap.stackTrace({threadId});
+    const stack = initial.stackFrames;
+    let totalFrames = initial.totalFrames || stack.length;
+    while (stack.length < totalFrames) {
+      const response = await this._testP.dap.stackTrace({threadId, startFrame: stack.length, levels: Math.min(20, totalFrames - stack.length)});
+      stack.push(...response.stackFrames);
+      if (response.totalFrames)
+        totalFrames = Math.min(totalFrames, response.totalFrames);
+    }
+    let emptyLine = !!withScopes;
+    for (const frame of stack) {
+      if (emptyLine)
+        this._testP.log('');
+      if (frame.presentationHint === 'label') {
+        this._testP.log(`----${frame.name}----`);
+        emptyLine = false;
+        continue;
+      }
+      this._testP.log(`${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${frame.column}`);
+      if (!withScopes)
+        continue;
+      const scopes = await this._testP.dap.scopes({frameId: frame.id});
+      for (let i = 0; i < scopes.scopes.length; i++) {
+        const scope = scopes.scopes[i];
+        if (scope.expensive) {
+          this._testP.log(`  scope #${i}: ${scope.name} [expensive]`);
+          continue;
+        }
+        await this.logVariable({
+          name: 'scope #' + i,
+          value: scope.name,
+          variablesReference: scope.variablesReference,
+          namedVariables: scope.namedVariables,
+          indexedVariables: scope.indexedVariables,
+        }, undefined, '  ');
+      }
+    }
+  }
 }

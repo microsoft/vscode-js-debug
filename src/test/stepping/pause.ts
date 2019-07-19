@@ -8,24 +8,6 @@ export function addTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit} = testRunner;
 
-  it('pausedFromInitialScript', async({p} : {p: TestP}) => {
-    p.launch('<script>debugger;</script>');
-    const event = await p.dap.once('stopped');
-    p.log(event);
-    p.log(await p.dap.stackTrace({threadId: event.threadId!}));
-    p.log(await p.dap.continue({threadId: event.threadId!}));
-    p.assertLog();
-  });
-
-  it('pausedFromEval', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('blank');
-    p.cdp.Runtime.evaluate({expression: '\n\ndebugger;\n//# sourceURL=eval.js'});
-    const event = p.log(await p.dap.once('stopped'));
-    p.log(await p.dap.stackTrace({threadId: event.threadId}));
-    p.log(await p.dap.continue({threadId: event.threadId}));
-    p.assertLog();
-  });
-
   it('pauseOnExceptions', async({p}: {p: TestP}) => {
     async function waitForPauseOnException() {
       const event = p.log(await p.dap.once('stopped'));
