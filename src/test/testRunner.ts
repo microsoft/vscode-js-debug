@@ -15,17 +15,20 @@ export async function run(): Promise<void> {
     // Somehow "inspector" is always enabled in this electron context.
     disableTimeoutWhenInspectorIsEnabled: false,
   });
-  const {beforeEach, afterEach, describe} = testRunner;
+  const {beforeEach, afterEach, beforeAll, afterAll, describe} = testRunner;
 
-  let server: child_process.ChildProcess;
+  beforeAll(async (state: {server: child_process.ChildProcess}) => {
+    state.server = child_process.fork(path.join(__dirname, 'testServer.js'));
+    await new Promise(callback => state.server.once('message', callback));
+  });
 
-  await new Promise(callback => {
-    server = child_process.fork(path.join(__dirname, 'testServer.js'));
-    server.on('message', callback);
-  })
+  afterAll(async (state: {server: child_process.ChildProcess}) => {
+    state.server!.kill();
+    delete state.server;
+  });
 
   beforeEach(async (state, t) => {
-    state.goldenText = new GoldenText(t.name, path.join(__dirname, '..', '..', 'testWorkspace'));
+    state.goldenText = new GoldenText(t.fullName, path.join(__dirname, '..', '..', 'testWorkspace'));
   });
 
   afterEach(async (state: {goldenText: GoldenText}, t) => {
@@ -65,7 +68,6 @@ export async function run(): Promise<void> {
     projectFolder: __dirname,
   });
   await testRunner.run();
-  server!.kill();
   if (process.exitCode && process.exitCode !== 0)
     throw new Error('Tests Failed');
 }
