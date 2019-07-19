@@ -1,3 +1,2 @@
-stdout
-    <empty> = Hello world
+stdout> Hello world
 

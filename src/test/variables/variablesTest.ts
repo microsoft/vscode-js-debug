@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { TestP } from '../test';
-import { logVariable } from './helper';
+import { logVariable, logOutput } from './helper';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -12,19 +12,16 @@ export function addTests(testRunner) {
     it('basic object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
       const object = await p.dap.evaluate({ expression: `({a: 1})`, });
-      await logVariable({ name: 'result', value: object.result, ...object }, p);
+      await logVariable(p, { name: 'result', value: object.result, ...object });
       p.assertLog();
     });
 
     it('simple log', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
-      p.dap.evaluate({ expression: `console.log('Hello world')`, });
-      const log = await p.dap.once('output');
-      if (log.variablesReference)
-        await logVariable({
-          variablesReference: log.variablesReference,
-          name: log.category as string,
-          value: log.output}, p, 3);
+      p.launchAndLoad(`
+        <script>
+          console.log('Hello world');
+        </script>`);
+      await logOutput(p, await p.dap.once('output'));
       p.assertLog();
     });
   });
