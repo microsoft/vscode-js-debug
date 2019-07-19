@@ -1,8 +1,0 @@
-{
-    threads : [
-        [0] : {
-            id : <number>
-            name : 📄 blank
-        }
-    ]
-}
