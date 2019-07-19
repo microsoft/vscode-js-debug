@@ -1,25 +1,25 @@
 
-foo @ ${workspaceFolder}/web/browserify/pause.js:6:5
+foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
   scope #0: foo
   scope #1: Global [expensive]
 
-bar @ ${workspaceFolder}/web/browserify/pause.js:15:5
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
   scope #0: bar
       callback: ƒ foo() {
     debugger;
 }  // type=Function
   scope #1: Global [expensive]
 
-3../module1 @ ${workspaceFolder}/web/browserify/pause.js:24:4
+3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
   scope #0: 3../module1
       exports: {__esModule: true}  // type=Object
-      m1: {__esModule: true, kModule1: 1, foo: ƒ}  // type=Object
-      m2: {__esModule: true, kModule2: 2, bar: ƒ}  // type=Object
+      m1: {__esModule: true, kModule1: 1, foo: ƒ, throwError: ƒ, throwValue: ƒ}  // type=Object
+      m2: {__esModule: true, kModule2: 2, bar: ƒ, pause: ƒ}  // type=Object
       module: {exports: {…}}  // type=Object
       require: ƒ (r){var n=e[i][1][r];return o(n||r)}  // type=Function
   scope #1: Global [expensive]
 
-o @ ${workspaceFolder}/web/browserify/pause.js:1:265
+o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
   scope #0: o
       a: undefined  // type=undefined
       c: undefined  // type=undefined
@@ -36,7 +36,7 @@ o @ ${workspaceFolder}/web/browserify/pause.js:1:265
       r: ƒ r(e,n,t)  // type=Function
   scope #3: Global [expensive]
 
-r @ ${workspaceFolder}/web/browserify/pause.js:1:431
+r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
   scope #0: r
       e: {1: {…}, 2: {…}, 3: {…}}  // type=Object
       i: 0  // type=number
@@ -48,5 +48,5 @@ r @ ${workspaceFolder}/web/browserify/pause.js:1:431
       r: ƒ r(e,n,t)  // type=Function
   scope #2: Global [expensive]
 
-<anonymous> @ ${workspaceFolder}/web/browserify/pause.js:1:460
+<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
   scope #0: Global [expensive]

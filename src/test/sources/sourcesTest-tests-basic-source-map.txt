@@ -13,8 +13,13 @@ text/javascript
 import * as m1 from './module1';
 import * as m2 from './module2';
 
-console.log(m1.kModule1 + m2.kModule2);
-
+window['throwError'] = m1.throwError;
+window['throwValue'] = m1.throwValue;
+window['pause'] = m1.foo;
+window['callBack'] = m2.bar;
+window['logSome'] = function logSome() {
+  console.log(m1.kModule1 + m2.kModule2);
+}
 
 ---------
 
@@ -33,6 +38,12 @@ export const kModule1 = 1;
 export function foo() {
   debugger;
 }
+export function throwError(s) {
+  throw new Error(s);
+}
+export function throwValue(v) {
+  throw v;
+}
 
 ---------
 
@@ -50,6 +61,9 @@ text/javascript
 export const kModule2 = 2;
 export function bar(callback) {
   callback();
+}
+export function pause() {
+  debugger;
 }
 
 ---------

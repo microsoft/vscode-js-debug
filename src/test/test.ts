@@ -141,7 +141,7 @@ export class TestP {
   }
 
   async addScriptTag(relativePath: string): Promise<void> {
-    this.cdp.Runtime.evaluate({expression: `
+    await this.cdp.Runtime.evaluate({expression: `
       new Promise(f => {
         var script = document.createElement('script');
         script.src = '${utils.completeUrl(this._launchUrl, relativePath)}';
