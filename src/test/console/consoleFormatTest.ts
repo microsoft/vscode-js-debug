@@ -59,7 +59,11 @@ export function addTests(testRunner) {
 
     it('popular types', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad(`
-        <script>
+        <div id="x"></div>
+        <p id="p"></p>
+        <svg id="svg-node"/>
+      `);
+      await p.cdp.Runtime.evaluate({expression: `
           // Populate Globals
           var regex1 = /^url\\(\\s*(?:(?:"(?:[^\\\\\\"]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*"|'(?:[^\\\\\\']|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*')|(?:[!#$%&*-~\\w]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*)\\s*\\)/i;
           var regex2 = new RegExp("foo\\\\\\\\bar\\\\sbaz", "i");
@@ -113,7 +117,7 @@ export function addTests(testRunner) {
           boxedStringWithProps["01"] = "foo";
           boxedStringWithProps[3] = "foo";
           boxedStringWithProps["a"] = "bar";
-        </script>`);
+      `});
       await evaluateAndLog(p, [
         `console.log(regex1)`,
       ]);

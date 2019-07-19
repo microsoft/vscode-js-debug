@@ -1,5 +1,4 @@
-stdout> queryObjects: Array(2)
-  //  named=4
+stdout> queryObjects: Array(2)  //  named=4
 stdout>     0: Foo {value: 1}  // type=Foo
 stdout>     1: Foo {value: 2}  // type=Foo
 stdout>     length: 2  // type=number
