@@ -24,7 +24,9 @@ export class Logger {
       return;
     indent = indent || '';
     const name = variable.name ? `${variable.name}: ` : '';
-    const value = variable.value || '';
+    let value = variable.value || '';
+    if (value.endsWith('\n'))
+      value = value.substring(0, value.length - 1);
     const type = variable.type ? `type=${variable.type}` : '';
     const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
     const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
@@ -32,9 +34,10 @@ export class Logger {
     let suffix = `${type}${namedCount}${indexedCount}`;
     if (suffix)
       suffix = '  // ' + suffix;
-    const line = `${name}${value}${suffix}`;
+    const line = `${name}${value}`;
     if (line)
-      this.logAsConsole(`${indent}${line}`);
+      this.logAsConsole(`${indent}${line}${suffix}`);
+
     if (variable.variablesReference) {
       const hasHints = typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
       if (!hasHints || variable.namedVariables) {
