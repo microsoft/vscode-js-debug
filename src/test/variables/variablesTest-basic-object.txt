@@ -1,3 +1,0 @@
-result: {a: 1}  // type=object
-    a: 1  // type=number
-    __proto__: Object  // type=Object

@@ -1,3 +1,0 @@
-result: object = {a: 1}
-    a: number = 1
-    __proto__: Object = Object

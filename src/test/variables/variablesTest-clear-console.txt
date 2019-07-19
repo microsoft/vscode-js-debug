@@ -1,4 +1,0 @@
-stdout> Hello world
-console> [2J
-stdout> Hello world
-console> [2J
