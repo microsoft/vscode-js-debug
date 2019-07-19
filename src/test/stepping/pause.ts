@@ -9,7 +9,7 @@ export function addTests(testRunner) {
   const {it, xit, fit} = testRunner;
 
   it('pausedFromInitialScript', async({p} : {p: TestP}) => {
-    p.launch('data:text/html,<script>debugger;</script>');
+    p.launch('<script>debugger;</script>');
     const event = await p.dap.once('stopped');
     p.log(event);
     p.log(await p.dap.stackTrace({threadId: event.threadId!}));
@@ -18,7 +18,7 @@ export function addTests(testRunner) {
   });
 
   it('pausedFromEval', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: '\n\ndebugger;\n//# sourceURL=eval.js'});
     const event = p.log(await p.dap.once('stopped'));
     p.log(await p.dap.stackTrace({threadId: event.threadId}));
@@ -33,7 +33,7 @@ export function addTests(testRunner) {
       p.log(await p.dap.continue({threadId: event.threadId}));
     }
 
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
 
     p.log('Not pausing on exceptions');
     await p.dap.setExceptionBreakpoints({filters: []});
@@ -56,7 +56,7 @@ export function addTests(testRunner) {
   });
 
   it('pauseOnInnerHtml', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('data:text/html,<div>text</div>');
+    await p.launchAndLoad('<div>text</div>');
 
     p.log('Not pausing on innerHTML');
     await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);

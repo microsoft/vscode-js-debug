@@ -289,6 +289,8 @@ export class Target {
       const parsedURL = new URL(targetInfo.url);
       if (parsedURL.pathname === '/')
         threadName += parsedURL.host;
+      else if (parsedURL.protocol === 'data:')
+        threadName = '<data>';
       else
         threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : `#${this._thread.threadId()}`;
     } catch (e) {

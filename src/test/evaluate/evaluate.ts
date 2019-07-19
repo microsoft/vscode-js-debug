@@ -9,7 +9,7 @@ export function addTests(testRunner) {
   const {it, fit, xit} = testRunner;
 
   it('evaluateBasic', async({p} : {p : TestP}) => {
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
 
     const r1 = p.log(await p.dap.evaluate({expression: `42`}));
     p.log(`No variables: ${r1.variablesReference === 0}`);
@@ -23,7 +23,7 @@ export function addTests(testRunner) {
   });
 
   it('setVariable', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('data:text/html,blank');
+    await p.launchAndLoad('blank');
 
     const r1 = p.log(await p.dap.evaluate({expression: `window.x = ({foo: 42}); x`}), 'evaluate: ');
     p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables before: ');

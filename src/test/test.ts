@@ -59,9 +59,10 @@ export class TestP {
     });
   }
 
-  async _launch(url: string): Promise<Target> {
+  async _launch(content: string): Promise<Target> {
     await this.initialize;
     await this.dap.configurationDone({});
+    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
     const mainTarget = (await this._chromeAdapter.prepareLaunch({url}))!;
     this.adapter = this._chromeAdapter.adapter();
     const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId(), flatten: true }))!;
@@ -69,13 +70,13 @@ export class TestP {
     return mainTarget;
   }
 
-  async launch(url: string): Promise<void> {
-    const mainTarget = await this._launch(url);
+  async launch(content: string): Promise<void> {
+    const mainTarget = await this._launch(content);
     await this._chromeAdapter.finishLaunch(mainTarget);
   }
 
-  async launchAndLoad(url: string): Promise<void> {
-    const mainTarget = await this._launch(url);
+  async launchAndLoad(content: string): Promise<void> {
+    const mainTarget = await this._launch(content);
     await this.cdp.Page.enable({});
     await Promise.all([
       this._chromeAdapter.finishLaunch(mainTarget),

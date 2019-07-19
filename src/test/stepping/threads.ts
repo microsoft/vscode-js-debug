@@ -10,14 +10,14 @@ export function addTests(testRunner) {
   const {it, xit, fit} = testRunner;
 
   it('threadsOnPause', async({p} : {p: TestP}) => {
-    p.launch('data:text/html,<script>debugger;</script>');
+    p.launch('<script>debugger;</script>');
     await p.dap.once('stopped');
     p.log(await p.dap.threads({}));
     p.assertLog();
   });
 
   it('threadsNotOnPause', async({p}: {p: TestP}) => {
-    await p.launch('data:text/html,blank');
+    await p.launch('blank');
     p.log(await p.dap.threads({}));
     p.assertLog();
   });
@@ -37,7 +37,7 @@ export function addStartupTests(testRunner) {
 
     p.log('Launching');
     // One thread during launch.
-    const launch = p.launch('data:text/html,blank');
+    const launch = p.launch('blank');
     await p.dap.once('thread');
 
     p.log('Requesting threads');

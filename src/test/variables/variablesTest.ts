@@ -11,14 +11,14 @@ export function addTests(testRunner) {
 
   describe('basic', () => {
     it('basic object', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('data:text/html,blank');
+      await p.launchAndLoad('blank');
       const object = await p.dap.evaluate({ expression: `({a: 1})`, });
       await logVariable({ name: 'result', value: object.result, ...object }, p);
       p.assertLog();
     });
 
     it('simple log', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('data:text/html,blank');
+      await p.launchAndLoad('blank');
       p.dap.evaluate({ expression: `console.log('Hello world')`, });
       const log = await p.dap.once('output');
       if (log.variablesReference)
