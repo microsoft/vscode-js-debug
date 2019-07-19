@@ -7,7 +7,8 @@ import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
-import * as utils from '../utils';
+import * as eventUtils from '../utils/eventUtils';
+import * as urlUtils from '../utils/urlUtils';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
@@ -208,7 +209,7 @@ export class Thread implements VariableStoreDelegate {
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
-  private _eventListeners: utils.Listener[] = [];
+  private _eventListeners: eventUtils.Listener[] = [];
   parentThread?: Thread;
   _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
@@ -417,7 +418,7 @@ export class Thread implements VariableStoreDelegate {
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
     this._dap.thread({ reason: 'exited', threadId: this._threadId });
-    utils.removeEventListeners(this._eventListeners);
+    eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
   }
@@ -657,8 +658,8 @@ export class Thread implements VariableStoreDelegate {
       if (event.sourceMapURL) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
-        const resolvedSourceUrl = utils.completeUrl(this._threadBaseUrl, event.url);
-        resolvedSourceMapUrl = resolvedSourceUrl && utils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+        const resolvedSourceUrl = urlUtils.completeUrl(this._threadBaseUrl, event.url);
+        resolvedSourceMapUrl = resolvedSourceUrl && urlUtils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
         if (!resolvedSourceMapUrl)
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }

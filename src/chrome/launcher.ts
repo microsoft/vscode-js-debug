@@ -6,7 +6,7 @@ import * as https from 'https';
 import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
-import * as utils from '../utils';
+import * as eventUtils from '../utils/eventUtils';
 import CdpConnection from '../cdp/connection';
 import { PipeTransport, WebSocketTransport } from '../cdp/transport';
 import { Readable, Writable } from 'stream';
@@ -78,7 +78,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   }
 
   let chromeClosed = false;
-  const listeners = [utils.addEventListener(process, 'exit', killChrome)];
+  const listeners = [eventUtils.addEventListener(process, 'exit', killChrome)];
   try {
     if (!usePipe) {
       const browserWSEndpoint = await waitForWSEndpoint(chromeProcess, timeout);
@@ -96,7 +96,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
 
   // This method has to be sync to be used as 'exit' event handler.
   function killChrome() {
-    utils.removeEventListeners(listeners);
+    eventUtils.removeEventListeners(listeners);
     if (chromeProcess.pid && !chromeProcess.killed && !chromeClosed) {
       // Force kill chrome.
       try {
@@ -152,10 +152,10 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
     const rl = readline.createInterface({ input: chromeProcess.stderr });
     let stderr = '';
     const listeners = [
-      utils.addEventListener(rl, 'line', onLine),
-      utils.addEventListener(rl, 'close', () => onClose()),
-      utils.addEventListener(chromeProcess, 'exit', () => onClose()),
-      utils.addEventListener(chromeProcess, 'error', error => onClose(error))
+      eventUtils.addEventListener(rl, 'line', onLine),
+      eventUtils.addEventListener(rl, 'close', () => onClose()),
+      eventUtils.addEventListener(chromeProcess, 'exit', () => onClose()),
+      eventUtils.addEventListener(chromeProcess, 'error', error => onClose(error))
     ];
     const timeoutId = timeout ? setTimeout(onTimeout, timeout) : 0;
 
@@ -187,7 +187,7 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
     function cleanup() {
       if (timeoutId)
         clearTimeout(timeoutId);
-      utils.removeEventListeners(listeners);
+      eventUtils.removeEventListeners(listeners);
     }
   });
 }

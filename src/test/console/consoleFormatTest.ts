@@ -7,7 +7,7 @@ export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
-  async function evaluateAndLog(p: TestP, expressions: string[]) {
+  async function evaluateAndLog(p: TestP, expressions: string[], depth: number) {
     let complete: () => void;
     const result = new Promise(f => complete = f);
     const next = async () => {
@@ -23,7 +23,7 @@ export function addTests(testRunner) {
     let chain = Promise.resolve();
     p.dap.on('output', async params => {
       chain = chain.then(async () => {
-        await p.logger.logOutput(params);
+        await p.logger.logOutput(params, depth);
         p.log(``);
         next();
       });
@@ -52,7 +52,7 @@ export function addTests(testRunner) {
         `console.log("%%s%s%%s self-escape4", "dummy")`,
         `console.log("%%%%% self-escape5", "dummy")`,
         `console.log("%%%s self-escape6", "dummy");`
-      ]);
+      ], 1);
       p.assertLog();
     });
 
@@ -61,8 +61,7 @@ export function addTests(testRunner) {
         <div id="x"></div>
         <p id="p"></p>
         <svg id="svg-node"/>
-      `);
-      await p.cdp.Runtime.evaluate({expression: `
+        <script>
           // Populate Globals
           var regex1 = /^url\\(\\s*(?:(?:"(?:[^\\\\\\"]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*"|'(?:[^\\\\\\']|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*')|(?:[!#$%&*-~\\w]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*)\\s*\\)/i;
           var regex2 = new RegExp("foo\\\\\\\\bar\\\\sbaz", "i");
@@ -77,11 +76,6 @@ export function addTests(testRunner) {
               return 2;
           };
           var num = 1.2e-1;
-          var linkify = "http://webkit.org/";
-          var valuelessAttribute = document.createAttribute("attr");
-          var valuedAttribute = document.createAttribute("attr");
-          valuedAttribute.value = "value";
-          var existingAttribute = document.getElementById("x").attributes[0];
           var throwingLengthGetter = {get length() { throw "Length called"; }};
           var objectWithNonEnumerables = Object.create({ foo: 1 }, {
               __underscoreNonEnumerableProp: { value: 2, enumerable: false },
@@ -116,10 +110,34 @@ export function addTests(testRunner) {
           boxedStringWithProps["01"] = "foo";
           boxedStringWithProps[3] = "foo";
           boxedStringWithProps["a"] = "bar";
-      `});
-      await evaluateAndLog(p, [
-        `console.log(regex1)`,
-      ]);
+          function domException()
+          {
+              var result = "FAIL";
+              try {
+                  var a = document.createElement("div");
+                  var b = document.createElement("div");
+                  a.removeChild(b);
+              } catch(e) {
+                  e.stack = "";
+                  result = e;
+              }
+              return result;
+          }
+          //# sourceURL=console-format
+        </script>`);
+      const variables = ["regex1", "regex2", "str", "str2", "error", "errorWithMessage", "errorWithMultilineMessage", "func", "multilinefunc", "num",
+        "null", "undefined", "NaN", "Number.POSITIVE_INFINITY", "Number.NEGATIVE_INFINITY", "{}", "[function() {}]",
+        "objectWithNonEnumerables", "negZero", "Object.create(null)", "Object", "Object.prototype",
+        "new Number(42)", "new String('abc')", "arrayLikeFunction" ];
+      //   , "throwingLengthGetter", , "new Uint16Array([1", "2", "3])"
+      //   , "bar", "svg",
+      //   , ,
+      //   , "textNode", "domException()",
+      //   "tinyTypedArray", "smallTypedArray", "bigTypedArray", "instanceWithLongClassName", "bigArray", "singleArray",
+      //   "boxedNumberWithProps", "boxedStringWithProps"];
+
+      // "node"
+      await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
       p.assertLog();
     });
   });

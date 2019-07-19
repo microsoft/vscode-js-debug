@@ -3,7 +3,7 @@
 
 import * as path from 'path';
 import * as stream from 'stream';
-import * as utils from '../utils';
+import * as utils from '../utils/urlUtils';
 import { Adapter } from '../adapter/adapter';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';

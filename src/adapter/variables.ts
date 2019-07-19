@@ -42,8 +42,6 @@ export interface VariableStoreDelegate {
   renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
 }
 
-const primitiveSubtypes = new Set<string|undefined>(['null', 'regexp', 'date', 'error', 'proxy', 'promise', 'typedarray', 'arraybuffer', 'dataview']);
-
 export class VariableStore {
   private _cdp: Cdp.Api;
   private static _lastVariableReference: number = 0;
@@ -172,14 +170,14 @@ export class VariableStore {
 
     const params: Dap.Variable[] = [];
     const firstArg = args[0];
-    if (args.length === 1 && firstArg.objectId && !primitiveSubtypes.has(firstArg.subtype)) {
+    if (args.length === 1 && firstArg.objectId && !objectPreview.primitiveSubtypes.has(firstArg.subtype)) {
       // Inline properties for single object parameters.
       const object = new RemoteObject(this._cdp, args[0]);
       params.push(... await this._getObjectProperties(object));
     } else {
       const promiseParams: Promise<Dap.Variable>[] = [];
       for (let i = 0; i < args.length; ++i) {
-        if (!args[i].objectId || primitiveSubtypes.has(args[i].subtype))
+        if (!args[i].objectId || objectPreview.primitiveSubtypes.has(args[i].subtype))
           continue;
         promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
       }
@@ -375,7 +373,7 @@ export class VariableStore {
 
     if (value.o.subtype === 'array')
       return this._createArrayVariable(name, value, context);
-    if (value.objectId && !primitiveSubtypes.has(value.o.subtype))
+    if (value.objectId && !objectPreview.primitiveSubtypes.has(value.o.subtype))
       return this._createObjectVariable(name, value, context);
     return this._createPrimitiveVariable(name, value, context);
   }

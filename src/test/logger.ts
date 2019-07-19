@@ -61,14 +61,14 @@ export class Logger {
     }
   }
 
-  async logOutput(params: Dap.OutputEventParams) {
+  async logOutput(params: Dap.OutputEventParams, depth: number = 1) {
     const prefix = `${params.category}> `;
     if (params.output)
       this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
       const result = await this._testP.dap.variables({ variablesReference: params.variablesReference });
       for (const variable of result.variables)
-        await this.logVariable(variable, 1, prefix);
+        await this.logVariable(variable, depth, prefix);
     }
   }
 

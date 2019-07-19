@@ -1,3 +1,3 @@
 result: Bar {}  // type=object
-    get getter: ƒ getter()  // type=Function
+    get getter: ƒ getter() {}  // type=Function
     __proto__: Foo  // type=Foo

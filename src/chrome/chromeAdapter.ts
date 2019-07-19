@@ -12,7 +12,7 @@ import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
 import Dap from '../dap/api';
-import * as utils from '../utils';
+import * as utils from '../utils/urlUtils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import { Target, TargetManager } from './targets';

@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as sourcemap from 'source-map';
-import * as utils from '../utils';
+import * as utils from '../utils/urlUtils';
 import * as fs from 'fs';
 import Dap from '../dap/api';
 import { URL } from 'url';
