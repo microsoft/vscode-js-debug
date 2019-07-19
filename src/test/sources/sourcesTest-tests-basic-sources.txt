@@ -1,3 +1,11 @@
+inline: {
+    reason : new
+    source : {
+        name : inlinescript.html꞉2:11
+        path : ${workspaceFolder}/web/inlinescript.html
+        sourceReference : <number>
+    }
+}
 empty.js: {
     reason : new
     source : {
@@ -35,31 +43,36 @@ eval: {
 Loaded sources: {
     sources : [
         [0] : {
+            name : inlinescript.html꞉2:11
+            path : ${workspaceFolder}/web/inlinescript.html
+            sourceReference : <number>
+        }
+        [1] : {
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
-        [1] : {
+        [2] : {
             name : empty.js
             path : ${workspaceFolder}/web/empty.js
             sourceReference : <number>
         }
-        [2] : {
+        [3] : {
             name : doesnotexist.js
             path : localhost꞉8001/doesnotexist.js
             sourceReference : <number>
         }
-        [3] : {
+        [4] : {
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
-        [4] : {
+        [5] : {
             name : helloworld.js
             path : ${workspaceFolder}/web/dir/helloworld.js
             sourceReference : <number>
         }
-        [5] : {
+        [6] : {
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>

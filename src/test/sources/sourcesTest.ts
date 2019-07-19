@@ -9,7 +9,8 @@ export function addTests(testRunner) {
   const {it, xit, fit} = testRunner;
 
   it('basic sources', async({p}: {p: TestP}) => {
-    await p.launchUrl('index.html');
+    p.launchUrl('inlinescript.html');
+    p.log(await p.waitForSource('inline'), 'inline: ');
     p.addScriptTag('empty.js');
     p.log(await p.waitForSource('empty.js'), 'empty.js: ');
     p.evaluate('123', 'doesnotexist.js');
