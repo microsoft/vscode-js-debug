@@ -3,23 +3,37 @@
  *--------------------------------------------------------*/
 
 import {TestP} from '../test';
+import Dap from '../../dap/api';
 
 export function addTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit} = testRunner;
 
+  async function dumpSource(p: TestP, event: Dap.LoadedSourceEventParams, name: string) {
+    p.log('\nSource event for ' + name);
+    p.log(event);
+    const content = await p.dap.source({sourceReference: event.source.sourceReference!, source: {
+      path: event.source.path,
+      sourceReference: event.source.sourceReference,
+    }});
+    p.log(`${content.mimeType}`);
+    p.log('---------');
+    p.log(content.content);
+    p.log('---------');
+  }
+
   it('basic sources', async({p}: {p: TestP}) => {
     p.launchUrl('inlinescript.html');
-    p.log(await p.waitForSource('inline'), 'inline: ');
+    await dumpSource(p, await p.waitForSource('inline'), 'inline');
     p.addScriptTag('empty.js');
-    p.log(await p.waitForSource('empty.js'), 'empty.js: ');
-    p.evaluate('123', 'doesnotexist.js');
-    p.log(await p.waitForSource('doesnotexist.js'), 'does not exist: ');
+    await dumpSource(p, await p.waitForSource('empty.js'), 'empty.js');
+    p.evaluate('17', 'doesnotexist.js');
+    await dumpSource(p, await p.waitForSource('doesnotexist'), 'does not exist');
     p.addScriptTag('dir/helloworld.js');
-    p.log(await p.waitForSource('helloworld.js'), 'dir/helloworld.js: ');
-    p.evaluate('123', '');
-    p.log(await p.waitForSource('eval'), 'eval: ');
-    p.log(await p.dap.loadedSources({}), 'Loaded sources: ');
+    await dumpSource(p, await p.waitForSource('helloworld'), 'dir/helloworld');
+    p.evaluate('42', '');
+    await dumpSource(p, await p.waitForSource('eval'), 'eval');
+    p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
     p.assertLog();
   });
 
@@ -31,7 +45,8 @@ export function addTests(testRunner) {
       p.waitForSource('module1.ts'),
       p.waitForSource('module2.ts'),
     ]);
-    sources.forEach(source => p.log(source));
+    for (const source of sources)
+      await dumpSource(p, source, '');
     p.assertLog();
   });
 }
