@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { TestP } from '../test';
+import Dap from '../../dap/api';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -84,6 +85,60 @@ export function addTests(testRunner) {
         <title>Title</title>
       </head>`);
       await p.logger.logEvaluateResult('document.head.children');
+      p.assertLog();
+    });
+  });
+
+  describe('setVariable', () => {
+    it('basic', async({p} : {p: TestP}) => {
+      await p.launchAndLoad('blank');
+      const v = await p.logger.logEvaluateResult(`window.x = ({foo: 42}); x`);
+
+      p.log(`\nSetting "foo" to "{bar: 17}"`);
+      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'foo', value: '{bar: 17}'});
+
+      const v2: Dap.Variable = {...response, variablesReference: response.variablesReference || 0, name: '<result>'};
+      await p.logger.logVariable(v2);
+
+      p.log(`\nOriginal`);
+      await p.logger.logVariable(v);
+
+      p.log(await p.dap.setVariable({variablesReference: v.variablesReference, name: 'foo', value: 'baz'}), '\nsetVariable failure: ');
+      p.assertLog();
+    });
+
+    it('scope', async({p} : {p: TestP}) => {
+      await p.launchAndLoad('blank');
+      p.cdp.Runtime.evaluate({expression: `
+        (function foo() {
+          let y = 'value of y';
+          debugger;
+        })()
+      `});
+
+      const paused = p.log(await p.dap.once('stopped'), 'stopped: ');
+      const stack = await p.dap.stackTrace({threadId: paused.threadId});
+      const scopes = await p.dap.scopes({frameId: stack.stackFrames[0].id});
+      const scope = scopes.scopes[0];
+      const v: Dap.Variable = {
+        name: 'scope',
+        value: scope.name,
+        variablesReference: scope.variablesReference,
+        namedVariables: scope.namedVariables,
+        indexedVariables: scope.indexedVariables,
+      };
+
+      await p.logger.logVariable(v);
+
+      p.log(`\nSetting "y" to "'bar'"`);
+      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'y', value: `'bar'`});
+
+      const v2: Dap.Variable = {...response, variablesReference: response.variablesReference || 0, name: '<result>'};
+      await p.logger.logVariable(v2);
+
+      p.log(`\nOriginal`);
+      await p.logger.logVariable(v);
+
       p.assertLog();
     });
   });

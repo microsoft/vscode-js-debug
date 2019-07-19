@@ -57,7 +57,6 @@ export async function run(): Promise<void> {
     (await import('./sources/sourcesTest')).addTests(testRunner);
     (await import('./stacks/stacksTest')).addTests(testRunner);
     (await import('./stepping/pause')).addTests(testRunner);
-    (await import('./stepping/scopes')).addTests(testRunner);
     (await import('./stepping/threads')).addTests(testRunner);
     (await import('./variables/variablesTest')).addTests(testRunner);
     (await import('./console/consoleFormatTest')).addTests(testRunner);

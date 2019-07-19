@@ -23,18 +23,6 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('setVariable', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
-
-    const r1 = p.log(await p.dap.evaluate({expression: `window.x = ({foo: 42}); x`}), 'evaluate: ');
-    p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables before: ');
-    const r2 = p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: '{bar: 17}'}), 'setVariable: ');
-    p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables after: ');
-    p.log(await p.dap.variables({variablesReference: r2.variablesReference}), 'bar variables: ');
-    p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: 'baz'}), 'setVariable failure: ');
-    p.assertLog();
-  });
-
   it('copy', async({p} : {p: TestP}) => {
     await p.launchAndLoad('blank');
     await p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
