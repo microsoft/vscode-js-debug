@@ -1,0 +1,15 @@
+result: {foo: 42}  // type=object
+    foo: 42  // type=number
+    __proto__: Object  // type=Object
+
+Setting "foo" to "{bar: 17}"
+<result>: Object  // type=Object
+    bar: 17  // type=number
+    __proto__: Object  // type=Object
+
+Original
+result: {foo: 42}  // type=object
+    foo: {bar: 17}  // type=Object
+    __proto__: Object  // type=Object
+
+setVariable failure: ReferenceError: baz is not defined

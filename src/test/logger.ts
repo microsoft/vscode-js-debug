@@ -72,9 +72,11 @@ export class Logger {
     }
   }
 
-  async logEvaluateResult(expression: string, depth: number = 1) {
+  async logEvaluateResult(expression: string, depth: number = 1): Promise<Dap.Variable> {
     const result = await this._testP.dap.evaluate({ expression });
-    await this.logVariable({ name: 'result', value: result.result, ...result }, depth);
+    const variable = { name: 'result', value: result.result, ...result };
+    await this.logVariable(variable, depth);
+    return variable;
   }
 
   async logStackTrace(threadId: number, withScopes?: boolean) {

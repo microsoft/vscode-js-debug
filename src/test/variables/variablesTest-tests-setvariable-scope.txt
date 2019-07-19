@@ -1,0 +1,15 @@
+stopped: {
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+scope: foo
+    y: 'value of y'  // type=string
+
+Setting "y" to "'bar'"
+<result>: 'bar'  // type=string
+
+Original
+scope: foo
+    y: 'bar'  // type=string
