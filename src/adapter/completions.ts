@@ -46,7 +46,7 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   if (toevaluate)
     return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!)) || [];
 
-  for (const global of ['self', 'this', 'global']) {
+  for (const global of ['self', 'global', 'this']) {
     const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix || '');
     if (!items)
       continue;
