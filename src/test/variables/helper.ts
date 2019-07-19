@@ -9,9 +9,13 @@ export async function logVariable(variable: Dap.Variable, p: TestP, depth: numbe
   if (!depth)
     return;
   indent = indent || '';
+  const name = variable.name || '<empty>';
+  const type = variable.type ? `: ${variable.type}` : '';
+  const value = variable.value ? ` = ${variable.value}` : '';
   const namedCount = variable.namedVariables ? `{${variable.namedVariables}}` : '';
-  const indexedCount = variable.namedVariables ? `[${variable.indexedVariables}]` : '';
-  p.log(`${indent}${variable.name}${namedCount}${indexedCount}: ${variable.type} = ${variable.value}`);
+  const indexedCount = variable.indexedVariables ? `[${variable.indexedVariables}]` : '';
+
+  p.log(`${indent}${name}${namedCount}${indexedCount}${type}${value}`);
   if (variable.variablesReference) {
     const result = await p.dap.variables({ variablesReference: variable.variablesReference });
     for (const variable of result.variables)

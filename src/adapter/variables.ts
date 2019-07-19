@@ -166,8 +166,7 @@ export class VariableStore {
     const rootObjectVariable: Dap.Variable = {
       name: '',
       value: text,
-      variablesReference: rootObjectReference,
-      namedVariables: args.length + (stackTrace ? 1 : 0)
+      variablesReference: rootObjectReference
     };
 
     const params: Dap.Variable[] = [];
@@ -196,7 +195,7 @@ export class VariableStore {
 
     if (!params.length)
       rootObjectVariable.variablesReference = 0;
-
+    rootObjectVariable.namedVariables = params.length;
     this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
 
     const resultReference = ++VariableStore._lastVariableReference;
