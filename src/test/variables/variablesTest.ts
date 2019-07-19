@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { TestP } from '../test';
-import { logOutput, logEvaluateResult } from './helper';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -12,7 +11,7 @@ export function addTests(testRunner) {
   describe('basic', () => {
     it('basic object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await logEvaluateResult(p, '({a: 1})');
+      await p.logger.logEvaluateResult(p, '({a: 1})');
       p.assertLog();
     });
 
@@ -21,7 +20,7 @@ export function addTests(testRunner) {
         <script>
           console.log('Hello world');
         </script>`);
-      await logOutput(p, await p.dap.once('output'));
+      await p.logger.logOutput(p, await p.dap.once('output'));
       p.assertLog();
     });
 
@@ -42,7 +41,7 @@ export function addTests(testRunner) {
         if (params.category === 'stderr')
           complete();
         else
-          await logOutput(p, params);
+          await p.logger.logOutput(p, params);
       });
 
       await result;
@@ -53,13 +52,13 @@ export function addTests(testRunner) {
   describe('object', () => {
     it('simple array', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await logEvaluateResult(p, 'var a = [1, 2, 3]; a.foo = 1; a');
+      await p.logger.logEvaluateResult(p, 'var a = [1, 2, 3]; a.foo = 1; a');
       p.assertLog();
     });
 
     it('get set', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await logEvaluateResult(p, `
+      await p.logger.logEvaluateResult(p, `
         const a = {};
         Object.defineProperty(a, 'getter', { get: () => {} });
         Object.defineProperty(a, 'setter', { set: () => {} });
@@ -70,7 +69,7 @@ export function addTests(testRunner) {
 
     it('deep accessor', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await logEvaluateResult(p, `
+      await p.logger.logEvaluateResult(p, `
         class Foo { get getter() {} }
         class Bar extends Foo { }
         new Bar();`);
@@ -84,7 +83,7 @@ export function addTests(testRunner) {
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
       </head>`);
-      await logEvaluateResult(p, 'document.head.children');
+      await p.logger.logEvaluateResult(p, 'document.head.children');
       p.assertLog();
     });
   });

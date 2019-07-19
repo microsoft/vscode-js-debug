@@ -4,7 +4,6 @@
 
 import {TestP} from '../test';
 import * as vscode from 'vscode';
-import { logOutput } from '../variables/helper';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -59,7 +58,7 @@ export function addTests(testRunner) {
       var foo2 = new Foo(2);
     `});
     p.dap.evaluate({expression: 'queryObjects(Foo)'});
-    await logOutput(p, await p.dap.once('output'));
+    await p.logger.logOutput(p, await p.dap.once('output'));
     p.assertLog();
   });
 }
