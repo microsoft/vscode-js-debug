@@ -1,4 +1,6 @@
-inline: {
+
+Source event for inline
+{
     reason : new
     source : {
         name : inlinescript.html꞉2:11
@@ -6,7 +8,15 @@ inline: {
         sourceReference : <number>
     }
 }
-empty.js: {
+text/javascript
+---------
+
+    console.log('inline script');
+  
+---------
+
+Source event for empty.js
+{
     reason : new
     source : {
         name : empty.js
@@ -14,8 +24,14 @@ empty.js: {
         sourceReference : <number>
     }
 }
-Evaluating#1: 123
-does not exist: {
+text/javascript
+---------
+
+---------
+Evaluating#1: 17
+
+Source event for does not exist
+{
     reason : new
     source : {
         name : doesnotexist.js
@@ -23,7 +39,14 @@ does not exist: {
         sourceReference : <number>
     }
 }
-dir/helloworld.js: {
+text/javascript
+---------
+17
+//# sourceURL=http://localhost:8001/doesnotexist.js
+---------
+
+Source event for dir/helloworld
+{
     reason : new
     source : {
         name : helloworld.js
@@ -31,8 +54,15 @@ dir/helloworld.js: {
         sourceReference : <number>
     }
 }
-Evaluating#2: 123
-eval: {
+text/javascript
+---------
+console.log('Hello, world!');
+
+---------
+Evaluating#2: 42
+
+Source event for eval
+{
     reason : new
     source : {
         name : VM<xx>
@@ -40,6 +70,12 @@ eval: {
         sourceReference : <number>
     }
 }
+text/javascript
+---------
+42
+
+---------
+
 Loaded sources: {
     sources : [
         [0] : {

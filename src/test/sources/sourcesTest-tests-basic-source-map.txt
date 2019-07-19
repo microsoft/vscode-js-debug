@@ -1,3 +1,5 @@
+
+Source event for 
 {
     reason : new
     source : {
@@ -6,6 +8,17 @@
         sourceReference : <number>
     }
 }
+text/javascript
+---------
+import * as m1 from './module1';
+import * as m2 from './module2';
+
+console.log(m1.kModule1 + m2.kModule2);
+
+
+---------
+
+Source event for 
 {
     reason : new
     source : {
@@ -14,6 +27,16 @@
         sourceReference : <number>
     }
 }
+text/javascript
+---------
+export const kModule1 = 1;
+export function foo() {
+  debugger;
+}
+
+---------
+
+Source event for 
 {
     reason : new
     source : {
@@ -22,3 +45,11 @@
         sourceReference : <number>
     }
 }
+text/javascript
+---------
+export const kModule2 = 2;
+export function bar(callback) {
+  callback();
+}
+
+---------
