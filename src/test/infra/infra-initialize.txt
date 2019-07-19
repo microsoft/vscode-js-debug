@@ -1,0 +1,42 @@
+initialized
+{
+    additionalModuleColumns : [
+    ]
+    exceptionBreakpointFilters : [
+        [0] : {
+            default : false
+            filter : caught
+            label : Caught Exceptions
+        }
+        [1] : {
+            default : false
+            filter : uncaught
+            label : Uncaught Exceptions
+        }
+    ]
+    supportTerminateDebuggee : false
+    supportedChecksumAlgorithms : [
+    ]
+    supportsCompletionsRequest : true
+    supportsConditionalBreakpoints : true
+    supportsConfigurationDoneRequest : true
+    supportsDelayedStackTraceLoading : true
+    supportsEvaluateForHovers : true
+    supportsExceptionInfoRequest : true
+    supportsExceptionOptions : false
+    supportsFunctionBreakpoints : false
+    supportsGotoTargetsRequest : false
+    supportsHitConditionalBreakpoints : false
+    supportsLoadedSourcesRequest : true
+    supportsLogPoints : true
+    supportsModulesRequest : false
+    supportsRestartFrame : true
+    supportsRestartRequest : true
+    supportsSetExpression : false
+    supportsSetVariable : true
+    supportsStepBack : false
+    supportsStepInTargetsRequest : false
+    supportsTerminateRequest : false
+    supportsTerminateThreadsRequest : false
+    supportsValueFormattingOptions : false
+}

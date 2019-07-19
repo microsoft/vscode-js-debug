@@ -1,0 +1,26 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+{
+    stackFrames : [
+        [0] : {
+            column : 9
+            id : <number>
+            line : 1
+            name : <anonymous>
+            presentationHint : normal
+            source : {
+                name : VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+        }
+    ]
+    totalFrames : 1
+}
+{
+    allThreadsContinued : false
+}

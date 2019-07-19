@@ -1,0 +1,57 @@
+Not pausing on exceptions
+Evaluating#1: setTimeout(() => { throw new Error('hello'); })
+Evaluating#2: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
+Pausing on uncaught exceptions
+Evaluating#3: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
+Evaluating#4: setTimeout(() => { throw new Error('hello'); })
+{
+    allThreadsStopped : false
+    description : Paused on exception
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : unhandled
+    details : {
+        stackTrace :   at eval4.js:1:26
+    }
+    exceptionId : Error: hello
+}
+{
+    allThreadsContinued : false
+}
+Pausing on caught exceptions
+Evaluating#5: setTimeout(() => { throw new Error('hello'); })
+{
+    allThreadsStopped : false
+    description : Paused on exception
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : always
+    details : {
+        stackTrace :   at eval5.js:1:26
+    }
+    exceptionId : Error: hello
+}
+{
+    allThreadsContinued : false
+}
+Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
+{
+    allThreadsStopped : false
+    description : Paused on exception
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : always
+    details : {
+        stackTrace :   at eval6.js:1:32
+    }
+    exceptionId : Error: hello
+}
+{
+    allThreadsContinued : false
+}
