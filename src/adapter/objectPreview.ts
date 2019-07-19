@@ -13,6 +13,8 @@ function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, tokenBudg
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description || '');
+  if (object.subtype === 'node')
+    return object.description!;
   return object.preview ? renderPreview(object.preview, tokenBudget) : renderValue(object, quoteString);
 }
 
@@ -127,6 +129,8 @@ function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview): string {
 function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.type === 'function')
     return 'ƒ';
+  if (prop.subtype === 'node')
+    return prop.value!;
   if (prop.type === 'object')
     return '{…}';
   const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : trimEnd(prop.value, 50);

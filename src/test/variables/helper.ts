@@ -29,9 +29,24 @@ export async function logVariable(p: TestP, variable: Dap.Variable, depth: numbe
   if (line)
     logAsConsole(p, `${indent}${line}`);
   if (variable.variablesReference) {
-    const result = await p.dap.variables({ variablesReference: variable.variablesReference });
-    for (const variable of result.variables)
-      await logVariable(p, variable, depth - 1, indent + '    ');
+    if (variable.namedVariables) {
+      const named = await p.dap.variables({
+        variablesReference: variable.variablesReference,
+        filter: 'named'
+      });
+      for (const variable of named.variables)
+        await logVariable(p, variable, depth - 1, indent + '    ');
+    }
+    if (variable.indexedVariables) {
+      const indexed = await p.dap.variables({
+        variablesReference: variable.variablesReference,
+        filter: 'indexed',
+        start: 0,
+        count: variable.indexedVariables
+      });
+      for (const variable of indexed.variables)
+        await logVariable(p, variable, depth - 1, indent + '    ');
+    }
   }
 }
 
@@ -44,4 +59,9 @@ export async function logOutput(p: TestP, params: Dap.OutputEventParams) {
     for (const variable of result.variables)
       await logVariable(p, variable, 2, prefix);
   }
+}
+
+export async function logEvaluateResult(p: TestP, expression: string) {
+  const result = await p.dap.evaluate({ expression });
+  await logVariable(p, { name: 'result', value: result.result, ...result });
 }

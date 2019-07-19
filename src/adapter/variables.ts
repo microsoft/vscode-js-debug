@@ -77,8 +77,8 @@ export class VariableStore {
         return this._getArraySlots(params, object);
       if (params.filter === 'named')
         return this._getArrayProperties(params, object);
-      const indexes = await this._getArrayProperties(params, object);
-      const names = await this._getArraySlots(params, object);
+      const names = await this._getArrayProperties(params, object);
+      const indexes = await this._getArraySlots(params, object);
       return names.concat(indexes);
     }
 
@@ -370,7 +370,8 @@ export class VariableStore {
       value: objectPreview.previewRemoteObject(object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
-      indexedVariables
+      indexedVariables,
+      namedVariables: 1  // do not count properties proactively
     };
   }
 
