@@ -254,7 +254,7 @@ export class Adapter {
     if (response.exceptionDetails) {
       outputSlot(await prep.thread.formatException(response.exceptionDetails, '↳ '));
     } else {
-      const text = '↳ ' + objectPreview.previewRemoteObject(response.result);
+      const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
       const variablesReference = await prep.thread.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',

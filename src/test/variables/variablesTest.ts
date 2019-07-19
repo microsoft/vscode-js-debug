@@ -50,9 +50,29 @@ export function addTests(testRunner) {
   });
 
   describe('object', () => {
-    it('array slow', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`blank`);
+    it('simple array', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad('blank');
       await logEvaluateResult(p, 'var a = [1, 2, 3]; a.foo = 1; a');
+      p.assertLog();
+    });
+
+    it('get set', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad('blank');
+      await logEvaluateResult(p, `
+        const a = {};
+        Object.defineProperty(a, 'getter', { get: () => {} });
+        Object.defineProperty(a, 'setter', { set: () => {} });
+        Object.defineProperty(a, 'accessor', { get: () => {}, set: () => {} });
+        a;`);
+      p.assertLog();
+    });
+
+    it('deep accessor', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad('blank');
+      await logEvaluateResult(p, `
+        class Foo { get getter() {} }
+        class Bar extends Foo { }
+        new Bar();`);
       p.assertLog();
     });
   });

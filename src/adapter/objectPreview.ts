@@ -2,20 +2,29 @@
 // Licensed under the MIT license.
 
 import Cdp from '../cdp/api';
+import * as utils from '../utils';
 import * as messageFormat from './messageFormat';
 
+const maxArrowFunctionCharacterLength = 30;
+const maxPropertyPreviewLength = 50;
+const maxEntryPreviewLength = 20;
+const maxFunctionBodyLength = 200;
+const maxMessageFormatParamLength = 1000;
+const maxExceptionTitleLength = 10000;
+
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
-  const tokenBudget = context === 'repl' ? 8 : 3;
-  return previewRemoveObjectInternal(object, tokenBudget, true);
+  const characterBudget = context === 'repl' ? 1000 : 100;
+  let result = previewRemoveObjectInternal(object, characterBudget, true);
+  return result;
 }
 
-function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, tokenBudget: number, quoteString: boolean): string {
+function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, characterBudget: number, quoteString: boolean): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function')
     return formatFunctionDescription(object.description || '');
   if (object.subtype === 'node')
     return object.description!;
-  return object.preview ? renderPreview(object.preview, tokenBudget) : renderValue(object, quoteString);
+  return object.preview ? renderPreview(object.preview, characterBudget) : renderValue(object, characterBudget, quoteString);
 }
 
 export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
@@ -39,90 +48,85 @@ export function internalPropertyWeight(prop: Cdp.Runtime.InternalPropertyDescrip
   return 10;
 }
 
-function renderPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
+function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
   if (preview.subtype === 'array')
-    return renderArrayPreview(preview, tokenBudget);
+    return renderArrayPreview(preview, characterBudget);
   if (preview.subtype as string === 'internal#entry')
     return preview.description || '';
   if (preview.type === 'object')
-    return renderObjectPreview(preview, tokenBudget);
+    return renderObjectPreview(preview, characterBudget);
   if (preview.type === 'function')
     return formatFunctionDescription(preview.description || '');
-  return renderPrimitivePreview(preview);
+  return renderPrimitivePreview(preview, characterBudget);
 }
 
-function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
-  const tokens: string[] = [];
-  let overflow = false;
+function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
+  const builder = new StringBuilder(characterBudget);
+  let description = preview.description!;
+  if (description.startsWith('Array'))
+    description = description.substring('Array'.length);
+  builder.appendCanTrim(description);
+  builder.appendCanSkip(' ');
+  const propsBuilder = new StringBuilder(builder.budget() - 2);  // for []
 
   // Indexed
   let lastIndex = -1;
   for (const prop of preview.properties) {
-    if (tokens.length > tokenBudget) {
-      overflow = true;
-      continue;
-    }
+    if (!propsBuilder.hasBudget())
+      break;
     if (isNaN(prop.name as unknown as number))
       continue;
     const index = parseInt(prop.name, 10);
     if (index > lastIndex + 1)
-      tokens.push('…');
+      propsBuilder.appendCanSkip('…');
     lastIndex = index;
-    tokens.push(renderPropertyPreview(prop));
+    propsBuilder.appendCanSkip(renderPropertyPreview(prop));
   }
 
   // Named
   for (const prop of preview.properties) {
-    if (tokens.length > tokenBudget) {
-      overflow = true;
-      continue;
-    }
+    if (!propsBuilder.hasBudget())
+      break;
     if (!isNaN(prop.name as unknown as number))
       continue;
-    tokens.push(`${prop.name}: ${renderPropertyPreview(prop)}`);
+    propsBuilder.appendCanSkip(`${prop.name}: ${renderPropertyPreview(prop)}`);
   }
-
-  if (overflow)
-    tokens.push('…');
-
-  return `${preview.description} [${tokens.join(', ')}]`;
+  builder.forceAppend('[' + propsBuilder.build(', ') + ']');
+  return builder.build();
 }
 
-function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, tokenBudget: number): string {
+function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
+  const builder = new StringBuilder(characterBudget);
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
-  const tokens: string[] = [];
-  let overflow = false;
+  builder.appendCanTrim(description);
+  const propsBuilder = new StringBuilder(builder.budget() - 2);  // for {}
 
   for (const prop of preview.properties) {
-    if (tokens.length > tokenBudget) {
-      overflow = true;
-      continue;
-    }
-    tokens.push(`${prop.name}: ${renderPropertyPreview(prop)}`);
+    if (!propsBuilder.hasBudget())
+      break;
+    propsBuilder.appendCanSkip(`${prop.name}: ${renderPropertyPreview(prop)}`);
   }
 
   for (const entry of (preview.entries || [])) {
-    if (tokens.length > tokenBudget) {
-      overflow = true;
-      continue;
-    }
+    if (!propsBuilder.hasBudget())
+      break;
     if (entry.key)
-      tokens.push(`${renderPreview(entry.key, tokenBudget)} => ${renderPreview(entry.value, tokenBudget)}`);
+      propsBuilder.appendCanSkip(`${renderPreview(entry.key, maxEntryPreviewLength)} => ${renderPreview(entry.value, maxEntryPreviewLength)}`);
     else
-      tokens.push(`${renderPreview(entry.value, tokenBudget)}`);
+      propsBuilder.appendCanSkip(`${renderPreview(entry.value, maxEntryPreviewLength)}`);
   }
 
-  if (overflow)
-    tokens.push('…');
-
-  return `${description}{${tokens.join(', ')}}`;
+  builder.forceAppend('{' + propsBuilder.build(', ') +'}');
+  return builder.build();
 }
 
-function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview): string {
+function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
   if (preview.subtype === 'null')
     return 'null';
   if (preview.type === 'undefined')
     return 'undefined';
+  if (preview.type === 'string')
+    return utils.trimEnd(preview.description!, characterBudget);
   return preview.description || '';
 }
 
@@ -133,26 +137,26 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
     return prop.value!;
   if (prop.type === 'object')
     return '{…}';
-  const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : trimEnd(prop.value, 50);
+  const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : utils.trimEnd(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
-export function renderValue(object: Cdp.Runtime.RemoteObject, quote: boolean): string {
+export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: number, quote: boolean): string {
   if (object.unserializableValue)
-    return object.unserializableValue;
-  if (object.value)
-    return quote && object.type === 'string' ? `'${object.value}'` : String(object.value);
+    return utils.trimEnd(object.unserializableValue, characterBudget);
+
+  if (object.type === 'string') {
+    const value = utils.trimEnd(object.value, characterBudget - (quote ? 2 : 0));
+    return quote ? `'${value}'` : value;
+  }
+
   if (object.type === 'undefined')
     return 'undefined';
+
   if (object.subtype === 'null')
     return 'null';
-  return object.description || '';
-}
 
-function trimEnd(text: string, maxLength: number) {
-  if (text.length <= maxLength)
-    return text;
-  return text.substr(0, maxLength - 1) + '…';
+  return utils.trimEnd(object.description || '', characterBudget);
 }
 
 function formatFunctionDescription(description: string, includePreview: boolean = false, defaultName: string = ''): string {
@@ -193,7 +197,6 @@ function formatFunctionDescription(description: string, includePreview: boolean 
     textAfterPrefix = text.substring('function'.length);
     addToken('ƒ', textAfterPrefix, nameAndArguments(textAfterPrefix));
   } else if (isArrow) {
-    const maxArrowFunctionCharacterLength = 30;
     let abbreviation = text;
     if (defaultName)
       abbreviation = defaultName + '()';
@@ -218,11 +221,10 @@ function formatFunctionDescription(description: string, includePreview: boolean 
   }
 
   function addToken(prefix: string, body: string, abbreviation: string) {
-    const maxFunctionBodyLength = 200;
     if (prefix.length)
       tokens.push(prefix + ' ');
     if (includePreview)
-      tokens.push(trimEnd(body.trim(), maxFunctionBodyLength));
+      tokens.push(utils.trimEnd(body.trim(), maxFunctionBodyLength));
     else
       tokens.push(abbreviation.replace(/\n/g, ' '));
   }
@@ -230,7 +232,7 @@ function formatFunctionDescription(description: string, includePreview: boolean 
 
 export function previewException(exception: Cdp.Runtime.RemoteObject): { title: string, stackTrace?: string } {
   if (exception.type !== 'object')
-    return { title: renderValue(exception, false) };
+    return { title: renderValue(exception, maxExceptionTitleLength, false) };
   const description = exception.description!;
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame) {
@@ -255,7 +257,7 @@ function formatAsString(param: Cdp.Runtime.RemoteObject): string {
 }
 
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
-  ['', param => previewRemoveObjectInternal(param, 8, false)],
+  ['', param => previewRemoveObjectInternal(param, maxMessageFormatParamLength, false)],
   ['s', param => formatAsString(param)],
   ['i', param => formatAsNumber(param, true)],
   ['d', param => formatAsNumber(param, true)],
@@ -264,3 +266,49 @@ export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObjec
   ['o', param => previewRemoteObject(param)],
   ['O', param => previewRemoteObject(param)],
 ]);
+
+class StringBuilder {
+  private _tokens: string[] = [];
+  private _budget: number;
+
+  constructor(budget: number) {
+    this._budget = budget;
+  }
+
+  appendCanSkip(text: string) {
+    if (!this.hasBudget())
+      return;
+    if (text.length < this._budget) {
+      this._tokens.push(text);
+      this._budget -= text.length;
+    } else {
+      this._tokens.push('…');
+      this._budget = 0;
+    }
+  }
+
+  appendCanTrim(text: string) {
+    if (!this.hasBudget())
+      return;
+    const trimmed = utils.trimEnd(text, this._budget)
+    this._tokens.push(trimmed);
+    this._budget = Math.max(0, this._budget - trimmed.length);
+  }
+
+  forceAppend(text: string) {
+    this._tokens.push(text);
+    this._budget = Math.max(0, this._budget - text.length);
+  }
+
+  hasBudget(): boolean {
+    return this._budget > 0;
+  }
+
+  budget(): number {
+    return this._budget;
+  }
+
+  build(join?: string): string {
+    return this._tokens.join(join || '');
+  }
+}
