@@ -20,4 +20,16 @@ export function addTests(testRunner) {
     p.log(await p.dap.loadedSources({}), 'Loaded sources: ');
     p.assertLog();
   });
+
+  it('basic source map', async({p}: {p: TestP}) => {
+    await p.launchUrl('index.html');
+    p.addScriptTag('browserify/bundle.js');
+    const sources = await Promise.all([
+      p.waitForSource('index.ts'),
+      p.waitForSource('module1.ts'),
+      p.waitForSource('module2.ts'),
+    ]);
+    sources.forEach(source => p.log(source));
+    p.assertLog();
+  });
 }

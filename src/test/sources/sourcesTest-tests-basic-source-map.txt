@@ -1,0 +1,24 @@
+{
+    reason : new
+    source : {
+        name : index.ts
+        path : ${workspaceFolder}/web/browserify/index.ts
+        sourceReference : <number>
+    }
+}
+{
+    reason : new
+    source : {
+        name : module1.ts
+        path : ${workspaceFolder}/web/browserify/module1.ts
+        sourceReference : <number>
+    }
+}
+{
+    reason : new
+    source : {
+        name : module2.ts
+        path : ${workspaceFolder}/web/browserify/module2.ts
+        sourceReference : <number>
+    }
+}
