@@ -327,6 +327,8 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Runtime.on('inspectRequested', event => {
       if (event.hints['copyToClipboard'])
         this._copyObjectToClipboard(event.object);
+      else if (event.hints['queryObjects'])
+        this._queryObjects(event.object);
       else
         this._revealObject(event.object);
     });
@@ -359,10 +361,10 @@ export class Thread implements VariableStoreDelegate {
     this._dap.thread({ reason: 'started', threadId: this._threadId });
   }
 
-  claimOutputSlot(): (payload: Dap.OutputEventParams | undefined) => void {
+  claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
     const slot = this._serializedOutput;
     let callback: () => void;
-    const result = async (payload: Dap.OutputEventParams | undefined) => {
+    const result = async (payload?: Dap.OutputEventParams) => {
       await slot;
       if (payload) {
         const isClearConsole = payload.output === '\x1b[2J';
@@ -742,6 +744,23 @@ export class Thread implements VariableStoreDelegate {
     if (response && response.result)
       vscode.env.clipboard.writeText('' + response.result.value);
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
+  }
+
+  async _queryObjects(prototype: Cdp.Runtime.RemoteObject) {
+    const slot = this.claimOutputSlot();
+    if (!prototype.objectId)
+      return slot();
+    const response = await this.cdp().Runtime.queryObjects({prototypeObjectId: prototype.objectId, objectGroup: 'console'});
+    await this.cdp().Runtime.releaseObject({objectId: prototype.objectId});
+    if (!response)
+      return slot();
+    const preview = objectPreview.previewRemoteObject(response.objects);
+    const variablesReference = await this.replVariables.createVariableForOutput(`queryObjects: ${preview}\n`, [response.objects]);
+    slot({
+      category: 'stdout',
+      output: '',
+      variablesReference
+    });
   }
 };
 

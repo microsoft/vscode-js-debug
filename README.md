@@ -11,6 +11,7 @@
 - function locations go through source maps
 - stacks in console.foo methods and exceptions go through source maps
 - copy(value)
+- queryObjects(prototype)
 
 - top-level await
 - inline breakpoints are shown with inline decorations
