@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import {TestP} from '../test';
+import * as vscode from 'vscode';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -31,6 +32,17 @@ export function addTests(testRunner) {
     p.log(await p.dap.variables({variablesReference: r1.variablesReference}), 'variables after: ');
     p.log(await p.dap.variables({variablesReference: r2.variablesReference}), 'bar variables: ');
     p.log(await p.dap.setVariable({variablesReference: r1.variablesReference, name: 'foo', value: 'baz'}), 'setVariable failure: ');
+    p.assertLog();
+  });
+
+  it('copy', async({p} : {p: TestP}) => {
+    await p.launchAndLoad('blank');
+    await p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
+    p.log(await vscode.env.clipboard.readText());
+    await p.dap.evaluate({expression: 'copy(123n)'});
+    p.log(await vscode.env.clipboard.readText());
+    await p.dap.evaluate({expression: 'copy(NaN)'});
+    p.log(await vscode.env.clipboard.readText());
     p.assertLog();
   });
 }

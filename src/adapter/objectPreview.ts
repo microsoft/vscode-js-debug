@@ -139,6 +139,8 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
 }
 
 export function renderValue(object: Cdp.Runtime.RemoteObject, quote: boolean): string {
+  if (object.unserializableValue)
+    return object.unserializableValue;
   if (object.value)
     return quote && object.type === 'string' ? `'${object.value}'` : String(object.value);
   if (object.type === 'undefined')
