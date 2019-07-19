@@ -10,15 +10,15 @@ export function addTests(testRunner) {
   const {it, xit, fit} = testRunner;
 
   it('threadsOnPause', async({p} : {p: TestP}) => {
-    p.dap.launch({url: 'data:text/html,<script>debugger;</script>'});
+    p.launch('data:text/html,<script>debugger;</script>');
     await p.dap.once('stopped');
-    p.log(await p.dap.threads());
+    p.log(await p.dap.threads({}));
     p.assertLog();
   });
 
   it('threadsNotOnPause', async({p}: {p: TestP}) => {
-    await p.dap.launch({url: 'data:text/html,blank'});
-    p.log(await p.dap.threads());
+    await p.launch('data:text/html,blank');
+    p.log(await p.dap.threads({}));
     p.assertLog();
   });
 }
@@ -41,11 +41,11 @@ export function addStartupTests(testRunner) {
     await p.dap.once('thread');
 
     p.log('Requesting threads');
-    p.log(await p.dap.threads());
+    p.log(await p.dap.threads({}));
 
     await launch;
     p.log('Launched, requesting threads');
-    p.log(await p.dap.threads());
+    p.log(await p.dap.threads({}));
 
     p.log('Disconnecting');
     await p.disconnect();

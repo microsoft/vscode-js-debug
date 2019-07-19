@@ -11,7 +11,6 @@ export namespace Dap {
   export type Error = E.Error;
   export type Message = E.Message;
   export type integer = number;
-  export type TestApi = any;
 
   export interface Api {
     /**
@@ -309,6 +308,317 @@ export namespace Dap {
      * Disassembles code stored at the provided location.
      */
     on(request: 'disassemble', handler: (params: DisassembleParams) => Promise<DisassembleResult | Error>): void;
+  }
+
+  export interface TestApi {
+
+    /**
+     * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
+     * A debug adapter is expected to send this event when it is ready to accept configuration requests (but not before the 'initialize' request has finished).
+     * The sequence of events/requests is as follows:
+     * - adapters sends 'initialized' event (after the 'initialize' request has returned)
+     * - frontend sends zero or more 'setBreakpoints' requests
+     * - frontend sends one 'setFunctionBreakpoints' request
+     * - frontend sends a 'setExceptionBreakpoints' request if one or more 'exceptionBreakpointFilters' have been defined (or if 'supportsConfigurationDoneRequest' is not defined or false)
+     * - frontend sends other future configuration requests
+     * - frontend sends one 'configurationDone' request to indicate the end of the configuration.
+     */
+    on(request: 'initialized', handler: (params: InitializedEventParams) => void);
+    once(request: 'initialized'): Promise<InitializedEventParams>;
+
+    /**
+     * The event indicates that the execution of the debuggee has stopped due to some condition.
+     * This can be caused by a break point previously set, a stepping action has completed, by executing a debugger statement etc.
+     */
+    on(request: 'stopped', handler: (params: StoppedEventParams) => void);
+    once(request: 'stopped'): Promise<StoppedEventParams>;
+
+    /**
+     * The event indicates that the execution of the debuggee has continued.
+     * Please note: a debug adapter is not expected to send this event in response to a request that implies that execution continues, e.g. 'launch' or 'continue'.
+     * It is only necessary to send a 'continued' event if there was no previous request that implied this.
+     */
+    on(request: 'continued', handler: (params: ContinuedEventParams) => void);
+    once(request: 'continued'): Promise<ContinuedEventParams>;
+
+    /**
+     * The event indicates that the debuggee has exited and returns its exit code.
+     */
+    on(request: 'exited', handler: (params: ExitedEventParams) => void);
+    once(request: 'exited'): Promise<ExitedEventParams>;
+
+    /**
+     * The event indicates that debugging of the debuggee has terminated. This does **not** mean that the debuggee itself has exited.
+     */
+    on(request: 'terminated', handler: (params: TerminatedEventParams) => void);
+    once(request: 'terminated'): Promise<TerminatedEventParams>;
+
+    /**
+     * The event indicates that a thread has started or exited.
+     */
+    on(request: 'thread', handler: (params: ThreadEventParams) => void);
+    once(request: 'thread'): Promise<ThreadEventParams>;
+
+    /**
+     * The event indicates that the target has produced some output.
+     */
+    on(request: 'output', handler: (params: OutputEventParams) => void);
+    once(request: 'output'): Promise<OutputEventParams>;
+
+    /**
+     * The event indicates that some information about a breakpoint has changed.
+     */
+    on(request: 'breakpoint', handler: (params: BreakpointEventParams) => void);
+    once(request: 'breakpoint'): Promise<BreakpointEventParams>;
+
+    /**
+     * The event indicates that some information about a module has changed.
+     */
+    on(request: 'module', handler: (params: ModuleEventParams) => void);
+    once(request: 'module'): Promise<ModuleEventParams>;
+
+    /**
+     * The event indicates that some source has been added, changed, or removed from the set of all loaded sources.
+     */
+    on(request: 'loadedSource', handler: (params: LoadedSourceEventParams) => void);
+    once(request: 'loadedSource'): Promise<LoadedSourceEventParams>;
+
+    /**
+     * The event indicates that the debugger has begun debugging a new process. Either one that it has launched, or one that it has attached to.
+     */
+    on(request: 'process', handler: (params: ProcessEventParams) => void);
+    once(request: 'process'): Promise<ProcessEventParams>;
+
+    /**
+     * The event indicates that one or more capabilities have changed.
+     * Since the capabilities are dependent on the frontend and its UI, it might not be possible to change that at random times (or too late).
+     * Consequently this event has a hint characteristic: a frontend can only be expected to make a 'best effort' in honouring individual capabilities but there are no guarantees.
+     * Only changed capabilities need to be included, all other capabilities keep their values.
+     */
+    on(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void);
+    once(request: 'capabilities'): Promise<CapabilitiesEventParams>;
+
+    /**
+     * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
+     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
+     * The 'initialize' request may only be sent once.
+     */
+    initialize(params: InitializeParams): Promise<InitializeResult>;
+
+    /**
+     * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
+     */
+    configurationDone(params: ConfigurationDoneParams): Promise<ConfigurationDoneResult>;
+
+    /**
+     * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     */
+    launch(params: LaunchParams): Promise<LaunchResult>;
+
+    /**
+     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     */
+    attach(params: AttachParams): Promise<AttachResult>;
+
+    /**
+     * Restarts a debug session. If the capability 'supportsRestartRequest' is missing or has the value false,
+     * the client will implement 'restart' by terminating the debug adapter first and then launching it anew.
+     * A debug adapter can override this default behaviour by implementing a restart request
+     * and setting the capability 'supportsRestartRequest' to true.
+     */
+    restart(params: RestartParams): Promise<RestartResult>;
+
+    /**
+     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
+     */
+    disconnect(params: DisconnectParams): Promise<DisconnectResult>;
+
+    /**
+     * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
+     */
+    terminate(params: TerminateParams): Promise<TerminateResult>;
+
+    /**
+     * Sets multiple breakpoints for a single source and clears all previous breakpoints in that source.
+     * To clear all breakpoint for a source, specify an empty array.
+     * When a breakpoint is hit, a 'stopped' event (with reason 'breakpoint') is generated.
+     */
+    setBreakpoints(params: SetBreakpointsParams): Promise<SetBreakpointsResult>;
+
+    /**
+     * Replaces all existing function breakpoints with new function breakpoints.
+     * To clear all function breakpoints, specify an empty array.
+     * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
+     */
+    setFunctionBreakpoints(params: SetFunctionBreakpointsParams): Promise<SetFunctionBreakpointsResult>;
+
+    /**
+     * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     */
+    setExceptionBreakpoints(params: SetExceptionBreakpointsParams): Promise<SetExceptionBreakpointsResult>;
+
+    /**
+     * Obtains information on a possible data breakpoint that could be set on an expression or variable.
+     */
+    dataBreakpointInfo(params: DataBreakpointInfoParams): Promise<DataBreakpointInfoResult>;
+
+    /**
+     * Replaces all existing data breakpoints with new data breakpoints.
+     * To clear all data breakpoints, specify an empty array.
+     * When a data breakpoint is hit, a 'stopped' event (with reason 'data breakpoint') is generated.
+     */
+    setDataBreakpoints(params: SetDataBreakpointsParams): Promise<SetDataBreakpointsResult>;
+
+    /**
+     * The request starts the debuggee to run again.
+     */
+    continue(params: ContinueParams): Promise<ContinueResult>;
+
+    /**
+     * The request starts the debuggee to run again for one step.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     */
+    next(params: NextParams): Promise<NextResult>;
+
+    /**
+     * The request starts the debuggee to step into a function/method if possible.
+     * If it cannot step into a target, 'stepIn' behaves like 'next'.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     * If there are multiple function/method calls (or other targets) on the source line,
+     * the optional argument 'targetId' can be used to control into which target the 'stepIn' should occur.
+     * The list of possible targets for a given source line can be retrieved via the 'stepInTargets' request.
+     */
+    stepIn(params: StepInParams): Promise<StepInResult>;
+
+    /**
+     * The request starts the debuggee to run again for one step.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     */
+    stepOut(params: StepOutParams): Promise<StepOutResult>;
+
+    /**
+     * The request starts the debuggee to run one step backwards.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
+     */
+    stepBack(params: StepBackParams): Promise<StepBackResult>;
+
+    /**
+     * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
+     */
+    reverseContinue(params: ReverseContinueParams): Promise<ReverseContinueResult>;
+
+    /**
+     * The request restarts execution of the specified stackframe.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
+     */
+    restartFrame(params: RestartFrameParams): Promise<RestartFrameResult>;
+
+    /**
+     * The request sets the location where the debuggee will continue to run.
+     * This makes it possible to skip the execution of code or to executed code again.
+     * The code between the current location and the goto target is not executed but skipped.
+     * The debug adapter first sends the response and then a 'stopped' event with reason 'goto'.
+     */
+    goto(params: GotoParams): Promise<GotoResult>;
+
+    /**
+     * The request suspenses the debuggee.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'pause') after the thread has been paused successfully.
+     */
+    pause(params: PauseParams): Promise<PauseResult>;
+
+    /**
+     * The request returns a stacktrace from the current execution state.
+     */
+    stackTrace(params: StackTraceParams): Promise<StackTraceResult>;
+
+    /**
+     * The request returns the variable scopes for a given stackframe ID.
+     */
+    scopes(params: ScopesParams): Promise<ScopesResult>;
+
+    /**
+     * Retrieves all child variables for the given variable reference.
+     * An optional filter can be used to limit the fetched children to either named or indexed children.
+     */
+    variables(params: VariablesParams): Promise<VariablesResult>;
+
+    /**
+     * Set the variable with the given name in the variable container to a new value.
+     */
+    setVariable(params: SetVariableParams): Promise<SetVariableResult>;
+
+    /**
+     * The request retrieves the source code for a given source reference.
+     */
+    source(params: SourceParams): Promise<SourceResult>;
+
+    /**
+     * The request retrieves a list of all threads.
+     */
+    threads(params: ThreadsParams): Promise<ThreadsResult>;
+
+    /**
+     * The request terminates the threads with the given ids.
+     */
+    terminateThreads(params: TerminateThreadsParams): Promise<TerminateThreadsResult>;
+
+    /**
+     * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
+     */
+    modules(params: ModulesParams): Promise<ModulesResult>;
+
+    /**
+     * Retrieves the set of all sources currently loaded by the debugged process.
+     */
+    loadedSources(params: LoadedSourcesParams): Promise<LoadedSourcesResult>;
+
+    /**
+     * Evaluates the given expression in the context of the top most stack frame.
+     * The expression has access to any variables and arguments that are in scope.
+     */
+    evaluate(params: EvaluateParams): Promise<EvaluateResult>;
+
+    /**
+     * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
+     * The expressions have access to any variables and arguments that are in scope of the specified frame.
+     */
+    setExpression(params: SetExpressionParams): Promise<SetExpressionResult>;
+
+    /**
+     * This request retrieves the possible stepIn targets for the specified stack frame.
+     * These targets can be used in the 'stepIn' request.
+     * The StepInTargets may only be called if the 'supportsStepInTargetsRequest' capability exists and is true.
+     */
+    stepInTargets(params: StepInTargetsParams): Promise<StepInTargetsResult>;
+
+    /**
+     * This request retrieves the possible goto targets for the specified source location.
+     * These targets can be used in the 'goto' request.
+     * The GotoTargets request may only be called if the 'supportsGotoTargetsRequest' capability exists and is true.
+     */
+    gotoTargets(params: GotoTargetsParams): Promise<GotoTargetsResult>;
+
+    /**
+     * Returns a list of possible completions for a given caret position and text.
+     * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
+     */
+    completions(params: CompletionsParams): Promise<CompletionsResult>;
+
+    /**
+     * Retrieves the details of the exception that caused this event to be raised.
+     */
+    exceptionInfo(params: ExceptionInfoParams): Promise<ExceptionInfoResult>;
+
+    /**
+     * Reads bytes from memory at the provided location.
+     */
+    readMemory(params: ReadMemoryParams): Promise<ReadMemoryResult>;
+
+    /**
+     * Disassembles code stored at the provided location.
+     */
+    disassemble(params: DisassembleParams): Promise<DisassembleResult>;
   }
 
   export interface AttachParams {

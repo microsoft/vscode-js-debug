@@ -12,8 +12,8 @@ export function addTests(testRunner) {
     p.launch('data:text/html,<script>debugger;</script>');
     const event = await p.dap.once('stopped');
     p.log(event);
-    p.log(await p.dap.stackTrace({threadId: event.threadId}));
-    p.log(await p.dap.continue({threadId: event.threadId}));
+    p.log(await p.dap.stackTrace({threadId: event.threadId!}));
+    p.log(await p.dap.continue({threadId: event.threadId!}));
     p.assertLog();
   });
 

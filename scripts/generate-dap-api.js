@@ -45,7 +45,6 @@ async function generate() {
   result.push(`  export type Error = E.Error;`);
   result.push(`  export type Message = E.Message;`);
   result.push(`  export type integer = number;`);
-  result.push(`  export type TestApi = any;`);
   result.push(``);
 
   function appendText(text, indent) {
@@ -112,8 +111,12 @@ async function generate() {
   const interfaceSeparator = createSeparator();
 
   interfaceSeparator();
-  result.push(`  export interface Api {`);
+
   const apiSeparator = createSeparator();
+
+  // ============================ API ==============================
+
+  result.push(`  export interface Api {`);
   for (const name in defs) {
     const def = defs[name];
     if (!def.allOf)
@@ -140,6 +143,38 @@ async function generate() {
     }
   }
   result.push(`  }`);
+
+  // ============================ TEST API ==============================
+
+  interfaceSeparator();
+
+  result.push(`  export interface TestApi {`);
+  for (const name in defs) {
+    const def = defs[name];
+    if (!def.allOf)
+      continue;
+    const ref = def.allOf.find(parent => !!parent['$ref']);
+    const desc = def.allOf.find(parent => !parent['$ref']);
+    if (!ref)
+      continue;
+      if (ref['$ref'] === '#/definitions/Event') {
+        apiSeparator();
+        appendText(desc.description, '    ');
+        result.push(`    on(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void);`);
+        result.push(`    once(request: '${desc.properties.event.enum[0]}'): Promise<${name}Params>;`);
+      }
+      if (ref['$ref'] === '#/definitions/Request' && desc.title !== 'Reverse Requests') {
+        const short = desc.properties.command.enum[0];
+        const title = toTitleCase(short);
+        apiSeparator();
+        appendText(desc.description, '    ');
+        result.push(`    ${short}(params: ${title}Params): Promise<${title}Result>;`);
+        const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
+      }
+    }
+  result.push(`  }`);
+
+  // ============================ TYPES ==============================
 
   stubs.sort((a, b) => a.name < b.name ? -1 : 1);
   for (const type of stubs) {
