@@ -10,7 +10,7 @@ export function addTests(testRunner) {
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
   describe('basic', () => {
-    fit('simple object', async ({ p }: { p: TestP }) => {
+    it('simple object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('data:text/html,blank');
       const params: Dap.EvaluateParams = {
         expression: `({a: 1})`,
