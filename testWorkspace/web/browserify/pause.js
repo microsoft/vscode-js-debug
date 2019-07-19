@@ -6,6 +6,14 @@ function foo() {
     debugger;
 }
 exports.foo = foo;
+function throwError(s) {
+    throw new Error(s);
+}
+exports.throwError = throwError;
+function throwValue(v) {
+    throw v;
+}
+exports.throwValue = throwValue;
 
 },{}],2:[function(require,module,exports){
 "use strict";
@@ -15,6 +23,10 @@ function bar(callback) {
     callback();
 }
 exports.bar = bar;
+function pause() {
+    debugger;
+}
+exports.pause = pause;
 
 },{}],3:[function(require,module,exports){
 "use strict";

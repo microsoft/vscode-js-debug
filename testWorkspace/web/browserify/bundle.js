@@ -3,7 +3,13 @@
 exports.__esModule = true;
 var m1 = require("./module1");
 var m2 = require("./module2");
-console.log(m1.kModule1 + m2.kModule2);
+window['throwError'] = m1.throwError;
+window['throwValue'] = m1.throwValue;
+window['pause'] = m1.foo;
+window['callBack'] = m2.bar;
+window['logSome'] = function logSome() {
+    console.log(m1.kModule1 + m2.kModule2);
+};
 
 },{"./module1":2,"./module2":3}],2:[function(require,module,exports){
 "use strict";
@@ -13,6 +19,14 @@ function foo() {
     debugger;
 }
 exports.foo = foo;
+function throwError(s) {
+    throw new Error(s);
+}
+exports.throwError = throwError;
+function throwValue(v) {
+    throw v;
+}
+exports.throwValue = throwValue;
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -22,6 +36,10 @@ function bar(callback) {
     callback();
 }
 exports.bar = bar;
+function pause() {
+    debugger;
+}
+exports.pause = pause;
 
 },{}]},{},[1])
 //# sourceMappingURL=bundle.js.map

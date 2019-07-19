@@ -9,17 +9,60 @@ export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const {it, fit, xit} = testRunner;
 
-  it('evaluateBasic', async({p} : {p : TestP}) => {
-    await p.launchAndLoad('blank');
+  it('default', async ({ p }: { p: TestP }) => {
+    await p.launchUrl('index.html');
 
-    const r1 = p.log(await p.dap.evaluate({expression: `42`}));
-    p.log(`No variables: ${r1.variablesReference === 0}`);
+    await p.logger.logEvaluateResult(`42`);
+    p.log('');
 
-    const r2 = p.log(await p.dap.evaluate({expression: `'42'`}));
-    p.log(`No variables: ${r2.variablesReference === 0}`);
+    await p.logger.logEvaluateResult(`'foo'`);
+    p.log('');
 
-    const r3 = p.log(await p.dap.evaluate({expression: `({foo: 42})`}));
-    p.log(await p.dap.variables({variablesReference: r3.variablesReference}), 'Variables: ');
+    await p.logger.logEvaluateResult(`1234567890n`);
+    p.log('');
+
+    await p.logger.logEvaluateResult(`throw new Error('foo')`);
+    p.log('');
+
+    // TODO(dgozman): these should not return the exception.
+    await p.logger.logEvaluateResult(`throw {foo: 3, bar: 'baz'};`);
+    p.log('');
+
+    await p.logger.logEvaluateResult(`throw 42;`);
+    p.log('');
+
+    await p.logger.logEvaluateResult(`{foo: 3}`);
+    p.log('');
+
+    await p.logger.logEvaluateResult(`baz();`);
+    p.log('');
+
+    p.evaluate(`setTimeout(() => { throw new Error('bar')}, 0)`);
+    await p.logger.logOutput(await p.dap.once('output'));
+    p.log('');
+
+    p.dap.evaluate({expression: `setTimeout(() => { throw new Error('baz')}, 0)`});
+    await p.logger.logOutput(await p.dap.once('output'));
+    p.log('');
+
+    // TODO(dgozman): we should wait for source maps when reporting console and exceptions.
+    await Promise.all([
+      p.addScriptTag('browserify/bundle.js'),
+      p.waitForSource('index.ts'),
+      p.waitForSource('module1.ts'),
+      p.waitForSource('module2.ts'),
+    ]);
+
+    await p.logger.logEvaluateResult(`window.throwError('error1')`);
+    p.log('');
+
+    await p.logger.logEvaluateResult(`window.throwValue({foo: 3, bar: 'baz'})`);
+    p.log('');
+
+    p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
+    await p.logger.logOutput(await p.dap.once('output'));
+    p.log('');
+
     p.assertLog();
   });
 
