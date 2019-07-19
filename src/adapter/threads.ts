@@ -70,6 +70,7 @@ export class ThreadManager {
   private _delegate: ThreadManagerDelegate;
   private _defaultDelegate: DefaultThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
+  _consoleIsDirty = false;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer) {
     this._dap = dap;
@@ -360,8 +361,14 @@ export class Thread implements VariableStoreDelegate {
     let callback: () => void;
     const result = async (payload: Dap.OutputEventParams | undefined) => {
       await slot;
-      if (payload)
-        this._dap.output(payload);
+      if (payload) {
+        const isClearConsole = payload.output === '\x1b[2J';
+        const noop = isClearConsole && !this.manager._consoleIsDirty;
+        if (!noop) {
+          this._dap.output(payload);
+          this.manager._consoleIsDirty = !isClearConsole;
+        }
+      }
       callback();
     };
     const p = new Promise<void>(f => callback = f);
