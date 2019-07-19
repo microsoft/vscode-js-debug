@@ -1,0 +1,3 @@
+stdout
+    <empty> = [0mHello world
+
