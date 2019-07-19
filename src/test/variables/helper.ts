@@ -5,6 +5,14 @@
 import { TestP } from '../test';
 import Dap from '../../dap/api';
 
+function logAsConsole(p: TestP, text) {
+  if (!text)
+    return;
+  if (text.endsWith('\n'))
+    text = text.substring(0, text.length - 1);
+  p.log(text);
+}
+
 export async function logVariable(p: TestP, variable: Dap.Variable, depth: number = 2, indent?: string) {
   if (!depth)
     return;
@@ -20,7 +28,7 @@ export async function logVariable(p: TestP, variable: Dap.Variable, depth: numbe
     suffix = '  // ' + suffix;
   const line = `${name}${value}${suffix}`;
   if (line)
-    p.log(`${indent}${line}`);
+    logAsConsole(p, `${indent}${line}`);
   if (variable.variablesReference) {
     const result = await p.dap.variables({ variablesReference: variable.variablesReference });
     for (const variable of result.variables)
@@ -31,7 +39,7 @@ export async function logVariable(p: TestP, variable: Dap.Variable, depth: numbe
 export async function logOutput(p: TestP, params: Dap.OutputEventParams) {
   const prefix = `${params.category}> `;
   if (params.output)
-    p.log(`${prefix}${params.output}`);
+    logAsConsole(p, `${prefix}${params.output}`);
   if (params.variablesReference) {
     const result = await p.dap.variables({ variablesReference: params.variablesReference });
     for (const variable of result.variables)

@@ -25,6 +25,31 @@ export function addTests(testRunner) {
       await logOutput(p, await p.dap.once('output'));
       p.assertLog();
     });
+
+    it('clear console', async ({ p }: { p: TestP }) => {
+      let complete: () => void;
+      const result = new Promise(f => complete = f);
+      p.launchAndLoad(`
+        <script>
+        console.clear();
+        console.log('Hello world');
+        console.clear();
+        console.clear();
+        console.log('Hello world');
+        console.clear();
+        console.error('DONE');
+        </script>`);
+      p.dap.on('output', async params => {
+        if (params.category === 'stderr')
+          complete();
+        else
+          await logOutput(p, params);
+      });
+
+      await result;
+      p.assertLog();
+    });
+
   });
 }
 
