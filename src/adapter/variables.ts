@@ -230,6 +230,8 @@ export class VariableStore {
       weight.set(p.name, objectPreview.privatePropertyWeight(p));
     }
     for (const p of (response.internalProperties || [])) {
+      if (p.name === '[[StableObjectId]]')
+        continue;
       weight.set(p.name, objectPreview.internalPropertyWeight(p));
       if (p.name === '[[FunctionLocation]]' && p.value && p.value.subtype as string === 'internal#location') {
         const loc = p.value.value as Cdp.Debugger.Location;

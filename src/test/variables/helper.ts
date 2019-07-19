@@ -5,7 +5,9 @@
 import { TestP } from '../test';
 import Dap from '../../dap/api';
 
-export async function logVariable(variable: Dap.Variable, p: TestP, indent?: string) {
+export async function logVariable(variable: Dap.Variable, p: TestP, depth: number = 2, indent?: string) {
+  if (!depth)
+    return;
   indent = indent || '';
   const namedCount = variable.namedVariables ? `{${variable.namedVariables}}` : '';
   const indexedCount = variable.namedVariables ? `[${variable.indexedVariables}]` : '';
@@ -13,7 +15,7 @@ export async function logVariable(variable: Dap.Variable, p: TestP, indent?: str
   if (variable.variablesReference) {
     const result = await p.dap.variables({ variablesReference: variable.variablesReference });
     for (const variable of result.variables)
-      logVariable(variable, p, indent + '  ');
+      await logVariable(variable, p, depth - 1, indent + '    ');
   }
 }
 

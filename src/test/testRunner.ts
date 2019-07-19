@@ -45,7 +45,7 @@ export async function run(): Promise<void> {
     (await import('./stepping/pause')).addTests(testRunner);
     (await import('./stepping/scopes')).addTests(testRunner);
     (await import('./stepping/threads')).addTests(testRunner);
-    (await import('./variables/variables')).addTests(testRunner);
+    (await import('./variables/variablesTest')).addTests(testRunner);
   });
 
   new Reporter(testRunner, {
