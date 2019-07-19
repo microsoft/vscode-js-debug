@@ -12,6 +12,7 @@ import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
 import { Target } from '../chrome/targets';
 import { GoldenText } from './goldenText';
+import { Logger } from './logger';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -39,9 +40,11 @@ export class TestP {
   private _workspaceRoot: string;
   private _webRoot: string;
   private _launchUrl: string;
+  readonly logger: Logger;
 
   constructor(goldenText: GoldenText) {
     this.log = goldenText.log.bind(goldenText);
+    this.logger = new Logger(this);
     this.assertLog = goldenText.assertLog.bind(goldenText);
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
