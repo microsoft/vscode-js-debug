@@ -6,11 +6,13 @@ export class GoldenText {
   _results: String[];
   _testName: String;
   _hasNonAssertedLogs: boolean;
+  _workspaceFolder: string;
 
-  constructor(testName) {
+  constructor(testName, workspaceFolder) {
     this._results = [];
     this._testName = testName;
     this._hasNonAssertedLogs = false;
+    this._workspaceFolder = workspaceFolder;
   }
 
   _getLocation() {
@@ -80,16 +82,20 @@ export class GoldenText {
     stabilizeNames = stabilizeNames || kStabilizeNames;
     const lines: string[] = [];
 
-    function dumpValue(value, prefix, prefixWithName) {
+    const dumpValue = (value, prefix, prefixWithName) => {
       if (typeof value === 'object' && value !== null) {
         if (value instanceof Array)
           dumpItems(value, prefix, prefixWithName);
         else
           dumpProperties(value, prefix, prefixWithName);
       } else {
-        lines.push(prefixWithName + String(value).replace(/\n/g, ' ').replace(/VM\d+/g, 'VM<xx>'));
+        const replaced = String(value)
+          .replace(/\n/g, ' ')
+          .replace(/VM\d+/g, 'VM<xx>')
+          .replace(this._workspaceFolder, '${workspaceFolder}');
+        lines.push(prefixWithName + replaced);
       }
-    }
+    };
 
     function dumpProperties(object, prefix, firstLinePrefix) {
       prefix = prefix || '';
