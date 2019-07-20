@@ -25,6 +25,20 @@ export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
 type SourceMapConsumer = sourcemap.BasicSourceMapConsumer | sourcemap.IndexedSourceMapConsumer;
 type SourceMapData = { compiled: Set<Source>, map?: SourceMapConsumer, loaded: Promise<void> };
 
+export type SourceMapTimeouts = {
+  load: number;
+  resolveLocation: number;
+  scriptPaused: number;
+  output: number;
+};
+
+const defaultTimeouts: SourceMapTimeouts = {
+  load: 0,
+  resolveLocation: 2000,
+  scriptPaused: 1000,
+  output: 1000,
+};
+
 export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
 }
@@ -189,10 +203,19 @@ export class SourceContainer {
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
   private _revealer?: LocationRevealer;
+  private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
     this._dap = dap;
     this._sourcePathResolver = sourcePathResolver;
+  }
+
+  setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
+    this._sourceMapTimeouts = sourceMapTimeouts;
+  }
+
+  sourceMapTimeouts(): SourceMapTimeouts {
+    return this._sourceMapTimeouts;
   }
 
   installRevealer(revealer: LocationRevealer) {
@@ -215,11 +238,27 @@ export class SourceContainer {
     return this._compiledByUrl.get(url);
   }
 
-  preferredLocation(location: Location): Location {
-    return this._locations(location)[0];
+  async preferredLocation(location: Location): Promise<Location> {
+    while (true) {
+      if (!location.source)
+        return location;
+      if (!location.source._sourceMapUrl)
+        return location;
+      const sourceMap = this._sourceMaps.get(location.source._sourceMapUrl)!;
+      await Promise.race([
+        sourceMap.loaded,
+        new Promise(f => setTimeout(f, this._sourceMapTimeouts.resolveLocation)),
+      ]);
+      if (!sourceMap.map)
+        return location;
+      const sourceMapped = this._sourceMappedLocation(location, sourceMap.map);
+      if (!sourceMapped)
+        return location;
+      location = sourceMapped;
+    }
   }
 
-  siblingLocations(location: Location, inSource?: Source): Location[] {
+  currentSiblingLocations(location: Location, inSource?: Source): Location[] {
     return this._locations(location).filter(location => !inSource || location.source === inSource);
   }
 
@@ -234,34 +273,44 @@ export class SourceContainer {
   _addSourceMapLocations(location: Location, result: Location[]) {
     if (!location.source)
       return;
-    if (!location.source._sourceMapUrl || !location.source._sourceMapSourceByUrl)
+    if (!location.source._sourceMapUrl)
       return;
     const map = this._sourceMaps.get(location.source._sourceMapUrl)!.map;
     if (!map)
       return;
+    const sourceMapLocation = this._sourceMappedLocation(location, map);
+    if (!sourceMapLocation)
+      return;
+    this._addSourceMapLocations(sourceMapLocation, result);
+    result.push(sourceMapLocation);
+  }
+
+  _sourceMappedLocation(location: Location, map: SourceMapConsumer): Location | undefined {
+    const compiled = location.source!;
+    if (!compiled._sourceMapSourceByUrl)
+      return;
 
     let { lineNumber, columnNumber } = location;
-    if (location.source._inlineScriptOffset) {
-      lineNumber -= location.source._inlineScriptOffset.lineOffset;
+    if (compiled._inlineScriptOffset) {
+      lineNumber -= compiled._inlineScriptOffset.lineOffset;
       if (lineNumber === 1)
-        columnNumber -= location.source._inlineScriptOffset.columnOffset;
+        columnNumber -= compiled._inlineScriptOffset.columnOffset;
     }
+
     const entry = map.originalPositionFor({line: lineNumber, column: columnNumber});
     if (!entry.source)
       return;
 
-    const source = location.source._sourceMapSourceByUrl.get(entry.source);
+    const source = compiled._sourceMapSourceByUrl.get(entry.source);
     if (!source)
       return;
 
-    const sourceMapLocation = {
+    return {
       lineNumber: entry.line === null ? 1 : entry.line,
       columnNumber: entry.column === null ? 1 : entry.column,
       url: source._url,
       source: source
     };
-    this._addSourceMapLocations(sourceMapLocation, result);
-    result.push(sourceMapLocation);
   }
 
   _addCompiledLocations(location: Location, result: Location[]) {
@@ -332,7 +381,7 @@ export class SourceContainer {
       return callback!();
 
     try {
-      sourceMap.map = await loadSourceMap(sourceMapUrl);
+      sourceMap.map = await loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
     } catch (e) {
       errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
       return callback!();
@@ -424,7 +473,9 @@ export class SourceContainer {
   }
 };
 
-async function loadSourceMap(url: string): Promise<SourceMapConsumer | undefined> {
+async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
+  if (slowDown)
+    await new Promise(f => setTimeout(f, slowDown));
   let content = await utils.fetch(url);
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));

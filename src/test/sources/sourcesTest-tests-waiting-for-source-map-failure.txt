@@ -1,0 +1,6 @@
+stderr> Uncaught Error: error2
+stderr> Uncaught Error: error2  //  named=1
+stderr>     throwError @ ${workspaceFolder}/web/browserify/bundle.js:23:11
+<anonymous> @ <eval>/VM<xx>:1:27
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:1

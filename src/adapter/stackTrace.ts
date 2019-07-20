@@ -118,7 +118,7 @@ export class StackFrame {
 
   _id: number;
   private _name: string;
-  private _location: Location;
+  private _location: Promise<Location>;
   private _isAsyncSeparator = false;
   private _scope: { chain: Cdp.Debugger.Scope[], variables: (Dap.Variable | undefined)[], callFrameId: string };
   private _stack: StackTrace;
@@ -141,12 +141,12 @@ export class StackFrame {
   }
 
   static asyncSeparator(stack: StackTrace, name: string): StackFrame {
-    const result = new StackFrame(stack, name, { lineNumber: 1, columnNumber: 1, url: '' });
+    const result = new StackFrame(stack, name, Promise.resolve({ lineNumber: 1, columnNumber: 1, url: '' }));
     result._isAsyncSeparator = true;
     return result;
   }
 
-  constructor(stack: StackTrace, name: string, location: Location) {
+  constructor(stack: StackTrace, name: string, location: Promise<Location>) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._location = location;
@@ -225,13 +225,13 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const startLocation = this.thread().rawLocationToUiLocation(scope.startLocation);
+        const startLocation = await this.thread().rawLocationToUiLocation(scope.startLocation);
         dap.line = startLocation.lineNumber;
         dap.column = startLocation.columnNumber;
         if (startLocation.source)
           dap.source = await startLocation.source.toDap();
         if (scope.endLocation) {
-          const endLocation = this.thread().rawLocationToUiLocation(scope.endLocation);
+          const endLocation = await this.thread().rawLocationToUiLocation(scope.endLocation);
           dap.endLine = endLocation.lineNumber;
           dap.endColumn = endLocation.columnNumber;
         }
@@ -243,13 +243,14 @@ export class StackFrame {
   }
 
   async toDap(): Promise<Dap.StackFrame> {
-    const source = this._location.source ? await this._location.source.toDap() : undefined;
+    const location = await this._location;
+    const source = location.source ? await location.source.toDap() : undefined;
     const presentationHint = this._isAsyncSeparator ? 'label' : 'normal';
     return {
       id: this._id,
       name: this._name,
-      line: this._location.lineNumber,
-      column: this._location.columnNumber,
+      line: location.lineNumber,
+      column: location.columnNumber,
       source,
       presentationHint,
     };
@@ -258,14 +259,15 @@ export class StackFrame {
   async format(): Promise<string> {
     if (this._isAsyncSeparator)
       return `◀ ${this._name} ▶`;
-    let prettyName = (this._location.source && await this._location.source.prettyName()) || this._location.url;
-    let location = `${prettyName}:${this._location.lineNumber}`;
-    if (this._location.columnNumber > 1)
-      location += `:${this._location.columnNumber}`;
-    return `${this._name} @ ${location}`;
+    const location = await this._location;
+    let prettyName = (location.source && await location.source.prettyName()) || location.url;
+    let text = `${prettyName}:${location.lineNumber}`;
+    if (location.columnNumber > 1)
+      text += `:${location.columnNumber}`;
+    return `${this._name} @ ${text}`;
   }
 
-  location(): Location {
+  location(): Promise<Location> {
     return this._location;
   }
 

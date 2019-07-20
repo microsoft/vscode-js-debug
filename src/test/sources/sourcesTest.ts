@@ -48,4 +48,26 @@ export function addTests(testRunner) {
       await dumpSource(p, source, '');
     p.assertLog();
   });
+
+  it('waiting for source map', async ({ p }: { p: TestP }) => {
+    await p.launchUrl('index.html');
+    await p.addScriptTag('browserify/bundle.js');
+    p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
+    await p.logger.logOutput(await p.dap.once('output'));
+    p.assertLog();
+  });
+
+  it('waiting for source map failure', async ({ p }: { p: TestP }) => {
+    await p.launchUrl('index.html');
+    p.adapter.sourceContainer.setSourceMapTimeouts({
+      load: 2000,
+      resolveLocation: 0,
+      output: 0,
+      scriptPaused: 0,
+    });
+    await p.addScriptTag('browserify/bundle.js');
+    p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
+    await p.logger.logOutput(await p.dap.once('output'));
+    p.assertLog();
+  });
 }

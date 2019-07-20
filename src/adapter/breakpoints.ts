@@ -82,7 +82,7 @@ export class Breakpoint {
       }, undefined, this._disposables);
     }
 
-    const locations = this._manager._sourceContainer.siblingLocations({
+    const locations = this._manager._sourceContainer.currentSiblingLocations({
       url: url || '',
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
@@ -94,7 +94,7 @@ export class Breakpoint {
     await this._notifyResolved();
   }
 
-  breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
+  async breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
     if (this._manager._threadManager.thread(thread.threadId()) !== thread)
       return;
     let ids = this._perThread.get(thread.threadId());
@@ -107,10 +107,12 @@ export class Breakpoint {
 
     if (this._resolvedLocation || !resolvedLocations.length)
       return;
-    const location = thread.rawLocationToUiLocation(resolvedLocations[0]);
+    const location = await thread.rawLocationToUiLocation(resolvedLocations[0]);
+    if (this._resolvedLocation)
+      return;
     const source = this._manager._sourceContainer.source(this._source);
     if (source)
-      this._resolvedLocation = this._manager._sourceContainer.siblingLocations(location, source)[0];
+      this._resolvedLocation = this._manager._sourceContainer.currentSiblingLocations(location, source)[0];
     this._notifyResolved();
   }
 
@@ -118,7 +120,7 @@ export class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
       return;
-    const locations = this._manager._sourceContainer.siblingLocations({
+    const locations = this._manager._sourceContainer.currentSiblingLocations({
       url: source.url(),
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
