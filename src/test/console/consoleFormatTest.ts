@@ -59,9 +59,7 @@ export function addTests(testRunner) {
 
     it('popular types', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad(`
-        <div id="x"></div>
         <p id="p"></p>
-        <svg id="svg-node"/>
         <script>
           // Populate Globals
           var regex1 = /^url\\(\\s*(?:(?:"(?:[^\\\\\\"]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*"|'(?:[^\\\\\\']|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*')|(?:[!#$%&*-~\\w]|(?:\\\\[\\da-f]{1,6}\\s?|\\.))*)\\s*\\)/i;
@@ -87,7 +85,6 @@ export function addTests(testRunner) {
           objectWithNonEnumerables.enumerableProp = 4;
           objectWithNonEnumerables.__underscoreEnumerableProp__ = 5;
           var negZero = 1 / Number.NEGATIVE_INFINITY;
-          var textNode = document.getElementById("x").nextSibling;
           var arrayLikeFunction = function( /**/ foo/**/, /*/**/bar,
           /**/baz) {};
           arrayLikeFunction.splice = function() {};
@@ -96,11 +93,6 @@ export function addTests(testRunner) {
           smallTypedArray["foo"] = "bar";
           var bigTypedArray = new Uint8Array(new ArrayBuffer(400 * 1000 * 1000));
           bigTypedArray["FAIL"] = "FAIL: Object.getOwnPropertyNames() should not have been run";
-          var namespace = {};
-          namespace.longSubNamespace = {};
-          namespace.longSubNamespace.x = {};
-          namespace.longSubNamespace.x.className = function(){};
-          var instanceWithLongClassName = new namespace.longSubNamespace.x.className();
           var bigArray = [];
           bigArray.length = 200;
           bigArray.fill(1);
@@ -126,18 +118,14 @@ export function addTests(testRunner) {
           }
           //# sourceURL=console-format
         </script>`);
-      const variables = ["regex1", "regex2", "str", "str2", "error", "errorWithMessage", "errorWithMultilineMessage", "func", "multilinefunc", "num",
-        "null", "undefined", "NaN", "Number.POSITIVE_INFINITY", "Number.NEGATIVE_INFINITY", "{}", "[function() {}]",
-        "objectWithNonEnumerables", "negZero", "Object.create(null)", "Object", "Object.prototype",
-        "new Number(42)", "new String('abc')", "arrayLikeFunction" ];
-      //   , "throwingLengthGetter", , "new Uint16Array([1", "2", "3])"
-      //   , "bar", "svg",
-      //   , ,
-      //   , "textNode", "domException()",
-      //   "tinyTypedArray", "smallTypedArray", "bigTypedArray", "instanceWithLongClassName", "bigArray", "singleArray",
-      //   "boxedNumberWithProps", "boxedStringWithProps"];
-
-      // "node"
+      const variables = [
+        'regex1', 'regex2', 'str', 'str2', 'error', 'errorWithMessage', 'errorWithMultilineMessage', 'func', 'multilinefunc', 'num',
+        'null', 'undefined', 'NaN', 'Number.POSITIVE_INFINITY', 'Number.NEGATIVE_INFINITY', '{}', '[function() {}]',
+        'objectWithNonEnumerables', 'negZero', 'Object.create(null)', 'Object', 'Object.prototype',
+        'new Number(42)', 'new String("abc")', 'arrayLikeFunction', 'new Uint16Array(["1", "2", "3"])',
+        'tinyTypedArray', 'smallTypedArray', 'bigTypedArray', 'throwingLengthGetter', 'domException()', 'bigArray',
+        'boxedNumberWithProps', 'boxedStringWithProps'
+      ];
       await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
       p.assertLog();
     });
