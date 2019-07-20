@@ -350,9 +350,11 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.enable({});
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' }).then(result => {
-      this._supportsSourceMapPause = !!result;
-    });
+    if (this.manager.sourceContainer.sourceMapTimeouts().scriptPaused) {
+      this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' }).then(result => {
+        this._supportsSourceMapPause = !!result;
+      });
+    }
     this._updatePauseOnExceptionsState();
 
     for (const id of this.manager.customBreakpoints())
@@ -380,7 +382,7 @@ export class Thread implements VariableStoreDelegate {
     const p = new Promise<void>(f => callback = f);
     this._serializedOutput = slot.then(() => p);
     // Timeout to avoid blocking future slots if this one does stall.
-    setTimeout(callback!, 1000);
+    setTimeout(callback!, this.manager.sourceContainer.sourceMapTimeouts().output);
     return result;
   }
 
@@ -432,7 +434,7 @@ export class Thread implements VariableStoreDelegate {
     this._threadBaseUrl = threadUrl;
   }
 
-  rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Location {
+  rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Promise<Location> {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     let {lineNumber, columnNumber} = rawLocation;
     columnNumber = columnNumber || 0;
@@ -450,7 +452,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
-    const location = this.rawLocationToUiLocation(loc);
+    const location = await this.rawLocationToUiLocation(loc);
     const name = (location.source && await location.source.prettyName()) || location.url;
     return `@ ${name}:${location.lineNumber}`;
   }
@@ -569,7 +571,7 @@ export class Thread implements VariableStoreDelegate {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        location = frames[0].location();
+        location = await frames[0].location();
       if (event.type !== 'error' && event.type !== 'warning')
         stackTrace = undefined;
     }
@@ -615,7 +617,7 @@ export class Thread implements VariableStoreDelegate {
     if (stackTrace) {
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
-        location = frames[0].location();
+        location = await frames[0].location();
     }
 
     const args = (details.exception && !preview.stackTrace) ? [details.exception] : [];
@@ -685,9 +687,10 @@ export class Thread implements VariableStoreDelegate {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
     if (script) {
+      const timeout = this.manager.sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
         this.sourceContainer.waitForSourceMapSources(script.source),
-        new Promise<Source[]>(f => setTimeout(() => f([]), 1000))
+        new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
       ]);
       if (sources && this.manager._scriptWithSourceMapHandler)
         await this.manager._scriptWithSourceMapHandler(script, sources);
@@ -710,7 +713,7 @@ export class Thread implements VariableStoreDelegate {
       if (p.name !== '[[FunctionLocation]]' || !p.value || p.value.subtype as string !== 'internal#location')
         continue;
       const loc = p.value.value as Cdp.Debugger.Location;
-      this.sourceContainer.revealLocation(this.rawLocationToUiLocation(loc));
+      this.sourceContainer.revealLocation(await this.rawLocationToUiLocation(loc));
       break;
     }
   }

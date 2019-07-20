@@ -24,7 +24,7 @@ export function addTests(testRunner) {
     await p.logger.logEvaluateResult(`throw new Error('foo')`);
     p.log('');
 
-    // TODO(dgozman): these should not return the exception.
+    // TODO(dgozman): should these not return the exception?
     await p.logger.logEvaluateResult(`throw {foo: 3, bar: 'baz'};`);
     p.log('');
 
@@ -45,13 +45,7 @@ export function addTests(testRunner) {
     await p.logger.logOutput(await p.dap.once('output'));
     p.log('');
 
-    // TODO(dgozman): we should wait for source maps when reporting console and exceptions.
-    await Promise.all([
-      p.addScriptTag('browserify/bundle.js'),
-      p.waitForSource('index.ts'),
-      p.waitForSource('module1.ts'),
-      p.waitForSource('module2.ts'),
-    ]);
+    await p.addScriptTag('browserify/bundle.js');
 
     await p.logger.logEvaluateResult(`window.throwError('error1')`);
     p.log('');
