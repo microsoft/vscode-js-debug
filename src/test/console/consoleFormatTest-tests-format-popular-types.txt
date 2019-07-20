@@ -12,16 +12,16 @@ stdout> test named "test"
 
 Evaluating: 'console.log(error)'
 stdout> Error
-    at console-format:11:23
+    at console-format:9:23
 
 Evaluating: 'console.log(errorWithMessage)'
 stdout> Error: my error message
-    at console-format:12:34
+    at console-format:10:34
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
 stdout> Error: my multiline
 error message
-    at console-format:13:43
+    at console-format:11:43
 
 Evaluating: 'console.log(func)'
 stdout> ƒ () { return 1; }  //  named=8
@@ -65,7 +65,7 @@ Evaluating: 'console.log(Object.create(null))'
 stdout> {}
 
 Evaluating: 'console.log(Object)'
-stdout> ƒ Object() { [native code] }  //  named=30
+stdout> ƒ Object()  //  named=30
 
 Evaluating: 'console.log(Object.prototype)'
 stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ}  //  named=13
@@ -73,10 +73,37 @@ stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProp
 Evaluating: 'console.log(new Number(42))'
 stdout> Number {[[PrimitiveValue]]: 42}  //  named=2
 
-Evaluating: 'console.log(new String('abc'))'
+Evaluating: 'console.log(new String("abc"))'
 stdout> String {[[PrimitiveValue]]: 'abc'}  //  named=6
 
 Evaluating: 'console.log(arrayLikeFunction)'
 stdout> ƒ ( /**/ foo/**/, /*/**/bar,
           /**/baz) {}  //  named=9
+
+Evaluating: 'console.log(new Uint16Array(["1", "2", "3"]))'
+stdout> Uint16Array(3) [1, 2, 3]
+
+Evaluating: 'console.log(tinyTypedArray)'
+stdout> Uint8Array(1) [3]
+
+Evaluating: 'console.log(smallTypedArray)'
+stdout> Uint8Array(400) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
+
+Evaluating: 'console.log(bigTypedArray)'
+stdout> Uint8Array(400000000) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
+
+Evaluating: 'console.log(throwingLengthGetter)'
+stdout> {length: <accessor>}  //  named=2
+
+Evaluating: 'console.log(domException())'
+stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+
+Evaluating: 'console.log(bigArray)'
+stdout> (200) [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …]  //  named=202
+
+Evaluating: 'console.log(boxedNumberWithProps)'
+stdout> Number {[[PrimitiveValue]]: 42, 1: 'foo', a: 'bar'}  //  named=4
+
+Evaluating: 'console.log(boxedStringWithProps)'
+stdout> String {[[PrimitiveValue]]: 'abc', 3: 'foo', 01: 'foo', a: 'bar'}  //  named=9
 

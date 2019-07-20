@@ -66,19 +66,20 @@ export class VariableStore {
       return result;
 
     const object = this._referenceToObject.get(params.variablesReference);
-    if (!object)
-      return [];
+    return object ? this._getObjectVariables(object, params) : [];
+  }
 
+  async _getObjectVariables(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
     if (object.scopeVariables)
       return object.scopeVariables;
 
-    if (object.o.subtype === 'array') {
-      if (params.filter === 'indexed')
-        return this._getArraySlots(params, object);
-      if (params.filter === 'named')
-        return this._getArrayProperties(params, object);
-      const names = await this._getArrayProperties(params, object);
-      const indexes = await this._getArraySlots(params, object);
+    if (objectPreview.isArray(object.o)) {
+      if (params && params.filter === 'indexed')
+        return this._getArraySlots(object, params);
+      if (params && params.filter === 'named')
+        return this._getArrayProperties(object);
+      const names = await this._getArrayProperties(object);
+      const indexes = await this._getArraySlots(object, params);
       return names.concat(indexes);
     }
 
@@ -173,7 +174,7 @@ export class VariableStore {
     if (args.length === 1 && firstArg.objectId && !objectPreview.primitiveSubtypes.has(firstArg.subtype)) {
       // Inline properties for single object parameters.
       const object = new RemoteObject(this._cdp, args[0]);
-      params.push(... await this._getObjectProperties(object));
+      params.push(... await this._getObjectVariables(object));
     } else {
       const promiseParams: Promise<Dap.Variable>[] = [];
       for (let i = 0; i < args.length; ++i) {
@@ -288,13 +289,15 @@ export class VariableStore {
     result.sort((a, b) => {
       const aname = a.name.includes(' ') ? a.name.split(' ')[1] : a.name;
       const bname = b.name.includes(' ') ? b.name.split(' ')[1] : b.name;
+      if (!isNaN(+aname) && !isNaN(+bname))
+        return +aname - +bname;
       const delta = weight.get(bname)! - weight.get(aname)!;
       return delta ? delta : aname.localeCompare(bname);
     });
     return result;
   }
 
-  private async _getArrayProperties(params: Dap.VariablesParams, object: RemoteObject): Promise<Dap.Variable[]> {
+  private async _getArrayProperties(object: RemoteObject): Promise<Dap.Variable[]> {
     const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
@@ -319,24 +322,24 @@ export class VariableStore {
     return this._getObjectProperties(object.wrap(response.result));
   }
 
-  private async _getArraySlots(params: Dap.VariablesParams, object: RemoteObject): Promise<Dap.Variable[]> {
+  private async _getArraySlots(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
         function(start, count) {
           const result = {};
-          for (let i = start; i < start + count; ++i) {
+          const from = start === -1 ? 0 : start;
+          const to = count === -1 ? this.length : start + count;
+          for (let i = from; i < to; ++i) {
             const descriptor = Object.getOwnPropertyDescriptor(this, i);
             if (descriptor)
               Object.defineProperty(result, i, descriptor);
-            else
-              result[i] = undefined;
           }
           return result;
         }
       `,
       generatePreview: true,
-      arguments: [{ value: params.start }, { value: params.count }]
+      arguments: [{ value: params ? params.start : -1 }, { value: params ? params.count : -1 }]
     });
     if (!response)
       return [];
@@ -355,9 +358,9 @@ export class VariableStore {
     const result: Promise<Dap.Variable>[] = [];
     if ('value' in p)
       result.push(this._createVariable(p.name, owner.wrap(p.value), 'propertyValue'));
-    if (p.get && p.get.type !== "undefined")
+    if (p.get && p.get.type !== 'undefined')
       result.push(this._createVariable(`get ${p.name}`, owner.wrap(p.get), 'propertyValue'));
-    if (p.set && p.set.type !== "undefined")
+    if (p.set && p.set.type !== 'undefined')
       result.push(this._createVariable(`set ${p.name}`, owner.wrap(p.set), 'propertyValue'));
     return result;
   }
@@ -371,7 +374,7 @@ export class VariableStore {
       };
     }
 
-    if (value.o.subtype === 'array')
+    if (objectPreview.isArray(value.o))
       return this._createArrayVariable(name, value, context);
     if (value.objectId && !objectPreview.primitiveSubtypes.has(value.o.subtype))
       return this._createObjectVariable(name, value, context);

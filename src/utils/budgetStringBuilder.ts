@@ -18,9 +18,14 @@ export class BudgetStringBuilder {
       this._tokens.push(text);
       this._budget -= text.length;
     } else {
-      this._tokens.push('…');
       this._budget = 0;
+      this._ensureEllipsis();
     }
+  }
+
+  _ensureEllipsis() {
+    if (this._tokens[this._tokens.length - 1] !== '…')
+      this._tokens.push('…');
   }
 
   appendCanTrim(text: string) {
@@ -37,6 +42,8 @@ export class BudgetStringBuilder {
   }
 
   hasBudget(): boolean {
+    if (this._budget <= 0)
+      this._ensureEllipsis();
     return this._budget > 0;
   }
 

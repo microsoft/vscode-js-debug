@@ -11,9 +11,17 @@ const maxPropertyPreviewLength = 50;
 const maxEntryPreviewLength = 20;
 const maxExceptionTitleLength = 10000;
 const maxBriefPreviewLength = 100;
+
 export const primitiveSubtypes = new Set<string|undefined>(
   ['null', 'regexp', 'date', 'error', 'proxy', 'promise', 'typedarray', 'arraybuffer', 'dataview']
 );
+
+export function isArray(object: Cdp.Runtime.ObjectPreview): boolean;
+export function isArray(object: Cdp.Runtime.PropertyPreview): boolean;
+export function isArray(object: Cdp.Runtime.RemoteObject): boolean;
+export function isArray(object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview): boolean {
+  return object.subtype === 'array' || object.subtype === 'typedarray';
+}
 
 export function previewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
   const characterBudget = context === 'repl' ? 1000 : 100;
@@ -52,7 +60,7 @@ export function internalPropertyWeight(prop: Cdp.Runtime.InternalPropertyDescrip
 }
 
 function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
-  if (preview.subtype === 'array')
+  if (isArray(preview))
     return renderArrayPreview(preview, characterBudget);
   if (preview.subtype as string === 'internal#entry')
     return preview.description || '';
@@ -94,6 +102,8 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
       continue;
     propsBuilder.appendCanSkip(`${prop.name}: ${renderPropertyPreview(prop)}`);
   }
+  if (preview.overflow)
+    propsBuilder.appendCanSkip('…');
   builder.forceAppend('[' + propsBuilder.build(', ') + ']');
   return builder.build();
 }
@@ -139,7 +149,7 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.subtype === 'node')
     return prop.value!;
   if (prop.type === 'object')
-    return '{…}';
+    return isArray(prop) ? '[…]' : '{…}';
   const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : utils.trimEnd(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
@@ -227,6 +237,8 @@ function formatFunctionDescription(description: string, characterBudget: number)
     if (prefix.length)
       builder.appendCanSkip(prefix + ' ');
     body = body.trim();
+    if (body.endsWith(' { [native code] }'))
+      body = body.substring(0, body.length - ' { [native code] }'.length);
     if (builder.budget() > body.length)
       builder.appendCanSkip(body);
     else
