@@ -71,10 +71,10 @@ Evaluating: 'console.log(Object.prototype)'
 stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ}  //  named=13
 
 Evaluating: 'console.log(new Number(42))'
-stdout> Number {[[PrimitiveValue]]: 42}  //  named=2
+stdout> Number (42)  //  named=2
 
 Evaluating: 'console.log(new String("abc"))'
-stdout> String {[[PrimitiveValue]]: 'abc'}  //  named=6
+stdout> String ('abc')  //  named=6
 
 Evaluating: 'console.log(arrayLikeFunction)'
 stdout> ƒ ( /**/ foo/**/, /*/**/bar,
@@ -102,8 +102,8 @@ Evaluating: 'console.log(bigArray)'
 stdout> (200) [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …]  //  named=202
 
 Evaluating: 'console.log(boxedNumberWithProps)'
-stdout> Number {[[PrimitiveValue]]: 42, 1: 'foo', a: 'bar'}  //  named=4
+stdout> Number (42)  //  named=4
 
 Evaluating: 'console.log(boxedStringWithProps)'
-stdout> String {[[PrimitiveValue]]: 'abc', 3: 'foo', 01: 'foo', a: 'bar'}  //  named=9
+stdout> String ('abc')  //  named=9
 
