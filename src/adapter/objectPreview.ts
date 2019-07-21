@@ -13,7 +13,11 @@ const maxExceptionTitleLength = 10000;
 const maxBriefPreviewLength = 100;
 
 export const primitiveSubtypes = new Set<string|undefined>(
-  ['null', 'regexp', 'date', 'error', 'proxy', 'promise', 'typedarray', 'arraybuffer', 'dataview']
+  ['null', 'regexp', 'date', 'error', 'proxy', 'typedarray', 'arraybuffer', 'dataview']
+);
+
+export const subtypesToRenderAsValue = new Set<string|undefined>(
+  ['map', 'set', 'promise', 'node', 'generator', 'weakset', 'weakmap']
 );
 
 export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
@@ -117,17 +121,39 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
 
 function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
   const builder = new BudgetStringBuilder(characterBudget);
-  const description = preview.description === 'Object' ? '' : preview.description + ' ';
-  builder.appendCanTrim(description);
-  const propsBuilder = new BudgetStringBuilder(builder.budget() - 2);  // for {} / ()
+  if (preview.description !== 'Object')
+    builder.appendCanTrim(preview.description!);
 
-  const primitiveValue = preview.properties.find(prop => prop.name === '[[PrimitiveValue]]');
+  const map = new Map<string, Cdp.Runtime.PropertyPreview>();
+  for (const prop of preview.properties)
+    map.set(prop.name, prop);
+
+  // Handle boxed values such as Number, String.
+  const primitiveValue = map.get('[[PrimitiveValue]]');
   if (primitiveValue) {
-    propsBuilder.appendCanSkip(`${renderPropertyPreview(primitiveValue)}`);
-    builder.forceAppend('(' + propsBuilder.build() +')');
-    return builder.build();
+    builder.appendCanSkip(`(${renderPropertyPreview(primitiveValue)})`);
+    return builder.build(' ');
   }
 
+  // Promise handling.
+  const promiseStatus = map.get('[[PromiseStatus]]');
+  if (promiseStatus) {
+    const promiseValue = map.get('[[PromiseValue]]');
+    if (promiseStatus.value === 'pending')
+      builder.appendCanSkip(`{<${promiseStatus.value}>}`);
+    else
+      builder.appendCanSkip(`{<${promiseStatus.value}>: ${renderPropertyPreview(promiseValue!)}}`);
+    return builder.build(' ');
+  }
+
+  // Generator handling.
+  const generatorStatus = map.get('[[GeneratorStatus]]');
+  if (generatorStatus) {
+    builder.appendCanSkip(`{<${generatorStatus.value}>}}`);
+    return builder.build(' ');
+  }
+
+  const propsBuilder = new BudgetStringBuilder(builder.budget() - 3);  // for ' {}' / ' ()'
   for (const prop of preview.properties) {
     if (!propsBuilder.hasBudget())
       break;
@@ -143,8 +169,11 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget
       propsBuilder.appendCanSkip(`${renderPreview(entry.value, maxEntryPreviewLength)}`);
   }
 
-  builder.forceAppend('{' + propsBuilder.build(', ') +'}');
-  return builder.build();
+  const text = propsBuilder.build(', ');
+  if (text || builder.isEmpty())
+    builder.forceAppend('{' + text +'}');
+
+  return builder.build(' ');
 }
 
 function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
@@ -160,13 +189,13 @@ function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, characterBud
 function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.type === 'function')
     return 'ƒ';
-  if (prop.subtype === 'node')
-    return prop.value!;
-  if (isArray(prop))
-    return prop.value!;
-  if (isObject(prop))
-    return '{…}';
-  const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : stringUtils.trimMiddle(prop.value, maxPropertyPreviewLength);
+  if (!subtypesToRenderAsValue.has(prop.subtype)) {
+    if (isArray(prop))
+      return prop.value!;
+    if (isObject(prop))
+      return '{…}';
+  }
+  let value = typeof prop.value === 'undefined' ? `<${prop.type}>` : stringUtils.trimMiddle(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
