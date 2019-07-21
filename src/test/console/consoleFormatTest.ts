@@ -126,7 +126,8 @@ export function addTests(testRunner) {
         'tinyTypedArray', 'smallTypedArray', 'bigTypedArray', 'throwingLengthGetter', 'domException()', 'bigArray',
         'boxedNumberWithProps', 'boxedStringWithProps'
       ];
-      await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
+      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
 
@@ -183,7 +184,8 @@ export function addTests(testRunner) {
         'formControls', 'radioNodeList', 'arrayX', 'nonArray',
         'generateArguments(1, "2")', 'div.classList'
       ];
-      await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
+      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
   });
