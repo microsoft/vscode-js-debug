@@ -112,7 +112,14 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget
   const builder = new BudgetStringBuilder(characterBudget);
   const description = preview.description === 'Object' ? '' : preview.description + ' ';
   builder.appendCanTrim(description);
-  const propsBuilder = new BudgetStringBuilder(builder.budget() - 2);  // for {}
+  const propsBuilder = new BudgetStringBuilder(builder.budget() - 2);  // for {} / ()
+
+  const primitiveValue = preview.properties.find(prop => prop.name === '[[PrimitiveValue]]');
+  if (primitiveValue) {
+    propsBuilder.appendCanSkip(`${renderPropertyPreview(primitiveValue)}`);
+    builder.forceAppend('(' + propsBuilder.build() +')');
+    return builder.build();
+  }
 
   for (const prop of preview.properties) {
     if (!propsBuilder.hasBudget())
