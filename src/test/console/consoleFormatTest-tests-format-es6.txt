@@ -1,0 +1,96 @@
+Evaluating: 'console.log(p)'
+stdout> Promise {<rejected>: -0}  //  named=3
+
+Evaluating: 'console.log([p])'
+stdout> (1) [Promise]  //  named=3
+
+Evaluating: 'console.log(p2)'
+stdout> Promise {<resolved>: 1}  //  named=3
+
+Evaluating: 'console.log([p2])'
+stdout> (1) [Promise]  //  named=3
+
+Evaluating: 'console.log(p3)'
+stdout> Promise {<pending>}  //  named=3
+
+Evaluating: 'console.log([p3])'
+stdout> (1) [Promise]  //  named=3
+
+Evaluating: 'console.log(smb1)'
+stdout> Symbol()
+
+Evaluating: 'console.log([smb1])'
+stdout> (1) [Symbol()]  //  named=3
+
+Evaluating: 'console.log(smb2)'
+stdout> Symbol(a)
+
+Evaluating: 'console.log([smb2])'
+stdout> (1) [Symbol(a)]  //  named=3
+
+Evaluating: 'console.log(obj)'
+stdout> {getter: <accessor>, a: Symbol(), Symbol(a): 2}  //  named=4
+
+Evaluating: 'console.log([obj])'
+stdout> (1) [{…}]  //  named=3
+
+Evaluating: 'console.log(map)'
+stdout> Map(1) {{…} => {foo: 1}}  //  named=3
+
+Evaluating: 'console.log([map])'
+stdout> (1) [Map(1)]  //  named=3
+
+Evaluating: 'console.log(weakMap)'
+stdout> WeakMap {{…} => {foo: 1}}  //  named=2
+
+Evaluating: 'console.log([weakMap])'
+stdout> (1) [WeakMap]  //  named=3
+
+Evaluating: 'console.log(set)'
+stdout> Set(1) {{…}}  //  named=3
+
+Evaluating: 'console.log([set])'
+stdout> (1) [Set(1)]  //  named=3
+
+Evaluating: 'console.log(weakSet)'
+stdout> WeakSet {{…}}  //  named=2
+
+Evaluating: 'console.log([weakSet])'
+stdout> (1) [WeakSet]  //  named=3
+
+Evaluating: 'console.log(mapMap0)'
+stdout> Map(1) {Map(0) => WeakMap}  //  named=3
+
+Evaluating: 'console.log([mapMap0])'
+stdout> (1) [Map(1)]  //  named=3
+
+Evaluating: 'console.log(mapMap)'
+stdout> Map(1) {Map(1) => WeakMap}  //  named=3
+
+Evaluating: 'console.log([mapMap])'
+stdout> (1) [Map(1)]  //  named=3
+
+Evaluating: 'console.log(setSet0)'
+stdout> Set(1) {WeakSet}  //  named=3
+
+Evaluating: 'console.log([setSet0])'
+stdout> (1) [Set(1)]  //  named=3
+
+Evaluating: 'console.log(setSet)'
+stdout> Set(1) {WeakSet}  //  named=3
+
+Evaluating: 'console.log([setSet])'
+stdout> (1) [Set(1)]  //  named=3
+
+Evaluating: 'console.log(bigmap)'
+stdout> Map(6) { from str  =>  to str , undefined => undefined, null => null, 42 => 42, {foo: 'from'} => {foo: 'to'}}  //  named=3
+
+Evaluating: 'console.log([bigmap])'
+stdout> (1) [Map(6)]  //  named=3
+
+Evaluating: 'console.log(generator)'
+stdout> genFunction {<suspended>}}  //  named=6
+
+Evaluating: 'console.log([generator])'
+stdout> (1) [genFunction]  //  named=3
+

@@ -55,4 +55,8 @@ export class BudgetStringBuilder {
   build(join?: string): string {
     return this._tokens.join(join || '');
   }
+
+  isEmpty(): boolean {
+    return !this._tokens.length;
+  }
 }

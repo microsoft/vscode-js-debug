@@ -188,6 +188,67 @@ export function addTests(testRunner) {
       await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
+
+    it('es6', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad(`
+        <script>
+          var p = Promise.reject(-0);
+          p.catch(function() {});
+
+          var p2 = Promise.resolve(1);
+          var p3 = new Promise(() => {});
+
+          var smb1 = Symbol();
+          var smb2 = Symbol("a");
+          var obj = {
+              get getter() {}
+          };
+          obj["a"] = smb1;
+          obj[smb2] = 2;
+
+          var map = new Map();
+          var weakMap = new WeakMap();
+          map.set(obj, {foo: 1});
+          weakMap.set(obj, {foo: 1});
+
+          var set = new Set();
+          var weakSet = new WeakSet();
+          set.add(obj);
+          weakSet.add(obj);
+
+          var mapMap0 = new Map();
+          mapMap0.set(new Map(), new WeakMap());
+          var mapMap = new Map();
+          mapMap.set(map, weakMap);
+
+          var setSet0 = new Set();
+          setSet0.add(new WeakSet());
+          var setSet = new Set();
+          setSet.add(weakSet);
+
+          var bigmap = new Map();
+          bigmap.set(" from str ", " to str ");
+          bigmap.set(undefined, undefined);
+          bigmap.set(null, null);
+          bigmap.set(42, 42);
+          bigmap.set({foo:"from"}, {foo:"to"});
+          bigmap.set(["from"], ["to"]);
+
+          var genFunction = function *() {
+              yield 1;
+              yield 2;
+          }
+          var generator = genFunction();
+        </script>`);
+
+      const variables = [
+        'p' , 'p2', 'p3', 'smb1', 'smb2', 'obj', 'map', 'weakMap', 'set', 'weakSet',
+        'mapMap0', 'mapMap', 'setSet0', 'setSet', 'bigmap', 'generator'
+      ];
+      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
+      p.assertLog();
+    });
   });
 }
 
