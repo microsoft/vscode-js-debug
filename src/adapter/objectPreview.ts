@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 import Cdp from '../cdp/api';
-import * as utils from '../utils/urlUtils';
+import * as stringUtils from '../utils/stringUtils';
 import { BudgetStringBuilder } from '../utils/budgetStringBuilder'
 import * as messageFormat from './messageFormat';
 
 const maxArrowFunctionCharacterLength = 30;
-const maxPropertyPreviewLength = 50;
+const maxPropertyPreviewLength = 100;
 const maxEntryPreviewLength = 20;
 const maxExceptionTitleLength = 10000;
 const maxBriefPreviewLength = 100;
@@ -15,6 +15,13 @@ const maxBriefPreviewLength = 100;
 export const primitiveSubtypes = new Set<string|undefined>(
   ['null', 'regexp', 'date', 'error', 'proxy', 'promise', 'typedarray', 'arraybuffer', 'dataview']
 );
+
+export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
+export function isObject(object: Cdp.Runtime.PropertyPreview): boolean;
+export function isObject(object: Cdp.Runtime.RemoteObject): boolean;
+export function isObject(object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview): boolean {
+  return object.type === 'object' && !primitiveSubtypes.has(object.subtype);
+}
 
 export function isArray(object: Cdp.Runtime.ObjectPreview): boolean;
 export function isArray(object: Cdp.Runtime.PropertyPreview): boolean;
@@ -64,7 +71,7 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: numb
     return renderArrayPreview(preview, characterBudget);
   if (preview.subtype as string === 'internal#entry')
     return preview.description || '';
-  if (preview.type === 'object' && !primitiveSubtypes.has(preview.subtype))
+  if (isObject(preview))
     return renderObjectPreview(preview, characterBudget);
   if (preview.type === 'function')
     return formatFunctionDescription(preview.description!, characterBudget);
@@ -146,7 +153,7 @@ function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, characterBud
   if (preview.type === 'undefined')
     return 'undefined';
   if (preview.type === 'string')
-    return utils.trimEnd(preview.description!, characterBudget);
+    return stringUtils.trimMiddle(preview.description!, characterBudget);
   return preview.description || '';
 }
 
@@ -155,18 +162,20 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
     return 'ƒ';
   if (prop.subtype === 'node')
     return prop.value!;
-  if (prop.type === 'object')
-    return isArray(prop) ? prop.value! : '{…}';
-  const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : utils.trimEnd(prop.value, maxPropertyPreviewLength);
+  if (isArray(prop))
+    return prop.value!;
+  if (isObject(prop))
+    return '{…}';
+  const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : stringUtils.trimMiddle(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
 export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: number, quote: boolean): string {
   if (object.unserializableValue)
-    return utils.trimEnd(object.unserializableValue, characterBudget);
+    return stringUtils.trimMiddle(object.unserializableValue, characterBudget);
 
   if (object.type === 'string') {
-    const value = utils.trimEnd(object.value, characterBudget - (quote ? 2 : 0));
+    const value = stringUtils.trimMiddle(object.value, characterBudget - (quote ? 2 : 0));
     return quote ? `'${value}'` : value;
   }
 
@@ -176,7 +185,7 @@ export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: n
   if (object.subtype === 'null')
     return 'null';
 
-  return utils.trimEnd(object.description || '', characterBudget);
+  return stringUtils.trimEnd(object.description || '', characterBudget);
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {
@@ -272,11 +281,11 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): { title: 
 
 function formatAsNumber(param: Cdp.Runtime.RemoteObject, round: boolean, characterBudget: number): string {
   const value = typeof param.value === 'number' ? param.value : +param.description!;
-  return utils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
+  return stringUtils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }
 
 function formatAsString(param: Cdp.Runtime.RemoteObject, characterBudget: number): string {
-  return utils.trimEnd(String(typeof param.value !== 'undefined' ? param.value : param.description), characterBudget);
+  return stringUtils.trimMiddle(String(typeof param.value !== 'undefined' ? param.value : param.description), characterBudget);
 }
 
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([

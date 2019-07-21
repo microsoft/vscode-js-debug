@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as utils from './urlUtils';
+import * as stringUtils from './stringUtils';
 
 export class BudgetStringBuilder {
   private _tokens: string[] = [];
@@ -31,7 +31,7 @@ export class BudgetStringBuilder {
   appendCanTrim(text: string) {
     if (!this.hasBudget())
       return;
-    const trimmed = utils.trimEnd(text, this._budget)
+    const trimmed = stringUtils.trimEnd(text, this._budget)
     this._tokens.push(trimmed);
     this._budget = Math.max(0, this._budget - trimmed.length);
   }
