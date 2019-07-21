@@ -129,6 +129,63 @@ export function addTests(testRunner) {
       await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
       p.assertLog();
     });
+
+    it('collections', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad(`
+        <div style="display:none" class="c1 c2 c3">
+          <form id="f">
+              <select id="sel" name="sel">
+                  <option value="1">one</option>
+                  <option value="2">two</option>
+              </select>
+              <input type="radio" name="x" value="x1"> x1
+              <input type="radio" name="x" value="x2"> x2
+          </form>
+        </div>
+        <script>
+          var formElement = document.getElementById("f");
+          var selectElement = document.getElementById("sel");
+          var spanElement = document.getElementById("span");
+
+          // NodeList
+          var nodelist = document.getElementsByTagName("select");
+          var htmlcollection = document.head.children;
+          var options = selectElement.options;
+          var all = document.all;
+          var formControls = formElement.elements;
+          var radioNodeList = formElement.x;
+
+          var arrayX = [1];
+          var arrayY = [2, arrayX];
+          arrayX.push(arrayY);
+
+          var nonArray = new NonArrayWithLength();
+          // Arguments
+          function generateArguments(foo, bar)
+          {
+              return arguments;
+          }
+
+          var div = document.getElementsByTagName("div")[0];
+
+          function NonArrayWithLength() {
+              this.keys = [];
+          }
+
+          NonArrayWithLength.prototype.__defineGetter__("length", function() {
+              console.log("FAIL: 'length' should not be called");
+              return this.keys.length;
+          });
+        </script>`);
+
+      const variables = [
+        'nodelist', 'htmlcollection', 'options', 'all',
+        'formControls', 'radioNodeList', 'arrayX', 'nonArray',
+        'generateArguments(1, "2")', 'div.classList'
+      ];
+      await evaluateAndLog(p, variables.map(v => `console.log(${v})`), 0),
+      p.assertLog();
+    });
   });
 }
 
