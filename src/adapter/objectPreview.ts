@@ -74,7 +74,7 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: numb
 function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
   const builder = new BudgetStringBuilder(characterBudget);
   let description = preview.description!;
-  if (description.startsWith('Array'))
+  if (description.startsWith('Array('))
     description = description.substring('Array'.length);
   builder.appendCanTrim(description);
   builder.appendCanSkip(' ');
@@ -156,7 +156,7 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.subtype === 'node')
     return prop.value!;
   if (prop.type === 'object')
-    return isArray(prop) ? '[…]' : '{…}';
+    return isArray(prop) ? prop.value! : '{…}';
   const value = typeof prop.value === 'undefined' ? `<${prop.type}>` : utils.trimEnd(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
