@@ -1,0 +1,15 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+foo @ <eval>/VM<xx>:3:19
+<anonymous> @ test.js:1:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:2:1

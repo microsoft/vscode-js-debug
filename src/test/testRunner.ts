@@ -52,10 +52,10 @@ export async function run(): Promise<void> {
       delete state.p;
     });
 
+    (await import('./breakpoints/breakpointsTest')).addTests(testRunner);
     (await import('./evaluate/evaluate')).addTests(testRunner);
     (await import('./sources/sourcesTest')).addTests(testRunner);
     (await import('./stacks/stacksTest')).addTests(testRunner);
-    (await import('./stepping/pause')).addTests(testRunner);
     (await import('./threads/threadsTest')).addTests(testRunner);
     (await import('./variables/variablesTest')).addTests(testRunner);
     (await import('./console/consoleFormatTest')).addTests(testRunner);
