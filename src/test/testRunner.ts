@@ -59,6 +59,7 @@ export async function run(): Promise<void> {
     (await import('./threads/threadsTest')).addTests(testRunner);
     (await import('./variables/variablesTest')).addTests(testRunner);
     (await import('./console/consoleFormatTest')).addTests(testRunner);
+    (await import('./console/consoleAPITest')).addTests(testRunner);
   });
 
   new Reporter(testRunner, {

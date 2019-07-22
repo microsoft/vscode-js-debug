@@ -7,32 +7,6 @@ export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
-  async function evaluateAndLog(p: TestP, expressions: string[], depth: number) {
-    let complete: () => void;
-    const result = new Promise(f => complete = f);
-    const next = async () => {
-      const expression = expressions.shift();
-      if (!expression) {
-        complete();
-      } else {
-        p.log(`Evaluating: '${expression}'`);
-        await p.dap.evaluate({ expression });
-      }
-    };
-
-    let chain = Promise.resolve();
-    p.dap.on('output', async params => {
-      chain = chain.then(async () => {
-        await p.logger.logOutput(params, depth);
-        p.log(``);
-        next();
-      });
-    });
-
-    next();
-    await result;
-  }
-
   describe('format', () => {
     it('format string', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad(`
@@ -41,7 +15,7 @@ export function addTests(testRunner) {
           array.foo = {};
           array[4] = "test4";
         </script>`);
-      await evaluateAndLog(p, [
+      await p.logger.evaluateAndLog([
         `console.log(array)`,
         `console.log("%o", array)`,
         `console.log("%O", array)`,
@@ -126,7 +100,7 @@ export function addTests(testRunner) {
         'boxedNumberWithProps', 'boxedStringWithProps'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
 
@@ -184,7 +158,7 @@ export function addTests(testRunner) {
         'generateArguments(1, "2")', 'div.classList'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
 
@@ -245,7 +219,7 @@ export function addTests(testRunner) {
         'mapMap0', 'mapMap', 'setSet0', 'setSet', 'bigmap', 'generator'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
 
@@ -273,7 +247,7 @@ export function addTests(testRunner) {
         'iter1', 'iter2',
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await evaluateAndLog(p, ([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
       p.assertLog();
     });
 
@@ -304,7 +278,7 @@ export function addTests(testRunner) {
         </script>`);
 
       const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await evaluateAndLog(p, expressions, 0);
+      await p.logger.evaluateAndLog(expressions, 0);
       p.assertLog();
     });
 
@@ -335,14 +309,14 @@ export function addTests(testRunner) {
         </script>`);
 
       const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await evaluateAndLog(p, expressions, 0);
+      await p.logger.evaluateAndLog(expressions, 0);
       p.assertLog();
     });
 
     it('colors', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad(`blank`);
 
-      await evaluateAndLog(p, [
+      await p.logger.evaluateAndLog([
         `console.log('%cColors are awesome.', 'color: blue;')`,
         `console.log('%cColors are awesome.', 'background-color: red;')`,
         `console.log('%cColors are awesome.', 'background-color: red;', 'Do not apply to trailing params')`,

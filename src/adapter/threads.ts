@@ -566,20 +566,25 @@ export class Thread implements VariableStoreDelegate {
 
     let stackTrace: StackTrace | undefined;
     let location: Location | undefined;
+    const isAssert = event.type === 'assert';
+    const isError = event.type === 'error';
     if (event.stackTrace) {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
       if (frames.length)
         location = await frames[0].location();
-      if (event.type !== 'error' && event.type !== 'warning')
+      if (!isError && event.type !== 'warning' && !isAssert && event.type !== 'trace')
         stackTrace = undefined;
     }
 
     let category: 'console' | 'stdout' | 'stderr' | 'telemetry' = 'stdout';
-    if (event.type === 'error')
+    if (isError || isAssert)
       category = 'stderr';
     if (event.type === 'warning')
       category = 'console';
+
+    if (isAssert && event.args[0] && event.args[0].value === 'console.assert')
+      event.args[0].value = localize('console.assert', 'Assertion failed');
 
     const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
     const formatString = useMessageFormat ? event.args[0].value as string : '';
