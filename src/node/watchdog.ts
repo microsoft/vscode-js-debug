@@ -21,7 +21,7 @@ process.on('exit', () => {
   let server: PipeTransport;
   let pipe: any;
   await new Promise(f => pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f));
-  server = new PipeTransport(pipe, pipe);
+  server = new PipeTransport(pipe);
   server.send(JSON.stringify({ method: 'Target.targetCreated', params: { targetInfo } }));
   debugLog('CONNECTED TO SERVER');
 

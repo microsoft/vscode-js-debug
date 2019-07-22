@@ -131,7 +131,7 @@ export class ThreadManager {
   }
 
   topLevelThreads(): Thread[] {
-    return this.threads().filter(t => !t.parentThread);
+    return this.threads().filter(t => !t._parentThread);
   }
 
   threadLabels(): Dap.Thread[] {
@@ -210,7 +210,7 @@ export class Thread implements VariableStoreDelegate {
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
   private _eventListeners: eventUtils.Listener[] = [];
-  parentThread?: Thread;
+  _parentThread?: Thread;
   _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
@@ -220,7 +220,7 @@ export class Thread implements VariableStoreDelegate {
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
-    this.parentThread = parent;
+    this._parentThread = parent;
     if (parent)
       parent._childThreads.push(this);
     this._threadId = ++lastThreadId;
@@ -426,11 +426,17 @@ export class Thread implements VariableStoreDelegate {
     this._reportResumed();
   }
 
+  _setParent(parentThread: Thread | undefined) {
+    if (this._parentThread)
+      this._parentThread._childThreads.splice(this._parentThread._childThreads.indexOf(this), 1);
+    this._parentThread = parentThread;
+    if (this._parentThread)
+      this._parentThread._childThreads.push(this);
+}
+
   dispose() {
-    if (this.parentThread) {
-      this.parentThread._childThreads.splice(this.parentThread._childThreads.indexOf(this), 1);
-      this.parentThread._childThreads.push(...this._childThreads);
-    }
+    this._childThreads.forEach(child => child._setParent(this._parentThread));
+    this._setParent(undefined);
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
     this._dap.thread({ reason: 'exited', threadId: this._threadId });

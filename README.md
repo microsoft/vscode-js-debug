@@ -1,21 +1,18 @@
 # Features
-- attaching to all threads: page, out of process iframes, web workers, related service workers
-- evaluate in selected execution context
-- node debugging attaches to all processes
-- serialized console messages, exceptions and evaluations
-- breakpoints set in source map always work, even immediately after launch
-- instrumentation breakpoints (e.g. setTimeout fired)
-- inspect(function)
-- pretty print minified source
-- console message formatting improvements from CDT
-- console.assert / console.error has stack trace
-- function locations go through source maps
-- stacks in console.foo methods and exceptions go through source maps
-- copy(value)
-- queryObjects(prototype)
-- top-level await in console
 
-# Overview
+- Attaching to all threads: page, out of process iframes, web workers, related service workers.
+- Evaluate in selected execution context.
+- Node debugging attaches to all processes.
+- Top-level await in console.
+- Serialized console output.
+- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
+- Instrumentation breakpoints (e.g. setTimeout fired).
+- Pretty print minified source.
+- Console message formatting improvements from CDT.
+- All locations go through source maps: stack trace on pause, console methods, exceptions, function locations.
+- Command line API: inspect(function), copy(value), queryObjects(prototype).
+
+# Architecture Overview
 
 There are two entry points: `ChromeAdapter` and `NodeAdapter`. Each of them listens to DAP, collects configuration DAP requests using `Configurator`, implements `url <-> path` mapping strategy, launches the corresponding debuggee (Chrome or Node) and instantiates `Adapter`, which takes over after launch.
 
