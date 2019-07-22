@@ -15,6 +15,7 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
     ts.ScriptTarget.ESNext,
     /*setParentNodes */ true);
 
+  // Find the last expression to autocomplete, in the form of "foo.bar.x|"
   let prefix: string | undefined;
   let toevaluate: string | undefined;
   function traverse(node: ts.Node) {
@@ -47,12 +48,14 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   if (toevaluate)
     return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!)) || [];
 
+  // No object to autocomplete on, fallback to globals.
   for (const global of ['self', 'global', 'this']) {
     const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix || '');
     if (!items)
       continue;
 
     if (stackFrame) {
+      // When evaluating on a call frame, also autocomplete with scope variables.
       const names = new Set(items.map(item => item.label));
       for (const completion of await stackFrame.completions()) {
         if (names.has(completion.label))

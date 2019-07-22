@@ -18,6 +18,8 @@ export function prettyPrintAsSourceMap(fileName: string, minified: string): Prom
   const generator = new sourceMap.SourceMapGenerator();
   generator.setSourceContent(fileName, source);
 
+  // We know that AST for both sources is the same, so we can
+  // walk them together to generate mapping.
   for (let i = 0; i < from.length; i += 2) {
     generator.addMapping({
       source: fileName,

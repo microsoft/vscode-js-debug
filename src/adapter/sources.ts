@@ -22,14 +22,31 @@ export interface Location {
 };
 
 type ContentGetter = () => Promise<string | undefined>;
+
+// Script tags in html have line/column numbers offset relative to the actual script start.
 export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
+
 type SourceMapConsumer = sourcemap.BasicSourceMapConsumer | sourcemap.IndexedSourceMapConsumer;
+
+// Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<Source>, map?: SourceMapConsumer, loaded: Promise<void> };
 
 export type SourceMapTimeouts = {
+  // This is a source map loading delay used for testing.
   load: number;
+
+  // When resolving a location (e.g. to show it in the debug console), we wait no longer than
+  // |resolveLocation| timeout for source map to be loaded, and fallback to original location
+  // in the compiled source.
   resolveLocation: number;
+
+  // When pausing before script with source map, we wait no longer than |scriptPaused| timeout
+  // for source map to be loaded and breakpoints to be set. This usually ensures that breakpoints
+  // won't be missed.
   scriptPaused: number;
+
+  // When sending multiple entities to debug console, we wait for each one to be asynchronously
+  // processed. If one of them stalls, we resume processing others after |output| timeout.
   output: number;
 };
 
@@ -44,6 +61,8 @@ export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
 }
 
+// Mapping between urls (operated in cdp) and paths (operated in dap) is
+// specific to the actual product being debugged.
 export interface SourcePathResolver {
   rewriteSourceUrl(sourceUrl: string): string;
   urlToAbsolutePath(url: string): string;
@@ -51,6 +70,23 @@ export interface SourcePathResolver {
   scriptUrlToUrl(url: string): string;
 }
 
+// Represents a text source visible to the user.
+//
+// Source maps flow (start with compiled1 and compiled2). Two different compiled sources
+// reference to the same source map, and produce two different resolved urls leading
+// to different source map sources. This is a corner case, usually there is a single
+// resolved url and a single source map source per each sourceUrl in the source map.
+//
+//       ------> sourceMapUrl -> SourceContainer._sourceMaps -> SourceMapData -> map
+//       |    |                                                                    |
+//       |    compiled1  - - - - - - -  source1 <-- resolvedUrl1 <-- sourceUrl <----
+//       |                                                                         |
+//      compiled2  - - - - - - - - - -  source2 <-- resolvedUrl2 <-- sourceUrl <----
+//
+// compiled1 and source1 are connected (same goes for compiled2 and source2):
+//    compiled1._sourceMapSourceByUrl.get(sourceUrl) === source1
+//    source1._compiledToSourceUrl.get(compiled1) === sourceUrl
+//
 export class Source {
   private static _lastSourceReference = 0;
 
@@ -62,13 +98,23 @@ export class Source {
   _sourceMapUrl?: string;
   _inlineScriptOffset?: InlineScriptOffset;
   _container: SourceContainer;
+
+  // Url has been mapped to some absolute path.
   _absolutePath: string;
+
+  // This is the same as |_absolutePath|, but additionally checks that file exists to
+  // avoid errors when page refers to non-existing paths/urls.
   _existingAbsolutePath: Promise<string | undefined>;
 
-  // Sources generated for this compiled from it's source map. Exclusive with |_origin|.
+  // When compiled source references a source map, we'll generate source map sources.
+  // This map |sourceUrl| as written in the source map itself to the Source.
+  // Only present on compiled sources, exclusive with |_origin|.
   _sourceMapSourceByUrl?: Map<string, Source>;
-  // SourceUrl (as listed in source map) for each compiled referencing this source.
-  // Exclusive with |_sourceMapSourceByUrl|.
+
+  // Sources generated from the source map are referenced by some compiled sources
+  // (through a source map). This map holds the original |sourceUrl| as written in the
+  // source map, which was used to produce this source for each compiled.
+  // Only present on source map sources, exclusive with |_sourceMapSourceByUrl|.
   _compiledToSourceUrl?: Map<Source, string>;
 
   private _content?: Promise<string | undefined>;
@@ -121,6 +167,7 @@ export class Source {
     const map = await prettyPrintAsSourceMap(fileName, content);
     if (!map)
       return false;
+    // Note: this overwrites existing source map.
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
@@ -239,6 +286,9 @@ export class SourceContainer {
     return this._compiledByUrl.get(url);
   }
 
+  // This method returns a "preferred" location. This usually means going through a source map
+  // and showing the source map source instead of a compiled one. We use timeout to avoid
+  // waiting for the source map for too long.
   async preferredLocation(location: Location): Promise<Location> {
     while (true) {
       if (!location.source)
@@ -259,6 +309,9 @@ export class SourceContainer {
     }
   }
 
+  // This method shows all possible locations for a given one. For example, all compiled sources
+  // which refer to the same source map will be returned given the location in source map source.
+  // This method does not wait for the source map to be loaded.
   currentSiblingLocations(location: Location, inSource?: Source): Location[] {
     return this._locations(location).filter(location => !inSource || location.source === inSource);
   }
@@ -458,6 +511,7 @@ export class SourceContainer {
     }
   }
 
+  // Waits for source map to be loaded (if any), and sources to be created from it.
   async waitForSourceMapSources(source: Source): Promise<Source[]> {
     if (!source._sourceMapUrl)
       return [];

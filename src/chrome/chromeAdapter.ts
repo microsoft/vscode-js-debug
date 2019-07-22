@@ -159,6 +159,7 @@ export class ChromeAdapter {
 }
 
 class ChromeSourcePathResolver implements SourcePathResolver {
+  // We map all urls under |_baseUrl| to files under |_basePath|.
   private _basePath?: string;
   private _baseUrl?: URL;
   private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
@@ -192,6 +193,9 @@ class ChromeSourcePathResolver implements SourcePathResolver {
   }
 
   rewriteSourceUrl(sourceUrl: string): string {
+    // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
+    // webpack emits absolute paths in some situations instead of a relative url. We check
+    // whether |sourceUrl| looks like a path and belongs to the workspace.
     if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
       return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
     return sourceUrl;
