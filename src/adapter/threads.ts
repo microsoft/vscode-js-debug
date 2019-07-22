@@ -363,7 +363,21 @@ export class Thread implements VariableStoreDelegate {
     this._dap.thread({ reason: 'started', threadId: this._threadId });
   }
 
+  // It is important to produce debug console output in the same order as it happens
+  // in the debuggee. Since we process any output asynchronously (e.g. retrieviing object
+  // properties or loading async stack frames), we ensure the correct order using "output slots".
+  //
+  // Any method producing output should claim a slot synchronously when receiving the cdp message
+  // producing this output, then run any processing to generate the actual output and call the slot:
+  //
+  //   const response = await cdp.Runtime.evaluate(...);
+  //   const slot = thread.claimOutputSlot();
+  //   const output = await doSomeAsyncProcessing(response);
+  //   slot(output);
+  //
   claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
+    // TODO: should we serialize output between threads? For example, it may be important
+    // when using postMessage between page a worker.
     const slot = this._serializedOutput;
     let callback: () => void;
     const result = async (payload?: Dap.OutputEventParams) => {
@@ -442,6 +456,7 @@ export class Thread implements VariableStoreDelegate {
       if (!lineNumber)
         columnNumber = Math.max(columnNumber - this._defaultScriptOffset.columnOffset, 0);
     }
+    // Note: cdp locations are 0-based, while ui locations are 1-based.
     return this.sourceContainer.preferredLocation({
       url: script ? script.source.url() : (rawLocation.url || ''),
       lineNumber: lineNumber + 1,
@@ -680,6 +695,9 @@ export class Thread implements VariableStoreDelegate {
     source[kScriptsSymbol].add(script);
 
     if (!this._supportsSourceMapPause && event.sourceMapURL) {
+      // If we won't pause before executing this script (thread does not support it),
+      // try to load source map and set breakpoints as soon as possible. This is still
+      // racy against the script execution, but better than nothing.
       this.sourceContainer.waitForSourceMapSources(source).then(sources => {
         if (sources.length && this.manager._scriptWithSourceMapHandler)
           this.manager._scriptWithSourceMapHandler(script, sources);
@@ -687,6 +705,7 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
+  // Wait for source map to load and set all breakpoints in this particular script.
   async _handleSourceMapPause(scriptId: string) {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
@@ -694,6 +713,7 @@ export class Thread implements VariableStoreDelegate {
       const timeout = this.manager.sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
         this.sourceContainer.waitForSourceMapSources(script.source),
+        // Make typescript happy by resolving with empty array.
         new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
       ]);
       if (sources && this.manager._scriptWithSourceMapHandler)

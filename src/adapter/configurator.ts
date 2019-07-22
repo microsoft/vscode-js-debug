@@ -13,6 +13,8 @@ export type SetBreakpointRequest = {
   generatedIds: number[];
 };
 
+// This class collects configuration issued before "launch" request,
+// to be applied after launch.
 export class Configurator {
   private _setBreakpointRequests: SetBreakpointRequest[] = [];
   private _pausedOnExceptionsState: PauseOnExceptionsState = 'none';

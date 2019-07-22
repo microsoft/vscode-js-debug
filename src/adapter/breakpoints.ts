@@ -55,6 +55,12 @@ export class Breakpoint {
   }
 
   async set(): Promise<void> {
+    // General strategy:
+    // 1. Set all breakpoints by original url if any.
+    // 2. Resolve and set to all locations immediately. This covers breakpoints
+    //    in scripts without urls, which are set by script id.
+    // 3. When new script with source map arrives, resolve all breakpoints in source map sources
+    //    and apply them to this particular script. See setScriptSourceMapHandler.
     const threadManager = this._manager._threadManager;
     threadManager.onThreadRemoved(thread => {
       this._perThread.delete(thread.threadId());
@@ -98,6 +104,8 @@ export class Breakpoint {
   async breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
     if (this._manager._threadManager.thread(thread.threadId()) !== thread)
       return;
+
+    // Register cdpId so we can later remove it.
     let ids = this._perThread.get(thread.threadId());
     if (!ids) {
       ids = new Set<string>();
@@ -106,6 +114,7 @@ export class Breakpoint {
     ids.add(cdpId);
     this._manager._perThread.get(thread.threadId())!.set(cdpId, this);
 
+    // If this is a first resolved location, we should update the breakpoint as "verified".
     if (this._resolvedLocation || !resolvedLocations.length)
       return;
     const location = await thread.rawLocationToUiLocation(resolvedLocations[0]);
@@ -121,6 +130,7 @@ export class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
       return;
+    // Find all locations for this breakpoint in the new script.
     const locations = this._manager._sourceContainer.currentSiblingLocations({
       url: source.url(),
       lineNumber: this._lineNumber,
@@ -145,7 +155,13 @@ export class Breakpoint {
     }
     if (location.url && (!originalSource || location.source !== originalSource)) {
       for (const thread of this._manager._threadManager.threads()) {
-        // We only do this to support older versions which do not implement 'pause before source map'.
+        // Threads which support "pause before script with source map" will always have
+        // breakpoints resolved to specific scripts before the script is run, therefore we
+        // can just set by script id above.
+        //
+        // For older versions of threads without this capability, we try a best-effort
+        // set by url method, hoping that all scripts referring to the same source map
+        // will have the same url.
         if (!thread.supportsSourceMapPause())
           promises.push(this._setByUrl(thread, location.url, location.lineNumber - 1, location.columnNumber - 1));
       }
@@ -238,6 +254,9 @@ export class BreakpointManager {
     }, undefined, this._disposables);
 
     this._threadManager.setScriptSourceMapHandler(async (script, sources) => {
+      // New script arrived, pointing to |sources| through a source map.
+      // We search for all breakpoints in |sources| and set them to this
+      // particular script.
       for (const source of sources) {
         const path = source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
@@ -265,6 +284,7 @@ export class BreakpointManager {
       previous = this._byRef.get(params.source.sourceReference!);
       this._byRef.set(params.source.sourceReference!, breakpoints);
     }
+    // Cleanup existing breakpoints before setting new ones.
     if (previous)
       await Promise.all(previous.map(b => b.remove()));
     breakpoints.forEach(b => b.set());
@@ -276,7 +296,6 @@ export const kLogPointUrl = 'logpoint.cdp';
 
 function logMessageToExpression(msg: string): string {
   msg = msg.replace('%', '%%');
-
   const args: string[] = [];
   let format = msg.replace(/{(.*?)}/g, (match, group) => {
     const a = group.trim();
@@ -287,9 +306,7 @@ function logMessageToExpression(msg: string): string {
       return '';
     }
   });
-
   format = format.replace('\'', '\\\'');
-
   const argStr = args.length ? `, ${args.join(', ')}` : '';
   return `console.log('${format}'${argStr});\n//# sourceURL=${kLogPointUrl}`;
 }

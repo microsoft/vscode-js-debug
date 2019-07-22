@@ -342,6 +342,11 @@ export class Adapter {
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
+    // 1. Report about a new thread.
+    // 2. Report that thread has stopped.
+    // 3. Wait for stackTrace call, return a single frame pointing to |location|.
+    // 4. Wait for the source to be opened in the editor.
+    // 5. Report thread as continuted and terminated.
     if (this._locationToReveal)
       return;
     this._locationToReveal = location;
@@ -378,15 +383,14 @@ export class Adapter {
     if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
       return code;
 
+    // Function constructor.
     const parse = (async () => 0).constructor;
     try {
       // Check if the code can be interpreted as an expression.
       parse('return ' + code + ';');
-
       // No syntax error! Does it work parenthesized?
       const wrappedCode = '(' + code + ')';
       parse(wrappedCode);
-
       return wrappedCode;
     } catch (e) {
       return code;
@@ -394,6 +398,9 @@ export class Adapter {
   }
 
   rewriteTopLevelAwait(code: string): string | undefined {
+    // Basic idea is to wrap code in async function, which
+    // we can await and expose side-effects outside of the function.
+    // See "rewriteTopLevelAwait" test for examples.
     code = '(async () => {' + code + '\n})()';
     let body: ts.Block;
     try {
@@ -414,11 +421,13 @@ export class Adapter {
     function traverse(node: ts.Node) {
       switch (node.kind) {
         case ts.SyntaxKind.ClassDeclaration:
+          // Expose "class Foo" as "Foo=class Foo"
           const cd = node as ts.ClassDeclaration;
           if (cd.parent === body && cd.name)
             changes.push({text: cd.name.text + '=', start: cd.pos, end: cd.pos});
           break;
         case ts.SyntaxKind.FunctionDeclaration:
+          // Expose "function foo(..." as "foo=function foo(..."
           const fd = node as ts.FunctionDeclaration;
           if (fd.name)
             changes.push({text: fd.name.text + '=', start: fd.pos, end: fd.pos});
@@ -426,6 +435,7 @@ export class Adapter {
         case ts.SyntaxKind.FunctionExpression:
         case ts.SyntaxKind.ArrowFunction:
         case ts.SyntaxKind.MethodDeclaration:
+          // Do not recurse into functions.
           return;
         case ts.SyntaxKind.AwaitExpression:
           containsAwait = true;
@@ -438,6 +448,7 @@ export class Adapter {
           containsReturn = true;
           break;
         case ts.SyntaxKind.VariableDeclarationList:
+          // Expose "var foo=..." as void(foo=...)
           const vd = node as ts.VariableDeclarationList;
 
           let s = code.substr(vd.pos);
@@ -453,6 +464,7 @@ export class Adapter {
           if (!vd.declarations.length)
             break;
           if (dec !== 'var') {
+            // Do not expose "for (const|let foo".
             if (vd.parent.kind !== ts.SyntaxKind.VariableStatement || vd.parent.parent !== body)
               break;
           }
@@ -481,6 +493,8 @@ export class Adapter {
     if (!containsAwait || containsReturn)
       return;
 
+    // If we expect the value (last statement is an expression),
+    // return it from the inner function.
     const last = body.statements[body.statements.length - 1];
     if (last.kind === ts.SyntaxKind.ExpressionStatement) {
       changes.push({text: 'return (', start: last.pos, end: last.pos});
