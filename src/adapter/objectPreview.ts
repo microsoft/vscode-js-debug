@@ -18,7 +18,7 @@ export const primitiveSubtypes = new Set<string|undefined>(
 );
 
 export const subtypesToRenderAsValue = new Set<string|undefined>(
-  ['map', 'set', 'promise', 'node', 'generator', 'weakset', 'weakmap']
+  ['map', 'set', 'promise', 'node', 'generator', 'weakset', 'weakmap', 'iterator']
 );
 
 export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
@@ -86,6 +86,11 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: numb
 function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
   const builder = new BudgetStringBuilder(characterBudget);
   let description = preview.description!;
+  const match = description!.match(/[^(]*\(([\d]+)\)/);
+  if (!match)
+    return description;
+  const arrayLength = parseInt(match[1], 10);
+
   if (description.startsWith('Array('))
     description = description.substring('Array'.length);
   builder.appendCanTrim(description);
@@ -101,10 +106,12 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
       continue;
     const index = parseInt(prop.name, 10);
     if (index > lastIndex + 1)
-      propsBuilder.appendCanSkip('…');
+      propsBuilder.appendEllipsis();
     lastIndex = index;
     propsBuilder.appendCanSkip(renderPropertyPreview(prop));
   }
+  if (arrayLength > lastIndex + 1)
+    propsBuilder.appendEllipsis();
 
   // Named
   for (const prop of preview.properties) {
@@ -115,7 +122,7 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
     propsBuilder.appendCanSkip(`${prop.name}: ${renderPropertyPreview(prop)}`);
   }
   if (preview.overflow)
-    propsBuilder.appendCanSkip('…');
+    propsBuilder.appendEllipsis();
   builder.forceAppend('[' + propsBuilder.build(', ') + ']');
   return builder.build();
 }
@@ -194,16 +201,13 @@ function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
     if (isArray(prop))
       return prop.value!;
     if (isObject(prop))
-      return '{…}';
+      return '{\u2026}';
   }
   let value = typeof prop.value === 'undefined' ? `<${prop.type}>` : stringUtils.trimMiddle(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }
 
 export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: number, quote: boolean): string {
-  if (object.unserializableValue)
-    return stringUtils.trimMiddle(object.unserializableValue, characterBudget);
-
   if (object.type === 'string') {
     const value = stringUtils.trimMiddle(object.value, characterBudget - (quote ? 2 : 0));
     return quote ? `'${value}'` : value;
@@ -258,7 +262,7 @@ function formatFunctionDescription(description: string, characterBudget: number)
   } else if (isArrow) {
     let abbreviation = text;
     if (text.length > maxArrowFunctionCharacterLength)
-      abbreviation = text.substring(0, firstArrowIndex + 2) + ' {…}';
+      abbreviation = text.substring(0, firstArrowIndex + 2) + ' {\u2026}';
     addToken('', text, abbreviation);
   } else {
     addToken('ƒ', text, nameAndArguments(text));
@@ -310,6 +314,10 @@ export function previewException(exception: Cdp.Runtime.RemoteObject): { title: 
 }
 
 function formatAsNumber(param: Cdp.Runtime.RemoteObject, round: boolean, characterBudget: number): string {
+  if (param.type === 'number')
+    return String(param.value);
+  if (param.type === 'bigint')
+    return param.description!;
   const value = typeof param.value === 'number' ? param.value : +param.description!;
   return stringUtils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }

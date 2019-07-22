@@ -1,0 +1,15 @@
+Evaluating: 'console.log(1n)'
+stdout> 1n
+
+Evaluating: 'console.log(BigInt(2))'
+stdout> 2n
+
+Evaluating: 'console.log([BigInt(2)])'
+stdout> (1) [2n]  //  named=3
+
+Evaluating: 'console.log(1n, BigInt(2))'
+stdout> 1n 2n
+
+Evaluating: 'console.log('%d %i %d %i %d %i', 123, 123, 123n, 123n, BigInt(123), BigInt(123))'
+stdout> 123 123 123n 123n 123n 123n
+

@@ -20,11 +20,11 @@ export class BudgetStringBuilder {
       this._budget -= text.length;
     } else {
       this._budget = 0;
-      this._ensureEllipsis();
+      this.appendEllipsis();
     }
   }
 
-  _ensureEllipsis() {
+  appendEllipsis() {
     if (this._tokens[this._tokens.length - 1] !== '…')
       this._tokens.push('…');
   }
@@ -44,7 +44,7 @@ export class BudgetStringBuilder {
 
   hasBudget(): boolean {
     if (this._budget <= 0)
-      this._ensureEllipsis();
+      this.appendEllipsis();
     return this._budget > 0;
   }
 

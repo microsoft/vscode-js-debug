@@ -1,0 +1,21 @@
+Evaluating: 'console.log('%cColors are awesome.', 'color: blue;')'
+stdout> [0m[38;5;21mColors are awesome.[0m
+
+Evaluating: 'console.log('%cColors are awesome.', 'background-color: red;')'
+stdout> [0m[48;5;196mColors are awesome.[0m
+
+Evaluating: 'console.log('%cColors are awesome.', 'background-color: red;', 'Do not apply to trailing params')'
+stdout> [0m[48;5;196mColors are awesome.[0m Do not apply to trailing params
+
+Evaluating: 'console.log('%cColors %care %cawesome.', 'color: red', 'color:green', 'color:blue')'
+stdout> [0m[38;5;196mColors [0m[38;5;34mare [0m[38;5;21mawesome.[0m
+
+Evaluating: 'console.log('%cBold text.', 'font-weight: bold')'
+stdout> [0m[1mBold text.[0m
+
+Evaluating: 'console.log('%cItalic text.', 'font-style: italic')'
+stdout> [0m[3mItalic text.[0m
+
+Evaluating: 'console.log('%cUnderline text.', 'text-decoration: underline')'
+stdout> [0m[4mUnderline text.[0m
+
