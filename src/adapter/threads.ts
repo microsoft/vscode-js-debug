@@ -574,6 +574,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<Dap.OutputEventParams | undefined> {
+    // TODO: implement console.table
     switch (event.type) {
       case 'endGroup': return;
       case 'clear': return this._clearDebuggerConsole();
