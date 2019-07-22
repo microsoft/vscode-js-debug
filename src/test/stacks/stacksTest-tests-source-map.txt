@@ -5,7 +5,8 @@ foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
 
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
   scope #0: bar
-      callback: ƒ foo() {
+      
+callback: ƒ foo() {
     debugger;
 }  // type=Function
   scope #1: Global [expensive]

@@ -4,6 +4,7 @@ result: 'foo'  // type=string
 
 result: 1234567890n  // type=bigint
 
+
 result: Error: foo
     at <anonymous>:1:7  // type=object
 
@@ -16,21 +17,25 @@ result: 42  // type=number
 
 result: 3  // type=number
 
+
 result: ReferenceError: baz is not defined
     at <anonymous>:1:1  // type=object
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
 stderr> Uncaught Error: bar  //  named=1
-stderr>     <anonymous> @ eval1.js:1:26
+stderr>     
+<anonymous> @ eval1.js:1:26
 ◀ setTimeout ▶
 <anonymous> @ eval1.js:1
 
 stderr> Uncaught Error: baz
 stderr> Uncaught Error: baz  //  named=1
-stderr>     <anonymous> @ <eval>/VM<xx>:1:26
+stderr>     
+<anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
+
 
 result: Error: error1
     at throwError (http://localhost:8001/browserify/bundle.js:23:11)
@@ -43,7 +48,8 @@ result: {foo: 3, bar: 'baz'}  // type=object
 
 stderr> Uncaught Error: error2
 stderr> Uncaught Error: error2  //  named=1
-stderr>     throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
+stderr>     
+throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
 <anonymous> @ <eval>/VM<xx>:1:27
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1

@@ -23,28 +23,34 @@ Evaluating: 'console.log([str2])'
 stdout> (1) ['test named "test"']  //  named=3
 
 Evaluating: 'console.log(error)'
-stdout> Error
+stdout> 
+Error
     at console-format:9:23
 
 Evaluating: 'console.log([error])'
-stdout> (1) [Error
+stdout> 
+(1) [Error
     at console-format:9:23]  //  named=3
 
 Evaluating: 'console.log(errorWithMessage)'
-stdout> Error: my error message
+stdout> 
+Error: my error message
     at console-format:10:34
 
 Evaluating: 'console.log([errorWithMessage])'
-stdout> (1) [Error: my error message
+stdout> 
+(1) [Error: my error message
     at console-format:10:34]  //  named=3
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
-stdout> Error: my multiline
+stdout> 
+Error: my multiline
 error message
     at console-format:11:43
 
 Evaluating: 'console.log([errorWithMultilineMessage])'
-stdout> (1) [Error: my multiline
+stdout> 
+(1) [Error: my multiline
 error message
     at console-format:11:43]  //  named=3
 
@@ -55,7 +61,8 @@ Evaluating: 'console.log([func])'
 stdout> (1) [ƒ]  //  named=3
 
 Evaluating: 'console.log(multilinefunc)'
-stdout> ƒ () {
+stdout> 
+ƒ () {
               return 2;
           }  //  named=8
 
@@ -153,7 +160,8 @@ Evaluating: 'console.log([new String("abc")])'
 stdout> (1) [{…}]  //  named=3
 
 Evaluating: 'console.log(arrayLikeFunction)'
-stdout> ƒ ( /**/ foo/**/, /*/**/bar,
+stdout> 
+ƒ ( /**/ foo/**/, /*/**/bar,
           /**/baz) {}  //  named=9
 
 Evaluating: 'console.log([arrayLikeFunction])'
