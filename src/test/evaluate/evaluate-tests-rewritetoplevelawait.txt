@@ -1,0 +1,105 @@
+------
+0
+<ignored>
+------
+await 0
+(async () => {return (await 0)
+})()
+------
+async function foo() { await 0; }
+<ignored>
+------
+async () => await 0
+<ignored>
+------
+class A { async method() { await 0 } }
+<ignored>
+------
+await 0; return 0;
+<ignored>
+------
+var a = await 1
+(async () => {void( a = await 1)
+})()
+------
+let a = await 1
+(async () => {void( a = await 1)
+})()
+------
+const a = await 1
+(async () => {void( a = await 1)
+})()
+------
+for (var i = 0; i < 1; ++i) { await i }
+(async () => {for (void( i = 0); i < 1; ++i) { await i }
+})()
+------
+for (let i = 0; i < 1; ++i) { await i }
+(async () => {for (let i = 0; i < 1; ++i) { await i }
+})()
+------
+var {a} = {a:1}, [b] = [1], {c:{d}} = {c:{d: await 1}}
+(async () => {void (( {a} = {a:1}),( [b] = [1]),( {c:{d}} = {c:{d: await 1}}))
+})()
+------
+console.log(`${(await {a:1}).a}`)
+(async () => {return (console.log(`${(await {a:1}).a}`))
+})()
+------
+await 0;function foo() {}
+(async () => {await 0;foo=function foo() {}
+})()
+------
+await 0;class Foo {}
+(async () => {await 0;Foo=class Foo {}
+})()
+------
+if (await true) { function foo() {} }
+(async () => {if (await true) {foo= function foo() {} }
+})()
+------
+if (await true) { class Foo{} }
+(async () => {if (await true) { class Foo{} }
+})()
+------
+if (await true) { var a = 1; }
+(async () => {if (await true) { void( a = 1); }
+})()
+------
+if (await true) { let a = 1; }
+(async () => {if (await true) { let a = 1; }
+})()
+------
+var a = await 1; let b = 2; const c = 3;
+(async () => {void( a = await 1); void( b = 2); void( c = 3);
+})()
+------
+let o = await 1, p
+(async () => {void (( o = await 1),( p=undefined))
+})()
+------
+for await (const number of asyncRandomNumbers()) {}
+(async () => {for await (const number of asyncRandomNumbers()) {}
+})()
+------
+[...(await fetch('url', { method: 'HEAD' })).headers.entries()]
+(async () => {return ([...(await fetch('url', { method: 'HEAD' })).headers.entries()])
+})()
+------
+await 1
+//hello
+(async () => {return (await 1)
+//hello
+})()
+------
+var {a = await new Promise(resolve => resolve({a:123}))} = {a : 3}
+(async () => {void( {a = await new Promise(resolve => resolve({a:123}))} = {a : 3})
+})()
+------
+await 1; for (var a of [1,2,3]);
+(async () => {await 1; for (var a of [1,2,3]);
+})()
+------
+for (let j = 0; j < 5; ++j) { await j; }
+(async () => {for (let j = 0; j < 5; ++j) { await j; }
+})()

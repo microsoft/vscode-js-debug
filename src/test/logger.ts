@@ -119,7 +119,7 @@ export class Logger {
     }
   }
 
-  async evaluateAndLog(expressions: string[], depth: number) {
+  async evaluateAndLog(expressions: string[], depth: number, context?: 'watch' | 'repl' | 'hover') {
     let complete: () => void;
     const result = new Promise(f => complete = f);
     const next = async () => {
@@ -128,7 +128,7 @@ export class Logger {
         complete();
       } else {
         this._testP.log(`Evaluating: '${expression}'`);
-        await this._testP.dap.evaluate({ expression });
+        await this._testP.dap.evaluate({ expression, context });
       }
     };
 
