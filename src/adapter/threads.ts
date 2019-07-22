@@ -602,9 +602,14 @@ export class Thread implements VariableStoreDelegate {
     if (isAssert && event.args[0] && event.args[0].value === 'console.assert')
       event.args[0].value = localize('console.assert', 'Assertion failed');
 
-    const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
-    const formatString = useMessageFormat ? event.args[0].value as string : '';
-    const messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
+    let messageText: string;
+    if (event.type === 'table' && event.args.length && event.args[0].preview) {
+      messageText = objectPreview.formatAsTable(event.args[0].preview);
+    } else {
+      const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
+      const formatString = useMessageFormat ? event.args[0].value as string : '';
+      messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
+    }
     const variablesReference = await this.replVariables.createVariableForOutput(messageText + '\n', event.args, stackTrace);
     return {
       category,

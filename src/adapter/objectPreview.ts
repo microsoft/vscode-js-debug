@@ -10,6 +10,8 @@ const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 100;
 const maxEntryPreviewLength = 20;
 const maxExceptionTitleLength = 10000;
+const minTableCellWidth = 3;
+const maxTableWidth = 120;
 
 export const primitiveSubtypes = new Set<string|undefined>(
   ['null', 'regexp', 'date', 'error', 'proxy', 'typedarray', 'arraybuffer', 'dataview']
@@ -317,6 +319,69 @@ function formatAsString(param: Cdp.Runtime.RemoteObject, characterBudget: number
   return stringUtils.trimMiddle(String(typeof param.value !== 'undefined' ? param.value : param.description), characterBudget);
 }
 
+export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
+  // Collect columns, values and measure lengths.
+  const rows: Map<string | undefined, string>[] = [];
+  const colNames = new Set<string | undefined>([undefined]);
+  const colLengths = new Map<string | undefined, number>();
+
+  // Measure entries.
+  for (const row of param.properties.filter(r => r.valuePreview)) {
+    const value = new Map<string | undefined, string>();
+    value.set(undefined, row.name);  // row index is a first column
+    colLengths.set(undefined, Math.max(colLengths.get(undefined) || 0, row.name.length));
+
+    rows.push(value);
+    row.valuePreview!.properties.map(prop => {
+      if (!prop.value)
+        return;
+      colNames.add(prop.name);
+      value.set(prop.name, prop.value!);
+      colLengths.set(prop.name, Math.max(colLengths.get(prop.name) || 0, prop.value!.length));
+    });
+  }
+
+  // Measure headers.
+  for (const name of colNames.values()) {
+    if (name)
+      colLengths.set(name, Math.max(colLengths.get(name) || 0, name.length));
+  }
+
+  // Shrink columns if necessary.
+  const columnsWidth = Array.from(colLengths.values()).reduce((a, c) => a + c);
+  const maxColumnsWidth = maxTableWidth - 4 -  (colNames.size - 1) * 3;
+  if (columnsWidth > maxColumnsWidth) {
+    const ratio = maxColumnsWidth / columnsWidth;
+    for (const name of colLengths.keys()) {
+      const newWidth = Math.max(minTableCellWidth, colLengths.get(name)! * ratio | 0);
+      colLengths.set(name, newWidth);
+    }
+  }
+
+  // Template string for line separators.
+  const colTemplates: string[] = [];
+  for (let name of colNames.values())
+    colTemplates.push('-'.repeat(colLengths.get(name)!));
+  const rowTemplate = '[-' + colTemplates.join('-|-') + '-]';
+
+  const table: string[] = [];
+  table.push(rowTemplate.replace('[', '╭').replace(/\|/g, '┬').replace(']', '╮').replace(/-/g, '┄'));
+  const header: string[] = [];
+  for (const name of colNames.values())
+    header.push(pad(name || '', colLengths.get(name)!));
+  table.push('┊ ' + header.join(' ┊ ') + ' ┊');
+  table.push(rowTemplate.replace('[', '├').replace(/\|/g, '┼').replace(']', '┤').replace(/-/g, '┄'));
+
+  for (const value of rows) {
+    const row: string[] = [];
+    for (const colName of colNames.values())
+      row.push(pad(value.get(colName) || '', colLengths.get(colName)!));
+    table.push('┊ ' + row.join(' ┊ ') + ' ┊');
+  }
+  table.push(rowTemplate.replace('[', '╰').replace(/\|/g, '┴').replace(']', '╯').replace(/-/g, '┄'));
+  return table.map(row => stringUtils.trimEnd(row, maxTableWidth)).join('\n');
+}
+
 export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
   ['', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)],
   ['s', (param, characterBudget: number) => formatAsString(param, characterBudget)],
@@ -327,3 +392,11 @@ export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObjec
   ['o', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)],
   ['O', (param, characterBudget: number) => previewRemoveObjectInternal(param, characterBudget, false)]
 ]);
+
+function pad(text: string, length: number) {
+  if (text.length === length)
+    return text;
+  if (text.length < length)
+    return text + ' '.repeat(length - text.length);
+  return stringUtils.trimEnd(text, length);
+}

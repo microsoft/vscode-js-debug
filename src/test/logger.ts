@@ -34,9 +34,12 @@ export class Logger {
     let suffix = `${type}${namedCount}${indexedCount}`;
     if (suffix)
       suffix = '  // ' + suffix;
-    const line = `${name}${value}`;
-    if (line)
+    let line = `${name}${value}`;
+    if (line) {
+      if (line.includes('\n'))
+        line = '\n' + line;
       this.logAsConsole(`${indent}${line}${suffix}`);
+    }
 
     if (variable.variablesReference) {
       const hasHints = typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
