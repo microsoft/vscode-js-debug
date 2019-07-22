@@ -1,0 +1,33 @@
+Evaluating: 'console.log(a0)'
+stdout> (0) []  //  named=2
+
+Evaluating: 'console.log(a1)'
+stdout> (1) […]  //  named=2
+
+Evaluating: 'console.log(a2)'
+stdout> (5) […]  //  named=2
+
+Evaluating: 'console.log(a3)'
+stdout> (3) […, 2, 3]  //  named=4
+
+Evaluating: 'console.log(a4)'
+stdout> (15) […]  //  named=2
+
+Evaluating: 'console.log(a5)'
+stdout> (15) […, 8, …]  //  named=3
+
+Evaluating: 'console.log(a6)'
+stdout> (15) [0, …, 10, …]  //  named=4
+
+Evaluating: 'console.log(a7)'
+stdout> (15) […, 4, …, index0: 0, index1: 1, index2: 2, index3: 3, index4: 4, …]  //  named=9
+
+Evaluating: 'console.log(a8)'
+stdout> (10) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  //  named=12
+
+Evaluating: 'console.log(a9)'
+stdout> (11) […, 1, 2, 3, 4, …, 6, 7, 8, 9, …, foo: 'bar']  //  named=11
+
+Evaluating: 'console.log(a10)'
+stdout> Array  //  named=1
+
