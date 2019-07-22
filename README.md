@@ -7,7 +7,8 @@
 - instrumentation breakpoints (e.g. setTimeout fired)
 - inspect(function)
 - pretty print minified source
-- console message formatting options
+- console message formatting improvements from CDT
+- console.assert / console.error has stack trace
 - function locations go through source maps
 - stacks in console.foo methods and exceptions go through source maps
 - copy(value)
