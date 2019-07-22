@@ -395,7 +395,7 @@ export class VariableStore {
     const object = value.o;
     return {
       name,
-      value: name === '__proto__' ? objectPreview.briefPreviewRemoteObject(object, context) : objectPreview.previewRemoteObject(object, context),
+      value: name === '__proto__' ? object.description! : objectPreview.previewRemoteObject(object, context),
       type: object.className || object.subtype || object.type,
       variablesReference
     };
@@ -414,7 +414,7 @@ export class VariableStore {
     const object = value.o;
     return {
       name,
-      value: objectPreview.previewRemoteObject(object, context),
+      value: name === '__proto__' ? object.description! : objectPreview.previewRemoteObject(object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
       indexedVariables,
