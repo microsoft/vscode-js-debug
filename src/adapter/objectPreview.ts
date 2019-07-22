@@ -11,7 +11,6 @@ const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 100;
 const maxEntryPreviewLength = 20;
 const maxExceptionTitleLength = 10000;
-const maxBriefPreviewLength = 100;
 
 export const primitiveSubtypes = new Set<string|undefined>(
   ['null', 'regexp', 'date', 'error', 'proxy', 'typedarray', 'arraybuffer', 'dataview']
@@ -48,13 +47,6 @@ function previewRemoveObjectInternal(object: Cdp.Runtime.RemoteObject, character
   if (object.subtype === 'node')
     return object.description!;
   return object.preview ? renderPreview(object.preview, characterBudget) : renderValue(object, characterBudget, quoteString);
-}
-
-export function briefPreviewRemoteObject(object: Cdp.Runtime.RemoteObject, context?: string): string {
-  // Evaluating function does not produce preview object for it.
-  if (object.type === 'function')
-    return formatFunctionDescription(object.description!, maxBriefPreviewLength);
-  return object.description || '';
 }
 
 export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {

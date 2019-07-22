@@ -1,7 +1,7 @@
 result: (3) [1, 2, 3, foo: 1]  // type=object named=1 indexed=3
     foo: 1  // type=number
     length: 3  // type=number
-    __proto__: (0) [constructor: ƒ, concat: ƒ, copyWithin: ƒ, fill: ƒ, find: ƒ, …]  // type=Array named=1
+    __proto__: Array(0)  // type=Array named=1
     0: 1  // type=number
     1: 2  // type=number
     2: 3  // type=number

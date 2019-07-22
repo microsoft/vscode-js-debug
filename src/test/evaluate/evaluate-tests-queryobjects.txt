@@ -1,5 +1,5 @@
 stdout> queryObjects: Array(2)  //  named=4
 stdout>     length: 2  // type=number
-stdout>     __proto__: (0) [constructor: ƒ, concat: ƒ, copyWithin: ƒ, fill: ƒ, find: ƒ, …]  // type=Array named=1
+stdout>     __proto__: Array(0)  // type=Array named=1
 stdout>     0: Foo {value: 1}  // type=Foo
 stdout>     1: Foo {value: 2}  // type=Foo
