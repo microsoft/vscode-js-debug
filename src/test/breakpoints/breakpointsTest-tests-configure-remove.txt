@@ -1,0 +1,22 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/script.js:2:3
+<anonymous> @ ${workspaceFolder}/web/script.js:9:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/script.js:10:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:2:1

@@ -1,0 +1,9 @@
+Evaluating#1: foo();
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+foo @ <eval>/VM<xx>:3:11
+<anonymous> @ eval1.js:1:1

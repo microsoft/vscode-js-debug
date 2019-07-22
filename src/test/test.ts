@@ -157,4 +157,8 @@ export class TestP {
       return filter === undefined || (event.source.path || '').indexOf(filter) !== -1;
     });
   }
+
+  workspacePath(relative: string): string {
+    return path.join(this._workspaceRoot, relative);
+  }
 }

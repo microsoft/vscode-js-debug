@@ -1,0 +1,9 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
+<anonymous> @ test.js:1:8

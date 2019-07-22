@@ -16,6 +16,7 @@ export class Breakpoint {
   private _lineNumber: number;  // 1-based
   private _columnNumber: number;  // 1-based
   private _disposables: vscode.Disposable[] = [];
+  private _activeSetters = new Set<Promise<void>>();
 
   private _perThread = new Map<number, Set<Cdp.Debugger.BreakpointId>>();
   private _resolvedLocation?: Location;
@@ -154,26 +155,44 @@ export class Breakpoint {
   }
 
   async _setByUrl(thread: Thread, url: string, lineNumber: number, columnNumber: number): Promise<void> {
-    const result = await thread.cdp().Debugger.setBreakpointByUrl({
-      url,
-      lineNumber,
-      columnNumber,
-      condition: this._condition,
-    });
-    if (result)
-      this.breakpointResolved(thread, result.breakpointId, result.locations);
+    const activeSetter = (async () => {
+      const result = await thread.cdp().Debugger.setBreakpointByUrl({
+        url,
+        lineNumber,
+        columnNumber,
+        condition: this._condition,
+      });
+      if (result)
+        this.breakpointResolved(thread, result.breakpointId, result.locations);
+    })();
+    this._activeSetters.add(activeSetter);
+    await activeSetter;
   }
 
   async _setByScriptId(thread: Thread, scriptId: string, lineNumber: number, columnNumber: number): Promise<void> {
-    const result = await thread.cdp().Debugger.setBreakpoint({
-      location: { scriptId, lineNumber, columnNumber },
-      condition: this._condition,
-    });
-    if (result)
-      this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
+    const activeSetter = (async () => {
+      const result = await thread.cdp().Debugger.setBreakpoint({
+        location: { scriptId, lineNumber, columnNumber },
+        condition: this._condition,
+      });
+      if (result)
+        this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
+    })();
+    this._activeSetters.add(activeSetter);
+    await activeSetter;
   }
 
   async remove(): Promise<void> {
+    // This prevent any new setters from running.
+    for (const disposable of this._disposables)
+      disposable.dispose();
+    this._disposables = [];
+    this._resolvedLocation = undefined;
+
+    // Let all setters finish, so that we can remove all breakpoints including
+    // ones being set right now.
+    await Promise.all(Array.from(this._activeSetters));
+
     const promises: Promise<any>[] = [];
     for (const [threadId, ids] of this._perThread) {
       const thread = this._manager._threadManager.thread(threadId)!;
@@ -182,11 +201,7 @@ export class Breakpoint {
         promises.push(thread.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
       }
     }
-    this._resolvedLocation = undefined;
     this._perThread.clear();
-    for (const disposable of this._disposables)
-      disposable.dispose();
-    this._disposables = [];
     await promises;
   }
 };

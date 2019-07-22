@@ -1,0 +1,23 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
+3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
+o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
+r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
+<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
+3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
+o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
+r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
+<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0

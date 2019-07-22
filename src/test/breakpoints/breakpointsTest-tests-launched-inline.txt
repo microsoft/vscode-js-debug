@@ -1,0 +1,15 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/inlinescriptpause.html:8:5
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/inlinescriptpause.html:6:7
+<anonymous> @ ${workspaceFolder}/web/inlinescriptpause.html:9:5
