@@ -46,10 +46,10 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     }
 
     if (response === 'Yes')
-      vscode.commands.executeCommand('cdp.prettyPrint');
+      vscode.commands.executeCommand('pwa.prettyPrint');
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('cdp.prettyPrint', async e => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.prettyPrint', async e => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !factory.activeAdapter())
       return;
@@ -80,7 +80,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 }
 
 function updateDebuggingStatus() {
-  isDebugging = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'cdp';
+  isDebugging = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'pwa';
   if (!isDebugging)
     prettyPrintedUris.clear();
 }

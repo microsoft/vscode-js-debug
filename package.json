@@ -1,9 +1,9 @@
 {
-  "name": "cdp-debug",
-  "displayName": "CDP Debug",
+  "name": "pwa-debugger",
+  "displayName": "PWA Debugger",
   "version": "0.9.0",
   "publisher": "",
-  "description": "CDP debugger extension.",
+  "description": "PWA debugger extension.",
   "author": {
     "name": "Microsoft Corporation",
     "email": "pfeldman@microsoft.com"
@@ -62,24 +62,24 @@
   "main": "./out/extension",
   "activationEvents": [
     "onDebug",
-    "onView:cdpBreakpoints"
+    "onView:pwa.breakpoints"
   ],
   "contributes": {
     "views": {
       "debug": [
         {
-          "id": "cdpBreakpoints",
+          "id": "pwa.breakpoints",
           "name": "Browser breakpoints"
         },
         {
-          "id": "executionContexts",
+          "id": "pwa.executionContexts",
           "name": "Execution contexts"
         }
       ]
     },
     "commands": [
       {
-        "command": "cdp.addCustomBreakpoints",
+        "command": "pwa.addCustomBreakpoints",
         "title": "Add Browser Breakpoint",
         "icon": {
           "light": "resources/add-light.svg",
@@ -87,7 +87,7 @@
         }
       },
       {
-        "command": "cdp.removeCustomBreakpoint",
+        "command": "pwa.removeCustomBreakpoint",
         "title": "Remove Browser Breakpoint",
         "icon": {
           "light": "resources/remove-light.svg",
@@ -95,7 +95,7 @@
         }
       },
       {
-        "command": "cdp.removeAllCustomBreakpoints",
+        "command": "pwa.removeAllCustomBreakpoints",
         "title": "Remove All Browser Breakpoints",
         "icon": {
           "light": "resources/remove-all-light.svg",
@@ -103,40 +103,40 @@
         }
       },
       {
-        "command": "cdp.prettyPrint",
+        "command": "pwa.prettyPrint",
         "title": "Pretty print for debugging"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "cdp.addCustomBreakpoints",
-          "when": "view == cdpBreakpoints",
+          "command": "pwa.addCustomBreakpoints",
+          "when": "view == pwa.breakpoints",
           "group": "navigation"
         },
         {
-          "command": "cdp.removeAllCustomBreakpoints",
-          "when": "view == cdpBreakpoints",
+          "command": "pwa.removeAllCustomBreakpoints",
+          "when": "view == pwa.breakpoints",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "cdp.removeCustomBreakpoint",
-          "when": "view == cdpBreakpoints",
+          "command": "pwa.removeCustomBreakpoint",
+          "when": "view == pwa.breakpoints",
           "group": "inline"
         },
         {
-          "command": "cdp.addCustomBreakpoints",
-          "when": "view == cdpBreakpoints"
+          "command": "pwa.addCustomBreakpoints",
+          "when": "view == pwa.breakpoints"
         },
         {
-          "command": "cdp.removeCustomBreakpoint",
-          "when": "view == cdpBreakpoints"
+          "command": "pwa.removeCustomBreakpoint",
+          "when": "view == pwa.breakpoints"
         },
         {
-          "command": "cdp.removeAllCustomBreakpoints",
-          "when": "view == cdpBreakpoints"
+          "command": "pwa.removeAllCustomBreakpoints",
+          "when": "view == pwa.breakpoints"
         }
       ]
     },
@@ -162,8 +162,8 @@
     ],
     "debuggers": [
       {
-        "type": "cdp",
-        "label": "Launch with CDP",
+        "type": "pwa",
+        "label": "Launch PWA",
         "configurationAttributes": {
           "launch": {
             "properties": {
@@ -192,30 +192,30 @@
         },
         "initialConfigurations": [
           {
-            "type": "cdp",
+            "type": "pwa",
             "request": "launch",
             "name": "Launch Chrome"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Launch Chrome with CDP",
+            "label": "Launch Chrome with PWA",
             "description": "A new configuration for running Chrome with CDP",
             "body": {
-              "type": "cdp",
+              "type": "pwa",
               "request": "launch",
-              "name": "Launch Chrome with CDP",
-              "url": "http://localhost:${1:8080}",
+              "name": "Launch Chrome with PWA",
+              "url": "http://localhost:${1:3000}",
               "webRoot": "^\"\\${workspaceFolder}\""
             }
           },
           {
-            "label": "Launch program with CDP",
+            "label": "Launch program with PWA",
             "description": "A new configuration for running Node program with CDP",
             "body": {
-              "type": "cdp",
+              "type": "pwa",
               "request": "launch",
-              "name": "Launch program with CDP",
+              "name": "Launch program with PWA",
               "runtimeExecutable": "node",
               "cwd": "^\"\\${workspaceFolder}\"",
               "args": [

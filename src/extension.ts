@@ -14,7 +14,7 @@ import { LocationRevealerUI } from './ui/locationRevealerUI';
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cdp', new DebugConfigurationProvider()));
+  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
   const factory = new AdapterFactory(context);
   new LocationRevealerUI(context, factory);
   registerCustomBreakpointsUI(factory);
@@ -29,8 +29,8 @@ export function deactivate() {
 class DebugConfigurationProvider implements vscode.DebugConfigurationProvider {
   resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
     if (!config.type && !config.request && !config.name) {
-      config.type = 'cdp';
-      config.name = localize('debugConfig.launch.name', 'Run in Chrome with CDP');
+      config.type = 'pwa';
+      config.name = localize('debugConfig.launch.name', 'Launhc Chrome with PWA');
       config.request = 'launch';
     }
     return config;
