@@ -1,52 +1,52 @@
 
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
-  scope #0: foo
+  > scope #0: foo
   scope #1: Global [expensive]
 
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
-  scope #0: bar
+  > scope #0: bar
       
-callback: ƒ foo() {
+> callback: ƒ foo() {
     debugger;
 }  // type=Function
   scope #1: Global [expensive]
 
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
-  scope #0: 3../module1
-      exports: {__esModule: true}  // type=Object
-      m1: {__esModule: true, kModule1: 1, foo: ƒ, throwError: ƒ, throwValue: ƒ}  // type=Object
-      m2: {__esModule: true, kModule2: 2, bar: ƒ, pause: ƒ}  // type=Object
-      module: {exports: {…}}  // type=Object
-      require: ƒ (r){var n=e[i][1][r];return o(n||r)}  // type=Function
+  > scope #0: 3../module1
+      > exports: {__esModule: true}  // type=Object
+      > m1: {__esModule: true, kModule1: 1, foo: ƒ, throwError: ƒ, throwValue: ƒ}  // type=Object
+      > m2: {__esModule: true, kModule2: 2, bar: ƒ, pause: ƒ}  // type=Object
+      > module: {exports: {…}}  // type=Object
+      > require: ƒ (r){var n=e[i][1][r];return o(n||r)}  // type=Function
   scope #1: Global [expensive]
 
 o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
-  scope #0: o
+  > scope #0: o
       a: undefined  // type=undefined
       c: undefined  // type=undefined
       f: undefined  // type=undefined
       i: 3  // type=number
-      p: {exports: {…}}  // type=Object
-  scope #1: Closure (r)
-      e: {1: Array(2), 2: Array(2), 3: Array(2)}  // type=Object
-      n: {1: {…}, 2: {…}, 3: {…}}  // type=Object
-      o: ƒ o(i,f)  // type=Function
-      t: (1) [3]  // type=Array named=1 indexed=1
+      > p: {exports: {…}}  // type=Object
+  > scope #1: Closure (r)
+      > e: {1: Array(2), 2: Array(2), 3: Array(2)}  // type=Object
+      > n: {1: {…}, 2: {…}, 3: {…}}  // type=Object
+      > o: ƒ o(i,f)  // type=Function
+      > t: (1) [3]  // type=Array named=1 indexed=1
       u:   // type=boolean
-  scope #2: Closure
-      r: ƒ r(e,n,t)  // type=Function
+  > scope #2: Closure
+      > r: ƒ r(e,n,t)  // type=Function
   scope #3: Global [expensive]
 
 r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0
-  scope #0: r
-      e: {1: Array(2), 2: Array(2), 3: Array(2)}  // type=Object
+  > scope #0: r
+      > e: {1: Array(2), 2: Array(2), 3: Array(2)}  // type=Object
       i: 0  // type=number
-      n: {1: {…}, 2: {…}, 3: {…}}  // type=Object
-      o: ƒ o(i,f)  // type=Function
-      t: (1) [3]  // type=Array named=1 indexed=1
+      > n: {1: {…}, 2: {…}, 3: {…}}  // type=Object
+      > o: ƒ o(i,f)  // type=Function
+      > t: (1) [3]  // type=Array named=1 indexed=1
       u:   // type=boolean
-  scope #1: Closure
-      r: ƒ r(e,n,t)  // type=Function
+  > scope #1: Closure
+      > r: ƒ r(e,n,t)  // type=Function
   scope #2: Global [expensive]
 
 <anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:0

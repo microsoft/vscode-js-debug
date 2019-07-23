@@ -5,23 +5,23 @@ Evaluating: 'console.info('Info')'
 stdout> Info
 
 Evaluating: 'console.warn('Warn')'
-console> Warn
+console> > Warn
 console>     <anonymous> @ <eval>/VM<xx>:1:9
 
 Evaluating: 'console.error('Error')'
-stderr> Error
+stderr> > Error
 stderr>     <anonymous> @ <eval>/VM<xx>:1:9
 
 Evaluating: 'console.assert(false, 'Assert')'
-stderr> Assert
+stderr> > Assert
 stderr>     <anonymous> @ <eval>/VM<xx>:1:9
 
 Evaluating: 'console.assert(false)'
-stderr> Assertion failed
+stderr> > Assertion failed
 stderr>     <anonymous> @ <eval>/VM<xx>:1:9
 
 Evaluating: 'console.trace('Trace')'
-stdout> Trace
+stdout> > Trace
 stdout>     <anonymous> @ <eval>/VM<xx>:1:9
 
 Evaluating: 'console.count('Counter')'
