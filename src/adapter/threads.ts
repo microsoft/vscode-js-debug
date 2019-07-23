@@ -795,13 +795,24 @@ export class Thread implements VariableStoreDelegate {
     await this.cdp().Runtime.releaseObject({objectId: prototype.objectId});
     if (!response)
       return slot();
-    const preview = objectPreview.previewRemoteObject(response.objects);
-    const variablesReference = await this.replVariables.createVariableForOutput(`queryObjects: ${preview}\n`, [response.objects]);
-    slot({
-      category: 'stdout',
+
+    const withPreview = await this.cdp().Runtime.callFunctionOn({
+      functionDeclaration: 'function() { return this; }',
+      objectId: response.objects.objectId,
+      objectGroup: 'console',
+      generatePreview: true
+    });
+    if (!withPreview)
+      return slot();
+
+      const text = '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview.result) + '\x1b[0m';
+    const variablesReference = await this.replVariables.createVariableForOutput(text, [withPreview.result]) || 0;
+    const output = {
+      category: 'stdout' as 'stdout',
       output: '',
       variablesReference
-    });
+    }
+    slot(output);
   }
 };
 
