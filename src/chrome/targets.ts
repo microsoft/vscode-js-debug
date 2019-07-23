@@ -315,7 +315,7 @@ export class Target {
       threadName += this._targetInfo.url;
     }
     if (serviceWorkerStatus)
-      threadName += `(${serviceWorkerStatus})`;
+      threadName += ` (${serviceWorkerStatus})`;
     this._thread.setName(threadName);
   }
 
