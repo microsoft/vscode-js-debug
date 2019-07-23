@@ -31,10 +31,11 @@ export class Logger {
     const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
     const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
 
+    const expanded = variable.variablesReference ? '> ' : '';
     let suffix = `${type}${namedCount}${indexedCount}`;
     if (suffix)
       suffix = '  // ' + suffix;
-    let line = `${name}${value}`;
+    let line = `${expanded}${name}${value}`;
     if (line) {
       if (line.includes('\n'))
         line = '\n' + line;

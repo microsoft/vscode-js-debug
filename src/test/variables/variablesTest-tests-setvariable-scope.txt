@@ -4,12 +4,12 @@ stopped: {
     reason : step
     threadId : <number>
 }
-scope: foo
+> scope: foo
     y: 'value of y'  // type=string
 
 Setting "y" to "'bar'"
 <result>: 'bar'  // type=string
 
 Original
-scope: foo
+> scope: foo
     y: 'bar'  // type=string

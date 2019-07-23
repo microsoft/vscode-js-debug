@@ -2,10 +2,10 @@ Evaluating: 'await Promise.resolve(1)'
 stdout> [32m↳ 1[0m
 
 Evaluating: '{a:await Promise.resolve(1)}'
-stdout> [32m↳ {a: 1}[0m
+stdout> > [32m↳ {a: 1}[0m
 
 Evaluating: '$_'
-stdout> [32m↳ {a: 1}[0m
+stdout> > [32m↳ {a: 1}[0m
 
 Evaluating: 'let {a,b} = await Promise.resolve({a: 1, b:2}), f = 5;'
 stdout> [32m↳ undefined[0m
@@ -100,7 +100,7 @@ stdout> [32m↳ undefined[0m
 
 Evaluating: 'j'
 stderr> ↳ Uncaught ReferenceError: j is not defined
-stderr> ↳ Uncaught ReferenceError: j is not defined
+stderr> > ↳ Uncaught ReferenceError: j is not defined
 
 Evaluating: 'gen'
 stdout> [32m↳ ƒ* gen(){}[0m
@@ -122,5 +122,5 @@ Evaluating: 's'
 stdout> [32m↳ 2[0m
 
 Evaluating: 'await {...{foo: 42}}'
-stdout> [32m↳ {foo: 42}[0m
+stdout> > [32m↳ {foo: 42}[0m
 

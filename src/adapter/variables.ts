@@ -162,7 +162,7 @@ export class VariableStore {
   }
 
   async createVariableForOutput(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
-    const rootObjectReference = args.length || stackTrace ? ++VariableStore._lastVariableReference : 0;
+    const rootObjectReference = stackTrace || args.find(a => objectPreview.isObject(a)) ? ++VariableStore._lastVariableReference : 0;
     const rootObjectVariable: Dap.Variable = {
       name: '',
       value: text,
@@ -185,7 +185,7 @@ export class VariableStore {
     } else {
       const promiseParams: Promise<Dap.Variable>[] = [];
       for (let i = 0; i < args.length; ++i) {
-        if (!args[i].objectId || objectPreview.primitiveSubtypes.has(args[i].subtype))
+        if (!objectPreview.isObject(args[i]))
           continue;
         promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
       }
