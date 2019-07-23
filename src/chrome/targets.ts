@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import { URL } from 'url';
 import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
+import { ServiceWorkerModel } from './serviceWorkers';
 
 const debugTarget = debug('target');
 
@@ -20,6 +21,7 @@ export class TargetManager implements ThreadManagerDelegate {
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: Cdp.Api;
   _frameModel = new FrameModel();
+  _serviceWorkerModel = new ServiceWorkerModel(() => this._serviceWorkersStatusChanged());
   _threadManager: ThreadManager;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
@@ -217,6 +219,12 @@ export class TargetManager implements ThreadManagerDelegate {
     this._targetStructureChanged();
   }
 
+  _serviceWorkersStatusChanged() {
+    for (const target of this._targets.values())
+      target._updateThreadName();
+    this._targetStructureChanged();
+  }
+
   _targetStructureChanged() {
     this._threadManager.refreshExecutionContexts();
   }
@@ -267,6 +275,7 @@ export class Target {
       this._thread.initialize();
     if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager._frameModel.addTarget(this._cdp))
       return false;
+    await this._manager._serviceWorkerModel.addTarget(this._cdp);
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;
     return true;
@@ -274,20 +283,30 @@ export class Target {
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
     this._targetInfo = targetInfo;
+    this._updateThreadName();
+    if (this._thread)
+      this._thread.setBaseUrl(this._targetInfo.url);
+  }
+
+  _updateThreadName() {
     if (!this._thread)
       return;
 
     let icon = '';
-    if (targetInfo.type === 'page')
+    if (this._targetInfo.type === 'page')
       icon = '\uD83D\uDCC4 ';
-    else if (targetInfo.type === 'iframe')
+    else if (this._targetInfo.type === 'iframe')
       icon = '\uD83D\uDCC4 ';
-    else if (targetInfo.type === 'worker')
+    else if (this._targetInfo.type === 'worker')
       icon = '\uD83D\uDC77 ';
+
+    let serviceWorkerStatus: string | undefined;
+    if (this._targetInfo.type === 'worker' && this.parentTarget)
+      serviceWorkerStatus = this._manager._serviceWorkerModel.versionStatus(this.parentTarget.targetId());
 
     let threadName = icon;
     try {
-      const parsedURL = new URL(targetInfo.url);
+      const parsedURL = new URL(this._targetInfo.url);
       if (parsedURL.pathname === '/')
         threadName += parsedURL.host;
       else if (parsedURL.protocol === 'data:')
@@ -295,10 +314,11 @@ export class Target {
       else
         threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : `#${this._thread.threadId()}`;
     } catch (e) {
-      threadName += targetInfo.url;
+      threadName += this._targetInfo.url;
     }
+    if (serviceWorkerStatus)
+      threadName += `(${serviceWorkerStatus})`;
     this._thread.setName(threadName);
-    this._thread.setBaseUrl(targetInfo.url);
   }
 
   _dispose() {
