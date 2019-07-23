@@ -2,30 +2,44 @@
 
 - Attaching to all threads: page, out of process iframes, web workers, related service workers.
 
-    <img width="283" alt="Screen Shot 2019-07-22 at 9 23 37 PM" src="https://user-images.githubusercontent.com/883973/61682644-4b1a6080-acc7-11e9-8e05-dd6863987930.png">
+    <img width="284" alt="Screen Shot 2019-07-22 at 9 46 54 PM" src="https://user-images.githubusercontent.com/883973/61683502-8b2f1280-acca-11e9-88ab-15fc0f08c5ee.png">
 
-- Evaluate in selected execution context.
+    <img width="504" alt="Screen Shot 2019-07-22 at 9 54 30 PM" src="https://user-images.githubusercontent.com/883973/61683685-4d7eb980-accb-11e9-959a-cc33eff6f9c6.png">
 
-    <img width="286" alt="Screen Shot 2019-07-22 at 9 25 26 PM" src="https://user-images.githubusercontent.com/883973/61682673-6a18f280-acc7-11e9-812b-65032d7fedba.png">
+- Evaluate in selected execution context
 
-- Node debugging attaches to all processes.
+    <img width="285" alt="Screen Shot 2019-07-22 at 9 47 49 PM" src="https://user-images.githubusercontent.com/883973/61683446-5e7afb00-acca-11e9-8af5-04ce9210e8b0.png">
+
+- Node debugging attaches to all processes
 
     <img width="286" alt="Screen Shot 2019-07-22 at 9 35 58 PM" src="https://user-images.githubusercontent.com/883973/61682997-ba448480-acc8-11e9-824c-64c424752a1f.png">
 
-- Top-level await in console.
+- Top-level await in console
 
     <img width="743" alt="Screen Shot 2019-07-22 at 9 40 36 PM" src="https://user-images.githubusercontent.com/883973/61683166-61292080-acc9-11e9-8416-e997d8ed3afc.png">
 
-- Serialized console output.
+- Serialized console output
 
     <img width="245" alt="Screen Shot 2019-07-22 at 9 42 03 PM" src="https://user-images.githubusercontent.com/883973/61683220-97ff3680-acc9-11e9-98db-e6d199023647.png">
 
-- Instrumentation breakpoints (e.g. setTimeout fired).
-- Pretty print minified source.
-- Console message formatting improvements from CDT.
-- All locations go through source maps: stack trace on pause, console methods, exceptions, function locations.
-- Command line API: inspect(function), copy(value), queryObjects(prototype).
-- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
+- Instrumentation breakpoints
+
+    <img width="285" alt="Screen Shot 2019-07-22 at 9 50 35 PM" src="https://user-images.githubusercontent.com/883973/61683560-c16c9200-acca-11e9-9d63-483b9c3d48ee.png">
+
+    <img width="604" alt="Screen Shot 2019-07-22 at 9 50 10 PM" src="https://user-images.githubusercontent.com/883973/61683564-c4678280-acca-11e9-959a-dbeb49fc8716.png">
+
+- Pretty print minified source with complete debugging support
+
+    <img width="464" alt="Screen Shot 2019-07-22 at 9 55 22 PM" src="https://user-images.githubusercontent.com/883973/61683714-6c7d4b80-accb-11e9-92ae-084e3b4f36e7.png">
+
+    <img width="553" alt="Screen Shot 2019-07-22 at 9 56 12 PM" src="https://user-images.githubusercontent.com/883973/61683776-a9e1d900-accb-11e9-9884-f7494b1d8fc4.png">
+
+- Console message formatting improvements from CDT
+
+    <img width="612" alt="Screen Shot 2019-07-22 at 10 01 08 PM" src="https://user-images.githubusercontent.com/883973/61683910-3be9e180-accc-11e9-9a48-8930f0db3f9b.png">
+
+- All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
+- Command line API: inspect(function), copy(value), queryObjects(prototype)- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
 # Architecture Overview
 
