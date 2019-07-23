@@ -41,6 +41,10 @@
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
 - Command line API: inspect(function), copy(value), queryObjects(prototype)- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
+    <img width="259" alt="Screen Shot 2019-07-22 at 10 32 03 PM" src="https://user-images.githubusercontent.com/883973/61685138-8bcaa780-acd0-11e9-99d9-151c2839b5f6.png">
+
+
+
 # Architecture Overview
 
 There are two entry points: `ChromeAdapter` and `NodeAdapter`. Each of them listens to DAP, collects configuration DAP requests using `Configurator`, implements `url <-> path` mapping strategy, launches the corresponding debuggee (Chrome or Node) and instantiates `Adapter`, which takes over after launch.
