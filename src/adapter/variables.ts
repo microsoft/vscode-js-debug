@@ -46,7 +46,7 @@ export interface VariableStoreDelegate {
 export class VariableStore {
   private _cdp: Cdp.Api;
   private static _lastVariableReference: number = 0;
-  private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
+  private _referenceToVariables: Map<number, () => Promise<Dap.Variable[]>> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
   private _referenceToObject: Map<number, RemoteObject> = new Map();
   private _delegate: VariableStoreDelegate;
@@ -64,7 +64,7 @@ export class VariableStore {
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const result = this._referenceToVariables.get(params.variablesReference);
     if (result)
-      return result;
+      return await result();
 
     const object = this._referenceToObject.get(params.variablesReference);
     return object ? this._getObjectVariables(object, params) : [];
@@ -163,13 +163,20 @@ export class VariableStore {
   }
 
   async createVariableForOutput(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
-    const rootObjectReference = ++VariableStore._lastVariableReference;
+    const rootObjectReference = args.length || stackTrace ? ++VariableStore._lastVariableReference : 0;
     const rootObjectVariable: Dap.Variable = {
       name: '',
       value: text,
       variablesReference: rootObjectReference
     };
+    this._referenceToVariables.set(rootObjectReference, () => this._createVariableForOutputParams(args, stackTrace));
 
+    const resultReference = ++VariableStore._lastVariableReference;
+    this._referenceToVariables.set(resultReference, async () => [rootObjectVariable]);
+    return resultReference;
+  }
+
+  async _createVariableForOutputParams(args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<Dap.Variable[]> {
     const params: Dap.Variable[] = [];
     const firstArg = args[0];
     if (args.length === 1 && firstArg.objectId && !objectPreview.primitiveSubtypes.has(firstArg.subtype)) {
@@ -194,15 +201,7 @@ export class VariableStore {
       };
       params.push(stackTraceVariable);
     }
-
-    if (!params.length)
-      rootObjectVariable.variablesReference = 0;
-    rootObjectVariable.namedVariables = params.length;
-    this._referenceToVariables.set(rootObjectReference, await Promise.all(params));
-
-    const resultReference = ++VariableStore._lastVariableReference;
-    this._referenceToVariables.set(resultReference, [rootObjectVariable]);
-    return resultReference;
+    return params;
   }
 
   async clear() {

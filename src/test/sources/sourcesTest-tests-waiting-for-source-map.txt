@@ -1,5 +1,5 @@
 stderr> Uncaught Error: error2
-stderr> Uncaught Error: error2  //  named=1
+stderr> Uncaught Error: error2
 stderr>     
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
 <anonymous> @ <eval>/VM<xx>:1:27

@@ -23,14 +23,14 @@ result: ReferenceError: baz is not defined
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
-stderr> Uncaught Error: bar  //  named=1
+stderr> Uncaught Error: bar
 stderr>     
 <anonymous> @ eval1.js:1:26
 ◀ setTimeout ▶
 <anonymous> @ eval1.js:1
 
 stderr> Uncaught Error: baz
-stderr> Uncaught Error: baz  //  named=1
+stderr> Uncaught Error: baz
 stderr>     
 <anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
@@ -47,7 +47,7 @@ result: {foo: 3, bar: 'baz'}  // type=object
     __proto__: Object  // type=Object
 
 stderr> Uncaught Error: error2
-stderr> Uncaught Error: error2  //  named=1
+stderr> Uncaught Error: error2
 stderr>     
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
 <anonymous> @ <eval>/VM<xx>:1:27
