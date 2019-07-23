@@ -1,16 +1,31 @@
 # Features
 
 - Attaching to all threads: page, out of process iframes, web workers, related service workers.
+
+    <img width="283" alt="Screen Shot 2019-07-22 at 9 23 37 PM" src="https://user-images.githubusercontent.com/883973/61682644-4b1a6080-acc7-11e9-8e05-dd6863987930.png">
+
 - Evaluate in selected execution context.
+
+    <img width="286" alt="Screen Shot 2019-07-22 at 9 25 26 PM" src="https://user-images.githubusercontent.com/883973/61682673-6a18f280-acc7-11e9-812b-65032d7fedba.png">
+
 - Node debugging attaches to all processes.
+
+    <img width="286" alt="Screen Shot 2019-07-22 at 9 35 58 PM" src="https://user-images.githubusercontent.com/883973/61682997-ba448480-acc8-11e9-824c-64c424752a1f.png">
+
 - Top-level await in console.
+
+    <img width="743" alt="Screen Shot 2019-07-22 at 9 40 36 PM" src="https://user-images.githubusercontent.com/883973/61683166-61292080-acc9-11e9-8416-e997d8ed3afc.png">
+
 - Serialized console output.
-- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
+
+    <img width="245" alt="Screen Shot 2019-07-22 at 9 42 03 PM" src="https://user-images.githubusercontent.com/883973/61683220-97ff3680-acc9-11e9-98db-e6d199023647.png">
+
 - Instrumentation breakpoints (e.g. setTimeout fired).
 - Pretty print minified source.
 - Console message formatting improvements from CDT.
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations.
 - Command line API: inspect(function), copy(value), queryObjects(prototype).
+- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
 # Architecture Overview
 
