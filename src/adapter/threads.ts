@@ -15,6 +15,7 @@ import * as objectPreview from './objectPreview';
 import { Location, Source, SourceContainer, InlineScriptOffset, SourcePathResolver } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
+import { ExecutionContext } from './evaluation';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -32,7 +33,7 @@ export interface PausedDetails {
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export interface ExecutionContextTree {
-  contextId?: number;
+  context?: ExecutionContext;
   name: string;
   threadId: number;
   children: ExecutionContextTree[];
@@ -205,7 +206,7 @@ export class Thread implements VariableStoreDelegate {
   private _scripts: Map<string, Script> = new Map();
   private _supportsCustomBreakpoints: boolean;
   private _defaultScriptOffset?: InlineScriptOffset;
-  private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
+  private _executionContexts: Map<Cdp.Runtime.ExecutionContextId, ExecutionContext> = new Map();
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
@@ -214,6 +215,7 @@ export class Thread implements VariableStoreDelegate {
   _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
+  private _dummyContext: ExecutionContext;
 
   constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, configuration: ThreadConfiguration) {
     this.manager = manager;
@@ -225,9 +227,10 @@ export class Thread implements VariableStoreDelegate {
       parent._childThreads.push(this);
     this._threadId = ++lastThreadId;
     this._name = '';
+    this._dummyContext = new ExecutionContext(this, {id: -1, origin: '', name: ''});
     this._supportsCustomBreakpoints = configuration.supportsCustomBreakpoints || false;
     this._defaultScriptOffset = configuration.defaultScriptOffset;
-    this.replVariables = new VariableStore(this._cdp, this);
+    this.replVariables = new VariableStore(this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
     debugThread(`Thread created #${this._threadId}`);
@@ -257,13 +260,14 @@ export class Thread implements VariableStoreDelegate {
     return this._pausedVariables;
   }
 
-  executionContexts(): Cdp.Runtime.ExecutionContextDescription[] {
+  executionContexts(): ExecutionContext[] {
     return Array.from(this._executionContexts.values());
   }
 
-  defaultExecutionContext(): Cdp.Runtime.ExecutionContextDescription | undefined {
+  defaultExecutionContext(): ExecutionContext | undefined {
     for (const context of this._executionContexts.values()) {
-      if (context.auxData && context.auxData['isDefault'])
+      const description = context.description();
+      if (description.auxData && description.auxData['isDefault'])
         return context;
     }
   }
@@ -311,7 +315,7 @@ export class Thread implements VariableStoreDelegate {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      this.replVariables.clear();
+      this.replVariables.clear(this._cdp);
       this._executionContextsCleared();
       const slot = this.claimOutputSlot();
       slot(this._clearDebuggerConsole());
@@ -340,7 +344,7 @@ export class Thread implements VariableStoreDelegate {
         return;
       }
       this._pausedDetails = this._createPausedDetails(event);
-      this._pausedVariables = new VariableStore(this._cdp, this);
+      this._pausedVariables = new VariableStore(this);
       this._reportPaused();
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
@@ -399,8 +403,8 @@ export class Thread implements VariableStoreDelegate {
     return result;
   }
 
-  _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
-    this._executionContexts.set(context.id, context);
+  _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
+    this._executionContexts.set(description.id, new ExecutionContext(this, description));
     this.manager.refreshExecutionContexts();
   }
 
@@ -586,6 +590,8 @@ export class Thread implements VariableStoreDelegate {
       case 'clear': return this._clearDebuggerConsole();
     }
 
+    const context = this._executionContexts.get(event.executionContextId) || this._dummyContext;
+
     let stackTrace: StackTrace | undefined;
     let location: Location | undefined;
     const isAssert = event.type === 'assert';
@@ -616,7 +622,7 @@ export class Thread implements VariableStoreDelegate {
       const formatString = useMessageFormat ? event.args[0].value as string : '';
       messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
     }
-    const variablesReference = await this.replVariables.createVariableForOutput(messageText + '\n', event.args, stackTrace);
+    const variablesReference = await this.replVariables.createVariableForOutput(context, messageText + '\n', event.args, stackTrace);
     return {
       category,
       output: '',
@@ -635,6 +641,10 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async formatException(details: Cdp.Runtime.ExceptionDetails, prefix?: string): Promise<Dap.OutputEventParams | undefined> {
+    let context = this._dummyContext;
+    if (details.executionContextId !== undefined)
+      context = this._executionContexts.get(details.executionContextId) || this._dummyContext;
+
     const preview = details.exception ? objectPreview.previewException(details.exception) : { title: '' };
     let message = preview.title;
     if (!message.startsWith('Uncaught'))
@@ -654,7 +664,7 @@ export class Thread implements VariableStoreDelegate {
     const args = (details.exception && !preview.stackTrace) ? [details.exception] : [];
     let variablesReference = 0;
     if (stackTrace || args.length)
-      variablesReference = await this.replVariables.createVariableForOutput(message, args, stackTrace);
+      variablesReference = await this.replVariables.createVariableForOutput(context, message, args, stackTrace);
 
     return {
       category: 'stderr',
@@ -795,7 +805,7 @@ export class Thread implements VariableStoreDelegate {
     if (!response)
       return slot();
     const preview = objectPreview.previewRemoteObject(response.objects);
-    const variablesReference = await this.replVariables.createVariableForOutput(`queryObjects: ${preview}\n`, [response.objects]);
+    const variablesReference = await this.replVariables.createVariableForOutput(this._dummyContext, `queryObjects: ${preview}\n`, [response.objects]);
     slot({
       category: 'stdout',
       output: '',
@@ -822,9 +832,9 @@ export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
       result.push(threadContext);
       threadContext.children = thread.executionContexts().map(context => {
         return {
-          name: context.name || `context #${context.id}`,
+          name: context.name(),
           threadId: thread.threadId(),
-          contextId: context.id,
+          context,
           children: [],
         };
       });

@@ -3,7 +3,7 @@ result: {foo: 42}  // type=object
     __proto__: Object  // type=Object
 
 Setting "foo" to "{bar: 17}"
-<result>: Object  // type=Object
+<result>: {bar: 17}  // type=Object
     bar: 17  // type=number
     __proto__: Object  // type=Object
 

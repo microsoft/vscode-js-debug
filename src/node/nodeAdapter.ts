@@ -187,7 +187,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
         const contextTree = {
           name: thread.name(),
           threadId: thread.threadId(),
-          contextId: context.id,
+          contextId: context.description().id,
           children: [],
         };
         container.push(contextTree);

@@ -15,7 +15,7 @@ export function registerExecutionContextsUI(factory: AdapterFactory) {
     const adapter = factory.activeAdapter();
     if (!adapter)
       return;
-    adapter.setCurrentExecutionContext(item);
+    adapter.setCurrentExecutionContext(item.context);
   });
 }
 

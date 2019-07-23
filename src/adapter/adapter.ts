@@ -12,18 +12,12 @@ import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
 import { StackFrame } from './stackTrace';
-import { ExecutionContextTree, Thread, ThreadManager } from './threads';
+import { ThreadManager } from './threads';
 import { VariableStore } from './variables';
+import { ExecutionContext, EvaluationContext } from './evaluation';
 
 const localize = nls.loadMessageBundle();
 const threadForSourceRevealId = 9999999999999;
-
-type EvaluatePrep = {
-  variableStore: VariableStore;
-  thread: Thread;
-  stackFrame?: StackFrame;
-  executionContextId?: number;
-};
 
 export class Adapter {
   readonly threadManager: ThreadManager;
@@ -31,7 +25,7 @@ export class Adapter {
 
   private _dap: Dap.Api;
   private _breakpointManager: BreakpointManager;
-  private _currentExecutionContext: ExecutionContextTree | undefined;
+  private _currentExecutionContext: ExecutionContext | undefined;
   private _locationToReveal: Location | undefined;
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
@@ -178,51 +172,33 @@ export class Adapter {
     return { variables: await variableStore.getVariables(params) };
   }
 
-  _prepareForEvaluate(frameId?: number): { result?: EvaluatePrep, error?: Dap.Error } {
+  _findEvaluationContext(frameId?: number): { result?: EvaluationContext, error?: Dap.Error } {
     if (frameId !== undefined) {
       const stackFrame = this._findStackFrame(frameId);
       if (!stackFrame)
         return { error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found')) };
       if (!stackFrame.callFrameId())
         return { error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame')) };
-
-      const variableStore = stackFrame.thread().pausedVariables()!;
-      return {
-        result: {
-          stackFrame,
-          variableStore,
-          thread: stackFrame.thread(),
-        }
-      };
+      return { result: stackFrame };
     } else {
-      let thread: Thread | undefined;
-      let executionContextId: number | undefined;
+      let executionContext: ExecutionContext | undefined;
       if (this._currentExecutionContext) {
-        executionContextId = this._currentExecutionContext.contextId;
-        thread = this.threadManager.thread(this._currentExecutionContext.threadId);
+        executionContext = this._currentExecutionContext;
       } else {
-        thread = this.threadManager.mainThread();
-        const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
-        executionContextId = defaultContext ? defaultContext.id : undefined;
+        const thread = this.threadManager.mainThread();
+        executionContext = thread ? thread.defaultExecutionContext() : undefined;
       }
-      if (!thread || !executionContextId)
+      if (!executionContext)
         return { error: this._threadNotAvailableError() };
-
-      return {
-        result: {
-          variableStore: thread.replVariables,
-          thread,
-          executionContextId
-        }
-      };
+      return { result: executionContext };
     }
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    const { result: maybePrep, error } = this._prepareForEvaluate(args.frameId);
+    const { result: maybeContext, error } = this._findEvaluationContext(args.frameId);
     if (error)
       return error;
-    const prep = maybePrep as EvaluatePrep;
+    const context = maybeContext as EvaluationContext;
 
     const params: Cdp.Runtime.EvaluateParams = {
       expression: args.expression,
@@ -243,14 +219,12 @@ export class Adapter {
       }
     }
 
-    const response = prep.stackFrame
-      ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
-      : await prep.thread.cdp().Runtime.evaluate({ ...params, contextId: prep.executionContextId });
+    const response = await context.evaluate(params);
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
     if (args.context !== 'repl') {
-      const variable = await prep.variableStore.createVariable(response.result, args.context);
+      const variable = await context.variableStore().createVariable(context, response.result, args.context);
       return {
         type: response.result.type,
         result: variable.value,
@@ -260,12 +234,12 @@ export class Adapter {
       };
     }
 
-    const outputSlot = prep.thread.claimOutputSlot();
+    const outputSlot = context.thread().claimOutputSlot();
     if (response.exceptionDetails) {
-      outputSlot(await prep.thread.formatException(response.exceptionDetails, '↳ '));
+      outputSlot(await context.thread().formatException(response.exceptionDetails, '↳ '));
     } else {
       const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
-      const variablesReference = await prep.thread.replVariables.createVariableForOutput(text, [response.result]);
+      const variablesReference = await context.thread().replVariables.createVariableForOutput(context, text, [response.result]);
       const output = {
         category: 'stdout',
         output: '',
@@ -278,12 +252,12 @@ export class Adapter {
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    const { result: maybePrep, error } = this._prepareForEvaluate(params.frameId);
+    const { result: maybeContext, error } = this._findEvaluationContext(params.frameId);
     if (error)
       return error;
-    const prep = maybePrep as EvaluatePrep;
+    const context = maybeContext as EvaluationContext;
     const line = params.line === undefined ? 0 : params.line - 1;
-    return { targets: await completions.completions(prep.thread.cdp(), prep.executionContextId, prep.stackFrame, params.text, line, params.column) };
+    return { targets: await completions.completions(context, params.text, line, params.column) };
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
@@ -337,7 +311,7 @@ export class Adapter {
     return variableStore.setVariable(params);
   }
 
-  setCurrentExecutionContext(item: ExecutionContextTree | undefined) {
+  setCurrentExecutionContext(item: ExecutionContext | undefined) {
     this._currentExecutionContext = item;
   }
 
