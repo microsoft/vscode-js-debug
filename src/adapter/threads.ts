@@ -16,6 +16,8 @@ import { Location, Source, SourceContainer, InlineScriptOffset, SourcePathResolv
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
+const threadIdToRefreshThreads = 8888888888888;
+
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
 
@@ -112,6 +114,7 @@ export class ThreadManager {
 
   refreshExecutionContexts() {
     this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest() || this._defaultDelegate.executionContextForest());
+    this._dap.thread({ reason: 'exited', threadId: threadIdToRefreshThreads });
   }
 
   refreshStackTraces(): boolean {
