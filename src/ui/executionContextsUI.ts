@@ -9,7 +9,7 @@ import { ExecutionContextTree } from '../adapter/threads';
 export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);
 
-  const treeView = vscode.window.createTreeView('executionContexts', { treeDataProvider: provider });
+  const treeView = vscode.window.createTreeView('pwa.executionContexts', { treeDataProvider: provider });
   treeView.onDidChangeSelection(() => {
     const item = treeView.selection[0];
     const adapter = factory.activeAdapter();

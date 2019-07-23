@@ -56,8 +56,8 @@ export class TestP {
     this._chromeAdapter = new ChromeAdapter(adapterConnection.dap(), storagePath, this._workspaceRoot, () => { });
     this.dap = testConnection.createTestApi();
     this.initialize = this._chromeAdapter.initialize({
-      clientID: 'cdp-test',
-      adapterID: 'cdp',
+      clientID: 'pwa-test',
+      adapterID: 'pwa',
       linesStartAt1: true,
       columnsStartAt1: true,
       pathFormat: 'path',

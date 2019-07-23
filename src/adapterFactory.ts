@@ -26,7 +26,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('cdp', this));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('pwa', this));
     context.subscriptions.push(this);
 
     this._disposables = [
