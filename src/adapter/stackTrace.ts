@@ -6,9 +6,8 @@ import { Location } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
-import { VariableStore } from "./variables";
+import { ScopeRef } from "./variables";
 import * as nls from 'vscode-nls';
-import { EvaluationContext, EvaluationParams, toCallArgument } from "./evaluation";
 
 const localize = nls.loadMessageBundle();
 
@@ -114,7 +113,7 @@ export class StackTrace {
   }
 };
 
-export class StackFrame implements EvaluationContext {
+export class StackFrame {
   private static _lastFrameId = 0;
 
   _id: number;
@@ -162,22 +161,8 @@ export class StackFrame implements EvaluationContext {
     return this._stack._thread;
   }
 
-  cdp(): Cdp.Api {
-    return this._stack._thread.cdp();
-  }
-
   callFrameId(): string | undefined {
     return this._scope ? this._scope.callFrameId : undefined;
-  }
-
-  evaluate(params: EvaluationParams): Promise<Cdp.Runtime.EvaluateResult | undefined> {
-    if (!this._scope)
-      return Promise.resolve(undefined);
-    return this.cdp().Debugger.evaluateOnCallFrame({...params, callFrameId: this._scope.callFrameId});
-  }
-
-  variableStore(): VariableStore {
-    return this._stack._thread.pausedVariables()!;
   }
 
   async scopes(): Promise<Dap.ScopesResult> {
@@ -289,8 +274,8 @@ export class StackFrame implements EvaluationContext {
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {
     const scope = this._scope!;
     if (!scope.variables[scopeNumber]) {
-      scope.chain[scopeNumber].object[kScopeNumberSymbol] = scopeNumber;
-      const variable = await this.thread().pausedVariables()!.createVariable(this, scope.chain[scopeNumber].object, undefined, true /* keepProperties */);
+      const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
+      const variable = await this.thread().pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
       scope.variables[scopeNumber] = variable;
     }
     return scope.variables[scopeNumber]!;
@@ -312,17 +297,4 @@ export class StackFrame implements EvaluationContext {
     const completions = await Promise.all(promises);
     return ([] as Dap.CompletionItem[]).concat(...completions);
   }
-
-  async setVariableValue(object: Cdp.Runtime.RemoteObject, name: string, value: Cdp.Runtime.RemoteObject): Promise<Cdp.Runtime.ExceptionDetails | undefined> {
-    if (!this._scope)
-      return;
-    await this.cdp().Debugger.setVariableValue({
-      callFrameId: this._scope.callFrameId,
-      scopeNumber: object[kScopeNumberSymbol] || 0,
-      variableName: name,
-      newValue: toCallArgument(value),
-    });
-  }
 };
-
-const kScopeNumberSymbol = Symbol('kScopeNumberSymbol');

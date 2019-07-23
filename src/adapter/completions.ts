@@ -3,10 +3,11 @@
 
 import * as ts from 'typescript';
 import Dap from '../dap/api';
+import Cdp from '../cdp/api';
+import { StackFrame } from './stackTrace';
 import { positionToOffset } from '../utils/urlUtils';
-import { EvaluationContext } from './evaluation';
 
-export async function completions(evaluationContext: EvaluationContext, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
+export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
@@ -44,28 +45,30 @@ export async function completions(evaluationContext: EvaluationContext, expressi
   traverse(sourceFile);
 
   if (toevaluate)
-    return (await completePropertyAccess(evaluationContext, toevaluate, prefix!)) || [];
+    return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!)) || [];
 
   // No object to autocomplete on, fallback to globals.
   for (const global of ['self', 'global', 'this']) {
-    const items = await completePropertyAccess(evaluationContext, global, prefix || '');
+    const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix || '');
     if (!items)
       continue;
 
-    // When evaluating on a call frame, also autocomplete with scope variables.
-    const names = new Set(items.map(item => item.label));
-    for (const completion of await evaluationContext.completions()) {
-      if (names.has(completion.label))
-        continue;
-      names.add(completion.label);
-      items.push(completion);
+    if (stackFrame) {
+      // When evaluating on a call frame, also autocomplete with scope variables.
+      const names = new Set(items.map(item => item.label));
+      for (const completion of await stackFrame.completions()) {
+        if (names.has(completion.label))
+          continue;
+        names.add(completion.label);
+        items.push(completion);
+      }
     }
     return items;
   }
   return [];
 }
 
-async function completePropertyAccess(evaluationContext: EvaluationContext, expression: string, prefix: string): Promise<Dap.CompletionItem[] | undefined> {
+async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, prefix: string): Promise<Dap.CompletionItem[] | undefined> {
   const params = {
     expression: `
       (() => {
@@ -96,7 +99,9 @@ async function completePropertyAccess(evaluationContext: EvaluationContext, expr
     returnByValue: true
     // completePropertyAccess has numerous false positive side effects, so we can't use throwOnSideEffect.
   };
-  const response = await evaluationContext.evaluate(params);
+  const response = (stackFrame && stackFrame.callFrameId())
+    ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId: stackFrame.callFrameId()! })
+    : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
   if (!response || response.exceptionDetails)
     return;
 

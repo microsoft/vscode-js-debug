@@ -11,18 +11,6 @@ export function addTests(testRunner) {
   it('default', async ({ p }: { p: TestP }) => {
     await p.launchUrl('index.html');
 
-    await p.logger.logEvaluateResult(`true`);
-    p.log('');
-
-    await p.logger.logEvaluateResult(`false`);
-    p.log('');
-
-    await p.logger.logEvaluateResult(`0`);
-    p.log('');
-
-    await p.logger.logEvaluateResult(`undefined`);
-    p.log('');
-
     await p.logger.logEvaluateResult(`42`);
     p.log('');
 
