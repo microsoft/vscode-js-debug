@@ -1,4 +1,4 @@
-stdout> [32mobjects: (2) [{…}, {…}][0m  //  named=4
+stdout> [32mobjects: (2) [{…}, {…}][0m
 stdout>     length: 2  // type=number
 stdout>     __proto__: Array(0)  // type=Array named=1
 stdout>     0: Foo {value: 1}  // type=Foo

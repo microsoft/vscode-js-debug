@@ -6,7 +6,7 @@ stdout>
 ┊ one   ┊ John  ┊ Smith ┊
 ┊ two   ┊ Jane  ┊ Doe   ┊
 ┊ three ┊ Emily ┊ Jones ┊
-╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯  //  named=4
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(peopleObject2)'
 stdout> 
@@ -16,7 +16,7 @@ stdout>
 ┊ one   ┊ John  ┊ Smith ┊
 ┊ two   ┊ Jane  ┊ Doe   ┊
 ┊ three ┊ Emily ┊ Jones ┊
-╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯  //  named=4
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(peopleLongHeader)'
 stdout> 
@@ -26,7 +26,7 @@ stdout>
 ┊ one   ┊ John       ┊ Smith     ┊
 ┊ two   ┊ Jane       ┊ Doe       ┊
 ┊ three ┊ Emily      ┊ Jones     ┊
-╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄╯  //  named=4
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(peopleArray)'
 stdout> 
@@ -36,7 +36,7 @@ stdout>
 ┊ 0 ┊ John  ┊ Smith ┊
 ┊ 1 ┊ Jane  ┊ Doe   ┊
 ┊ 2 ┊ Emily ┊ Jones ┊
-╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯  //  named=5
+╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(trimEmptyColumn)'
 stdout> 
@@ -46,7 +46,7 @@ stdout>
 ┊ 0 ┊ John  ┊ Smith ┊
 ┊ 1 ┊ Jane  ┊ Doe   ┊
 ┊ 2 ┊ Emily ┊ Jones ┊
-╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯  //  named=5
+╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(cellOverflow)'
 stdout> 
@@ -56,7 +56,7 @@ stdout>
 ┊ one ┊ John                                                          ┊ Smith                                         ┊
 ┊ two ┊ Jane Jane Jane Jane Jane Jane Jane Jane Jane Jane …ane Jane … ┊ Doe Doe Doe Doe Doe Doe Doe DoeDoe DoeDoe Do… ┊
 ┊ th… ┊ Emily                                                         ┊ Jones                                         ┊
-╰┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯  //  named=4
+╰┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯
 
 Evaluating: 'console.table(longTableOverflow)'
 stdout> 
@@ -65,5 +65,5 @@ stdout>
 ├┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄…
 ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0  …
 ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1  …
-╰┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄…  //  named=4
+╰┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄…
 
