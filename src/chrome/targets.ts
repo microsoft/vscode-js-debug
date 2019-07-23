@@ -63,13 +63,12 @@ export class TargetManager implements ThreadManagerDelegate {
       if (!thread)
         continue;
       for (const context of thread.executionContexts()) {
-        const description = context.description();
-        const frameId = description.auxData ? description.auxData['frameId'] : undefined;
-        const isDefault = description.auxData ? description.auxData['isDefault'] : false;
+        const frameId = context.auxData ? context.auxData['frameId'] : undefined;
+        const isDefault = context.auxData ? context.auxData['isDefault'] : false;
         const frame = frameId ? this._frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
-          const dapContext = toDap(thread, description, name);
+          const dapContext = toDap(thread, context, name);
           mainForFrameId.set(frameId, dapContext);
           if (!frame.parentFrame)
             mainForTarget.set(target, dapContext);
@@ -79,7 +78,7 @@ export class TargetManager implements ThreadManagerDelegate {
             contexts = [];
             worldsForFrameId.set(frameId, contexts);
           }
-          contexts.push(toDap(thread, description));
+          contexts.push(toDap(thread, context));
         }
       }
     }
@@ -124,9 +123,9 @@ export class TargetManager implements ThreadManagerDelegate {
 
       // Put all contexts there.
       for (const context of thread.executionContexts()) {
-        if (reported.has(thread.threadId() + ':' + context.description().id))
+        if (reported.has(thread.threadId() + ':' + context.id))
           continue;
-        container.push(toDap(thread, context.description()));
+        container.push(toDap(thread, context));
       }
     }
     return result;

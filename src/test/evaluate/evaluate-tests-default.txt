@@ -1,11 +1,3 @@
-result: true  // type=boolean
-
-result: false  // type=boolean
-
-result: 0  // type=number
-
-result: undefined  // type=undefined
-
 result: 42  // type=number
 
 result: 'foo'  // type=string

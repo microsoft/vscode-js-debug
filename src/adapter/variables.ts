@@ -8,27 +8,35 @@ import Dap from '../dap/api';
 import { StackTrace } from './stackTrace';
 import * as errors from './errors';
 import * as nls from 'vscode-nls';
-import { EvaluationContext } from './evaluation';
 
 const localize = nls.loadMessageBundle();
 
 class RemoteObject {
   o: Cdp.Runtime.RemoteObject;
   objectId: Cdp.Runtime.RemoteObjectId;
-  context: EvaluationContext;
-  keepProperties?: boolean;
+  cdp: Cdp.Api;
 
-  constructor(context: EvaluationContext, object: Cdp.Runtime.RemoteObject) {
+  scopeRef?: ScopeRef;
+  // Scope remote object is never updated, even after changing local variables.
+  // So, we cache variables here and update locally.
+  scopeVariables?: Dap.Variable[];
+
+  constructor(cdp: Cdp.Api, object: Cdp.Runtime.RemoteObject) {
     this.o = object;
     this.objectId = object.objectId!;
-    this.context = context;
+    this.cdp = cdp;
   }
 
   wrap(object: Cdp.Runtime.RemoteObject): RemoteObject;
   wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined;
   wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined {
-    return object ? new RemoteObject(this.context, object) : undefined;
+    return object ? new RemoteObject(this.cdp, object) : undefined;
   }
+}
+
+export interface ScopeRef {
+  callFrameId: Cdp.Debugger.CallFrameId;
+  scopeNumber: number;
 }
 
 export interface VariableStoreDelegate {
@@ -36,13 +44,15 @@ export interface VariableStoreDelegate {
 }
 
 export class VariableStore {
+  private _cdp: Cdp.Api;
   private static _lastVariableReference: number = 0;
   private _referenceToVariables: Map<number, Dap.Variable[]> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
   private _referenceToObject: Map<number, RemoteObject> = new Map();
   private _delegate: VariableStoreDelegate;
 
-  constructor(delegate: VariableStoreDelegate) {
+  constructor(cdp: Cdp.Api, delegate: VariableStoreDelegate) {
+    this._cdp = cdp;
     this._delegate = delegate;
   }
 
@@ -57,13 +67,13 @@ export class VariableStore {
       return result;
 
     const object = this._referenceToObject.get(params.variablesReference);
-    const variables = object ? await this._getObjectVariables(object, params) : [];
-    if (object && object.keepProperties)
-      this._referenceToVariables.set(params.variablesReference, variables);
-    return variables;
+    return object ? this._getObjectVariables(object, params) : [];
   }
 
   async _getObjectVariables(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
+    if (object.scopeVariables)
+      return object.scopeVariables;
+
     if (objectPreview.isArray(object.o)) {
       if (params && params.filter === 'indexed')
         return this._getArraySlots(object, params);
@@ -73,7 +83,11 @@ export class VariableStore {
       const indexes = await this._getArraySlots(object, params);
       return names.concat(indexes);
     }
-    return this._getObjectProperties(object);
+
+    const variables = await this._getObjectProperties(object);
+    if (object.scopeRef)
+      object.scopeVariables = variables;
+    return variables;
   }
 
   async setVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
@@ -85,7 +99,9 @@ export class VariableStore {
     if (!expression)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
-    const evaluateResponse = await object.context.evaluate({ expression, silent: true, generatePreview: true });
+    // TODO(dgozman): this should be evaluateOnCallFrame for variables from a specific call frame,
+    // or pass selected execution context id otherwise.
+    const evaluateResponse = await object.cdp.Runtime.evaluate({ expression, silent: true });
     if (!evaluateResponse)
       return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
     if (evaluateResponse.exceptionDetails)
@@ -94,15 +110,33 @@ export class VariableStore {
     function release(error: Dap.Error): Dap.Error {
       const objectId = evaluateResponse!.result.objectId;
       if (objectId)
-        object!.context.thread().cdp().Runtime.releaseObject({ objectId });
+        object!.cdp.Runtime.releaseObject({ objectId });
       return error;
     }
 
-    const setResponse = await object.context.setVariableValue(object.o, params.name, evaluateResponse.result);
-    if (setResponse)
-      return release(errorFromException(setResponse));
+    if (object.scopeRef) {
+      const setResponse = await object.cdp.Debugger.setVariableValue({
+        callFrameId: object.scopeRef.callFrameId,
+        scopeNumber: object.scopeRef.scopeNumber,
+        variableName: params.name,
+        newValue: this._toCallArgument(evaluateResponse.result),
+      });
+      if (!setResponse)
+        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
+    } else {
+      const setResponse = await object.cdp.Runtime.callFunctionOn({
+        objectId: object.objectId,
+        functionDeclaration: `function(a, b) { this[a] = b; }`,
+        arguments: [this._toCallArgument(params.name), this._toCallArgument(evaluateResponse.result)],
+        silent: true
+      });
+      if (!setResponse)
+        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
+      if (setResponse.exceptionDetails)
+        return release(errorFromException(setResponse.exceptionDetails));
+    }
 
-    const variable = await this._createVariable(params.name, new RemoteObject(object.context, evaluateResponse.result));
+    const variable = await this._createVariable(params.name, new RemoteObject(object.cdp, evaluateResponse.result));
     const result = {
       value: variable.value,
       type: variable.type,
@@ -110,24 +144,25 @@ export class VariableStore {
       namedVariables: variable.namedVariables,
       indexedVariables: variable.indexedVariables,
     };
-
-    const variables = this._referenceToVariables.get(params.variablesReference);
-    if (variables) {
-      const index = variables.findIndex(v => v.name === params.name);
+    if (object.scopeVariables) {
+      const index = object.scopeVariables.findIndex(v => v.name === params.name);
       if (index !== -1)
-        variables[index] = variable;
+        object.scopeVariables[index] = variable;
     }
     return result;
   }
 
-  async createVariable(evaluationContext: EvaluationContext, value: Cdp.Runtime.RemoteObject, context?: string, keepProperties?: boolean): Promise<Dap.Variable> {
-    const object = new RemoteObject(evaluationContext, value);
-    if (keepProperties)
-      object.keepProperties = true;
-    return this._createVariable('', object, context);
+  async createVariable(value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
+    return this._createVariable('', new RemoteObject(this._cdp, value), context);
   }
 
-  async createVariableForOutput(evaluationContext: EvaluationContext, text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
+  async createScope(value: Cdp.Runtime.RemoteObject, scopeRef: ScopeRef): Promise<Dap.Variable> {
+    const object = new RemoteObject(this._cdp, value);
+    object.scopeRef = scopeRef;
+    return this._createVariable('', object);
+  }
+
+  async createVariableForOutput(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
     const rootObjectReference = ++VariableStore._lastVariableReference;
     const rootObjectVariable: Dap.Variable = {
       name: '',
@@ -139,14 +174,14 @@ export class VariableStore {
     const firstArg = args[0];
     if (args.length === 1 && firstArg.objectId && !objectPreview.primitiveSubtypes.has(firstArg.subtype)) {
       // Inline properties for single object parameters.
-      const object = new RemoteObject(evaluationContext, args[0]);
+      const object = new RemoteObject(this._cdp, args[0]);
       params.push(... await this._getObjectVariables(object));
     } else {
       const promiseParams: Promise<Dap.Variable>[] = [];
       for (let i = 0; i < args.length; ++i) {
         if (!args[i].objectId || objectPreview.primitiveSubtypes.has(args[i].subtype))
           continue;
-        promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(evaluationContext, args[i]), 'repl'));
+        promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
       }
       params.push(...await Promise.all(promiseParams));
     }
@@ -170,22 +205,22 @@ export class VariableStore {
     return resultReference;
   }
 
-  async clear(cdp: Cdp.Api) {
+  async clear() {
     this._referenceToVariables.clear();
     this._objectToReference.clear();
     this._referenceToObject.clear();
-    cdp.Runtime.releaseObjectGroup({ objectGroup: 'console' });
+    this._cdp.Runtime.releaseObjectGroup({ objectGroup: 'console' });
   }
 
   private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {
     const [ accessorsProperties, ownProperties] = await Promise.all([
-      object.context.thread().cdp().Runtime.getProperties({
+      object.cdp.Runtime.getProperties({
         objectId: object.objectId,
         accessorPropertiesOnly: true,
         ownProperties: false,
         generatePreview: true
       }),
-      object.context.thread().cdp().Runtime.getProperties({
+      object.cdp.Runtime.getProperties({
         objectId: object.objectId,
         ownProperties: true,
         generatePreview: true
@@ -264,7 +299,7 @@ export class VariableStore {
   }
 
   private async _getArrayProperties(object: RemoteObject): Promise<Dap.Variable[]> {
-    const response = await object.context.thread().cdp().Runtime.callFunctionOn({
+    const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
         function() {
@@ -289,7 +324,7 @@ export class VariableStore {
   }
 
   private async _getArraySlots(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
-    const response = await object.context.thread().cdp().Runtime.callFunctionOn({
+    const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
         function(start, count) {
@@ -369,7 +404,7 @@ export class VariableStore {
 
   private async _createArrayVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
     const variablesReference = this._createVariableReference(value);
-    const response = await value.context.thread().cdp().Runtime.callFunctionOn({
+    const response = await value.cdp.Runtime.callFunctionOn({
       objectId: value.objectId,
       functionDeclaration: `function() { return this.length; }`,
       objectGroup: 'console',
@@ -386,6 +421,17 @@ export class VariableStore {
       indexedVariables,
       namedVariables: 1  // do not count properties proactively
     };
+  }
+
+  _toCallArgument(value: string | Cdp.Runtime.RemoteObject): Cdp.Runtime.CallArgument {
+    if (typeof value === 'string')
+      return { value };
+    const object = value as Cdp.Runtime.RemoteObject;
+    if (object.objectId)
+      return { objectId: object.objectId };
+    if (object.unserializableValue)
+      return { unserializableValue: object.unserializableValue };
+    return { value: object.value };
   }
 }
 
