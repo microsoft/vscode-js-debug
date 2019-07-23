@@ -1,8 +1,10 @@
 # Features
 
-- Attaching to all threads: page, out of process iframes, web workers, related service workers.
+- Attaching to all threads: page, out of process iframes, web workers, related service workers
 
     <img width="284" alt="Screen Shot 2019-07-22 at 9 46 54 PM" src="https://user-images.githubusercontent.com/883973/61683502-8b2f1280-acca-11e9-88ab-15fc0f08c5ee.png">
+
+- Unified console for everything
 
     <img width="504" alt="Screen Shot 2019-07-22 at 9 54 30 PM" src="https://user-images.githubusercontent.com/883973/61683685-4d7eb980-accb-11e9-959a-cc33eff6f9c6.png">
 
