@@ -111,6 +111,7 @@ export function addTests(testRunner) {
       p.cdp.Runtime.evaluate({expression: `
         (function foo() {
           let y = 'value of y';
+          let z = 'value of z';
           debugger;
         })()
       `});
@@ -129,8 +130,8 @@ export function addTests(testRunner) {
 
       await p.logger.logVariable(v);
 
-      p.log(`\nSetting "y" to "'bar'"`);
-      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'y', value: `'bar'`});
+      p.log(`\nSetting "y" to "z"`);
+      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'y', value: `z`});
 
       const v2: Dap.Variable = {...response, variablesReference: response.variablesReference || 0, name: '<result>'};
       await p.logger.logVariable(v2);
