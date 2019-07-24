@@ -39,6 +39,8 @@ export class ServiceWorkerVersion  {
   }
 }
 
+export type ServiceWorkerMode = 'default' | 'bypass' | 'force';
+
 export class ServiceWorkerModel {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
   private _statuses = new Map<Cdp.Target.TargetID, Cdp.ServiceWorker.ServiceWorkerVersionStatus>();
@@ -46,19 +48,35 @@ export class ServiceWorkerModel {
   private _cdp: Cdp.Api;
   private _onDidChangeUpdater = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChangeUpdater.event;
+  private _targets = new Set<Cdp.Api>();
+  private static _mode: ServiceWorkerMode;
+  private static _instances = new Set<ServiceWorkerModel>();
 
   constructor(frameModel: FrameModel) {
     this._frameModel = frameModel;
+    ServiceWorkerModel._instances.add(this);
+  }
+
+  dispose() {
+    // TODO: call this.
+    ServiceWorkerModel._instances.delete(this);
   }
 
   async addTarget(cdp: Cdp.Api) {
+    this._targets.add(cdp);
     if (this._cdp)
       return;
     // Use first available target connection.
+    this._cdp = cdp;
     await cdp.ServiceWorker.enable({});
     cdp.ServiceWorker.on('workerRegistrationUpdated', event => this._workerRegistrationsUpdated(event.registrations));
     cdp.ServiceWorker.on('workerVersionUpdated', event => this._workerVersionsUpdated(event.versions));
-    this._cdp = cdp;
+    if (ServiceWorkerModel._mode !== 'default')
+      this.setMode(ServiceWorkerModel._mode);
+  }
+
+  async removeTarget(cdp: Cdp.Api) {
+    this._targets.delete(cdp);
   }
 
   versionStatus(targetId: Cdp.Target.TargetID): string | undefined {
@@ -114,5 +132,23 @@ export class ServiceWorkerModel {
       }
     }
     this._onDidChangeUpdater.fire();
+  }
+
+  static setModeForAll(mode: ServiceWorkerMode) {
+    ServiceWorkerModel._mode = mode;
+    for (const instance of ServiceWorkerModel._instances)
+      instance.setMode(mode);
+  }
+
+  setMode(mode: ServiceWorkerMode) {
+    if (!this._cdp)
+        return;
+    this._cdp.ServiceWorker.setForceUpdateOnPageLoad({ forceUpdateOnPageLoad: mode === 'force' });
+    for (const cdp of this._targets.values()) {
+      if (mode === 'bypass')
+        cdp.Network.enable({}).then(() => cdp.Network.setBypassServiceWorker({ bypass: true }));
+      else
+        cdp.Network.disable({});
+    }
   }
 }

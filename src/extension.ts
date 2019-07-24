@@ -18,9 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
   const factory = new AdapterFactory(context);
   new LocationRevealerUI(context, factory);
-  registerCustomBreakpointsUI(factory);
+  registerCustomBreakpointsUI(context, factory);
   registerExecutionContextsUI(factory);
-  registerServiceWorkersUI(factory);
+  registerServiceWorkersUI(context, factory);
   registerPrettyPrintActions(context, factory);
 }
 
