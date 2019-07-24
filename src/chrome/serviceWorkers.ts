@@ -39,7 +39,7 @@ export class ServiceWorkerVersion  {
   }
 }
 
-export type ServiceWorkerMode = 'default' | 'bypass' | 'force';
+export type ServiceWorkerMode = 'normal' | 'bypass' | 'force';
 
 export class ServiceWorkerModel {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
@@ -71,7 +71,7 @@ export class ServiceWorkerModel {
     await cdp.ServiceWorker.enable({});
     cdp.ServiceWorker.on('workerRegistrationUpdated', event => this._workerRegistrationsUpdated(event.registrations));
     cdp.ServiceWorker.on('workerVersionUpdated', event => this._workerVersionsUpdated(event.versions));
-    if (ServiceWorkerModel._mode !== 'default')
+    if (ServiceWorkerModel._mode !== 'normal')
       this.setMode(ServiceWorkerModel._mode);
   }
 
