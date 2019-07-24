@@ -324,6 +324,7 @@ export namespace Dap {
      * - frontend sends one 'configurationDone' request to indicate the end of the configuration.
      */
     on(request: 'initialized', handler: (params: InitializedEventParams) => void);
+    off(request: 'initialized', handler: (params: InitializedEventParams) => void);
     once(request: 'initialized', filter?: (event: InitializedEventParams) => boolean): Promise<InitializedEventParams>;
 
     /**
@@ -331,6 +332,7 @@ export namespace Dap {
      * This can be caused by a break point previously set, a stepping action has completed, by executing a debugger statement etc.
      */
     on(request: 'stopped', handler: (params: StoppedEventParams) => void);
+    off(request: 'stopped', handler: (params: StoppedEventParams) => void);
     once(request: 'stopped', filter?: (event: StoppedEventParams) => boolean): Promise<StoppedEventParams>;
 
     /**
@@ -339,54 +341,63 @@ export namespace Dap {
      * It is only necessary to send a 'continued' event if there was no previous request that implied this.
      */
     on(request: 'continued', handler: (params: ContinuedEventParams) => void);
+    off(request: 'continued', handler: (params: ContinuedEventParams) => void);
     once(request: 'continued', filter?: (event: ContinuedEventParams) => boolean): Promise<ContinuedEventParams>;
 
     /**
      * The event indicates that the debuggee has exited and returns its exit code.
      */
     on(request: 'exited', handler: (params: ExitedEventParams) => void);
+    off(request: 'exited', handler: (params: ExitedEventParams) => void);
     once(request: 'exited', filter?: (event: ExitedEventParams) => boolean): Promise<ExitedEventParams>;
 
     /**
      * The event indicates that debugging of the debuggee has terminated. This does **not** mean that the debuggee itself has exited.
      */
     on(request: 'terminated', handler: (params: TerminatedEventParams) => void);
+    off(request: 'terminated', handler: (params: TerminatedEventParams) => void);
     once(request: 'terminated', filter?: (event: TerminatedEventParams) => boolean): Promise<TerminatedEventParams>;
 
     /**
      * The event indicates that a thread has started or exited.
      */
     on(request: 'thread', handler: (params: ThreadEventParams) => void);
+    off(request: 'thread', handler: (params: ThreadEventParams) => void);
     once(request: 'thread', filter?: (event: ThreadEventParams) => boolean): Promise<ThreadEventParams>;
 
     /**
      * The event indicates that the target has produced some output.
      */
     on(request: 'output', handler: (params: OutputEventParams) => void);
+    off(request: 'output', handler: (params: OutputEventParams) => void);
     once(request: 'output', filter?: (event: OutputEventParams) => boolean): Promise<OutputEventParams>;
 
     /**
      * The event indicates that some information about a breakpoint has changed.
      */
     on(request: 'breakpoint', handler: (params: BreakpointEventParams) => void);
+    off(request: 'breakpoint', handler: (params: BreakpointEventParams) => void);
     once(request: 'breakpoint', filter?: (event: BreakpointEventParams) => boolean): Promise<BreakpointEventParams>;
 
     /**
      * The event indicates that some information about a module has changed.
      */
     on(request: 'module', handler: (params: ModuleEventParams) => void);
+    off(request: 'module', handler: (params: ModuleEventParams) => void);
     once(request: 'module', filter?: (event: ModuleEventParams) => boolean): Promise<ModuleEventParams>;
 
     /**
      * The event indicates that some source has been added, changed, or removed from the set of all loaded sources.
      */
     on(request: 'loadedSource', handler: (params: LoadedSourceEventParams) => void);
+    off(request: 'loadedSource', handler: (params: LoadedSourceEventParams) => void);
     once(request: 'loadedSource', filter?: (event: LoadedSourceEventParams) => boolean): Promise<LoadedSourceEventParams>;
 
     /**
      * The event indicates that the debugger has begun debugging a new process. Either one that it has launched, or one that it has attached to.
      */
     on(request: 'process', handler: (params: ProcessEventParams) => void);
+    off(request: 'process', handler: (params: ProcessEventParams) => void);
     once(request: 'process', filter?: (event: ProcessEventParams) => boolean): Promise<ProcessEventParams>;
 
     /**
@@ -396,6 +407,7 @@ export namespace Dap {
      * Only changed capabilities need to be included, all other capabilities keep their values.
      */
     on(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void);
+    off(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void);
     once(request: 'capabilities', filter?: (event: CapabilitiesEventParams) => boolean): Promise<CapabilitiesEventParams>;
 
     /**
