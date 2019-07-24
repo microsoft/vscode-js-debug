@@ -99,9 +99,9 @@ export class VariableStore {
     if (!expression)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
-    // TODO(dgozman): this should be evaluateOnCallFrame for variables from a specific call frame,
-    // or pass selected execution context id otherwise.
-    const evaluateResponse = await object.cdp.Runtime.evaluate({ expression, silent: true });
+    const evaluateResponse = object.scopeRef
+        ? await object.cdp.Debugger.evaluateOnCallFrame({ expression, callFrameId: object.scopeRef.callFrameId })
+        : await object.cdp.Runtime.evaluate({ expression, silent: true });
     if (!evaluateResponse)
       return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
     if (evaluateResponse.exceptionDetails)

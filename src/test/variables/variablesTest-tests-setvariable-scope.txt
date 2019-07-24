@@ -6,10 +6,12 @@ stopped: {
 }
 > scope: foo
     y: 'value of y'  // type=string
+    z: 'value of z'  // type=string
 
-Setting "y" to "'bar'"
-<result>: 'bar'  // type=string
+Setting "y" to "z"
+<result>: 'value of z'  // type=string
 
 Original
 > scope: foo
-    y: 'bar'  // type=string
+    y: 'value of z'  // type=string
+    z: 'value of z'  // type=string

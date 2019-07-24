@@ -125,7 +125,7 @@ export function addStartupTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit} = testRunner;
 
-  fit('events', async({goldenText}: {goldenText: GoldenText}) => {
+  it('events', async({goldenText}: {goldenText: GoldenText}) => {
     const p = new TestP(goldenText);
     p.dap.on('thread', e => {
       if (e.reason === 'started')
@@ -148,7 +148,7 @@ export function addStartupTests(testRunner) {
     p.log(await p.dap.threads({}), 'Requesting threads: ');
 
     p.log('Disconnecting');
-    const [_, exited] = await Promise.all([
+    const [, exited] = await Promise.all([
       p.disconnect(),
       p.dap.once('thread', e => e.reason === 'exited' && e.threadId === threadId)
     ]);
