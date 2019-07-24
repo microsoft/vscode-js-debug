@@ -41,7 +41,7 @@ export class NodeAdapter implements ThreadManagerDelegate, DisposableAdapterOwne
   private _isRestarting: boolean;
 
   static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DisposableAdapterOwner> {
-    return new Promise(f => {
+    return new Promise<DisposableAdapterOwner>(f => {
       const adapter = new NodeAdapter(dap, rootPath, () => f(adapter));
     });
   }

@@ -40,7 +40,7 @@ export interface ExecutionContextTree {
   children: ExecutionContextTree[];
 }
 
-export type Script = { scriptId: string, source: Source, thread: Thread };
+export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
 let lastThreadId = 0;
 
@@ -73,6 +73,9 @@ export class ThreadManager {
   private _defaultDelegate: DefaultThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
+
+  // url => (hash => Source)
+  private _scriptSources = new Map<string, Map<string, Source>>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer) {
     this._dap = dap;
@@ -193,6 +196,27 @@ export class ThreadManager {
 
   scriptsFromSource(source: Source): Set<Script> {
     return source[kScriptsSymbol] || new Set();
+  }
+
+  _addSourceForScript(url: string, hash: string, source: Source) {
+    let map = this._scriptSources.get(url);
+    if (!map) {
+      map = new Map();
+      this._scriptSources.set(url, map);
+    }
+    map.set(hash, source);
+  }
+
+  _getSourceForScript(url: string, hash: string): Source | undefined {
+    const map = this._scriptSources.get(url);
+    return map ? map.get(hash) : undefined;
+  }
+
+  _removeSourceForScript(url: string, hash: string) {
+    const map = this._scriptSources.get(url)!;
+    map.delete(hash);
+    if (!map.size)
+      this._scriptSources.delete(url);
   }
 }
 
@@ -675,14 +699,20 @@ export class Thread implements VariableStoreDelegate {
     for (const script of scripts) {
       const set = script.source[kScriptsSymbol];
       set.delete(script);
-      if (!set.size)
+      if (!set.size) {
         this.sourceContainer.removeSource(script.source);
+        this.manager._removeSourceForScript(script.source.url(), script.hash);
+      }
     }
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     event.url = this.manager._sourcePathResolver.scriptUrlToUrl(event.url);
-    let source = event.url ? this.sourceContainer.sourceByUrl(event.url) : undefined;
+
+    let source: Source | undefined;
+    if (event.url && event.hash)
+      source = this.manager._getSourceForScript(event.url, event.hash);
+
     if (!source) {
       const contentGetter = async () => {
         const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
@@ -700,10 +730,12 @@ export class Thread implements VariableStoreDelegate {
         if (!resolvedSourceMapUrl)
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }
-      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset);
+
+      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, event.hash);
+      this.manager._addSourceForScript(event.url, event.hash, source);
     }
 
-    const script = { scriptId: event.scriptId, source, thread: this };
+    const script = { scriptId: event.scriptId, source, hash: event.hash, thread: this };
     this._scripts.set(event.scriptId, script);
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();

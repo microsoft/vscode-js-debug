@@ -70,4 +70,32 @@ export function addTests(testRunner) {
     await p.logger.logOutput(await p.dap.once('output'));
     p.assertLog();
   });
+
+  it('url and hash', async({p}: {p: TestP}) => {
+    await p.launchUrl('index.html');
+
+    p.cdp.Runtime.evaluate({expression: 'a\n//# sourceURL=foo.js'});
+    await dumpSource(p, await p.waitForSource('foo.js'), 'foo.js');
+
+    // Same url, different content => different source.
+    p.cdp.Runtime.evaluate({expression: 'b\n//# sourceURL=foo.js'});
+    await dumpSource(p, await p.waitForSource('foo.js'), 'foo.js');
+
+    // Same url, same content => same sources.
+    await p.cdp.Runtime.evaluate({expression: 'a\n//# sourceURL=foo.js'});
+    await p.cdp.Runtime.evaluate({expression: 'b\n//# sourceURL=foo.js'});
+
+    // Content matches => maps to file.
+    p.addScriptTag('empty.js');
+    await dumpSource(p, await p.waitForSource('empty.js'), 'empty.js');
+
+    // Content does not match => debugger script.
+    const path = p.workspacePath('web/empty2.js');
+    p.adapter.sourceContainer.setFileContentOverrideForTest(path, '123');
+    p.addScriptTag('empty2.js');
+    await dumpSource(p, await p.waitForSource('empty2.js'), 'empty2.js');
+
+    p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
+    p.assertLog();
+  });
 }

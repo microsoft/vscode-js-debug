@@ -9,6 +9,7 @@ import { URL } from 'url';
 import * as path from 'path';
 import * as errors from './errors';
 import { prettyPrintAsSourceMap } from './prettyPrint';
+import { calculateHash } from './hash';
 
 // This is a ui location. Usually it corresponds to a position
 // in the document user can see (Source, Dap.Source). When no source
@@ -91,6 +92,7 @@ export class Source {
 
   _sourceReference: number;
   _url: string;
+  _contentHash?: string;
   _name: string;
   _fqname: string;
   _contentGetter: ContentGetter;
@@ -118,9 +120,10 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset) {
+  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
+    this._contentHash = contentHash;
     this._contentGetter = contentGetter;
     this._sourceMapUrl = sourceMapUrl;
     this._inlineScriptOffset = inlineScriptOffset;
@@ -128,7 +131,7 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._absolutePath = container._sourcePathResolver.urlToAbsolutePath(url);
-    this._existingAbsolutePath = checkExists(this._absolutePath);
+    this._existingAbsolutePath = checkContentHash(this._absolutePath, this._contentHash, container._fileContentOverrides.get(this._absolutePath));
   }
 
   url(): string {
@@ -243,7 +246,6 @@ export class SourceContainer {
   _sourcePathResolver: SourcePathResolver;
 
   private _sourceByReference: Map<number, Source> = new Map();
-  private _compiledByUrl: Map<string, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
   private _sourceByAbsolutePath: Map<string, Source> = new Map();
 
@@ -251,6 +253,8 @@ export class SourceContainer {
   _sourceMaps: Map<string, SourceMapData> = new Map();
   private _revealer?: LocationRevealer;
   private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
+
+  _fileContentOverrides = new Map<string, string>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
     this._dap = dap;
@@ -263,6 +267,13 @@ export class SourceContainer {
 
   sourceMapTimeouts(): SourceMapTimeouts {
     return this._sourceMapTimeouts;
+  }
+
+  setFileContentOverrideForTest(absolutePath: string, content?: string) {
+    if (content === undefined)
+      this._fileContentOverrides.delete(absolutePath);
+    else
+      this._fileContentOverrides.set(absolutePath, content);
   }
 
   installRevealer(revealer: LocationRevealer) {
@@ -279,10 +290,6 @@ export class SourceContainer {
     if (ref.path)
       return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
-  }
-
-  sourceByUrl(url: string): Source | undefined {
-    return this._compiledByUrl.get(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -392,9 +399,8 @@ export class SourceContainer {
     }
   }
 
-  addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset): Source {
-    console.assert(!url || !this._compiledByUrl.has(url));
-    const source = new Source(this, url, contentGetter, sourceMapUrl, inlineSourceRange);
+  addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
+    const source = new Source(this, url, contentGetter, sourceMapUrl, inlineSourceRange, contentHash);
     this._addSource(source);
     return source;
   }
@@ -403,8 +409,6 @@ export class SourceContainer {
     this._sourceByReference.set(source.sourceReference(), source);
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.set(source._url, source);
-    else if (source._url)
-      this._compiledByUrl.set(source._url, source);
     this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(payload => {
       this._dap.loadedSource({ reason: 'new', source: payload });
@@ -450,8 +454,6 @@ export class SourceContainer {
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.delete(source._url);
-    else if (source._url)
-      this._compiledByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     source.toDap().then(payload => {
       this._dap.loadedSource({ reason: 'removed', source: payload });
@@ -536,6 +538,24 @@ async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapCo
   return await new sourcemap.SourceMapConsumer(content);
 }
 
-function checkExists(absolutePath: string): Promise<string | undefined> {
-  return new Promise(f => fs.exists(absolutePath, exists => f(exists ? absolutePath : undefined)));
+function checkContentHash(absolutePath: string, contentHash?: string, contentOverride?: string): Promise<string | undefined> {
+  return new Promise(f => {
+    if (!contentHash) {
+      fs.exists(absolutePath, exists => {
+        f(exists ? absolutePath : undefined);
+      });
+      return;
+    }
+
+    fs.readFile(absolutePath, 'utf8', (err, content) => {
+      if (err) {
+        f(undefined);
+        return;
+      }
+      if (contentOverride !== undefined)
+        content = contentOverride;
+      const hash = calculateHash(content);
+      f(hash === contentHash ? absolutePath : undefined);
+    });
+  });
 }

@@ -39,7 +39,7 @@ export class ChromeAdapter implements DisposableAdapterOwner {
   private _adapterReadyCallback: () => void;
 
   static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<DisposableAdapterOwner> {
-    return new Promise(f => {
+    return new Promise<DisposableAdapterOwner>(f => {
       const adapter = new ChromeAdapter(dap, storagePath, rootPath, () => f(adapter));
     });
   }
