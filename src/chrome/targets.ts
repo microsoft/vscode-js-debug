@@ -16,7 +16,7 @@ const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class TargetManager implements ThreadManagerDelegate {
+export class TargetManager implements ThreadManagerDelegate, vscode.Disposable {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: Cdp.Api;
@@ -37,6 +37,10 @@ export class TargetManager implements ThreadManagerDelegate {
       this._targetInfoChanged(event.targetInfo);
     });
     this.serviceWorkerModel.onDidChange(() => this._serviceWorkersStatusChanged());
+  }
+
+  dispose() {
+    this.serviceWorkerModel.dispose();
   }
 
   targets(): Target[] {

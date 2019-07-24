@@ -41,7 +41,7 @@ export class ServiceWorkerVersion  {
 
 export type ServiceWorkerMode = 'normal' | 'bypass' | 'force';
 
-export class ServiceWorkerModel {
+export class ServiceWorkerModel implements vscode.Disposable {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
   private _statuses = new Map<Cdp.Target.TargetID, Cdp.ServiceWorker.ServiceWorkerVersionStatus>();
   private _frameModel: FrameModel;
@@ -58,7 +58,6 @@ export class ServiceWorkerModel {
   }
 
   dispose() {
-    // TODO: call this.
     ServiceWorkerModel._instances.delete(this);
   }
 
