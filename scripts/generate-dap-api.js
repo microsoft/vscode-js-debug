@@ -160,6 +160,7 @@ async function generate() {
         apiSeparator();
         appendText(desc.description, '    ');
         result.push(`    on(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void);`);
+        result.push(`    off(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void);`);
         result.push(`    once(request: '${desc.properties.event.enum[0]}', filter?: (event: ${name}Params) => boolean): Promise<${name}Params>;`);
       }
       if (ref['$ref'] === '#/definitions/Request' && desc.title !== 'Reverse Requests') {

@@ -124,9 +124,12 @@ export function addStartupTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit} = testRunner;
 
-  it('events', async({goldenText}: {goldenText: GoldenText}) => {
+  fit('events', async({goldenText}: {goldenText: GoldenText}) => {
     const p = new TestP(goldenText);
-    p.dap.on('thread', e => p.log(e, 'Thread event: '));
+    p.dap.on('thread', e => {
+      if (e.reason === 'started')
+        p.log(e, 'Thread started: ');
+    });
 
     p.log('Initializing');
     // Initializing does not create a thread.
@@ -135,20 +138,20 @@ export function addStartupTests(testRunner) {
     p.log('Launching');
     // One thread during launch.
     const launch = p.launch('blank');
-    await p.dap.once('thread');
+    const {threadId} = await p.dap.once('thread', e => e.reason === 'started');
 
-    p.log('Requesting threads');
-    p.log(await p.dap.threads({}));
+    p.log(await p.dap.threads({}), 'Requesting threads: ');
 
     await launch;
-    p.log('Launched, requesting threads');
-    p.log(await p.dap.threads({}));
+    p.log('Launched');
+    p.log(await p.dap.threads({}), 'Requesting threads: ');
 
     p.log('Disconnecting');
-    await Promise.all([
+    const [_, exited] = await Promise.all([
       p.disconnect(),
-      p.dap.once('thread')
+      p.dap.once('thread', e => e.reason === 'exited' && e.threadId === threadId)
     ]);
+    p.log(exited, 'Thread exited: ');
     p.assertLog();
   });
 }
