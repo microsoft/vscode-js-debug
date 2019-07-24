@@ -19,9 +19,9 @@ export function registerServiceWorkersUI(context: vscode.ExtensionContext, facto
   context.subscriptions.push(vscode.commands.registerCommand('pwa.changeServiceWorkersMode', async e => {
     const quickPick = vscode.window.createQuickPick<QuickPickItem>();
     quickPick.items = [
-      { value: 'default', label: 'default', description: 'Service Worker controls the page' },
-      { value: 'bypass', label: 'bypass for network', description: 'Best for the live front-end & UI development' },
-      { value: 'force', label: 'force update on load', description: 'Best for the Service Worker development & debugging' }
+      { value: 'normal', label: 'NORMAL', description: 'Service Worker controls the page' },
+      { value: 'bypass', label: 'BYPASS', description: 'Bypass SW for network. Best for the live front-end & UI development' },
+      { value: 'force', label: 'FORCE UPDATE', description: 'Update SW on reload. Best for the Service Worker development & debugging' }
     ];
     quickPick.onDidAccept(e => {
       treeDataProvider.setMode(quickPick.selectedItems[0]);
@@ -42,7 +42,7 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
 
   constructor(factory: AdapterFactory) {
     factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter));
-    this._modeItem = new vscode.TreeItem('Mode: default', vscode.TreeItemCollapsibleState.None);
+    this._modeItem = new vscode.TreeItem('Mode: NORMAL', vscode.TreeItemCollapsibleState.None);
     this._modeItem.contextValue = 'pwa.serviceWorkerMode';
   }
 
