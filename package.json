@@ -62,9 +62,20 @@
   "main": "./out/extension",
   "activationEvents": [
     "onDebug",
-    "onView:pwa.breakpoints"
+    "onView:pwa.breakpoints",
+    "onView:pwa.serviceWorkers",
+    "onView:pwa.cacheStorage"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pwa",
+          "title": "PWA",
+          "icon": "resources/pwa.svg"
+        }
+      ]
+    },
     "views": {
       "debug": [
         {
@@ -74,6 +85,16 @@
         {
           "id": "pwa.executionContexts",
           "name": "Execution contexts"
+        }
+      ],
+      "pwa": [
+        {
+          "id": "pwa.serviceWorkers",
+          "name": "Service Workers"
+        },
+        {
+          "id": "pwa.cacheStorage",
+          "name": "Cache Storage"
         }
       ]
     },

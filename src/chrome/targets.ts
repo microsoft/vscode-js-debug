@@ -19,8 +19,8 @@ export class TargetManager implements ThreadManagerDelegate {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: Cdp.Api;
-  _frameModel = new FrameModel();
-  _serviceWorkerModel = new ServiceWorkerModel(() => this._serviceWorkersStatusChanged());
+  readonly frameModel = new FrameModel();
+  readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _threadManager: ThreadManager;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
@@ -35,6 +35,7 @@ export class TargetManager implements ThreadManagerDelegate {
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
+    this.serviceWorkerModel.onDidChange(() => this._serviceWorkersStatusChanged());
   }
 
   targets(): Target[] {
@@ -64,7 +65,7 @@ export class TargetManager implements ThreadManagerDelegate {
       for (const context of thread.executionContexts()) {
         const frameId = context.auxData ? context.auxData['frameId'] : undefined;
         const isDefault = context.auxData ? context.auxData['isDefault'] : false;
-        const frame = frameId ? this._frameModel.frameForId(frameId) : undefined;
+        const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
           const dapContext = toDap(thread, context, name);
@@ -99,7 +100,7 @@ export class TargetManager implements ThreadManagerDelegate {
     };
 
     const result: ExecutionContextTree[] = [];
-    const mainFrame = this._frameModel.mainFrame();
+    const mainFrame = this.frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
 
@@ -271,9 +272,9 @@ export class Target {
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread)
       this._thread.initialize();
-    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager._frameModel.addTarget(this._cdp))
+    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager.frameModel.addTarget(this._cdp))
       return false;
-    await this._manager._serviceWorkerModel.addTarget(this._cdp);
+    await this._manager.serviceWorkerModel.addTarget(this._cdp);
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;
     return true;
@@ -300,7 +301,7 @@ export class Target {
 
     let serviceWorkerStatus: string | undefined;
     if (this._targetInfo.type === 'worker' && this.parentTarget)
-      serviceWorkerStatus = this._manager._serviceWorkerModel.versionStatus(this.parentTarget.targetId());
+      serviceWorkerStatus = this._manager.serviceWorkerModel.versionStatus(this.parentTarget.targetId());
 
     let threadName = icon;
     try {

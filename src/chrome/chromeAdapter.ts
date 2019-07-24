@@ -25,6 +25,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 }
 
 export class ChromeAdapter {
+  static symbol = Symbol('ChromeAdapter');
   private _dap: Dap.Api;
   private _connection: CdpConnection;
   private _configurator: Configurator;
@@ -101,6 +102,7 @@ export class ChromeAdapter {
     this._launchParams = params;
 
     this._adapter = new Adapter(this._dap, new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot));
+    this._adapter[ChromeAdapter.symbol] = this;
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
     this._adapter.threadManager.setDelegate(this._targetManager);
     await this._adapter.configure(this._configurator);
