@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerExecutionContextsUI } from './ui/executionContextsUI';
+import { registerServiceWorkersUI } from './ui/serviceWorkersUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { AdapterFactory } from './adapterFactory';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
   new LocationRevealerUI(context, factory);
   registerCustomBreakpointsUI(factory);
   registerExecutionContextsUI(factory);
+  registerServiceWorkersUI(factory);
   registerPrettyPrintActions(context, factory);
 }
 

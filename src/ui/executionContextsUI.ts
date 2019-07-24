@@ -21,7 +21,7 @@ export function registerExecutionContextsUI(factory: AdapterFactory) {
 }
 
 class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionContextTree> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<ExecutionContextTree | undefined>();
+  private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _contexts: ExecutionContextTree[] = [];
   private _disposables: vscode.Disposable[] = [];
