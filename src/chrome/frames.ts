@@ -27,6 +27,10 @@ export class FrameModel {
     return true;
   }
 
+  async removeTarget(cdp: Cdp.Api) {
+    await cdp.Page.disable({});
+  }
+
   mainFrame(): Frame | undefined {
     return this._mainFrame;
   }

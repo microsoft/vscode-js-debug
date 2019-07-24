@@ -323,6 +323,8 @@ export class Target {
   _dispose() {
     if (this._thread)
       this._thread.dispose();
+    this._manager.frameModel.removeTarget(this._cdp);
+    this._manager.serviceWorkerModel.removeTarget(this._cdp);
     this._ondispose(this);
   }
 

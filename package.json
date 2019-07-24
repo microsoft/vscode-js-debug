@@ -126,6 +126,14 @@
       {
         "command": "pwa.prettyPrint",
         "title": "Pretty print for debugging"
+      },
+      {
+        "command": "pwa.changeServiceWorkersMode",
+        "title": "Configure Service Workers Mode",
+        "icon": {
+          "light": "resources/configure-light.svg",
+          "dark": "resources/configure-dark.svg"
+        }
       }
     ],
     "menus": {
@@ -158,6 +166,11 @@
         {
           "command": "pwa.removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
+        },
+        {
+          "command": "pwa.changeServiceWorkersMode",
+          "when": "view == pwa.serviceWorkers && viewItem == pwa.serviceWorkerMode",
+          "group": "inline"
         }
       ]
     },

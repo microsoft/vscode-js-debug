@@ -12,7 +12,7 @@ import { Source } from './adapter/sources';
 import Dap from './dap/api';
 
 export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
-  readonly context: vscode.ExtensionContext;
+  private _context: vscode.ExtensionContext;
   private _sessions = new Map<string, { session: vscode.DebugSession, server: Net.Server, adapter: Adapter }>();
   private _disposables: vscode.Disposable[];
   private _activeAdapter?: Adapter;
@@ -25,7 +25,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   readonly onActiveAdapterChanged = this._onActiveAdapterChangedEmitter.event;
 
   constructor(context: vscode.ExtensionContext) {
-    this.context = context;
+    this._context = context;
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('pwa', this));
     context.subscriptions.push(this);
 
@@ -78,7 +78,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
         rootPath = session.workspaceFolder.uri.path;
       const adapter = session.configuration['runtimeExecutable'] ?
         await NodeAdapter.create(connection.dap(), rootPath) :
-        await ChromeAdapter.create(connection.dap(), this.context.storagePath || this.context.extensionPath, rootPath);
+        await ChromeAdapter.create(connection.dap(), this._context.storagePath || this._context.extensionPath, rootPath);
       this._sessions.set(session.id, { session, server, adapter });
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);

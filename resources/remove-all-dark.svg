@@ -1,5 +1,6 @@
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
-<defs><style>.icon-canvas-transparent,.icon-vs-out{fill:#252526}.icon-canvas-transparent{opacity:0}.icon-vs-bg{fill:#c5c5c5}</style>
-</defs><title>remove-all</title><path class='icon-canvas-transparent' d='M16 0v16H0V0z' id='canvas'/>
+<defs><style>.icon-canvas-transparent,.icon-vs-out{fill:#252526}.icon-canvas-transparent{opacity:0}.icon-vs-bg{fill:#c5c5c5}</style></defs>
+<title>remove-all</title>
+<path class='icon-canvas-transparent' d='M16 0v16H0V0z' id='canvas'/>
 <path class='icon-vs-bg' d='M15 2v9h-1V3H5V2zM3 5h9v8h1V4H3zM1 6h10v9H1zm4.116 4.5l-2.058 2.058.884.884L6 11.384l2.058 2.058.884-.884L6.884 10.5l2.058-2.058-.884-.884L6 9.616 3.942 7.558l-.884.884z' id='iconBg'/>
 </svg>
