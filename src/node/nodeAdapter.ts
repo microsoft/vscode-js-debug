@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
-import { Adapter } from '../adapter/adapter';
+import { Adapter, DisposableAdapterOwner } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
@@ -26,12 +26,12 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
-export class NodeAdapter implements ThreadManagerDelegate {
+export class NodeAdapter implements ThreadManagerDelegate, DisposableAdapterOwner {
   private _dap: Dap.Api;
   private _configurator: Configurator;
   private _rootPath: string | undefined;
   private _adapter: Adapter;
-  private _adapterReadyCallback: (adapter: Adapter) => void;
+  private _adapterReadyCallback: () => void;
   private _server: net.Server | undefined;
   private _runtime: ChildProcess | undefined;
   private _connections: Connection[] = [];
@@ -40,11 +40,13 @@ export class NodeAdapter implements ThreadManagerDelegate {
   private _targets = new Map<string, Thread>();
   private _isRestarting: boolean;
 
-  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<Adapter> {
-    return new Promise<Adapter>(f => new NodeAdapter(dap, rootPath, f));
+  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DisposableAdapterOwner> {
+    return new Promise(f => {
+      const adapter = new NodeAdapter(dap, rootPath, () => f(adapter));
+    });
   }
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: Adapter) => void) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: () => void) {
     this._dap = dap;
     this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
@@ -54,6 +56,14 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
     this._dap.on('restart', params => this._onRestart(params));
+  }
+
+  dispose() {
+    this._stopServer();
+  }
+
+  adapter(): Adapter {
+    return this._adapter;
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -71,7 +81,7 @@ export class NodeAdapter implements ThreadManagerDelegate {
     this._adapter.threadManager.setDelegate(this);
     await this._adapter.configure(this._configurator);
 
-    this._adapterReadyCallback(this._adapter);
+    this._adapterReadyCallback();
     await this._startServer();
     const error = await this._relaunch();
     return error || {};

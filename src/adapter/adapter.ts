@@ -3,6 +3,7 @@
 
 import * as ts from 'typescript';
 import * as nls from 'vscode-nls';
+import * as vscode from 'vscode';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { BreakpointManager } from './breakpoints';
@@ -23,6 +24,10 @@ type EvaluatePrep = {
   thread: Thread;
   stackFrame?: StackFrame;
   executionContextId?: number;
+};
+
+export interface DisposableAdapterOwner extends vscode.Disposable {
+  adapter(): Adapter;
 };
 
 export class Adapter {
