@@ -141,11 +141,15 @@ export class TestP {
     });
   }
 
+  completeUrl(relativePath: string): string {
+    return utils.completeUrl(this._launchUrl, relativePath) || '';
+  }
+
   async addScriptTag(relativePath: string): Promise<void> {
     await this.cdp.Runtime.evaluate({expression: `
       new Promise(f => {
         var script = document.createElement('script');
-        script.src = '${utils.completeUrl(this._launchUrl, relativePath)}';
+        script.src = '${this.completeUrl(relativePath)}';
         script.onload = () => f(undefined);
         document.head.appendChild(script);
       })
