@@ -8,7 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
-import { Adapter, DisposableAdapterOwner, AdapterDelegate } from '../adapter/adapter';
+import { Adapter } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
@@ -27,12 +27,12 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
-export class NodeAdapter implements DisposableAdapterOwner {
+export class NodeAdapter {
   private _dap: Dap.Api;
   private _configurator: Configurator;
   private _rootPath: string | undefined;
   private _adapter: Adapter;
-  private _adapterReadyCallback: () => void;
+  private _adapterReadyCallback: (adapter: Adapter) => void;
   private _server: net.Server | undefined;
   private _runtime: ChildProcess | undefined;
   private _connections: Connection[] = [];
@@ -41,13 +41,11 @@ export class NodeAdapter implements DisposableAdapterOwner {
   private _targets = new Map<string, Thread>();
   private _isRestarting: boolean;
 
-  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DisposableAdapterOwner> {
-    return new Promise<DisposableAdapterOwner>(f => {
-      const adapter = new NodeAdapter(dap, rootPath, () => f(adapter));
-    });
+  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<Adapter> {
+    return new Promise<Adapter>(f => new NodeAdapter(dap, rootPath, f));
   }
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: () => void) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: Adapter) => void) {
     this._dap = dap;
     this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
@@ -57,14 +55,6 @@ export class NodeAdapter implements DisposableAdapterOwner {
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
     this._dap.on('restart', params => this._onRestart(params));
-  }
-
-  dispose() {
-    this._stopServer();
-  }
-
-  adapter(): Adapter {
-    return this._adapter;
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -80,11 +70,12 @@ export class NodeAdapter implements DisposableAdapterOwner {
 
     this._adapter = new Adapter(this._dap, {
       sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
-      executionContextForest: () => this.executionContextForest()
+      executionContextForest: () => this.executionContextForest(),
+      adapterDisposed: () => this._stopServer()
     });
     await this._adapter.configure(this._configurator);
 
-    this._adapterReadyCallback();
+    this._adapterReadyCallback(this._adapter);
     await this._startServer();
     const error = await this._relaunch();
     return error || {};

@@ -4,7 +4,6 @@
 
 import * as ts from 'typescript';
 import * as nls from 'vscode-nls';
-import * as vscode from 'vscode';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { BreakpointManager } from './breakpoints';
@@ -27,12 +26,9 @@ type EvaluatePrep = {
   executionContextId?: number;
 };
 
-export interface DisposableAdapterOwner extends vscode.Disposable {
-  adapter(): Adapter;
-};
-
 export interface AdapterDelegate extends ThreadManagerDelegate {
   sourcePathResolverFactory: () => SourcePathResolver;
+  adapterDisposed: () => void;
 }
 
 export class Adapter {
@@ -43,6 +39,7 @@ export class Adapter {
   private _breakpointManager: BreakpointManager;
   private _currentExecutionContext: ExecutionContextTree | undefined;
   private _locationToReveal: Location | undefined;
+  private _delegate: AdapterDelegate;
 
   constructor(dap: Dap.Api, delegate: AdapterDelegate) {
     this._dap = dap;
@@ -65,10 +62,15 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
+    this._delegate = delegate;
     const sourcePathResolver = delegate.sourcePathResolverFactory();
     this.sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
     this.threadManager = new ThreadManager(this._dap, sourcePathResolver, this.sourceContainer, delegate);
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this.sourceContainer, this.threadManager);
+  }
+
+  dispose() {
+    this._delegate.adapterDisposed();
   }
 
   async configure(configurator: Configurator): Promise<void> {
