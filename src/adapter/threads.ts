@@ -17,14 +17,13 @@ import { Location, Source, SourceContainer, InlineScriptOffset, SourcePathResolv
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
-const threadIdToRefreshThreads = 8888888888888;
-
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
 
 export interface PausedDetails {
+  thread: Thread;
   reason: PausedReason;
   description: string;
   stackTrace: StackTrace;
@@ -63,11 +62,15 @@ export class ThreadManager {
   private _threads: Map<number, Thread> = new Map();
   private _dap: Dap.Api;
 
-  _onThreadAddedEmitter = new EventEmitter<Thread>();
-  private _onThreadRemovedEmitter = new EventEmitter<Thread>();
   private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContextTree[]>();
+  _onThreadAddedEmitter = new EventEmitter<Thread>();
+  _onThreadRemovedEmitter = new EventEmitter<Thread>();
+  _onThreadPausedEmitter = new EventEmitter<PausedDetails>();
+  _onThreadResumedEmitter = new EventEmitter<Thread>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
+  readonly onThreadPaused = this._onThreadPausedEmitter.event;
+  readonly onThreadResumed = this._onThreadResumedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
   _sourcePathResolver: SourcePathResolver;
@@ -113,19 +116,6 @@ export class ThreadManager {
 
   refreshExecutionContexts() {
     this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest());
-    this._dap.thread({ reason: 'exited', threadId: threadIdToRefreshThreads });
-  }
-
-  refreshStackTraces(): boolean {
-    let refreshed = false;
-    for (const thread of this.threads()) {
-      if (thread.pausedDetails()) {
-        thread._reportResumed();
-        thread._reportPaused();
-        refreshed = true;
-      }
-    }
-    return refreshed;
   }
 
   threads(): Thread[] {
@@ -134,20 +124,6 @@ export class ThreadManager {
 
   topLevelThreads(): Thread[] {
     return this.threads().filter(t => !t._parentThread);
-  }
-
-  threadLabels(): Dap.Thread[] {
-    const result: Dap.Thread[] = [];
-    const visit = (thread: Thread, indentation: string) => {
-      result.push({
-        id: thread.threadId(),
-        name: indentation + thread.name()
-      });
-      for (const child of thread._childThreads)
-        visit(child, indentation + '\u00A0\u00A0\u00A0\u00A0');
-    };
-    this.topLevelThreads().forEach(t => visit(t, ''));
-    return result;
   }
 
   thread(threadId: number): Thread | undefined {
@@ -365,7 +341,7 @@ export class Thread implements VariableStoreDelegate {
       }
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedVariables = new VariableStore(this._cdp, this);
-      this._reportPaused();
+      this.manager._onThreadPausedEmitter.fire(this._pausedDetails);
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 
@@ -384,7 +360,6 @@ export class Thread implements VariableStoreDelegate {
       this.updateCustomBreakpoint(id, true);
 
     this.manager._onThreadAddedEmitter.fire(this);
-    this._dap.thread({ reason: 'started', threadId: this._threadId });
   }
 
   // It is important to produce debug console output in the same order as it happens
@@ -447,7 +422,7 @@ export class Thread implements VariableStoreDelegate {
   _onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
-    this._reportResumed();
+    this.manager._onThreadResumedEmitter.fire(this);
   }
 
   _setParent(parentThread: Thread | undefined) {
@@ -463,7 +438,6 @@ export class Thread implements VariableStoreDelegate {
     this._setParent(undefined);
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
-    this._dap.thread({ reason: 'exited', threadId: this._threadId });
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
@@ -517,74 +491,70 @@ export class Thread implements VariableStoreDelegate {
     return true;
   }
 
-  _reportResumed() {
-    this._dap.continued({ threadId: this._threadId, allThreadsContinued: false });
-  }
-
-  _reportPaused(preserveFocusHint?: boolean) {
-    const details = this._pausedDetails!;
-    this._dap.stopped({
-      reason: details.reason,
-      description: details.description,
-      threadId: this._threadId,
-      text: details.text,
-      preserveFocusHint,
-      allThreadsStopped: false
-    });
-  }
-
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
     const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
     switch (event.reason) {
       case 'assert': return {
+        thread: this,
         stackTrace,
         reason: 'exception',
         description: localize('pause.assert', 'Paused on assert')
       };
       case 'debugCommand': return {
+        thread: this,
         stackTrace,
         reason: 'pause',
         description: localize('pause.debugCommand', 'Paused on debug() call')
       };
       case 'DOM': return {
+        thread: this,
         stackTrace,
         reason: 'data breakpoint',
         description: localize('pause.DomBreakpoint', 'Paused on DOM breakpoint')
       };
       case 'EventListener': return this._resolveEventListenerBreakpointDetails(stackTrace, event);
       case 'exception': return {
+        thread: this,
         stackTrace,
         reason: 'exception',
         description: localize('pause.exception', 'Paused on exception'),
         exception: event.data as (Cdp.Runtime.RemoteObject | undefined)
       };
       case 'promiseRejection': return {
+        thread: this,
         stackTrace,
         reason: 'exception',
         description: localize('pause.promiseRejection', 'Paused on promise rejection')
       };
       case 'instrumentation': return {
+        thread: this,
         stackTrace,
         reason: 'function breakpoint',
         description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
       };
       case 'XHR': return {
+        thread: this,
         stackTrace,
         reason: 'data breakpoint',
         description: localize('pause.xhr', 'Paused on XMLHttpRequest or fetch')
       };
       case 'OOM': return {
+        thread: this,
         stackTrace,
         reason: 'exception',
         description: localize('pause.oom', 'Paused before Out Of Memory exception')
       };
       default:
-        if (event.hitBreakpoints && event.hitBreakpoints.length) return {
-          stackTrace,
-          reason: 'breakpoint',
-          description: localize('pause.breakpoint', 'Paused on breakpoint')
-        };
+        if (event.hitBreakpoints && event.hitBreakpoints.length) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: 'breakpoint',
+            description: localize('pause.breakpoint', 'Paused on breakpoint')
+          };
+        }
         return {
+          thread: this,
           stackTrace,
           reason: 'step',
           description: localize('pause.default', 'Paused')
@@ -598,9 +568,9 @@ export class Thread implements VariableStoreDelegate {
     const breakpoint = customBreakpoints().get(id);
     if (breakpoint) {
       const details = breakpoint.details(data!);
-      return { stackTrace, reason: 'function breakpoint', description: details.short, text: details.long };
+      return { thread: this, stackTrace, reason: 'function breakpoint', description: details.short, text: details.long };
     }
-    return { stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener') };
+    return { thread: this, stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener') };
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<Dap.OutputEventParams | undefined> {
