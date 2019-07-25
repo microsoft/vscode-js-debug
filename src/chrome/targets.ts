@@ -8,7 +8,7 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContextTree, ThreadManagerDelegate } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContextTree } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 
@@ -16,7 +16,7 @@ const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class TargetManager implements ThreadManagerDelegate, vscode.Disposable {
+export class TargetManager implements vscode.Disposable {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
   private _browser: Cdp.Api;

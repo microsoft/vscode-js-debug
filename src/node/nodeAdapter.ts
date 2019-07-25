@@ -8,11 +8,11 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
-import { Adapter, DisposableAdapterOwner } from '../adapter/adapter';
+import { Adapter, DisposableAdapterOwner, AdapterDelegate } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
-import { ExecutionContextTree, Thread, ThreadManagerDelegate } from '../adapter/threads';
+import { ExecutionContextTree, Thread } from '../adapter/threads';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
@@ -27,7 +27,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
-export class NodeAdapter implements ThreadManagerDelegate, DisposableAdapterOwner {
+export class NodeAdapter implements DisposableAdapterOwner {
   private _dap: Dap.Api;
   private _configurator: Configurator;
   private _rootPath: string | undefined;
@@ -78,8 +78,10 @@ export class NodeAdapter implements ThreadManagerDelegate, DisposableAdapterOwne
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, new NodeSourcePathResolver(this._rootPath));
-    this._adapter.threadManager.setDelegate(this);
+    this._adapter = new Adapter(this._dap, {
+      sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
+      executionContextForest: () => this.executionContextForest()
+    });
     await this._adapter.configure(this._configurator);
 
     this._adapterReadyCallback();
