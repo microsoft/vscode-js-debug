@@ -2,7 +2,7 @@
     threads : [
         [0] : {
             id : <number>
-            name : 📄 index.html
+            name : PWA 
         }
     ]
 }

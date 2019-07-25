@@ -4,7 +4,7 @@ Source event for inline
     reason : new
     source : {
         name : inlinescript.html꞉2:11
-        path : localhost꞉8001/inlinescript.html꞉2:11
+        path : ${workspaceFolder}/web/inlinescript.html
         sourceReference : <number>
     }
 }
@@ -81,7 +81,7 @@ Loaded sources: {
     sources : [
         [0] : {
             name : inlinescript.html꞉2:11
-            path : localhost꞉8001/inlinescript.html꞉2:11
+            path : ${workspaceFolder}/web/inlinescript.html
             sourceReference : <number>
         }
         [1] : {

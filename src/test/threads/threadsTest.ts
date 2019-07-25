@@ -124,7 +124,7 @@ export function addStartupTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit} = testRunner;
 
-  it('events', async({goldenText}: {goldenText: GoldenText}) => {
+  xit('events', async({goldenText}: {goldenText: GoldenText}) => {
     const p = new TestP(goldenText);
     p.dap.on('thread', e => {
       if (e.reason === 'started')

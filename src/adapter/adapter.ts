@@ -12,7 +12,7 @@ import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
 import { StackFrame } from './stackTrace';
-import { ExecutionContextTree, Thread, ThreadManager, ThreadManagerDelegate, PausedDetails } from './threads';
+import { ExecutionContextTree, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -324,8 +324,8 @@ export class Adapter {
     return {};
   }
 
-  async _onExceptionInfo(params: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+  async _onExceptionInfo(_: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     const details = thread.pausedDetails();
