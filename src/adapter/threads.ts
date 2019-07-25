@@ -66,7 +66,7 @@ export class ThreadManager {
   private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContextTree[]>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
   _onThreadRemovedEmitter = new EventEmitter<Thread>();
-  _onThreadPausedEmitter = new EventEmitter<PausedDetails>();
+  _onThreadPausedEmitter = new EventEmitter<Thread>();
   _onThreadResumedEmitter = new EventEmitter<Thread>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
@@ -342,7 +342,7 @@ export class Thread implements VariableStoreDelegate {
       }
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedVariables = new VariableStore(this._cdp, this);
-      this.manager._onThreadPausedEmitter.fire(this._pausedDetails);
+      this.manager._onThreadPausedEmitter.fire(this);
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 

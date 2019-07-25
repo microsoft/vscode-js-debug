@@ -70,8 +70,6 @@ export class Adapter {
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this.sourceContainer, this.threadManager);
 
     this._dap.thread({ reason: 'started', threadId: defaultThreadId });
-    this.threadManager.onThreadPaused(details => this._reportPaused(details));
-    this.threadManager.onThreadResumed(thread => this._reportResumed());
   }
 
   dispose() {
@@ -357,25 +355,23 @@ export class Adapter {
 
   selectExecutionContext(item: ExecutionContextTree | undefined) {
     this._selectedExecutionContext = item;
-    const thread = this._selectedThread();
-    if (thread && thread.pausedDetails())
-      this._reportPaused(thread.pausedDetails()!);
-    else
-      this._reportResumed();
-  }
 
-  _reportPaused(details: PausedDetails) {
-    this._dap.stopped({
-      reason: details.reason,
-      description: details.description,
-      threadId: defaultThreadId,
-      text: details.text,
-      allThreadsStopped: false
-    });
-  }
-
-  _reportResumed() {
-    this._dap.continued({ threadId: defaultThreadId, allThreadsContinued: false });
+    const thread = this._selectedExecutionContext ? this.threadManager.thread(this._selectedExecutionContext.threadId) : undefined;
+    const details = thread ? thread.pausedDetails() : undefined;
+    if (details) {
+      this._dap.stopped({
+        reason: details.reason,
+        description: details.description,
+        threadId: defaultThreadId,
+        text: details.text,
+        allThreadsStopped: false
+      });
+    } else {
+      this._dap.continued({
+        threadId: defaultThreadId,
+        allThreadsContinued: false
+      });
+    }
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
