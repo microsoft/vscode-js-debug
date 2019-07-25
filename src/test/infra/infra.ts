@@ -13,7 +13,6 @@ export function addStartupTests(testRunner) {
     const p = new test.TestP(goldenText);
     p.dap.on('initialized', () => p.log('initialized'));
     p.log(await p.initialize);
-    await p.disconnect();
     p.assertLog();
   });
 }

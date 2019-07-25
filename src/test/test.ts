@@ -57,16 +57,13 @@ export class TestP {
     this._webRoot = path.join(this._workspaceRoot, 'web');
     this._chromeAdapter = new ChromeAdapter(adapterConnection.dap(), storagePath, this._workspaceRoot, () => { });
     this.dap = testConnection.createTestApi();
-    this.initialize = this._chromeAdapter.initialize({
+    this.initialize = this.dap.initialize({
       clientID: 'pwa-test',
       adapterID: 'pwa',
       linesStartAt1: true,
       columnsStartAt1: true,
       pathFormat: 'path',
       supportsVariablePaging: true
-    }, true /* isUnderTest */).then(async result => {
-      this._connection = await this._chromeAdapter.connection().clone();
-      return result as Dap.InitializeResult;
     });
   }
 
@@ -74,7 +71,8 @@ export class TestP {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}))!;
+    const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}, true)) as Target;
+    this._connection = await this._chromeAdapter.connection().clone();
     this.adapter = this._chromeAdapter.adapter();
 
     let contexts: ExecutionContextTree[] = [];
