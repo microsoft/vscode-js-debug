@@ -21,15 +21,25 @@ export class ServiceWorkerVersion  {
   readonly revisions: Cdp.ServiceWorker.ServiceWorkerVersion[] = [];
   readonly id: string;
   readonly scriptURL: string;
+  private targetId_: string | undefined;
 
   constructor(registration: ServiceWorkerRegistration, payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
     this.registration = registration;
     this.id = payload.versionId;
     this.scriptURL = payload.scriptURL;
+    this.targetId_ = payload.targetId;
   }
 
   addRevision(payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
+    if (this.targetId_ && payload.targetId && this.targetId_ !== payload.targetId)
+      console.error(`${this.targetId_} !== ${payload.targetId}`);
+    if (payload.targetId)
+      this.targetId_ = payload.targetId;
     this.revisions.unshift(payload);
+  }
+
+  targetId(): string | undefined {
+    return this.targetId_;
   }
 
   runningStatus(): string {
@@ -37,13 +47,22 @@ export class ServiceWorkerVersion  {
       return '🏃';
     return '🏁';
   }
+
+  label(): string {
+    const scriptURL = this.scriptURL.substring(this.registration.scopeURL.length);
+    return `${scriptURL} #${this.id}`;
+  }
+
+  labelWithStatus(): string {
+    return `${this.runningStatus()}${this.label()} (${this.revisions[0].status})`;
+  }
 }
 
 export type ServiceWorkerMode = 'normal' | 'bypass' | 'force';
 
 export class ServiceWorkerModel implements vscode.Disposable {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
-  private _statuses = new Map<Cdp.Target.TargetID, Cdp.ServiceWorker.ServiceWorkerVersionStatus>();
+  private _versions = new Map<Cdp.Target.TargetID, ServiceWorkerVersion>();
   private _frameModel: FrameModel;
   private _cdp: Cdp.Api;
   private _onDidChangeUpdater = new vscode.EventEmitter<void>();
@@ -71,15 +90,20 @@ export class ServiceWorkerModel implements vscode.Disposable {
     cdp.ServiceWorker.on('workerRegistrationUpdated', event => this._workerRegistrationsUpdated(event.registrations));
     cdp.ServiceWorker.on('workerVersionUpdated', event => this._workerVersionsUpdated(event.versions));
     if (ServiceWorkerModel._mode !== 'normal')
-      this.setMode(ServiceWorkerModel._mode);
+      await this.setMode(ServiceWorkerModel._mode);
   }
 
   async removeTarget(cdp: Cdp.Api) {
     this._targets.delete(cdp);
   }
 
+  version(targetId: Cdp.Target.TargetID): ServiceWorkerVersion | undefined {
+    return this._versions.get(targetId);
+  }
+
   versionStatus(targetId: Cdp.Target.TargetID): string | undefined {
-    return this._statuses.get(targetId);
+    const version = this._versions.get(targetId);
+    return version ? version.revisions[0].status : undefined;
   }
 
   registrations(): ServiceWorkerRegistration[] {
@@ -101,20 +125,17 @@ export class ServiceWorkerModel implements vscode.Disposable {
   }
 
   _workerVersionsUpdated(payloads: Cdp.ServiceWorker.ServiceWorkerVersion[]): void {
-    this._statuses.clear();
     for (const payload of payloads) {
-      if (payload.targetId)
-        this._statuses.set(payload.targetId, payload.status);
       const registration = this._registrations.get(payload.registrationId)!;
       let version = registration.versions.get(payload.versionId);
       if (!version) {
         version = new ServiceWorkerVersion(registration, payload);
         registration.versions.set(payload.versionId, version);
       }
+      if (payload.targetId)
+        this._versions.set(payload.targetId, version);
       version.addRevision(payload);
-      // TODO: display version tombstones.
-      if (payload.runningStatus === 'stopped' && payload.status === 'redundant')
-        registration.versions.delete(payload.versionId);
+      // TODO: display redundant version as tombstones.
     }
     this._onDidChangeUpdater.fire();
   }
@@ -139,15 +160,17 @@ export class ServiceWorkerModel implements vscode.Disposable {
       instance.setMode(mode);
   }
 
-  setMode(mode: ServiceWorkerMode) {
+  async setMode(mode: ServiceWorkerMode) {
     if (!this._cdp)
         return;
     this._cdp.ServiceWorker.setForceUpdateOnPageLoad({ forceUpdateOnPageLoad: mode === 'force' });
     for (const cdp of this._targets.values()) {
-      if (mode === 'bypass')
-        cdp.Network.enable({}).then(() => cdp.Network.setBypassServiceWorker({ bypass: true }));
-      else
-        cdp.Network.disable({});
+      if (mode === 'bypass') {
+        await cdp.Network.enable({});
+        await cdp.Network.setBypassServiceWorker({ bypass: true });
+      } else {
+        await cdp.Network.disable({});
+      }
     }
   }
 }

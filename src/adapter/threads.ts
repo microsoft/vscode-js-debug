@@ -10,6 +10,7 @@ import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as eventUtils from '../utils/eventUtils';
 import * as urlUtils from '../utils/urlUtils';
+import * as stringUtils from '../utils/stringUtils';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
@@ -232,6 +233,7 @@ export class Thread implements VariableStoreDelegate {
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
+  readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
   _parentThread?: Thread;
   _childThreads: Thread[] = [];
@@ -639,6 +641,9 @@ export class Thread implements VariableStoreDelegate {
       const formatString = useMessageFormat ? event.args[0].value as string : '';
       messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
     }
+
+    this.threadLog.addLine(event, messageText);
+
     const variablesReference = await this.replVariables.createVariableForOutput(messageText + '\n', event.args, stackTrace);
     return {
       category,
@@ -845,5 +850,21 @@ export class Thread implements VariableStoreDelegate {
     slot(output);
   }
 };
+
+export class ThreadLog {
+  private _lines: string[] = [];
+  private _onLineAddedEmitter = new EventEmitter<string>();
+  readonly onLineAdded = this._onLineAddedEmitter.event;
+
+  addLine(event: Cdp.Runtime.ConsoleAPICalledEvent, text: string) {
+    const line = `[${stringUtils.formatMillisForLog(event.timestamp)}] ${text.replace(/\x1b[^m]+m/g, '')}`;
+    this._lines.push(line);
+    this._onLineAddedEmitter.fire(line);
+  }
+
+  lines(): string[] {
+    return this._lines;
+  }
+}
 
 const kScriptsSymbol = Symbol('script');
