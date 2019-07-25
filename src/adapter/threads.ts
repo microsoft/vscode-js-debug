@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as debug from 'debug';
-import * as vscode from 'vscode';
+import { EventEmitter } from 'vscode';
 import * as nls from 'vscode-nls';
 import * as errors from './errors';
 import Cdp from '../cdp/api';
@@ -50,6 +50,7 @@ export interface ThreadConfiguration {
 }
 
 export interface ThreadManagerDelegate {
+  copyToClipboard(text: string): void;
   executionContextForest(): ExecutionContextTree[] | undefined;
 }
 
@@ -61,15 +62,15 @@ export class ThreadManager {
   private _threads: Map<number, Thread> = new Map();
   private _dap: Dap.Api;
 
-  _onThreadAddedEmitter = new vscode.EventEmitter<Thread>();
-  private _onThreadRemovedEmitter = new vscode.EventEmitter<Thread>();
-  private _onExecutionContextsChangedEmitter = new vscode.EventEmitter<ExecutionContextTree[]>();
+  _onThreadAddedEmitter = new EventEmitter<Thread>();
+  private _onThreadRemovedEmitter = new EventEmitter<Thread>();
+  private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContextTree[]>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
   readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
   _sourcePathResolver: SourcePathResolver;
-  private _delegate: ThreadManagerDelegate;
+  _delegate: ThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
 
@@ -785,7 +786,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      vscode.env.clipboard.writeText(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this.manager._delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -811,7 +812,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      vscode.env.clipboard.writeText('' + response.result.value);
+      this.manager._delegate.copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 
@@ -843,34 +844,5 @@ export class Thread implements VariableStoreDelegate {
     slot(output);
   }
 };
-
-export class DefaultThreadManagerDelegate implements ThreadManagerDelegate {
-  private _manager: ThreadManager;
-
-  constructor(manager: ThreadManager) {
-    this._manager = manager;
-  }
-
-  executionContextForest(): ExecutionContextTree[] {
-    const result: ExecutionContextTree[] = [];
-    for (const thread of this._manager.threads()) {
-      const threadContext: ExecutionContextTree = {
-        name: thread.name() || `thread #${thread.threadId()}`,
-        threadId: thread.threadId(),
-        children: [],
-      };
-      result.push(threadContext);
-      threadContext.children = thread.executionContexts().map(context => {
-        return {
-          name: context.name || `context #${context.id}`,
-          threadId: thread.threadId(),
-          contextId: context.id,
-          children: [],
-        };
-      });
-    }
-    return result;
-  }
-}
 
 const kScriptsSymbol = Symbol('script');
