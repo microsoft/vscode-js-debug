@@ -45,6 +45,13 @@
 
     <img width="259" alt="Screen Shot 2019-07-22 at 10 32 03 PM" src="https://user-images.githubusercontent.com/883973/61685138-8bcaa780-acd0-11e9-99d9-151c2839b5f6.png">
 
+- Per-thread Output with timestamps available post-session
+
+    <img width="324" alt="Screen Shot 2019-07-24 at 10 28 05 PM" src="https://user-images.githubusercontent.com/883973/61848257-5ce43b00-ae62-11e9-922c-a93073c0266b.png">
+
+    <img width="751" alt="Screen Shot 2019-07-24 at 10 29 43 PM" src="https://user-images.githubusercontent.com/883973/61848317-8e5d0680-ae62-11e9-88db-5017ed58a430.png">
+
+ - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
 
 # Architecture Overview
