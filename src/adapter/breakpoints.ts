@@ -79,6 +79,9 @@ export class Breakpoint {
     if (url) {
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
+      //
+      // Additionally, if we have two sources with the same url, but different path (or no path),
+      // this will make breakpoint work in all of them.
       const lineNumber = this._lineNumber - 1;
       const columnNumber = this._columnNumber - 1;
       promises.push(...threadManager.threads().map(thread => {
