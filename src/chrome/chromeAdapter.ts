@@ -6,7 +6,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Adapter, DisposableAdapterOwner } from '../adapter/adapter';
+import { Adapter } from '../adapter/adapter';
 import { Configurator } from '../adapter/configurator';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
@@ -24,7 +24,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
-export class ChromeAdapter implements DisposableAdapterOwner {
+export class ChromeAdapter {
   static symbol = Symbol('ChromeAdapter');
   private _dap: Dap.Api;
   private _connection: CdpConnection;
@@ -36,15 +36,13 @@ export class ChromeAdapter implements DisposableAdapterOwner {
   private _launchParams: LaunchParams;
   private _mainTarget?: Target;
   private _disposables: vscode.Disposable[] = [];
-  private _adapterReadyCallback: () => void;
+  private _adapterReadyCallback: (adapter: Adapter) => void;
 
-  static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<DisposableAdapterOwner> {
-    return new Promise<DisposableAdapterOwner>(f => {
-      const adapter = new ChromeAdapter(dap, storagePath, rootPath, () => f(adapter));
-    });
+  static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<Adapter> {
+    return new Promise<Adapter>(f => new ChromeAdapter(dap, storagePath, rootPath, f));
   }
 
-  constructor(dap: Dap.Api, storagePath: string, rootPath: string | undefined, adapterReadyCallback: () => void) {
+  constructor(dap: Dap.Api, storagePath: string, rootPath: string | undefined, adapterReadyCallback:  (adapter: Adapter) => void) {
     this._dap = dap;
     this._storagePath = storagePath;
     this._rootPath = rootPath;
@@ -65,11 +63,11 @@ export class ChromeAdapter implements DisposableAdapterOwner {
     return this._adapter;
   }
 
-  dispose() {
+  _dispose() {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
-  };
+  }
 
   connection(): CdpConnection {
     return this._connection;
@@ -111,7 +109,8 @@ export class ChromeAdapter implements DisposableAdapterOwner {
 
     this._adapter = new Adapter(this._dap, {
       sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
-      executionContextForest: () => this._targetManager.executionContextForest()
+      executionContextForest: () => this._targetManager.executionContextForest(),
+      adapterDisposed: () => this._dispose()
     });
     this._adapter[ChromeAdapter.symbol] = this;
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
@@ -133,7 +132,7 @@ export class ChromeAdapter implements DisposableAdapterOwner {
 
   async finishLaunch(mainTarget: Target): Promise<void> {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
-    this._adapterReadyCallback();
+    this._adapterReadyCallback(this._adapter);
   }
 
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
