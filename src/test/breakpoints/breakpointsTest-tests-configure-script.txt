@@ -4,11 +4,11 @@
     reason : breakpoint
     threadId : <number>
 }
-<anonymous> @ ${workspaceFolder}/web/script.js:9:1
+<anonymous> @ localhost꞉8001/script.js:9:1
 {
     allThreadsStopped : false
     description : Paused
     reason : step
     threadId : <number>
 }
-<anonymous> @ ${workspaceFolder}/web/script.js:10:1
+<anonymous> @ localhost꞉8001/script.js:10:1
