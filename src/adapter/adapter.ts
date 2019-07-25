@@ -13,10 +13,11 @@ import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
 import { StackFrame } from './stackTrace';
-import { ExecutionContextTree, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
+import { ExecutionContextTree, Thread, ThreadManager, ThreadManagerDelegate, PausedDetails } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
+const defaultThreadId = 0;
 const threadForSourceRevealId = 9999999999999;
 
 type EvaluatePrep = {
@@ -37,7 +38,7 @@ export class Adapter {
 
   private _dap: Dap.Api;
   private _breakpointManager: BreakpointManager;
-  private _currentExecutionContext: ExecutionContextTree | undefined;
+  private _selectedExecutionContext: ExecutionContextTree | undefined;
   private _locationToReveal: Location | undefined;
   private _delegate: AdapterDelegate;
 
@@ -67,6 +68,10 @@ export class Adapter {
     this.sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
     this.threadManager = new ThreadManager(this._dap, sourcePathResolver, this.sourceContainer, delegate);
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this.sourceContainer, this.threadManager);
+
+    this._dap.thread({ reason: 'started', threadId: defaultThreadId });
+    this.threadManager.onThreadPaused(details => this._reportPaused(details));
+    this.threadManager.onThreadResumed(thread => this._reportResumed());
   }
 
   dispose() {
@@ -84,14 +89,14 @@ export class Adapter {
   }
 
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
-    const threads = this.threadManager.threadLabels();
+    const threads = [{ id: defaultThreadId, name: 'PWA '}];
     if (this._locationToReveal)
       threads.push({ id: threadForSourceRevealId, name: '' });
     return { threads };
   }
 
   async _onContinue(params: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     if (!await thread.resume())
@@ -100,7 +105,7 @@ export class Adapter {
   }
 
   async _onPause(params: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     if (!await thread.pause())
@@ -109,7 +114,7 @@ export class Adapter {
   }
 
   async _onNext(params: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     if (!await thread.stepOver())
@@ -118,7 +123,7 @@ export class Adapter {
   }
 
   async _onStepIn(params: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     if (!await thread.stepInto())
@@ -127,7 +132,7 @@ export class Adapter {
   }
 
   async _onStepOut(params: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     if (!await thread.stepOut())
@@ -147,7 +152,7 @@ export class Adapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === threadForSourceRevealId)
       return this._syntheticStackTraceForSourceReveal(params);
-    const thread = this.threadManager.thread(params.threadId);
+    const thread = this._selectedThread();
     if (!thread)
       return this._threadNotAvailableError();
     const details = thread.pausedDetails();
@@ -157,15 +162,14 @@ export class Adapter {
   }
 
   _findStackFrame(frameId: number): StackFrame | undefined {
-    for (const thread of this.threadManager.threads()) {
-      const details = thread.pausedDetails();
-      if (!details)
-        continue;
-      const stackFrame = details.stackTrace.frame(frameId);
-      if (stackFrame)
-        return stackFrame;
-    }
-    return undefined;
+    const thread = this._selectedThread();
+    if (!thread)
+      return undefined;
+    const details = thread.pausedDetails();
+    if (!details)
+      return undefined;
+    const stackFrame = details.stackTrace.frame(frameId);
+    return stackFrame || undefined;
   }
 
   async _onScopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
@@ -176,12 +180,13 @@ export class Adapter {
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
-    for (const thread of this.threadManager.threads()) {
-      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
-        return thread.pausedVariables();
-      if (thread.replVariables.hasVariables(variablesReference))
-        return thread.replVariables;
-    }
+    const thread = this._selectedThread();
+    if (!thread)
+      return undefined;
+    if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
+      return thread.pausedVariables();
+    if (thread.replVariables.hasVariables(variablesReference))
+      return thread.replVariables;
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
@@ -210,9 +215,9 @@ export class Adapter {
     } else {
       let thread: Thread | undefined;
       let executionContextId: number | undefined;
-      if (this._currentExecutionContext) {
-        executionContextId = this._currentExecutionContext.contextId;
-        thread = this.threadManager.thread(this._currentExecutionContext.threadId);
+      if (this._selectedExecutionContext) {
+        executionContextId = this._selectedExecutionContext.contextId;
+        thread = this.threadManager.thread(this._selectedExecutionContext.threadId);
       } else {
         thread = this.threadManager.mainThread();
         const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
@@ -350,8 +355,27 @@ export class Adapter {
     return variableStore.setVariable(params);
   }
 
-  setCurrentExecutionContext(item: ExecutionContextTree | undefined) {
-    this._currentExecutionContext = item;
+  selectExecutionContext(item: ExecutionContextTree | undefined) {
+    this._selectedExecutionContext = item;
+    const thread = this._selectedThread();
+    if (thread && thread.pausedDetails())
+      this._reportPaused(thread.pausedDetails()!);
+    else
+      this._reportResumed();
+  }
+
+  _reportPaused(details: PausedDetails) {
+    this._dap.stopped({
+      reason: details.reason,
+      description: details.description,
+      threadId: defaultThreadId,
+      text: details.text,
+      allThreadsStopped: false
+    });
+  }
+
+  _reportResumed() {
+    this._dap.continued({ threadId: defaultThreadId, allThreadsContinued: false });
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -521,5 +545,12 @@ export class Adapter {
       code = code.substr(0, change.start) + change.text + code.substr(change.end);
     }
     return code;
+  }
+
+  _selectedThread(): Thread | undefined {
+    if (this._selectedExecutionContext)
+      return this.threadManager.thread(this._selectedExecutionContext.threadId)!;
+    else
+      return this.threadManager.mainThread();
   }
 }

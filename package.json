@@ -84,7 +84,7 @@
         },
         {
           "id": "pwa.executionContexts",
-          "name": "Execution contexts"
+          "name": "Threads"
         }
       ],
       "pwa": [

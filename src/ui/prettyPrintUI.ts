@@ -63,10 +63,6 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     if (!success)
       return;
 
-    // Either refresh stacks on breakpoint.
-    if (adapter.threadManager.refreshStackTraces())
-      return;
-
     // Or reveal this source manually.
     const originalLocation: Location = {
       source,
