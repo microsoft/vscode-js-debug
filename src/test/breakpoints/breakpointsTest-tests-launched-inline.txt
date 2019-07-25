@@ -4,12 +4,12 @@
     reason : step
     threadId : <number>
 }
-<anonymous> @ localhost꞉8001/inlinescriptpause.html꞉4:11:8:5
+<anonymous> @ ${workspaceFolder}/web/inlinescriptpause.html:8:5
 {
     allThreadsStopped : false
     description : Paused on breakpoint
     reason : breakpoint
     threadId : <number>
 }
-foo @ localhost꞉8001/inlinescriptpause.html꞉4:11:6:7
-<anonymous> @ localhost꞉8001/inlinescriptpause.html꞉4:11:9:5
+foo @ ${workspaceFolder}/web/inlinescriptpause.html:6:7
+<anonymous> @ ${workspaceFolder}/web/inlinescriptpause.html:9:5

@@ -4,4 +4,4 @@
     reason : breakpoint
     threadId : <number>
 }
-<anonymous> @ localhost꞉8001/inlinescript.html꞉2:11:3:5
+<anonymous> @ ${workspaceFolder}/web/inlinescript.html:3:5

@@ -14,6 +14,7 @@ import DapConnection from '../dap/connection';
 import { Target } from '../chrome/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
+import { ExecutionContextTree } from '../adapter/threads';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -75,6 +76,33 @@ export class TestP {
     this._launchUrl = url;
     const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}))!;
     this.adapter = this._chromeAdapter.adapter();
+
+    let contexts: ExecutionContextTree[] = [];
+    let selected: ExecutionContextTree | undefined;
+    this.adapter.threadManager.onExecutionContextsChanged(params => {
+      contexts = [];
+      const visit = (item: ExecutionContextTree) => {
+        contexts.push(item);
+        item.children.forEach(visit);
+      };
+      params.forEach(visit);
+    });
+    this.adapter.threadManager.onThreadPaused(thread => {
+      if (selected && selected.threadId === thread.threadId()) {
+        this.adapter.selectExecutionContext(selected);
+      } else {
+        for (const context of contexts) {
+          if (context.threadId === thread.threadId()) {
+            this.adapter.selectExecutionContext(context);
+            break;
+          }
+        }
+      }
+    });
+    this.adapter.threadManager.onThreadResumed(thread => {
+      this.adapter.selectExecutionContext(selected);
+    });
+
     const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId(), flatten: true }))!;
     this.cdp = this._connection.createSession(sessionId);
     return mainTarget;
