@@ -1,0 +1,59 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"preLaunchTask": "npm: watch"
+		},
+		{
+			"name": "Server",
+			"type": "node",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"program": "${workspaceFolder}/src/debugAdapter.ts",
+			"args": [
+				"--server=4711"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			]
+		},
+		{
+			"name": "Tests",
+			"type": "node",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"args": [
+				"-u", "tdd",
+				"--timeout", "999999",
+				"--colors",
+				"./out/tests/"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"name": "Mock Sample",
+			"type": "mock",
+			"request": "launch",
+		}
+	],
+	"compounds": [
+		{
+			"name": "Extension + Server",
+			"configurations": [ "Extension", "Server" ]
+		}
+	]
+}

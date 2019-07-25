@@ -1,0 +1,117 @@
+{
+	"name": "mock-debug",
+	"displayName": "Mock Debug",
+	"version": "0.29.0",
+	"publisher": "andreweinand",
+	"description": "Starter extension for developing debug adapters for VS Code.",
+	"author": {
+		"name": "Microsoft Corporation",
+		"email": "aweinand@microsoft.com"
+	},
+	"license": "MIT",
+	"keywords": [
+		"multi-root ready"
+	],
+	"engines": {
+		"vscode": "^1.30.0-insider",
+		"node": "^8.9.3"
+	},
+	"icon": "images/mock-debug-icon.png",
+	"categories": [
+		"Debuggers"
+	],
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Microsoft/vscode-mock-debug.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+	},
+	"scripts": {
+		"prepublish": "tsc -p ./src",
+		"compile": "tsc -p ./src",
+		"tslint": "tslint ./src/**/*.ts",
+		"watch": "tsc -w -p ./src",
+		"test": "mocha -u tdd ./out/tests/",
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"package": "vsce package",
+		"publish": "vsce publish"
+	},
+	"dependencies": {
+		"@types/puppeteer-core": "^1.9.0",
+		"await-notify": "1.0.1",
+		"puppeteer-core": "^1.17.0",
+		"vscode-debugadapter": "1.33.0"
+	},
+	"devDependencies": {
+		"@types/node": "8.9.3",
+		"@types/mocha": "5.2.5",
+		"typescript": "3.1.6",
+		"mocha": "5.2.0",
+		"vscode": "1.1.21",
+		"vscode-debugadapter-testsupport": "1.33.0",
+		"tslint": "5.11.0",
+		"vsce": "1.53.2"
+	},
+	"main": "./out/extension",
+	"activationEvents": [
+		"onDebug"
+	],
+	"contributes": {
+		"breakpoints": [
+      {
+        "language": "javascript"
+      },
+      {
+        "language": "typescriptreact"
+      },
+      {
+        "language": "javascriptreact"
+      },
+      {
+        "language": "fsharp"
+      },
+      {
+        "language": "html"
+      }
+    ],
+		"debuggers": [
+			{
+				"type": "cdp",
+				"label": "Run in Chrome",
+				"program": "./out/debugAdapter.js",
+				"runtime": "node",
+				"configurationAttributes": {
+					"launch": {
+						"properties": {
+							"trace": {
+								"type": "boolean",
+								"description": "Enable logging of the Debug Adapter Protocol.",
+								"default": true
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "cdp",
+						"request": "launch",
+						"name": "Run in Chrome"
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "Chrome Debug: Launch",
+						"description": "A new configuration for debugging a web app",
+						"body": {
+							"type": "cdp",
+							"request": "launch",
+							"name": "Run in Chrome"
+						}
+					}
+				]
+			}
+		]
+	}
+}
