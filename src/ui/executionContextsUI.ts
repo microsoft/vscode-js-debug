@@ -90,6 +90,8 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     const thread = this._adapter ? this._adapter.threadManager.thread(item.threadId) : undefined;
     if (thread && thread.pausedDetails())
       result.description = 'PAUSED';
+    else if (thread)
+      result.description = 'RUNNING';
     return result;
   }
 
