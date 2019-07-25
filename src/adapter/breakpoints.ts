@@ -6,7 +6,7 @@ import { SourcePathResolver, Location, SourceContainer, Source } from './sources
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager, Script } from './threads';
-import * as vscode from 'vscode';
+import { Disposable } from 'vscode';
 
 export class Breakpoint {
   private _manager: BreakpointManager;
@@ -15,7 +15,7 @@ export class Breakpoint {
   private _condition?: string;
   private _lineNumber: number;  // 1-based
   private _columnNumber: number;  // 1-based
-  private _disposables: vscode.Disposable[] = [];
+  private _disposables: Disposable[] = [];
   private _activeSetters = new Set<Promise<void>>();
 
   private _perThread = new Map<number, Set<Cdp.Debugger.BreakpointId>>();
@@ -230,7 +230,7 @@ export class BreakpointManager {
   _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
   _threadManager: ThreadManager;
-  _disposables: vscode.Disposable[] = [];
+  _disposables: Disposable[] = [];
   _perThread = new Map<number, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {

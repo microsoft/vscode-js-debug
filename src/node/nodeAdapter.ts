@@ -71,7 +71,8 @@ export class NodeAdapter {
     this._adapter = new Adapter(this._dap, {
       sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
       executionContextForest: () => this.executionContextForest(),
-      adapterDisposed: () => this._stopServer()
+      adapterDisposed: () => this._stopServer(),
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
     });
     await this._adapter.configure(this._configurator);
 

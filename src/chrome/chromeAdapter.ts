@@ -111,7 +111,8 @@ export class ChromeAdapter {
     this._adapter = new Adapter(this._dap, {
       sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
       executionContextForest: () => this._targetManager.executionContextForest(),
-      adapterDisposed: () => this._dispose()
+      adapterDisposed: () => this._dispose(),
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
     });
     this._adapter[ChromeAdapter.symbol] = this;
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
