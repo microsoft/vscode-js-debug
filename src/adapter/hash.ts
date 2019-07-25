@@ -2,33 +2,36 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-type Num = [number, number, number, number];
+const kLen = 8;
+const kBits = 8;
+const kMask = (1 << kBits) - 1;
+type Num = [number, number, number, number, number, number, number, number];
 
 function norm(x: Num): Num {
-  for (let i = 0; i < 4; i++) {
-    if (i + 1 < 4)
-      x[i + 1] += (x[i] >>> 16);
-    x[i] = x[i] & 0xFFFF;
+  for (let i = 0; i < kLen; i++) {
+    if (i + 1 < kLen)
+      x[i + 1] += (x[i] >>> kBits);
+    x[i] = x[i] & kMask;
   }
   return x;
 }
 
 function num(x: number): Num {
-  return norm([x, 0, 0, 0]);
+  return norm([x, 0, 0, 0, 0, 0, 0, 0]);
 }
 
-// @ts-ignore unused method val for debugging.
 function val(x: Num): number {
-  return x[0] + (x[1] * (1 << 16)) + (x[2] * (1 << 32)) + (x[3] * (1 << 48));
+  let res = 0;
+  for (let i = kLen - 1; i >= 0; i--)
+    res = (res << kBits) + x[i];
+  return res;
 }
 
 function mul(a: Num, b: Num): Num {
-  const result: Num = [0, 0, 0, 0];
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      if (i + j < 4)
-        result[i + j] += a[i] * b[j];
-    }
+  const result: Num = [0, 0, 0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < kLen; i++) {
+    for (let j = 0; i + j < kLen; j++)
+      result[i + j] += a[i] * b[j];
   }
   return norm(result);
 }
@@ -43,8 +46,9 @@ function and(a: Num, b: Num): Num {
 
 function mod(a: Num, b: number): Num {
   let x = 0;
-  for (let i = 3; i >= 0; i--) {
-    x = (x * (1 << 16) + a[i]) % b;
+  for (let i = kLen - 1; i >= 0; i--) {
+    x = x * (1 << kBits) + a[i];
+    x = x % b;
   }
   return num(x);
 }
@@ -84,12 +88,17 @@ export function calculateHash(content: string): string {
 
   const result: string[] = [];
   for (let i = 0; i < hashesSize; i++) {
-    for (let j = 1; j >= 0; j--) {
-      result.push(kHex[(hashes[i][j] >> 12) & 0xF]);
-      result.push(kHex[(hashes[i][j] >> 8) & 0xF]);
-      result.push(kHex[(hashes[i][j] >> 4) & 0xF]);
-      result.push(kHex[hashes[i][j] & 0xF]);
+    const v = hashes[i];
+    for (let j = 0; 2 * j < kLen; j++) {
+      v[kLen - j - 1] = 0;
     }
+    let x = val(v);
+    let s = '';
+    for (let j = 0; j < 8; j++) {
+      s = kHex[x & 0xF] + s;
+      x = x >>> 4;
+    }
+    result.push(s);
   }
   return result.join('');
 }

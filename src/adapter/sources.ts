@@ -93,7 +93,6 @@ export class Source {
 
   _sourceReference: number;
   _url: string;
-  _contentHash?: string;
   _name: string;
   _fqname: string;
   _contentGetter: ContentGetter;
@@ -124,7 +123,6 @@ export class Source {
   constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
-    this._contentHash = contentHash;
     this._contentGetter = contentGetter;
     this._sourceMapUrl = sourceMapUrl;
     this._inlineScriptOffset = inlineScriptOffset;
@@ -132,7 +130,11 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._absolutePath = container._sourcePathResolver.urlToAbsolutePath(url);
-    this._existingAbsolutePath = checkContentHash(this._absolutePath, this._contentHash, container._fileContentOverrides.get(this._absolutePath));
+
+    // Inline scripts will never match content of the html file. We skip the content check.
+    if (inlineScriptOffset)
+      contentHash = undefined;
+    this._existingAbsolutePath = checkContentHash(this._absolutePath, contentHash, container._fileContentOverrides.get(this._absolutePath));
   }
 
   url(): string {
