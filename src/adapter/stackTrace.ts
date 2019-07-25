@@ -12,7 +12,7 @@ import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
 
 export class StackTrace {
-  _thread: Thread;
+  readonly thread: Thread;
   private _frames: StackFrame[] = [];
   private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
@@ -47,12 +47,12 @@ export class StackTrace {
   }
 
   constructor(thread: Thread) {
-    this._thread = thread;
+    this.thread = thread;
   }
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
-      const response = await this._thread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
+      const response = await this.thread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
       this._asyncStackTraceId = undefined;
       if (response)
         this._appendStackTrace(response.stackTrace);
@@ -62,10 +62,6 @@ export class StackTrace {
 
   frame(frameId: number): StackFrame | undefined {
     return this._frameById.get(frameId);
-  }
-
-  thread(): Thread {
-    return this._thread;
   }
 
   _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace | undefined) {
@@ -124,11 +120,11 @@ export class StackFrame {
   private _stack: StackTrace;
 
   static fromRuntime(stack: StackTrace, callFrame: Cdp.Runtime.CallFrame): StackFrame {
-    return new StackFrame(stack, callFrame.functionName, stack._thread.rawLocationToUiLocation(callFrame));
+    return new StackFrame(stack, callFrame.functionName, stack.thread.rawLocationToUiLocation(callFrame));
   }
 
   static fromDebugger(stack: StackTrace, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(stack, callFrame.functionName, stack._thread.rawLocationToUiLocation({
+    const result = new StackFrame(stack, callFrame.functionName, stack.thread.rawLocationToUiLocation({
       ...callFrame.location,
       url: callFrame.url,
     }));
@@ -155,10 +151,6 @@ export class StackFrame {
 
   stackTrace(): StackTrace {
     return this._stack;
-  }
-
-  thread(): Thread {
-    return this._stack._thread;
   }
 
   callFrameId(): string | undefined {
@@ -225,13 +217,13 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const startLocation = await this.thread().rawLocationToUiLocation(scope.startLocation);
+        const startLocation = await this._stack.thread.rawLocationToUiLocation(scope.startLocation);
         dap.line = startLocation.lineNumber;
         dap.column = startLocation.columnNumber;
         if (startLocation.source)
           dap.source = await startLocation.source.toDap();
         if (scope.endLocation) {
-          const endLocation = await this.thread().rawLocationToUiLocation(scope.endLocation);
+          const endLocation = await this._stack.thread.rawLocationToUiLocation(scope.endLocation);
           dap.endLine = endLocation.lineNumber;
           dap.endColumn = endLocation.columnNumber;
         }
@@ -275,7 +267,7 @@ export class StackFrame {
     const scope = this._scope!;
     if (!scope.variables[scopeNumber]) {
       const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
-      const variable = await this.thread().pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
+      const variable = await this._stack.thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
       scope.variables[scopeNumber] = variable;
     }
     return scope.variables[scopeNumber]!;
@@ -284,7 +276,7 @@ export class StackFrame {
   async completions(): Promise<Dap.CompletionItem[]> {
     if (!this._scope)
       return [];
-    const variableStore = this._stack._thread.pausedVariables()!;
+    const variableStore = this._stack.thread.pausedVariables()!;
     const promises: Promise<Dap.CompletionItem[]>[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       promises.push(this._scopeVariable(scopeNumber).then(async scopeVariable => {

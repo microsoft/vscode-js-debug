@@ -21,9 +21,7 @@ const threadForSourceRevealId = 9999999999999;
 
 type EvaluatePrep = {
   variableStore: VariableStore;
-  thread: Thread;
   stackFrame?: StackFrame;
-  executionContextId?: number;
 };
 
 export interface AdapterDelegate extends ThreadManagerDelegate {
@@ -138,10 +136,13 @@ export class Adapter {
   }
 
   async _onRestartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
+    const thread = this._selectedThread();
+    if (!thread)
+      return this._threadNotAvailableError();
     const stackFrame = this._findStackFrame(params.frameId);
     if (!stackFrame)
       return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-    if (!stackFrame.thread().restartFrame(stackFrame))
+    if (!thread.restartFrame(stackFrame))
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
     return {};
   }
@@ -194,44 +195,31 @@ export class Adapter {
   }
 
   _prepareForEvaluate(frameId?: number): { result?: EvaluatePrep, error?: Dap.Error } {
+    const thread = this._selectedThread();
+    if (!thread)
+      return { error: this._threadNotAvailableError() };
+
+    let stackFrame: StackFrame | undefined;
     if (frameId !== undefined) {
       const stackFrame = this._findStackFrame(frameId);
       if (!stackFrame)
         return { error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found')) };
       if (!stackFrame.callFrameId())
         return { error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame')) };
-
-      const variableStore = stackFrame.thread().pausedVariables()!;
-      return {
-        result: {
-          stackFrame,
-          variableStore,
-          thread: stackFrame.thread(),
-        }
-      };
-    } else {
-      let executionContextId: number | undefined;
-      const thread = this._selectedThread();
-      if (this._selectedExecutionContext) {
-        executionContextId = this._selectedExecutionContext.contextId;
-      } else {
-        const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
-        executionContextId = defaultContext ? defaultContext.id : undefined;
-      }
-      if (!thread || !executionContextId)
-        return { error: this._threadNotAvailableError() };
-
-      return {
-        result: {
-          variableStore: thread.replVariables,
-          thread,
-          executionContextId
-        }
-      };
     }
+    return {
+      result: {
+        stackFrame,
+        variableStore: stackFrame ? thread.pausedVariables()! : thread.replVariables
+      }
+    };
   }
 
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
+    const thread = this._selectedThread();
+    if (!thread)
+      return this._threadNotAvailableError();
+
     const { result: maybePrep, error } = this._prepareForEvaluate(args.frameId);
     if (error)
       return error;
@@ -257,8 +245,8 @@ export class Adapter {
     }
 
     const response = prep.stackFrame
-      ? await prep.thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
-      : await prep.thread.cdp().Runtime.evaluate({ ...params, contextId: prep.executionContextId });
+      ? await thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
+      : await thread.cdp().Runtime.evaluate({ ...params, contextId: this._selectedExecutionContextId() });
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
@@ -273,12 +261,12 @@ export class Adapter {
       };
     }
 
-    const outputSlot = prep.thread.claimOutputSlot();
+    const outputSlot = thread.claimOutputSlot();
     if (response.exceptionDetails) {
-      outputSlot(await prep.thread.formatException(response.exceptionDetails, '↳ '));
+      outputSlot(await thread.formatException(response.exceptionDetails, '↳ '));
     } else {
       const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
-      const variablesReference = await prep.thread.replVariables.createVariableForOutput(text, [response.result]);
+      const variablesReference = await thread.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
         output: '',
@@ -291,12 +279,15 @@ export class Adapter {
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
+    const thread = this._selectedThread();
+    if (!thread)
+      return this._threadNotAvailableError();
     const { result: maybePrep, error } = this._prepareForEvaluate(params.frameId);
     if (error)
       return error;
     const prep = maybePrep as EvaluatePrep;
     const line = params.line === undefined ? 0 : params.line - 1;
-    return { targets: await completions.completions(prep.thread.cdp(), prep.executionContextId, prep.stackFrame, params.text, line, params.column) };
+    return { targets: await completions.completions(thread.cdp(), this._selectedExecutionContextId(), prep.stackFrame, params.text, line, params.column) };
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
@@ -432,5 +423,13 @@ export class Adapter {
       return this.threadManager.thread(this._selectedExecutionContext.threadId)!;
     else
       return this.threadManager.mainThread();
+  }
+
+  _selectedExecutionContextId(): number | undefined {
+    if (this._selectedExecutionContext)
+      return this._selectedExecutionContext.contextId;
+    const thread = this.threadManager.mainThread();
+    const context = thread ? thread.defaultExecutionContext() : undefined;
+    return context ? context.id : undefined;
   }
 }
