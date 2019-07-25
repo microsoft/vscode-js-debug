@@ -18,14 +18,36 @@ export type SetBreakpointRequest = {
 export class Configurator {
   private _setBreakpointRequests: SetBreakpointRequest[] = [];
   private _pausedOnExceptionsState: PauseOnExceptionsState = 'none';
+  private _dap: Dap.Api;
 
   constructor(dap: Dap.Api) {
+    this._dap = dap;
+    dap.on('initialize', params => this._onInitialize(params));
     dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
     dap.on('configurationDone', params => this._onConfigurationDone(params));
   }
 
-  capabilities(): Dap.InitializeResult {
+  static resolvePausedOnExceptionsState(params: Dap.SetExceptionBreakpointsParams): PauseOnExceptionsState {
+    if (params.filters.includes('caught'))
+      return 'all';
+    if (params.filters.includes('uncaught'))
+      return 'uncaught';
+    return 'none';
+  }
+
+  setBreakpointRequests(): SetBreakpointRequest[] {
+    return this._setBreakpointRequests;
+  }
+
+  pausedOnExceptionsState(): PauseOnExceptionsState {
+    return this._pausedOnExceptionsState;
+  }
+
+  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
+    console.assert(params.linesStartAt1);
+    console.assert(params.columnsStartAt1);
+    this._dap.initialized({});
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
@@ -60,22 +82,6 @@ export class Configurator {
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,
     };
-  }
-
-  static resolvePausedOnExceptionsState(params: Dap.SetExceptionBreakpointsParams): PauseOnExceptionsState {
-    if (params.filters.includes('caught'))
-      return 'all';
-    if (params.filters.includes('uncaught'))
-      return 'uncaught';
-    return 'none';
-  }
-
-  setBreakpointRequests(): SetBreakpointRequest[] {
-    return this._setBreakpointRequests;
-  }
-
-  pausedOnExceptionsState(): PauseOnExceptionsState {
-    return this._pausedOnExceptionsState;
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult> {

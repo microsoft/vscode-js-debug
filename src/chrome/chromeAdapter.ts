@@ -48,7 +48,6 @@ export class ChromeAdapter {
     this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
     this._configurator = new Configurator(dap);
-    this._dap.on('initialize', params => this.initialize(params));
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
@@ -73,10 +72,8 @@ export class ChromeAdapter {
     return this._connection;
   }
 
-  async initialize(params: Dap.InitializeParams, isUnderTest?: boolean): Promise<Dap.InitializeResult | Dap.Error> {
-    console.assert(params.linesStartAt1);
-    console.assert(params.columnsStartAt1);
-    console.assert(params.pathFormat === 'path');
+  async prepareLaunch(params: LaunchParams, isUnderTest: boolean): Promise<Target | Dap.Error> {
+    // params.noDebug
 
     // Prefer canary over stable, it comes earlier in the list.
     const executablePath = findChrome()[0];
@@ -99,12 +96,7 @@ export class ChromeAdapter {
         pipe: true,
       });
     this._connection.onDisconnected(() => this._dap.exited({ exitCode: 0 }), undefined, this._disposables);
-    this._dap.initialized({});
-    return this._configurator.capabilities();
-  }
 
-  async prepareLaunch(params: LaunchParams): Promise<Target | undefined> {
-    // params.noDebug
     this._launchParams = params;
 
     this._adapter = new Adapter(this._dap, {
@@ -122,7 +114,7 @@ export class ChromeAdapter {
     // sharing the browser instance. This can be fixed.
     this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
-      return;
+      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     this._targetManager.onTargetRemoved((target: Target) => {
       if (target === this._mainTarget) {
         this._dap.terminated({});
@@ -137,10 +129,10 @@ export class ChromeAdapter {
   }
 
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
-    const mainTarget = await this.prepareLaunch(params);
-    if (!mainTarget)
-      return errors.createUserError(localize('errors.launchDidFail', 'Unable to launch Chrome'));
-    await this.finishLaunch(mainTarget);
+    const result = await this.prepareLaunch(params, false);
+    if (!(result instanceof Target))
+      return result;
+    await this.finishLaunch(result);
     return {};
   }
 
