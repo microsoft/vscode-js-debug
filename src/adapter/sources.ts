@@ -9,7 +9,7 @@ import Dap from '../dap/api';
 import { URL } from 'url';
 import * as path from 'path';
 import * as errors from './errors';
-import { prettyPrintAsSourceMap } from './prettyPrint';
+import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
 import { calculateHash } from './hash';
 
 // This is a ui location. Usually it corresponds to a position
