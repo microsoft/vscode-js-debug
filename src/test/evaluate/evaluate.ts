@@ -3,6 +3,7 @@
 
 import {TestP} from '../test';
 import * as vscode from 'vscode';
+import * as sourceUtils from '../../utils/sourceUtils';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -121,7 +122,7 @@ export function addTests(testRunner) {
     for (const code of tests) {
       p.log('------');
       p.log(code);
-      const rewritten = p.adapter.rewriteTopLevelAwait(code);
+      const rewritten = sourceUtils.rewriteTopLevelAwait(code);
       p.log(rewritten || '<ignored>');
     }
 
