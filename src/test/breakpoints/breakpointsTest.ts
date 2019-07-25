@@ -60,7 +60,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    xit('source map', async({p}: {p: TestP}) => {
+    it('source map', async({p}: {p: TestP}) => {
       // Breakpoint in source mapped script set before launch.
       // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
       // on 'pause before executing script with source map' functionality in CDP.
@@ -155,7 +155,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    xit('source map', async({p}: {p: TestP}) => {
+    it('source map', async({p}: {p: TestP}) => {
       // Breakpoint in source mapped script set after launch.
       // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
       // on 'pause before executing script with source map' functionality in CDP.
