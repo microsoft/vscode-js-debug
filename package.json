@@ -79,12 +79,12 @@
     "views": {
       "debug": [
         {
-          "id": "pwa.breakpoints",
-          "name": "Browser breakpoints"
-        },
-        {
           "id": "pwa.executionContexts",
           "name": "Threads"
+        },
+        {
+          "id": "pwa.breakpoints",
+          "name": "Browser breakpoints"
         }
       ],
       "pwa": [
