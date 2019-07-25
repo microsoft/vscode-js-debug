@@ -20,3 +20,12 @@ export function trimMiddle(text: string, maxLength: number) {
     --leftHalf;
   return text.substr(0, leftHalf) + '\u2026' + text.substr(text.length - rightHalf, rightHalf);
 }
+
+export function formatMillisForLog(millis: number): string {
+  function pad(n: number, d: number): string {
+    let result = String(n);
+    return '0'.repeat(d - result.length) + result;
+  }
+  const d = new Date(millis);
+  return `${pad(d.getHours(), 2)}:${pad(d.getMinutes(), 2)}:${pad(d.getSeconds(), 2)}.${pad(d.getMilliseconds(), 3)}`;
+}

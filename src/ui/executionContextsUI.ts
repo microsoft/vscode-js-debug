@@ -10,6 +10,7 @@ export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);
 
   const treeView = vscode.window.createTreeView('pwa.executionContexts', { treeDataProvider: provider });
+
   treeView.onDidChangeSelection(() => {
     const item = treeView.selection[0];
     const adapter = factory.activeAdapter();
@@ -38,7 +39,9 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   }
 
   getTreeItem(item: ExecutionContextTree): vscode.TreeItem {
-    return new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
+    const result = new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
+    result.contextValue = item.contextId ? 'pwa.executionContext' : 'pwa.thread';
+    return result;
   }
 
   async getChildren(item?: ExecutionContextTree): Promise<ExecutionContextTree[]> {

@@ -10,6 +10,7 @@ import { registerServiceWorkersUI } from './ui/serviceWorkersUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { AdapterFactory } from './adapterFactory';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
+import { OutputUI } from './ui/outputUI';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
   const factory = new AdapterFactory(context);
   new LocationRevealerUI(context, factory);
+  new OutputUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
   registerExecutionContextsUI(factory);
   registerServiceWorkersUI(context, factory);

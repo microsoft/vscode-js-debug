@@ -16,6 +16,7 @@ interface QuickPickItem extends vscode.QuickPickItem {
 export function registerServiceWorkersUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
   const treeDataProvider = new ServiceWorkersDataProvider(factory);
   vscode.window.createTreeView('pwa.serviceWorkers', { treeDataProvider });
+
   context.subscriptions.push(vscode.commands.registerCommand('pwa.changeServiceWorkersMode', async e => {
     const quickPick = vscode.window.createQuickPick<QuickPickItem>();
     quickPick.items = [
@@ -61,12 +62,17 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
   }
 
   getTreeItem(item: DataItem): vscode.TreeItem {
-    if (item instanceof ServiceWorkerRegistration)
-      return new vscode.TreeItem(item.scopeURL, vscode.TreeItemCollapsibleState.Expanded);
-    if (item instanceof ServiceWorkerVersion) {
-      const scriptURL = item.scriptURL.substring(item.registration.scopeURL.length);
-      const revision = item.revisions[0];
-      return new vscode.TreeItem(`${item.runningStatus()}${scriptURL} #${item.id} (${revision.status})`, vscode.TreeItemCollapsibleState.None);
+    if (item instanceof ServiceWorkerRegistration) {
+      let title = item.scopeURL;
+      if (title.endsWith('/'))
+        title = title.substring(0, title.length - 1);
+      if (title.startsWith('http://'))
+        title = title.substring('http://'.length);
+      if (title.startsWith('https://'))
+        title = title.substring('https://'.length);
+      return new vscode.TreeItem(title, vscode.TreeItemCollapsibleState.Expanded);
+    } if (item instanceof ServiceWorkerVersion) {
+      return new vscode.TreeItem(item.labelWithStatus(), vscode.TreeItemCollapsibleState.None);
     }
     return item;
   }
