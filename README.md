@@ -2,7 +2,7 @@
 
 - Attaching to all threads: page, out of process iframes, web workers, related service workers
 
-    <img width="284" alt="Screen Shot 2019-07-22 at 9 46 54 PM" src="https://user-images.githubusercontent.com/883973/61683502-8b2f1280-acca-11e9-88ab-15fc0f08c5ee.png">
+    <img width="359" alt="Screen Shot 2019-07-25 at 9 27 36 AM" src="https://user-images.githubusercontent.com/883973/61891435-803cd380-aebe-11e9-8c27-1af5d1fdab43.png">
 
 - Unified console for everything
 
@@ -10,11 +10,11 @@
 
 - Evaluate in selected execution context
 
-    <img width="285" alt="Screen Shot 2019-07-22 at 9 47 49 PM" src="https://user-images.githubusercontent.com/883973/61683446-5e7afb00-acca-11e9-8af5-04ce9210e8b0.png">
+    <img width="652" alt="Screen Shot 2019-07-25 at 9 29 47 AM" src="https://user-images.githubusercontent.com/883973/61891554-c2feab80-aebe-11e9-9f30-38f057c7f722.png">
 
-- Node debugging attaches to all processes
+- Node debugging attaches to all sub-processes
 
-    <img width="286" alt="Screen Shot 2019-07-22 at 9 35 58 PM" src="https://user-images.githubusercontent.com/883973/61682997-ba448480-acc8-11e9-824c-64c424752a1f.png">
+    <img width="322" alt="Screen Shot 2019-07-25 at 9 31 34 AM" src="https://user-images.githubusercontent.com/883973/61891688-140e9f80-aebf-11e9-9f56-c9fa9bf47c46.png">
 
 - Top-level await in console
 
