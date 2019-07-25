@@ -109,11 +109,13 @@ export class ChromeAdapter implements DisposableAdapterOwner {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot));
+    this._adapter = new Adapter(this._dap, {
+      sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
+      executionContextForest: () => this._targetManager.executionContextForest()
+    });
     this._adapter[ChromeAdapter.symbol] = this;
     this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
     this._disposables.push(this._targetManager);
-    this._adapter.threadManager.setDelegate(this._targetManager);
     await this._adapter.configure(this._configurator);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions

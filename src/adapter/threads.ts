@@ -70,21 +70,19 @@ export class ThreadManager {
   readonly sourceContainer: SourceContainer;
   _sourcePathResolver: SourcePathResolver;
   private _delegate: ThreadManagerDelegate;
-  private _defaultDelegate: DefaultThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
 
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, delegate: ThreadManagerDelegate) {
     this._dap = dap;
     this._sourcePathResolver = sourcePathResolver;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
-    this._defaultDelegate = new DefaultThreadManagerDelegate(this);
-    this._delegate = this._defaultDelegate;
+    this._delegate = delegate;
   }
 
   mainThread(): Thread | undefined {
@@ -93,10 +91,6 @@ export class ThreadManager {
 
   createThread(cdp: Cdp.Api, parent: Thread | undefined, configuration: ThreadConfiguration): Thread {
     return new Thread(this, cdp, this._dap, parent, configuration);
-  }
-
-  setDelegate(delegate: ThreadManagerDelegate) {
-    this._delegate = delegate;
   }
 
   setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
@@ -116,7 +110,7 @@ export class ThreadManager {
   }
 
   refreshExecutionContexts() {
-    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest() || this._defaultDelegate.executionContextForest());
+    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest());
     this._dap.thread({ reason: 'exited', threadId: threadIdToRefreshThreads });
   }
 

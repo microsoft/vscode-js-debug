@@ -13,7 +13,7 @@ import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
 import { StackFrame } from './stackTrace';
-import { ExecutionContextTree, Thread, ThreadManager } from './threads';
+import { ExecutionContextTree, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -30,6 +30,10 @@ export interface DisposableAdapterOwner extends vscode.Disposable {
   adapter(): Adapter;
 };
 
+export interface AdapterDelegate extends ThreadManagerDelegate {
+  sourcePathResolverFactory: () => SourcePathResolver;
+}
+
 export class Adapter {
   readonly threadManager: ThreadManager;
   readonly sourceContainer: SourceContainer;
@@ -39,7 +43,7 @@ export class Adapter {
   private _currentExecutionContext: ExecutionContextTree | undefined;
   private _locationToReveal: Location | undefined;
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, delegate: AdapterDelegate) {
     this._dap = dap;
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('continue', params => this._onContinue(params));
@@ -60,8 +64,9 @@ export class Adapter {
     this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
 
+    const sourcePathResolver = delegate.sourcePathResolverFactory();
     this.sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
-    this.threadManager = new ThreadManager(this._dap, sourcePathResolver, this.sourceContainer);
+    this.threadManager = new ThreadManager(this._dap, sourcePathResolver, this.sourceContainer, delegate);
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this.sourceContainer, this.threadManager);
   }
 
