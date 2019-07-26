@@ -142,10 +142,6 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
     };
     contexts.forEach(item => visit('', item));
     this._onDidChangeTreeData.fire();
-
-    const selected = this._treeView.selection[0];
-    if (this._contexts[0] && (!selected || !keys.has(uniqueId(selected))))
-      this._treeView.reveal(this._contexts[0], { select: true });
   }
 }
 
