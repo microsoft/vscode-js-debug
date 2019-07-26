@@ -8,8 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
-import { Adapter } from '../adapter/adapter';
-import { Configurator } from '../adapter/configurator';
+import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import { ExecutionContextTree, Thread } from '../adapter/threads';
@@ -29,10 +28,9 @@ let counter = 0;
 
 export class NodeAdapter {
   private _dap: Dap.Api;
-  private _configurator: Configurator;
+  private _debugAdapter: DebugAdapter;
   private _rootPath: string | undefined;
-  private _adapter: Adapter;
-  private _adapterReadyCallback: (adapter: Adapter) => void;
+  private _adapterReadyCallback: (adapter: DebugAdapter) => void;
   private _server: net.Server | undefined;
   private _runtime: ChildProcess | undefined;
   private _connections: Connection[] = [];
@@ -41,15 +39,15 @@ export class NodeAdapter {
   private _targets = new Map<string, Thread>();
   private _isRestarting: boolean;
 
-  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<Adapter> {
-    return new Promise<Adapter>(f => new NodeAdapter(dap, rootPath, f));
+  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DebugAdapter> {
+    return new Promise<DebugAdapter>(f => new NodeAdapter(dap, rootPath, f));
   }
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: Adapter) => void) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: DebugAdapter) => void) {
     this._dap = dap;
     this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
-    this._configurator = new Configurator(dap);
+    this._debugAdapter = new DebugAdapter(dap);
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
@@ -60,15 +58,14 @@ export class NodeAdapter {
     // params.noDebug
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, {
+    await this._debugAdapter.launch({
       sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
       executionContextForest: () => this.executionContextForest(),
       adapterDisposed: () => this._stopServer(),
       copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
     });
-    await this._adapter.configure(this._configurator);
 
-    this._adapterReadyCallback(this._adapter);
+    this._adapterReadyCallback(this._debugAdapter);
     await this._startServer();
     const error = await this._relaunch();
     return error || {};
@@ -155,7 +152,7 @@ export class NodeAdapter {
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
     const parentThread = this._targets.get(targetInfo.openerId!);
-    const thread = this._adapter.threadManager.createThread(cdp, parentThread, {
+    const thread = this._debugAdapter.threadManager().createThread(cdp, parentThread, {
       defaultScriptOffset: {lineOffset: 0, columnOffset: 62}
     });
     this._targets.set(targetInfo.targetId, thread);
@@ -195,7 +192,7 @@ export class NodeAdapter {
           visit(child, container);
       }
     };
-    this._adapter.threadManager.topLevelThreads().forEach(t => visit(t, result));
+    this._debugAdapter.threadManager().topLevelThreads().forEach(t => visit(t, result));
     return result;
   }
 }

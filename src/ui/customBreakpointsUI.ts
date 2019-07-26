@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
 import { AdapterFactory } from '../adapterFactory';
-import { Adapter } from '../adapter/adapter';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 class Breakpoint {
   id: CustomBreakpointId;
@@ -39,8 +39,8 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
     for (const cb of customBreakpoints().values())
       this.breakpoints.push(new Breakpoint(cb, false));
 
-    const sendState = (adapter: Adapter) => {
-      adapter.threadManager.enableCustomBreakpoints(this.breakpoints.filter(b => b.enabled).map(b => b.id));
+    const sendState = (adapter: DebugAdapter) => {
+      adapter.threadManager().enableCustomBreakpoints(this.breakpoints.filter(b => b.enabled).map(b => b.id));
     };
     factory.onAdapterAdded(sendState);
     factory.adapters().forEach(sendState);
@@ -64,7 +64,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
     for (const breakpoint of breakpoints)
       breakpoint.enabled = true;
     const ids = breakpoints.map(b => b.id);
-    this._factory.adapters().forEach(adapter => adapter.threadManager.enableCustomBreakpoints(ids));
+    this._factory.adapters().forEach(adapter => adapter.threadManager().enableCustomBreakpoints(ids));
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -74,7 +74,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
       if (ids.has(breakpoint.id))
         breakpoint.enabled = false;
     }
-    this._factory.adapters().forEach(adapter => adapter.threadManager.disableCustomBreakpoints(breakpointIds));
+    this._factory.adapters().forEach(adapter => adapter.threadManager().disableCustomBreakpoints(breakpointIds));
     this._onDidChangeTreeData.fire(undefined);
   }
 }
