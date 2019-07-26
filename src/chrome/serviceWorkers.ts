@@ -173,4 +173,13 @@ export class ServiceWorkerModel implements vscode.Disposable {
       }
     }
   }
+
+  async stopWorker(targetId: Cdp.Target.TargetID) {
+    const version = this.version(targetId);
+    if (!version)
+      return;
+    await this._cdp.ServiceWorker.stopWorker({
+      versionId: version.id
+    });
+  }
 }

@@ -62,7 +62,9 @@ export class NodeAdapter {
       sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
       executionContextForest: () => this.executionContextForest(),
       adapterDisposed: () => this._stopServer(),
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
+      canStopThread: (thread: Thread) => true,
+      stopThread: (thread: Thread) => this._terminateProcess(thread.threadId())
     });
 
     this._adapterReadyCallback(this._debugAdapter);
@@ -152,7 +154,7 @@ export class NodeAdapter {
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
     const parentThread = this._targets.get(targetInfo.openerId!);
-    const thread = this._debugAdapter.threadManager().createThread(cdp, parentThread, {
+    const thread = this._debugAdapter.threadManager().createThread(targetInfo.targetId, cdp, parentThread, {
       defaultScriptOffset: {lineOffset: 0, columnOffset: 62}
     });
     this._targets.set(targetInfo.targetId, thread);
@@ -171,6 +173,10 @@ export class NodeAdapter {
       connection.close();
     });
     cdp.Runtime.runIfWaitingForDebugger({});
+  }
+
+  _terminateProcess(pid: string) {
+    process.kill(+pid);
   }
 
   executionContextForest(): ExecutionContextTree[] | undefined {

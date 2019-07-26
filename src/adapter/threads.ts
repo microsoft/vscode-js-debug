@@ -38,13 +38,11 @@ export interface ExecutionContextTree {
   contextId: number;
   name: string;
   thread: Thread;
-  isThread: boolean;
   children: ExecutionContextTree[];
+  isThread: boolean;
 }
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
-
-let lastThreadId = 0;
 
 export interface ThreadConfiguration {
   supportsCustomBreakpoints?: boolean;
@@ -54,6 +52,8 @@ export interface ThreadConfiguration {
 export interface ThreadManagerDelegate {
   copyToClipboard(text: string): void;
   executionContextForest(): ExecutionContextTree[] | undefined;
+  canStopThread(thread: Thread): boolean;
+  stopThread(thread: Thread): void;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -61,7 +61,7 @@ export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => 
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
-  private _threads: Map<number, Thread> = new Map();
+  private _threads: Map<string, Thread> = new Map();
   private _dap: Dap.Api;
 
   private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContextTree[]>();
@@ -96,8 +96,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(cdp: Cdp.Api, parent: Thread | undefined, configuration: ThreadConfiguration): Thread {
-    return new Thread(this, cdp, this._dap, parent, configuration);
+  createThread(threadId: string, cdp: Cdp.Api, parent: Thread | undefined, configuration: ThreadConfiguration): Thread {
+    return new Thread(this, threadId, cdp, this._dap, parent, configuration);
   }
 
   setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
@@ -109,7 +109,7 @@ export class ThreadManager {
     this._threads.set(thread.threadId(), thread);
   }
 
-  _removeThread(threadId: number) {
+  _removeThread(threadId: string) {
     const thread = this._threads.get(threadId);
     console.assert(thread);
     this._threads.delete(threadId);
@@ -128,7 +128,7 @@ export class ThreadManager {
     return this.threads().filter(t => !t._parentThread);
   }
 
-  thread(threadId: number): Thread | undefined {
+  thread(threadId: string): Thread | undefined {
     return this._threads.get(threadId);
   }
 
@@ -197,7 +197,7 @@ export class ThreadManager {
 export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
-  private _threadId: number;
+  private _threadId: string;
   private _name: string;
   private _threadBaseUrl: string;
   private _pausedDetails?: PausedDetails;
@@ -217,7 +217,7 @@ export class Thread implements VariableStoreDelegate {
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
 
-  constructor(manager: ThreadManager, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, configuration: ThreadConfiguration) {
+  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, configuration: ThreadConfiguration) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
@@ -225,7 +225,7 @@ export class Thread implements VariableStoreDelegate {
     this._parentThread = parent;
     if (parent)
       parent._childThreads.push(this);
-    this._threadId = ++lastThreadId;
+    this._threadId = threadId;
     this._name = '';
     this._supportsCustomBreakpoints = configuration.supportsCustomBreakpoints || false;
     this._defaultScriptOffset = configuration.defaultScriptOffset;
@@ -239,7 +239,7 @@ export class Thread implements VariableStoreDelegate {
     return this._cdp;
   }
 
-  threadId(): number {
+  threadId(): string {
     return this._threadId;
   }
 
@@ -303,6 +303,14 @@ export class Thread implements VariableStoreDelegate {
       return false;
     this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
     return true;
+  }
+
+  canStop(): boolean {
+    return this.manager._delegate.canStopThread(this);
+  }
+
+  stop() {
+    this.manager._delegate.stopThread(this);
   }
 
   initialize() {

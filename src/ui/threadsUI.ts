@@ -18,6 +18,9 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
   context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: ExecutionContextTree) => {
     item.thread.resume();
   }));
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.stopThread', (item: ExecutionContextTree) => {
+    item.thread.stop();
+  }));
 
   treeView.onDidChangeSelection(() => {
     const item = treeView.selection[0];
@@ -105,11 +108,13 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTre
     if (item.isThread) {
       if (item.thread.pausedDetails()) {
         result.description = 'PAUSED';
-        result.contextValue = 'pwa.pausedThread';
+        result.contextValue = 'canRun';
       } else {
         result.description = 'RUNNING';
-        result.contextValue = 'pwa.runningThread';
+        result.contextValue = 'canPause';
       }
+      if (item.thread.canStop())
+        result.contextValue += ' canStop';
     } else {
       result.contextValue = 'pwa.executionContext';
     }
@@ -137,10 +142,10 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTre
       item.children.forEach(item => visit(indentation + tab, item));
     };
     contexts.forEach(item => visit('', item));
-    this._onDidChangeTreeData.fire(undefined);
+    this._onDidChangeTreeData.fire();
 
     const selected = this._treeView.selection[0];
-    if (!selected || !keys.has(selected.thread.threadId() + ':' + selected.contextId))
+    if (this._contexts[0] && (!selected || !keys.has(selected.thread.threadId() + ':' + selected.contextId)))
       this._treeView.reveal(this._contexts[0], { select: true });
   }
 }
