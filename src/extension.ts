@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as nls from 'vscode-nls';
 import * as vscode from 'vscode';
-import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
-import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
-import { registerExecutionContextsUI } from './ui/executionContextsUI';
-import { registerServiceWorkersUI } from './ui/serviceWorkersUI';
-import { registerPrettyPrintActions } from './ui/prettyPrintUI';
+import { CancellationToken, DebugConfiguration, ProviderResult, WorkspaceFolder } from 'vscode';
+import * as nls from 'vscode-nls';
 import { AdapterFactory } from './adapterFactory';
+import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
 import { OutputUI } from './ui/outputUI';
+import { registerPrettyPrintActions } from './ui/prettyPrintUI';
+import { registerServiceWorkersUI } from './ui/serviceWorkersUI';
+import { registerThreadsUI } from './ui/threadsUI';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
   new LocationRevealerUI(context, factory);
   new OutputUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
-  registerExecutionContextsUI(factory);
+  registerThreadsUI(factory);
   registerServiceWorkersUI(context, factory);
   registerPrettyPrintActions(context, factory);
 }
