@@ -232,6 +232,27 @@ export class TargetManager implements vscode.Disposable {
   _targetStructureChanged() {
     this._threadManager.refreshExecutionContexts();
   }
+
+  canStop(targetId: string): boolean {
+    const target = this._targets.get(targetId);
+    if (!target)
+      return false;
+    if (target._targetInfo.type === 'service_worker')
+      return true;  // For future versions of Chrome.
+    const parentTarget = target.parentTarget;
+    if (!parentTarget)
+      return false;
+    return parentTarget._targetInfo.type === 'service_worker';
+  }
+
+  stop(targetId: string) {
+    // Stop both dedicated and parent service worker scopes for present and future browsers.
+    this.serviceWorkerModel.stopWorker(targetId);
+    const target = this._targets.get(targetId);
+    if (!target || !target.parentTarget)
+      return;
+    this.serviceWorkerModel.stopWorker(target.parentTarget.targetId());
+  }
 }
 
 const jsTypes = new Set(['page', 'iframe', 'worker']);
@@ -243,7 +264,7 @@ export class Target {
   private _manager: TargetManager;
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
-  private _targetInfo: Cdp.Target.TargetInfo;
+  _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: Target) => void;
 
   _children: Map<Cdp.Target.TargetID, Target> = new Map();
@@ -256,7 +277,7 @@ export class Target {
       let parentThread: Thread | undefined;
       for (let p = parentTarget; p && !parentThread; p = p.parentTarget)
         parentThread = p.thread();
-      this._thread = targetManager._threadManager.createThread(cdp, parentThread, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
+      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, parentThread, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
     }
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;

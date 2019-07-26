@@ -17,7 +17,7 @@ export class Breakpoint {
   private _disposables: Disposable[] = [];
   private _activeSetters = new Set<Promise<void>>();
 
-  private _perThread = new Map<number, Set<Cdp.Debugger.BreakpointId>>();
+  private _perThread = new Map<string, Set<Cdp.Debugger.BreakpointId>>();
   private _resolvedLocation?: Location;
 
   constructor(manager: BreakpointManager, dapId: number, source: Dap.Source, params: Dap.SourceBreakpoint) {
@@ -233,7 +233,7 @@ export class BreakpointManager {
   _sourceContainer: SourceContainer;
   _threadManager: ThreadManager;
   _disposables: Disposable[] = [];
-  _perThread = new Map<number, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
+  _perThread = new Map<string, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
 
   constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;

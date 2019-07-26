@@ -62,6 +62,7 @@
   "main": "./out/extension",
   "activationEvents": [
     "onDebug",
+    "onView:pwa.threadsView",
     "onView:pwa.breakpoints",
     "onView:pwa.serviceWorkers",
     "onView:pwa.cacheStorage"
@@ -146,6 +147,14 @@
           "light": "resources/resume-light.svg",
           "dark": "resources/resume-dark.svg"
         }
+      },
+      {
+        "command": "pwa.stopThread",
+        "title": "Terminate thread",
+        "icon": {
+          "light": "resources/stop-light.svg",
+          "dark": "resources/stop-dark.svg"
+        }
       }
     ],
     "menus": {
@@ -186,12 +195,17 @@
         },
         {
           "command": "pwa.pauseThread",
-          "when": "view == pwa.threadsView && viewItem == pwa.runningThread",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canPause.*/",
           "group": "inline"
         },
         {
           "command": "pwa.resumeThread",
-          "when": "view == pwa.threadsView && viewItem == pwa.pausedThread",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canRun.*/",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.stopThread",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canStop.*/",
           "group": "inline"
         }
       ]

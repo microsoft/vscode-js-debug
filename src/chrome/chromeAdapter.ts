@@ -15,6 +15,7 @@ import * as utils from '../utils/urlUtils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import { Target, TargetManager } from './targets';
+import { Thread } from '../adapter/threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -101,7 +102,9 @@ export class ChromeAdapter {
       sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
       executionContextForest: () => this._targetManager.executionContextForest(),
       adapterDisposed: () => this._dispose(),
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
+      canStopThread: (thread: Thread) => this._targetManager.canStop(thread.threadId()),
+      stopThread: (thread: Thread) => this._targetManager.stop(thread.threadId())
     });
     this._debugAdapter[ChromeAdapter.symbol] = this;
     this._targetManager = new TargetManager(this._connection, this._debugAdapter.threadManager());
