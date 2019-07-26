@@ -49,13 +49,14 @@ export class TargetManager implements vscode.Disposable {
 
   executionContextForest(): ExecutionContextTree[] | undefined {
     const reported: Set<string> = new Set();
-    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, name?: string) => {
+    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);
       return {
         contextId: context.id,
         name: name || context.name || thread.name(),
-        threadId: thread.threadId(),
-        children: []
+        thread: thread,
+        children: [],
+        isThread
       };
     };
 
@@ -73,7 +74,7 @@ export class TargetManager implements vscode.Disposable {
         const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
-          const dapContext = toDap(thread, context, name);
+          const dapContext = toDap(thread, context, true, name);
           mainForFrameId.set(frameId, dapContext);
           if (!frame.parentFrame)
             mainForTarget.set(target, dapContext);
@@ -83,7 +84,7 @@ export class TargetManager implements vscode.Disposable {
             contexts = [];
             worldsForFrameId.set(frameId, contexts);
           }
-          contexts.push(toDap(thread, context));
+          contexts.push(toDap(thread, context, false));
         }
       }
     }
@@ -126,11 +127,11 @@ export class TargetManager implements vscode.Disposable {
       if (!thread)
         continue;
 
-      // Put all contexts there.
+      // Put all contexts there, mark all as threads since they are independent.
       for (const context of thread.executionContexts()) {
         if (reported.has(thread.threadId() + ':' + context.id))
           continue;
-        container.push(toDap(thread, context));
+        container.push(toDap(thread, context, true));
       }
     }
     return result;

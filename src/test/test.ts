@@ -86,11 +86,11 @@ export class TestP {
       params.forEach(visit);
     });
     this.adapter.threadManager().onThreadPaused(thread => {
-      if (selected && selected.threadId === thread.threadId()) {
+      if (selected && selected.thread === thread) {
         this.adapter.selectExecutionContext(selected);
       } else {
         for (const context of contexts) {
-          if (context.threadId === thread.threadId()) {
+          if (context.thread === thread) {
             this.adapter.selectExecutionContext(context);
             break;
           }

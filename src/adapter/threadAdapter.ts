@@ -9,9 +9,8 @@ import * as sourceUtils from '../utils/sourceUtils';
 import * as completions from './completions';
 import * as errors from './errors';
 import * as objectPreview from './objectPreview';
-import { SourcePathResolver } from './sources';
 import { StackFrame } from './stackTrace';
-import { Thread, ThreadManagerDelegate } from './threads';
+import { Thread } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -20,11 +19,6 @@ type EvaluatePrep = {
   variableStore: VariableStore;
   stackFrame?: StackFrame;
 };
-
-export interface AdapterDelegate extends ThreadManagerDelegate {
-  sourcePathResolverFactory: () => SourcePathResolver;
-  adapterDisposed: () => void;
-}
 
 export class ThreadAdapter {
   private _dap: Dap.Api;

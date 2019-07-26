@@ -35,9 +35,10 @@ export interface PausedDetails {
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export interface ExecutionContextTree {
-  contextId?: number;
+  contextId: number;
   name: string;
-  threadId: number;
+  thread: Thread;
+  isThread: boolean;
   children: ExecutionContextTree[];
 }
 
