@@ -165,6 +165,7 @@ export class ThreadAdapter {
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     if (!this._thread)
       return this._threadNotAvailableError();
+    const thread = this._thread;
 
     const { result: maybePrep, error } = this._prepareForEvaluate(args.frameId);
     if (error)
@@ -190,29 +191,41 @@ export class ThreadAdapter {
       }
     }
 
-    const response = prep.stackFrame
-      ? await this._thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
-      : await this._thread.cdp().Runtime.evaluate({ ...params, contextId: this._executionContextId });
+    const responsePromise = prep.stackFrame
+      ? thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
+      : thread.cdp().Runtime.evaluate({ ...params, contextId: this._executionContextId });
+
+    // Report result for repl immediately so that the user could see the expression they entered.
+    if (args.context === 'repl') {
+      ThreadAdapter._evaluateAndOutput(this._thread, responsePromise);
+      return { result: '', variablesReference: 0 };
+    }
+
+    const response = await responsePromise;
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
-    if (args.context !== 'repl') {
-      const variable = await prep.variableStore.createVariable(response.result, args.context);
-      return {
-        type: response.result.type,
-        result: variable.value,
-        variablesReference: variable.variablesReference,
-        namedVariables: variable.namedVariables,
-        indexedVariables: variable.indexedVariables,
-      };
-    }
+    const variable = await prep.variableStore.createVariable(response.result, args.context);
+    return {
+      type: response.result.type,
+      result: variable.value,
+      variablesReference: variable.variablesReference,
+      namedVariables: variable.namedVariables,
+      indexedVariables: variable.indexedVariables,
+    };
+  }
 
-    const outputSlot = this._thread.claimOutputSlot();
+  static async _evaluateAndOutput(thread: Thread, responsePromise: Promise<Cdp.Runtime.EvaluateResult | undefined> | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>) {
+    const response = await responsePromise;
+    if (!response)
+      return;
+
+    const outputSlot = thread.claimOutputSlot();
     if (response.exceptionDetails) {
-      outputSlot(await this._thread.formatException(response.exceptionDetails, '↳ '));
+      outputSlot(await thread.formatException(response.exceptionDetails, '↳ '));
     } else {
       const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
-      const variablesReference = await this._thread.replVariables.createVariableForOutput(text, [response.result]);
+      const variablesReference = await thread.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
         output: '',
@@ -220,8 +233,6 @@ export class ThreadAdapter {
       } as Dap.OutputEventParams;
       outputSlot(output);
     }
-
-    return { result: '', variablesReference: 0 };
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
