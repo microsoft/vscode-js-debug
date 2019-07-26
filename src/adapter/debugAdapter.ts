@@ -6,8 +6,9 @@ import Dap from '../dap/api';
 import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
-import { ThreadAdapter } from './threadAdapter';
-import { ExecutionContext, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate } from './threads';
+import { ThreadAdapter, DummyThreadAdapter } from './threadAdapter';
+import { ExecutionContext, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate, Thread } from './threads';
+import { Disposable } from 'vscode';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
@@ -33,7 +34,7 @@ export class DebugAdapter {
   private _threadManager: ThreadManager | undefined;
   private _breakpointManager: BreakpointManager | undefined;
   private _delegate: DebugAdapterDelegate;
-  private _threadAdapter: ThreadAdapter | undefined;
+  private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
 
   constructor(dap: Dap.Api) {
@@ -47,6 +48,7 @@ export class DebugAdapter {
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('stackTrace', params => this._onStackTrace(params));
     this._dap.thread({ reason: 'started', threadId: defaultThreadId });
+    this._threadAdapter = new DummyThreadAdapter(dap);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -152,9 +154,7 @@ export class DebugAdapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === revealLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
-    if (this._threadAdapter)
-      return this._threadAdapter.onStackTrace(params);
-    return this._threadNotAvailableError();
+    return this._threadAdapter.onStackTrace(params);
   }
 
   async launch(delegate: DebugAdapterDelegate): Promise<void> {
@@ -164,17 +164,16 @@ export class DebugAdapter {
     this._threadManager = new ThreadManager(this._dap, sourcePathResolver, this._sourceContainer, delegate);
     this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this._sourceContainer, this._threadManager);
 
-    this._threadAdapter = new ThreadAdapter(this._dap);
     await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
     for (const request of this._setBreakpointRequests)
       await this._breakpointManager.setBreakpoints(request.params, request.generatedIds);
 
     // Select first thread once it is available.
+    const disposables: Disposable[] = [];
     this._threadManager.onThreadAdded(thread => {
-      if (!this._threadAdapter!.thread()) {
-        this._threadAdapter!.setExecutionContext(thread, undefined);
-      }
-    });
+      this._setExecutionContext(thread, undefined);
+      disposables[0].dispose();
+    }, undefined, disposables);
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -201,21 +200,23 @@ export class DebugAdapter {
   }
 
   selectExecutionContext(context: ExecutionContext | undefined) {
-    if (!this._threadAdapter)
-      return;
-    let thread = context ? context.thread : undefined;
-    if (thread) {
-      let description = context!.description;
-      if (!description) {
-        const defaultContext = thread.defaultExecutionContext();
-        description = defaultContext ? defaultContext : undefined;
-      }
-      this._threadAdapter!.setExecutionContext(thread, description ? description.id : undefined);
+    if (context) {
+      const description = context.description || context.thread.defaultExecutionContext();
+      this._setExecutionContext(context.thread, description ? description.id : undefined);
     } else {
-      thread = this._threadManager!.mainThread();
+      const thread = this._threadManager!.mainThread();
       const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
-      this._threadAdapter!.setExecutionContext(thread, defaultContext ? defaultContext.id : undefined);
+      this._setExecutionContext(thread, defaultContext ? defaultContext.id : undefined);
     }
+  }
+
+  _setExecutionContext(thread: Thread | undefined, executionContextId: number | undefined) {
+    if (this._threadAdapter)
+      this._threadAdapter.dispose();
+    if (thread)
+      this._threadAdapter = new ThreadAdapter(this._dap, thread, executionContextId);
+    else
+      this._threadAdapter = new DummyThreadAdapter(this._dap);
 
     const details = thread ? thread.pausedDetails() : undefined;
     if (details) {

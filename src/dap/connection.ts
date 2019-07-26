@@ -59,8 +59,12 @@ export default class Connection {
   _createApi(): Dap.Api {
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
-        if (methodName === 'on')
-          return (requestName, handler) => this._requestHandlers.set(requestName, handler);
+        if (methodName === 'on') {
+          return (requestName, handler) => {
+            this._requestHandlers.set(requestName, handler);
+            return () => this._requestHandlers.delete(requestName);
+          }
+        }
         if (methodName === 'off')
           return (requestName, handler) => this._requestHandlers.delete(requestName);
         return params => {

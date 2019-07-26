@@ -48,10 +48,10 @@ export class TargetManager implements vscode.Disposable {
 
   executionContextForest(): ExecutionContext[] | undefined {
     const reported: Set<string> = new Set();
-    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, name?: string) => {
+    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, name?: string): ExecutionContext => {
       reported.add(thread.threadId() + ':' + context.id);
       return {
-        contextId: context.id,
+        description: context,
         name: name || context.name || thread.name(),
         thread: thread,
         children: [],

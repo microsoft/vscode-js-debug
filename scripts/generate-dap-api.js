@@ -135,7 +135,7 @@ async function generate() {
       const title = toTitleCase(short);
       apiSeparator();
       appendText(desc.description, '    ');
-      result.push(`    on(request: '${short}', handler: (params: ${title}Params) => Promise<${title}Result | Error>): void;`);
+      result.push(`    on(request: '${short}', handler: (params: ${title}Params) => Promise<${title}Result | Error>): () => void;`);
       const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
       stubs.push({type: 'params', name: `${title}Params`, value: defs[definition(args)] || {properties: {}}});
       stubs.push({type: 'result', name: `${title}Result`, value: defs[`${name.substring(0, name.length - 'Request'.length)}Response`]});

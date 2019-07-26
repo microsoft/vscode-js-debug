@@ -11,86 +11,102 @@ import * as objectPreview from './objectPreview';
 import { StackFrame } from './stackTrace';
 import { Thread } from './threads';
 import { VariableStore } from './variables';
+import { Disposable } from 'vscode';
 
 const localize = nls.loadMessageBundle();
 
-type EvaluatePrep = {
-  variableStore: VariableStore;
-  stackFrame?: StackFrame;
-};
-
-export class ThreadAdapter {
-  private _dap: Dap.Api;
-  private _thread: Thread | undefined;
-  private _executionContextId: number | undefined;
+export class DummyThreadAdapter {
+  private _unsubscribe: (() => void)[];
 
   constructor(dap: Dap.Api) {
-    this._dap = dap;
-    this._dap.on('continue', params => this._onContinue(params));
-    this._dap.on('pause', params => this._onPause(params));
-    this._dap.on('next', params => this._onNext(params));
-    this._dap.on('stepIn', params => this._onStepIn(params));
-    this._dap.on('stepOut', params => this._onStepOut(params));
-    this._dap.on('restartFrame', params => this._onRestartFrame(params));
-    this._dap.on('scopes', params => this._onScopes(params));
-    this._dap.on('variables', params => this._onVariables(params));
-    this._dap.on('evaluate', params => this._onEvaluate(params));
-    this._dap.on('completions', params => this._onCompletions(params));
-    this._dap.on('exceptionInfo', params => this._onExceptionInfo(params));
-    this._dap.on('setVariable', params => this._onSetVariable(params));
+    const methods = ['continue', 'pause', 'next', 'stepIn', 'stepOut', 'restartFrame', 'scopes', 'variables', 'evaluate', 'completions', 'exceptionInfo', 'setVariable'];
+    this._unsubscribe = methods.map(method => dap.on(method as any, _ => Promise.resolve(this._threadNotAvailableError())));
   }
 
-  thread(): Thread | undefined {
-    return this._thread;
+  async onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
+    return this._threadNotAvailableError();
   }
 
   _threadNotAvailableError(): Dap.Error {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
+  dispose() {
+    for (const unsubscribe of this._unsubscribe)
+      unsubscribe();
+    this._unsubscribe = [];
+  }
+}
+
+export class ThreadAdapter implements Disposable {
+  private _unsubscribe: (() => void)[];
+  private _thread: Thread;
+  private _executionContextId: number | undefined;
+
+  constructor(dap: Dap.Api, thread: Thread | undefined, executionContextId: number | undefined) {
+    this._thread = thread!;
+    this._executionContextId = executionContextId;
+    this._unsubscribe = [
+      dap.on('continue', params => this._onContinue(params)),
+      dap.on('pause', params => this._onPause(params)),
+      dap.on('next', params => this._onNext(params)),
+      dap.on('stepIn', params => this._onStepIn(params)),
+      dap.on('stepOut', params => this._onStepOut(params)),
+      dap.on('restartFrame', params => this._onRestartFrame(params)),
+      dap.on('scopes', params => this._onScopes(params)),
+      dap.on('variables', params => this._onVariables(params)),
+      dap.on('evaluate', params => this._onEvaluate(params)),
+      dap.on('completions', params => this._onCompletions(params)),
+      dap.on('exceptionInfo', params => this._onExceptionInfo(params)),
+      dap.on('setVariable', params => this._onSetVariable(params)),
+    ];
+  }
+
+  dispose() {
+    for (const unsubscribe of this._unsubscribe)
+      unsubscribe();
+    this._unsubscribe = [];
+  }
+
+  _stackFrameNotFoundError(): Dap.Error {
+    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+  }
+
+  _evaluateOnAsyncFrameError(): Dap.Error {
+    return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
+  }
+
   async _onContinue(_: Dap.ContinueParams): Promise<Dap.ContinueResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     if (!await this._thread.resume())
       return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
     return { allThreadsContinued: false };
   }
 
   async _onPause(_: Dap.PauseParams): Promise<Dap.PauseResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     if (!await this._thread.pause())
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async _onNext(_: Dap.NextParams): Promise<Dap.NextResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     if (!await this._thread.stepOver())
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async _onStepIn(_: Dap.StepInParams): Promise<Dap.StepInResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     if (!await this._thread.stepInto())
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
 
   async _onStepOut(_: Dap.StepOutParams): Promise<Dap.StepOutResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     if (!await this._thread.stepOut())
       return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
     return {};
   }
 
   async _onRestartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     const stackFrame = this._findStackFrame(params.frameId);
     if (!stackFrame)
       return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
@@ -100,8 +116,6 @@ export class ThreadAdapter {
   }
 
   async onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     const details = this._thread.pausedDetails();
     if (!details)
       return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
@@ -109,8 +123,6 @@ export class ThreadAdapter {
   }
 
   _findStackFrame(frameId: number): StackFrame | undefined {
-    if (!this._thread)
-      return undefined;
     const details = this._thread.pausedDetails();
     if (!details)
       return undefined;
@@ -126,8 +138,6 @@ export class ThreadAdapter {
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
-    if (!this._thread)
-      return undefined;
     if (this._thread.pausedVariables() && this._thread.pausedVariables()!.hasVariables(variablesReference))
       return this._thread.pausedVariables();
     if (this._thread.replVariables.hasVariables(variablesReference))
@@ -141,35 +151,16 @@ export class ThreadAdapter {
     return { variables: await variableStore.getVariables(params) };
   }
 
-  _prepareForEvaluate(frameId?: number): { result?: EvaluatePrep, error?: Dap.Error } {
-    if (!this._thread)
-      return { error: this._threadNotAvailableError() };
-
-    let stackFrame: StackFrame | undefined;
-    if (frameId !== undefined) {
-      const stackFrame = this._findStackFrame(frameId);
-      if (!stackFrame)
-        return { error: errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found')) };
-      if (!stackFrame.callFrameId())
-        return { error: errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame')) };
-    }
-    return {
-      result: {
-        stackFrame,
-        variableStore: stackFrame ? this._thread.pausedVariables()! : this._thread.replVariables
-      }
-    };
-  }
-
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
-    const thread = this._thread;
-
-    const { result: maybePrep, error } = this._prepareForEvaluate(args.frameId);
-    if (error)
-      return error;
-    const prep = maybePrep as EvaluatePrep;
+    let callFrameId: Cdp.Debugger.CallFrameId | undefined;
+    if (args.frameId !== undefined) {
+      const stackFrame = this._findStackFrame(args.frameId);
+      if (!stackFrame)
+        return this._stackFrameNotFoundError();
+      callFrameId = stackFrame.callFrameId();
+      if (!callFrameId)
+        return this._evaluateOnAsyncFrameError();
+    }
 
     const params: Cdp.Runtime.EvaluateParams = {
       expression: args.expression,
@@ -190,13 +181,13 @@ export class ThreadAdapter {
       }
     }
 
-    const responsePromise = prep.stackFrame
-      ? thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId: prep.stackFrame.callFrameId()! })
-      : thread.cdp().Runtime.evaluate({ ...params, contextId: this._executionContextId });
+    const responsePromise = callFrameId
+      ? this._thread.cdp().Debugger.evaluateOnCallFrame({ ...params, callFrameId })
+      : this._thread.cdp().Runtime.evaluate({ ...params, contextId: this._executionContextId });
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
-      ThreadAdapter._evaluateAndOutput(this._thread, responsePromise);
+      this._evaluateAndOutput(responsePromise);
       return { result: '', variablesReference: 0 };
     }
 
@@ -204,7 +195,8 @@ export class ThreadAdapter {
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
 
-    const variable = await prep.variableStore.createVariable(response.result, args.context);
+    const variableStore = callFrameId ? this._thread.pausedVariables()! : this._thread.replVariables;
+    const variable = await variableStore.createVariable(response.result, args.context);
     return {
       type: response.result.type,
       result: variable.value,
@@ -214,17 +206,17 @@ export class ThreadAdapter {
     };
   }
 
-  static async _evaluateAndOutput(thread: Thread, responsePromise: Promise<Cdp.Runtime.EvaluateResult | undefined> | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>) {
+  async _evaluateAndOutput(responsePromise: Promise<Cdp.Runtime.EvaluateResult | undefined> | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>) {
     const response = await responsePromise;
     if (!response)
       return;
 
-    const outputSlot = thread.claimOutputSlot();
+    const outputSlot = this._thread.claimOutputSlot();
     if (response.exceptionDetails) {
-      outputSlot(await thread.formatException(response.exceptionDetails, '↳ '));
+      outputSlot(await this._thread.formatException(response.exceptionDetails, '↳ '));
     } else {
       const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
-      const variablesReference = await thread.replVariables.createVariableForOutput(text, [response.result]);
+      const variablesReference = await this._thread.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
         output: '',
@@ -235,19 +227,19 @@ export class ThreadAdapter {
   }
 
   async _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
-    const { result: maybePrep, error } = this._prepareForEvaluate(params.frameId);
-    if (error)
-      return error;
-    const prep = maybePrep as EvaluatePrep;
+    let stackFrame: StackFrame | undefined;
+    if (params.frameId !== undefined) {
+      stackFrame = this._findStackFrame(params.frameId);
+      if (!stackFrame)
+        return this._stackFrameNotFoundError();
+      if (!stackFrame.callFrameId())
+        return this._evaluateOnAsyncFrameError();
+    }
     const line = params.line === undefined ? 0 : params.line - 1;
-    return { targets: await completions.completions(this._thread.cdp(), this._executionContextId, prep.stackFrame, params.text, line, params.column) };
+    return { targets: await completions.completions(this._thread.cdp(), this._executionContextId, stackFrame, params.text, line, params.column) };
   }
 
   async _onExceptionInfo(_: Dap.ExceptionInfoParams): Promise<Dap.ExceptionInfoResult | Dap.Error> {
-    if (!this._thread)
-      return this._threadNotAvailableError();
     const details = this._thread.pausedDetails();
     const exception = details && details.exception;
     if (!exception)
@@ -270,11 +262,6 @@ export class ThreadAdapter {
 
     params.value = this._wrapObjectLiteral(params.value.trim());
     return variableStore.setVariable(params);
-  }
-
-  setExecutionContext(thread: Thread | undefined, executionContextId: number | undefined) {
-    this._executionContextId = executionContextId;
-    this._thread = thread;
   }
 
   _wrapObjectLiteral(code: string): string {
