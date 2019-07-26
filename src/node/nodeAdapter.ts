@@ -180,6 +180,7 @@ export class NodeAdapter {
       thread: thread,
       isThread: true,
       children: [],
+      type: 'node'
     };
     this._targets.set(targetInfo.targetId, target);
     setParent(target, this._targets.get(targetInfo.openerId!));

@@ -37,8 +37,9 @@ export interface ExecutionContext {
   description?: Cdp.Runtime.ExecutionContextDescription;
   name: string;
   thread: Thread;
-  children: ExecutionContext[];
   isThread: boolean;
+  children: ExecutionContext[];
+  type: string;
 }
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
