@@ -1155,7 +1155,7 @@ export namespace Cdp {
      * Every Background Service operates independently, but they share the same
      * API.
      */
-    export type ServiceName = 'backgroundFetch' | 'backgroundSync' | 'pushMessaging' | 'notifications';
+    export type ServiceName = 'backgroundFetch' | 'backgroundSync' | 'pushMessaging' | 'notifications' | 'paymentHandler' | 'periodicBackgroundSync';
 
     /**
      * A key-value pair for additional event information to pass along.
@@ -11190,6 +11190,7 @@ export namespace Cdp {
      * modifications, or blocks it, or completes it with the provided response bytes. If a network
      * fetch occurs as a result which encounters a redirect an additional Network.requestIntercepted
      * event will be sent with the same InterceptionId.
+     * Deprecated, use Fetch.continueRequest, Fetch.fulfillRequest and Fetch.failRequest instead.
      */
     continueInterceptedRequest(params: Network.ContinueInterceptedRequestParams): Promise<Network.ContinueInterceptedRequestResult | undefined>;
 
@@ -11302,6 +11303,7 @@ export namespace Cdp {
 
     /**
      * Sets the requests to intercept that match the provided patterns and optionally resource types.
+     * Deprecated, please use Fetch.enable instead.
      */
     setRequestInterception(params: Network.SetRequestInterceptionParams): Promise<Network.SetRequestInterceptionResult | undefined>;
 
@@ -11333,6 +11335,7 @@ export namespace Cdp {
     /**
      * Details of an intercepted HTTP request, which must be either allowed, blocked, modified or
      * mocked.
+     * Deprecated, use Fetch.requestPaused instead.
      */
     on(event: 'requestIntercepted', listener: (event: Network.RequestInterceptedEvent) => void): void;
 
@@ -11395,6 +11398,21 @@ export namespace Cdp {
      * Fired when WebSocket is about to initiate handshake.
      */
     on(event: 'webSocketWillSendHandshakeRequest', listener: (event: Network.WebSocketWillSendHandshakeRequestEvent) => void): void;
+
+    /**
+     * Fired when additional information about a requestWillBeSent event is available from the
+     * network stack. Not every requestWillBeSent event will have an additional
+     * requestWillBeSentExtraInfo fired for it, and there is no guarantee whether requestWillBeSent
+     * or requestWillBeSentExtraInfo will be fired first for the same request.
+     */
+    on(event: 'requestWillBeSentExtraInfo', listener: (event: Network.RequestWillBeSentExtraInfoEvent) => void): void;
+
+    /**
+     * Fired when additional information about a responseReceived event is available from the network
+     * stack. Not every responseReceived event will have an additional responseReceivedExtraInfo for
+     * it, and responseReceivedExtraInfo may be fired before or after responseReceived.
+     */
+    on(event: 'responseReceivedExtraInfo', listener: (event: Network.ResponseReceivedExtraInfoEvent) => void): void;
   }
 
   /**
@@ -12493,6 +12511,55 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.requestWillBeSentExtraInfo' event.
+     */
+    export interface RequestWillBeSentExtraInfoEvent {
+      /**
+       * Request identifier. Used to match this information to an existing requestWillBeSent event.
+       */
+      requestId: RequestId;
+
+      /**
+       * A list of cookies which will not be sent with this request along with corresponding reasons
+       * for blocking.
+       */
+      blockedCookies: BlockedCookieWithReason[];
+
+      /**
+       * Raw request headers as they will be sent over the wire.
+       */
+      headers: Headers;
+    }
+
+    /**
+     * Parameters of the 'Network.responseReceivedExtraInfo' event.
+     */
+    export interface ResponseReceivedExtraInfoEvent {
+      /**
+       * Request identifier. Used to match this information to another responseReceived event.
+       */
+      requestId: RequestId;
+
+      /**
+       * A list of cookies which were not stored from the response along with the corresponding
+       * reasons for blocking. The cookies here may not be valid due to syntax errors, which
+       * are represented by the invalid cookie line string instead of a proper cookie.
+       */
+      blockedCookies: BlockedSetCookieWithReason[];
+
+      /**
+       * Raw response headers as they were received over the wire.
+       */
+      headers: Headers;
+
+      /**
+       * Raw response header text as it was received over the wire. The raw text may not always be
+       * available, such as in the case of HTTP/2 or QUIC.
+       */
+      headersText?: string;
+    }
+
+    /**
      * Resource type as it was perceived by the rendering engine.
      */
     export type ResourceType = 'Document' | 'Stylesheet' | 'Image' | 'Media' | 'Font' | 'Script' | 'TextTrack' | 'XHR' | 'Fetch' | 'EventSource' | 'WebSocket' | 'Manifest' | 'SignedExchange' | 'Ping' | 'CSPViolationReport' | 'Other';
@@ -13095,6 +13162,54 @@ export namespace Cdp {
     }
 
     /**
+     * Types of reasons why a cookie may not be stored from a response.
+     */
+    export type SetCookieBlockedReason = 'SecureOnly' | 'SameSiteStrict' | 'SameSiteLax' | 'SameSiteExtended' | 'SameSiteUnspecifiedTreatedAsLax' | 'SameSiteNoneInsecure' | 'UserPreferences' | 'SyntaxError' | 'SchemeNotSupported' | 'OverwriteSecure' | 'InvalidDomain' | 'InvalidPrefix' | 'UnknownError';
+
+    /**
+     * Types of reasons why a cookie may not be sent with a request.
+     */
+    export type CookieBlockedReason = 'SecureOnly' | 'NotOnPath' | 'DomainMismatch' | 'SameSiteStrict' | 'SameSiteLax' | 'SameSiteExtended' | 'SameSiteUnspecifiedTreatedAsLax' | 'SameSiteNoneInsecure' | 'UserPreferences' | 'UnknownError';
+
+    /**
+     * A cookie which was not stored from a response with the corresponding reason.
+     */
+    export interface BlockedSetCookieWithReason {
+      /**
+       * The reason this cookie was blocked.
+       */
+      blockedReason: SetCookieBlockedReason;
+
+      /**
+       * The string representing this individual cookie as it would appear in the header.
+       * This is not the entire "cookie" or "set-cookie" header which could have multiple cookies.
+       */
+      cookieLine: string;
+
+      /**
+       * The cookie object which represents the cookie which was not stored. It is optional because
+       * sometimes complete cookie information is not available, such as in the case of parsing
+       * errors.
+       */
+      cookie?: Cookie;
+    }
+
+    /**
+     * A cookie with was not sent with a request with the corresponding reason.
+     */
+    export interface BlockedCookieWithReason {
+      /**
+       * The reason the cookie was blocked.
+       */
+      blockedReason: CookieBlockedReason;
+
+      /**
+       * The cookie object representing the cookie which was not sent.
+       */
+      cookie: Cookie;
+    }
+
+    /**
      * Cookie parameter object
      */
     export interface CookieParam {
@@ -13296,6 +13411,11 @@ export namespace Cdp {
        * Signed exchange response signature.
        */
       signatures: SignedExchangeSignature[];
+
+      /**
+       * Signed exchange header integrity hash in the form of "sha256-<base64-hash-value>".
+       */
+      headerIntegrity: string;
     }
 
     /**
@@ -13505,6 +13625,11 @@ export namespace Cdp {
        * Whether to include distance info.
        */
       includeDistance?: boolean;
+
+      /**
+       * Whether to include style info.
+       */
+      includeStyle?: boolean;
     }
 
     /**
@@ -14191,7 +14316,25 @@ export namespace Cdp {
      */
     waitForDebugger(params: Page.WaitForDebuggerParams): Promise<Page.WaitForDebuggerResult | undefined>;
 
+    /**
+     * Intercept file chooser requests and transfer control to protocol clients.
+     * When file chooser interception is enabled, native file chooser dialog is not shown.
+     * Instead, a protocol event `Page.fileChooserOpened` is emitted.
+     * File chooser can be handled with `page.handleFileChooser` command.
+     */
+    setInterceptFileChooserDialog(params: Page.SetInterceptFileChooserDialogParams): Promise<Page.SetInterceptFileChooserDialogResult | undefined>;
+
+    /**
+     * Accepts or cancels an intercepted file chooser dialog.
+     */
+    handleFileChooser(params: Page.HandleFileChooserParams): Promise<Page.HandleFileChooserResult | undefined>;
+
     on(event: 'domContentEventFired', listener: (event: Page.DomContentEventFiredEvent) => void): void;
+
+    /**
+     * Emitted only when `page.interceptFileChooser` is enabled.
+     */
+    on(event: 'fileChooserOpened', listener: (event: Page.FileChooserOpenedEvent) => void): void;
 
     /**
      * Fired when frame has been attached to its parent.
@@ -14852,7 +14995,7 @@ export namespace Cdp {
        * - `url`: document location
        * - `pageNumber`: current page number
        * - `totalPages`: total pages in the document
-       *
+       * 
        * For example, `<span class=title></span>` would generate span containing the title.
        */
       headerTemplate?: string;
@@ -15438,10 +15581,48 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Page.setInterceptFileChooserDialog' method.
+     */
+    export interface SetInterceptFileChooserDialogParams {
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'Page.setInterceptFileChooserDialog' method.
+     */
+    export interface SetInterceptFileChooserDialogResult {
+    }
+
+    /**
+     * Parameters of the 'Page.handleFileChooser' method.
+     */
+    export interface HandleFileChooserParams {
+      action: 'accept' | 'cancel' | 'fallback';
+
+      /**
+       * Array of absolute file paths to set, only respected with `accept` action.
+       */
+      files?: string[];
+    }
+
+    /**
+     * Return value of the 'Page.handleFileChooser' method.
+     */
+    export interface HandleFileChooserResult {
+    }
+
+    /**
      * Parameters of the 'Page.domContentEventFired' event.
      */
     export interface DomContentEventFiredEvent {
       timestamp: Network.MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Page.fileChooserOpened' event.
+     */
+    export interface FileChooserOpenedEvent {
+      mode: 'selectSingle' | 'selectMultiple';
     }
 
     /**
@@ -19063,6 +19244,11 @@ export namespace Cdp {
     export type SubsamplingFormat = 'yuv420' | 'yuv422' | 'yuv444';
 
     /**
+     * Image format of a given image.
+     */
+    export type ImageType = 'jpeg' | 'webp' | 'unknown';
+
+    /**
      * Describes a supported image decoding profile with its associated minimum and
      * maximum resolutions and subsampling.
      */
@@ -19070,7 +19256,7 @@ export namespace Cdp {
       /**
        * Image coded, e.g. Jpeg.
        */
-      imageType: string;
+      imageType: ImageType;
 
       /**
        * Maximum supported dimensions of the image in pixels.
@@ -19177,9 +19363,9 @@ export namespace Cdp {
     /**
      * Inject object to the target's main frame that provides a communication
      * channel with browser target.
-     *
+     * 
      * Injected object will be available as `window[bindingName]`.
-     *
+     * 
      * The object has the follwing API:
      * - `binding.send(json)` - a method to send messages over the remote debugging protocol
      * - `binding.onmessage = json => handleMessage(json)` - a callback that will be called for the protocol notifications and command responses.
