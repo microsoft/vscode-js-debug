@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
-import { ExecutionContextTree, Thread } from '../adapter/threads';
+import { ExecutionContext, Thread } from '../adapter/threads';
 import { AdapterFactory } from '../adapterFactory';
 
 export function registerThreadsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
@@ -11,13 +11,13 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
   const treeView = vscode.window.createTreeView('pwa.threadsView', { treeDataProvider: provider });
   provider.setTreeView(treeView);
 
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: ExecutionContextTree) => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: ExecutionContext) => {
     item.thread.pause();
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: ExecutionContextTree) => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: ExecutionContext) => {
     item.thread.resume();
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.stopThread', (item: ExecutionContextTree) => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.stopThread', (item: ExecutionContext) => {
     item.thread.stop();
   }));
 
@@ -30,19 +30,19 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
   }, undefined, context.subscriptions);
 }
 
-class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTree> {
+class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private _contexts: ExecutionContextTree[] = [];
+  private _contexts: ExecutionContext[] = [];
   private _disposables: vscode.Disposable[] = [];
   private _adapter: DebugAdapter;
-  private _treeView: vscode.TreeView<ExecutionContextTree>;
+  private _treeView: vscode.TreeView<ExecutionContext>;
 
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
     factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter), undefined, context.subscriptions);
   }
 
-  setTreeView(treeView: vscode.TreeView<ExecutionContextTree>) {
+  setTreeView(treeView: vscode.TreeView<ExecutionContext>) {
     this._treeView = treeView
   }
 
@@ -101,9 +101,9 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTre
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(item: ExecutionContextTree): vscode.TreeItem {
+  getTreeItem(item: ExecutionContext): vscode.TreeItem {
     const result = new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
-    result.id = item.thread.threadId() + ':' + item.contextId;
+    result.id = uniqueId(item);
     if (item.isThread) {
       if (item.thread.pausedDetails()) {
         result.description = 'PAUSED';
@@ -120,20 +120,20 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTre
     return result;
   }
 
-  async getChildren(item?: ExecutionContextTree): Promise<ExecutionContextTree[]> {
+  async getChildren(item?: ExecutionContext): Promise<ExecutionContext[]> {
     return item ? [] : this._contexts;
   }
 
-  async getParent(item: ExecutionContextTree): Promise<ExecutionContextTree | undefined> {
+  async getParent(item: ExecutionContext): Promise<ExecutionContext | undefined> {
     return undefined;
   }
 
-  executionContextsChanged(contexts: ExecutionContextTree[]): void {
+  executionContextsChanged(contexts: ExecutionContext[]): void {
     this._contexts = [];
     const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';
-    const visit = (indentation: string, item: ExecutionContextTree) => {
-      keys.add(item.thread.threadId() + ':' + item.contextId);
+    const visit = (indentation: string, item: ExecutionContext) => {
+      keys.add(uniqueId(item));
       this._contexts.push({
         ...item,
         name: indentation + item.name
@@ -144,7 +144,11 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTre
     this._onDidChangeTreeData.fire();
 
     const selected = this._treeView.selection[0];
-    if (this._contexts[0] && (!selected || !keys.has(selected.thread.threadId() + ':' + selected.contextId)))
+    if (this._contexts[0] && (!selected || !keys.has(uniqueId(selected))))
       this._treeView.reveal(this._contexts[0], { select: true });
   }
+}
+
+function uniqueId(item: ExecutionContext): string {
+  return item.thread.threadId() + ':' + (item.description ? item.description.id : '');
 }

@@ -7,7 +7,7 @@ import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
 import { ThreadAdapter } from './threadAdapter';
-import { ExecutionContextTree, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate } from './threads';
+import { ExecutionContext, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate } from './threads';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
@@ -200,12 +200,17 @@ export class DebugAdapter {
     this._locationToReveal = undefined;
   }
 
-  selectExecutionContext(context: ExecutionContextTree | undefined) {
+  selectExecutionContext(context: ExecutionContext | undefined) {
     if (!this._threadAdapter)
       return;
     let thread = context ? context.thread : undefined;
     if (thread) {
-      this._threadAdapter!.setExecutionContext(thread, context!.contextId);
+      let description = context!.description;
+      if (!description) {
+        const defaultContext = thread.defaultExecutionContext();
+        description = defaultContext ? defaultContext : undefined;
+      }
+      this._threadAdapter!.setExecutionContext(thread, description ? description.id : undefined);
     } else {
       thread = this._threadManager!.mainThread();
       const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
