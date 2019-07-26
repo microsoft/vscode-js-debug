@@ -100,24 +100,24 @@
         "command": "pwa.addCustomBreakpoints",
         "title": "Add Browser Breakpoint",
         "icon": {
-          "light": "resources/add-light.svg",
-          "dark": "resources/add-dark.svg"
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
         }
       },
       {
         "command": "pwa.removeCustomBreakpoint",
         "title": "Remove Browser Breakpoint",
         "icon": {
-          "light": "resources/remove-light.svg",
-          "dark": "resources/remove-dark.svg"
+          "light": "resources/light/remove.svg",
+          "dark": "resources/dark/remove.svg"
         }
       },
       {
         "command": "pwa.removeAllCustomBreakpoints",
         "title": "Remove All Browser Breakpoints",
         "icon": {
-          "light": "resources/remove-all-light.svg",
-          "dark": "resources/remove-all-dark.svg"
+          "light": "resources/light/remove-all.svg",
+          "dark": "resources/dark/remove-all.svg"
         }
       },
       {
@@ -128,32 +128,32 @@
         "command": "pwa.changeServiceWorkersMode",
         "title": "Configure Service Workers Mode",
         "icon": {
-          "light": "resources/configure-light.svg",
-          "dark": "resources/configure-dark.svg"
+          "light": "resources/light/configure.svg",
+          "dark": "resources/dark/configure.svg"
         }
       },
       {
         "command": "pwa.pauseThread",
         "title": "Pause thread",
         "icon": {
-          "light": "resources/pause-light.svg",
-          "dark": "resources/pause-dark.svg"
+          "light": "resources/light/pause.svg",
+          "dark": "resources/dark/pause.svg"
         }
       },
       {
         "command": "pwa.resumeThread",
         "title": "Resume thread",
         "icon": {
-          "light": "resources/resume-light.svg",
-          "dark": "resources/resume-dark.svg"
+          "light": "resources/light/resume.svg",
+          "dark": "resources/dark/resume.svg"
         }
       },
       {
         "command": "pwa.stopThread",
         "title": "Terminate thread",
         "icon": {
-          "light": "resources/stop-light.svg",
-          "dark": "resources/stop-dark.svg"
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
         }
       }
     ],

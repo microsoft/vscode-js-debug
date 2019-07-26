@@ -49,14 +49,15 @@ export class TargetManager implements vscode.Disposable {
 
   executionContextForest(): ExecutionContext[] | undefined {
     const reported: Set<string> = new Set();
-    const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, name?: string): ExecutionContext => {
+    const toExecutionContext = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, type: string, name?: string): ExecutionContext => {
       reported.add(thread.threadId() + ':' + context.id);
       return {
-        description: context,
         name: name || context.name || thread.name(),
+        description: context,
         thread: thread,
         children: [],
-        isThread
+        isThread,
+        type
       };
     };
 
@@ -74,9 +75,10 @@ export class TargetManager implements vscode.Disposable {
         const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
-          const dapContext = toDap(thread, context, true, name);
+          const isThread = !!this._targets.get(frame.id);
+          const dapContext = toExecutionContext(thread, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name);
           mainForFrameId.set(frameId, dapContext);
-          if (!frame.parentFrame)
+          if (isThread)
             mainForTarget.set(target, dapContext);
         } else if (frameId) {
           let contexts = worldsForFrameId.get(frameId);
@@ -84,7 +86,7 @@ export class TargetManager implements vscode.Disposable {
             contexts = [];
             worldsForFrameId.set(frameId, contexts);
           }
-          contexts.push(toDap(thread, context, false));
+          contexts.push(toExecutionContext(thread, context, false, 'content_script'));
         }
       }
     }
@@ -131,7 +133,7 @@ export class TargetManager implements vscode.Disposable {
       for (const context of thread.executionContexts()) {
         if (reported.has(thread.threadId() + ':' + context.id))
           continue;
-        container.push(toDap(thread, context, true));
+        container.push(toExecutionContext(thread, context, true, target._targetInfo.type));
       }
     }
     return result;
