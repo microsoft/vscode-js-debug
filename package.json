@@ -79,7 +79,7 @@
     "views": {
       "debug": [
         {
-          "id": "pwa.executionContexts",
+          "id": "pwa.threadsView",
           "name": "Threads"
         },
         {
@@ -91,10 +91,6 @@
         {
           "id": "pwa.serviceWorkers",
           "name": "Service Workers"
-        },
-        {
-          "id": "pwa.cacheStorage",
-          "name": "Cache Storage"
         }
       ]
     },
@@ -134,6 +130,22 @@
           "light": "resources/configure-light.svg",
           "dark": "resources/configure-dark.svg"
         }
+      },
+      {
+        "command": "pwa.pauseThread",
+        "title": "Pause thread",
+        "icon": {
+          "light": "resources/pause-light.svg",
+          "dark": "resources/pause-dark.svg"
+        }
+      },
+      {
+        "command": "pwa.resumeThread",
+        "title": "Resume thread",
+        "icon": {
+          "light": "resources/resume-light.svg",
+          "dark": "resources/resume-dark.svg"
+        }
       }
     ],
     "menus": {
@@ -170,6 +182,16 @@
         {
           "command": "pwa.changeServiceWorkersMode",
           "when": "view == pwa.serviceWorkers && viewItem == pwa.serviceWorkerMode",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.pauseThread",
+          "when": "view == pwa.threadsView && viewItem == pwa.runningThread",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.resumeThread",
+          "when": "view == pwa.threadsView && viewItem == pwa.pausedThread",
           "group": "inline"
         }
       ]

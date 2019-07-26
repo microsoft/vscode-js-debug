@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
   new LocationRevealerUI(context, factory);
   new OutputUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
-  registerThreadsUI(factory);
+  registerThreadsUI(context, factory);
   registerServiceWorkersUI(context, factory);
   registerPrettyPrintActions(context, factory);
 }

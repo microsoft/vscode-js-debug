@@ -179,8 +179,9 @@ export class NodeAdapter {
       if (context) {
         const contextTree = {
           name: thread.name(),
-          threadId: thread.threadId(),
+          thread: thread,
           contextId: context.id,
+          isThread: true,
           children: [],
         };
         container.push(contextTree);

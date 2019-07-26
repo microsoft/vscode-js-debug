@@ -3,11 +3,11 @@
 
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
-import { generateBreakpointId, BreakpointManager } from './breakpoints';
-import { PauseOnExceptionsState, ThreadManager, ExecutionContextTree } from './threads';
-import { AdapterDelegate, ThreadAdapter } from './threadAdapter';
-import { SourceContainer, Location } from './sources';
+import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
+import { Location, SourceContainer, SourcePathResolver } from './sources';
+import { ThreadAdapter } from './threadAdapter';
+import { ExecutionContextTree, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate } from './threads';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
@@ -18,6 +18,11 @@ export type SetBreakpointRequest = {
   generatedIds: number[];
 };
 
+export interface DebugAdapterDelegate extends ThreadManagerDelegate {
+  sourcePathResolverFactory: () => SourcePathResolver;
+  adapterDisposed: () => void;
+}
+
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter {
@@ -27,7 +32,7 @@ export class DebugAdapter {
   private _sourceContainer: SourceContainer | undefined;
   private _threadManager: ThreadManager | undefined;
   private _breakpointManager: BreakpointManager | undefined;
-  private _delegate: AdapterDelegate;
+  private _delegate: DebugAdapterDelegate;
   private _threadAdapter: ThreadAdapter | undefined;
   private _locationToReveal: Location | undefined;
 
@@ -152,7 +157,7 @@ export class DebugAdapter {
     return this._threadNotAvailableError();
   }
 
-  async launch(delegate: AdapterDelegate): Promise<void> {
+  async launch(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegate = delegate;
     const sourcePathResolver = delegate.sourcePathResolverFactory();
     this._sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
@@ -167,11 +172,7 @@ export class DebugAdapter {
     // Select first thread once it is available.
     this._threadManager.onThreadAdded(thread => {
       if (!this._threadAdapter!.thread()) {
-        this.selectExecutionContext({
-          threadId: thread.threadId(),
-          name: '',
-          children: []
-        });
+        this._threadAdapter!.setExecutionContext(thread, undefined);
       }
     });
   }
@@ -202,7 +203,7 @@ export class DebugAdapter {
   selectExecutionContext(context: ExecutionContextTree | undefined) {
     if (!this._threadAdapter)
       return;
-    let thread = context ? this._threadManager!.thread(context.threadId) : undefined;
+    let thread = context ? context.thread : undefined;
     if (thread) {
       this._threadAdapter!.setExecutionContext(thread, context!.contextId);
     } else {
