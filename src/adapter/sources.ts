@@ -246,6 +246,7 @@ export class Source {
 export class SourceContainer {
   private _dap: Dap.Api;
   _sourcePathResolver: SourcePathResolver;
+  _brokenSourceMapReported = false;
 
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
@@ -442,7 +443,10 @@ export class SourceContainer {
     try {
       sourceMap.map = await loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
     } catch (e) {
-      errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
+      if (!this._brokenSourceMapReported) {
+        errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
+        this._brokenSourceMapReported = true;
+      }
       return callback!();
     }
 
