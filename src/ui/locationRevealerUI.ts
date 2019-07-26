@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
 import { Location, Source, LocationRevealer } from '../adapter/sources';
-import { Adapter } from '../adapter/adapter';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export class LocationRevealerUI {
   _revealRequests = new Map<Source, () => void>();
@@ -31,16 +31,16 @@ export class LocationRevealerUI {
     factory.onAdapterAdded(adapter => this._install(adapter))
   }
 
-  _install(adapter: Adapter): void {
-    adapter.sourceContainer.installRevealer(new Revealer(this, adapter));
+  _install(adapter: DebugAdapter): void {
+    adapter.sourceContainer().installRevealer(new Revealer(this, adapter));
   }
 }
 
 class Revealer implements LocationRevealer {
   private _revealerUI: LocationRevealerUI;
-  private _adapter: Adapter;
+  private _adapter: DebugAdapter;
 
-  constructor(revealerUI: LocationRevealerUI, adapter: Adapter) {
+  constructor(revealerUI: LocationRevealerUI, adapter: DebugAdapter) {
     this._revealerUI = revealerUI;
     this._adapter = adapter;
   }

@@ -4,7 +4,6 @@
 import * as path from 'path';
 import * as stream from 'stream';
 import * as utils from '../utils/urlUtils';
-import { Adapter } from '../adapter/adapter';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import { ChromeAdapter } from '../chrome/chromeAdapter';
@@ -14,6 +13,7 @@ import { Target } from '../chrome/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { ExecutionContextTree } from '../adapter/threads';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -33,7 +33,7 @@ export class TestP {
   readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
   readonly assertLog: () => void;
   cdp: Cdp.Api;
-  adapter: Adapter;
+  adapter: DebugAdapter;
 
   private _chromeAdapter: ChromeAdapter;
   private _connection: CdpConnection;
@@ -76,7 +76,7 @@ export class TestP {
 
     let contexts: ExecutionContextTree[] = [];
     let selected: ExecutionContextTree | undefined;
-    this.adapter.threadManager.onExecutionContextsChanged(params => {
+    this.adapter.threadManager().onExecutionContextsChanged(params => {
       contexts = [];
       const visit = (item: ExecutionContextTree) => {
         contexts.push(item);
@@ -84,7 +84,7 @@ export class TestP {
       };
       params.forEach(visit);
     });
-    this.adapter.threadManager.onThreadPaused(thread => {
+    this.adapter.threadManager().onThreadPaused(thread => {
       if (selected && selected.threadId === thread.threadId()) {
         this.adapter.selectExecutionContext(selected);
       } else {
@@ -96,7 +96,7 @@ export class TestP {
         }
       }
     });
-    this.adapter.threadManager.onThreadResumed(thread => {
+    this.adapter.threadManager().onThreadResumed(thread => {
       this.adapter.selectExecutionContext(selected);
     });
 

@@ -11,7 +11,7 @@ Evaluating#4: setTimeout(() => { throw new Error('hello'); })
     threadId : <number>
 }
 {
-    breakMode : unhandled
+    breakMode : all
     details : {
         stackTrace :   at eval4.js:1:26
     }
@@ -29,7 +29,7 @@ Evaluating#5: setTimeout(() => { throw new Error('hello'); })
     threadId : <number>
 }
 {
-    breakMode : always
+    breakMode : all
     details : {
         stackTrace :   at eval5.js:1:26
     }
@@ -46,7 +46,7 @@ Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}}
     threadId : <number>
 }
 {
-    breakMode : always
+    breakMode : all
     details : {
         stackTrace :   at eval6.js:1:32
     }

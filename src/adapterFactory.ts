@@ -5,21 +5,21 @@ import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
-import { Adapter } from './adapter/adapter';
 import { ChromeAdapter } from './chrome/chromeAdapter';
 import { NodeAdapter } from './node/nodeAdapter';
 import { Source } from './adapter/sources';
 import Dap from './dap/api';
+import { DebugAdapter } from './adapter/debugAdapter';
 
 export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   private _context: vscode.ExtensionContext;
-  private _sessions = new Map<string, { session: vscode.DebugSession, server: Net.Server, adapter: Adapter }>();
+  private _sessions = new Map<string, { session: vscode.DebugSession, server: Net.Server, adapter: DebugAdapter }>();
   private _disposables: vscode.Disposable[];
-  private _activeAdapter?: Adapter;
+  private _activeAdapter?: DebugAdapter;
 
-  private _onAdapterAddedEmitter = new vscode.EventEmitter<Adapter>();
-  private _onAdapterRemovedEmitter = new vscode.EventEmitter<Adapter>();
-  private _onActiveAdapterChangedEmitter = new vscode.EventEmitter<Adapter>();
+  private _onAdapterAddedEmitter = new vscode.EventEmitter<DebugAdapter>();
+  private _onAdapterRemovedEmitter = new vscode.EventEmitter<DebugAdapter>();
+  private _onActiveAdapterChangedEmitter = new vscode.EventEmitter<DebugAdapter>();
   readonly onAdapterAdded = this._onAdapterAddedEmitter.event;
   readonly onAdapterRemoved = this._onAdapterRemovedEmitter.event;
   readonly onActiveAdapterChanged = this._onActiveAdapterChangedEmitter.event;
@@ -58,16 +58,16 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     ];
   }
 
-  activeAdapter(): Adapter | undefined {
+  activeAdapter(): DebugAdapter | undefined {
     return this._activeAdapter;
   }
 
-  adapter(sessionId: string): Adapter | undefined {
+  adapter(sessionId: string): DebugAdapter | undefined {
     const value = this._sessions.get(sessionId);
     return value ? value.adapter : undefined;
   }
 
-  adapters(): Adapter[] {
+  adapters(): DebugAdapter[] {
     return Array.from(this._sessions.values()).map(v => v.adapter);
   }
 
@@ -85,14 +85,14 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     return new vscode.DebugAdapterServer(server.address().port);
   }
 
-  sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: Adapter | undefined, source: Source | undefined } {
+  sourceForUri(factory: AdapterFactory, uri: vscode.Uri): { adapter: DebugAdapter | undefined, source: Source | undefined } {
     const query = queryString.parse(uri.query);
     const ref: Dap.Source = { path: uri.path, sourceReference: +(query['ref'] as string) };
     const sessionId = query['session'] as string;
     const adapter = factory.adapter(sessionId || '');
     if (!adapter)
       return { adapter: undefined, source: undefined };
-    return { adapter, source: adapter.sourceContainer.source(ref) };
+    return { adapter, source: adapter.sourceContainer().source(ref) };
   }
 
   dispose() {

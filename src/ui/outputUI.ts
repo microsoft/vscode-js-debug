@@ -3,9 +3,9 @@
 
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
-import { Adapter } from '../adapter/adapter';
 import * as stringUtils from '../utils/stringUtils';
 import { Thread } from '../adapter/threads';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export class OutputUI {
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
@@ -13,9 +13,9 @@ export class OutputUI {
     factory.onAdapterAdded(adapter => this._install(adapter))
   }
 
-  _install(adapter: Adapter): void {
-    adapter.threadManager.threads().forEach(thread => new LazyLogger(thread));
-    adapter.threadManager.onThreadAdded(thread => new LazyLogger(thread));
+  _install(adapter: DebugAdapter): void {
+    adapter.threadManager().threads().forEach(thread => new LazyLogger(thread));
+    adapter.threadManager().onThreadAdded(thread => new LazyLogger(thread));
   }
 }
 

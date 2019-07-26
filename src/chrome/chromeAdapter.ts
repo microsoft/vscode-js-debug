@@ -6,8 +6,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Adapter } from '../adapter/adapter';
-import { Configurator } from '../adapter/configurator';
+import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
@@ -28,26 +27,25 @@ export class ChromeAdapter {
   static symbol = Symbol('ChromeAdapter');
   private _dap: Dap.Api;
   private _connection: CdpConnection;
-  private _configurator: Configurator;
-  private _adapter: Adapter;
+  private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
   private _targetManager: TargetManager;
   private _launchParams: LaunchParams;
   private _mainTarget?: Target;
   private _disposables: vscode.Disposable[] = [];
-  private _adapterReadyCallback: (adapter: Adapter) => void;
+  private _adapterReadyCallback: (adapter: DebugAdapter) => void;
 
-  static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<Adapter> {
-    return new Promise<Adapter>(f => new ChromeAdapter(dap, storagePath, rootPath, f));
+  static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<DebugAdapter> {
+    return new Promise<DebugAdapter>(f => new ChromeAdapter(dap, storagePath, rootPath, f));
   }
 
-  constructor(dap: Dap.Api, storagePath: string, rootPath: string | undefined, adapterReadyCallback:  (adapter: Adapter) => void) {
+  constructor(dap: Dap.Api, storagePath: string, rootPath: string | undefined, adapterReadyCallback:  (adapter: DebugAdapter) => void) {
     this._dap = dap;
     this._storagePath = storagePath;
     this._rootPath = rootPath;
     this._adapterReadyCallback = adapterReadyCallback;
-    this._configurator = new Configurator(dap);
+    this._debugAdapter = new DebugAdapter(dap);
     this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
@@ -58,8 +56,8 @@ export class ChromeAdapter {
     return this._targetManager;
   }
 
-  adapter(): Adapter {
-    return this._adapter;
+  adapter(): DebugAdapter {
+    return this._debugAdapter;
   }
 
   _dispose() {
@@ -99,16 +97,15 @@ export class ChromeAdapter {
 
     this._launchParams = params;
 
-    this._adapter = new Adapter(this._dap, {
+    await this._debugAdapter.launch({
       sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
       executionContextForest: () => this._targetManager.executionContextForest(),
       adapterDisposed: () => this._dispose(),
       copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
     });
-    this._adapter[ChromeAdapter.symbol] = this;
-    this._targetManager = new TargetManager(this._connection, this._adapter.threadManager);
+    this._debugAdapter[ChromeAdapter.symbol] = this;
+    this._targetManager = new TargetManager(this._connection, this._debugAdapter.threadManager());
     this._disposables.push(this._targetManager);
-    await this._adapter.configure(this._configurator);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
@@ -125,7 +122,7 @@ export class ChromeAdapter {
 
   async finishLaunch(mainTarget: Target): Promise<void> {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
-    this._adapterReadyCallback(this._adapter);
+    this._adapterReadyCallback(this._debugAdapter);
   }
 
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {

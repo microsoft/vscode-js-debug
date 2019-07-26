@@ -3,8 +3,8 @@
 
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
-import { Adapter } from '../adapter/adapter';
 import { ExecutionContextTree } from '../adapter/threads';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export function registerExecutionContextsUI(factory: AdapterFactory) {
   const provider = new ExecutionContextDataProvider(factory);
@@ -25,7 +25,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _contexts: ExecutionContextTree[] = [];
   private _disposables: vscode.Disposable[] = [];
-  private _adapter: Adapter;
+  private _adapter: DebugAdapter;
   private _treeView: vscode.TreeView<ExecutionContextTree>;
 
   constructor(factory: AdapterFactory) {
@@ -36,7 +36,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     this._treeView = treeView
   }
 
-  _setActiveAdapter(adapter: Adapter) {
+  _setActiveAdapter(adapter: DebugAdapter) {
     this._adapter = adapter;
     for (const disposable of this._disposables)
       disposable.dispose();
@@ -44,15 +44,16 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
       return;
     this._disposables = [];
 
-    adapter.threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
-    adapter.threadManager.onThreadPaused(thread => this._threadPaused(thread.threadId()), undefined, this._disposables);
-    adapter.threadManager.onThreadResumed(thread => this._threadResumed(thread.threadId()), undefined, this._disposables);
+    const threadManager = adapter.threadManager();
+    threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
+    threadManager.onThreadPaused(thread => this._threadPaused(thread.threadId()), undefined, this._disposables);
+    threadManager.onThreadResumed(thread => this._threadResumed(thread.threadId()), undefined, this._disposables);
 
     // Force populate the UI.
-    adapter.threadManager.refreshExecutionContexts();
+    threadManager.refreshExecutionContexts();
 
     // In case of lazy view initialization, pick already paused thread.
-    for (const thread of adapter.threadManager.threads()) {
+    for (const thread of threadManager.threads()) {
       if (thread.pausedDetails()) {
         this._threadPaused(thread.threadId());
         break;
@@ -87,7 +88,7 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
   getTreeItem(item: ExecutionContextTree): vscode.TreeItem {
     const result = new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
     result.id = item.threadId + ':' + item.contextId;
-    const thread = this._adapter ? this._adapter.threadManager.thread(item.threadId) : undefined;
+    const thread = this._adapter ? this._adapter.threadManager().thread(item.threadId) : undefined;
     if (thread && thread.pausedDetails())
       result.description = 'PAUSED';
     else if (thread)

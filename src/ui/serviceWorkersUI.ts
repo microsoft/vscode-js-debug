@@ -3,9 +3,9 @@
 
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
-import { Adapter } from '../adapter/adapter';
 import { ChromeAdapter } from '../chrome/chromeAdapter';
 import { ServiceWorkerModel, ServiceWorkerVersion, ServiceWorkerRegistration, ServiceWorkerMode } from '../chrome/serviceWorkers';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 type DataItem = ServiceWorkerVersion | ServiceWorkerRegistration | vscode.TreeItem;
 
@@ -47,7 +47,7 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
     this._modeItem.contextValue = 'pwa.serviceWorkerMode';
   }
 
-  _setActiveAdapter(adapter: Adapter) {
+  _setActiveAdapter(adapter: DebugAdapter) {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];

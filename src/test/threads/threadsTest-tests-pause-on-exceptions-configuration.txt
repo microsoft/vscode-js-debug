@@ -5,7 +5,7 @@
     threadId : <number>
 }
 {
-    breakMode : unhandled
+    breakMode : all
     details : {
         stackTrace :   at <data-url>:7:17
     }

@@ -69,8 +69,8 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       lineNumber: editor.selection.start.line + 1,
       columnNumber: editor.selection.start.character + 1,
     };
-    const newLocation = await adapter.sourceContainer.preferredLocation(originalLocation);
-    adapter.sourceContainer.revealLocation(newLocation);
+    const newLocation = await adapter.sourceContainer().preferredLocation(originalLocation);
+    adapter.sourceContainer().revealLocation(newLocation);
   }));
 }
 
