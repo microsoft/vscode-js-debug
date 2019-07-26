@@ -3,12 +3,12 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { AdapterFactory } from '../adapterFactory';
-import { ExecutionContextTree } from '../adapter/threads';
 import { DebugAdapter } from '../adapter/debugAdapter';
+import { ExecutionContextTree } from '../adapter/threads';
+import { AdapterFactory } from '../adapterFactory';
 
-export function registerExecutionContextsUI(factory: AdapterFactory) {
-  const provider = new ExecutionContextDataProvider(factory);
+export function registerThreadsUI(factory: AdapterFactory) {
+  const provider = new ThreadsDataProvider(factory);
   const treeView = vscode.window.createTreeView('pwa.executionContexts', { treeDataProvider: provider });
   provider.setTreeView(treeView);
 
@@ -21,7 +21,7 @@ export function registerExecutionContextsUI(factory: AdapterFactory) {
   });
 }
 
-class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionContextTree> {
+class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContextTree> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _contexts: ExecutionContextTree[] = [];
@@ -41,9 +41,13 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     this._adapter = adapter;
     for (const disposable of this._disposables)
       disposable.dispose();
-    if (!this._adapter)
-      return;
     this._disposables = [];
+
+    if (!this._adapter) {
+      this._contexts = [];
+      this._onDidChangeTreeData.fire();
+      return;
+    }
 
     const threadManager = adapter.threadManager();
     threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
@@ -107,8 +111,10 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
 
   executionContextsChanged(contexts: ExecutionContextTree[]): void {
     this._contexts = [];
+    const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';
     const visit = (indentation: string, item: ExecutionContextTree) => {
+      keys.add(item.threadId + ':' + item.contextId);
       this._contexts.push({
         ...item,
         name: indentation + item.name
@@ -117,5 +123,9 @@ class ExecutionContextDataProvider implements vscode.TreeDataProvider<ExecutionC
     };
     contexts.forEach(item => visit('', item));
     this._onDidChangeTreeData.fire(undefined);
+
+    const selected = this._treeView.selection[0];
+    if (!selected || !keys.has(selected.threadId + ':' + selected.contextId))
+      this._treeView.reveal(this._contexts[0], { select: true });
   }
 }

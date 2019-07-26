@@ -158,6 +158,14 @@ export class DebugAdapter {
     const sourcePathResolver = delegate.sourcePathResolverFactory();
     this._sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
     this._threadManager = new ThreadManager(this._dap, sourcePathResolver, this._sourceContainer, delegate);
+    this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this._sourceContainer, this._threadManager);
+
+    this._threadAdapter = new ThreadAdapter(this._dap);
+    await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
+    for (const request of this._setBreakpointRequests)
+      await this._breakpointManager.setBreakpoints(request.params, request.generatedIds);
+
+    // Select first thread once it is available.
     this._threadManager.onThreadAdded(thread => {
       if (!this._threadAdapter!.thread()) {
         this.selectExecutionContext({
@@ -167,12 +175,6 @@ export class DebugAdapter {
         });
       }
     });
-    this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this._sourceContainer, this._threadManager);
-
-    this._threadAdapter = new ThreadAdapter(this._dap);
-    await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
-    for (const request of this._setBreakpointRequests)
-      await this._breakpointManager.setBreakpoints(request.params, request.generatedIds);
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
