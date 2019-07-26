@@ -1,7 +1,7 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { ExecutionContext, Thread } from '../adapter/threads';
@@ -38,8 +38,10 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
   private _disposables: vscode.Disposable[] = [];
   private _adapter: DebugAdapter;
   private _treeView: vscode.TreeView<ExecutionContext>;
+  private _extensionPath: string;
 
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
+    this._extensionPath = context.extensionPath;
     factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter), undefined, context.subscriptions);
   }
 
@@ -102,9 +104,20 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
     this._onDidChangeTreeData.fire();
   }
 
+  _iconPath(fileName: string): { dark: string, light: string } {
+    return {
+      dark: path.join(this._extensionPath, 'resources', 'dark', fileName),
+      light: path.join(this._extensionPath, 'resources', 'light', fileName)
+    };
+  }
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
     const result = new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
     result.id = uniqueId(item);
+    if (item.type === 'page')
+      result.iconPath = this._iconPath('page.svg');
+    else if (item.type === 'service_worker')
+      result.iconPath = this._iconPath('service-worker.svg');
+
     if (item.isThread) {
       if (item.thread.pausedDetails()) {
         result.description = 'PAUSED';
@@ -135,9 +148,14 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
     const tab = '\u00A0\u00A0\u00A0\u00A0';
     const visit = (indentation: string, item: ExecutionContext) => {
       keys.add(uniqueId(item));
+      let unicodeIcon = '';
+      if (item.type === 'iframe')
+        unicodeIcon = '\uD83D\uDCC4 ';
+      else if (item.type === 'worker')
+        unicodeIcon = '\uD83D\uDC77 ';
       this._contexts.push({
         ...item,
-        name: indentation + item.name
+        name: indentation + unicodeIcon + item.name
       });
       item.children.forEach(item => visit(indentation + tab, item));
     };

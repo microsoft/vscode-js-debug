@@ -112,28 +112,33 @@ export class TargetManager implements vscode.Disposable {
     if (mainFrame)
       visitFrames(mainFrame, result);
 
-    // Traverse remaining contexts, use target hierarchy.
+    // Traverse remaining contexts, use target hierarchy. Unlink service workers to be top level.
     for (const target of this.targets()) {
-      let container = result;
-
-      // Which target should own the context?
-      for (let t: Target | undefined = target; t; t = t.parentTarget) {
-        const parentContext = mainForTarget.get(t);
-        if (parentContext) {
-          container = parentContext.children;
-          break;
-        }
-      }
-
       const thread = target.thread();
       if (!thread)
         continue;
+
+      let reportType = target._targetInfo.type;
+      let container = result;
+      if (target.isServiceWorkerWorker())
+        reportType = 'service_worker';
+
+      if (reportType !== 'service_worker') {
+        // Which target should own the context?
+        for (let t: Target | undefined = target; t; t = t.parentTarget) {
+          const parentContext = mainForTarget.get(t);
+          if (parentContext) {
+            container = parentContext.children;
+            break;
+          }
+        }
+      }
 
       // Put all contexts there, mark all as threads since they are independent.
       for (const context of thread.executionContexts()) {
         if (reported.has(thread.threadId() + ':' + context.id))
           continue;
-        container.push(toExecutionContext(thread, context, true, target._targetInfo.type));
+        container.push(toExecutionContext(thread, context, true, reportType));
       }
     }
     return result;
@@ -238,14 +243,7 @@ export class TargetManager implements vscode.Disposable {
 
   canStop(targetId: string): boolean {
     const target = this._targets.get(targetId);
-    if (!target)
-      return false;
-    if (target._targetInfo.type === 'service_worker')
-      return true;  // For future versions of Chrome.
-    const parentTarget = target.parentTarget;
-    if (!parentTarget)
-      return false;
-    return parentTarget._targetInfo.type === 'service_worker';
+    return !!target && target.isServiceWorkerWorker();
   }
 
   stop(targetId: string) {
@@ -294,6 +292,11 @@ export class Target {
     return this._targetInfo.targetId;
   }
 
+
+  isServiceWorkerWorker(): boolean {
+    return this._targetInfo.type === 'worker' && !!this.parentTarget && this.parentTarget._targetInfo.type === 'service_worker';
+  }
+
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread)
       this._thread.initialize();
@@ -316,19 +319,24 @@ export class Target {
     if (!this._thread)
       return;
 
-    let icon = '';
-    if (this._targetInfo.type === 'page')
-      icon = '\uD83D\uDCC4 ';
-    else if (this._targetInfo.type === 'iframe')
-      icon = '\uD83D\uDCC4 ';
-    else if (this._targetInfo.type === 'worker')
-      icon = '\uD83D\uDC77 ';
+    if (this.isServiceWorkerWorker()) {
+      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId());
+      if (version) {
+        const parsedURL = new URL(version.registration.scopeURL);
+        let scope = `${parsedURL.host}${parsedURL.pathname}`;
+        if (scope.endsWith('/'))
+          scope = scope.substring(0, scope.length - 1);
+        let status: string = version.revisions[0].status;
+        if (status === 'activated')
+          status = '';
+        else
+          status = ` (${status})`;
+        this._thread.setName(`${scope}${status}`);
+        return;
+      }
+    }
 
-    let serviceWorkerStatus: string | undefined;
-    if (this._targetInfo.type === 'worker' && this.parentTarget)
-      serviceWorkerStatus = this._manager.serviceWorkerModel.versionStatus(this.parentTarget.targetId());
-
-    let threadName = icon;
+    let threadName = '';
     try {
       const parsedURL = new URL(this._targetInfo.url);
       if (parsedURL.pathname === '/')
@@ -340,8 +348,7 @@ export class Target {
     } catch (e) {
       threadName += this._targetInfo.url;
     }
-    if (serviceWorkerStatus)
-      threadName += ` (${serviceWorkerStatus})`;
+
     this._thread.setName(threadName);
   }
 

@@ -101,11 +101,6 @@ export class ServiceWorkerModel implements vscode.Disposable {
     return this._versions.get(targetId);
   }
 
-  versionStatus(targetId: Cdp.Target.TargetID): string | undefined {
-    const version = this._versions.get(targetId);
-    return version ? version.revisions[0].status : undefined;
-  }
-
   registrations(): ServiceWorkerRegistration[] {
     const result: ServiceWorkerRegistration[] = [];
     const urls = this._frameModel.frames().map(frame => frame.url());

@@ -203,9 +203,8 @@ export class Frame {
   }
 
   displayName(): string {
-    const icon = '\uD83D\uDCC4 '
     const name = this._name ? this._name + ' - ' : '';
-    return icon + name + displayName(this._url);
+    return name + displayName(this._url);
   }
 };
 
