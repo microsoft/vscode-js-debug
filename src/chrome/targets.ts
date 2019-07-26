@@ -8,7 +8,7 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContextTree } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContext } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 
@@ -47,7 +47,7 @@ export class TargetManager implements vscode.Disposable {
     return Array.from(this._targets.values());
   }
 
-  executionContextForest(): ExecutionContextTree[] | undefined {
+  executionContextForest(): ExecutionContext[] | undefined {
     const reported: Set<string> = new Set();
     const toDap = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, name?: string) => {
       reported.add(thread.threadId() + ':' + context.id);
@@ -61,9 +61,9 @@ export class TargetManager implements vscode.Disposable {
     };
 
     // Go over the contexts, bind them to frames.
-    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContextTree> = new Map();
-    const mainForTarget: Map<Target, ExecutionContextTree> = new Map();
-    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContextTree[]> = new Map();
+    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContext> = new Map();
+    const mainForTarget: Map<Target, ExecutionContext> = new Map();
+    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContext[]> = new Map();
     for (const target of this.targets()) {
       const thread = target.thread();
       if (!thread)
@@ -90,7 +90,7 @@ export class TargetManager implements vscode.Disposable {
     }
 
     // Visit frames and use bindings above to build context tree.
-    const visitFrames = (frame: Frame, container: ExecutionContextTree[]) => {
+    const visitFrames = (frame: Frame, container: ExecutionContext[]) => {
       const main = mainForFrameId.get(frame.id);
       const worlds = worldsForFrameId.get(frame.id) || [];
       if (main) {
@@ -105,7 +105,7 @@ export class TargetManager implements vscode.Disposable {
       }
     };
 
-    const result: ExecutionContextTree[] = [];
+    const result: ExecutionContext[] = [];
     const mainFrame = this.frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
@@ -274,12 +274,8 @@ export class Target {
     this._cdp = cdp;
     this._manager = targetManager;
     this.parentTarget = parentTarget;
-    if (jsTypes.has(targetInfo.type)) {
-      let parentThread: Thread | undefined;
-      for (let p = parentTarget; p && !parentThread; p = p.parentTarget)
-        parentThread = p.thread();
-      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, parentThread, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
-    }
+    if (jsTypes.has(targetInfo.type))
+      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }

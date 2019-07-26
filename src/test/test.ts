@@ -13,7 +13,7 @@ import DapConnection from '../dap/connection';
 import { Target } from '../chrome/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { ExecutionContextTree } from '../adapter/threads';
+import { ExecutionContext } from '../adapter/threads';
 import { DebugAdapter } from '../adapter/debugAdapter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
@@ -75,11 +75,11 @@ export class TestP {
     this._connection = await this._chromeAdapter.connection().clone();
     this.adapter = this._chromeAdapter.adapter();
 
-    let contexts: ExecutionContextTree[] = [];
-    let selected: ExecutionContextTree | undefined;
+    let contexts: ExecutionContext[] = [];
+    let selected: ExecutionContext | undefined;
     this.adapter.threadManager().onExecutionContextsChanged(params => {
       contexts = [];
-      const visit = (item: ExecutionContextTree) => {
+      const visit = (item: ExecutionContext) => {
         contexts.push(item);
         item.children.forEach(visit);
       };

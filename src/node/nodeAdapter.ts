@@ -11,7 +11,7 @@ import * as which from 'which';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
-import { ExecutionContextTree, Thread } from '../adapter/threads';
+import { ExecutionContext, Thread } from '../adapter/threads';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
@@ -26,6 +26,10 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
+interface Target extends ExecutionContext {
+  parent?: ExecutionContext;
+}
+
 export class NodeAdapter {
   private _dap: Dap.Api;
   private _debugAdapter: DebugAdapter;
@@ -36,7 +40,7 @@ export class NodeAdapter {
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
-  private _targets = new Map<string, Thread>();
+  private _targets = new Map<string, Target>();
   private _isRestarting: boolean;
 
   static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DebugAdapter> {
@@ -153,18 +157,37 @@ export class NodeAdapter {
     this._connections.push(connection);
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
-    const parentThread = this._targets.get(targetInfo.openerId!);
-    const thread = this._debugAdapter.threadManager().createThread(targetInfo.targetId, cdp, parentThread, {
+
+    const setParent = (child: Target, parent?: Target) => {
+      if (child.parent)
+        child.parent.children.splice(child.parent.children.indexOf(child), 1);
+      child.parent = parent;
+      if (child.parent)
+        child.parent.children.push(child);
+    };
+
+    const thread = this._debugAdapter.threadManager().createThread(targetInfo.targetId, cdp, {
       defaultScriptOffset: {lineOffset: 0, columnOffset: 62}
     });
-    this._targets.set(targetInfo.targetId, thread);
     let threadName: string;
     if (targetInfo.title)
       threadName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
       threadName = `[${targetInfo.targetId}]`;
     thread.setName(threadName);
+
+    const target: Target = {
+      name: thread.name(),
+      thread: thread,
+      isThread: true,
+      children: [],
+    };
+    this._targets.set(targetInfo.targetId, target);
+    setParent(target, this._targets.get(targetInfo.openerId!));
+
     connection.onDisconnected(() => {
+      target.children.forEach(child => setParent(child, target.parent));
+      setParent(target, undefined);
       this._targets.delete(targetInfo.targetId);
       thread.dispose();
     });
@@ -179,28 +202,8 @@ export class NodeAdapter {
     process.kill(+pid);
   }
 
-  executionContextForest(): ExecutionContextTree[] | undefined {
-    const result: ExecutionContextTree[] = [];
-    const visit = (thread: Thread, container: ExecutionContextTree[]) => {
-      const context = thread.defaultExecutionContext();
-      if (context) {
-        const contextTree = {
-          name: thread.name(),
-          thread: thread,
-          contextId: context.id,
-          isThread: true,
-          children: [],
-        };
-        container.push(contextTree);
-        for (const child of thread.childThreads())
-          visit(child, contextTree.children);
-      } else {
-        for (const child of thread.childThreads())
-          visit(child, container);
-      }
-    };
-    this._debugAdapter.threadManager().topLevelThreads().forEach(t => visit(t, result));
-    return result;
+  executionContextForest(): ExecutionContext[] | undefined {
+    return Array.from(this._targets.values()).filter(t => !t.parent);
   }
 }
 

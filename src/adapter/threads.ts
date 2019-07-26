@@ -34,11 +34,11 @@ export interface PausedDetails {
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export interface ExecutionContextTree {
-  contextId: number;
+export interface ExecutionContext {
+  description?: Cdp.Runtime.ExecutionContextDescription;
   name: string;
   thread: Thread;
-  children: ExecutionContextTree[];
+  children: ExecutionContext[];
   isThread: boolean;
 }
 
@@ -51,7 +51,7 @@ export interface ThreadConfiguration {
 
 export interface ThreadManagerDelegate {
   copyToClipboard(text: string): void;
-  executionContextForest(): ExecutionContextTree[] | undefined;
+  executionContextForest(): ExecutionContext[] | undefined;
   canStopThread(thread: Thread): boolean;
   stopThread(thread: Thread): void;
 }
@@ -64,7 +64,7 @@ export class ThreadManager {
   private _threads: Map<string, Thread> = new Map();
   private _dap: Dap.Api;
 
-  private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContextTree[]>();
+  private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContext[]>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
   _onThreadRemovedEmitter = new EventEmitter<Thread>();
   _onThreadPausedEmitter = new EventEmitter<Thread>();
@@ -96,8 +96,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(threadId: string, cdp: Cdp.Api, parent: Thread | undefined, configuration: ThreadConfiguration): Thread {
-    return new Thread(this, threadId, cdp, this._dap, parent, configuration);
+  createThread(threadId: string, cdp: Cdp.Api, configuration: ThreadConfiguration): Thread {
+    return new Thread(this, threadId, cdp, this._dap, configuration);
   }
 
   setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
@@ -122,10 +122,6 @@ export class ThreadManager {
 
   threads(): Thread[] {
     return Array.from(this._threads.values());
-  }
-
-  topLevelThreads(): Thread[] {
-    return this.threads().filter(t => !t._parentThread);
   }
 
   thread(threadId: string): Thread | undefined {
@@ -212,19 +208,14 @@ export class Thread implements VariableStoreDelegate {
   readonly sourceContainer: SourceContainer;
   readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
-  _parentThread?: Thread;
-  _childThreads: Thread[] = [];
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
 
-  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, parent: Thread | undefined, configuration: ThreadConfiguration) {
+  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, configuration: ThreadConfiguration) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
-    this._parentThread = parent;
-    if (parent)
-      parent._childThreads.push(this);
     this._threadId = threadId;
     this._name = '';
     this._supportsCustomBreakpoints = configuration.supportsCustomBreakpoints || false;
@@ -245,10 +236,6 @@ export class Thread implements VariableStoreDelegate {
 
   name(): string {
     return this._name;
-  }
-
-  childThreads(): Thread[] {
-    return this._childThreads.slice();
   }
 
   pausedDetails(): PausedDetails | undefined {
@@ -435,17 +422,7 @@ export class Thread implements VariableStoreDelegate {
     this.manager._onThreadResumedEmitter.fire(this);
   }
 
-  _setParent(parentThread: Thread | undefined) {
-    if (this._parentThread)
-      this._parentThread._childThreads.splice(this._parentThread._childThreads.indexOf(this), 1);
-    this._parentThread = parentThread;
-    if (this._parentThread)
-      this._parentThread._childThreads.push(this);
-}
-
   dispose() {
-    this._childThreads.forEach(child => child._setParent(this._parentThread));
-    this._setParent(undefined);
     this._removeAllScripts();
     this.manager._removeThread(this._threadId);
     eventUtils.removeEventListeners(this._eventListeners);
