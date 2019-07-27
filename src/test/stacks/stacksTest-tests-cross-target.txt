@@ -1,0 +1,10 @@
+
+<anonymous> @ ${workspaceFolder}/web/worker.html:6:5
+  > scope #0: Local
+      > e: MessageEvent {isTrusted: true, data: 'pause', origin: '', lastEventId: '', source: null}  // type=MessageEvent
+  scope #1: Global [expensive]
+
+----postMessage----
+<anonymous> @ ${workspaceFolder}/web/worker.js:6:5
+----Worker.postMessage----
+<anonymous> @ <eval>/VM<xx>:1:10
