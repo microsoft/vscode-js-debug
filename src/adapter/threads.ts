@@ -210,6 +210,7 @@ export class Thread implements VariableStoreDelegate {
   private _eventListeners: eventUtils.Listener[] = [];
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
+  _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
 
   constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, configuration: ThreadConfiguration) {
     this.manager = manager;
@@ -274,7 +275,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async stepInto(): Promise<boolean> {
-    return !!await this._cdp.Debugger.stepInto({});
+    return !!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true});
   }
 
   async stepOut(): Promise<boolean> {
@@ -331,20 +332,33 @@ export class Thread implements VariableStoreDelegate {
     });
     this._cdp.Runtime.enable({});
 
-    this._cdp.Debugger.on('paused', event => {
+    this._cdp.Debugger.on('paused', async event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
         this._handleSourceMapPause(event.data['scriptId'] as string);
         return;
       }
+
+      if (event.asyncCallStackTraceId) {
+        scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
+        await Promise.all(this.manager.threads().map(thread => thread._pauseOnScheduledAsyncCall()));
+        this.resume();
+        return;
+      }
+
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedVariables = new VariableStore(this._cdp, this);
       this.manager._onThreadPausedEmitter.fire(this);
+
+      scheduledPauseOnAsyncCall = undefined;
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
-    this._cdp.Debugger.enable({});
+    this._cdp.Debugger.enable({}).then(response => {
+      if (response)
+        this._debuggerId = response.debuggerId;
+    });
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     if (this.manager.sourceContainer.sourceMapTimeouts().scriptPaused) {
       this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' }).then(result => {
@@ -355,6 +369,8 @@ export class Thread implements VariableStoreDelegate {
 
     for (const id of this.manager.customBreakpoints())
       this.updateCustomBreakpoint(id, true);
+
+    this._pauseOnScheduledAsyncCall();
 
     this.manager._onThreadAddedEmitter.fire(this);
   }
@@ -393,6 +409,12 @@ export class Thread implements VariableStoreDelegate {
     // Timeout to avoid blocking future slots if this one does stall.
     setTimeout(callback!, this.manager.sourceContainer.sourceMapTimeouts().output);
     return result;
+  }
+
+  async _pauseOnScheduledAsyncCall(): Promise<void> {
+    if (!scheduledPauseOnAsyncCall)
+      return;
+    await this._cdp.Debugger.pauseOnAsyncCall({parentStackTraceId: scheduledPauseOnAsyncCall});
   }
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
@@ -824,3 +846,5 @@ export class ThreadLog {
 }
 
 const kScriptsSymbol = Symbol('script');
+
+let scheduledPauseOnAsyncCall: Cdp.Runtime.StackTraceId | undefined;
