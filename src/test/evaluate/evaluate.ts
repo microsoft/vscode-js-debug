@@ -184,7 +184,7 @@ export function addTests(testRunner) {
       'let q = 1, s = await 2',
       's',
       'await {...{foo: 42}}'
-    ], 0, 'repl');
+    ], { depth: 0 }, 'repl');
     p.assertLog();
   });
 }

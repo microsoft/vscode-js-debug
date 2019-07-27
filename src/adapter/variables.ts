@@ -67,10 +67,8 @@ export class VariableStore {
       return await result();
 
     const object = this._referenceToObject.get(params.variablesReference);
-    return object ? this._getObjectVariables(object, params) : [];
-  }
-
-  async _getObjectVariables(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
+    if (!object)
+      return [];
     if (object.scopeVariables)
       return object.scopeVariables;
 
@@ -81,7 +79,7 @@ export class VariableStore {
         return this._getArrayProperties(object);
       const names = await this._getArrayProperties(object);
       const indexes = await this._getArraySlots(object, params);
-      return names.concat(indexes);
+      return indexes.concat(names);
     }
 
     const variables = await this._getObjectProperties(object);
@@ -163,13 +161,19 @@ export class VariableStore {
   }
 
   async createVariableForOutput(text: string, args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<number> {
-    const rootObjectReference = stackTrace || args.find(a => objectPreview.isObject(a)) ? ++VariableStore._lastVariableReference : 0;
-    const rootObjectVariable: Dap.Variable = {
-      name: '',
-      value: text,
-      variablesReference: rootObjectReference
-    };
-    this._referenceToVariables.set(rootObjectReference, () => this._createVariableForOutputParams(args, stackTrace));
+    let rootObjectVariable: Dap.Variable;
+    if (args.length === 1 && objectPreview.isObject(args[0]) && !stackTrace) {
+      rootObjectVariable = this._createVariable('', new RemoteObject(this._cdp, args[0]));
+      rootObjectVariable.value = text;
+    } else {
+      const rootObjectReference = stackTrace || args.find(a => objectPreview.isObject(a)) ? ++VariableStore._lastVariableReference : 0;
+      rootObjectVariable = {
+        name: '',
+        value: text,
+        variablesReference: rootObjectReference,
+      };
+      this._referenceToVariables.set(rootObjectReference, () => this._createVariableForOutputParams(args, stackTrace));
+    }
 
     const resultReference = ++VariableStore._lastVariableReference;
     this._referenceToVariables.set(resultReference, async () => [rootObjectVariable]);
@@ -178,19 +182,11 @@ export class VariableStore {
 
   async _createVariableForOutputParams(args: Cdp.Runtime.RemoteObject[], stackTrace?: StackTrace): Promise<Dap.Variable[]> {
     const params: Dap.Variable[] = [];
-    const firstArg = args[0];
-    if (args.length === 1 && firstArg.objectId && !objectPreview.primitiveSubtypes.has(firstArg.subtype)) {
-      // Inline properties for single object parameters.
-      const object = new RemoteObject(this._cdp, args[0]);
-      params.push(... await this._getObjectVariables(object));
-    } else {
-      const promiseParams: Promise<Dap.Variable>[] = [];
-      for (let i = 0; i < args.length; ++i) {
-        if (!objectPreview.isObject(args[i]))
-          continue;
-        promiseParams.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
-      }
-      params.push(...await Promise.all(promiseParams));
+
+    for (let i = 0; i < args.length; ++i) {
+      if (!objectPreview.isObject(args[i]))
+        continue;
+        params.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
     }
 
     if (stackTrace) {
@@ -246,24 +242,24 @@ export class VariableStore {
         propertiesMap.set(property.name, property);
     }
 
-    const propertyPromises: Promise<Dap.Variable>[] = [];
+    const properties: Dap.Variable[] = [];
     const weight: Map<string, number> = new Map();
 
     // Push own properties & accessors
     for (const p of propertiesMap.values()) {
-      propertyPromises.push(...this._createVariablesForProperty(p, object));
+      properties.push(...this._createVariablesForProperty(p, object));
       weight.set(p.name, objectPreview.propertyWeight(p));
     }
 
     // Push symbols
     for (const p of propertySymbols.values()) {
-      propertyPromises.push(...this._createVariablesForProperty(p, object));
+      properties.push(...this._createVariablesForProperty(p, object));
       weight.set(p.name, objectPreview.propertyWeight(p));
     }
 
     // Push private properties
     for (const p of ownProperties.privateProperties || []) {
-      propertyPromises.push(this._createVariable(p.name, object.wrap(p.value)));
+      properties.push(this._createVariable(p.name, object.wrap(p.value)));
       weight.set(p.name, objectPreview.privatePropertyWeight(p));
     }
 
@@ -274,19 +270,18 @@ export class VariableStore {
       weight.set(p.name, objectPreview.internalPropertyWeight(p));
       if (p.name === '[[FunctionLocation]]' && p.value && p.value.subtype as string === 'internal#location') {
         const loc = p.value.value as Cdp.Debugger.Location;
-        propertyPromises.push(Promise.resolve({
+        properties.push({
           name: p.name,
           value: await this._delegate.renderDebuggerLocation(loc),
           variablesReference: 0
-        }));
+        });
         continue;
       }
-      propertyPromises.push(this._createVariable(p.name, object.wrap(p.value)));
+      properties.push(this._createVariable(p.name, object.wrap(p.value)));
     }
 
     // Wrap up
-    const result = await Promise.all(propertyPromises);
-    result.sort((a, b) => {
+    properties.sort((a, b) => {
       const aname = a.name.includes(' ') ? a.name.split(' ')[1] : a.name;
       const bname = b.name.includes(' ') ? b.name.split(' ')[1] : b.name;
       if (!isNaN(+aname) && !isNaN(+bname))
@@ -294,7 +289,7 @@ export class VariableStore {
       const delta = weight.get(bname)! - weight.get(aname)!;
       return delta ? delta : aname.localeCompare(bname);
     });
-    return result;
+    return properties;
   }
 
   private async _getArrayProperties(object: RemoteObject): Promise<Dap.Variable[]> {
@@ -323,6 +318,8 @@ export class VariableStore {
   }
 
   private async _getArraySlots(object: RemoteObject, params?: Dap.VariablesParams): Promise<Dap.Variable[]> {
+    const start = params && typeof params.start !== 'undefined' ? params.start : -1;
+    const count = params && typeof params.count !== 'undefined' ? params.count : -1;
     const response = await object.cdp.Runtime.callFunctionOn({
       objectId: object.objectId,
       functionDeclaration: `
@@ -330,7 +327,7 @@ export class VariableStore {
           const result = {};
           const from = start === -1 ? 0 : start;
           const to = count === -1 ? this.length : start + count;
-          for (let i = from; i < to; ++i) {
+          for (let i = from; i < to && i < this.length; ++i) {
             const descriptor = Object.getOwnPropertyDescriptor(this, i);
             if (descriptor)
               Object.defineProperty(result, i, descriptor);
@@ -338,12 +335,13 @@ export class VariableStore {
           return result;
         }
       `,
-      generatePreview: true,
-      arguments: [{ value: params ? params.start : -1 }, { value: params ? params.count : -1 }]
+      generatePreview: false,
+      arguments: [{ value: start }, { value: count }]
     });
-    if (!response)
+    if (!response || !response.result || !response.result.objectId)
       return [];
     const result = (await this._getObjectProperties(object.wrap(response.result))).filter(p => p.name !== '__proto__');
+    await this._cdp.Runtime.releaseObject({ objectId: response.result.objectId });
     return result;
   }
 
@@ -354,8 +352,8 @@ export class VariableStore {
     return reference;
   }
 
-  private _createVariablesForProperty(p: Cdp.Runtime.PropertyDescriptor, owner: RemoteObject): Promise<Dap.Variable>[] {
-    const result: Promise<Dap.Variable>[] = [];
+  private _createVariablesForProperty(p: Cdp.Runtime.PropertyDescriptor, owner: RemoteObject): Dap.Variable[] {
+    const result: Dap.Variable[] = [];
     if ('value' in p)
       result.push(this._createVariable(p.name, owner.wrap(p.value), 'propertyValue'));
     if (p.get && p.get.type !== 'undefined')
@@ -365,7 +363,7 @@ export class VariableStore {
     return result;
   }
 
-  private async _createVariable(name: string, value?: RemoteObject, context?: string): Promise<Dap.Variable> {
+  private _createVariable(name: string, value?: RemoteObject, context?: string): Dap.Variable {
     if (!value) {
       return {
         name,
@@ -381,7 +379,7 @@ export class VariableStore {
     return this._createPrimitiveVariable(name, value, context);
   }
 
-  private async _createPrimitiveVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
+  private _createPrimitiveVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {
     return {
       name,
       value: objectPreview.previewRemoteObject(value.o, context),
@@ -390,35 +388,31 @@ export class VariableStore {
     };
   }
 
-  private async _createObjectVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
+  private _createObjectVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {
     const variablesReference = this._createVariableReference(value);
     const object = value.o;
     return {
       name,
       value: name === '__proto__' ? object.description! : objectPreview.previewRemoteObject(object, context),
-      type: object.className || object.subtype || object.type,
+      type: object.subtype || object.type,
       variablesReference
     };
   }
 
-  private async _createArrayVariable(name: string, value: RemoteObject, context?: string): Promise<Dap.Variable> {
-    const variablesReference = this._createVariableReference(value);
-    const response = await value.cdp.Runtime.callFunctionOn({
-      objectId: value.objectId,
-      functionDeclaration: `function() { return this.length; }`,
-      objectGroup: 'console',
-      returnByValue: true
-    });
-    const indexedVariables = response ? response.result.value : 0;
-
+  private _createArrayVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {
     const object = value.o;
+    const variablesReference = this._createVariableReference(value);
+    const match = object.description!.match(/\(([0-9]+)\)/);
+    const arrayLength = match ? +match[1] : 0;
+
+    // For small arrays (less than 100 items), pretend we don't have indexex properties.
     return {
       name,
       value: name === '__proto__' ? object.description! : objectPreview.previewRemoteObject(object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
-      indexedVariables,
-      namedVariables: 1  // do not count properties proactively
+      indexedVariables: arrayLength > 100 ? arrayLength : undefined,
+      namedVariables: arrayLength > 100 ? 1 : undefined // do not count properties proactively
     };
   }
 

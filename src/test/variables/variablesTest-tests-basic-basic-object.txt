@@ -1,3 +1,3 @@
-> result: {a: 1}  // type=object
-    a: 1  // type=number
-    > __proto__: Object  // type=Object
+> result: {a: 1}
+    a: 1
+    > __proto__: Object

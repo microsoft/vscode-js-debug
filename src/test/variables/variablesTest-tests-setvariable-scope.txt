@@ -5,13 +5,13 @@ stopped: {
     threadId : <number>
 }
 > scope: foo
-    y: 'value of y'  // type=string
-    z: 'value of z'  // type=string
+    y: 'value of y'
+    z: 'value of z'
 
 Setting "y" to "z"
-<result>: 'value of z'  // type=string
+<result>: 'value of z'
 
 Original
 > scope: foo
-    y: 'value of z'  // type=string
-    z: 'value of z'  // type=string
+    y: 'value of z'
+    z: 'value of z'

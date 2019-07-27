@@ -26,7 +26,7 @@ export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
 export function isObject(object: Cdp.Runtime.PropertyPreview): boolean;
 export function isObject(object: Cdp.Runtime.RemoteObject): boolean;
 export function isObject(object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview): boolean {
-  return object.type === 'object' && !primitiveSubtypes.has(object.subtype);
+  return object.type === 'function' || (object.type === 'object' && !primitiveSubtypes.has(object.subtype));
 }
 
 export function isArray(object: Cdp.Runtime.ObjectPreview): boolean;

@@ -1,23 +1,20 @@
 stderr> > {foo: {…}}
-stderr>     > foo: {bar: 'to page'}  // type=Object
-stderr>     > __proto__: Object  // type=Object
+stderr>     > arg0: {foo: {…}}
 stderr>     
 <anonymous> @ ${workspaceFolder}/web/worker.html:4:11
 ◀ postMessage ▶
-<anonymous> @ /Users/dgozman/code/vscode-pwa/testWorkspace/web/worker.js:8:5
+<anonymous> @ testWorkspace/web/worker.js:8:5
 ◀ Worker.postMessage ▶
-<anonymous> @ /Users/dgozman/code/vscode-pwa/testWorkspace/web/worker.html:8:10
+<anonymous> @ testWorkspace/web/worker.html:8:10
 stderr> > {foo: {…}}
-stderr>     > foo: {bar: 'worker start'}  // type=Object
-stderr>     > __proto__: Object  // type=Object
+stderr>     > arg0: {foo: {…}}
 stderr>     
 <anonymous> @ ${workspaceFolder}/web/worker.js:1:9
 ◀ Worker Created ▶
-<anonymous> @ /Users/dgozman/code/vscode-pwa/testWorkspace/web/worker.html:2:12
+<anonymous> @ testWorkspace/web/worker.html:2:12
 stderr> > {foo: {…}}
-stderr>     > foo: {bar: 'to worker'}  // type=Object
-stderr>     > __proto__: Object  // type=Object
+stderr>     > arg0: {foo: {…}}
 stderr>     
 <anonymous> @ ${workspaceFolder}/web/worker.js:4:11
 ◀ Worker.postMessage ▶
-<anonymous> @ /Users/dgozman/code/vscode-pwa/testWorkspace/web/worker.html:8:10
+<anonymous> @ testWorkspace/web/worker.html:8:10

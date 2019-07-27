@@ -1,25 +1,25 @@
-result: 42  // type=number
+result: 42
 
-result: 'foo'  // type=string
+result: 'foo'
 
-result: 1234567890n  // type=bigint
+result: 1234567890n
 
 
 result: Error: foo
-    at <anonymous>:1:7  // type=object
+    at <anonymous>:1:7
 
-> result: {foo: 3, bar: 'baz'}  // type=object
-    bar: 'baz'  // type=string
-    foo: 3  // type=number
-    > __proto__: Object  // type=Object
+> result: {foo: 3, bar: 'baz'}
+    bar: 'baz'
+    foo: 3
+    > __proto__: Object
 
-result: 42  // type=number
+result: 42
 
-result: 3  // type=number
+result: 3
 
 
 result: ReferenceError: baz is not defined
-    at <anonymous>:1:1  // type=object
+    at <anonymous>:1:1
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
@@ -39,12 +39,12 @@ stderr>
 
 result: Error: error1
     at throwError (http://localhost:8001/browserify/bundle.js:23:11)
-    at <anonymou…  // type=object
+    at <anonymou…
 
-> result: {foo: 3, bar: 'baz'}  // type=object
-    bar: 'baz'  // type=string
-    foo: 3  // type=number
-    > __proto__: Object  // type=Object
+> result: {foo: 3, bar: 'baz'}
+    bar: 'baz'
+    foo: 3
+    > __proto__: Object
 
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
