@@ -145,20 +145,21 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
     this._contexts = [];
     const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';
-    const visit = (indentation: string, item: ExecutionContext) => {
+    const visit = (depth: number, item: ExecutionContext) => {
       keys.add(uniqueId(item));
       let unicodeIcon = '';
       if (item.type === 'iframe')
         unicodeIcon = '\uD83D\uDCC4 ';
       else if (item.type === 'worker')
         unicodeIcon = '\uD83D\uDC77 ';
+      const indentation = tab.repeat(Math.max(0, depth - 1));  // Do not indent the first level.
       this._contexts.push({
         ...item,
         name: indentation + unicodeIcon + item.name
       });
-      item.children.forEach(item => visit(indentation + tab, item));
+      item.children.forEach(item => visit(depth + 1, item));
     };
-    contexts.forEach(item => visit('', item));
+    contexts.forEach(item => visit(0, item));
     this._onDidChangeTreeData.fire();
   }
 }
