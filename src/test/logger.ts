@@ -4,6 +4,11 @@
 import { TestP } from './test';
 import Dap from '../dap/api';
 
+interface LogOptions {
+  depth?: number,
+  logInternalInfo?: boolean
+}
+
 export class Logger {
   private _testP: TestP;
 
@@ -19,8 +24,11 @@ export class Logger {
     this._testP.log(text);
   }
 
-  async logVariable(variable: Dap.Variable, depth: number = 1, indent?: string) {
-    if (depth < 0)
+  async logVariable(variable: Dap.Variable, options?: LogOptions, indent?: string) {
+    options = options || {};
+    if (typeof options.depth !== 'number')
+      options.depth = 1;
+    if (options.depth < 0)
       return;
     indent = indent || '';
     const name = variable.name ? `${variable.name}: ` : '';
@@ -32,7 +40,7 @@ export class Logger {
     const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
 
     const expanded = variable.variablesReference ? '> ' : '';
-    let suffix = `${type}${namedCount}${indexedCount}`;
+    let suffix = options.logInternalInfo ? `${type}${namedCount}${indexedCount}` : '';
     if (suffix)
       suffix = '  // ' + suffix;
     let line = `${expanded}${name}${value}`;
@@ -44,42 +52,50 @@ export class Logger {
 
     if (variable.variablesReference) {
       const hasHints = typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
-      if (!hasHints || variable.namedVariables) {
-        const named = await this._testP.dap.variables({
-          variablesReference: variable.variablesReference,
-          filter: 'named'
+      if (hasHints) {
+        if (variable.namedVariables) {
+          const named = await this._testP.dap.variables({
+            variablesReference: variable.variablesReference,
+            filter: 'named'
+          });
+          for (const variable of named.variables)
+            await this.logVariable(variable, { ...options, depth: options.depth - 1 }, indent + '    ');
+        }
+        if (variable.indexedVariables) {
+          const indexed = await this._testP.dap.variables({
+            variablesReference: variable.variablesReference,
+            filter: 'indexed',
+            start: 0,
+            count: variable.indexedVariables
+          });
+          for (const variable of indexed.variables)
+            await this.logVariable(variable, { ...options, depth: options.depth - 1 }, indent + '    ');
+        }
+      } else {
+        const all = await this._testP.dap.variables({
+          variablesReference: variable.variablesReference
         });
-        for (const variable of named.variables)
-          await this.logVariable(variable, depth - 1, indent + '    ');
-      }
-      if (hasHints && variable.indexedVariables) {
-        const indexed = await this._testP.dap.variables({
-          variablesReference: variable.variablesReference,
-          filter: 'indexed',
-          start: 0,
-          count: variable.indexedVariables
-        });
-        for (const variable of indexed.variables)
-          await this.logVariable(variable, depth - 1, indent + '    ');
-      }
+        for (const variable of all.variables)
+          await this.logVariable(variable, { ...options, depth: options.depth - 1 }, indent + '    ');
+  }
     }
   }
 
-  async logOutput(params: Dap.OutputEventParams, depth: number = 1) {
+  async logOutput(params: Dap.OutputEventParams, options?: LogOptions) {
     const prefix = `${params.category}> `;
     if (params.output)
       this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
       const result = await this._testP.dap.variables({ variablesReference: params.variablesReference });
       for (const variable of result.variables)
-        await this.logVariable(variable, depth, prefix);
+        await this.logVariable(variable, options, prefix);
     }
   }
 
-  async logEvaluateResult(expression: string, depth: number = 1): Promise<Dap.Variable> {
+  async logEvaluateResult(expression: string, options?: LogOptions): Promise<Dap.Variable> {
     const result = await this._testP.dap.evaluate({ expression });
     const variable = { name: 'result', value: result.result, ...result };
-    await this.logVariable(variable, depth);
+    await this.logVariable(variable, options);
     return variable;
   }
 
@@ -118,12 +134,12 @@ export class Logger {
           variablesReference: scope.variablesReference,
           namedVariables: scope.namedVariables,
           indexedVariables: scope.indexedVariables,
-        }, undefined, '  ');
+        }, {}, '  ');
       }
     }
   }
 
-  async evaluateAndLog(expressions: string[], depth: number, context?: 'watch' | 'repl' | 'hover') {
+  async evaluateAndLog(expressions: string[], options?: LogOptions, context?: 'watch' | 'repl' | 'hover') {
     let complete: () => void;
     const result = new Promise(f => complete = f);
     const next = async () => {
@@ -139,7 +155,7 @@ export class Logger {
     let chain = Promise.resolve();
     this._testP.dap.on('output', async params => {
       chain = chain.then(async () => {
-        await this._testP.logger.logOutput(params, depth);
+        await this._testP.logger.logOutput(params, options);
         this._testP.log(``);
         next();
       });

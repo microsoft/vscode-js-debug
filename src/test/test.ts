@@ -133,13 +133,17 @@ export class TestP {
     await this.cdp.Page.disable({});
   }
 
-  disconnect(): Promise<void> {
+  async disconnect(): Promise<void> {
     return new Promise(cb => {
       this.initialize.then(() => {
-        const disposable = this._connection.onDisconnected(() => {
+        if (this._connection) {
+          const disposable = this._connection.onDisconnected(() => {
+            cb();
+            disposable.dispose();
+          });
+        } else {
           cb();
-          disposable.dispose();
-        });
+        }
         this.dap.disconnect({});
       });
     });

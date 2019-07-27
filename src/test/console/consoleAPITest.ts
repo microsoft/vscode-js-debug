@@ -20,7 +20,7 @@ export function addTests(testRunner) {
         `console.trace('Trace')`,
         `console.count('Counter')`,
         `console.count('Counter')`,
-      ], 1);
+      ]);
       p.assertLog();
     });
   });
@@ -71,7 +71,7 @@ export function addTests(testRunner) {
       `console.table(trimEmptyColumn)`,
       `console.table(cellOverflow)`,
       `console.table(longTableOverflow)`,
-    ], 0);
+    ], { depth: 0 });
     p.assertLog();
   });
 }

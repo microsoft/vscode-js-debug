@@ -77,6 +77,7 @@ export class GoldenText {
     return String(value)
         .replace(/VM\d+/g, 'VM<xx>')
         .replace(this._workspaceFolder, '${workspaceFolder}')
+        .replace(/@\ .*vscode-pwa\//g, '@ ')
         .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');
   }
 

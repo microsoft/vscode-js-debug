@@ -52,7 +52,13 @@ export function addTests(testRunner) {
   describe('object', () => {
     it('simple array', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult('var a = [1, 2, 3]; a.foo = 1; a');
+      await p.logger.logEvaluateResult('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true});
+      p.assertLog();
+    });
+
+    it('large array', async ({ p }: { p: TestP }) => {
+      await p.launchAndLoad('blank');
+      await p.logger.logEvaluateResult('var a = new Array(110); a.fill(1); a', { logInternalInfo: true });
       p.assertLog();
     });
 

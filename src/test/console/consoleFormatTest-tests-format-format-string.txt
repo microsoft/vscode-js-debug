@@ -1,19 +1,19 @@
 Evaluating: 'console.log(array)'
 stdout> > (10) ['test', 'test2', …, 'test4', …, foo: {…}]
-stdout>     > foo: {}  // type=Object
-stdout>     length: 10  // type=number
-stdout>     > __proto__: Array(0)  // type=Array named=1
-stdout>     0: 'test'  // type=string
-stdout>     1: 'test2'  // type=string
-stdout>     4: 'test4'  // type=string
+stdout>     0: 'test'
+stdout>     1: 'test2'
+stdout>     4: 'test4'
+stdout>     > foo: {}
+stdout>     length: 10
+stdout>     > __proto__: Array(0)
 
 Evaluating: 'console.log("%o", array)'
 stdout> > (10) ['test', 'test2', …, 'test4', …, foo: {…}]
-stdout>     > arg1: (10) ['test', 'test2', …, 'test4', …, foo: {…}]  // type=Array named=1 indexed=10
+stdout>     > arg1: (10) ['test', 'test2', …, 'test4', …, foo: {…}]
 
 Evaluating: 'console.log("%O", array)'
 stdout> > (10) ['test', 'test2', …, 'test4', …, foo: {…}]
-stdout>     > arg1: (10) ['test', 'test2', …, 'test4', …, foo: {…}]  // type=Array named=1 indexed=10
+stdout>     > arg1: (10) ['test', 'test2', …, 'test4', …, foo: {…}]
 
 Evaluating: 'console.log("Test for zero \"%f\" in formatter", 0)'
 stdout> Test for zero "0" in formatter

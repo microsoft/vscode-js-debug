@@ -78,13 +78,13 @@ Evaluating: 'await 0;function foo(){}'
 stdout> [32m↳ undefined[0m
 
 Evaluating: 'foo'
-stdout> [32m↳ ƒ foo(){}[0m
+stdout> > [32m↳ ƒ foo(){}[0m
 
 Evaluating: 'class Foo{}; await 1;'
 stdout> [32m↳ 1[0m
 
 Evaluating: 'Foo'
-stdout> [32m↳ class Foo{}[0m
+stdout> > [32m↳ class Foo{}[0m
 
 Evaluating: 'await 0;function* gen(){}'
 stdout> [32m↳ undefined[0m
@@ -103,7 +103,7 @@ stderr> ↳ Uncaught ReferenceError: j is not defined
 stderr> > ↳ Uncaught ReferenceError: j is not defined
 
 Evaluating: 'gen'
-stdout> [32m↳ ƒ* gen(){}[0m
+stdout> > [32m↳ ƒ* gen(){}[0m
 
 Evaluating: 'await 5; return 42;'
 stderr> ↳ Uncaught SyntaxError: await is only valid in async function

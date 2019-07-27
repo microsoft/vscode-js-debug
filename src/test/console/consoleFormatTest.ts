@@ -26,7 +26,7 @@ export function addTests(testRunner) {
         `console.log("%%s%s%%s self-escape4", "dummy")`,
         `console.log("%%%%% self-escape5", "dummy")`,
         `console.log("%%%s self-escape6", "dummy");`
-      ], 1);
+      ]);
       p.assertLog();
     });
 
@@ -100,7 +100,7 @@ export function addTests(testRunner) {
         'boxedNumberWithProps', 'boxedStringWithProps'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
       p.assertLog();
     });
 
@@ -158,7 +158,7 @@ export function addTests(testRunner) {
         'generateArguments(1, "2")', 'div.classList'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
       p.assertLog();
     });
 
@@ -219,7 +219,7 @@ export function addTests(testRunner) {
         'mapMap0', 'mapMap', 'setSet0', 'setSet', 'bigmap', 'generator'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
       p.assertLog();
     });
 
@@ -247,7 +247,7 @@ export function addTests(testRunner) {
         'iter1', 'iter2',
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), 0);
+      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
       p.assertLog();
     });
 
@@ -278,7 +278,7 @@ export function addTests(testRunner) {
         </script>`);
 
       const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await p.logger.evaluateAndLog(expressions, 0);
+      await p.logger.evaluateAndLog(expressions, { depth: 0 });
       p.assertLog();
     });
 
@@ -309,7 +309,7 @@ export function addTests(testRunner) {
         </script>`);
 
       const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await p.logger.evaluateAndLog(expressions, 0);
+      await p.logger.evaluateAndLog(expressions, { depth: 0 });
       p.assertLog();
     });
 
@@ -324,7 +324,7 @@ export function addTests(testRunner) {
         `console.log('%cBold text.', 'font-weight: bold')`,
         `console.log('%cItalic text.', 'font-style: italic')`,
         `console.log('%cUnderline text.', 'text-decoration: underline')`,
-      ], 0);
+      ], { depth: 0 });
       p.assertLog();
     });
   });

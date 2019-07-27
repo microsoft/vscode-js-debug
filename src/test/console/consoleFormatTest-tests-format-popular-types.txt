@@ -55,14 +55,14 @@ error message
     at console-format:11:43]
 
 Evaluating: 'console.log(func)'
-stdout> ƒ () { return 1; }
+stdout> > ƒ () { return 1; }
 
 Evaluating: 'console.log([func])'
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(multilinefunc)'
 stdout> 
-ƒ () {
+> ƒ () {
               return 2;
           }
 
@@ -136,7 +136,7 @@ Evaluating: 'console.log([Object.create(null)])'
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(Object)'
-stdout> ƒ Object()
+stdout> > ƒ Object()
 
 Evaluating: 'console.log([Object])'
 stdout> > (1) [ƒ]
@@ -161,7 +161,7 @@ stdout> > (1) [{…}]
 
 Evaluating: 'console.log(arrayLikeFunction)'
 stdout> 
-ƒ ( /**/ foo/**/, /*/**/bar,
+> ƒ ( /**/ foo/**/, /*/**/bar,
           /**/baz) {}
 
 Evaluating: 'console.log([arrayLikeFunction])'
