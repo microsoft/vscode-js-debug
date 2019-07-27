@@ -92,6 +92,10 @@
         {
           "id": "pwa.serviceWorkers",
           "name": "Service Workers"
+        },
+        {
+          "id": "pwa.cacheStorage",
+          "name": "Cache Storage"
         }
       ]
     },

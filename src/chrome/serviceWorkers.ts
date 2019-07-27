@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import Cdp from '../cdp/api';
 import { FrameModel } from './frames';
+import { URL } from 'url';
 
 export class ServiceWorkerRegistration {
   readonly versions = new Map<string, ServiceWorkerVersion>();
@@ -21,40 +22,48 @@ export class ServiceWorkerVersion  {
   readonly revisions: Cdp.ServiceWorker.ServiceWorkerVersion[] = [];
   readonly id: string;
   readonly scriptURL: string;
-  private targetId_: string | undefined;
+  private _targetId: string | undefined;
+  private _status: Cdp.ServiceWorker.ServiceWorkerVersionStatus;
+  private _runningStatus: Cdp.ServiceWorker.ServiceWorkerVersionRunningStatus;
 
   constructor(registration: ServiceWorkerRegistration, payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
     this.registration = registration;
     this.id = payload.versionId;
     this.scriptURL = payload.scriptURL;
-    this.targetId_ = payload.targetId;
+    this._targetId = payload.targetId;
   }
 
   addRevision(payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
-    if (this.targetId_ && payload.targetId && this.targetId_ !== payload.targetId)
-      console.error(`${this.targetId_} !== ${payload.targetId}`);
+    if (this._targetId && payload.targetId && this._targetId !== payload.targetId)
+      console.error(`${this._targetId} !== ${payload.targetId}`);
     if (payload.targetId)
-      this.targetId_ = payload.targetId;
+      this._targetId = payload.targetId;
+    this._status = payload.status;
+    this._runningStatus = payload.runningStatus;
     this.revisions.unshift(payload);
   }
 
-  targetId(): string | undefined {
-    return this.targetId_;
+  status(): Cdp.ServiceWorker.ServiceWorkerVersionStatus {
+    return this._status;
   }
 
-  runningStatus(): string {
-    if (this.revisions[0].runningStatus === 'running' || this.revisions[0].runningStatus === 'starting')
-      return '🏃';
-    return '🏁';
+  runningStatus(): Cdp.ServiceWorker.ServiceWorkerVersionRunningStatus {
+    return this._runningStatus;
+  }
+
+  targetId(): string | undefined {
+    return this._targetId;
   }
 
   label(): string {
-    const scriptURL = this.scriptURL.substring(this.registration.scopeURL.length);
-    return `${scriptURL} #${this.id}`;
-  }
-
-  labelWithStatus(): string {
-    return `${this.runningStatus()}${this.label()} (${this.revisions[0].status})`;
+    const parsedURL = new URL(this.registration.scopeURL);
+    let path = parsedURL.pathname.substr(1);
+    if (path.endsWith('/'))
+      path = path.substring(0, path.length - 1);
+    let scope = path ? path : `${parsedURL.host}`;
+    const status = this._status === 'activated' ? '' : ` ${this._status}`;
+    const runningStatus = this._runningStatus === 'running' ? '' : ` ${this._runningStatus}`;
+    return `${scope} #${this.id}${status}${runningStatus}`;
   }
 }
 
@@ -130,7 +139,11 @@ export class ServiceWorkerModel implements vscode.Disposable {
       if (payload.targetId)
         this._versions.set(payload.targetId, version);
       version.addRevision(payload);
-      // TODO: display redundant version as tombstones.
+      if (version.status() === 'redundant' && version.runningStatus() === 'stopped') {
+        if (payload.targetId)
+          this._versions.delete(payload.targetId);
+        registration.versions.delete(version.id);
+      }
     }
     this._onDidChangeUpdater.fire();
   }

@@ -110,8 +110,9 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
       light: path.join(this._extensionPath, 'resources', 'light', fileName)
     };
   }
+
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
-    const result = new vscode.TreeItem(item.name, vscode.TreeItemCollapsibleState.None);
+    const result = new vscode.TreeItem(item.name);
     result.id = uniqueId(item);
     if (item.type === 'page')
       result.iconPath = this._iconPath('page.svg');
@@ -119,12 +120,13 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
       result.iconPath = this._iconPath('service-worker.svg');
 
     if (item.isThread) {
+      result.contextValue = ' ' + item.type;
       if (item.thread.pausedDetails()) {
         result.description = 'PAUSED';
-        result.contextValue = 'canRun';
+        result.contextValue += 'canRun';
       } else {
         result.description = 'RUNNING';
-        result.contextValue = 'canPause';
+        result.contextValue += 'canPause';
       }
       if (item.thread.canStop())
         result.contextValue += ' canStop';

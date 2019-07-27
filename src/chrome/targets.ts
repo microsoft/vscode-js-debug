@@ -322,17 +322,7 @@ export class Target {
     if (this.isServiceWorkerWorker()) {
       const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId());
       if (version) {
-        const parsedURL = new URL(version.registration.scopeURL);
-        let path = parsedURL.pathname.substr(1);
-        if (path.endsWith('/'))
-          path = path.substring(0, path.length - 1);
-        let scope = path ? path : `${parsedURL.host}`;
-        let status = version.revisions[0].status as string;
-        if (status === 'activated')
-          status = '';
-        else
-          status = ` (${status})`;
-        this._thread.setName(`${scope} #${version.id}${status}`);
+        this._thread.setName(version.label());
         return;
       }
     }
