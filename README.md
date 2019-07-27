@@ -52,9 +52,15 @@
 
 - Pretty print minified source with complete debugging support
 
-    <img width="464" alt="Screen Shot 2019-07-22 at 9 55 22 PM" src="https://user-images.githubusercontent.com/883973/61683714-6c7d4b80-accb-11e9-92ae-084e3b4f36e7.png">
+    <!--img width="464" alt="Screen Shot 2019-07-22 at 9 55 22 PM" src="https://user-images.githubusercontent.com/883973/61683714-6c7d4b80-accb-11e9-92ae-084e3b4f36e7.png"-->
+    ![pretty_print](https://user-images.githubusercontent.com/883973/61990381-71f0d380-aff4-11e9-95ae-10f2b1a732ec.gif)
+
 
     <img width="553" alt="Screen Shot 2019-07-22 at 9 56 12 PM" src="https://user-images.githubusercontent.com/883973/61683776-a9e1d900-accb-11e9-9884-f7494b1d8fc4.png">
+
+- Step into async, step into Worker, etc
+
+    ![step_into](https://user-images.githubusercontent.com/883973/61990326-2c7fd680-aff3-11e9-9602-ba4b25c7f138.gif)
 
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
 - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
