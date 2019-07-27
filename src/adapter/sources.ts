@@ -90,7 +90,7 @@ export interface SourcePathResolver {
 //
 export class Source {
   private static _lastSourceReference = 0;
-
+  _sourcePathResolver: SourcePathResolver;
   _sourceReference: number;
   _url: string;
   _name: string;
@@ -120,8 +120,9 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
+  constructor(container: SourceContainer, sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
     this._sourceReference = ++Source._lastSourceReference;
+    this._sourcePathResolver = sourcePathResolver;
     this._url = url;
     this._contentGetter = contentGetter;
     this._sourceMapUrl = sourceMapUrl;
@@ -129,7 +130,7 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._absolutePath = container._sourcePathResolver.urlToAbsolutePath(url);
+    this._absolutePath = sourcePathResolver.urlToAbsolutePath(url);
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset)
@@ -246,7 +247,6 @@ export class Source {
 
 export class SourceContainer {
   private _dap: Dap.Api;
-  _sourcePathResolver: SourcePathResolver;
   _brokenSourceMapReported = false;
 
   private _sourceByReference: Map<number, Source> = new Map();
@@ -260,9 +260,8 @@ export class SourceContainer {
 
   _fileContentOverrides = new Map<string, string>();
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api) {
     this._dap = dap;
-    this._sourcePathResolver = sourcePathResolver;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -403,8 +402,8 @@ export class SourceContainer {
     }
   }
 
-  addSource(url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
-    const source = new Source(this, url, contentGetter, sourceMapUrl, inlineSourceRange, contentHash);
+  addSource(sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
+    const source = new Source(this, sourcePathResolver, url, contentGetter, sourceMapUrl, inlineSourceRange, contentHash);
     this._addSource(source);
     return source;
   }
@@ -487,7 +486,7 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sources) {
-      const sourceUrl = this._sourcePathResolver.rewriteSourceUrl(url);
+      const sourceUrl = compiled._sourcePathResolver.rewriteSourceUrl(url);
       const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
       const resolvedUrl = utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
       const contentOrNull = map.sourceContentFor(url);
@@ -496,7 +495,7 @@ export class SourceContainer {
       const isNew = !source;
       if (!source) {
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
-        source = new Source(this, resolvedUrl, content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
+        source = new Source(this, compiled._sourcePathResolver, resolvedUrl, content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
         source._compiledToSourceUrl = new Map();
       }
       source._compiledToSourceUrl!.set(compiled, url);

@@ -45,16 +45,18 @@ export interface ExecutionContext {
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
-export interface ThreadConfiguration {
-  supportsCustomBreakpoints?: boolean;
-  defaultScriptOffset?: InlineScriptOffset;
+export interface ThreadManagerDelegate {
+  executionContextForest(): ExecutionContext[] | undefined;
+  copyToClipboard: (text: string) => void;
 }
 
-export interface ThreadManagerDelegate {
-  copyToClipboard(text: string): void;
-  executionContextForest(): ExecutionContext[] | undefined;
-  canStopThread(thread: Thread): boolean;
-  stopThread(thread: Thread): void;
+export interface ThreadDelegate {
+  canStopThread(): boolean;
+  stopThread(): void;
+
+  supportsCustomBreakpoints?: boolean;
+  defaultScriptOffset?: InlineScriptOffset;
+  sourcePathResolver: SourcePathResolver;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -76,7 +78,6 @@ export class ThreadManager {
   readonly onThreadResumed = this._onThreadResumedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
-  _sourcePathResolver: SourcePathResolver;
   _delegate: ThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
@@ -84,9 +85,8 @@ export class ThreadManager {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, delegate: ThreadManagerDelegate) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, delegate: ThreadManagerDelegate) {
     this._dap = dap;
-    this._sourcePathResolver = sourcePathResolver;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
@@ -97,8 +97,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(threadId: string, cdp: Cdp.Api, configuration: ThreadConfiguration): Thread {
-    return new Thread(this, threadId, cdp, this._dap, configuration);
+  createThread(threadId: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
+    return new Thread(this, threadId, cdp, this._dap, delegate);
   }
 
   setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
@@ -208,27 +208,27 @@ export class Thread implements VariableStoreDelegate {
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
-  private _supportsCustomBreakpoints: boolean;
-  private _defaultScriptOffset?: InlineScriptOffset;
+  private _delegate: ThreadDelegate;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
+  readonly sourcePathResolver: SourcePathResolver;
   readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
   _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
 
-  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, configuration: ThreadConfiguration) {
+  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this.manager = manager;
     this.sourceContainer = manager.sourceContainer;
+    this.sourcePathResolver = delegate.sourcePathResolver;
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = threadId;
     this._name = '';
-    this._supportsCustomBreakpoints = configuration.supportsCustomBreakpoints || false;
-    this._defaultScriptOffset = configuration.defaultScriptOffset;
+    this._delegate = delegate;
     this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
@@ -302,11 +302,11 @@ export class Thread implements VariableStoreDelegate {
   }
 
   canStop(): boolean {
-    return this.manager._delegate.canStopThread(this);
+    return this._delegate.canStopThread();
   }
 
   stop() {
-    this.manager._delegate.stopThread(this);
+    this._delegate.stopThread();
   }
 
   initialize() {
@@ -482,10 +482,10 @@ export class Thread implements VariableStoreDelegate {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     let {lineNumber, columnNumber} = rawLocation;
     columnNumber = columnNumber || 0;
-    if (this._defaultScriptOffset) {
-      lineNumber -= this._defaultScriptOffset.lineOffset;
+    if (this._delegate.defaultScriptOffset) {
+      lineNumber -= this._delegate.defaultScriptOffset.lineOffset;
       if (!lineNumber)
-        columnNumber = Math.max(columnNumber - this._defaultScriptOffset.columnOffset, 0);
+        columnNumber = Math.max(columnNumber - this._delegate.defaultScriptOffset.columnOffset, 0);
     }
     // Note: cdp locations are 0-based, while ui locations are 1-based.
     return this.sourceContainer.preferredLocation({
@@ -509,7 +509,7 @@ export class Thread implements VariableStoreDelegate {
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
-    if (!this._supportsCustomBreakpoints)
+    if (!this._delegate.supportsCustomBreakpoints)
       return true;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
@@ -703,7 +703,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    event.url = this.manager._sourcePathResolver.scriptUrlToUrl(event.url);
+    event.url = this.sourcePathResolver.scriptUrlToUrl(event.url);
 
     let source: Source | undefined;
     if (event.url && event.hash)
@@ -727,7 +727,7 @@ export class Thread implements VariableStoreDelegate {
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }
 
-      source = this.sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, event.hash);
+      source = this.sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, event.hash);
       this.manager._addSourceForScript(event.url, event.hash, source);
     }
 
