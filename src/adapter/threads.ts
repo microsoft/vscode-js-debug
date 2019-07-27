@@ -45,14 +45,10 @@ export interface ExecutionContext {
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
-export interface ThreadManagerDelegate {
-  executionContextForest(): ExecutionContext[] | undefined;
-  copyToClipboard: (text: string) => void;
-}
-
 export interface ThreadDelegate {
   canStopThread(): boolean;
   stopThread(): void;
+  copyToClipboard: (text: string) => void;
 
   supportsCustomBreakpoints?: boolean;
   defaultScriptOffset?: InlineScriptOffset;
@@ -67,7 +63,7 @@ export class ThreadManager {
   private _threads: Map<string, Thread> = new Map();
   private _dap: Dap.Api;
 
-  private _onExecutionContextsChangedEmitter = new EventEmitter<ExecutionContext[]>();
+  _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
   _onThreadRemovedEmitter = new EventEmitter<Thread>();
   _onThreadPausedEmitter = new EventEmitter<Thread>();
@@ -78,19 +74,17 @@ export class ThreadManager {
   readonly onThreadResumed = this._onThreadResumedEmitter.event;
   readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
   readonly sourceContainer: SourceContainer;
-  _delegate: ThreadManagerDelegate;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
 
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer, delegate: ThreadManagerDelegate) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
-    this._delegate = delegate;
   }
 
   mainThread(): Thread | undefined {
@@ -115,10 +109,6 @@ export class ThreadManager {
     console.assert(thread);
     this._threads.delete(threadId);
     this._onThreadRemovedEmitter.fire(thread);
-  }
-
-  refreshExecutionContexts() {
-    this._onExecutionContextsChangedEmitter.fire(this._delegate.executionContextForest());
   }
 
   threads(): Thread[] {
@@ -437,7 +427,7 @@ export class Thread implements VariableStoreDelegate {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
-    this.manager.refreshExecutionContexts();
+    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _executionContextDestroyed(contextId: number) {
@@ -445,7 +435,7 @@ export class Thread implements VariableStoreDelegate {
     if (!context)
       return;
     this._executionContexts.delete(contextId);
-    this.manager.refreshExecutionContexts();
+    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _executionContextsCleared() {
@@ -453,7 +443,7 @@ export class Thread implements VariableStoreDelegate {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this.manager.refreshExecutionContexts();
+    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _onResumed() {
@@ -786,7 +776,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this.manager._delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this._delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -812,7 +802,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this.manager._delegate.copyToClipboard(String(response.result.value));
+      this._delegate.copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 
