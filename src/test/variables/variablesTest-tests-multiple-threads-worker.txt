@@ -1,0 +1,12 @@
+stderr> > {foo: {…}}
+stderr>     > foo: {bar: 'to page'}  // type=Object
+stderr>     > __proto__: Object  // type=Object
+stderr>     <anonymous> @ ${workspaceFolder}/web/worker.html:4:11
+stderr> > {foo: {…}}
+stderr>     > foo: {bar: 'worker start'}  // type=Object
+stderr>     > __proto__: Object  // type=Object
+stderr>     <anonymous> @ ${workspaceFolder}/web/worker.js:1:9
+stderr> > {foo: {…}}
+stderr>     > foo: {bar: 'to worker'}  // type=Object
+stderr>     > __proto__: Object  // type=Object
+stderr>     <anonymous> @ ${workspaceFolder}/web/worker.js:4:11

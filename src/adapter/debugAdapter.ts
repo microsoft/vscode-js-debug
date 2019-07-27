@@ -2,14 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Disposable } from 'vscode';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
+import * as sourceUtils from '../utils/sourceUtils';
 import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
 import { Location, SourceContainer, SourcePathResolver } from './sources';
-import { ThreadAdapter, DummyThreadAdapter } from './threadAdapter';
-import { ExecutionContext, PauseOnExceptionsState, ThreadManager, ThreadManagerDelegate, Thread } from './threads';
-import { Disposable } from 'vscode';
+import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
+import { ExecutionContext, PauseOnExceptionsState, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
+import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
@@ -48,6 +50,8 @@ export class DebugAdapter {
     this._dap.on('source', params => this._onSource(params));
     this._dap.on('threads', params => this._onThreads(params));
     this._dap.on('stackTrace', params => this._onStackTrace(params));
+    this._dap.on('variables', params => this._onVariables(params));
+    this._dap.on('setVariable', params => this._onSetVariable(params));
     this._dap.thread({ reason: 'started', threadId: defaultThreadId });
     this._threadAdapter = new DummyThreadAdapter(dap);
   }
@@ -156,6 +160,32 @@ export class DebugAdapter {
     if (params.threadId === revealLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
     return this._threadAdapter.onStackTrace(params);
+  }
+
+  _findVariableStore(variablesReference: number): VariableStore | undefined {
+    if (!this._threadManager)
+      return;
+    for (const thread of this._threadManager.threads()) {
+      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
+        return thread.pausedVariables();
+      if (thread.replVariables.hasVariables(variablesReference))
+        return thread.replVariables;
+    }
+  }
+
+  async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
+    let variableStore = this._findVariableStore(params.variablesReference);
+    if (!variableStore)
+      return { variables: [] };
+    return { variables: await variableStore.getVariables(params) };
+  }
+
+  async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
+    let variableStore = this._findVariableStore(params.variablesReference);
+    if (!variableStore)
+      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
+    params.value = sourceUtils.wrapObjectLiteral(params.value.trim());
+    return variableStore.setVariable(params);
   }
 
   async launch(delegate: DebugAdapterDelegate): Promise<void> {

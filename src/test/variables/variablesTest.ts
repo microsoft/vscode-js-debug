@@ -89,6 +89,19 @@ export function addTests(testRunner) {
     });
   });
 
+  describe('multiple threads', () => {
+    it('worker', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('worker.html');
+      const kLogs = 3;
+      const outputs: Dap.OutputEventParams[] = [];
+      for (let i = 0; i < kLogs; i++)
+        outputs.push(await p.dap.once('output'));
+      for (let i = 0; i < kLogs; i++)
+        await p.logger.logOutput(outputs[i]);
+      p.assertLog();
+    });
+  });
+
   describe('setVariable', () => {
     it('basic', async({p} : {p: TestP}) => {
       await p.launchAndLoad('blank');

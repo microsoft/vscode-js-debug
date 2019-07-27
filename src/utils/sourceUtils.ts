@@ -169,3 +169,22 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   }
   return code;
 }
+
+export function wrapObjectLiteral(code: string): string {
+  // Only parenthesize what appears to be an object literal.
+  if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
+    return code;
+
+  // Function constructor.
+  const parse = (async () => 0).constructor;
+  try {
+    // Check if the code can be interpreted as an expression.
+    parse('return ' + code + ';');
+    // No syntax error! Does it work parenthesized?
+    const wrappedCode = '(' + code + ')';
+    parse(wrappedCode);
+    return wrappedCode;
+  } catch (e) {
+    return code;
+  }
+}

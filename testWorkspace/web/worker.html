@@ -1,0 +1,7 @@
+<script>
+window.w = new Worker('worker.js');
+window.w.addEventListener('message', e => {
+  console.error(e.data);
+});
+window.w.postMessage({foo: { bar: 'to worker'}});
+</script>
