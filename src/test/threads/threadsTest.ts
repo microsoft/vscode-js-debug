@@ -71,6 +71,145 @@ export function addTests(testRunner) {
       p.log(await p.dap.once('continued'));
       p.assertLog();
     });
+
+    it('cross thread', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('worker.html');
+
+      p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w.postMessage('message')\n//# sourceURL=test.js`});
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(secondThreadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId: secondThreadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
+
+    it('cross thread constructor', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('index.html');
+
+      p.cdp.Runtime.evaluate({expression: `
+        debugger;
+        window.w = new Worker('worker.js');\n//# sourceURL=test.js`});
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(secondThreadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId: secondThreadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
+
+    it('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('index.html');
+
+      p.cdp.Runtime.evaluate({expression: `
+        window.p = new Promise(f => window.cb = f);
+        debugger;
+        p.then(() => {
+          var a = 1; // should stop here
+        });
+        window.w = new Worker('worker.js');
+        window.w.postMessage('hey');
+        window.w.addEventListener('message', () => window.cb());
+        \n//# sourceURL=test.js`});
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(secondThreadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId: secondThreadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
+
+    it('cross thread constructor source map', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('index.html');
+
+      p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w = new Worker('workerSourceMap.js');\n//# sourceURL=test.js`});
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(secondThreadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId: secondThreadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
+
+    it('cross thread source map', async ({ p }: { p: TestP }) => {
+      await p.launchUrl('index.html');
+
+      p.cdp.Runtime.evaluate({expression: `
+        window.w = new Worker('workerSourceMap.js');
+        debugger;
+        window.w.postMessage('hey');\n//# sourceURL=test.js`});
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep over');
+      p.dap.next({threadId});
+      p.log(await p.dap.once('continued'));
+      p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+
+      p.log('\nstep in');
+      p.dap.stepIn({threadId});
+      p.log(await p.dap.once('continued'));
+      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(secondThreadId);
+
+      p.log('\nresume');
+      p.dap.continue({threadId: secondThreadId});
+      p.log(await p.dap.once('continued'));
+      p.assertLog();
+    });
   });
 
   describe('pause on exceptions', () => {

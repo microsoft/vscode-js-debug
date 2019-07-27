@@ -342,8 +342,18 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.on('paused', async event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-        this._handleSourceMapPause(event.data['scriptId'] as string);
-        return;
+        await this._handleSourceMapPause(event.data['scriptId'] as string);
+
+        if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
+            scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
+            scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
+          // Paused on the script which is run as a task for scheduled async call.
+          // We are waiting for this pause, no need to resume.
+        } else {
+          await this._pauseOnScheduledAsyncCall();
+          this.resume();
+          return;
+        }
       }
 
       if (event.asyncCallStackTraceId) {
@@ -754,7 +764,6 @@ export class Thread implements VariableStoreDelegate {
     }
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
-    this._cdp.Debugger.resume({});
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {

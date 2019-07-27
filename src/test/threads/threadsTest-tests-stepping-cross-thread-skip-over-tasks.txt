@@ -1,0 +1,41 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:3:9
+
+step over
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:4:9
+
+step in
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:5:19
+----Promise.then----
+<anonymous> @ test.js:4:11
+
+resume
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
