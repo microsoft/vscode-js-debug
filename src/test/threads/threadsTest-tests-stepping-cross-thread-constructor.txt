@@ -1,0 +1,41 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:2:9
+
+step over
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ test.js:3:9
+
+step in
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/worker.js:1:1
+----Worker Created----
+<anonymous> @ test.js:3:20
+
+resume
+{
+    allThreadsContinued : false
+    threadId : <number>
+}

@@ -134,7 +134,7 @@ export class TestP {
   }
 
   async disconnect(): Promise<void> {
-    return new Promise(cb => {
+    return new Promise<void>(cb => {
       this.initialize.then(() => {
         if (this._connection) {
           const disposable = this._connection.onDisconnected(() => {
