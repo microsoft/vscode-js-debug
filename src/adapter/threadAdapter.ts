@@ -10,7 +10,6 @@ import * as errors from './errors';
 import * as objectPreview from './objectPreview';
 import { StackFrame } from './stackTrace';
 import { Thread } from './threads';
-import { VariableStore } from './variables';
 import { Disposable } from 'vscode';
 
 const localize = nls.loadMessageBundle();
@@ -19,7 +18,7 @@ export class DummyThreadAdapter {
   private _unsubscribe: (() => void)[];
 
   constructor(dap: Dap.Api) {
-    const methods = ['continue', 'pause', 'next', 'stepIn', 'stepOut', 'restartFrame', 'scopes', 'variables', 'evaluate', 'completions', 'exceptionInfo', 'setVariable'];
+    const methods = ['continue', 'pause', 'next', 'stepIn', 'stepOut', 'restartFrame', 'scopes', 'evaluate', 'completions', 'exceptionInfo'];
     this._unsubscribe = methods.map(method => dap.on(method as any, _ => Promise.resolve(this._threadNotAvailableError())));
   }
 
@@ -54,11 +53,9 @@ export class ThreadAdapter implements Disposable {
       dap.on('stepOut', params => this._onStepOut(params)),
       dap.on('restartFrame', params => this._onRestartFrame(params)),
       dap.on('scopes', params => this._onScopes(params)),
-      dap.on('variables', params => this._onVariables(params)),
       dap.on('evaluate', params => this._onEvaluate(params)),
       dap.on('completions', params => this._onCompletions(params)),
       dap.on('exceptionInfo', params => this._onExceptionInfo(params)),
-      dap.on('setVariable', params => this._onSetVariable(params)),
     ];
   }
 
@@ -137,20 +134,6 @@ export class ThreadAdapter implements Disposable {
     return stackFrame.scopes();
   }
 
-  _findVariableStore(variablesReference: number): VariableStore | undefined {
-    if (this._thread.pausedVariables() && this._thread.pausedVariables()!.hasVariables(variablesReference))
-      return this._thread.pausedVariables();
-    if (this._thread.replVariables.hasVariables(variablesReference))
-      return this._thread.replVariables;
-  }
-
-  async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    let variableStore = this._findVariableStore(params.variablesReference);
-    if (!variableStore)
-      return { variables: [] };
-    return { variables: await variableStore.getVariables(params) };
-  }
-
   async _onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     let callFrameId: Cdp.Debugger.CallFrameId | undefined;
     if (args.frameId !== undefined) {
@@ -171,7 +154,7 @@ export class ThreadAdapter implements Disposable {
       timeout: args.context === 'hover' ? 500 : undefined,
     };
     if (args.context === 'repl') {
-      params.expression = this._wrapObjectLiteral(params.expression);
+      params.expression = sourceUtils.wrapObjectLiteral(params.expression);
       if (params.expression.indexOf('await') !== -1) {
         const rewritten = sourceUtils.rewriteTopLevelAwait(params.expression);
         if (rewritten) {
@@ -253,33 +236,5 @@ export class ThreadAdapter implements Disposable {
         evaluateName: undefined  // This is not used by vscode.
       }
     };
-  }
-
-  async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
-    let variableStore = this._findVariableStore(params.variablesReference);
-    if (!variableStore)
-      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
-
-    params.value = this._wrapObjectLiteral(params.value.trim());
-    return variableStore.setVariable(params);
-  }
-
-  _wrapObjectLiteral(code: string): string {
-    // Only parenthesize what appears to be an object literal.
-    if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
-      return code;
-
-    // Function constructor.
-    const parse = (async () => 0).constructor;
-    try {
-      // Check if the code can be interpreted as an expression.
-      parse('return ' + code + ';');
-      // No syntax error! Does it work parenthesized?
-      const wrappedCode = '(' + code + ')';
-      parse(wrappedCode);
-      return wrappedCode;
-    } catch (e) {
-      return code;
-    }
   }
 }
