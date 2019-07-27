@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as path from 'path';
 import * as vscode from 'vscode';
+import { DebugAdapter } from '../adapter/debugAdapter';
 import { AdapterFactory } from '../adapterFactory';
 import { ChromeAdapter } from '../chrome/chromeAdapter';
-import { ServiceWorkerModel, ServiceWorkerVersion, ServiceWorkerRegistration, ServiceWorkerMode } from '../chrome/serviceWorkers';
-import { DebugAdapter } from '../adapter/debugAdapter';
+import { ServiceWorkerMode, ServiceWorkerModel, ServiceWorkerVersion } from '../chrome/serviceWorkers';
 
-type DataItem = ServiceWorkerVersion | ServiceWorkerRegistration | vscode.TreeItem;
+type DataItem = ServiceWorkerVersion | vscode.TreeItem;
 
 interface QuickPickItem extends vscode.QuickPickItem {
   value: ServiceWorkerMode
 }
 
 export function registerServiceWorkersUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
-  const treeDataProvider = new ServiceWorkersDataProvider(factory);
+  const treeDataProvider = new ServiceWorkersDataProvider(context, factory);
   vscode.window.createTreeView('pwa.serviceWorkers', { treeDataProvider });
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.changeServiceWorkersMode', async e => {
@@ -40,11 +41,13 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
   private _disposables: vscode.Disposable[] = [];
   private _serviceWorkerModel: ServiceWorkerModel | undefined;
   private _modeItem: vscode.TreeItem;
+  private _extensionPath: string;
 
-  constructor(factory: AdapterFactory) {
-    factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter));
-    this._modeItem = new vscode.TreeItem('Mode: NORMAL', vscode.TreeItemCollapsibleState.None);
+  constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
+    this._extensionPath = context.extensionPath;
+    this._modeItem = new vscode.TreeItem('Mode: NORMAL');
     this._modeItem.contextValue = 'pwa.serviceWorkerMode';
+    factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter));
   }
 
   _setActiveAdapter(adapter: DebugAdapter) {
@@ -61,39 +64,53 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
     }));
   }
 
+  _iconPath(fileName: string): { dark: string, light: string } {
+    return {
+      dark: path.join(this._extensionPath, 'resources', 'dark', fileName),
+      light: path.join(this._extensionPath, 'resources', 'light', fileName)
+    };
+  }
+
   getTreeItem(item: DataItem): vscode.TreeItem {
-    if (item instanceof ServiceWorkerRegistration) {
-      let title = item.scopeURL;
-      if (title.endsWith('/'))
-        title = title.substring(0, title.length - 1);
-      if (title.startsWith('http://'))
-        title = title.substring('http://'.length);
-      if (title.startsWith('https://'))
-        title = title.substring('https://'.length);
-      return new vscode.TreeItem(title, vscode.TreeItemCollapsibleState.Expanded);
-    } if (item instanceof ServiceWorkerVersion) {
-      return new vscode.TreeItem(item.labelWithStatus(), vscode.TreeItemCollapsibleState.None);
+    if (item instanceof ServiceWorkerVersion) {
+      const result = new vscode.TreeItem(item.label(), vscode.TreeItemCollapsibleState.Expanded);
+      result.iconPath = this._iconPath('service-worker.svg');
+      result.id = item.registration.id + ':' + item.id;
+      return result;
     }
     return item;
   }
 
   async getChildren(item?: DataItem): Promise<DataItem[]> {
-    if (!item)
-      return [this._modeItem, ...(this._serviceWorkerModel ? this._serviceWorkerModel.registrations() : [])];
-    if (item instanceof ServiceWorkerVersion)
-      return [];
-    if (item instanceof ServiceWorkerRegistration)
-      return Array.from(item.versions.values());
+    if (!item) {
+      const result: DataItem[] = [this._modeItem];
+      if (!this._serviceWorkerModel)
+        return result;
+      this._serviceWorkerModel.registrations().forEach(registration => {
+        result.push(...Array.from(registration.versions.values()));
+      });
+      return result;
+    }
+
+    if (item instanceof ServiceWorkerVersion) {
+      const createItem = (name: string, value: string, tooltip: string) => {
+        const item =  new vscode.TreeItem(name);
+        item.description = value.toLocaleUpperCase();
+        item.tooltip = `${tooltip}: ${value}`;
+        return item;
+      };
+      return [
+        createItem('url', item.scriptURL.substring(item.registration.scopeURL.length), 'Service worker script URL'),
+        createItem('scope', item.registration.scopeURL, 'Service worker scope'),
+        createItem('status', item.status(), 'Service worker status'),
+        createItem('script', item.runningStatus(), 'Service worker script status'),
+        createItem('version', item.id, 'Service worker version')];
+    }
+
     return item[childrenSymbol] || [];
   }
 
   async getParent(item: DataItem): Promise<DataItem | undefined> {
-    if (!this._serviceWorkerModel)
-      return undefined;
-    if (item instanceof ServiceWorkerRegistration)
-      return undefined;
-    if (item instanceof ServiceWorkerVersion)
-      return undefined;
     return undefined;
   }
 

@@ -16,7 +16,7 @@ class Breakpoint {
     this.id = cb.id;
     this.enabled = enabled;
     this.label = `${cb.group}: ${cb.title}`;
-    this.treeItem = new vscode.TreeItem(this.label, vscode.TreeItemCollapsibleState.None);
+    this.treeItem = new vscode.TreeItem(this.label);
     this.treeItem.id = cb.id;
   }
 
