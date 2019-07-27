@@ -323,15 +323,16 @@ export class Target {
       const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId());
       if (version) {
         const parsedURL = new URL(version.registration.scopeURL);
-        let scope = `${parsedURL.host}${parsedURL.pathname}`;
-        if (scope.endsWith('/'))
-          scope = scope.substring(0, scope.length - 1);
-        let status: string = version.revisions[0].status;
+        let path = parsedURL.pathname.substr(1);
+        if (path.endsWith('/'))
+          path = path.substring(0, path.length - 1);
+        let scope = path ? path : `${parsedURL.host}`;
+        let status = version.revisions[0].status as string;
         if (status === 'activated')
           status = '';
         else
           status = ` (${status})`;
-        this._thread.setName(`${scope}${status}`);
+        this._thread.setName(`${scope} #${version.id}${status}`);
         return;
       }
     }
