@@ -96,6 +96,7 @@ export function addTests(testRunner) {
       const outputs: Dap.OutputEventParams[] = [];
       for (let i = 0; i < kLogs; i++)
         outputs.push(await p.dap.once('output'));
+      outputs.sort((a, b) => a.source!.name!.localeCompare(b.source!.name!));
       for (let i = 0; i < kLogs; i++)
         await p.logger.logOutput(outputs[i]);
       p.assertLog();

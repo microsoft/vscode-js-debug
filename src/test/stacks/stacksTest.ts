@@ -70,6 +70,13 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
+  it('cross target', async({p}: {p: TestP}) => {
+    await p.launchUrl('worker.html');
+    p.cdp.Runtime.evaluate({expression: `window.w.postMessage('pause')`});
+    await dumpStackAndContinue(p, true);
+    p.assertLog();
+  });
+
   it('source map', async({p}: {p: TestP}) => {
     await p.launchUrl('index.html');
     p.addScriptTag('browserify/pause.js');

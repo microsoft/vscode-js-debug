@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Thread } from "./threads";
+import { Thread, ThreadManager } from "./threads";
 import { Location } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
@@ -13,10 +13,11 @@ import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
 
 export class StackTrace {
-  readonly thread: Thread;
   private _frames: StackFrame[] = [];
   private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
+  private _lastFrameThread?: Thread;
+  private _threadManager: ThreadManager;
 
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
@@ -24,12 +25,12 @@ export class StackTrace {
     if (callFrames.length && callFrames[0].url === kLogPointUrl)
       callFrames.splice(0, 1);
     for (const callFrame of stack.callFrames)
-      result._frames.push(StackFrame.fromRuntime(result, callFrame));
+      result._frames.push(StackFrame.fromRuntime(thread, callFrame));
     if (stack.parentId) {
       result._asyncStackTraceId = stack.parentId;
       console.assert(!stack.parent);
     } else {
-      result._appendStackTrace(stack.parent);
+      result._appendStackTrace(thread, stack.parent);
     }
     return result;
   }
@@ -37,26 +38,33 @@ export class StackTrace {
   public static fromDebugger(thread: Thread, frames: Cdp.Debugger.CallFrame[], parent?: Cdp.Runtime.StackTrace, parentId?: Cdp.Runtime.StackTraceId): StackTrace {
     const result = new StackTrace(thread);
     for (const callFrame of frames)
-      result._appendFrame(StackFrame.fromDebugger(result, callFrame));
+      result._appendFrame(StackFrame.fromDebugger(thread, callFrame));
     if (parentId) {
       result._asyncStackTraceId = parentId;
       console.assert(!parent);
     } else {
-      result._appendStackTrace(parent);
+      result._appendStackTrace(thread, parent);
     }
     return result;
   }
 
   constructor(thread: Thread) {
-    this.thread = thread;
+    this._lastFrameThread = thread;
+    this._threadManager = thread.manager;
   }
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
-      const response = await this.thread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
+      if (this._asyncStackTraceId.debuggerId)
+        this._lastFrameThread = this._threadManager.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
+      if (!this._lastFrameThread) {
+        this._asyncStackTraceId = undefined;
+        break;
+      }
+      const response = await this._lastFrameThread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
       this._asyncStackTraceId = undefined;
       if (response)
-        this._appendStackTrace(response.stackTrace);
+        this._appendStackTrace(this._lastFrameThread, response.stackTrace);
     }
     return this._frames;
   }
@@ -65,7 +73,7 @@ export class StackTrace {
     return this._frameById.get(frameId);
   }
 
-  _appendStackTrace(stackTrace: Cdp.Runtime.StackTrace | undefined) {
+  _appendStackTrace(thread: Thread, stackTrace: Cdp.Runtime.StackTrace | undefined) {
     console.assert(!stackTrace || !this._asyncStackTraceId);
 
     while (stackTrace) {
@@ -73,9 +81,9 @@ export class StackTrace {
         stackTrace.callFrames.shift();
 
       if (stackTrace.callFrames.length) {
-        this._appendFrame(StackFrame.asyncSeparator(this, stackTrace.description || 'async'));
+        this._appendFrame(StackFrame.asyncSeparator(thread, stackTrace.description || 'async'));
         for (const callFrame of stackTrace.callFrames)
-          this._appendFrame(StackFrame.fromRuntime(this, callFrame));
+          this._appendFrame(StackFrame.fromRuntime(thread, callFrame));
       }
 
       if (stackTrace.parentId) {
@@ -118,14 +126,14 @@ export class StackFrame {
   private _location: Promise<Location>;
   private _isAsyncSeparator = false;
   private _scope: { chain: Cdp.Debugger.Scope[], variables: (Dap.Variable | undefined)[], callFrameId: string };
-  private _stack: StackTrace;
+  private _thread: Thread;
 
-  static fromRuntime(stack: StackTrace, callFrame: Cdp.Runtime.CallFrame): StackFrame {
-    return new StackFrame(stack, callFrame.functionName, stack.thread.rawLocationToUiLocation(callFrame));
+  static fromRuntime(thread: Thread, callFrame: Cdp.Runtime.CallFrame): StackFrame {
+    return new StackFrame(thread, callFrame.functionName, thread.rawLocationToUiLocation(callFrame));
   }
 
-  static fromDebugger(stack: StackTrace, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(stack, callFrame.functionName, stack.thread.rawLocationToUiLocation({
+  static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
+    const result = new StackFrame(thread, callFrame.functionName, thread.rawLocationToUiLocation({
       ...callFrame.location,
       url: callFrame.url,
     }));
@@ -137,21 +145,17 @@ export class StackFrame {
     return result;
   }
 
-  static asyncSeparator(stack: StackTrace, name: string): StackFrame {
-    const result = new StackFrame(stack, name, Promise.resolve({ lineNumber: 1, columnNumber: 1, url: '' }));
+  static asyncSeparator(thread: Thread, name: string): StackFrame {
+    const result = new StackFrame(thread, name, Promise.resolve({ lineNumber: 1, columnNumber: 1, url: '' }));
     result._isAsyncSeparator = true;
     return result;
   }
 
-  constructor(stack: StackTrace, name: string, location: Promise<Location>) {
+  constructor(thread: Thread, name: string, location: Promise<Location>) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._location = location;
-    this._stack = stack;
-  }
-
-  stackTrace(): StackTrace {
-    return this._stack;
+    this._thread = thread;
   }
 
   callFrameId(): string | undefined {
@@ -218,13 +222,13 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const startLocation = await this._stack.thread.rawLocationToUiLocation(scope.startLocation);
+        const startLocation = await this._thread.rawLocationToUiLocation(scope.startLocation);
         dap.line = startLocation.lineNumber;
         dap.column = startLocation.columnNumber;
         if (startLocation.source)
           dap.source = await startLocation.source.toDap();
         if (scope.endLocation) {
-          const endLocation = await this._stack.thread.rawLocationToUiLocation(scope.endLocation);
+          const endLocation = await this._thread.rawLocationToUiLocation(scope.endLocation);
           dap.endLine = endLocation.lineNumber;
           dap.endColumn = endLocation.columnNumber;
         }
@@ -268,7 +272,7 @@ export class StackFrame {
     const scope = this._scope!;
     if (!scope.variables[scopeNumber]) {
       const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
-      const variable = await this._stack.thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
+      const variable = await this._thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
       scope.variables[scopeNumber] = variable;
     }
     return scope.variables[scopeNumber]!;
@@ -277,7 +281,7 @@ export class StackFrame {
   async completions(): Promise<Dap.CompletionItem[]> {
     if (!this._scope)
       return [];
-    const variableStore = this._stack.thread.pausedVariables()!;
+    const variableStore = this._thread.pausedVariables()!;
     const promises: Promise<Dap.CompletionItem[]>[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       promises.push(this._scopeVariable(scopeNumber).then(async scopeVariable => {

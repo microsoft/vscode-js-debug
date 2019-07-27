@@ -2,6 +2,8 @@
 window.w = new Worker('worker.js');
 window.w.addEventListener('message', e => {
   console.error(e.data);
+  if (e.data === 'pause')
+    debugger;
 });
 window.w.postMessage({foo: { bar: 'to worker'}});
 </script>

@@ -169,6 +169,13 @@ export class ThreadManager {
     return source[kScriptsSymbol] || new Set();
   }
 
+  threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
+    for (const thread of this._threads.values()) {
+      if (thread._debuggerId === debuggerId)
+        return thread;
+    }
+  }
+
   _addSourceForScript(url: string, hash: string, source: Source) {
     let map = this._scriptSources.get(url);
     if (!map) {
