@@ -18,10 +18,6 @@ export const primitiveSubtypes = new Set<string|undefined>(
   ['null', 'regexp', 'date', 'error', 'proxy', 'typedarray', 'arraybuffer', 'dataview']
 );
 
-export const subtypesToRenderAsValue = new Set<string|undefined>(
-  ['map', 'set', 'promise', 'node', 'generator', 'weakset', 'weakmap', 'iterator']
-);
-
 export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
 export function isObject(object: Cdp.Runtime.PropertyPreview): boolean;
 export function isObject(object: Cdp.Runtime.RemoteObject): boolean;
@@ -190,13 +186,9 @@ function renderPrimitivePreview(preview: Cdp.Runtime.ObjectPreview, characterBud
 
 function renderPropertyPreview(prop: Cdp.Runtime.PropertyPreview): string {
   if (prop.type === 'function')
-    return 'ƒ';
-  if (!subtypesToRenderAsValue.has(prop.subtype)) {
-    if (isArray(prop))
-      return prop.value!;
-    if (isObject(prop))
-      return '{\u2026}';
-  }
+    return 'ƒ';  // Functions don't carry preview.
+  if (prop.type === 'object' && prop.value === 'Object')
+    return '{\u2026}';
   let value = typeof prop.value === 'undefined' ? `<${prop.type}>` : stringUtils.trimMiddle(prop.value, maxPropertyPreviewLength);
   return prop.type === 'string' ? `'${value}'` : value;
 }

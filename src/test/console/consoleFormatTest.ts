@@ -98,7 +98,7 @@ export function addTests(testRunner) {
         'objectWithNonEnumerables', 'negZero', 'Object.create(null)', 'Object', 'Object.prototype',
         'new Number(42)', 'new String("abc")', 'arrayLikeFunction', 'new Uint16Array(["1", "2", "3"])',
         'tinyTypedArray', 'smallTypedArray', 'bigTypedArray', 'throwingLengthGetter', 'domException()', 'bigArray',
-        'boxedNumberWithProps', 'boxedStringWithProps', 'false', 'true'
+        'boxedNumberWithProps', 'boxedStringWithProps', 'false', 'true', 'new Boolean(true)'
       ];
       const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
       await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });

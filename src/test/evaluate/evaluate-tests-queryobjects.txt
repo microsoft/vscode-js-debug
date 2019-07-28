@@ -1,4 +1,4 @@
-stdout> > [32mobjects: (2) [{…}, {…}][0m
+stdout> > [32mobjects: (2) [Foo, Foo][0m
 stdout>     > 0: Foo {value: 1}
 stdout>     > 1: Foo {value: 2}
 stdout>     length: 2
