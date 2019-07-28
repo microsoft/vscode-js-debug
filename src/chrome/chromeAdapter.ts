@@ -15,6 +15,7 @@ import * as utils from '../utils/urlUtils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import { Target, TargetManager } from './targets';
+import { ExecutionContext } from '../adapter/threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -25,7 +26,6 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 export class ChromeAdapter {
   static symbol = Symbol('ChromeAdapter');
-  private _dap: Dap.Api;
   private _connection: CdpConnection;
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
@@ -34,22 +34,12 @@ export class ChromeAdapter {
   private _launchParams: LaunchParams;
   private _mainTarget?: Target;
   private _disposables: vscode.Disposable[] = [];
-  private _adapterReadyCallback: (adapter: DebugAdapter) => void;
 
-  static async create(dap: Dap.Api, storagePath: string, rootPath: string | undefined): Promise<DebugAdapter> {
-    return new Promise<DebugAdapter>(f => new ChromeAdapter(dap, storagePath, rootPath, f));
-  }
-
-  constructor(dap: Dap.Api, storagePath: string, rootPath: string | undefined, adapterReadyCallback:  (adapter: DebugAdapter) => void) {
-    this._dap = dap;
+  constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
+    this._debugAdapter = debugAdapter;
     this._storagePath = storagePath;
     this._rootPath = rootPath;
-    this._adapterReadyCallback = adapterReadyCallback;
-    this._debugAdapter = new DebugAdapter(dap);
-    this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
-    this._dap.on('terminate', params => this._onTerminate(params));
-    this._dap.on('disconnect', params => this._onDisconnect(params));
-    this._dap.on('restart', params => this._onRestart(params));
+    debugAdapter.addDelegate(this);
   }
 
   targetManager(): TargetManager {
@@ -93,14 +83,10 @@ export class ChromeAdapter {
         userDataDir: path.join(this._storagePath, isUnderTest ? '.headless-profile' : 'profile'),
         pipe: true,
       });
-    this._connection.onDisconnected(() => this._dap.exited({ exitCode: 0 }), undefined, this._disposables);
+    this._connection.onDisconnected(() => { this._debugAdapter.removeDelegate(this); }, undefined, this._disposables);
 
     this._launchParams = params;
 
-    await this._debugAdapter.launch({
-      adapterDisposed: () => this._dispose(),
-      executionContextForest: () => this.targetManager().executionContextForest()
-    });
     this._debugAdapter[ChromeAdapter.symbol] = this;
     const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
     this._targetManager = new TargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
@@ -112,20 +98,18 @@ export class ChromeAdapter {
     if (!this._mainTarget)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     this._targetManager.onTargetRemoved((target: Target) => {
-      if (target === this._mainTarget) {
-        this._dap.terminated({});
-      }
+      if (target === this._mainTarget)
+        this._debugAdapter.removeDelegate(this);
     });
     return this._mainTarget;
   }
 
   async finishLaunch(mainTarget: Target): Promise<void> {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
-    this._adapterReadyCallback(this._debugAdapter);
   }
 
-  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
-    const result = await this.prepareLaunch(params, false);
+  async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+    const result = await this.prepareLaunch(params as LaunchParams, false);
     if (!(result instanceof Target))
       return result;
     await this.finishLaunch(result);
@@ -136,26 +120,36 @@ export class ChromeAdapter {
     return errors.createSilentError('Page is not available');
   }
 
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+  async onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
     this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
     return {};
   }
 
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+  async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
     if (!this._connection)
       return errors.createSilentError('Did not initialize');
     await this._connection.browser().Browser.close({});
     return {};
   }
 
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+  async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
     await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
     return {};
   }
+
+  adapterDisposed() {
+    this._dispose();
+  }
+
+  executionContextForest(): ExecutionContext[] {
+    const manager = this.targetManager()
+    return manager ? manager.executionContextForest() : [];
+  }
+
 }
 
 class ChromeSourcePathResolver implements SourcePathResolver {
