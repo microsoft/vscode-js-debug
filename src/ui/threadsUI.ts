@@ -112,10 +112,14 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
   getTreeItem(item: ExecutionContext): vscode.TreeItem {
     const result = new vscode.TreeItem(item.name);
     result.id = uniqueId(item);
-    if (item.type === 'page')
-      result.iconPath = this._iconPath('page.svg');
-    else if (item.type === 'service_worker')
-      result.iconPath = this._iconPath('service-worker.svg');
+    if (!item.name.startsWith('\u00A0')) {
+      if (item.type === 'page')
+        result.iconPath = this._iconPath('page.svg');
+      else if (item.type === 'service_worker')
+        result.iconPath = this._iconPath('service-worker.svg');
+      else if (item.type === 'node')
+        result.iconPath = this._iconPath('node.svg');
+    }
 
     if (item.isThread) {
       result.contextValue = ' ' + item.type;
