@@ -76,6 +76,7 @@ export class TestP {
     const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}, true)) as Target;
     this._connection = await this._chromeAdapter.connection().clone();
     this.adapter = this._chromeAdapter.adapter();
+    this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
     let contexts: ExecutionContext[] = [];
     let selected: ExecutionContext | undefined;
