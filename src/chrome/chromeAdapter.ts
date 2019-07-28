@@ -15,7 +15,6 @@ import * as utils from '../utils/urlUtils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
 import { Target, TargetManager } from './targets';
-import { Thread } from '../adapter/threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -99,15 +98,13 @@ export class ChromeAdapter {
     this._launchParams = params;
 
     await this._debugAdapter.launch({
-      sourcePathResolverFactory: () => new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot),
-      executionContextForest: () => this._targetManager.executionContextForest(),
       adapterDisposed: () => this._dispose(),
       copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
-      canStopThread: (thread: Thread) => this._targetManager.canStop(thread.threadId()),
-      stopThread: (thread: Thread) => this._targetManager.stop(thread.threadId())
+      executionContextForest: () => this.targetManager().executionContextForest()
     });
     this._debugAdapter[ChromeAdapter.symbol] = this;
-    this._targetManager = new TargetManager(this._connection, this._debugAdapter.threadManager());
+    const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
+    this._targetManager = new TargetManager(this._connection, this._debugAdapter.threadManager(), pathResolver);
     this._disposables.push(this._targetManager);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions

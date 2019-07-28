@@ -10,6 +10,7 @@ import { URL } from 'url';
 import { Thread, ThreadManager, ExecutionContext } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
+import { SourcePathResolver } from '../adapter/sources';
 
 const debugTarget = debug('target');
 
@@ -22,15 +23,17 @@ export class TargetManager implements vscode.Disposable {
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _threadManager: ThreadManager;
+  _sourcePathResolver: SourcePathResolver;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
   private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  constructor(connection: CdpConnection, threadManager: ThreadManager) {
+  constructor(connection: CdpConnection, threadManager: ThreadManager, sourcePathResolver: SourcePathResolver) {
     this._connection = connection;
     this._threadManager = threadManager;
+    this._sourcePathResolver = sourcePathResolver;
     this._browser = connection.browser();
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
@@ -274,7 +277,12 @@ export class Target {
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, { supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type) });
+      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, {
+        canStopThread: () => targetManager.canStop(this._thread!.threadId()),
+        stopThread: () => targetManager.stop(this._thread!.threadId()),
+        supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type),
+        sourcePathResolver: this._manager._sourcePathResolver
+      });
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }

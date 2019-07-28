@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
-import { Location, SourceContainer, SourcePathResolver } from './sources';
+import { Location, SourceContainer } from './sources';
 import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
 import { ExecutionContext, PauseOnExceptionsState, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
 import { VariableStore } from './variables';
@@ -22,7 +22,6 @@ export type SetBreakpointRequest = {
 };
 
 export interface DebugAdapterDelegate extends ThreadManagerDelegate {
-  sourcePathResolverFactory: () => SourcePathResolver;
   adapterDisposed: () => void;
 }
 
@@ -189,10 +188,9 @@ export class DebugAdapter {
 
   async launch(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegate = delegate;
-    const sourcePathResolver = delegate.sourcePathResolverFactory();
-    this._sourceContainer = new SourceContainer(this._dap, sourcePathResolver);
-    this._threadManager = new ThreadManager(this._dap, sourcePathResolver, this._sourceContainer, delegate);
-    this._breakpointManager = new BreakpointManager(this._dap, sourcePathResolver, this._sourceContainer, this._threadManager);
+    this._sourceContainer = new SourceContainer(this._dap);
+    this._threadManager = new ThreadManager(this._dap, this._sourceContainer, delegate);
+    this._breakpointManager = new BreakpointManager(this._dap, this._sourceContainer, this._threadManager);
 
     await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
     for (const request of this._setBreakpointRequests)

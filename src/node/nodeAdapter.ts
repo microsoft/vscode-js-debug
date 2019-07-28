@@ -10,7 +10,7 @@ import * as which from 'which';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
-import { ExecutionContext, Thread } from '../adapter/threads';
+import { ExecutionContext } from '../adapter/threads';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
@@ -41,6 +41,7 @@ export class NodeAdapter {
   private _pipe: string | undefined;
   private _targets = new Map<string, Target>();
   private _isRestarting: boolean;
+  private _pathResolver: NodeSourcePathResolver;
 
   static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DebugAdapter> {
     return new Promise<DebugAdapter>(f => new NodeAdapter(dap, rootPath, f));
@@ -60,14 +61,12 @@ export class NodeAdapter {
   async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     // params.noDebug
     this._launchParams = params;
+    this._pathResolver = new NodeSourcePathResolver(this._rootPath);
 
     await this._debugAdapter.launch({
-      sourcePathResolverFactory: () => new NodeSourcePathResolver(this._rootPath),
       executionContextForest: () => this.executionContextForest(),
       adapterDisposed: () => this._stopServer(),
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
-      canStopThread: (thread: Thread) => true,
-      stopThread: (thread: Thread) => this._terminateProcess(thread.threadId())
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
     });
 
     this._adapterReadyCallback(this._debugAdapter);
@@ -166,7 +165,10 @@ export class NodeAdapter {
     };
 
     const thread = this._debugAdapter.threadManager().createThread(targetInfo.targetId, cdp, {
-      defaultScriptOffset: {lineOffset: 0, columnOffset: 62}
+      defaultScriptOffset: {lineOffset: 0, columnOffset: 62},
+      sourcePathResolver: this._pathResolver,
+      canStopThread: () => true,
+      stopThread: () => this._terminateProcess(thread.threadId())
     });
     let threadName: string;
     if (targetInfo.title)

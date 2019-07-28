@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { SourcePathResolver, Location, SourceContainer, Source } from './sources';
+import { Location, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager, Script } from './threads';
@@ -70,13 +70,8 @@ export class Breakpoint {
       }
     }, undefined, this._disposables);
 
-    const source = this._manager._sourceContainer.source(this._source);
-    const url = source
-      ? source.url() :
-      (this._source.path ? this._manager._sourcePathResolver.absolutePathToUrl(this._source.path) : undefined);
     const promises: Promise<void>[] = [];
-
-    if (url) {
+    {
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
       //
@@ -85,15 +80,17 @@ export class Breakpoint {
       const lineNumber = this._lineNumber - 1;
       const columnNumber = this._columnNumber - 1;
       promises.push(...threadManager.threads().map(thread => {
-        return this._setByUrl(thread, url, lineNumber, columnNumber);
+        return this._setByPath(thread, lineNumber, columnNumber);
       }));
       threadManager.onThreadAdded(thread => {
-        this._setByUrl(thread, url, lineNumber, columnNumber);
+        this._setByPath(thread, lineNumber, columnNumber);
       }, undefined, this._disposables);
     }
 
+    const source = this._manager._sourceContainer.source(this._source);
+    const url = source ? source.url() : '';
     const locations = this._manager._sourceContainer.currentSiblingLocations({
-      url: url || '',
+      url,
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
       source
@@ -172,6 +169,15 @@ export class Breakpoint {
     await Promise.all(promises);
   }
 
+  async _setByPath(thread: Thread, lineNumber: number, columnNumber: number): Promise<void> {
+    const source = this._manager._sourceContainer.source(this._source);
+    const url = source ? source.url() :
+      (this._source.path ? thread.sourcePathResolver.absolutePathToUrl(this._source.path) : undefined);
+    if (!url)
+      return
+    await this._setByUrl(thread, url, lineNumber, columnNumber);
+  }
+
   async _setByUrl(thread: Thread, url: string, lineNumber: number, columnNumber: number): Promise<void> {
     const activeSetter = (async () => {
       const result = await thread.cdp().Debugger.setBreakpointByUrl({
@@ -229,15 +235,13 @@ export class BreakpointManager {
   private _byRef: Map<number, Breakpoint[]> = new Map();
 
   _dap: Dap.Api;
-  _sourcePathResolver: SourcePathResolver;
   _sourceContainer: SourceContainer;
   _threadManager: ThreadManager;
   _disposables: Disposable[] = [];
   _perThread = new Map<string, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
 
-  constructor(dap: Dap.Api, sourcePathResolver: SourcePathResolver, sourceContainer: SourceContainer, threadManager: ThreadManager) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
-    this._sourcePathResolver = sourcePathResolver;
     this._sourceContainer = sourceContainer;
     this._threadManager = threadManager;
 
