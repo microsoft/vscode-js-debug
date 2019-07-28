@@ -89,7 +89,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     const adapter = factory.adapter(sessionId || '');
     if (!adapter)
       return { adapter: undefined, source: undefined };
-    return { adapter, source: adapter.sourceContainer().source(ref) };
+    return { adapter, source: adapter.sourceContainer.source(ref) };
   }
 
   dispose() {

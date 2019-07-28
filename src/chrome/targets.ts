@@ -31,7 +31,7 @@ export class TargetManager implements vscode.Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  constructor(connection: CdpConnection, threadManager: ThreadManager, sourcePathResolver: SourcePathResolver) {
+  constructor(threadManager: ThreadManager, connection: CdpConnection, sourcePathResolver: SourcePathResolver) {
     this._connection = connection;
     this._threadManager = threadManager;
     this._sourcePathResolver = sourcePathResolver;
@@ -50,7 +50,7 @@ export class TargetManager implements vscode.Disposable {
     return Array.from(this._targets.values());
   }
 
-  executionContextForest(): ExecutionContext[] | undefined {
+  executionContextForest(): ExecutionContext[] {
     const reported: Set<string> = new Set();
     const toExecutionContext = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, type: string, name?: string): ExecutionContext => {
       reported.add(thread.threadId() + ':' + context.id);
@@ -203,7 +203,6 @@ export class TargetManager implements vscode.Disposable {
       return cleanupOnFailure();
     this._onTargetAddedEmitter.fire(target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
-    this._targetStructureChanged();
     return target;
   }
 
@@ -223,7 +222,6 @@ export class TargetManager implements vscode.Disposable {
 
     this._onTargetRemovedEmitter.fire(target);
     debugTarget(`Detached from target ${targetId}`);
-    this._targetStructureChanged();
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
@@ -231,17 +229,11 @@ export class TargetManager implements vscode.Disposable {
     if (!target)
       return;
     target._updateFromInfo(targetInfo);
-    this._targetStructureChanged();
   }
 
   _serviceWorkersStatusChanged() {
     for (const target of this._targets.values())
       target._updateThreadName();
-    this._targetStructureChanged();
-  }
-
-  _targetStructureChanged() {
-    this._threadManager.refreshExecutionContexts();
   }
 
   canStop(targetId: string): boolean {
@@ -279,6 +271,7 @@ export class Target {
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, {
+        copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
         canStopThread: () => targetManager.canStop(this._thread!.threadId()),
         stopThread: () => targetManager.stop(this._thread!.threadId()),
         supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type),

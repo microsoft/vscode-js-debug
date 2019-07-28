@@ -66,8 +66,7 @@ export class NodeAdapter {
 
     await this._debugAdapter.launch({
       executionContextForest: () => this.executionContextForest(),
-      adapterDisposed: () => this._stopServer(),
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text)
+      adapterDisposed: () => this._stopServer()
     });
 
     this._adapterReadyCallback(this._debugAdapter);
@@ -165,7 +164,8 @@ export class NodeAdapter {
         child.parent.children.push(child);
     };
 
-    const thread = this._debugAdapter.threadManager().createThread(targetInfo.targetId, cdp, {
+    const thread = this._debugAdapter.threadManager.createThread(targetInfo.targetId, cdp, {
+      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
       defaultScriptOffset: {lineOffset: 0, columnOffset: 62},
       sourcePathResolver: this._pathResolver,
       canStopThread: () => true,
@@ -205,7 +205,7 @@ export class NodeAdapter {
     process.kill(+pid);
   }
 
-  executionContextForest(): ExecutionContext[] | undefined {
+  executionContextForest(): ExecutionContext[] {
     return Array.from(this._targets.values()).filter(t => !t.parent);
   }
 }
