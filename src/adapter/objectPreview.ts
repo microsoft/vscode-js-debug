@@ -213,7 +213,9 @@ export function renderValue(object: Cdp.Runtime.RemoteObject, characterBudget: n
   if (object.subtype === 'null')
     return 'null';
 
-  return stringUtils.trimEnd(object.description || '', characterBudget);
+  if (object.description)
+    return stringUtils.trimEnd(object.description, characterBudget);
+  return stringUtils.trimEnd(String(object.value), characterBudget);
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {
