@@ -66,7 +66,7 @@ export class NodeAdapter {
       return errors.createSilentError('Could not locate Node.js executable');
 
     this._runtime = spawn(executable, this._launchParams!.args || [], {
-      cwd: this._launchParams!.cwd || this._debugAdapter.workspaceFolder,
+      cwd: this._launchParams!.cwd || this._rootPath,
       env: env(this._pipe!, this._launchParams!.env || {}),
       stdio: ['ignore', 'pipe', 'pipe']
     });
