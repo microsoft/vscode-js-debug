@@ -44,7 +44,7 @@ Evaluating: 'console.log(nonArray)'
 stdout> > NonArrayWithLength {keys: Array(0)}
 
 Evaluating: 'console.log([nonArray])'
-stdout> > (1) [{…}]
+stdout> > (1) [NonArrayWithLength]
 
 Evaluating: 'console.log(generateArguments(1, "2"))'
 stdout> > Arguments(2) [1, '2', callee: ƒ, Symbol(Symbol.iterator): ƒ]

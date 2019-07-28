@@ -151,13 +151,13 @@ Evaluating: 'console.log(new Number(42))'
 stdout> > Number (42)
 
 Evaluating: 'console.log([new Number(42)])'
-stdout> > (1) [{…}]
+stdout> > (1) [Number]
 
 Evaluating: 'console.log(new String("abc"))'
 stdout> > String ('abc')
 
 Evaluating: 'console.log([new String("abc")])'
-stdout> > (1) [{…}]
+stdout> > (1) [String]
 
 Evaluating: 'console.log(arrayLikeFunction)'
 stdout> 
@@ -213,13 +213,13 @@ Evaluating: 'console.log(boxedNumberWithProps)'
 stdout> > Number (42)
 
 Evaluating: 'console.log([boxedNumberWithProps])'
-stdout> > (1) [{…}]
+stdout> > (1) [Number]
 
 Evaluating: 'console.log(boxedStringWithProps)'
 stdout> > String ('abc')
 
 Evaluating: 'console.log([boxedStringWithProps])'
-stdout> > (1) [{…}]
+stdout> > (1) [String]
 
 Evaluating: 'console.log(false)'
 stdout> false
@@ -232,4 +232,10 @@ stdout> true
 
 Evaluating: 'console.log([true])'
 stdout> > (1) [true]
+
+Evaluating: 'console.log(new Boolean(true))'
+stdout> > Boolean (true)
+
+Evaluating: 'console.log([new Boolean(true)])'
+stdout> > (1) [Boolean]
 
