@@ -65,7 +65,7 @@ export class NodeAdapter {
       return errors.createSilentError('Could not locate Node.js executable');
 
     this._runtime = spawn(executable, this._launchParams!.args || [], {
-      cwd: this._launchParams!.cwd,
+      cwd: this._launchParams!.cwd || this._debugAdapter.workspaceFolder,
       env: env(this._pipe!),
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -77,8 +77,10 @@ export class NodeAdapter {
     this._runtime.on('exit', () => {
       output = undefined;
       this._runtime = undefined;
-      if (!this._isRestarting)
+      if (!this._isRestarting) {
+        this._stopServer();
         this._debugAdapter.removeDelegate(this);
+      }
     });
   }
 
@@ -177,8 +179,9 @@ export class NodeAdapter {
       thread.dispose();
     });
     thread.initialize();
-    cdp.Runtime.on('executionContextDestroyed', () => {
-      connection.close();
+    thread.onExecutionContextsDestroyed(context => {
+      if (context.auxData && context.auxData['isDefault'])
+        connection.close();
     });
     cdp.Runtime.runIfWaitingForDebugger({});
   }
