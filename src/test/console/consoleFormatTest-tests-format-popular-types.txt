@@ -221,3 +221,15 @@ stdout> > String ('abc')
 Evaluating: 'console.log([boxedStringWithProps])'
 stdout> > (1) [{…}]
 
+Evaluating: 'console.log(false)'
+stdout> false
+
+Evaluating: 'console.log([false])'
+stdout> > (1) [false]
+
+Evaluating: 'console.log(true)'
+stdout> true
+
+Evaluating: 'console.log([true])'
+stdout> > (1) [true]
+
