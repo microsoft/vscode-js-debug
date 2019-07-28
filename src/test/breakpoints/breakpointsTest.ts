@@ -192,7 +192,7 @@ export function addTests(testRunner) {
       await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);
 
       p.log('Pausing on innerHTML');
-      await p.adapter.threadManager().enableCustomBreakpoints(['instrumentation:Element.setInnerHTML']);
+      await p.adapter.threadManager.enableCustomBreakpoints(['instrumentation:Element.setInnerHTML']);
       p.evaluate(`document.querySelector('div').innerHTML = 'bar';`);
       const event = p.log(await p.dap.once('stopped'));
       p.log(await p.dap.continue({threadId: event.threadId}));

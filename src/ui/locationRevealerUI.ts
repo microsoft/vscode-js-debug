@@ -32,7 +32,7 @@ export class LocationRevealerUI {
   }
 
   _install(adapter: DebugAdapter): void {
-    adapter.sourceContainer().installRevealer(new Revealer(this, adapter));
+    adapter.sourceContainer.installRevealer(new Revealer(this, adapter));
   }
 }
 

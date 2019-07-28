@@ -14,8 +14,8 @@ export class OutputUI {
   }
 
   _install(adapter: DebugAdapter): void {
-    adapter.threadManager().threads().forEach(thread => new LazyLogger(thread));
-    adapter.threadManager().onThreadAdded(thread => new LazyLogger(thread));
+    adapter.threadManager.threads().forEach(thread => new LazyLogger(thread));
+    adapter.threadManager.onThreadAdded(thread => new LazyLogger(thread));
   }
 }
 

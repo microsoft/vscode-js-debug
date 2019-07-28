@@ -1,42 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable } from 'vscode';
+import { Disposable, EventEmitter } from 'vscode';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
-import { BreakpointManager, generateBreakpointId } from './breakpoints';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
 import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
-import { ExecutionContext, PauseOnExceptionsState, Thread, ThreadManager, ThreadManagerDelegate } from './threads';
+import { ExecutionContext, PauseOnExceptionsState, Thread, ThreadManager } from './threads';
 import { VariableStore } from './variables';
+import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
 const revealLocationThreadId = 1;
 
-export type SetBreakpointRequest = {
-  params: Dap.SetBreakpointsParams;
-  generatedIds: number[];
-};
-
-export interface DebugAdapterDelegate extends ThreadManagerDelegate {
+export interface DebugAdapterDelegate {
+  executionContextForest(): ExecutionContext[];
   adapterDisposed: () => void;
 }
 
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter {
-  private _setBreakpointRequests: SetBreakpointRequest[] = [];
-  private _pausedOnExceptionsState: PauseOnExceptionsState = 'none';
   private _dap: Dap.Api;
-  private _sourceContainer: SourceContainer | undefined;
-  private _threadManager: ThreadManager | undefined;
-  private _breakpointManager: BreakpointManager | undefined;
+  readonly sourceContainer: SourceContainer;
+  readonly threadManager: ThreadManager;
+  readonly breakpointManager: BreakpointManager;
   private _delegate: DebugAdapterDelegate;
   private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
+  private _onExecutionContextForestChangedEmitter = new EventEmitter<ExecutionContext[]>();
+  readonly onExecutionContextForestChanged = this._onExecutionContextForestChangedEmitter.event;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -51,7 +47,10 @@ export class DebugAdapter {
     this._dap.on('variables', params => this._onVariables(params));
     this._dap.on('setVariable', params => this._onSetVariable(params));
     this._dap.thread({ reason: 'started', threadId: defaultThreadId });
-    this._threadAdapter = new DummyThreadAdapter(dap);
+    this.sourceContainer = new SourceContainer(this._dap);
+    this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
+    this.breakpointManager = new BreakpointManager(this._dap, this.sourceContainer, this.threadManager);
+    this._threadAdapter = new DummyThreadAdapter(this._dap);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -103,27 +102,11 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    if (this._breakpointManager)
-      return this._breakpointManager.setBreakpoints(params);
-
-    const request: SetBreakpointRequest = {
-      params,
-      generatedIds: []
-    };
-    this._setBreakpointRequests.push(request);
-    const result: Dap.SetBreakpointsResult = { breakpoints: [] };
-    for (const _ of params.breakpoints || []) {
-      const id = generateBreakpointId();
-      request.generatedIds.push(id);
-      result.breakpoints.push({ id, verified: false });
-    }
-    return result;
+    return this.breakpointManager.setBreakpoints(params);
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
-    this._pausedOnExceptionsState = DebugAdapter.resolvePausedOnExceptionsState(params);
-    if (this._threadManager)
-      await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
+    await this.threadManager.setPauseOnExceptionsState(DebugAdapter.resolvePausedOnExceptionsState(params));
     return {};
   }
 
@@ -132,13 +115,11 @@ export class DebugAdapter {
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    if (!this._sourceContainer)
-      return { sources: [] };
-    return { sources: await Promise.all(this._sourceContainer.sources().map(source => source.toDap())) };
+    return { sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap())) };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
-    const source = this._sourceContainer ? this._sourceContainer.source(params.source!) : undefined;
+    const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
@@ -161,9 +142,7 @@ export class DebugAdapter {
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
-    if (!this._threadManager)
-      return;
-    for (const thread of this._threadManager.threads()) {
+    for (const thread of this.threadManager.threads()) {
       if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
         return thread.pausedVariables();
       if (thread.replVariables.hasVariables(variablesReference))
@@ -188,17 +167,13 @@ export class DebugAdapter {
 
   async launch(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegate = delegate;
-    this._sourceContainer = new SourceContainer(this._dap);
-    this._threadManager = new ThreadManager(this._dap, this._sourceContainer, delegate);
-    this._breakpointManager = new BreakpointManager(this._dap, this._sourceContainer, this._threadManager);
-
-    await this._threadManager.setPauseOnExceptionsState(this._pausedOnExceptionsState);
-    for (const request of this._setBreakpointRequests)
-      await this._breakpointManager.setBreakpoints(request.params, request.generatedIds);
+    this.threadManager.onExecutionContextsChanged(_ => {
+      this._onExecutionContextForestChangedEmitter.fire(delegate.executionContextForest());
+    });
 
     // Select first thread once it is available.
     const disposables: Disposable[] = [];
-    this._threadManager.onThreadAdded(thread => {
+    this.threadManager.onThreadAdded(thread => {
       this._setExecutionContext(thread, undefined);
       disposables[0].dispose();
     }, undefined, disposables);
@@ -227,12 +202,16 @@ export class DebugAdapter {
     this._locationToReveal = undefined;
   }
 
+  executionContextForest(): ExecutionContext[] {
+    return this._delegate.executionContextForest();
+  }
+
   selectExecutionContext(context: ExecutionContext | undefined) {
     if (context) {
       const description = context.description || context.thread.defaultExecutionContext();
       this._setExecutionContext(context.thread, description ? description.id : undefined);
     } else {
-      const thread = this._threadManager!.mainThread();
+      const thread = this.threadManager.mainThread();
       const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
       this._setExecutionContext(thread, defaultContext ? defaultContext.id : undefined);
     }
@@ -279,14 +258,6 @@ export class DebugAdapter {
 
   _threadNotAvailableError(): Dap.Error {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
-  }
-
-  threadManager(): ThreadManager {
-    return this._threadManager!;
-  }
-
-  sourceContainer(): SourceContainer {
-    return this._sourceContainer!;
   }
 
   dispose() {

@@ -99,12 +99,11 @@ export class ChromeAdapter {
 
     await this._debugAdapter.launch({
       adapterDisposed: () => this._dispose(),
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
       executionContextForest: () => this.targetManager().executionContextForest()
     });
     this._debugAdapter[ChromeAdapter.symbol] = this;
     const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
-    this._targetManager = new TargetManager(this._connection, this._debugAdapter.threadManager(), pathResolver);
+    this._targetManager = new TargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
     this._disposables.push(this._targetManager);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions

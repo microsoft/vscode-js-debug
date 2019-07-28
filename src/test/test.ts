@@ -76,7 +76,7 @@ export class TestP {
 
     let contexts: ExecutionContext[] = [];
     let selected: ExecutionContext | undefined;
-    this.adapter.threadManager().onExecutionContextsChanged(params => {
+    this.adapter.onExecutionContextForestChanged(params => {
       contexts = [];
       const visit = (item: ExecutionContext) => {
         contexts.push(item);
@@ -84,7 +84,7 @@ export class TestP {
       };
       params.forEach(visit);
     });
-    this.adapter.threadManager().onThreadPaused(thread => {
+    this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && selected.thread === thread) {
         this.adapter.selectExecutionContext(selected);
       } else {
@@ -96,7 +96,7 @@ export class TestP {
         }
       }
     });
-    this.adapter.threadManager().onThreadResumed(thread => {
+    this.adapter.threadManager.onThreadResumed(thread => {
       this.adapter.selectExecutionContext(selected);
     });
 

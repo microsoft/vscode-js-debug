@@ -7,6 +7,8 @@ import Cdp from '../cdp/api';
 import { Thread, ThreadManager, Script } from './threads';
 import { Disposable } from 'vscode';
 
+let lastBreakpointId = 0;
+
 export class Breakpoint {
   private _manager: BreakpointManager;
   private _dapId: number;
@@ -276,11 +278,11 @@ export class BreakpointManager {
     });
   }
 
-  async setBreakpoints(params: Dap.SetBreakpointsParams, ids?: number[]): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+  async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     const breakpoints: Breakpoint[] = [];
     const inBreakpoints = params.breakpoints || [];
     for (let index = 0; index < inBreakpoints.length; index++) {
-      const id = ids ? ids[index] : generateBreakpointId();
+      const id = ++lastBreakpointId;
       breakpoints.push(new Breakpoint(this, id, params.source, inBreakpoints[index]));
     }
     let previous: Breakpoint[] | undefined;
@@ -316,10 +318,4 @@ function logMessageToExpression(msg: string): string {
   format = format.replace('\'', '\\\'');
   const argStr = args.length ? `, ${args.join(', ')}` : '';
   return `console.log('${format}'${argStr});\n//# sourceURL=${kLogPointUrl}`;
-}
-
-let lastBreakpointId = 0;
-
-export function generateBreakpointId(): number {
-  return ++lastBreakpointId;
 }

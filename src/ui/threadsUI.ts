@@ -60,16 +60,14 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
       return;
     }
 
-    const threadManager = adapter.threadManager();
-    threadManager.onExecutionContextsChanged(params => this.executionContextsChanged(params), undefined, this._disposables);
-    threadManager.onThreadPaused(thread => this._threadPaused(thread), undefined, this._disposables);
-    threadManager.onThreadResumed(thread => this._threadResumed(thread), undefined, this._disposables);
+    adapter.threadManager.onThreadPaused(thread => this._threadPaused(thread), undefined, this._disposables);
+    adapter.threadManager.onThreadResumed(thread => this._threadResumed(thread), undefined, this._disposables);
 
-    // Force populate the UI.
-    threadManager.refreshExecutionContexts();
+    this._executionContextsChanged(adapter.executionContextForest());
+    adapter.onExecutionContextForestChanged(forest => this._executionContextsChanged(forest), undefined, this._disposables);
 
     // In case of lazy view initialization, pick already paused thread.
-    for (const thread of threadManager.threads()) {
+    for (const thread of adapter.threadManager.threads()) {
       if (thread.pausedDetails()) {
         this._threadPaused(thread);
         break;
@@ -143,7 +141,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
     return undefined;
   }
 
-  executionContextsChanged(contexts: ExecutionContext[]): void {
+  _executionContextsChanged(contexts: ExecutionContext[]): void {
     this._contexts = [];
     const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';
