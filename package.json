@@ -260,6 +260,10 @@
               "args": {
                 "type": "array",
                 "description": "Program arguments"
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables"
               }
             }
           }

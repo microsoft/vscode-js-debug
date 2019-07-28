@@ -21,6 +21,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   args: string[];
   runtimeExecutable: string;
   cwd: string;
+  env: Object;
 }
 
 let counter = 0;
@@ -65,7 +66,7 @@ export class NodeAdapter {
 
     this._runtime = spawn(executable, this._launchParams!.args || [], {
       cwd: this._launchParams!.cwd || this._debugAdapter.workspaceFolder,
-      env: env(this._pipe!),
+      env: env(this._pipe!, this._launchParams!.env || {}),
       stdio: ['ignore', 'pipe', 'pipe']
     });
     const outputName = [executable, ...(this._launchParams!.args || [])].join(' ');
@@ -198,9 +199,10 @@ export class NodeAdapter {
   }
 }
 
-function env(pipe: string) {
+function env(pipe: string, env: object) {
   const result = {
     ...process.env,
+    ...env,
     NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require bootloader.js`,
     NODE_PATH: `${process.env.NODE_PATH || ''}${path.delimiter}${path.join(__dirname)}`,
     NODE_INSPECTOR_IPC: pipe
