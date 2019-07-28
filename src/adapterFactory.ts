@@ -77,7 +77,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       let rootPath = vscode.workspace.rootPath;
       if (session.workspaceFolder && session.workspaceFolder.uri.scheme === 'file:')
         rootPath = session.workspaceFolder.uri.path;
-      const adapter = new DebugAdapter(connection.dap(), session.workspaceFolder ? session.workspaceFolder.uri.fsPath : '');
+      const adapter = new DebugAdapter(connection.dap());
       this._sessions.set(session.id, { session, server, adapter });
       if (session.configuration['runtimeExecutable'])
         new NodeAdapter(adapter, rootPath);
