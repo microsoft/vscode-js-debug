@@ -216,7 +216,7 @@ export class DebugAdapter {
   async removeDelegate(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegates.delete(delegate);
     if (!this._delegates.size)
-      this.dap.exited({ exitCode: 0 });
+      this.dap.terminated({});
     this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
   }
 
