@@ -16,7 +16,7 @@ export interface Transport {
 export class PipeTransport implements Transport {
   private _pipeWrite: NodeJS.WritableStream | undefined;
   private _socket: net.Socket | undefined;
-  private _pendingMessage: string;
+  private _pendingBuffers: Buffer[];
   private _eventListeners: any[];
   onmessage?: (message: string) => void;
   onclose?: () => void;
@@ -28,7 +28,7 @@ export class PipeTransport implements Transport {
     this._pipeWrite = pipeWrite as NodeJS.WritableStream;
     if (!pipeRead)
       this._socket = pipeWrite as net.Socket;
-    this._pendingMessage = '';
+    this._pendingBuffers = [];
     this._eventListeners = [
       eventUtils.addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
       eventUtils.addEventListener(pipeRead || pipeWrite, 'close', () => {
@@ -49,10 +49,11 @@ export class PipeTransport implements Transport {
   _dispatch(buffer: Buffer) {
     let end = buffer.indexOf('\0');
     if (end === -1) {
-      this._pendingMessage += buffer.toString();
+      this._pendingBuffers.push(buffer);
       return;
     }
-    const message = this._pendingMessage + buffer.toString(undefined, 0, end);
+    this._pendingBuffers.push(buffer.slice(0, end));
+    const message = Buffer.concat(this._pendingBuffers).toString();
     if (this.onmessage)
       this.onmessage.call(null, message);
 
@@ -64,7 +65,7 @@ export class PipeTransport implements Transport {
       start = end + 1;
       end = buffer.indexOf('\0', start);
     }
-    this._pendingMessage = buffer.toString(undefined, start);
+    this._pendingBuffers = [buffer.slice(start)];
   }
 
   async close() {
