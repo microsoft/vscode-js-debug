@@ -20,44 +20,62 @@ const revealLocationThreadId = 1;
 export interface DebugAdapterDelegate {
   executionContextForest(): ExecutionContext[];
   adapterDisposed: () => void;
+  onLaunch: (params: Dap.LaunchParams) => Promise<Dap.LaunchResult | Dap.Error>;
+  onTerminate: (params: Dap.TerminateParams) => Promise<Dap.TerminateResult | Dap.Error>;
+  onDisconnect: (params: Dap.DisconnectParams) => Promise<Dap.DisconnectResult | Dap.Error>;
+  onRestart: (params: Dap.RestartParams) => Promise<Dap.RestartResult | Dap.Error>;
 }
 
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter {
-  private _dap: Dap.Api;
+  readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
   readonly threadManager: ThreadManager;
   readonly breakpointManager: BreakpointManager;
-  private _delegate: DebugAdapterDelegate;
   private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
   private _onExecutionContextForestChangedEmitter = new EventEmitter<ExecutionContext[]>();
+  private _delegates = new Set<DebugAdapterDelegate>();
   readonly onExecutionContextForestChanged = this._onExecutionContextForestChangedEmitter.event;
 
   constructor(dap: Dap.Api) {
-    this._dap = dap;
-    this._dap.on('initialize', params => this._onInitialize(params));
-    this._dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
-    this._dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
-    this._dap.on('configurationDone', params => this._onConfigurationDone(params));
-    this._dap.on('loadedSources', params => this._onLoadedSources(params));
-    this._dap.on('source', params => this._onSource(params));
-    this._dap.on('threads', params => this._onThreads(params));
-    this._dap.on('stackTrace', params => this._onStackTrace(params));
-    this._dap.on('variables', params => this._onVariables(params));
-    this._dap.on('setVariable', params => this._onSetVariable(params));
-    this._dap.thread({ reason: 'started', threadId: defaultThreadId });
-    this.sourceContainer = new SourceContainer(this._dap);
-    this.threadManager = new ThreadManager(this._dap, this.sourceContainer);
-    this.breakpointManager = new BreakpointManager(this._dap, this.sourceContainer, this.threadManager);
-    this._threadAdapter = new DummyThreadAdapter(this._dap);
+    this.dap = dap;
+    this.dap.on('initialize', params => this._onInitialize(params));
+    this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
+    this.dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
+    this.dap.on('configurationDone', params => this._onConfigurationDone(params));
+    this.dap.on('loadedSources', params => this._onLoadedSources(params));
+    this.dap.on('source', params => this._onSource(params));
+    this.dap.on('threads', params => this._onThreads(params));
+    this.dap.on('stackTrace', params => this._onStackTrace(params));
+    this.dap.on('variables', params => this._onVariables(params));
+    this.dap.on('setVariable', params => this._onSetVariable(params));
+    this.dap.on('launch', params => this._onLaunch(params));
+    this.dap.on('terminate', params => this._onTerminate(params));
+    this.dap.on('disconnect', params => this._onDisconnect(params));
+    this.dap.on('restart', params => this._onRestart(params));
+    this.dap.thread({ reason: 'started', threadId: defaultThreadId });
+    this.sourceContainer = new SourceContainer(this.dap);
+    this.threadManager = new ThreadManager(this.dap, this.sourceContainer);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
+    this._threadAdapter = new DummyThreadAdapter(this.dap);
+
+    this.threadManager.onExecutionContextsChanged(_ => {
+      this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
+    });
+
+    const disposables: Disposable[] = [];
+    this.threadManager.onThreadAdded(thread => {
+      this._setExecutionContext(thread, undefined);
+      disposables[0].dispose();
+    }, undefined, disposables);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
-    this._dap.initialized({});
+    this.dap.initialized({});
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
@@ -115,6 +133,30 @@ export class DebugAdapter {
     return {};
   }
 
+  async _onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+    for (const delegate of this._delegates.values())
+      delegate.onLaunch(params);
+    return {};
+  }
+
+  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+    for (const delegate of this._delegates)
+      delegate.onTerminate(params);
+    return {};
+  }
+
+  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+    for (const delegate of this._delegates.values())
+      delegate.onDisconnect(params);
+    return {};
+  }
+
+  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+    for (const delegate of this._delegates)
+      delegate.onRestart(params);
+    return {};
+  }
+
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
     return { sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap())) };
   }
@@ -166,18 +208,16 @@ export class DebugAdapter {
     return variableStore.setVariable(params);
   }
 
-  async launch(delegate: DebugAdapterDelegate): Promise<void> {
-    this._delegate = delegate;
-    this.threadManager.onExecutionContextsChanged(_ => {
-      this._onExecutionContextForestChangedEmitter.fire(delegate.executionContextForest());
-    });
+  async addDelegate(delegate: DebugAdapterDelegate): Promise<void> {
+    this._delegates.add(delegate);
+    this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
+  }
 
-    // Select first thread once it is available.
-    const disposables: Disposable[] = [];
-    this.threadManager.onThreadAdded(thread => {
-      this._setExecutionContext(thread, undefined);
-      disposables[0].dispose();
-    }, undefined, disposables);
+  async removeDelegate(delegate: DebugAdapterDelegate): Promise<void> {
+    this._delegates.delete(delegate);
+    if (!this._delegates.size)
+      this.dap.exited({ exitCode: 0 });
+    this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -189,8 +229,8 @@ export class DebugAdapter {
     if (this._locationToReveal)
       return;
     this._locationToReveal = location;
-    this._dap.thread({ reason: 'started', threadId: revealLocationThreadId });
-    this._dap.stopped({
+    this.dap.thread({ reason: 'started', threadId: revealLocationThreadId });
+    this.dap.stopped({
       reason: 'goto',
       threadId: revealLocationThreadId,
       allThreadsStopped: false,
@@ -198,13 +238,16 @@ export class DebugAdapter {
 
     await revealConfirmed;
 
-    this._dap.continued({ threadId: revealLocationThreadId, allThreadsContinued: false });
-    this._dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
+    this.dap.continued({ threadId: revealLocationThreadId, allThreadsContinued: false });
+    this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
     this._locationToReveal = undefined;
   }
 
   executionContextForest(): ExecutionContext[] {
-    return this._delegate.executionContextForest();
+    const result: ExecutionContext[] = [];
+    for (const delegate of this._delegates)
+      result.push(...delegate.executionContextForest());
+    return result;
   }
 
   selectExecutionContext(context: ExecutionContext | undefined) {
@@ -222,13 +265,13 @@ export class DebugAdapter {
     if (this._threadAdapter)
       this._threadAdapter.dispose();
     if (thread)
-      this._threadAdapter = new ThreadAdapter(this._dap, thread, executionContextId);
+      this._threadAdapter = new ThreadAdapter(this.dap, thread, executionContextId);
     else
-      this._threadAdapter = new DummyThreadAdapter(this._dap);
+      this._threadAdapter = new DummyThreadAdapter(this.dap);
 
     const details = thread ? thread.pausedDetails() : undefined;
     if (details) {
-      this._dap.stopped({
+      this.dap.stopped({
         reason: details.reason,
         description: details.description,
         threadId: defaultThreadId,
@@ -236,7 +279,7 @@ export class DebugAdapter {
         allThreadsStopped: false
       });
     } else {
-      this._dap.continued({
+      this.dap.continued({
         threadId: defaultThreadId,
         allThreadsContinued: false
       });
@@ -262,6 +305,7 @@ export class DebugAdapter {
   }
 
   dispose() {
-    this._delegate.adapterDisposed();
+    for (const delegate of this._delegates)
+      delegate.adapterDisposed();
   }
 }

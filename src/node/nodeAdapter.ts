@@ -31,10 +31,8 @@ interface Target extends ExecutionContext {
 }
 
 export class NodeAdapter {
-  private _dap: Dap.Api;
   private _debugAdapter: DebugAdapter;
   private _rootPath: string | undefined;
-  private _adapterReadyCallback: (adapter: DebugAdapter) => void;
   private _server: net.Server | undefined;
   private _runtime: ChildProcess | undefined;
   private _connections: Connection[] = [];
@@ -44,32 +42,16 @@ export class NodeAdapter {
   private _isRestarting: boolean;
   private _pathResolver: NodeSourcePathResolver;
 
-  static async create(dap: Dap.Api, rootPath: string | undefined): Promise<DebugAdapter> {
-    return new Promise<DebugAdapter>(f => new NodeAdapter(dap, rootPath, f));
-  }
-
-  constructor(dap: Dap.Api, rootPath: string | undefined, adapterReadyCallback: (adapter: DebugAdapter) => void) {
-    this._dap = dap;
+  constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
+    this._debugAdapter = debugAdapter;
     this._rootPath = rootPath;
-    this._adapterReadyCallback = adapterReadyCallback;
-    this._debugAdapter = new DebugAdapter(dap);
-    this._dap.on('launch', params => this._onLaunch(params as LaunchParams));
-    this._dap.on('terminate', params => this._onTerminate(params));
-    this._dap.on('disconnect', params => this._onDisconnect(params));
-    this._dap.on('restart', params => this._onRestart(params));
+    debugAdapter.addDelegate(this);
   }
 
-  async _onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+  async onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     // params.noDebug
     this._launchParams = params;
     this._pathResolver = new NodeSourcePathResolver(this._rootPath);
-
-    await this._debugAdapter.launch({
-      executionContextForest: () => this.executionContextForest(),
-      adapterDisposed: () => this._stopServer()
-    });
-
-    this._adapterReadyCallback(this._debugAdapter);
     await this._startServer();
     const error = await this._relaunch();
     return error || {};
@@ -96,17 +78,17 @@ export class NodeAdapter {
       output = undefined;
       this._runtime = undefined;
       if (!this._isRestarting)
-        this._dap.terminated({});
+        this._debugAdapter.removeDelegate(this);
     });
   }
 
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+  async onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
     await this._killRuntime();
     await this._stopServer();
     return {};
   }
 
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+  async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
     await this._killRuntime();
     await this._stopServer();
     return {};
@@ -122,7 +104,7 @@ export class NodeAdapter {
     return result;
   }
 
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+  async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
     await this._killRuntime();
@@ -207,6 +189,10 @@ export class NodeAdapter {
 
   executionContextForest(): ExecutionContext[] {
     return Array.from(this._targets.values()).filter(t => !t.parent);
+  }
+
+  adapterDisposed() {
+    this._stopServer();
   }
 }
 
