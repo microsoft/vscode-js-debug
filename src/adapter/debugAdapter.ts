@@ -37,9 +37,11 @@ export class DebugAdapter {
   private _onExecutionContextForestChangedEmitter = new EventEmitter<ExecutionContext[]>();
   private _delegates = new Set<DebugAdapterDelegate>();
   readonly onExecutionContextForestChanged = this._onExecutionContextForestChangedEmitter.event;
+  readonly workspaceFolder: string;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, workspaceFolder: string) {
     this.dap = dap;
+    this.workspaceFolder = workspaceFolder;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this.dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));

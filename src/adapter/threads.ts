@@ -208,6 +208,10 @@ export class Thread implements VariableStoreDelegate {
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
   _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
+  _onExecutionContextCreatedEmitter = new EventEmitter<Cdp.Runtime.ExecutionContextDescription>();
+  readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
+  _onExecutionContextDestroyedEmitter = new EventEmitter<Cdp.Runtime.ExecutionContextDescription>();
+  readonly onExecutionContextsDestroyed = this._onExecutionContextDestroyedEmitter.event;
 
   constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this.manager = manager;
@@ -426,6 +430,7 @@ export class Thread implements VariableStoreDelegate {
 
   _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
     this._executionContexts.set(context.id, context);
+    this._onExecutionContextCreatedEmitter.fire(context);
     this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
@@ -434,6 +439,7 @@ export class Thread implements VariableStoreDelegate {
     if (!context)
       return;
     this._executionContexts.delete(contextId);
+    this._onExecutionContextDestroyedEmitter.fire(context);
     this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 

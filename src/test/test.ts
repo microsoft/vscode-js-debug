@@ -54,7 +54,7 @@ export class TestP {
     const storagePath = path.join(__dirname, '..', '..');
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
-    const debugAdapter = new DebugAdapter(adapterConnection.dap());
+    const debugAdapter = new DebugAdapter(adapterConnection.dap(), '');
     this._chromeAdapter = new ChromeAdapter(debugAdapter, storagePath, this._workspaceRoot);
     debugAdapter.addDelegate(this._chromeAdapter);
     this.dap = testConnection.createTestApi();
