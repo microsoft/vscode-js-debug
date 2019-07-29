@@ -134,7 +134,7 @@ export class Source {
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset)
       contentHash = undefined;
-    this._existingAbsolutePath = checkContentHash(this._absolutePath, contentHash, container._fileContentOverrides.get(this._absolutePath));
+    this._existingAbsolutePath = checkContentHash(this._absolutePath, contentHash, container._fileContentOverridesForTest.get(this._absolutePath));
   }
 
   url(): string {
@@ -257,7 +257,9 @@ export class SourceContainer {
   private _revealer?: LocationRevealer;
   private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
 
-  _fileContentOverrides = new Map<string, string>();
+  // Test support.
+  _fileContentOverridesForTest = new Map<string, string>();
+  _reportAllLoadedSourcesForTest = false;
 
   constructor(dap: Dap.Api) {
     this._dap = dap;
@@ -273,17 +275,27 @@ export class SourceContainer {
 
   setFileContentOverrideForTest(absolutePath: string, content?: string) {
     if (content === undefined)
-      this._fileContentOverrides.delete(absolutePath);
+      this._fileContentOverridesForTest.delete(absolutePath);
     else
-      this._fileContentOverrides.set(absolutePath, content);
+      this._fileContentOverridesForTest.set(absolutePath, content);
+  }
+
+  reportAllLoadedSourcesForTest() {
+    this._reportAllLoadedSourcesForTest = true;
   }
 
   installRevealer(revealer: LocationRevealer) {
     this._revealer = revealer;
   }
 
-  sources(): Source[] {
-    return Array.from(this._sourceByReference.values());
+  async loadedSources(): Promise<Dap.Source[]> {
+    const promises: Promise<Dap.Source>[] = [];
+    for (const source of this._sourceByReference.values())
+      promises.push(source.toDap());
+    const result = await Promise.all(promises);
+    if (this._reportAllLoadedSourcesForTest)
+      return result;
+    return result.filter(source => !!source.sourceReference);
   }
 
   source(ref: Dap.Source): Source | undefined {
@@ -413,7 +425,8 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.set(source._url, source);
     this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(payload => {
-      this._dap.loadedSource({ reason: 'new', source: payload });
+      if (payload.sourceReference || this._reportAllLoadedSourcesForTest)
+        this._dap.loadedSource({ reason: 'new', source: payload });
     });
 
     const sourceMapUrl = source._sourceMapUrl;
@@ -461,7 +474,8 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     source.toDap().then(payload => {
-      this._dap.loadedSource({ reason: 'removed', source: payload });
+      if (payload.sourceReference || this._reportAllLoadedSourcesForTest)
+        this._dap.loadedSource({ reason: 'removed', source: payload });
     });
 
     const sourceMapUrl = source._sourceMapUrl;
