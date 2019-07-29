@@ -240,4 +240,10 @@ class ChromeSourcePathResolver implements SourcePathResolver {
   scriptUrlToUrl(url: string): string {
     return url;
   }
+
+  shouldCheckContentHash(): boolean {
+    // Chrome executes scripts retrieved from network.
+    // We check content hash because served code can be different from actual files on disk.
+    return true;
+  }
 }

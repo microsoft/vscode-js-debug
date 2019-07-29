@@ -244,4 +244,9 @@ class NodeSourcePathResolver implements SourcePathResolver {
     const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
     return isPath ? (utils.absolutePathToFileUrl(url) || url) : url;
   }
+
+  shouldCheckContentHash(): boolean {
+    // Node executes files directly from disk, there is no need to check the content.
+    return false;
+  }
 }

@@ -68,6 +68,7 @@ export interface SourcePathResolver {
   urlToAbsolutePath(url: string): string;
   absolutePathToUrl(absolutePath: string): string | undefined;
   scriptUrlToUrl(url: string): string;
+  shouldCheckContentHash(): boolean;
 }
 
 // Represents a text source visible to the user.
@@ -132,7 +133,7 @@ export class Source {
     this._absolutePath = sourcePathResolver.urlToAbsolutePath(url);
 
     // Inline scripts will never match content of the html file. We skip the content check.
-    if (inlineScriptOffset)
+    if (inlineScriptOffset || !sourcePathResolver.shouldCheckContentHash())
       contentHash = undefined;
     this._existingAbsolutePath = checkContentHash(this._absolutePath, contentHash, container._fileContentOverridesForTest.get(this._absolutePath));
   }
