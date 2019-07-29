@@ -7,10 +7,10 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContext } from '../adapter/threads';
+import { Thread, ThreadManager, ExecutionContext, ThreadDelegate } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
-import { SourcePathResolver } from '../adapter/sources';
+import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
 
 const debugTarget = debug('target');
 
@@ -234,26 +234,13 @@ export class TargetManager implements vscode.Disposable {
     for (const target of this._targets.values())
       target._updateThreadName();
   }
-
-  canStop(targetId: string): boolean {
-    const target = this._targets.get(targetId);
-    return !!target && target.isServiceWorkerWorker();
-  }
-
-  stop(targetId: string) {
-    // Stop both dedicated and parent service worker scopes for present and future browsers.
-    this.serviceWorkerModel.stopWorker(targetId);
-    const target = this._targets.get(targetId);
-    if (!target || !target.parentTarget)
-      return;
-    this.serviceWorkerModel.stopWorker(target.parentTarget.targetId());
-  }
 }
 
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
-export class Target {
+export class Target implements ThreadDelegate {
+  readonly targetId: Cdp.Target.TargetID;
   readonly parentTarget?: Target;
 
   private _manager: TargetManager;
@@ -267,15 +254,10 @@ export class Target {
   constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t: Target) => void) {
     this._cdp = cdp;
     this._manager = targetManager;
+    this.targetId = targetInfo.targetId;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, {
-        copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
-        canStopThread: () => targetManager.canStop(this._thread!.threadId()),
-        stopThread: () => targetManager.stop(this._thread!.threadId()),
-        supportsCustomBreakpoints: domDebuggerTypes.has(targetInfo.type),
-        sourcePathResolver: this._manager._sourcePathResolver
-      });
+      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, this);
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
@@ -288,10 +270,41 @@ export class Target {
     return this._thread;
   }
 
-  targetId(): string {
-    return this._targetInfo.targetId;
+  copyToClipboard(text: string) {
+    return vscode.env.clipboard.writeText(text);
   }
 
+  canStop() {
+    return this.isServiceWorkerWorker();
+  }
+
+  stop() {
+    // Stop both dedicated and parent service worker scopes for present and future browsers.
+    this._manager.serviceWorkerModel.stopWorker(this.targetId);
+    if (!this.parentTarget)
+      return;
+    this._manager.serviceWorkerModel.stopWorker(this.parentTarget.targetId);
+  }
+
+  canRestart() {
+    return true;
+  }
+
+  restart() {
+    this.cdp().Page.reload({});
+  }
+
+  supportsCustomBreakpoints(): boolean {
+    return domDebuggerTypes.has(this._targetInfo.type);
+  }
+
+  sourcePathResolver(): SourcePathResolver {
+    return this._manager._sourcePathResolver;
+  }
+
+  defaultScriptOffset(): InlineScriptOffset | undefined {
+    return undefined;
+  }
 
   isServiceWorkerWorker(): boolean {
     return this._targetInfo.type === 'worker' && !!this.parentTarget && this.parentTarget._targetInfo.type === 'service_worker';
@@ -320,7 +333,7 @@ export class Target {
       return;
 
     if (this.isServiceWorkerWorker()) {
-      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId());
+      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId);
       if (version) {
         this._thread.setName(version.label());
         return;

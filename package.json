@@ -159,6 +159,14 @@
           "light": "resources/light/stop.svg",
           "dark": "resources/dark/stop.svg"
         }
+      },
+      {
+        "command": "pwa.restartThread",
+        "title": "Restart thread",
+        "icon": {
+          "light": "resources/light/restart.svg",
+          "dark": "resources/dark/restart.svg"
+        }
       }
     ],
     "menus": {
@@ -210,6 +218,11 @@
         {
           "command": "pwa.stopThread",
           "when": "view == pwa.threadsView && viewItem =~ /.*canStop.*/",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.restartThread",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canRestart.*/",
           "group": "inline"
         }
       ]

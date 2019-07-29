@@ -150,10 +150,13 @@ export class NodeAdapter {
 
     const thread = this._debugAdapter.threadManager.createThread(targetInfo.targetId, cdp, {
       copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
-      defaultScriptOffset: {lineOffset: 0, columnOffset: 62},
-      sourcePathResolver: this._pathResolver,
-      canStopThread: () => true,
-      stopThread: () => this._terminateProcess(thread.threadId())
+      defaultScriptOffset: () => ({lineOffset: 0, columnOffset: 62}),
+      sourcePathResolver: () => this._pathResolver,
+      supportsCustomBreakpoints: () => false,
+      canStop: () => true,
+      stop: () => this._terminateProcess(thread.threadId()),
+      canRestart: () => false,
+      restart: () => {}
     });
     let threadName: string;
     if (targetInfo.title)

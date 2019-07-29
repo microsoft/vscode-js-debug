@@ -18,7 +18,10 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
     item.thread.resume();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.stopThread', (item: ExecutionContext) => {
-    item.thread.stop();
+    item.thread.delegate.stop();
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.restartThread', (item: ExecutionContext) => {
+    item.thread.delegate.restart();
   }));
 
   treeView.onDidChangeSelection(() => {
@@ -129,8 +132,10 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<ExecutionContext> {
         result.description = 'RUNNING';
         result.contextValue += 'canPause';
       }
-      if (item.thread.canStop())
+      if (item.thread.delegate.canStop())
         result.contextValue += ' canStop';
+      if (item.thread.delegate.canRestart())
+        result.contextValue += ' canRestart';
     } else {
       result.contextValue = 'pwa.executionContext';
     }
