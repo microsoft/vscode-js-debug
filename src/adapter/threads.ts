@@ -4,18 +4,20 @@
 import * as debug from 'debug';
 import { EventEmitter } from 'vscode';
 import * as nls from 'vscode-nls';
-import * as errors from './errors';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as eventUtils from '../utils/eventUtils';
-import * as urlUtils from '../utils/urlUtils';
 import * as stringUtils from '../utils/stringUtils';
+import * as urlUtils from '../utils/urlUtils';
+import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
+import * as errors from './errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { Location, Source, SourceContainer, InlineScriptOffset, SourcePathResolver } from './sources';
+import { InlineScriptOffset, Location, Source, SourceContainer, SourcePathResolver } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
+import * as sourceUtils from '../utils/sourceUtils';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
@@ -264,35 +266,171 @@ export class Thread implements VariableStoreDelegate {
     return this._supportsSourceMapPause;
   }
 
-  async resume(): Promise<boolean> {
-    return !!await this._cdp.Debugger.resume({});
+  async resume(): Promise<Dap.ContinueResult | Dap.Error> {
+    if (!await this._cdp.Debugger.resume({}))
+      return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
+    return { allThreadsContinued: false };
   }
 
-  async pause(): Promise<boolean> {
-    return !!await this._cdp.Debugger.pause({});
+  async pause(): Promise<Dap.PauseResult | Dap.Error> {
+    if (!await this._cdp.Debugger.pause({}))
+      return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
+    return {};
   }
 
-  async stepOver(): Promise<boolean> {
-    return !!await this._cdp.Debugger.stepOver({});
+  async stepOver(): Promise<Dap.NextResult | Dap.Error> {
+    if (!await this._cdp.Debugger.stepOver({}))
+      return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
+    return {};
   }
 
-  async stepInto(): Promise<boolean> {
-    return !!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true});
+  async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
+    if (!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+      return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
+    return {};
   }
 
-  async stepOut(): Promise<boolean> {
-    return !!await this._cdp.Debugger.stepOut({});
+  async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
+    if (!await this._cdp.Debugger.stepOut({}))
+      return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+    return {};
   }
 
-  async restartFrame(stackFrame: StackFrame): Promise<boolean> {
+  _stackFrameNotFoundError(): Dap.Error {
+    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+  }
+
+  _evaluateOnAsyncFrameError(): Dap.Error {
+    return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
+  }
+
+  async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
+    const stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(params.frameId) : undefined;
+    if (!stackFrame)
+      return this._stackFrameNotFoundError();
     const callFrameId = stackFrame.callFrameId();
     if (!callFrameId)
-      return false;
+      return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
     const response = await this._cdp.Debugger.restartFrame({ callFrameId });
-    if (!response || !this._pausedDetails)
-      return false;
-    this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
-    return true;
+    if (response && this._pausedDetails)
+      this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
+    return {};
+  }
+
+  async stackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
+    if (!this._pausedDetails)
+      return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
+    return this._pausedDetails.stackTrace.toDap(params);
+  }
+
+  async scopes(params: Dap.ScopesParams): Promise<Dap.ScopesResult | Dap.Error> {
+    const stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(params.frameId) : undefined;
+    if (!stackFrame)
+      return this._stackFrameNotFoundError();
+    return stackFrame.scopes();
+  }
+
+  async exceptionInfo(): Promise<Dap.ExceptionInfoResult | Dap.Error> {
+    const exception = this._pausedDetails && this._pausedDetails.exception;
+    if (!exception)
+      return errors.createSilentError(localize('error.threadNotPausedOnException', 'Thread is not paused on exception'));
+    const preview = objectPreview.previewException(exception);
+    return {
+      exceptionId: preview.title,
+      breakMode: 'all',
+      details: {
+        stackTrace: preview.stackTrace,
+        evaluateName: undefined  // This is not used by vscode.
+      }
+    };
+  }
+
+  async completions(params: Dap.CompletionsParams, executionContextId: Cdp.Runtime.ExecutionContextId | undefined): Promise<Dap.CompletionsResult | Dap.Error> {
+    let stackFrame: StackFrame | undefined;
+    if (params.frameId !== undefined) {
+      stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(params.frameId) : undefined;
+      if (!stackFrame)
+        return this._stackFrameNotFoundError();
+      if (!stackFrame.callFrameId())
+        return this._evaluateOnAsyncFrameError();
+    }
+    const line = params.line === undefined ? 0 : params.line - 1;
+    return { targets: await completions.completions(this._cdp, executionContextId, stackFrame, params.text, line, params.column) };
+  }
+
+  async evaluate(args: Dap.EvaluateParams, executionContextId: Cdp.Runtime.ExecutionContextId | undefined): Promise<Dap.EvaluateResult | Dap.Error> {
+    let callFrameId: Cdp.Debugger.CallFrameId | undefined;
+    if (args.frameId !== undefined) {
+      const stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(args.frameId) : undefined;
+      if (!stackFrame)
+        return this._stackFrameNotFoundError();
+      callFrameId = stackFrame.callFrameId();
+      if (!callFrameId)
+        return this._evaluateOnAsyncFrameError();
+    }
+
+    const params: Cdp.Runtime.EvaluateParams = {
+      expression: args.expression,
+      includeCommandLineAPI: true,
+      objectGroup: 'console',
+      generatePreview: true,
+      throwOnSideEffect: args.context === 'hover' ? true : undefined,
+      timeout: args.context === 'hover' ? 500 : undefined,
+    };
+    if (args.context === 'repl') {
+      params.expression = sourceUtils.wrapObjectLiteral(params.expression);
+      if (params.expression.indexOf('await') !== -1) {
+        const rewritten = sourceUtils.rewriteTopLevelAwait(params.expression);
+        if (rewritten) {
+          params.expression = rewritten;
+          params.awaitPromise = true;
+        }
+      }
+    }
+
+    const responsePromise = callFrameId
+      ? this._cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId })
+      : this._cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
+
+    // Report result for repl immediately so that the user could see the expression they entered.
+    if (args.context === 'repl') {
+      this._evaluateAndOutput(responsePromise);
+      return { result: '', variablesReference: 0 };
+    }
+
+    const response = await responsePromise;
+    if (!response)
+      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+
+    const variableStore = callFrameId ? this._pausedVariables! : this.replVariables;
+    const variable = await variableStore.createVariable(response.result, args.context);
+    return {
+      type: response.result.type,
+      result: variable.value,
+      variablesReference: variable.variablesReference,
+      namedVariables: variable.namedVariables,
+      indexedVariables: variable.indexedVariables,
+    };
+  }
+
+  async _evaluateAndOutput(responsePromise: Promise<Cdp.Runtime.EvaluateResult | undefined> | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>) {
+    const response = await responsePromise;
+    if (!response)
+      return;
+
+    const outputSlot = this._claimOutputSlot();
+    if (response.exceptionDetails) {
+      outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
+    } else {
+      const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
+      const variablesReference = await this.replVariables.createVariableForOutput(text, [response.result]);
+      const output = {
+        category: 'stdout',
+        output: '',
+        variablesReference,
+      } as Dap.OutputEventParams;
+      outputSlot(output);
+    }
   }
 
   initialize() {
@@ -305,16 +443,16 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Runtime.on('executionContextsCleared', () => {
       this.replVariables.clear();
       this._executionContextsCleared();
-      const slot = this.claimOutputSlot();
+      const slot = this._claimOutputSlot();
       slot(this._clearDebuggerConsole());
     });
     this._cdp.Runtime.on('consoleAPICalled', async event => {
-      const slot = this.claimOutputSlot();
+      const slot = this._claimOutputSlot();
       slot(await this._onConsoleMessage(event));
     });
     this._cdp.Runtime.on('exceptionThrown', async event => {
-      const slot = this.claimOutputSlot();
-      slot(await this.formatException(event.exceptionDetails));
+      const slot = this._claimOutputSlot();
+      slot(await this._formatException(event.exceptionDetails));
     });
     this._cdp.Runtime.on('inspectRequested', event => {
       if (event.hints['copyToClipboard'])
@@ -387,11 +525,11 @@ export class Thread implements VariableStoreDelegate {
   // producing this output, then run any processing to generate the actual output and call the slot:
   //
   //   const response = await cdp.Runtime.evaluate(...);
-  //   const slot = thread.claimOutputSlot();
+  //   const slot = this._claimOutputSlot();
   //   const output = await doSomeAsyncProcessing(response);
   //   slot(output);
   //
-  claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
+  _claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
     // TODO: should we serialize output between threads? For example, it may be important
     // when using postMessage between page a worker.
     const slot = this._serializedOutput;
@@ -646,7 +784,7 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  async formatException(details: Cdp.Runtime.ExceptionDetails, prefix?: string): Promise<Dap.OutputEventParams | undefined> {
+  async _formatException(details: Cdp.Runtime.ExceptionDetails, prefix?: string): Promise<Dap.OutputEventParams | undefined> {
     const preview = details.exception ? objectPreview.previewException(details.exception) : { title: '' };
     let message = preview.title;
     if (!message.startsWith('Uncaught'))
@@ -806,7 +944,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async _queryObjects(prototype: Cdp.Runtime.RemoteObject) {
-    const slot = this.claimOutputSlot();
+    const slot = this._claimOutputSlot();
     if (!prototype.objectId)
       return slot();
     const response = await this.cdp().Runtime.queryObjects({prototypeObjectId: prototype.objectId, objectGroup: 'console'});
