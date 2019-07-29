@@ -8,6 +8,8 @@
   "editor.detectIndentation": false,
   "debug.node.autoAttach": "on",
   "workbench.colorCustomizations": {
-    "activityBar.background": "#105200"
+    "[Default Dark+]": {
+      "activityBar.background": "#105200"
+    },
   }
 }
