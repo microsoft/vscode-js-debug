@@ -158,7 +158,7 @@ export class DebugAdapter {
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return { sources: await Promise.all(this.sourceContainer.sources().map(source => source.toDap())) };
+    return { sources: await this.sourceContainer.loadedSources() };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
