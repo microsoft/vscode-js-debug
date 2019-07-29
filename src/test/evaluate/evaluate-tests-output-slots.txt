@@ -1,0 +1,3 @@
+result: 
+stdout> 1
+stdout> [32m↳ 2[0m
