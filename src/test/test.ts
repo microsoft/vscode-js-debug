@@ -103,7 +103,7 @@ export class TestP {
       this.adapter.selectExecutionContext(selected);
     });
 
-    const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId(), flatten: true }))!;
+    const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;
     this.cdp = this._connection.createSession(sessionId);
     return mainTarget;
   }

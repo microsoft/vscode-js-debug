@@ -46,13 +46,14 @@ export interface ExecutionContext {
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
 export interface ThreadDelegate {
-  canStopThread(): boolean;
-  stopThread(): void;
+  canStop(): boolean;
+  stop(): void;
+  canRestart(): boolean;
+  restart(): void;
   copyToClipboard: (text: string) => void;
-
-  supportsCustomBreakpoints?: boolean;
-  defaultScriptOffset?: InlineScriptOffset;
-  sourcePathResolver: SourcePathResolver;
+  supportsCustomBreakpoints(): boolean | undefined;
+  defaultScriptOffset(): InlineScriptOffset | undefined;
+  sourcePathResolver(): SourcePathResolver;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -198,8 +199,8 @@ export class Thread implements VariableStoreDelegate {
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
-  private _delegate: ThreadDelegate;
   private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
+  readonly delegate: ThreadDelegate;
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
   readonly sourceContainer: SourceContainer;
@@ -216,13 +217,13 @@ export class Thread implements VariableStoreDelegate {
 
   constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this.manager = manager;
+    this.delegate = delegate;
     this.sourceContainer = manager.sourceContainer;
-    this.sourcePathResolver = delegate.sourcePathResolver;
+    this.sourcePathResolver = delegate.sourcePathResolver();
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = threadId;
     this._name = '';
-    this._delegate = delegate;
     this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
@@ -293,14 +294,6 @@ export class Thread implements VariableStoreDelegate {
       return false;
     this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
     return true;
-  }
-
-  canStop(): boolean {
-    return this._delegate.canStopThread();
-  }
-
-  stop() {
-    this._delegate.stopThread();
   }
 
   initialize() {
@@ -478,10 +471,11 @@ export class Thread implements VariableStoreDelegate {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     let {lineNumber, columnNumber} = rawLocation;
     columnNumber = columnNumber || 0;
-    if (this._delegate.defaultScriptOffset) {
-      lineNumber -= this._delegate.defaultScriptOffset.lineOffset;
+    const defaultOffset = this.delegate.defaultScriptOffset();
+    if (defaultOffset) {
+      lineNumber -= defaultOffset.lineOffset;
       if (!lineNumber)
-        columnNumber = Math.max(columnNumber - this._delegate.defaultScriptOffset.columnOffset, 0);
+        columnNumber = Math.max(columnNumber - defaultOffset.columnOffset, 0);
     }
     // Note: cdp locations are 0-based, while ui locations are 1-based.
     return this.sourceContainer.preferredLocation({
@@ -505,7 +499,7 @@ export class Thread implements VariableStoreDelegate {
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
-    if (!this._delegate.supportsCustomBreakpoints)
+    if (!this.delegate.supportsCustomBreakpoints())
       return true;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
@@ -782,7 +776,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this._delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this.delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -808,7 +802,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this._delegate.copyToClipboard(String(response.result.value));
+      this.delegate.copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 
