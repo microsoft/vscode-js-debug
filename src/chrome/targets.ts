@@ -274,7 +274,7 @@ export class Target implements ThreadDelegate {
     return vscode.env.clipboard.writeText(text);
   }
 
-  canStop() {
+  canStop(): boolean {
     return this.isServiceWorkerWorker();
   }
 
@@ -286,8 +286,8 @@ export class Target implements ThreadDelegate {
     this._manager.serviceWorkerModel.stopWorker(this.parentTarget.targetId);
   }
 
-  canRestart() {
-    return true;
+  canRestart(): boolean {
+    return !this.parentTarget;
   }
 
   restart() {

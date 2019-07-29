@@ -6,5 +6,8 @@
 	"editor.insertSpaces": true,
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "debug.node.autoAttach": "on"
+  "debug.node.autoAttach": "on",
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#105200"
+  }
 }
