@@ -92,8 +92,7 @@ export class Logger {
     }
   }
 
-  async logEvaluateResult(expression: string, options?: LogOptions): Promise<Dap.Variable> {
-    const result = await this._testP.dap.evaluate({ expression });
+  async logEvaluateResult(result: Dap.EvaluateResult, options?: LogOptions): Promise<Dap.Variable> {
     const variable = { name: 'result', value: result.result, ...result };
     await this.logVariable(variable, options);
     return variable;
@@ -139,7 +138,14 @@ export class Logger {
     }
   }
 
-  async evaluateAndLog(expressions: string[], options?: LogOptions, context?: 'watch' | 'repl' | 'hover') {
+  evaluateAndLog(expression: string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable>;
+  evaluateAndLog(expressions: string[], options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<void>;
+  async evaluateAndLog(expressions: string[] | string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable | void> {
+    if (typeof expressions === 'string') {
+      const result = await this._testP.dap.evaluate({ expression: expressions, context });
+      return await this.logEvaluateResult(result, options);
+    }
+
     let complete: () => void;
     const result = new Promise(f => complete = f);
     const next = async () => {

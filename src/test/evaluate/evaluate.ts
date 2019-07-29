@@ -12,29 +12,29 @@ export function addTests(testRunner) {
   it('default', async ({ p }: { p: TestP }) => {
     await p.launchUrl('index.html');
 
-    await p.logger.logEvaluateResult(`42`);
+    await p.logger.evaluateAndLog(`42`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`'foo'`);
+    await p.logger.evaluateAndLog(`'foo'`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`1234567890n`);
+    await p.logger.evaluateAndLog(`1234567890n`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`throw new Error('foo')`);
+    await p.logger.evaluateAndLog(`throw new Error('foo')`);
     p.log('');
 
     // TODO(dgozman): should these not return the exception?
-    await p.logger.logEvaluateResult(`throw {foo: 3, bar: 'baz'};`);
+    await p.logger.evaluateAndLog(`throw {foo: 3, bar: 'baz'};`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`throw 42;`);
+    await p.logger.evaluateAndLog(`throw 42;`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`{foo: 3}`);
+    await p.logger.evaluateAndLog(`{foo: 3}`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`baz();`);
+    await p.logger.evaluateAndLog(`baz();`);
     p.log('');
 
     p.evaluate(`setTimeout(() => { throw new Error('bar')}, 0)`);
@@ -47,10 +47,10 @@ export function addTests(testRunner) {
 
     await p.addScriptTag('browserify/bundle.js');
 
-    await p.logger.logEvaluateResult(`window.throwError('error1')`);
+    await p.logger.evaluateAndLog(`window.throwError('error1')`);
     p.log('');
 
-    await p.logger.logEvaluateResult(`window.throwValue({foo: 3, bar: 'baz'})`);
+    await p.logger.evaluateAndLog(`window.throwValue({foo: 3, bar: 'baz'})`);
     p.log('');
 
     p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
@@ -184,6 +184,58 @@ export function addTests(testRunner) {
       's',
       'await {...{foo: 42}}'
     ], { depth: 0 }, 'repl');
+    p.assertLog();
+  });
+
+  it('output slots', async({p} : {p: TestP}) => {
+    await p.launchAndLoad('blank');
+    const empty = await p.dap.evaluate({expression: 'let i = 0; console.log(++i); ++i', context: 'repl'});
+    const console = await p.dap.once('output');
+    const result = await p.dap.once('output');
+    await p.logger.logEvaluateResult(empty);
+    await p.logger.logOutput(console);
+    await p.logger.logOutput(result);
+    p.assertLog();
+  });
+
+  it('output slots 2', async({p} : {p: TestP}) => {
+    await p.launchAndLoad('blank');
+    const empty = await p.dap.evaluate({expression: `
+      let i = 0;
+      setTimeout(() => {
+        console.log(++i);
+        throw {foo: ++i};
+      }, 0);
+      ++i
+    `, context: 'repl'});
+    const result = await p.dap.once('output');
+    const console = await p.dap.once('output');
+    const exception = await p.dap.once('output');
+    await p.logger.logEvaluateResult(empty);
+    await p.logger.logOutput(result);
+    await p.logger.logOutput(console);
+    await p.logger.logOutput(exception);
+    p.assertLog();
+  });
+
+  it('selected context', async({p} : {p: TestP}) => {
+    await p.launchUrl('worker.html');
+    p.log('Pausing...');
+    p.dap.evaluate({expression: `window.w.postMessage('pause');`, context: 'repl'});
+    const {threadId} = await p.dap.once('stopped');
+    p.log('Paused');
+
+    p.log('Evaluating in page');
+    await p.logger.evaluateAndLog('self', {depth: 0});
+    p.dap.continue({threadId: threadId!});
+    await p.dap.once('continued');
+    p.log('Resumed');
+
+    p.log('Evaluating in worker');
+    const workerContext = p.adapter.executionContextForest()[0].children[0];
+    p.adapter.selectExecutionContext(workerContext);
+    await p.logger.evaluateAndLog('self', {depth: 0});
+
     p.assertLog();
   });
 }

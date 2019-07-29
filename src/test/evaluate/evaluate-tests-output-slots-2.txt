@@ -1,0 +1,10 @@
+result: 
+stdout> [32m↳ 1[0m
+stdout> 2
+stderr> Uncaught Object
+stderr> > Uncaught Object
+stderr>     > arg0: {foo: 3}
+stderr>     
+<anonymous> @ <eval>/VM<xx>:5:9
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:3:7

@@ -11,7 +11,7 @@ export function addTests(testRunner) {
   describe('basic', () => {
     it('basic object', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult('({a: 1})');
+      await p.logger.evaluateAndLog('({a: 1})');
       p.assertLog();
     });
 
@@ -52,19 +52,19 @@ export function addTests(testRunner) {
   describe('object', () => {
     it('simple array', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true});
+      await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true});
       p.assertLog();
     });
 
     it('large array', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult('var a = new Array(110); a.fill(1); a', { logInternalInfo: true });
+      await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', { logInternalInfo: true });
       p.assertLog();
     });
 
     it('get set', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(`
+      await p.logger.evaluateAndLog(`
         const a = {};
         Object.defineProperty(a, 'getter', { get: () => {} });
         Object.defineProperty(a, 'setter', { set: () => {} });
@@ -75,7 +75,7 @@ export function addTests(testRunner) {
 
     it('deep accessor', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad('blank');
-      await p.logger.logEvaluateResult(`
+      await p.logger.evaluateAndLog(`
         class Foo { get getter() {} }
         class Bar extends Foo { }
         new Bar();`);
@@ -89,7 +89,7 @@ export function addTests(testRunner) {
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
       </head>`);
-      await p.logger.logEvaluateResult('document.head.children');
+      await p.logger.evaluateAndLog('document.head.children');
       p.assertLog();
     });
   });
@@ -111,7 +111,7 @@ export function addTests(testRunner) {
   describe('setVariable', () => {
     it('basic', async({p} : {p: TestP}) => {
       await p.launchAndLoad('blank');
-      const v = await p.logger.logEvaluateResult(`window.x = ({foo: 42}); x`);
+      const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
       p.log(`\nSetting "foo" to "{bar: 17}"`);
       const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'foo', value: '{bar: 17}'});
