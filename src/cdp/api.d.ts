@@ -4926,6 +4926,16 @@ export namespace Cdp {
     setFileInputFiles(params: DOM.SetFileInputFilesParams): Promise<DOM.SetFileInputFilesResult | undefined>;
 
     /**
+     * Sets if stack traces should be captured for Nodes. See `Node.getNodeStackTraces`. Default is disabled.
+     */
+    setNodeStackTracesEnabled(params: DOM.SetNodeStackTracesEnabledParams): Promise<DOM.SetNodeStackTracesEnabledResult | undefined>;
+
+    /**
+     * Gets stack traces associated with a Node. As of now, only provides stack trace for Node creation.
+     */
+    getNodeStackTraces(params: DOM.GetNodeStackTracesParams): Promise<DOM.GetNodeStackTracesResult | undefined>;
+
+    /**
      * Returns file information for the given
      * File wrapper.
      */
@@ -5860,6 +5870,42 @@ export namespace Cdp {
      * Return value of the 'DOM.setFileInputFiles' method.
      */
     export interface SetFileInputFilesResult {
+    }
+
+    /**
+     * Parameters of the 'DOM.setNodeStackTracesEnabled' method.
+     */
+    export interface SetNodeStackTracesEnabledParams {
+      /**
+       * Enable or disable.
+       */
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'DOM.setNodeStackTracesEnabled' method.
+     */
+    export interface SetNodeStackTracesEnabledResult {
+    }
+
+    /**
+     * Parameters of the 'DOM.getNodeStackTraces' method.
+     */
+    export interface GetNodeStackTracesParams {
+      /**
+       * Id of the node to get stack traces for.
+       */
+      nodeId: NodeId;
+    }
+
+    /**
+     * Return value of the 'DOM.getNodeStackTraces' method.
+     */
+    export interface GetNodeStackTracesResult {
+      /**
+       * Creation stack trace, if available.
+       */
+      creation?: Runtime.StackTrace;
     }
 
     /**
