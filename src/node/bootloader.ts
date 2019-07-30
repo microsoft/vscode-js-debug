@@ -4,7 +4,10 @@
 import { spawn } from 'child_process';
 import * as inspector from 'inspector';
 
-if (process.env.NODE_INSPECTOR_IPC) {
+(function() {
+  if (!process.env.NODE_INSPECTOR_IPC)
+    return;
+
   let scriptName = '';
   try {
     scriptName = require.resolve(process.argv[1]);
@@ -15,25 +18,29 @@ if (process.env.NODE_INSPECTOR_IPC) {
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
   inspector.open(0, undefined, false);
+  const parent = !!ppid;
+  const waitForDebugger = process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER === 'always' ||
+      (!parent && process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER === 'top-level');
 
-  const targetInfo = {
-    targetId: String(process.pid),
-    type: 'node',
-    title: scriptName,
-    url: inspector.url(),
-    attached: true,
-    openerId: ppid
+  const info = {
+    pid: String(process.pid),
+    scriptName,
+    inspectorURL: inspector.url(),
+    waitForDebugger,
+    ppid
   };
 
   const p = spawn(process.execPath, [__filename.replace('/bootloader.js', '/watchdog.js')], {
     env: {
-      NODE_INSPECTOR_TARGET_INFO: JSON.stringify(targetInfo),
+      NODE_INSPECTOR_INFO: JSON.stringify(info),
       NODE_INSPECTOR_IPC: process.env.NODE_INSPECTOR_IPC
     },
     stdio: 'ignore',
     detached: true
   });
   p.unref();
+  process.on('exit', () => p.kill());
 
-  inspector.open(0, undefined, true);
-}
+  if (waitForDebugger)
+    inspector.open(0, undefined, true);
+})();

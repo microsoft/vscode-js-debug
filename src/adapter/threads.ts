@@ -44,7 +44,7 @@ export type Script = { scriptId: string, hash: string, source: Source, thread: T
 
 export interface ThreadDelegate {
   copyToClipboard: (text: string) => void;
-  supportsCustomBreakpoints(): boolean | undefined;
+  supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   sourcePathResolver(): SourcePathResolver;
 }

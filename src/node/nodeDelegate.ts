@@ -9,34 +9,36 @@ import * as vscode from 'vscode';
 import * as which from 'which';
 import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
-import { SourcePathResolver } from '../adapter/sources';
+import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
+import { ThreadDelegate, Thread } from '../adapter/threads';
 
 export interface LaunchParams extends Dap.LaunchParams {
   args: string[];
   runtimeExecutable: string;
   cwd: string;
   env: Object;
+  attachToNode: ['never', 'always', 'top-level'];
 }
 
 let counter = 0;
 
 export class NodeDelegate implements DebugAdapterDelegate {
-  private _debugAdapter: DebugAdapter;
   private _rootPath: string | undefined;
   private _server: net.Server | undefined;
   private _runtime: ChildProcess | undefined;
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
-  private _targets = new Map<string, Target>();
   private _isRestarting: boolean;
-  private _pathResolver: NodeSourcePathResolver;
+  _debugAdapter: DebugAdapter;
+  _targets = new Map<string, NodeTarget>();
+  _pathResolver: NodeSourcePathResolver;
 
   constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -62,7 +64,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
 
     this._runtime = spawn(executable, this._launchParams!.args || [], {
       cwd: this._launchParams!.cwd || this._rootPath,
-      env: env(this._pipe!, this._launchParams!.env || {}),
+      env: this._buildEnv(),
       stdio: ['ignore', 'pipe', 'pipe']
     });
     const outputName = [executable, ...(this._launchParams!.args || [])].join(' ');
@@ -130,85 +132,150 @@ export class NodeDelegate implements DebugAdapterDelegate {
   }
 
   async _startSession(socket: net.Socket) {
-    const transport = new PipeTransport(socket);
-    const connection = new Connection(transport);
+    const connection = new Connection(new PipeTransport(socket));
     this._connections.push(connection);
     const cdp = connection.createSession('');
-    const { targetInfo } = await new Promise(f => cdp.Target.on('targetCreated', f)) as Cdp.Target.TargetCreatedEvent;
-
-    const setParent = (child: Target, parent?: Target) => {
-      if (child.parent)
-        child.parent.children.splice(child.parent.children.indexOf(child), 1);
-      child.parent = parent;
-      if (child.parent)
-        child.parent.children.push(child);
-    };
-
-    const thread = this._debugAdapter.threadManager.createThread(targetInfo.targetId, cdp, {
-      copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
-      defaultScriptOffset: () => ({lineOffset: 0, columnOffset: 62}),
-      sourcePathResolver: () => this._pathResolver,
-      supportsCustomBreakpoints: () => false
-    });
-    let threadName: string;
-    if (targetInfo.title)
-      threadName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
-    else
-      threadName = `[${targetInfo.targetId}]`;
-    thread.setName(threadName);
-
-    const target: Target = {
-      id: targetInfo.targetId,
-      name: thread.name(),
-      thread: thread,
-      children: [],
-      type: 'node',
-      stop: () => this._terminateProcess(targetInfo.targetId)
-    };
-    this._targets.set(targetInfo.targetId, target);
-    setParent(target, this._targets.get(targetInfo.openerId!));
-
-    connection.onDisconnected(() => {
-      target.children.forEach(child => setParent(child, target.parent));
-      setParent(target, undefined);
-      this._targets.delete(targetInfo.targetId);
-      thread.dispose();
-    });
-    thread.initialize();
-    thread.onExecutionContextsDestroyed(context => {
-      if (context.description.auxData && context.description.auxData['isDefault'])
-        connection.close();
-    });
-    cdp.Runtime.runIfWaitingForDebugger({});
-  }
-
-  _terminateProcess(pid: string) {
-    process.kill(+pid);
+    const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
+    new NodeTarget(this, connection, cdp, targetInfo);
+    this._debugAdapter.fireTargetForestChanged();
   }
 
   targetForest(): Target[] {
-    return Array.from(this._targets.values()).filter(t => !t.parent);
+    return Array.from(this._targets.values()).filter(t => !t.hasParent()).map(t => t.toTarget());
   }
 
   adapterDisposed() {
     this._stopServer();
   }
+
+  _buildEnv(): Object {
+    const bootloaderJS = path.join(__dirname, 'bootloader.js');
+    let result: Object = {
+      ...process.env,
+      ...this._launchParams!.env || {},
+      NODE_INSPECTOR_IPC: this._pipe,
+      NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.attachToNode || 'never',
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require ${bootloaderJS}`,
+    };
+    delete result['ELECTRON_RUN_AS_NODE'];
+    return result;
+  }
 }
 
-function env(pipe: string, env: object) {
-  const result = {
-    ...process.env,
-    ...env,
-    NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require bootloader.js`,
-    NODE_PATH: `${process.env.NODE_PATH || ''}${path.delimiter}${path.join(__dirname)}`,
-    NODE_INSPECTOR_IPC: pipe
-  };
-  delete result['ELECTRON_RUN_AS_NODE'];
-  return result;
-}
+class NodeTarget implements ThreadDelegate {
+  private _delegate: NodeDelegate;
+  private _connection: Connection;
+  private _cdp: Cdp.Api;
+  private _parent: NodeTarget | undefined;
+  private _children: NodeTarget[] = [];
+  private _targetId: string;
+  private _targetName: string;
+  private _serialize = Promise.resolve();
+  private _thread: Thread | undefined;
 
-function resolvePath(command: string): Promise<string | undefined> {
-  return new Promise(resolve => which(command, (error: Error | null, path: string | undefined) => resolve(path)));
+  constructor(delegate: NodeDelegate, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
+    this._delegate = delegate;
+    this._connection = connection;
+    this._cdp = cdp;
+    this._targetId = targetInfo.targetId;
+    if (targetInfo.title)
+      this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
+    else
+      this._targetName = `[${targetInfo.targetId}]`;
+
+    this._setParent(delegate._targets.get(targetInfo.openerId!));
+    delegate._targets.set(targetInfo.targetId, this);
+    connection.onDisconnected(_ => this._disconnected());
+
+    if (targetInfo.type === 'waitingForDebugger')
+      this._attach();
+  }
+
+  copyToClipboard(text: string) {
+    // TODO: move into the UIDelegate.
+    vscode.env.clipboard.writeText(text);
+  }
+
+  defaultScriptOffset(): InlineScriptOffset {
+    return { lineOffset: 0, columnOffset: 62 };
+  }
+
+  sourcePathResolver(): SourcePathResolver {
+    return this._delegate._pathResolver;
+  }
+
+  supportsCustomBreakpoints(): boolean {
+    return false;
+  }
+
+  hasParent(): boolean {
+    return !!this._parent;
+  }
+
+  _setParent(parent?: NodeTarget) {
+    if (this._parent)
+      this._parent._children.splice(this._parent._children.indexOf(this), 1);
+    this._parent = parent;
+    if (this._parent)
+      this._parent._children.push(this);
+  }
+
+  async _disconnected() {
+    this._children.forEach(child => child._setParent(this._parent));
+    this._setParent(undefined);
+    this._delegate._targets.delete(this._targetId);
+    await this._detach();
+    this._delegate._debugAdapter.fireTargetForestChanged();
+  }
+
+  _attach() {
+    this._serialize = this._serialize.then(async () => {
+      if (this._thread)
+        return;
+      await this._doAttach();
+    });
+  }
+
+  _detach() {
+    this._serialize = this._serialize.then(async () => {
+      if (!this._thread)
+        return;
+      await this._doDetach();
+    });
+  }
+
+  async _doAttach() {
+    await this._cdp.Target.attachToTarget({ targetId: this._targetId });
+    const thread = this._delegate._debugAdapter.threadManager.createThread(this._targetId, this._cdp, this);
+    thread.setName(this._targetName);
+    thread.initialize();
+    thread.onExecutionContextsDestroyed(context => {
+      if (context.description.auxData && context.description.auxData['isDefault'])
+        this._connection.close();
+    });
+    this._thread = thread;
+    this._cdp.Runtime.runIfWaitingForDebugger({});
+  }
+
+  async _doDetach() {
+    await this._cdp.Target.detachFromTarget({ targetId: this._targetId });
+    const thread = this._thread!;
+    this._thread = undefined;
+    thread.dispose();
+  }
+
+  toTarget(): Target {
+    return {
+      id: this._targetId,
+      name: this._targetName,
+      children: this._children.map(t => t.toTarget()),
+      type: 'node',
+      thread: this._thread,
+      stop: () => process.kill(+this._targetId),
+      attach: this._thread ? undefined : () => this._attach(),
+      detach: this._thread ? () => this._detach() : undefined
+    };
+  }
 }
 
 class NodeSourcePathResolver implements SourcePathResolver {
@@ -242,4 +309,8 @@ class NodeSourcePathResolver implements SourcePathResolver {
     // Node executes files directly from disk, there is no need to check the content.
     return false;
   }
+}
+
+function resolvePath(command: string): Promise<string | undefined> {
+  return new Promise(resolve => which(command, (error: Error | null, path: string | undefined) => resolve(path)));
 }

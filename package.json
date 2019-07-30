@@ -153,19 +153,35 @@
         }
       },
       {
-        "command": "pwa.stopThread",
-        "title": "Terminate thread",
+        "command": "pwa.stopTarget",
+        "title": "Terminate target",
         "icon": {
           "light": "resources/light/stop.svg",
           "dark": "resources/dark/stop.svg"
         }
       },
       {
-        "command": "pwa.restartThread",
-        "title": "Restart thread",
+        "command": "pwa.restartTarget",
+        "title": "Restart target",
         "icon": {
           "light": "resources/light/restart.svg",
           "dark": "resources/dark/restart.svg"
+        }
+      },
+      {
+        "command": "pwa.attachToTarget",
+        "title": "Attach to target",
+        "icon": {
+          "light": "resources/light/connect.svg",
+          "dark": "resources/dark/connect.svg"
+        }
+      },
+      {
+        "command": "pwa.detachFromTarget",
+        "title": "Detach from target",
+        "icon": {
+          "light": "resources/light/disconnect.svg",
+          "dark": "resources/dark/disconnect.svg"
         }
       }
     ],
@@ -216,13 +232,23 @@
           "group": "inline"
         },
         {
-          "command": "pwa.stopThread",
+          "command": "pwa.stopTarget",
           "when": "view == pwa.threadsView && viewItem =~ /.*canStop.*/",
           "group": "inline"
         },
         {
-          "command": "pwa.restartThread",
+          "command": "pwa.restartTarget",
           "when": "view == pwa.threadsView && viewItem =~ /.*canRestart.*/",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.attachToTarget",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canAttach.*/",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.detachFromTarget",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canDetach.*/",
           "group": "inline"
         }
       ]
@@ -277,6 +303,15 @@
               "env": {
                 "type": "object",
                 "description": "Environment variables"
+              },
+              "attachToNode": {
+                "type": "string",
+                "description": "Attach to Node processes",
+                "enum": [
+                  "never",
+                  "always",
+                  "top-level"
+                ]
               }
             }
           }
@@ -311,7 +346,8 @@
               "cwd": "^\"\\${workspaceFolder}\"",
               "args": [
                 "^\"\\${workspaceFolder}/${1:index.js}\""
-              ]
+              ],
+              "attachToNode": "always"
             }
           }
         ]
