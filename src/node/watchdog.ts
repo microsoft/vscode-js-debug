@@ -62,7 +62,7 @@ process.on('exit', () => {
     if (object.method === 'Target.detachFromTarget') {
       debugLog('DETACH FROM TARGET');
       if (target)
-        target.close()
+        target.close();
       else
         debugLog('DETACH WITHOUT ATTACH');
       target = undefined;

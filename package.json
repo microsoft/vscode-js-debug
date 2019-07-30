@@ -40,7 +40,6 @@
     "js-beautify": "^1.10.0",
     "source-map": "^0.7.3",
     "vscode-nls": "^4.1.1",
-    "which": "^1.3.1",
     "ws": "^7.0.1"
   },
   "devDependencies": {
@@ -51,7 +50,6 @@
     "@types/js-beautify": "^1.8.1",
     "@types/node": "^8.9.3",
     "@types/vscode": "^1.30.0",
-    "@types/which": "^1.3.1",
     "@types/ws": "^6.0.1",
     "express": "^4.17.1",
     "tslint": "5.11.0",
@@ -288,17 +286,13 @@
                 "type": "string",
                 "description": "Path to source files"
               },
-              "runtimeExecutable": {
+              "command": {
                 "type": "string",
-                "description": "Path to runtime"
+                "description": "Command line to run"
               },
               "cwd": {
                 "type": "string",
                 "description": "Current working directory"
-              },
-              "args": {
-                "type": "array",
-                "description": "Program arguments"
               },
               "env": {
                 "type": "object",
