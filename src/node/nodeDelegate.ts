@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as which from 'which';
-import { DebugAdapter } from '../adapter/debugAdapter';
+import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import { Target } from '../adapter/targets';
@@ -26,7 +26,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
-export class NodeAdapter {
+export class NodeDelegate implements DebugAdapterDelegate {
   private _debugAdapter: DebugAdapter;
   private _rootPath: string | undefined;
   private _server: net.Server | undefined;

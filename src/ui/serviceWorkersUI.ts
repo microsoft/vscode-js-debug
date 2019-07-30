@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { AdapterFactory } from '../adapterFactory';
-import { ChromeAdapter } from '../chrome/chromeAdapter';
+import { ChromeDelegate } from '../chrome/chromeDelegate';
 import { ServiceWorkerMode, ServiceWorkerModel, ServiceWorkerVersion } from '../chrome/serviceWorkers';
 
 type DataItem = ServiceWorkerVersion | vscode.TreeItem;
@@ -55,10 +55,10 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
       disposable.dispose();
     this._disposables = [];
     this._serviceWorkerModel = undefined;
-    const chromeAdapter = adapter[ChromeAdapter.symbol] as ChromeAdapter;
-    if (!chromeAdapter)
+    const chromeDelegate = adapter[ChromeDelegate.symbol] as ChromeDelegate;
+    if (!chromeDelegate)
       return;
-    this._serviceWorkerModel = chromeAdapter.targetManager().serviceWorkerModel;
+    this._serviceWorkerModel = chromeDelegate.targetManager().serviceWorkerModel;
     this._disposables.push(this._serviceWorkerModel!.onDidChange(() => {
       this._onDidChangeTreeData.fire();
     }));

@@ -6,7 +6,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { DebugAdapter } from '../adapter/debugAdapter';
+import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
@@ -24,7 +24,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
-export class ChromeAdapter {
+export class ChromeDelegate implements DebugAdapterDelegate {
   static symbol = Symbol('ChromeAdapter');
   private _connection: CdpConnection;
   private _debugAdapter: DebugAdapter;
@@ -87,7 +87,7 @@ export class ChromeAdapter {
 
     this._launchParams = params;
 
-    this._debugAdapter[ChromeAdapter.symbol] = this;
+    this._debugAdapter[ChromeDelegate.symbol] = this;
     const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
     this._disposables.push(this._targetManager);

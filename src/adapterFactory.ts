@@ -5,8 +5,8 @@ import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
-import { ChromeAdapter } from './chrome/chromeAdapter';
-import { NodeAdapter } from './node/nodeAdapter';
+import { ChromeDelegate } from './chrome/chromeDelegate';
+import { NodeDelegate } from './node/nodeDelegate';
 import { Source } from './adapter/sources';
 import Dap from './dap/api';
 import { DebugAdapter } from './adapter/debugAdapter';
@@ -80,9 +80,9 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       const adapter = new DebugAdapter(connection.dap());
       this._sessions.set(session.id, { session, server, adapter });
       if (session.configuration['runtimeExecutable'])
-        new NodeAdapter(adapter, rootPath);
+        new NodeDelegate(adapter, rootPath);
       if (session.configuration['url'])
-        new ChromeAdapter(adapter, this._context.storagePath || this._context.extensionPath, rootPath);
+        new ChromeDelegate(adapter, this._context.storagePath || this._context.extensionPath, rootPath);
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }
