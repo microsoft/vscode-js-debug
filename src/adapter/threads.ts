@@ -399,6 +399,12 @@ export class Thread implements VariableStoreDelegate {
     const response = await responsePromise;
     if (!response)
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+    if (response.exceptionDetails) {
+      let text = response.exceptionDetails.exception ? objectPreview.previewException(response.exceptionDetails.exception).title : response.exceptionDetails.text;
+      if (!text.startsWith('Uncaught'))
+        text = 'Uncaught ' + text;
+      return errors.createSilentError(text);
+    }
 
     const variableStore = callFrameId ? this._pausedVariables! : this.replVariables;
     const variable = await variableStore.createVariable(response.result, args.context);

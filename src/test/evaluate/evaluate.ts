@@ -24,7 +24,6 @@ export function addTests(testRunner) {
     await p.logger.evaluateAndLog(`throw new Error('foo')`);
     p.log('');
 
-    // TODO(dgozman): should these not return the exception?
     await p.logger.evaluateAndLog(`throw {foo: 3, bar: 'baz'};`);
     p.log('');
 

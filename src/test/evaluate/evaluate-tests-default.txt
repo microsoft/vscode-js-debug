@@ -4,22 +4,15 @@ result: 'foo'
 
 result: 1234567890n
 
+<error>: Uncaught Error: foo
 
-result: Error: foo
-    at <anonymous>:1:7
+<error>: Uncaught Object
 
-> result: {foo: 3, bar: 'baz'}
-    bar: 'baz'
-    foo: 3
-    > __proto__: Object
-
-result: 42
+<error>: Uncaught 42
 
 result: 3
 
-
-result: ReferenceError: baz is not defined
-    at <anonymous>:1:1
+<error>: Uncaught ReferenceError: baz is not defined
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
@@ -36,15 +29,9 @@ stderr>
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
 
+<error>: Uncaught Error: error1
 
-result: Error: error1
-    at throwError (http://localhost:8001/browserify/bundle.js:23:11)
-    at <anonymou…
-
-> result: {foo: 3, bar: 'baz'}
-    bar: 'baz'
-    foo: 3
-    > __proto__: Object
+<error>: Uncaught Object
 
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2

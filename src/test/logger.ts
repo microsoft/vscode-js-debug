@@ -143,6 +143,10 @@ export class Logger {
   async evaluateAndLog(expressions: string[] | string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable | void> {
     if (typeof expressions === 'string') {
       const result = await this._testP.dap.evaluate({ expression: expressions, context });
+      if (typeof result === 'string') {
+        this._testP.log(`<error>: ${result}`);
+        return { name: 'result', value: result, variablesReference: 0 };
+      }
       return await this.logEvaluateResult(result, options);
     }
 
