@@ -62,7 +62,7 @@ export class DebugAdapter {
     this._threadAdapter = new DummyThreadAdapter(this.dap);
 
     this.threadManager.onExecutionContextsChanged(_ => {
-      this._onTargetForestChangedEmitter.fire(this.targetForest());
+      this.fireTargetForestChanged();
     });
 
     const disposables: Disposable[] = [];
@@ -248,6 +248,10 @@ export class DebugAdapter {
     for (const delegate of this._delegates)
       result.push(...delegate.targetForest());
     return result;
+  }
+
+  fireTargetForestChanged() {
+    this._onTargetForestChangedEmitter.fire(this.targetForest());
   }
 
   selectTarget(target: Target | undefined) {

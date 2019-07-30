@@ -18,11 +18,17 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
   context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: Target) => {
     item.thread!.resume();
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.stopThread', (item: Target) => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.stopTarget', (item: Target) => {
     item.stop!();
   }));
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.restartThread', (item: Target) => {
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.restartTarget', (item: Target) => {
     item.restart!();
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.attachToTarget', (item: Target) => {
+    item.attach!();
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.detachFromTarget', (item: Target) => {
+    item.detach!();
   }));
 
   treeView.onDidChangeSelection(() => {
@@ -130,16 +136,19 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
         result.description = 'PAUSED';
         result.contextValue += 'canRun';
       } else {
-        result.description = 'RUNNING';
+        result.description = 'ATTACHED';
         result.contextValue += 'canPause';
       }
-      if (item.stop)
-        result.contextValue += ' canStop';
-      if (item.restart)
-        result.contextValue += ' canRestart';
+      if (item.detach)
+        result.contextValue += ' canDetach';
     } else {
-      result.contextValue = 'pwa.executionContext';
+      if (item.attach)
+        result.contextValue += ' canAttach';
     }
+    if (item.restart)
+      result.contextValue += ' canRestart';
+    if (item.stop)
+      result.contextValue += ' canStop';
     return result;
   }
 

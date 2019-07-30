@@ -9,8 +9,9 @@ export interface Target {
   type: string;
   thread?: Thread;
   executionContext?: ExecutionContext;
-  parent?: Target;
   children: Target[];
   stop?: () => void;
   restart?: () => void;
+  attach?: () => void;
+  detach?: () => void;
 }
