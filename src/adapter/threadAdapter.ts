@@ -2,10 +2,9 @@
 // Licensed under the MIT license.
 
 import * as nls from 'vscode-nls';
-import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as errors from './errors';
-import { Thread } from './threads';
+import { Thread, ExecutionContext } from './threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -35,11 +34,10 @@ export class DummyThreadAdapter {
 export class ThreadAdapter {
   private _unsubscribe: (() => void)[];
   private _thread: Thread;
-  private _executionContextId: Cdp.Runtime.ExecutionContextId | undefined;
 
-  constructor(dap: Dap.Api, thread: Thread | undefined, executionContextId: number | undefined) {
-    this._thread = thread!;
-    this._executionContextId = executionContextId;
+  constructor(dap: Dap.Api, thread: Thread, context?: ExecutionContext) {
+    this._thread = thread;
+    const contextId = context ? context.description.id : undefined;
     this._unsubscribe = [
       dap.on('continue', _ => this._thread.resume()),
       dap.on('pause', _ => this._thread.pause()),
@@ -48,8 +46,8 @@ export class ThreadAdapter {
       dap.on('stepOut', _ => this._thread.stepOut()),
       dap.on('restartFrame', params => this._thread.restartFrame(params)),
       dap.on('scopes', params => this._thread.scopes(params)),
-      dap.on('evaluate', params => this._thread.evaluate(params, this._executionContextId)),
-      dap.on('completions', params => this._thread.completions(params, this._executionContextId)),
+      dap.on('evaluate', params => this._thread.evaluate(params, contextId)),
+      dap.on('completions', params => this._thread.completions(params, contextId)),
       dap.on('exceptionInfo', _ => this._thread.exceptionInfo()),
     ];
   }

@@ -14,8 +14,8 @@ import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
 import findChrome from './findChrome';
 import * as launcher from './launcher';
-import { Target, TargetManager } from './targets';
-import { ExecutionContext } from '../adapter/threads';
+import { BrowserTarget, BrowserTargetManager } from './browserTargets';
+import { Target } from '../adapter/targets';
 
 const localize = nls.loadMessageBundle();
 
@@ -30,9 +30,9 @@ export class ChromeAdapter {
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
-  private _targetManager: TargetManager;
+  private _targetManager: BrowserTargetManager;
   private _launchParams: LaunchParams;
-  private _mainTarget?: Target;
+  private _mainTarget?: BrowserTarget;
   private _disposables: vscode.Disposable[] = [];
 
   constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
@@ -42,7 +42,7 @@ export class ChromeAdapter {
     debugAdapter.addDelegate(this);
   }
 
-  targetManager(): TargetManager {
+  targetManager(): BrowserTargetManager {
     return this._targetManager;
   }
 
@@ -60,7 +60,7 @@ export class ChromeAdapter {
     return this._connection;
   }
 
-  async prepareLaunch(params: LaunchParams, isUnderTest: boolean): Promise<Target | Dap.Error> {
+  async prepareLaunch(params: LaunchParams, isUnderTest: boolean): Promise<BrowserTarget | Dap.Error> {
     // params.noDebug
 
     // Prefer canary over stable, it comes earlier in the list.
@@ -89,7 +89,7 @@ export class ChromeAdapter {
 
     this._debugAdapter[ChromeAdapter.symbol] = this;
     const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
-    this._targetManager = new TargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
+    this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
     this._disposables.push(this._targetManager);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
@@ -97,20 +97,20 @@ export class ChromeAdapter {
     this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
-    this._targetManager.onTargetRemoved((target: Target) => {
+    this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
         this._debugAdapter.removeDelegate(this);
     });
     return this._mainTarget;
   }
 
-  async finishLaunch(mainTarget: Target): Promise<void> {
+  async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
   }
 
   async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     const result = await this.prepareLaunch(params as LaunchParams, false);
-    if (!(result instanceof Target))
+    if (!(result instanceof BrowserTarget))
       return result;
     await this.finishLaunch(result);
     return {};
@@ -145,9 +145,9 @@ export class ChromeAdapter {
     this._dispose();
   }
 
-  executionContextForest(): ExecutionContext[] {
+  targetForest(): Target[] {
     const manager = this.targetManager()
-    return manager ? manager.executionContextForest() : [];
+    return manager ? manager.targetForest() : [];
   }
 
 }

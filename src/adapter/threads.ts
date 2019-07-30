@@ -36,21 +36,13 @@ export interface PausedDetails {
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export interface ExecutionContext {
-  description?: Cdp.Runtime.ExecutionContextDescription;
-  name: string;
+  description: Cdp.Runtime.ExecutionContextDescription;
   thread: Thread;
-  isThread: boolean;
-  children: ExecutionContext[];
-  type: string;
 }
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
 export interface ThreadDelegate {
-  canStop(): boolean;
-  stop(): void;
-  canRestart(): boolean;
-  restart(): void;
   copyToClipboard: (text: string) => void;
   supportsCustomBreakpoints(): boolean | undefined;
   defaultScriptOffset(): InlineScriptOffset | undefined;
@@ -200,7 +192,7 @@ export class Thread implements VariableStoreDelegate {
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
-  private _executionContexts: Map<number, Cdp.Runtime.ExecutionContextDescription> = new Map();
+  private _executionContexts: Map<number, ExecutionContext> = new Map();
   readonly delegate: ThreadDelegate;
   readonly replVariables: VariableStore;
   readonly manager: ThreadManager;
@@ -211,9 +203,9 @@ export class Thread implements VariableStoreDelegate {
   private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
   _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
-  _onExecutionContextCreatedEmitter = new EventEmitter<Cdp.Runtime.ExecutionContextDescription>();
+  _onExecutionContextCreatedEmitter = new EventEmitter<ExecutionContext>();
   readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
-  _onExecutionContextDestroyedEmitter = new EventEmitter<Cdp.Runtime.ExecutionContextDescription>();
+  _onExecutionContextDestroyedEmitter = new EventEmitter<ExecutionContext>();
   readonly onExecutionContextsDestroyed = this._onExecutionContextDestroyedEmitter.event;
 
   constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
@@ -251,13 +243,13 @@ export class Thread implements VariableStoreDelegate {
     return this._pausedVariables;
   }
 
-  executionContexts(): Cdp.Runtime.ExecutionContextDescription[] {
+  executionContexts(): ExecutionContext[] {
     return Array.from(this._executionContexts.values());
   }
 
-  defaultExecutionContext(): Cdp.Runtime.ExecutionContextDescription | undefined {
+  defaultExecutionContext(): ExecutionContext | undefined {
     for (const context of this._executionContexts.values()) {
-      if (context.auxData && context.auxData['isDefault'])
+      if (context.description.auxData && context.description.auxData['isDefault'])
         return context;
     }
   }
@@ -559,8 +551,9 @@ export class Thread implements VariableStoreDelegate {
     await this._cdp.Debugger.pauseOnAsyncCall({parentStackTraceId: scheduledPauseOnAsyncCall});
   }
 
-  _executionContextCreated(context: Cdp.Runtime.ExecutionContextDescription) {
-    this._executionContexts.set(context.id, context);
+  _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
+    const context: ExecutionContext = { description, thread: this };
+    this._executionContexts.set(description.id, context);
     this._onExecutionContextCreatedEmitter.fire(context);
     this.manager._onExecutionContextsChangedEmitter.fire(this);
   }

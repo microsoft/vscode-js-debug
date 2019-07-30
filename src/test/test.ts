@@ -9,10 +9,10 @@ import CdpConnection from '../cdp/connection';
 import { ChromeAdapter } from '../chrome/chromeAdapter';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import { Target } from '../chrome/targets';
+import { BrowserTarget } from '../chrome/browserTargets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { ExecutionContext } from '../adapter/threads';
+import { Target } from '../adapter/targets';
 import { DebugAdapter } from '../adapter/debugAdapter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
@@ -68,20 +68,20 @@ export class TestP {
     });
   }
 
-  async _launch(url: string): Promise<Target> {
+  async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}, true)) as Target;
+    const mainTarget = (await this._chromeAdapter.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
     this._connection = await this._chromeAdapter.connection().clone();
     this.adapter = this._chromeAdapter.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
-    let contexts: ExecutionContext[] = [];
-    let selected: ExecutionContext | undefined;
-    this.adapter.onExecutionContextForestChanged(params => {
+    let contexts: Target[] = [];
+    let selected: Target | undefined;
+    this.adapter.onTargetForestChanged(params => {
       contexts = [];
-      const visit = (item: ExecutionContext) => {
+      const visit = (item: Target) => {
         contexts.push(item);
         item.children.forEach(visit);
       };
@@ -89,18 +89,18 @@ export class TestP {
     });
     this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && selected.thread === thread) {
-        this.adapter.selectExecutionContext(selected);
+        this.adapter.selectTarget(selected);
       } else {
         for (const context of contexts) {
           if (context.thread === thread) {
-            this.adapter.selectExecutionContext(context);
+            this.adapter.selectTarget(context);
             break;
           }
         }
       }
     });
     this.adapter.threadManager.onThreadResumed(thread => {
-      this.adapter.selectExecutionContext(selected);
+      this.adapter.selectTarget(selected);
     });
 
     const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;

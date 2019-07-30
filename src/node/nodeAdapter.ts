@@ -10,7 +10,7 @@ import * as which from 'which';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
-import { ExecutionContext } from '../adapter/threads';
+import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
@@ -25,10 +25,6 @@ export interface LaunchParams extends Dap.LaunchParams {
 }
 
 let counter = 0;
-
-interface Target extends ExecutionContext {
-  parent?: ExecutionContext;
-}
 
 export class NodeAdapter {
   private _debugAdapter: DebugAdapter;
@@ -152,11 +148,7 @@ export class NodeAdapter {
       copyToClipboard: (text: string) => vscode.env.clipboard.writeText(text),
       defaultScriptOffset: () => ({lineOffset: 0, columnOffset: 62}),
       sourcePathResolver: () => this._pathResolver,
-      supportsCustomBreakpoints: () => false,
-      canStop: () => true,
-      stop: () => this._terminateProcess(thread.threadId()),
-      canRestart: () => false,
-      restart: () => {}
+      supportsCustomBreakpoints: () => false
     });
     let threadName: string;
     if (targetInfo.title)
@@ -166,11 +158,12 @@ export class NodeAdapter {
     thread.setName(threadName);
 
     const target: Target = {
+      id: targetInfo.targetId,
       name: thread.name(),
       thread: thread,
-      isThread: true,
       children: [],
-      type: 'node'
+      type: 'node',
+      stop: () => this._terminateProcess(targetInfo.targetId)
     };
     this._targets.set(targetInfo.targetId, target);
     setParent(target, this._targets.get(targetInfo.openerId!));
@@ -183,7 +176,7 @@ export class NodeAdapter {
     });
     thread.initialize();
     thread.onExecutionContextsDestroyed(context => {
-      if (context.auxData && context.auxData['isDefault'])
+      if (context.description.auxData && context.description.auxData['isDefault'])
         connection.close();
     });
     cdp.Runtime.runIfWaitingForDebugger({});
@@ -193,7 +186,7 @@ export class NodeAdapter {
     process.kill(+pid);
   }
 
-  executionContextForest(): ExecutionContext[] {
+  targetForest(): Target[] {
     return Array.from(this._targets.values()).filter(t => !t.parent);
   }
 

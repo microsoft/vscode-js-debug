@@ -7,26 +7,27 @@ import * as debug from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ExecutionContext, ThreadDelegate } from '../adapter/threads';
+import { Thread, ThreadManager, ThreadDelegate, ExecutionContext } from '../adapter/threads';
 import { FrameModel, Frame } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
+import { Target } from '../adapter/targets';
 
 const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class TargetManager implements vscode.Disposable {
+export class BrowserTargetManager implements vscode.Disposable {
   private _connection: CdpConnection;
-  private _targets: Map<Cdp.Target.TargetID, Target> = new Map();
+  private _targets: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
   private _browser: Cdp.Api;
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _threadManager: ThreadManager;
   _sourcePathResolver: SourcePathResolver;
 
-  private _onTargetAddedEmitter = new vscode.EventEmitter<Target>();
-  private _onTargetRemovedEmitter = new vscode.EventEmitter<Target>();
+  private _onTargetAddedEmitter = new vscode.EventEmitter<BrowserTarget>();
+  private _onTargetRemovedEmitter = new vscode.EventEmitter<BrowserTarget>();
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
@@ -45,40 +46,44 @@ export class TargetManager implements vscode.Disposable {
     this.serviceWorkerModel.dispose();
   }
 
-  targets(): Target[] {
+  targets(): BrowserTarget[] {
     return Array.from(this._targets.values());
   }
 
-  executionContextForest(): ExecutionContext[] {
+  targetForest(): Target[] {
     const reported: Set<string> = new Set();
-    const toExecutionContext = (thread: Thread, context: Cdp.Runtime.ExecutionContextDescription, isThread: boolean, type: string, name?: string): ExecutionContext => {
-      reported.add(thread.threadId() + ':' + context.id);
+    const toTarget = (target: BrowserTarget, context: ExecutionContext, isThread: boolean, type: string, name?: string): Target => {
+      const uniqueContextId = target._targetInfo.targetId + ':' + context.description.id;
+      reported.add(uniqueContextId);
       return {
-        name: name || context.name || thread.name(),
-        description: context,
-        thread: thread,
+        id: uniqueContextId,
+        type,
+        name: name || context.description.name || context.thread.name(),
+        thread: isThread ? context.thread : undefined,
+        executionContext: context,
         children: [],
-        isThread,
-        type
+        stop: target.canStop() ? () => target.stop() : undefined,
+        restart: target.canRestart() ? () => target.restart() : undefined
       };
     };
 
     // Go over the contexts, bind them to frames.
-    const mainForFrameId: Map<Cdp.Page.FrameId, ExecutionContext> = new Map();
-    const mainForTarget: Map<Target, ExecutionContext> = new Map();
-    const worldsForFrameId: Map<Cdp.Page.FrameId, ExecutionContext[]> = new Map();
+    const mainForFrameId: Map<Cdp.Page.FrameId, Target> = new Map();
+    const mainForTarget: Map<BrowserTarget, Target> = new Map();
+    const worldsForFrameId: Map<Cdp.Page.FrameId, Target[]> = new Map();
     for (const target of this.targets()) {
       const thread = target.thread();
       if (!thread)
         continue;
       for (const context of thread.executionContexts()) {
-        const frameId = context.auxData ? context.auxData['frameId'] : undefined;
-        const isDefault = context.auxData ? context.auxData['isDefault'] : false;
+        const description = context.description;
+        const frameId = description.auxData ? description.auxData['frameId'] : undefined;
+        const isDefault = description.auxData ? description.auxData['isDefault'] : false;
         const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
           const name = frame.parentFrame ? frame.displayName() : thread.name();
           const isThread = !!this._targets.get(frame.id);
-          const dapContext = toExecutionContext(thread, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name);
+          const dapContext = toTarget(target, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name);
           mainForFrameId.set(frameId, dapContext);
           if (isThread)
             mainForTarget.set(target, dapContext);
@@ -88,13 +93,13 @@ export class TargetManager implements vscode.Disposable {
             contexts = [];
             worldsForFrameId.set(frameId, contexts);
           }
-          contexts.push(toExecutionContext(thread, context, false, 'content_script'));
+          contexts.push(toTarget(target, context, false, 'content_script'));
         }
       }
     }
 
     // Visit frames and use bindings above to build context tree.
-    const visitFrames = (frame: Frame, container: ExecutionContext[]) => {
+    const visitFrames = (frame: Frame, container: Target[]) => {
       const main = mainForFrameId.get(frame.id);
       const worlds = worldsForFrameId.get(frame.id) || [];
       if (main) {
@@ -109,7 +114,7 @@ export class TargetManager implements vscode.Disposable {
       }
     };
 
-    const result: ExecutionContext[] = [];
+    const result: Target[] = [];
     const mainFrame = this.frameModel.mainFrame();
     if (mainFrame)
       visitFrames(mainFrame, result);
@@ -127,7 +132,7 @@ export class TargetManager implements vscode.Disposable {
 
       if (reportType !== 'service_worker') {
         // Which target should own the context?
-        for (let t: Target | undefined = target; t; t = t.parentTarget) {
+        for (let t: BrowserTarget | undefined = target; t; t = t.parentTarget) {
           const parentContext = mainForTarget.get(t);
           if (parentContext) {
             container = parentContext.children;
@@ -138,17 +143,17 @@ export class TargetManager implements vscode.Disposable {
 
       // Put all contexts there, mark all as threads since they are independent.
       for (const context of thread.executionContexts()) {
-        if (reported.has(thread.threadId() + ':' + context.id))
+        if (reported.has(target._targetInfo.targetId + ':' + context.description.id))
           continue;
-        container.push(toExecutionContext(thread, context, true, reportType));
+        container.push(toTarget(target, context, true, reportType));
       }
     }
     return result;
   }
 
-  waitForMainTarget(): Promise<Target | undefined> {
-    let callback: (result: Target | undefined) => void;
-    const promise = new Promise<Target | undefined>(f => callback = f);
+  waitForMainTarget(): Promise<BrowserTarget | undefined> {
+    let callback: (result: BrowserTarget | undefined) => void;
+    const promise = new Promise<BrowserTarget | undefined>(f => callback = f);
     this._browser.Target.setDiscoverTargets({ discover: true });
     this._browser.Target.on('targetCreated', async event => {
       if (this._targets.size)
@@ -169,11 +174,11 @@ export class TargetManager implements vscode.Disposable {
     return promise;
   }
 
-  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: Target): Promise<Target | undefined> {
+  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: BrowserTarget): Promise<BrowserTarget | undefined> {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new Target(this, targetInfo, cdp, parentTarget, target => {
+    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -239,19 +244,19 @@ export class TargetManager implements vscode.Disposable {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
-export class Target implements ThreadDelegate {
+export class BrowserTarget implements ThreadDelegate {
   readonly targetId: Cdp.Target.TargetID;
-  readonly parentTarget?: Target;
+  readonly parentTarget?: BrowserTarget;
 
-  private _manager: TargetManager;
+  private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
   private _thread: Thread | undefined;
   _targetInfo: Cdp.Target.TargetInfo;
-  private _ondispose: (t: Target) => void;
+  private _ondispose: (t: BrowserTarget) => void;
 
-  _children: Map<Cdp.Target.TargetID, Target> = new Map();
+  _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
-  constructor(targetManager: TargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: Target | undefined, ondispose: (t: Target) => void) {
+  constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, ondispose: (t: BrowserTarget) => void) {
     this._cdp = cdp;
     this._manager = targetManager;
     this.targetId = targetInfo.targetId;
@@ -348,7 +353,7 @@ export class Target implements ThreadDelegate {
       else if (parsedURL.protocol === 'data:')
         threadName = '<data>';
       else
-        threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : `#${this._thread.threadId()}`;
+        threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : this._targetInfo.title;
     } catch (e) {
       threadName += this._targetInfo.url;
     }
@@ -364,7 +369,7 @@ export class Target implements ThreadDelegate {
     this._ondispose(this);
   }
 
-  _visit(visitor: (t: Target) => void) {
+  _visit(visitor: (t: BrowserTarget) => void) {
     visitor(this);
     for (const child of this._children.values())
       child._visit(visitor);

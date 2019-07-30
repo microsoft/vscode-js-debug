@@ -8,16 +8,17 @@ import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
 import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
-import { ExecutionContext, PauseOnExceptionsState, Thread, ThreadManager } from './threads';
+import { PauseOnExceptionsState, ThreadManager, ExecutionContext, Thread } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
+import { Target } from './targets';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
 const revealLocationThreadId = 1;
 
 export interface DebugAdapterDelegate {
-  executionContextForest(): ExecutionContext[];
+  targetForest(): Target[];
   adapterDisposed: () => void;
   onLaunch: (params: Dap.LaunchParams) => Promise<Dap.LaunchResult | Dap.Error>;
   onTerminate: (params: Dap.TerminateParams) => Promise<Dap.TerminateResult | Dap.Error>;
@@ -34,9 +35,9 @@ export class DebugAdapter {
   readonly breakpointManager: BreakpointManager;
   private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
-  private _onExecutionContextForestChangedEmitter = new EventEmitter<ExecutionContext[]>();
+  private _onTargetForestChangedEmitter = new EventEmitter<Target[]>();
   private _delegates = new Set<DebugAdapterDelegate>();
-  readonly onExecutionContextForestChanged = this._onExecutionContextForestChangedEmitter.event;
+  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
 
   constructor(dap: Dap.Api) {
     this.dap = dap;
@@ -61,7 +62,7 @@ export class DebugAdapter {
     this._threadAdapter = new DummyThreadAdapter(this.dap);
 
     this.threadManager.onExecutionContextsChanged(_ => {
-      this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
+      this._onTargetForestChangedEmitter.fire(this.targetForest());
     });
 
     const disposables: Disposable[] = [];
@@ -209,14 +210,14 @@ export class DebugAdapter {
 
   async addDelegate(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegates.add(delegate);
-    this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
+    this._onTargetForestChangedEmitter.fire(this.targetForest());
   }
 
   async removeDelegate(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegates.delete(delegate);
     if (!this._delegates.size)
       this.dap.terminated({});
-    this._onExecutionContextForestChangedEmitter.fire(this.executionContextForest());
+    this._onTargetForestChangedEmitter.fire(this.targetForest());
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -242,29 +243,28 @@ export class DebugAdapter {
     this._locationToReveal = undefined;
   }
 
-  executionContextForest(): ExecutionContext[] {
-    const result: ExecutionContext[] = [];
+  targetForest(): Target[] {
+    const result: Target[] = [];
     for (const delegate of this._delegates)
-      result.push(...delegate.executionContextForest());
+      result.push(...delegate.targetForest());
     return result;
   }
 
-  selectExecutionContext(context: ExecutionContext | undefined) {
-    if (context) {
-      const description = context.description || context.thread.defaultExecutionContext();
-      this._setExecutionContext(context.thread, description ? description.id : undefined);
-    } else {
-      const thread = this.threadManager.mainThread();
-      const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
-      this._setExecutionContext(thread, defaultContext ? defaultContext.id : undefined);
+  selectTarget(target: Target | undefined) {
+    if (target && target.executionContext) {
+      this._setExecutionContext(target.executionContext.thread, target.executionContext);
+      return;
     }
+    const thread = target ? target.thread : this.threadManager.mainThread();
+    const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
+    this._setExecutionContext(thread, defaultContext);
   }
 
-  _setExecutionContext(thread: Thread | undefined, executionContextId: number | undefined) {
+  _setExecutionContext(thread: Thread | undefined, context: ExecutionContext | undefined) {
     if (this._threadAdapter)
       this._threadAdapter.dispose();
     if (thread)
-      this._threadAdapter = new ThreadAdapter(this.dap, thread, executionContextId);
+      this._threadAdapter = new ThreadAdapter(this.dap, thread, context);
     else
       this._threadAdapter = new DummyThreadAdapter(this.dap);
 
