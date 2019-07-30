@@ -62,7 +62,9 @@
     "onView:pwa.threadsView",
     "onView:pwa.breakpoints",
     "onView:pwa.serviceWorkers",
-    "onView:pwa.cacheStorage"
+    "onView:pwa.cacheStorage",
+    "onCommand:pwa.debugTask",
+    "onCommand:pwa.debugCurrentScript"
   ],
   "contributes": {
     "viewsContainers": {
@@ -180,6 +182,14 @@
           "light": "resources/light/disconnect.svg",
           "dark": "resources/dark/disconnect.svg"
         }
+      },
+      {
+        "command": "pwa.debugCurrentScript",
+        "title": "PWA: debug current script in Node"
+      },
+      {
+        "command": "pwa.debugTask",
+        "title": "PWA: debug task"
       }
     ],
     "menus": {
@@ -273,7 +283,7 @@
     "debuggers": [
       {
         "type": "pwa",
-        "label": "Launch PWA",
+        "label": "PWA: launch",
         "configurationAttributes": {
           "launch": {
             "properties": {
@@ -313,33 +323,29 @@
           {
             "type": "pwa",
             "request": "launch",
-            "name": "Launch browser"
+            "name": "PWA: launch program",
+            "command": "{1:npm start}"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Launch browser with PWA",
+            "label": "PWA: launch browser",
             "description": "A new configuration for running browser with CDP",
             "body": {
               "type": "pwa",
               "request": "launch",
               "name": "Launch browser with PWA",
-              "url": "http://localhost:${1:3000}",
-              "webRoot": "^\"\\${workspaceFolder}\""
+              "url": "http://localhost:${1:3000}"
             }
           },
           {
-            "label": "Launch program with PWA",
+            "label": "PWA: launch program",
             "description": "A new configuration for running Node program with CDP",
             "body": {
               "type": "pwa",
               "request": "launch",
               "name": "Launch program with PWA",
-              "runtimeExecutable": "node",
-              "cwd": "^\"\\${workspaceFolder}\"",
-              "args": [
-                "^\"\\${workspaceFolder}/${1:index.js}\""
-              ],
+              "command": "{1:npm start}",
               "attachToNode": "always"
             }
           }

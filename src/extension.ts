@@ -8,6 +8,7 @@ import { AdapterFactory } from './adapterFactory';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
 import { OutputUI } from './ui/outputUI';
+import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { registerServiceWorkersUI } from './ui/serviceWorkersUI';
 import { registerThreadsUI } from './ui/threadsUI';
@@ -23,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerThreadsUI(context, factory);
   registerServiceWorkersUI(context, factory);
   registerPrettyPrintActions(context, factory);
+  registerDebugScriptActions(context, factory);
 }
 
 export function deactivate() {

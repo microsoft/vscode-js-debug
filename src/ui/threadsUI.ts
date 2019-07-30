@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
+
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
