@@ -185,11 +185,11 @@
       },
       {
         "command": "pwa.debugCurrentScript",
-        "title": "PWA: debug current script in Node"
+        "title": "Debug script in Node"
       },
       {
         "command": "pwa.debugTask",
-        "title": "PWA: debug task"
+        "title": "Debug task"
       }
     ],
     "menus": {
@@ -257,6 +257,18 @@
           "command": "pwa.detachFromTarget",
           "when": "view == pwa.threadsView && viewItem =~ /.*canDetach.*/",
           "group": "inline"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "pwa.debugCurrentScript",
+          "when": "resourceLangId == javascript"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "pwa.debugCurrentScript",
+          "when": "resourceLangId == javascript"
         }
       ]
     },
