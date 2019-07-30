@@ -88,7 +88,7 @@ export class ServiceWorkerModel implements vscode.Disposable {
     ServiceWorkerModel._instances.delete(this);
   }
 
-  async addTarget(cdp: Cdp.Api) {
+  async attached(cdp: Cdp.Api) {
     this._targets.add(cdp);
     if (this._cdp)
       return;
@@ -101,7 +101,7 @@ export class ServiceWorkerModel implements vscode.Disposable {
       await this.setMode(ServiceWorkerModel._mode);
   }
 
-  async removeTarget(cdp: Cdp.Api) {
+  async detached(cdp: Cdp.Api) {
     this._targets.delete(cdp);
   }
 

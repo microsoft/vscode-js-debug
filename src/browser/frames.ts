@@ -18,17 +18,13 @@ export class FrameModel {
 
   _frames: Map<string, Frame> = new Map();
 
-  async addTarget(cdp: Cdp.Api): Promise<boolean> {
+  async attached(cdp: Cdp.Api): Promise<boolean> {
     await cdp.Page.enable({});
     const result = await cdp.Page.getResourceTree({});
     if (!result)
       return false;
     this._processCachedResources(cdp, result.frameTree);
     return true;
-  }
-
-  async removeTarget(cdp: Cdp.Api) {
-    await cdp.Page.disable({});
   }
 
   mainFrame(): Frame | undefined {

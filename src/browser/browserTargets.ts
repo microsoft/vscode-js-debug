@@ -218,7 +218,7 @@ export class BrowserTargetManager implements vscode.Disposable {
 
     for (const childTargetId of target._children.keys())
       this._detachedFromTarget(childTargetId);
-    target._dispose();
+    target._detached();
 
     this._targets.delete(targetId);
     if (target.parentTarget)
@@ -318,9 +318,9 @@ export class BrowserTarget implements ThreadDelegate {
   async _initialize(waitingForDebugger: boolean): Promise<boolean> {
     if (this._thread)
       this._thread.initialize();
-    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager.frameModel.addTarget(this._cdp))
+    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager.frameModel.attached(this._cdp))
       return false;
-    await this._manager.serviceWorkerModel.addTarget(this._cdp);
+    await this._manager.serviceWorkerModel.attached(this._cdp);
     if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
       return false;
     return true;
@@ -361,11 +361,10 @@ export class BrowserTarget implements ThreadDelegate {
     this._thread.setName(threadName);
   }
 
-  _dispose() {
+  _detached() {
     if (this._thread)
       this._thread.dispose();
-    this._manager.frameModel.removeTarget(this._cdp);
-    this._manager.serviceWorkerModel.removeTarget(this._cdp);
+    this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
   }
 
