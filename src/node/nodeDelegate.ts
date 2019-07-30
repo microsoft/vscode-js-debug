@@ -6,9 +6,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as which from 'which';
 import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
-import * as errors from '../adapter/errors';
 import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
@@ -19,8 +17,7 @@ import * as utils from '../utils/urlUtils';
 import { ThreadDelegate, Thread } from '../adapter/threads';
 
 export interface LaunchParams extends Dap.LaunchParams {
-  args: string[];
-  runtimeExecutable: string;
+  command: string;
   cwd: string;
   env: Object;
   attachToNode: ['never', 'always', 'top-level'];
@@ -51,24 +48,23 @@ export class NodeDelegate implements DebugAdapterDelegate {
     this._launchParams = params;
     this._pathResolver = new NodeSourcePathResolver(this._rootPath);
     await this._startServer();
-    const error = await this._relaunch();
-    return error || {};
+    await this._relaunch();
+    return {};
   }
 
-  async _relaunch(): Promise<Dap.LaunchResult | undefined> {
+  async _relaunch() {
     await this._killRuntime();
 
-    const executable = await resolvePath(this._launchParams!.runtimeExecutable);
-    if (!executable)
-      return errors.createSilentError('Could not locate Node.js executable');
-
-    this._runtime = spawn(executable, this._launchParams!.args || [], {
+    const { shell, param } = process.platform === 'win32' ?
+        { shell: 'cmd', param: '/C' } :
+        { shell: '/bin/sh', param: '-c' };
+    const commandLine = this._launchParams!.command;
+    this._runtime = spawn(shell, [param, commandLine], {
       cwd: this._launchParams!.cwd || this._rootPath,
       env: this._buildEnv(),
       stdio: ['ignore', 'pipe', 'pipe']
     });
-    const outputName = [executable, ...(this._launchParams!.args || [])].join(' ');
-    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(outputName);
+    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(commandLine);
     output.show();
     this._runtime.stdout.on('data', data => output && output.append(data.toString()));
     this._runtime.stderr.on('data', data => output && output.append(data.toString()));
@@ -185,6 +181,7 @@ class NodeTarget implements ThreadDelegate {
 
     this._setParent(delegate._targets.get(targetInfo.openerId!));
     delegate._targets.set(targetInfo.targetId, this);
+    cdp.Target.on('targetDestroyed', () => this._connection.close());
     connection.onDisconnected(_ => this._disconnected());
 
     if (targetInfo.type === 'waitingForDebugger')
@@ -264,6 +261,11 @@ class NodeTarget implements ThreadDelegate {
     thread.dispose();
   }
 
+  _stop() {
+    process.kill(+this._targetId);
+    this._connection.close();
+  }
+
   toTarget(): Target {
     return {
       id: this._targetId,
@@ -271,7 +273,7 @@ class NodeTarget implements ThreadDelegate {
       children: this._children.map(t => t.toTarget()),
       type: 'node',
       thread: this._thread,
-      stop: () => process.kill(+this._targetId),
+      stop: () => this._stop(),
       attach: this._thread ? undefined : () => this._attach(),
       detach: this._thread ? () => this._detach() : undefined
     };
@@ -309,8 +311,4 @@ class NodeSourcePathResolver implements SourcePathResolver {
     // Node executes files directly from disk, there is no need to check the content.
     return false;
   }
-}
-
-function resolvePath(command: string): Promise<string | undefined> {
-  return new Promise(resolve => which(command, (error: Error | null, path: string | undefined) => resolve(path)));
 }
