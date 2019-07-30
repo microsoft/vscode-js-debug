@@ -66,19 +66,37 @@
 - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
 
-# Architecture Overview
+# Features
 
-There are two entry points: `BrowserDelegate` and `NodeDelegate`. Each of them listens to DAP, collects configuration DAP requests using `Configurator`, implements `url <-> path` mapping strategy, launches the corresponding debuggee (Browser or Node) and instantiates `Adapter`, which takes over after launch.
+- Multiple execution contexts support. Execution context is similar to a Scope, which is available when not on pause. Repl evaluation should be attributed to an execution context.
 
-`Adapter` operates on multiple `Threads`, which are created with independent CDP sessions. Each `Thread` assumes a JavaScript environment, and handles debugging: execution contexts, scripts, stepping, breakpoints, console logging, exceptions, object inspection.
+- Inline breakpoints
+  - It is possible to implement inline breakpoints using `TextEditor.setDecorations`, but they lack custom `onclick` handler.
 
-All scripts reported by `Thread` are added to `SourceContainer` and deduplicated by url. If script has a `sourceMapUrl`, container proceeds to load the source map (again, deduped by url) and generates source map sources from the source map. It then establishes mapping between original compiled source and created source map sources, and later uses the mapping to resolve `Locations` to preferred or all available ones. Since all `Locations` go through `SourceContainer`, we guarantee user-friendly locations being reported everywhere: in console messages, exceptions, stack traces on pause, etc.
+  - Breakpoints which resolve somewhere in the middle of a line are hard to use. For example, `await foo.bar()` is resolved to "before `await`, but after `foo.bar()`", which is not obvious and can be communicated by placing inline breakpoints.
 
-`VariableStore` maps CDP's `RemoteObject` to DAP's `Variable`. Each `Thread` maintains two separate stores: one for variables accessed on pause, and one for the `repl`. These stores have different lifetimes, with repl store being cleared when console is cleared, and paused store survining until next resume.
+- No checkboxes in the tree view, useful for e.g. browser breakpoints where each can be toggled, similar to regular breakpoints.
 
-`BrowserDelegate` manages `Targets` which may or may not contain a `Thread` each. These are targets from CDP, representing pages, iframes, service workers, etc. `FrameModel` constructs a full-page tree of frames from multiple targets, to allow user evaluate in any context.
 
-`NodeDelegate` manages launching node processes and connecting to them. It pushes one `Thread` per node process to `Adapter`.
+# Bugs
+
+- It is impossible to construct a "debug:...." uri and open a text document in the UI. This prevents revealing any source coming from the debugger.
+
+- Child debugger sessions: cannot have both child sessions and threads, no way to rearrange sessions when parent process terminates, but child processes survive.
+
+- Debug console does not linkify many string properties. It seems to do so only for the property with an empty name.
+
+- Output stream does not respect control sequences.
+
+- No way to implement `console.group`.
+
+- Exception state has 3 options: 'always', 'never', 'unhandled', but has to be modeled with checkboxes.
+
+# Questions
+
+- Global scope pollution.
+
+- A notion of "target" which is a program user can attach to and debug. It is convenient to see them in a tree and pick the correct one. For example, when running `npm start` user can see a tree of spawned processes, and pick the main one to attach to.
 
 # Contributing
 
