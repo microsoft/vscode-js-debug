@@ -3,17 +3,17 @@
 
 import * as path from 'path';
 import * as stream from 'stream';
-import * as utils from '../utils/urlUtils';
+import { DebugAdapter } from '../adapter/debugAdapter';
+import { Target } from '../adapter/targets';
+import { BrowserDelegate } from '../browser/browserDelegate';
+import { BrowserTarget } from '../browser/browserTargets';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
-import { ChromeDelegate } from '../chrome/chromeDelegate';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import { BrowserTarget } from '../chrome/browserTargets';
+import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { Target } from '../adapter/targets';
-import { DebugAdapter } from '../adapter/debugAdapter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -35,7 +35,7 @@ export class TestP {
   cdp: Cdp.Api;
   adapter: DebugAdapter;
 
-  private _chromeDelegate: ChromeDelegate;
+  private _browserDelegate: BrowserDelegate;
   private _connection: CdpConnection;
   private _evaluateCounter = 0;
   private _workspaceRoot: string;
@@ -55,8 +55,8 @@ export class TestP {
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
     const debugAdapter = new DebugAdapter(adapterConnection.dap());
-    this._chromeDelegate = new ChromeDelegate(debugAdapter, storagePath, this._workspaceRoot);
-    debugAdapter.addDelegate(this._chromeDelegate);
+    this._browserDelegate = new BrowserDelegate(debugAdapter, storagePath, this._workspaceRoot);
+    debugAdapter.addDelegate(this._browserDelegate);
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({
       clientID: 'pwa-test',
@@ -72,9 +72,9 @@ export class TestP {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._chromeDelegate.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
-    this._connection = await this._chromeDelegate.connection().clone();
-    this.adapter = this._chromeDelegate.adapter();
+    const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
+    this._connection = await this._browserDelegate.connection().clone();
+    this.adapter = this._browserDelegate.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
     let contexts: Target[] = [];
@@ -111,7 +111,7 @@ export class TestP {
   async launch(content: string): Promise<void> {
     const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
     const mainTarget = await this._launch(url);
-    await this._chromeDelegate.finishLaunch(mainTarget);
+    await this._browserDelegate.finishLaunch(mainTarget);
   }
 
   async launchAndLoad(content: string): Promise<void> {
@@ -119,7 +119,7 @@ export class TestP {
     const mainTarget = await this._launch(url);
     await this.cdp.Page.enable({});
     await Promise.all([
-      this._chromeDelegate.finishLaunch(mainTarget),
+      this._browserDelegate.finishLaunch(mainTarget),
       new Promise(f => this.cdp.Page.on('loadEventFired', f))
     ]);
     await this.cdp.Page.disable({});
@@ -130,7 +130,7 @@ export class TestP {
     const mainTarget = await this._launch(url);
     await this.cdp.Page.enable({});
     await Promise.all([
-      this._chromeDelegate.finishLaunch(mainTarget),
+      this._browserDelegate.finishLaunch(mainTarget),
       new Promise(f => this.cdp.Page.on('loadEventFired', f))
     ]);
     await this.cdp.Page.disable({});

@@ -12,7 +12,7 @@ import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
-import findChrome from './findChrome';
+import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target } from '../adapter/targets';
@@ -24,8 +24,8 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
-export class ChromeDelegate implements DebugAdapterDelegate {
-  static symbol = Symbol('ChromeAdapter');
+export class BrowserDelegate implements DebugAdapterDelegate {
+  static symbol = Symbol('BrowserDelegate');
   private _connection: CdpConnection;
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
@@ -64,9 +64,9 @@ export class ChromeDelegate implements DebugAdapterDelegate {
     // params.noDebug
 
     // Prefer canary over stable, it comes earlier in the list.
-    const executablePath = findChrome()[0];
+    const executablePath = findBrowser()[0];
     if (!executablePath)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to find Chrome'));
+      return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser'));
     const args: string[] = [];
     if (isUnderTest) {
       args.push('--remote-debugging-port=0');
@@ -87,8 +87,8 @@ export class ChromeDelegate implements DebugAdapterDelegate {
 
     this._launchParams = params;
 
-    this._debugAdapter[ChromeDelegate.symbol] = this;
-    const pathResolver = new ChromeSourcePathResolver(this._rootPath, params.url, params.webRoot);
+    this._debugAdapter[BrowserDelegate.symbol] = this;
+    const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
     this._disposables.push(this._targetManager);
 
@@ -152,7 +152,7 @@ export class ChromeDelegate implements DebugAdapterDelegate {
 
 }
 
-class ChromeSourcePathResolver implements SourcePathResolver {
+class BrowserSourcePathResolver implements SourcePathResolver {
   // We map all urls under |_baseUrl| to files under |_basePath|.
   private _basePath?: string;
   private _baseUrl?: URL;
@@ -242,7 +242,7 @@ class ChromeSourcePathResolver implements SourcePathResolver {
   }
 
   shouldCheckContentHash(): boolean {
-    // Chrome executes scripts retrieved from network.
+    // Browser executes scripts retrieved from network.
     // We check content hash because served code can be different from actual files on disk.
     return true;
   }

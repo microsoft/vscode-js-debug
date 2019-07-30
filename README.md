@@ -68,7 +68,7 @@
 
 # Architecture Overview
 
-There are two entry points: `ChromeAdapter` and `NodeAdapter`. Each of them listens to DAP, collects configuration DAP requests using `Configurator`, implements `url <-> path` mapping strategy, launches the corresponding debuggee (Chrome or Node) and instantiates `Adapter`, which takes over after launch.
+There are two entry points: `BrowserDelegate` and `NodeDelegate`. Each of them listens to DAP, collects configuration DAP requests using `Configurator`, implements `url <-> path` mapping strategy, launches the corresponding debuggee (Browser or Node) and instantiates `Adapter`, which takes over after launch.
 
 `Adapter` operates on multiple `Threads`, which are created with independent CDP sessions. Each `Thread` assumes a JavaScript environment, and handles debugging: execution contexts, scripts, stepping, breakpoints, console logging, exceptions, object inspection.
 
@@ -76,9 +76,9 @@ All scripts reported by `Thread` are added to `SourceContainer` and deduplicated
 
 `VariableStore` maps CDP's `RemoteObject` to DAP's `Variable`. Each `Thread` maintains two separate stores: one for variables accessed on pause, and one for the `repl`. These stores have different lifetimes, with repl store being cleared when console is cleared, and paused store survining until next resume.
 
-`ChromeAdapter` manages `Targets` which may or may not contain a `Thread` each. These are targets from CDP, representing pages, iframes, service workers, etc. `FrameModel` constructs a full-page tree of frames from multiple targets, to allow user evaluate in any context.
+`BrowserDelegate` manages `Targets` which may or may not contain a `Thread` each. These are targets from CDP, representing pages, iframes, service workers, etc. `FrameModel` constructs a full-page tree of frames from multiple targets, to allow user evaluate in any context.
 
-`NodeAdapter` manages launching node processes and connecting to them. It pushes one `Thread` per node process to `Adapter`.
+`NodeDelegate` manages launching node processes and connecting to them. It pushes one `Thread` per node process to `Adapter`.
 
 # Contributing
 

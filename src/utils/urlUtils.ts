@@ -96,7 +96,7 @@ export function urlToRegExString(urlString: string): string {
   let prefix = '';
   if (url.protocol && url.protocol !== 'http:' && url.protocol !== 'https') {
     prefix = '^' + url.protocol + '//';
-    if (url.protocol === 'chrome-extension:')
+    if (url.protocol.endsWith('-extension:'))
       prefix += url.hostname + '\\b';
   }
   return prefix + escapeForRegExp(url.pathname) + (url.search ? '\\b' : '$');

@@ -285,17 +285,17 @@
           {
             "type": "pwa",
             "request": "launch",
-            "name": "Launch Chrome"
+            "name": "Launch browser"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Launch Chrome with PWA",
-            "description": "A new configuration for running Chrome with CDP",
+            "label": "Launch browser with PWA",
+            "description": "A new configuration for running browser with CDP",
             "body": {
               "type": "pwa",
               "request": "launch",
-              "name": "Launch Chrome with PWA",
+              "name": "Launch browser with PWA",
               "url": "http://localhost:${1:3000}",
               "webRoot": "^\"\\${workspaceFolder}\""
             }

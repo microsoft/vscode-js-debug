@@ -33,7 +33,7 @@ class DebugConfigurationProvider implements vscode.DebugConfigurationProvider {
   resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
     if (!config.type && !config.request && !config.name) {
       config.type = 'pwa';
-      config.name = localize('debugConfig.launch.name', 'Launhc Chrome with PWA');
+      config.name = localize('debugConfig.launch.name', 'Launch browser with PWA');
       config.request = 'launch';
     }
     return config;

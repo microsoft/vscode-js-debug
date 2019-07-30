@@ -46,22 +46,22 @@ export async function launch(executablePath: string, options: LaunchOptions | un
     timeout = 30000,
   } = options;
 
-  const chromeArguments: string[] = [];
+  const browserArguments: string[] = [];
   if (!ignoreDefaultArgs)
-    chromeArguments.push(...defaultArgs(options));
+    browserArguments.push(...defaultArgs(options));
   else if (Array.isArray(ignoreDefaultArgs))
-    chromeArguments.push(...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1));
+    browserArguments.push(...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1));
   else
-    chromeArguments.push(...args);
+    browserArguments.push(...args);
 
-  if (!chromeArguments.some(argument => argument.startsWith('--remote-debugging-')))
-    chromeArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
+  if (!browserArguments.some(argument => argument.startsWith('--remote-debugging-')))
+    browserArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
 
-  const usePipe = chromeArguments.includes('--remote-debugging-pipe');
+  const usePipe = browserArguments.includes('--remote-debugging-pipe');
   const stdio: Array<string> = usePipe ? ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'];
-  const chromeProcess = childProcess.spawn(
+  const browserProcess = childProcess.spawn(
     executablePath,
-    chromeArguments,
+    browserArguments,
     {
       // On non-windows platforms, `detached: false` makes child process a leader of a new
       // process group, making it possible to kill child process tree with `.kill(-pid)` command.
@@ -73,37 +73,37 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   );
 
   if (dumpio) {
-    chromeProcess.stderr.pipe(process.stderr);
-    chromeProcess.stdout.pipe(process.stdout);
+    browserProcess.stderr.pipe(process.stderr);
+    browserProcess.stdout.pipe(process.stdout);
   }
 
-  let chromeClosed = false;
-  const listeners = [eventUtils.addEventListener(process, 'exit', killChrome)];
+  let browserClosed = false;
+  const listeners = [eventUtils.addEventListener(process, 'exit', killBrowser)];
   try {
     if (!usePipe) {
-      const browserWSEndpoint = await waitForWSEndpoint(chromeProcess, timeout);
+      const browserWSEndpoint = await waitForWSEndpoint(browserProcess, timeout);
       const transport = await WebSocketTransport.create(browserWSEndpoint);
       return new CdpConnection(transport);
     } else {
-      const stdio = chromeProcess.stdio as unknown as [Writable, Readable, Readable, Writable, Readable];
+      const stdio = browserProcess.stdio as unknown as [Writable, Readable, Readable, Writable, Readable];
       const transport = new PipeTransport(stdio[3], stdio[4]);
       return new CdpConnection(transport);
     }
   } catch (e) {
-    killChrome();
+    killBrowser();
     throw e;
   }
 
   // This method has to be sync to be used as 'exit' event handler.
-  function killChrome() {
+  function killBrowser() {
     eventUtils.removeEventListeners(listeners);
-    if (chromeProcess.pid && !chromeProcess.killed && !chromeClosed) {
-      // Force kill chrome.
+    if (browserProcess.pid && !browserProcess.killed && !browserClosed) {
+      // Force kill browser.
       try {
         if (process.platform === 'win32')
-          childProcess.execSync(`taskkill /pid ${chromeProcess.pid} /T /F`);
+          childProcess.execSync(`taskkill /pid ${browserProcess.pid} /T /F`);
         else
-          process.kill(-chromeProcess.pid, 'SIGKILL');
+          process.kill(-browserProcess.pid, 'SIGKILL');
       } catch (e) {
         // the process might have already stopped
       }
@@ -116,13 +116,13 @@ function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
     args = [],
     userDataDir = null
   } = options;
-  const chromeArguments = [...DEFAULT_ARGS];
+  const browserArguments = [...DEFAULT_ARGS];
   if (userDataDir)
-    chromeArguments.push(`--user-data-dir=${userDataDir}`);
+    browserArguments.push(`--user-data-dir=${userDataDir}`);
   if (args.every(arg => arg.startsWith('-')))
-    chromeArguments.push('about:blank');
-  chromeArguments.push(...args);
-  return chromeArguments;
+    browserArguments.push('about:blank');
+  browserArguments.push(...args);
+  return browserArguments;
 }
 
 interface AttachOptions {
@@ -147,22 +147,22 @@ export async function attach(options: AttachOptions): Promise<CdpConnection> {
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }
 
-function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: number): Promise<string> {
+function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const rl = readline.createInterface({ input: chromeProcess.stderr });
+    const rl = readline.createInterface({ input: browserProcess.stderr });
     let stderr = '';
     const listeners = [
       eventUtils.addEventListener(rl, 'line', onLine),
       eventUtils.addEventListener(rl, 'close', () => onClose()),
-      eventUtils.addEventListener(chromeProcess, 'exit', () => onClose()),
-      eventUtils.addEventListener(chromeProcess, 'error', error => onClose(error))
+      eventUtils.addEventListener(browserProcess, 'exit', () => onClose()),
+      eventUtils.addEventListener(browserProcess, 'error', error => onClose(error))
     ];
     const timeoutId = timeout ? setTimeout(onTimeout, timeout) : 0;
 
     function onClose(error?: Error) {
       cleanup();
       reject(new Error([
-        'Failed to launch chrome!' + (error ? ' ' + error.message : ''),
+        'Failed to launch browser!' + (error ? ' ' + error.message : ''),
         stderr,
         '',
         'TROUBLESHOOTING: https://github.com/GoogleChrome/puppeteer/blob/master/docs/troubleshooting.md',
@@ -172,7 +172,7 @@ function waitForWSEndpoint(chromeProcess: childProcess.ChildProcess, timeout: nu
 
     function onTimeout() {
       cleanup();
-      reject(new Error(`Timed out after ${timeout} ms while trying to connect to Chrome!`));
+      reject(new Error(`Timed out after ${timeout} ms while trying to connect to the browser!`));
     }
 
     function onLine(line: string) {

@@ -219,7 +219,7 @@ class NodeSourcePathResolver implements SourcePathResolver {
   }
 
   rewriteSourceUrl(sourceUrl: string): string {
-    // See ChromeSourcePathResolver for explanation of this heuristic.
+    // See BrowserSourcePathResolver for explanation of this heuristic.
     if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
       return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
     return sourceUrl;

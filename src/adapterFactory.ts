@@ -5,7 +5,7 @@ import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
-import { ChromeDelegate } from './chrome/chromeDelegate';
+import { BrowserDelegate } from './browser/browserDelegate';
 import { NodeDelegate } from './node/nodeDelegate';
 import { Source } from './adapter/sources';
 import Dap from './dap/api';
@@ -82,7 +82,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       if (session.configuration['runtimeExecutable'])
         new NodeDelegate(adapter, rootPath);
       if (session.configuration['url'])
-        new ChromeDelegate(adapter, this._context.storagePath || this._context.extensionPath, rootPath);
+        new BrowserDelegate(adapter, this._context.storagePath || this._context.extensionPath, rootPath);
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }
