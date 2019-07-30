@@ -2,28 +2,27 @@
   "name": "pwa-debugger",
   "displayName": "PWA Debugger",
   "version": "0.9.0",
-  "publisher": "",
-  "description": "PWA debugger extension.",
+  "publisher": "msjsdiag",
   "author": {
-    "name": "Microsoft Corporation",
-    "email": "pfeldman@microsoft.com"
+    "name": "Microsoft Corporation"
   },
+  "description": "PWA debugger extension.",
   "license": "MIT",
   "engines": {
     "vscode": "^1.30.0-insider",
     "node": "^8.9.3"
   },
-  "icon": "images/mock-debug-icon.png",
+  "icon": "resources/pwa.png",
   "categories": [
     "Debuggers"
   ],
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/vscode-mock-debug.git"
+    "url": "https://github.com/Microsoft/vscode-pwa.git"
   },
   "bugs": {
-    "url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+    "url": "https://github.com/Microsoft/vscode-pwa/issues"
   },
   "scripts": {
     "prepublish": "tsc -p ./src",
