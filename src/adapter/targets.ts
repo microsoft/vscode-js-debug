@@ -6,6 +6,7 @@ import { Thread, ExecutionContext } from "./threads";
 export interface Target {
   id: string;
   name: string;
+  fileName?: string;
   type: string;
   thread?: Thread;
   executionContext?: ExecutionContext;

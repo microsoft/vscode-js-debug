@@ -190,6 +190,14 @@
       {
         "command": "pwa.debugTask",
         "title": "Debug task"
+      },
+      {
+        "command": "pwa.revealTargetScript",
+        "title": "Open file",
+        "icon": {
+          "light": "resources/light/open-file.svg",
+          "dark": "resources/dark/open-file.svg"
+        }
       }
     ],
     "menus": {
@@ -256,6 +264,11 @@
         {
           "command": "pwa.detachFromTarget",
           "when": "view == pwa.threadsView && viewItem =~ /.*canDetach.*/",
+          "group": "inline"
+        },
+        {
+          "command": "pwa.revealTargetScript",
+          "when": "view == pwa.threadsView && viewItem =~ /.*canReveal.*/",
           "group": "inline"
         }
       ],

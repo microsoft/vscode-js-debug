@@ -166,6 +166,7 @@ class NodeTarget implements ThreadDelegate {
   private _children: NodeTarget[] = [];
   private _targetId: string;
   private _targetName: string;
+  private _scriptName: string;
   private _serialize = Promise.resolve();
   private _thread: Thread | undefined;
 
@@ -174,6 +175,7 @@ class NodeTarget implements ThreadDelegate {
     this._connection = connection;
     this._cdp = cdp;
     this._targetId = targetInfo.targetId;
+    this._scriptName = targetInfo.title;
     if (targetInfo.title)
       this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
@@ -270,6 +272,7 @@ class NodeTarget implements ThreadDelegate {
     return {
       id: this._targetId,
       name: this._targetName,
+      fileName: this._scriptName,
       children: this._children.map(t => t.toTarget()),
       type: 'node',
       thread: this._thread,

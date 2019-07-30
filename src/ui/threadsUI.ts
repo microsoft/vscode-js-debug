@@ -31,8 +31,13 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
   context.subscriptions.push(vscode.commands.registerCommand('pwa.detachFromTarget', (item: Target) => {
     item.detach!();
   }));
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.revealTargetScript', async (item: Target) => {
+    const document = await vscode.workspace.openTextDocument(item.fileName!);
+    if (document)
+      vscode.window.showTextDocument(document);
+  }));
 
-  treeView.onDidChangeSelection(() => {
+  treeView.onDidChangeSelection(async () => {
     const item = treeView.selection[0];
     const adapter = factory.activeAdapter();
     if (!adapter)
@@ -150,6 +155,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
       result.contextValue += ' canRestart';
     if (item.stop)
       result.contextValue += ' canStop';
+    if (item.fileName)
+      result.contextValue += ' canReveal';
     return result;
   }
 
