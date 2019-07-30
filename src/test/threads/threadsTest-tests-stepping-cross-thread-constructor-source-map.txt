@@ -26,8 +26,8 @@ step in
 }
 {
     allThreadsStopped : false
-    description : Paused on instrumentation breakpoint
-    reason : function breakpoint
+    description : Paused
+    reason : step
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/workerSourceMap.ts:1:0

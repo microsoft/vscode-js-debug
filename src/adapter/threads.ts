@@ -89,8 +89,14 @@ export class ThreadManager {
     return new Thread(this, threadId, cdp, this._dap, delegate);
   }
 
-  setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler) {
+  async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
+    if (this._scriptWithSourceMapHandler === handler)
+      return;
     this._scriptWithSourceMapHandler = handler;
+    const promises: Promise<void>[] = [];
+    for (const thread of this._threads.values())
+      promises.push(thread._updatePauseOnSourceMap());
+    await Promise.all(promises);
   }
 
   _addThread(thread: Thread) {
@@ -200,8 +206,8 @@ export class Thread implements VariableStoreDelegate {
   readonly sourcePathResolver: SourcePathResolver;
   readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
-  private _supportsSourceMapPause = false;
   private _serializedOutput: Promise<void>;
+  private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
   _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
   _onExecutionContextCreatedEmitter = new EventEmitter<ExecutionContext>();
   readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
@@ -255,7 +261,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   supportsSourceMapPause() {
-    return this._supportsSourceMapPause;
+    return !!this._pauseOnSourceMapBreakpointId;
   }
 
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
@@ -494,11 +500,7 @@ export class Thread implements VariableStoreDelegate {
         this._debuggerId = response.debuggerId;
     });
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    if (this.manager.sourceContainer.sourceMapTimeouts().scriptPaused) {
-      this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' }).then(result => {
-        this._supportsSourceMapPause = !!result;
-      });
-    }
+    this._updatePauseOnSourceMap();
     this._updatePauseOnExceptionsState();
 
     for (const id of this.manager.customBreakpoints())
@@ -626,6 +628,18 @@ export class Thread implements VariableStoreDelegate {
     return !!await this._cdp.Debugger.setPauseOnExceptions({ state: this.manager.pauseOnExceptionsState() });
   }
 
+  async _updatePauseOnSourceMap(): Promise<void> {
+    const needsPause = this.manager.sourceContainer.sourceMapTimeouts().scriptPaused && this.manager._scriptWithSourceMapHandler;
+    if (needsPause && !this._pauseOnSourceMapBreakpointId) {
+      const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
+      this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
+    } else if (!needsPause && this._pauseOnSourceMapBreakpointId) {
+      const breakpointId = this._pauseOnSourceMapBreakpointId;
+      this._pauseOnSourceMapBreakpointId = undefined;
+      await this._cdp.Debugger.removeBreakpoint({breakpointId});
+    }
+  }
+
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
@@ -673,12 +687,21 @@ export class Thread implements VariableStoreDelegate {
         reason: 'exception',
         description: localize('pause.promiseRejection', 'Paused on promise rejection')
       };
-      case 'instrumentation': return {
-        thread: this,
-        stackTrace,
-        reason: 'function breakpoint',
-        description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
-      };
+      case 'instrumentation':
+        if (event.data && event.data['scriptId']) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: 'step',
+            description: localize('pause.default', 'Paused')
+          };
+        }
+        return {
+          thread: this,
+          stackTrace,
+          reason: 'function breakpoint',
+          description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
+        };
       case 'XHR': return {
         thread: this,
         stackTrace,
@@ -857,7 +880,7 @@ export class Thread implements VariableStoreDelegate {
       source[kScriptsSymbol] = new Set();
     source[kScriptsSymbol].add(script);
 
-    if (!this._supportsSourceMapPause && event.sourceMapURL) {
+    if (!this.supportsSourceMapPause() && event.sourceMapURL) {
       // If we won't pause before executing this script (thread does not support it),
       // try to load source map and set breakpoints as soon as possible. This is still
       // racy against the script execution, but better than nothing.

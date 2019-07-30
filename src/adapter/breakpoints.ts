@@ -4,7 +4,7 @@
 import { Location, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { Thread, ThreadManager, Script } from './threads';
+import { Thread, ThreadManager, Script, ScriptWithSourceMapHandler } from './threads';
 import { Disposable } from 'vscode';
 
 let lastBreakpointId = 0;
@@ -241,6 +241,8 @@ export class BreakpointManager {
   _threadManager: ThreadManager;
   _disposables: Disposable[] = [];
   _perThread = new Map<string, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
+  _totalBreakpointsCount = 0;
+  _scriptSourceMapHandler: ScriptWithSourceMapHandler;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
@@ -262,7 +264,7 @@ export class BreakpointManager {
       this._perThread.delete(thread.threadId());
     }, undefined, this._disposables);
 
-    this._threadManager.setScriptSourceMapHandler(async (script, sources) => {
+    this._scriptSourceMapHandler = async (script, sources) => {
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
       // particular script.
@@ -275,7 +277,7 @@ export class BreakpointManager {
         for (const breakpoint of byRef || [])
           breakpoint.updateForSourceMap(script);
       }
-    });
+    };
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
@@ -294,8 +296,12 @@ export class BreakpointManager {
       this._byRef.set(params.source.sourceReference!, breakpoints);
     }
     // Cleanup existing breakpoints before setting new ones.
-    if (previous)
+    if (previous) {
+      this._totalBreakpointsCount -= previous.length;
       await Promise.all(previous.map(b => b.remove()));
+    }
+    this._totalBreakpointsCount += breakpoints.length;
+    await this._threadManager.setScriptSourceMapHandler(this._totalBreakpointsCount ? this._scriptSourceMapHandler : undefined);
     breakpoints.forEach(b => b.set());
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }
