@@ -58,6 +58,10 @@ export class ThreadAdapter {
     this._unsubscribe = [];
   }
 
+  thread(): Thread {
+    return this._thread;
+  }
+
   async onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     return this._thread.stackTrace(params);
   }

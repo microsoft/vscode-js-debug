@@ -83,7 +83,9 @@ export class BrowserDelegate implements DebugAdapterDelegate {
         userDataDir: path.join(this._storagePath, isUnderTest ? '.headless-profile' : 'profile'),
         pipe: true,
       });
-    this._connection.onDisconnected(() => { this._debugAdapter.removeDelegate(this); }, undefined, this._disposables);
+    this._connection.onDisconnected(() => {
+      this._debugAdapter.removeDelegate(this);
+    }, undefined, this._disposables);
 
     this._launchParams = params;
 

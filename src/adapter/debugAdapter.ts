@@ -241,6 +241,25 @@ export class DebugAdapter {
     this.dap.continued({ threadId: revealLocationThreadId, allThreadsContinued: false });
     this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
     this._locationToReveal = undefined;
+
+    if (this._threadAdapter instanceof ThreadAdapter) {
+      const thread = this._threadAdapter.thread();
+      const details = thread ? thread.pausedDetails() : undefined;
+      if (details) {
+        thread.refreshStackTrace();
+        this.dap.continued({
+          threadId: defaultThreadId,
+          allThreadsContinued: false
+        });
+        this.dap.stopped({
+          reason: details.reason,
+          description: details.description,
+          threadId: defaultThreadId,
+          text: details.text,
+          allThreadsStopped: false
+        });
+      }
+    }
   }
 
   targetForest(): Target[] {

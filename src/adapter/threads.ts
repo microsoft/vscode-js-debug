@@ -492,6 +492,7 @@ export class Thread implements VariableStoreDelegate {
       }
 
       this._pausedDetails = this._createPausedDetails(event);
+      this._pausedDetails[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
       this.manager._onThreadPausedEmitter.fire(this);
 
@@ -515,6 +516,11 @@ export class Thread implements VariableStoreDelegate {
     this._pauseOnScheduledAsyncCall();
 
     this.manager._onThreadAddedEmitter.fire(this);
+  }
+
+  refreshStackTrace() {
+    if (this._pausedDetails)
+      this._pausedDetails = this._createPausedDetails(this._pausedDetails[kPausedEventSymbol]);
   }
 
   // It is important to produce debug console output in the same order as it happens
@@ -1011,5 +1017,6 @@ export class ThreadLog {
 }
 
 const kScriptsSymbol = Symbol('script');
+const kPausedEventSymbol = Symbol('pausedEvent');
 
 let scheduledPauseOnAsyncCall: Cdp.Runtime.StackTraceId | undefined;
