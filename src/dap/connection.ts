@@ -23,7 +23,7 @@ export default class Connection {
 
   private _writableStream?: NodeJS.WritableStream;
   private _rawData: Buffer;
-  private _contentLength: number;
+  private _contentLength = -1;
   private _sequence: number;
 
   private _pendingRequests = new Map<number, (result: string | object) => void>();

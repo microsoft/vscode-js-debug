@@ -30,6 +30,8 @@ export class ServiceWorkerVersion  {
     this.id = payload.versionId;
     this.scriptURL = payload.scriptURL;
     this._targetId = payload.targetId;
+    this._status = payload.status;
+    this._runningStatus = payload.runningStatus;
   }
 
   addRevision(payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
@@ -72,7 +74,7 @@ export class ServiceWorkerModel implements vscode.Disposable {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
   private _versions = new Map<Cdp.Target.TargetID, ServiceWorkerVersion>();
   private _frameModel: FrameModel;
-  private _cdp: Cdp.Api;
+  private _cdp: Cdp.Api | undefined;
   private _onDidChangeUpdater = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChangeUpdater.event;
   private _targets = new Set<Cdp.Api>();
@@ -182,6 +184,8 @@ export class ServiceWorkerModel implements vscode.Disposable {
   }
 
   async stopWorker(targetId: Cdp.Target.TargetID) {
+    if (!this._cdp)
+      return;
     const version = this.version(targetId);
     if (!version)
       return;

@@ -195,7 +195,7 @@ export class Thread implements VariableStoreDelegate {
   private _cdp: Cdp.Api;
   private _threadId: string;
   private _name: string;
-  private _threadBaseUrl: string;
+  private _threadBaseUrl?: string;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;

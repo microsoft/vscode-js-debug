@@ -58,7 +58,7 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
     const browserDelegate = adapter[BrowserDelegate.symbol] as BrowserDelegate;
     if (!browserDelegate)
       return;
-    this._serviceWorkerModel = browserDelegate.targetManager().serviceWorkerModel;
+    this._serviceWorkerModel = browserDelegate.targetManager()!.serviceWorkerModel;
     this._disposables.push(this._serviceWorkerModel!.onDidChange(() => {
       this._onDidChangeTreeData.fire();
     }));

@@ -44,7 +44,7 @@ export async function fetch(url: string): Promise<string> {
   });
 };
 
-export function completeUrl(base: string, relative: string): string | undefined {
+export function completeUrl(base: string | undefined, relative: string): string | undefined {
   try {
     return new URL(relative, base).href;
   } catch (e) {

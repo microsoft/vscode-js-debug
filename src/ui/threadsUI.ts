@@ -51,8 +51,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _contexts: Target[] = [];
   private _disposables: vscode.Disposable[] = [];
-  private _adapter: DebugAdapter;
-  private _treeView: vscode.TreeView<Target>;
+  private _adapter: DebugAdapter | undefined;
+  private _treeView: vscode.TreeView<Target> | undefined;
   private _extensionPath: string;
   private _throttlerTimer: NodeJS.Timer | undefined;
 
@@ -114,7 +114,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
     if (!this._adapter)
       return;
     this._flushThrottledUpdate();
-    const selection = this._treeView.selection[0];
+    const selection = this._treeView!.selection[0];
     if (selection && selection.thread === thread) {
       // Selection is in the good thread, reuse it.
       this._adapter.selectTarget(selection);
@@ -122,7 +122,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
       // Pick a new item in the UI.
       for (const context of this._contexts) {
         if (context.thread === thread) {
-          this._treeView.reveal(context, { select: true });
+          this._treeView!.reveal(context, { select: true });
           break;
         }
       }
@@ -130,7 +130,9 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   _threadResumed(_: Thread) {
-    const selection = this._treeView.selection[0];
+    if (!this._adapter)
+      return;
+    const selection = this._treeView!.selection[0];
     if (selection)
       this._adapter.selectTarget(selection);
     this._onDidChangeTreeData.fire();
@@ -188,6 +190,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   _executionContextsChanged(): void {
+    if (!this._adapter)
+      return;
     const contexts = this._adapter.targetForest();
     this._contexts = [];
     const keys = new Set<string>();

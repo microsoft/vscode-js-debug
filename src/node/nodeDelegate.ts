@@ -32,10 +32,10 @@ export class NodeDelegate implements DebugAdapterDelegate {
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
-  private _isRestarting: boolean;
+  private _isRestarting = false;
   _debugAdapter: DebugAdapter;
   _targets = new Map<string, NodeTarget>();
-  _pathResolver: NodeSourcePathResolver;
+  _pathResolver: NodeSourcePathResolver | undefined;
 
   constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -200,7 +200,7 @@ class NodeTarget implements ThreadDelegate {
   }
 
   sourcePathResolver(): SourcePathResolver {
-    return this._delegate._pathResolver;
+    return this._delegate._pathResolver!;
   }
 
   supportsCustomBreakpoints(): boolean {

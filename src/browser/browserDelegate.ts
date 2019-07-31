@@ -26,12 +26,12 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 export class BrowserDelegate implements DebugAdapterDelegate {
   static symbol = Symbol('BrowserDelegate');
-  private _connection: CdpConnection;
+  private _connection: CdpConnection | undefined;
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
-  private _targetManager: BrowserTargetManager;
-  private _launchParams: LaunchParams;
+  private _targetManager: BrowserTargetManager | undefined;
+  private _launchParams: LaunchParams | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: vscode.Disposable[] = [];
 
@@ -42,7 +42,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     debugAdapter.addDelegate(this);
   }
 
-  targetManager(): BrowserTargetManager {
+  targetManager(): BrowserTargetManager | undefined {
     return this._targetManager;
   }
 
@@ -56,7 +56,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     this._disposables = [];
   }
 
-  connection(): CdpConnection {
+  connection(): CdpConnection | undefined {
     return this._connection;
   }
 
@@ -109,7 +109,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   }
 
   async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    await mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
+    await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
   async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
@@ -141,7 +141,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     if (!this._mainTarget)
       return this._mainTargetNotAvailable();
-    await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
+    await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
     return {};
   }
 

@@ -32,15 +32,15 @@ export class TestP {
   readonly initialize: Promise<Dap.InitializeResult>;
   readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
   readonly assertLog: () => void;
-  cdp: Cdp.Api;
-  adapter: DebugAdapter;
+  _cdp: Cdp.Api | undefined;
+  _adapter: DebugAdapter | undefined;
 
   private _browserDelegate: BrowserDelegate;
-  private _connection: CdpConnection;
+  private _connection: CdpConnection | undefined;
   private _evaluateCounter = 0;
   private _workspaceRoot: string;
-  private _webRoot: string;
-  private _launchUrl: string;
+  private _webRoot: string | undefined;
+  private _launchUrl: string | undefined;
   readonly logger: Logger;
 
   constructor(goldenText: GoldenText) {
@@ -68,13 +68,21 @@ export class TestP {
     });
   }
 
+  get adapter(): DebugAdapter {
+    return this._adapter!;
+  }
+
+  get cdp(): Cdp.Api {
+    return this._cdp!;
+  }
+
   async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
     const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
-    this._connection = await this._browserDelegate.connection().clone();
-    this.adapter = this._browserDelegate.adapter();
+    this._connection = await this._browserDelegate.connection()!.clone();
+    this._adapter = this._browserDelegate.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
     let contexts: Target[] = [];
@@ -104,7 +112,7 @@ export class TestP {
     });
 
     const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;
-    this.cdp = this._connection.createSession(sessionId);
+    this._cdp = this._connection.createSession(sessionId);
     return mainTarget;
   }
 

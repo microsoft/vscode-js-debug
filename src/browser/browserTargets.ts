@@ -257,6 +257,7 @@ export class BrowserTarget implements ThreadDelegate {
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, this);
+    this._targetInfo = targetInfo;
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }

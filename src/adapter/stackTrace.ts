@@ -117,6 +117,12 @@ export class StackTrace {
   }
 };
 
+interface Scope {
+  chain: Cdp.Debugger.Scope[];
+  variables: (Dap.Variable | undefined)[];
+  callFrameId: string;
+}
+
 export class StackFrame {
   private static _lastFrameId = 0;
 
@@ -124,7 +130,7 @@ export class StackFrame {
   private _name: string;
   private _location: Promise<Location>;
   private _isAsyncSeparator = false;
-  private _scope: { chain: Cdp.Debugger.Scope[], variables: (Dap.Variable | undefined)[], callFrameId: string };
+  private _scope: Scope | undefined;
   private _thread: Thread;
 
   static fromRuntime(thread: Thread, callFrame: Cdp.Runtime.CallFrame): StackFrame {

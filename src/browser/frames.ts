@@ -109,8 +109,8 @@ export class Frame {
 
   private _url: string;
   private _name: string | undefined;
-  private _securityOrigin: string;
-  private _unreachableUrl: string;
+  private _securityOrigin: string | undefined;
+  private _unreachableUrl: string | undefined;
   private _parentFrameId?: Cdp.Page.FrameId;
 
   constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId) {
@@ -137,11 +137,11 @@ export class Frame {
     return this._url;
   }
 
-  securityOrigin(): string {
+  securityOrigin(): string | undefined {
     return this._securityOrigin;
   }
 
-  unreachableUrl(): string {
+  unreachableUrl(): string | undefined {
     return this._unreachableUrl;
   }
 

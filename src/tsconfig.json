@@ -10,7 +10,6 @@
 
     "sourceMap": true,
     "outDir": "../out",
-    "strict": true,
-    "strictPropertyInitialization": false
+    "strict": true
   }
 }
