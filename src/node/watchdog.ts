@@ -54,18 +54,21 @@ process.on('exit', () => {
       target = await WebSocketTransport.create(info.inspectorURL);
       target.onmessage = data => server.send(data);
       target.onclose = () => {
-        server.send(JSON.stringify({ method: 'Target.targetDestroyed', params: { targetId: info.pid, sessionId: info.pid } }));
+        if (target)  // Could be due us closing.
+          server.send(JSON.stringify({ method: 'Target.targetDestroyed', params: { targetId: info.pid, sessionId: info.pid } }));
       };
       result = { sessionId: info.pid };
     }
 
     if (object.method === 'Target.detachFromTarget') {
       debugLog('DETACH FROM TARGET');
-      if (target)
-        target.close();
-      else
+      if (target) {
+        const t = target;
+        target = undefined;
+        t.close();
+      } else {
         debugLog('DETACH WITHOUT ATTACH');
-      target = undefined;
+      }
       result = {};
     }
 
