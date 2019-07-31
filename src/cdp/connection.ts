@@ -162,12 +162,12 @@ class CDPSession extends EventEmitter {
       get: (target, agentName: string, receiver) => new Proxy({}, {
         get: (target, methodName: string, receiver) => {
           if (methodName === 'on')
-            return (eventName, listener) => this.on(`${agentName}.${eventName}`, listener);
+            return (eventName: string, listener: () => void) => this.on(`${agentName}.${eventName}`, listener);
           if (methodName === 'once')
-            return (eventName, listener) => this.once(`${agentName}.${eventName}`, listener);
+            return (eventName: string, listener: () => void) => this.once(`${agentName}.${eventName}`, listener);
           if (methodName === 'off')
-            return (eventName, listener) => this.removeListener(`${agentName}.${eventName}`, listener);
-          return params => this._send(`${agentName}.${methodName}`, params);
+            return (eventName: string, listener: () => void) => this.removeListener(`${agentName}.${eventName}`, listener);
+          return (params: object | undefined) => this._send(`${agentName}.${methodName}`, params);
         }
       })
     }) as Cdp.Api;

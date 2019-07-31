@@ -68,7 +68,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
       code,
       ts.ScriptTarget.ESNext,
       /*setParentNodes */ true);
-    body = sourceFile.statements[0]['expression']['expression']['expression']['body'] as ts.Block;
+    body = (sourceFile.statements[0] as any)['expression']['expression']['expression']['body'] as ts.Block;
   } catch(e) {
     return;
   }

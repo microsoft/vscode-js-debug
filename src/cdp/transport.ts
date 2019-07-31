@@ -7,7 +7,7 @@ import * as eventUtils from '../utils/eventUtils';
 
 export interface Transport {
   send(message: string): void;
-  close();
+  close(): void;
   onmessage?: (message: string) => void;
   onclose?: () => void;
   clone(): Promise<Transport>;

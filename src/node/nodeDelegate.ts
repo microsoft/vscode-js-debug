@@ -146,7 +146,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
 
   _buildEnv(): Object {
     const bootloaderJS = path.join(__dirname, 'bootloader.js');
-    let result: Object = {
+    let result: any = {
       ...process.env,
       ...this._launchParams!.env || {},
       NODE_INSPECTOR_IPC: this._pipe,

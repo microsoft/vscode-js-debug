@@ -89,7 +89,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
 
     this._launchParams = params;
 
-    this._debugAdapter[BrowserDelegate.symbol] = this;
+    (this._debugAdapter as any)[BrowserDelegate.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._debugAdapter.fireTargetForestChanged());

@@ -72,6 +72,8 @@ async function generate() {
       const subtype = prop.items ? generateType(prop.items) : 'any';
       return `${subtype}[]`;
     }
+    if (prop.type === 'object')
+      return 'any';
     return prop.type;
   }
 

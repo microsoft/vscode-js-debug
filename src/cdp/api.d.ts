@@ -4343,7 +4343,7 @@ export namespace Cdp {
       /**
        * Object containing break-specific auxiliary properties.
        */
-      data?: object;
+      data?: any;
 
       /**
        * Hit breakpoints IDs
@@ -4420,7 +4420,7 @@ export namespace Cdp {
       /**
        * Embedder-specific auxiliary data.
        */
-      executionContextAuxData?: object;
+      executionContextAuxData?: any;
 
       /**
        * URL of source map associated with script (if any).
@@ -4495,7 +4495,7 @@ export namespace Cdp {
       /**
        * Embedder-specific auxiliary data.
        */
-      executionContextAuxData?: object;
+      executionContextAuxData?: any;
 
       /**
        * True, if this script is generated as a result of the live edit operation.
@@ -10564,7 +10564,7 @@ export namespace Cdp {
       /**
        * The array of canvas function calls.
        */
-      commandLog: object[];
+      commandLog: any[];
     }
 
     /**
@@ -13684,7 +13684,7 @@ export namespace Cdp {
       /**
        * Highlight data for the node.
        */
-      highlight: object;
+      highlight: any;
     }
 
     /**
@@ -17825,7 +17825,7 @@ export namespace Cdp {
     export interface InspectRequestedEvent {
       object: RemoteObject;
 
-      hints: object;
+      hints: any;
     }
 
     /**
@@ -18119,7 +18119,7 @@ export namespace Cdp {
       /**
        * Embedder-specific auxiliary data.
        */
-      auxData?: object;
+      auxData?: any;
     }
 
     /**
@@ -19331,12 +19331,12 @@ export namespace Cdp {
       /**
        * An optional dictionary of additional GPU related attributes.
        */
-      auxAttributes?: object;
+      auxAttributes?: any;
 
       /**
        * An optional dictionary of graphics features and their status.
        */
-      featureStatus?: object;
+      featureStatus?: any;
 
       /**
        * An optional array of GPU driver bug workarounds.
@@ -20213,7 +20213,7 @@ export namespace Cdp {
      * Parameters of the 'Tracing.dataCollected' event.
      */
     export interface DataCollectedEvent {
-      value: object[];
+      value: any[];
     }
 
     /**
@@ -20328,9 +20328,9 @@ export namespace Cdp {
     on(event: 'contextCreated', listener: (event: WebAudio.ContextCreatedEvent) => void): void;
 
     /**
-     * Notifies that existing BaseAudioContext has been destroyed.
+     * Notifies that an existing BaseAudioContext will be destroyed.
      */
-    on(event: 'contextDestroyed', listener: (event: WebAudio.ContextDestroyedEvent) => void): void;
+    on(event: 'contextWillBeDestroyed', listener: (event: WebAudio.ContextWillBeDestroyedEvent) => void): void;
 
     /**
      * Notifies that existing BaseAudioContext has changed some properties (id stays the same)..
@@ -20388,9 +20388,9 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'WebAudio.contextDestroyed' event.
+     * Parameters of the 'WebAudio.contextWillBeDestroyed' event.
      */
-    export interface ContextDestroyedEvent {
+    export interface ContextWillBeDestroyedEvent {
       contextId: ContextId;
     }
 

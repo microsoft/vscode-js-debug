@@ -35,7 +35,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       id: 'instrumentation:' + instrumentation,
       title,
       group: '',
-      details: (data: object): { short: string, long: string } => {
+      details: (data: any): { short: string, long: string } => {
         if (instrumentation === 'webglErrorFired') {
           let errorName = data['webglErrorName'];
           // If there is a hex code of the error, display only this.
@@ -71,7 +71,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       id: 'listener:' + eventName,
       title: title || eventName,
       group: '',
-      details: (data: object): { short: string, long: string } => {
+      details: (data: any): { short: string, long: string } => {
         const eventTargetName = (data['targetName'] || '*').toLowerCase();
         return {
           short: eventTargetName + '.' + eventName,

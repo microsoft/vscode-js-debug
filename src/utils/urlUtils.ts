@@ -33,10 +33,10 @@ export async function fetch(url: string): Promise<string> {
 
   const driver = url.startsWith('https://') ? require('https') : require('http');
   return new Promise<string>((fulfill, reject) => {
-    const request = driver.get(url, response => {
+    const request = driver.get(url, (response: any) => {
       let data = '';
       response.setEncoding('utf8');
-      response.on('data', chunk => data += chunk);
+      response.on('data', (chunk: string) => data += chunk);
       response.on('end', () => fulfill(data));
       response.on('error', reject);
     });

@@ -60,14 +60,14 @@ export default class Connection {
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
         if (methodName === 'on') {
-          return (requestName, handler) => {
+          return (requestName: string, handler: (params: any) => Promise<any>) => {
             this._requestHandlers.set(requestName, handler);
             return () => this._requestHandlers.delete(requestName);
           }
         }
         if (methodName === 'off')
-          return (requestName, handler) => this._requestHandlers.delete(requestName);
-        return params => {
+          return (requestName: string, handler: () => void) => this._requestHandlers.delete(requestName);
+        return (params?: object) => {
           const e = { seq: 0, type: 'event', event: methodName, body: params };
           this._send(e);
         };
@@ -76,7 +76,7 @@ export default class Connection {
   }
 
   createTestApi(): Dap.TestApi {
-    const on = (eventName, listener) => {
+    const on = (eventName: string, listener: () => void) => {
       let listeners = this._eventListeners.get(eventName);
       if (!listeners) {
         listeners = new Set();
@@ -84,14 +84,14 @@ export default class Connection {
       }
       listeners.add(listener);
     };
-    const off = (eventName, listener) => {
+    const off = (eventName: string, listener: () => void) => {
       const listeners = this._eventListeners.get(eventName);
       if (listeners)
         listeners.delete(listener);
     };
-    const once = (eventName, filter) => {
+    const once = (eventName: string, filter: (params?: object) => boolean) => {
       return new Promise(cb => {
-        const listener = params => {
+        const listener = (params?: object) => {
           if (filter && !filter(params))
             return;
           off(eventName, listener);
@@ -108,7 +108,7 @@ export default class Connection {
           return off;
         if (methodName === 'once')
           return once;
-        return params => {
+        return (params?: object) => {
           return new Promise(cb => {
             const request: Message = { seq: 0, type: 'request', command: methodName };
             if (params && Object.keys(params).length > 0)

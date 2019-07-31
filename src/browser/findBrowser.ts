@@ -185,7 +185,7 @@ function uniq(arr: string[]) {
   return Array.from(new Set(arr));
 }
 
-function findChromeExecutables(folder) {
+function findChromeExecutables(folder: string) {
   const argumentsRegex = /(^[^ ]+).*/; // Take everything up to the first space
   const chromeExecRegex = '^Exec=\/.*\/(google-chrome|chrome|chromium)-.*';
 

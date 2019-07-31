@@ -55,7 +55,7 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
       disposable.dispose();
     this._disposables = [];
     this._serviceWorkerModel = undefined;
-    const browserDelegate = adapter[BrowserDelegate.symbol] as BrowserDelegate;
+    const browserDelegate = (adapter as any)[BrowserDelegate.symbol] as BrowserDelegate;
     if (!browserDelegate)
       return;
     this._serviceWorkerModel = browserDelegate.targetManager()!.serviceWorkerModel;
@@ -107,7 +107,7 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
         createItem('version', item.id, 'Service worker version')];
     }
 
-    return item[childrenSymbol] || [];
+    return (item as any)[childrenSymbol] || [];
   }
 
   async getParent(item: DataItem): Promise<DataItem | undefined> {
