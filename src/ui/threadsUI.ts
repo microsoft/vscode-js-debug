@@ -54,6 +54,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
   private _adapter: DebugAdapter;
   private _treeView: vscode.TreeView<Target>;
   private _extensionPath: string;
+  private _throttlerTimer: NodeJS.Timer | undefined;
 
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
     this._extensionPath = context.extensionPath;
@@ -72,6 +73,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
 
     if (!this._adapter) {
       this._contexts = [];
+      if (this._throttlerTimer)
+        clearTimeout(this._throttlerTimer);
       this._onDidChangeTreeData.fire();
       return;
     }
@@ -79,8 +82,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
     adapter.threadManager.onThreadPaused(thread => this._threadPaused(thread), undefined, this._disposables);
     adapter.threadManager.onThreadResumed(thread => this._threadResumed(thread), undefined, this._disposables);
 
-    this._executionContextsChanged(adapter.targetForest());
-    adapter.onTargetForestChanged(forest => this._executionContextsChanged(forest), undefined, this._disposables);
+    this._scheduleThrottledTargetsUpdate();
+    adapter.onTargetForestChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
 
     // In case of lazy view initialization, pick already paused thread.
     for (const thread of adapter.threadManager.threads()) {
@@ -91,9 +94,26 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
     }
   }
 
+  _scheduleThrottledTargetsUpdate() {
+    if (this._throttlerTimer)
+      clearTimeout(this._throttlerTimer);
+    this._throttlerTimer = setTimeout(() => {
+      this._executionContextsChanged();
+    }, 100);
+  }
+
+  _flushThrottledUpdate() {
+    if (!this._throttlerTimer)
+      return;
+    clearTimeout(this._throttlerTimer);
+    this._throttlerTimer = undefined;
+    this._executionContextsChanged();
+  }
+
   _threadPaused(thread: Thread) {
     if (!this._adapter)
       return;
+    this._flushThrottledUpdate();
     const selection = this._treeView.selection[0];
     if (selection && selection.thread === thread) {
       // Selection is in the good thread, reuse it.
@@ -107,7 +127,6 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
         }
       }
     }
-    this._onDidChangeTreeData.fire();
   }
 
   _threadResumed(_: Thread) {
@@ -168,7 +187,8 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
     return undefined;
   }
 
-  _executionContextsChanged(contexts: Target[]): void {
+  _executionContextsChanged(): void {
+    const contexts = this._adapter.targetForest();
     this._contexts = [];
     const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';

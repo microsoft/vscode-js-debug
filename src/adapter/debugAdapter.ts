@@ -35,7 +35,7 @@ export class DebugAdapter {
   readonly breakpointManager: BreakpointManager;
   private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
-  private _onTargetForestChangedEmitter = new EventEmitter<Target[]>();
+  private _onTargetForestChangedEmitter = new EventEmitter<void>();
   private _delegates = new Set<DebugAdapterDelegate>();
   readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
 
@@ -210,14 +210,14 @@ export class DebugAdapter {
 
   async addDelegate(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegates.add(delegate);
-    this._onTargetForestChangedEmitter.fire(this.targetForest());
+    this._onTargetForestChangedEmitter.fire();
   }
 
   async removeDelegate(delegate: DebugAdapterDelegate): Promise<void> {
     this._delegates.delete(delegate);
     if (!this._delegates.size)
       this.dap.terminated({});
-    this._onTargetForestChangedEmitter.fire(this.targetForest());
+    this._onTargetForestChangedEmitter.fire();
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -270,7 +270,7 @@ export class DebugAdapter {
   }
 
   fireTargetForestChanged() {
-    this._onTargetForestChangedEmitter.fire(this.targetForest());
+    this._onTargetForestChangedEmitter.fire();
   }
 
   selectTarget(target: Target | undefined) {

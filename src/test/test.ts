@@ -79,13 +79,13 @@ export class TestP {
 
     let contexts: Target[] = [];
     let selected: Target | undefined;
-    this.adapter.onTargetForestChanged(params => {
+    this.adapter.onTargetForestChanged(() => {
       contexts = [];
       const visit = (item: Target) => {
         contexts.push(item);
         item.children.forEach(visit);
       };
-      params.forEach(visit);
+      this.adapter.targetForest().forEach(visit);
     });
     this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && selected.thread === thread) {
