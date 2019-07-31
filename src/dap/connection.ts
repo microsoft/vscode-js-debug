@@ -226,7 +226,7 @@ export default class Connection {
           const lines = header.split('\r\n');
           for (let i = 0; i < lines.length; i++) {
             const pair = lines[i].split(/: +/);
-            if (pair[0] == 'Content-Length') {
+            if (pair[0] === 'Content-Length') {
               this._contentLength = +pair[1];
             }
           }

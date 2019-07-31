@@ -79,7 +79,7 @@ export function calculateHash(content: string): string {
     const xi = and(mul(v, kRandomOdd[current]), k0x7FFFFFFF);
     hashes[current] = mod(add(hashes[current], mul(zi[current], xi)), kPrimeVal[current]);
     zi[current] = mod(mul(zi[current], kRandom[current]), kPrimeVal[current]);
-    current = current == hashesSize - 1 ? 0 : current + 1;
+    current = current === hashesSize - 1 ? 0 : current + 1;
   }
 
   for (let i = 0; i < hashesSize; ++i)

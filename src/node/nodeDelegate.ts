@@ -43,9 +43,9 @@ export class NodeDelegate implements DebugAdapterDelegate {
     debugAdapter.addDelegate(this);
   }
 
-  async onLaunch(params: LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+  async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
     // params.noDebug
-    this._launchParams = params;
+    this._launchParams = params as LaunchParams;
     this._pathResolver = new NodeSourcePathResolver(this._rootPath);
     await this._startServer();
     await this._relaunch();

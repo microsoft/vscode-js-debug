@@ -11,22 +11,21 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext, fac
     if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length)
       return;
     const file = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'package.json');
-    let data: string;
+    const data = await new Promise<Buffer>(f => fs.readFile(file, (err: NodeJS.ErrnoException, buf: Buffer) => f(buf)));
+    let json: any = undefined;
     try {
-      data = JSON.parse(fs.readFileSync(file).toString());
+      json = JSON.parse(data.toString());
     } catch (e) {
-      return;
     }
-    const scripts = data['scripts'];
-    if (!scripts)
+    if (!json || !json['scripts'])
       return;
 
-    const names = Object.keys(scripts);
+    const names = Object.keys(json['scripts']);
     const quickPick = vscode.window.createQuickPick();
     quickPick.items = names.map(name => ({ label: name }));
     quickPick.onDidAccept(e => {
       const name = quickPick.selectedItems[0].label;
-      debugCommand(scripts[name]);
+      debugCommand(json!['scripts'][name]);
       quickPick.dispose();
     });
     quickPick.show();

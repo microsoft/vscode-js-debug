@@ -113,7 +113,7 @@ export function formatCssAsAnsi(style: string): string {
   const cssRegex = /\s*(.*?)\s*:\s*(.*?)\s*(?:;|$)/g;
   let escapedSequence = '\x1b[0m';
   let match = cssRegex.exec(style);
-  while (match != null) {
+  while (match !== null) {
     if (match.length === 3) {
       switch (match[1]) {
         case 'color':
