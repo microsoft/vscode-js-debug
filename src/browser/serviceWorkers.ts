@@ -88,17 +88,17 @@ export class ServiceWorkerModel implements vscode.Disposable {
     ServiceWorkerModel._instances.delete(this);
   }
 
-  async attached(cdp: Cdp.Api) {
+  attached(cdp: Cdp.Api) {
     this._targets.add(cdp);
     if (this._cdp)
       return;
     // Use first available target connection.
     this._cdp = cdp;
-    await cdp.ServiceWorker.enable({});
+    cdp.ServiceWorker.enable({});
     cdp.ServiceWorker.on('workerRegistrationUpdated', event => this._workerRegistrationsUpdated(event.registrations));
     cdp.ServiceWorker.on('workerVersionUpdated', event => this._workerVersionsUpdated(event.versions));
     if (ServiceWorkerModel._mode !== 'normal')
-      await this.setMode(ServiceWorkerModel._mode);
+      this.setMode(ServiceWorkerModel._mode);
   }
 
   async detached(cdp: Cdp.Api) {
@@ -167,16 +167,16 @@ export class ServiceWorkerModel implements vscode.Disposable {
       instance.setMode(mode);
   }
 
-  async setMode(mode: ServiceWorkerMode) {
+  setMode(mode: ServiceWorkerMode) {
     if (!this._cdp)
-        return;
+      return;
     this._cdp.ServiceWorker.setForceUpdateOnPageLoad({ forceUpdateOnPageLoad: mode === 'force' });
     for (const cdp of this._targets.values()) {
       if (mode === 'bypass') {
-        await cdp.Network.enable({});
-        await cdp.Network.setBypassServiceWorker({ bypass: true });
+        cdp.Network.enable({});
+        cdp.Network.setBypassServiceWorker({ bypass: true });
       } else {
-        await cdp.Network.disable({});
+        cdp.Network.disable({});
       }
     }
   }

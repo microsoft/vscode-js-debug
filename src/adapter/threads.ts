@@ -181,7 +181,9 @@ export class ThreadManager {
   }
 
   _removeSourceForScript(url: string, hash: string) {
-    const map = this._scriptSources.get(url)!;
+    const map = this._scriptSources.get(url);
+    if (!map)
+      return;
     map.delete(hash);
     if (!map.size)
       this._scriptSources.delete(url);

@@ -18,13 +18,11 @@ export class FrameModel {
 
   _frames: Map<string, Frame> = new Map();
 
-  async attached(cdp: Cdp.Api): Promise<boolean> {
-    await cdp.Page.enable({});
-    const result = await cdp.Page.getResourceTree({});
-    if (!result)
-      return false;
-    this._processCachedResources(cdp, result.frameTree);
-    return true;
+  attached(cdp: Cdp.Api) {
+    cdp.Page.enable({});
+    cdp.Page.getResourceTree({}).then(result => {
+      this._processCachedResources(cdp, result ? result.frameTree : undefined);
+    })
   }
 
   mainFrame(): Frame | undefined {
@@ -32,10 +30,8 @@ export class FrameModel {
   }
 
   _processCachedResources(cdp: Cdp.Api, mainFramePayload?: Cdp.Page.FrameResourceTree) {
-    if (mainFramePayload) {
-      const parentFrame = mainFramePayload.frame.parentId ? this._frames.get(mainFramePayload.frame.parentId) : undefined;
-      this._addFramesRecursively(cdp, mainFramePayload, parentFrame);
-    }
+    if (mainFramePayload)
+      this._addFramesRecursively(cdp, mainFramePayload, mainFramePayload.frame.parentId);
     cdp.Page.on('frameAttached', event => {
       this._frameAttached(cdp, event.frameId, event.parentFrameId);
     });
@@ -45,11 +41,10 @@ export class FrameModel {
     cdp.Page.on('frameDetached', event => {
       this._frameDetached(cdp, event.frameId);
     });
-    this._frameStructureUpdated();
   }
 
-  _addFrame(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrame?: Frame): Frame {
-    const frame = new Frame(this, cdp, frameId, parentFrame);
+  _addFrame(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId): Frame {
+    const frame = new Frame(this, cdp, frameId, parentFrameId);
     this._frames.set(frame.id, frame);
     if (frame.isMainFrame())
       this._mainFrame = frame;
@@ -61,9 +56,7 @@ export class FrameModel {
     if (this._frames.has(frameId))
       return;
 
-    const parentFrame = parentFrameId ? (this._frames.get(parentFrameId)) : undefined;
-    const frame = this._addFrame(cdp, frameId, parentFrame);
-    this._frameStructureUpdated();
+    const frame = this._addFrame(cdp, frameId, parentFrameId);
     return frame;
   }
 
@@ -77,19 +70,13 @@ export class FrameModel {
 
     frame._navigate(framePayload);
     this._onFrameNavigatedEmitter.fire(frame);
-    this._frameStructureUpdated();
   }
 
   _frameDetached(cdp: Cdp.Api, frameId: Cdp.Page.FrameId) {
     const frame = this._frames.get(frameId);
     if (!frame)
       return;
-
-    if (frame.parentFrame)
-      frame.parentFrame._removeChildFrame(frame);
-    else
-      frame._remove();
-    this._frameStructureUpdated();
+    frame._remove();
   }
 
   frameForId(frameId: Cdp.Page.FrameId): Frame | undefined {
@@ -100,51 +87,38 @@ export class FrameModel {
     return Array.from(this._frames.values());
   }
 
-  _addFramesRecursively(cdp: Cdp.Api, frameTreePayload: Cdp.Page.FrameResourceTree, parentFrame?: Frame) {
+  _addFramesRecursively(cdp: Cdp.Api, frameTreePayload: Cdp.Page.FrameResourceTree, parentFrameId?: Cdp.Page.FrameId) {
     const framePayload = frameTreePayload.frame;
     let frame = this._frames.get(framePayload.id);
     if (frame) {
       frame._navigate(framePayload);
       this._onFrameNavigatedEmitter.fire(frame);
     } else {
-      frame = this._addFrame(cdp, framePayload.id, parentFrame);
+      frame = this._addFrame(cdp, framePayload.id, parentFrameId);
       frame._navigate(framePayload);
     }
     for (let i = 0; frameTreePayload.childFrames && i < frameTreePayload.childFrames.length; ++i)
-      this._addFramesRecursively(cdp, frameTreePayload.childFrames[i], frame);
-  }
-
-  _frameStructureUpdated() {
-    const dump = (indent: string, frame: Frame) => {
-      for (const child of frame._childFrames.values())
-        dump('  ' + indent, child);
-    };
-    if (this._mainFrame)
-      dump('', this._mainFrame);
+      this._addFramesRecursively(cdp, frameTreePayload.childFrames[i], frame.id);
   }
 }
 
 export class Frame {
   readonly cdp: Cdp.Api;
-  readonly parentFrame?: Frame;
-  readonly id: string;
+  readonly id: Cdp.Page.FrameId;
   readonly model: FrameModel;
 
   private _url: string;
   private _name: string | undefined;
   private _securityOrigin: string;
   private _unreachableUrl: string;
+  private _parentFrameId?: Cdp.Page.FrameId;
 
-  _childFrames: Map<Cdp.Page.FrameId, Frame> = new Map();
-
-  constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrame?: Frame) {
+  constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId) {
     this.cdp = cdp;
     this.model = model;
-    this.parentFrame = parentFrame;
+    this._parentFrameId = parentFrameId;
     this.id = frameId;
     this._url = '';
-    if (this.parentFrame)
-      this.parentFrame._childFrames.set(this.id, this);
   }
 
   _navigate(payload: Cdp.Page.Frame) {
@@ -172,23 +146,20 @@ export class Frame {
   }
 
   isMainFrame(): boolean {
-    return !this.parentFrame;
+    return !this._parentFrameId;
+  }
+
+  parentFrame(): Frame | undefined {
+    return this._parentFrameId ? this.model.frameForId(this._parentFrameId) : undefined;
   }
 
   childFrames(): Frame[] {
-    return Array.from(this._childFrames.values());
-  }
-
-  _removeChildFrame(frame: Frame) {
-    this._childFrames.delete(frame.id);
-    frame._remove();
+    return this.model.frames().filter(frame => frame._parentFrameId === this.id);
   }
 
   _removeChildFrames() {
-    const frames = Array.from(this._childFrames.values());
-    this._childFrames.clear();
-    for (let i = 0; i < frames.length; ++i)
-      frames[i]._remove();
+    for (const child of this.childFrames())
+      child._remove();
   }
 
   _remove() {
