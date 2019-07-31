@@ -58,7 +58,13 @@ export async function launch(executablePath: string, options: LaunchOptions | un
     browserArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
 
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
-  const stdio: Array<string> = usePipe ? ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'];
+  let stdio: string[] = ['pipe', 'pipe', 'pipe'];
+  if (usePipe) {
+    if (dumpio)
+      stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
+    else
+      stdio = ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'];
+  }
   const browserProcess = childProcess.spawn(
     executablePath,
     browserArguments,
@@ -73,8 +79,8 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   );
 
   if (dumpio) {
-    browserProcess.stderr.pipe(process.stderr);
-    browserProcess.stdout.pipe(process.stdout);
+    browserProcess.stderr.on('data', data => console.warn(data.toString()));
+    browserProcess.stdout.on('data', data => console.warn(data.toString()));
   }
 
   let browserClosed = false;

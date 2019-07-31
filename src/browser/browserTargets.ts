@@ -82,7 +82,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         const isDefault = description.auxData ? description.auxData['isDefault'] : false;
         const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
         if (frame && isDefault) {
-          const name = frame.parentFrame ? frame.displayName() : thread.name();
+          const name = frame.parentFrame() ? frame.displayName() : thread.name();
           const isThread = !!this._targets.get(frame.id);
           const dapContext = toTarget(target, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name);
           mainForFrameId.set(frameId, dapContext);
@@ -167,7 +167,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         callback(undefined);
         return;
       }
-      callback(await this._attachedToTarget(targetInfo, response.sessionId, false));
+      callback(this._attachedToTarget(targetInfo, response.sessionId, false));
     });
     this._browser.Target.on('detachedFromTarget', event => {
       this._detachedFromTarget(event.targetId!);
@@ -175,7 +175,7 @@ export class BrowserTargetManager implements vscode.Disposable {
     return promise;
   }
 
-  async _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: BrowserTarget): Promise<BrowserTarget | undefined> {
+  _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: BrowserTarget): BrowserTarget {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
@@ -192,21 +192,17 @@ export class BrowserTargetManager implements vscode.Disposable {
     cdp.Target.on('detachedFromTarget', async event => {
       this._detachedFromTarget(event.targetId!);
     });
+    cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
-    const cleanupOnFailure = async () => {
-      await cdp.Browser.close({});
-      this._targets.delete(targetInfo.targetId);
-      this._connection.disposeSession(sessionId);
-      return undefined;
-    }
+    if (target._thread)
+      target._thread.initialize();
 
-    if (!await cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true }))
-      return cleanupOnFailure();
-    if (!await target._initialize(waitingForDebugger))
-      return cleanupOnFailure();
+    if (domDebuggerTypes.has(targetInfo.type))
+      this.frameModel.attached(cdp);
+    this.serviceWorkerModel.attached(cdp);
 
-    if (!this._targets.has(targetInfo.targetId))
-      return cleanupOnFailure();
+    if (waitingForDebugger)
+      cdp.Runtime.runIfWaitingForDebugger({});
     this._onTargetAddedEmitter.fire(target);
     debugTarget(`Attached to target ${targetInfo.targetId}`);
     return target;
@@ -254,7 +250,7 @@ export class BrowserTarget implements ThreadDelegate {
 
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
-  private _thread: Thread | undefined;
+  _thread: Thread | undefined;
   _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
 
@@ -317,17 +313,6 @@ export class BrowserTarget implements ThreadDelegate {
 
   isServiceWorkerWorker(): boolean {
     return this._targetInfo.type === 'worker' && !!this.parentTarget && this.parentTarget._targetInfo.type === 'service_worker';
-  }
-
-  async _initialize(waitingForDebugger: boolean): Promise<boolean> {
-    if (this._thread)
-      this._thread.initialize();
-    if (domDebuggerTypes.has(this._targetInfo.type) && !await this._manager.frameModel.attached(this._cdp))
-      return false;
-    await this._manager.serviceWorkerModel.attached(this._cdp);
-    if (waitingForDebugger && !await this._cdp.Runtime.runIfWaitingForDebugger({}))
-      return false;
-    return true;
   }
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
