@@ -1,0 +1,65 @@
+stdout> [32m↳ 42[0m
+
+stdout> [32m↳ 'foo'[0m
+
+stdout> [32m↳ 1234567890n[0m
+
+stderr> ↳ Uncaught Error: foo
+stderr> > ↳ Uncaught Error: foo
+stderr>     <anonymous> @ <eval>/VM<xx>:1:7
+
+stderr> ↳ Uncaught Object
+stderr> > ↳ Uncaught Object
+stderr>     > arg0: {foo: 3, bar: 'baz'}
+stderr>     <anonymous> @ <eval>/VM<xx>:1
+
+stderr> ↳ Uncaught 42
+stderr> > ↳ Uncaught 42
+stderr>     <anonymous> @ <eval>/VM<xx>:1
+
+stdout> > [32m↳ {foo: 3}[0m
+stdout>     foo: 3
+stdout>     > __proto__: Object
+
+stderr> ↳ Uncaught ReferenceError: baz is not defined
+stderr> > ↳ Uncaught ReferenceError: baz is not defined
+stderr>     <anonymous> @ <eval>/VM<xx>:1
+
+stdout> [32m↳ 42[0m
+stderr> Uncaught Error: bar
+stderr> > Uncaught Error: bar
+stderr>     
+<anonymous> @ <eval>/VM<xx>:1:26
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:1
+
+stdout> [32m↳ 42[0m
+stderr> Uncaught Error: baz
+stderr> > Uncaught Error: baz
+stderr>     
+<anonymous> @ <eval>/VM<xx>:1:26
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:1
+
+stderr> ↳ Uncaught Error: error1
+stderr> > ↳ Uncaught Error: error1
+stderr>     
+throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
+<anonymous> @ <eval>/VM<xx>:1:8
+
+stderr> ↳ Uncaught Object
+stderr> > ↳ Uncaught Object
+stderr>     > arg0: {foo: 3, bar: 'baz'}
+stderr>     
+throwValue @ ${workspaceFolder}/web/browserify/module1.ts:9:2
+<anonymous> @ <eval>/VM<xx>:1:8
+
+stdout> [32m↳ 42[0m
+stderr> Uncaught Error: error2
+stderr> > Uncaught Error: error2
+stderr>     
+throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
+<anonymous> @ <eval>/VM<xx>:1:27
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:1
+
