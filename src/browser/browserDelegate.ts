@@ -92,6 +92,8 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     this._debugAdapter[BrowserDelegate.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
+    this._targetManager.serviceWorkerModel.onDidChange(() => this._debugAdapter.fireTargetForestChanged());
+    this._targetManager.frameModel.onFrameNavigated(() => this._debugAdapter.fireTargetForestChanged());
     this._disposables.push(this._targetManager);
 
     // Note: assuming first page is our main target breaks multiple debugging sessions

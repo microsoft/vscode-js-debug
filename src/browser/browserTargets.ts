@@ -39,7 +39,6 @@ export class BrowserTargetManager implements vscode.Disposable {
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
-    this.serviceWorkerModel.onDidChange(() => this._serviceWorkersStatusChanged());
   }
 
   dispose() {
@@ -64,7 +63,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         executionContext: context,
         children: [],
         stop: target.canStop() ? () => target.stop() : undefined,
-        restart: target.canRestart() ? () => target.restart() : undefined
+        restart: type === 'page' ? () => target.restart() : undefined
       };
     };
 
@@ -234,11 +233,6 @@ export class BrowserTargetManager implements vscode.Disposable {
       return;
     target._updateFromInfo(targetInfo);
   }
-
-  _serviceWorkersStatusChanged() {
-    for (const target of this._targets.values())
-      target._updateThreadName();
-  }
 }
 
 const jsTypes = new Set(['page', 'iframe', 'worker']);
@@ -291,10 +285,6 @@ export class BrowserTarget implements ThreadDelegate {
     this._manager.serviceWorkerModel.stopWorker(this.parentTarget.targetId);
   }
 
-  canRestart(): boolean {
-    return !this.parentTarget;
-  }
-
   restart() {
     this.cdp().Page.reload({});
   }
@@ -317,21 +307,17 @@ export class BrowserTarget implements ThreadDelegate {
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
     this._targetInfo = targetInfo;
-    this._updateThreadName();
-    if (this._thread)
+    if (this._thread) {
+      this._thread.setName(this._computeName());
       this._thread.setBaseUrl(this._targetInfo.url);
+    }
   }
 
-  _updateThreadName() {
-    if (!this._thread)
-      return;
-
+  _computeName(): string {
     if (this.isServiceWorkerWorker()) {
       const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId);
-      if (version) {
-        this._thread.setName(version.label());
-        return;
-      }
+      if (version)
+        return version.label();
     }
 
     let threadName = '';
@@ -346,8 +332,7 @@ export class BrowserTarget implements ThreadDelegate {
     } catch (e) {
       threadName += this._targetInfo.url;
     }
-
-    this._thread.setName(threadName);
+    return threadName;
   }
 
   _detached() {

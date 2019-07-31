@@ -170,7 +170,8 @@ export class Frame {
 
   displayName(): string {
     const name = this._name ? this._name + ' - ' : '';
-    return name + displayName(this._url);
+    const dname = name + displayName(this._url);
+    return dname || '<iframe>';
   }
 };
 
