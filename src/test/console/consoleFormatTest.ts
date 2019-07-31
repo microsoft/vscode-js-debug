@@ -8,7 +8,7 @@ export function addTests(testRunner) {
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
   describe('format', () => {
-    it('format string', async ({ p }: { p: TestP }) => {
+    fit('format string', async ({ p }: { p: TestP }) => {
       await p.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;
