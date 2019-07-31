@@ -348,8 +348,9 @@
           {
             "type": "pwa",
             "request": "launch",
-            "name": "PWA: launch program",
-            "command": "{1:npm start}"
+            "name": "PWA: launch browser",
+            "url": "http://localhost:3000",
+            "command": "npm start"
           }
         ],
         "configurationSnippets": [
@@ -359,7 +360,7 @@
             "body": {
               "type": "pwa",
               "request": "launch",
-              "name": "Launch browser with PWA",
+              "name": "PWA: launch browser",
               "url": "http://localhost:${1:3000}"
             }
           },
@@ -369,8 +370,8 @@
             "body": {
               "type": "pwa",
               "request": "launch",
-              "name": "Launch program with PWA",
-              "command": "{1:npm start}",
+              "name": "PWA: launch program",
+              "command": "${1:npm start}",
               "attachToNode": "always"
             }
           }

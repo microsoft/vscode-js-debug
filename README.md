@@ -6,9 +6,14 @@
 
     <img width="359" alt="Screen Shot 2019-07-25 at 9 27 36 AM" src="https://user-images.githubusercontent.com/883973/61891435-803cd380-aebe-11e9-8c27-1af5d1fdab43.png">
 
-- Node debugging attaches to all sub-processes
+- Node debugging auto-attaches to all Node sub-processes
 
-    <img width="322" alt="Screen Shot 2019-07-25 at 9 31 34 AM" src="https://user-images.githubusercontent.com/883973/61891688-140e9f80-aebf-11e9-9f56-c9fa9bf47c46.png">
+    <img width="273" alt="Screen Shot 2019-07-30 at 4 16 15 PM" src="https://user-images.githubusercontent.com/883973/62171895-67308a00-b2e5-11e9-832a-0867cf2ea411.png">
+
+
+- Full stack debugging with all targets at a glance.
+
+    <img width="320" alt="Screen Shot 2019-07-30 at 4 13 21 PM" src="https://user-images.githubusercontent.com/883973/62171782-03a65c80-b2e5-11e9-958b-73582efd513c.png">
 
 ## Console
 
@@ -38,7 +43,10 @@
 
     <img width="751" alt="Screen Shot 2019-07-24 at 10 29 43 PM" src="https://user-images.githubusercontent.com/883973/61848317-8e5d0680-ae62-11e9-88db-5017ed58a430.png">
 
-- Command line API: inspect(function), copy(value), queryObjects(prototype)
+- Complete command line API:
+  - `inspect(function)` - reveal function definition
+  - `copy(value)` - copies value into clipboard
+  - `queryObjects(prototype)` - returns all heap objects of type
 
     <img width="259" alt="Screen Shot 2019-07-22 at 10 32 03 PM" src="https://user-images.githubusercontent.com/883973/61685138-8bcaa780-acd0-11e9-99d9-151c2839b5f6.png">
 
@@ -64,39 +72,6 @@
 
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
 - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
-
-
-# Features
-
-- Multiple execution contexts support. Execution context is similar to a Scope, which is available when not on pause. Repl evaluation should be attributed to an execution context.
-
-- Inline breakpoints
-  - It is possible to implement inline breakpoints using `TextEditor.setDecorations`, but they lack custom `onclick` handler.
-
-  - Breakpoints which resolve somewhere in the middle of a line are hard to use. For example, `await foo.bar()` is resolved to "before `await`, but after `foo.bar()`", which is not obvious and can be communicated by placing inline breakpoints.
-
-- No checkboxes in the tree view, useful for e.g. browser breakpoints where each can be toggled, similar to regular breakpoints.
-
-
-# Bugs
-
-- It is impossible to construct a "debug:...." uri and open a text document in the UI. This prevents revealing any source coming from the debugger.
-
-- Child debugger sessions: cannot have both child sessions and threads, no way to rearrange sessions when parent process terminates, but child processes survive.
-
-- Debug console does not linkify many string properties. It seems to do so only for the property with an empty name.
-
-- Output stream does not respect control sequences.
-
-- No way to implement `console.group`.
-
-- Exception state has 3 options: 'always', 'never', 'unhandled', but has to be modeled with checkboxes.
-
-# Questions
-
-- Global scope pollution.
-
-- A notion of "target" which is a program user can attach to and debug. It is convenient to see them in a tree and pick the correct one. For example, when running `npm start` user can see a tree of spawned processes, and pick the main one to attach to.
 
 # Contributing
 

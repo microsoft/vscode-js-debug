@@ -59,6 +59,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         id: uniqueContextId,
         type,
         name: name || context.description.name || context.thread.name(),
+        fileName: this._sourcePathResolver.urlToAbsolutePath(target._targetInfo.url),
         thread: isThread ? context.thread : undefined,
         executionContext: context,
         children: [],
@@ -192,7 +193,8 @@ export class BrowserTargetManager implements vscode.Disposable {
       this._detachedFromTarget(event.targetId!);
     });
 
-    const cleanupOnFailure = (): undefined => {
+    const cleanupOnFailure = async () => {
+      await cdp.Browser.close({});
       this._targets.delete(targetInfo.targetId);
       this._connection.disposeSession(sessionId);
       return undefined;
@@ -226,6 +228,8 @@ export class BrowserTargetManager implements vscode.Disposable {
 
     this._onTargetRemovedEmitter.fire(target);
     debugTarget(`Detached from target ${targetId}`);
+    if (!this._targets.size)
+      this._connection.browser().Browser.close({});
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {

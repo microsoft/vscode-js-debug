@@ -367,12 +367,12 @@ export class Thread implements VariableStoreDelegate {
         return this._evaluateOnAsyncFrameError();
     }
 
+    // TODO: consider checking expression for side effects on hover.
     const params: Cdp.Runtime.EvaluateParams = {
       expression: args.expression,
       includeCommandLineAPI: true,
       objectGroup: 'console',
       generatePreview: true,
-      throwOnSideEffect: args.context === 'hover' ? true : undefined,
       timeout: args.context === 'hover' ? 500 : undefined,
     };
     if (args.context === 'repl') {
