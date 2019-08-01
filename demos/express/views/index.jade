@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  h1= title
+  p Explore the THREADS view in the VS Code debugger sidebar.
+  p Drag it to be the topmost view.
+  p You can see two running targets: Node Express server and Web page.
+  p After clicking the button below, you will first stop in the page, followed by stopping in the server
+  button(onclick='fetchUsers()') break
+  script.
+    function fetchUsers() {
+      debugger
+      fetch('/users')
+    }

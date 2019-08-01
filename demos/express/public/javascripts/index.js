@@ -1,0 +1,3 @@
+function fetchUsers() {
+  fetch('/users')
+}
