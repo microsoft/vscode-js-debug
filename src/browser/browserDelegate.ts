@@ -16,6 +16,7 @@ import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target } from '../adapter/targets';
+import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -26,7 +27,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 export class BrowserDelegate implements DebugAdapterDelegate {
   static symbol = Symbol('BrowserDelegate');
-  private _connection: CdpConnection | undefined;
+  private _connectionForTest: CdpConnection | undefined;
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
@@ -34,6 +35,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   private _launchParams: LaunchParams | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: vscode.Disposable[] = [];
+  private _browserSession: Cdp.Api | undefined;
 
   constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -56,10 +58,6 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     this._disposables = [];
   }
 
-  connection(): CdpConnection | undefined {
-    return this._connection;
-  }
-
   async prepareLaunch(params: LaunchParams, isUnderTest: boolean): Promise<BrowserTarget | Dap.Error> {
     // params.noDebug
 
@@ -69,7 +67,6 @@ export class BrowserDelegate implements DebugAdapterDelegate {
       return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser'));
     const args: string[] = [];
     if (isUnderTest) {
-      args.push('--remote-debugging-port=0');
       args.push('--headless');
     }
 
@@ -77,21 +74,28 @@ export class BrowserDelegate implements DebugAdapterDelegate {
       fs.mkdirSync(this._storagePath);
     } catch (e) {
     }
-    this._connection = await launcher.launch(
+    const connection = await launcher.launch(
       executablePath, {
         args,
         userDataDir: path.join(this._storagePath, isUnderTest ? '.headless-profile' : 'profile'),
         pipe: true,
       });
-    this._connection.onDisconnected(() => {
+    connection.onDisconnected(() => {
       this._debugAdapter.removeDelegate(this);
     }, undefined, this._disposables);
+    this._connectionForTest = connection;
 
+    const rootSession = connection.rootSession();
+    const result = await rootSession.Target.attachToBrowserTarget({});
+    if (!result)
+      return errors.createUserError(localize('error.executableNotFound', 'Unable to attach to the browser'));
+
+    this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
     (this._debugAdapter as any)[BrowserDelegate.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
-    this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, this._connection, pathResolver);
+    this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, connection, this._browserSession, pathResolver);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._debugAdapter.fireTargetForestChanged());
     this._targetManager.frameModel.onFrameNavigated(() => this._debugAdapter.fireTargetForestChanged());
     this._disposables.push(this._targetManager);
@@ -132,9 +136,9 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   }
 
   async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    if (!this._connection)
+    if (!this._browserSession)
       return errors.createSilentError('Did not initialize');
-    await this._connection.browser().Browser.close({});
+    await this._browserSession.Browser.close({});
     return {};
   }
 
@@ -154,6 +158,9 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     return manager ? manager.targetForest() : [];
   }
 
+  connectionForTest(): CdpConnection | undefined {
+    return this._connectionForTest;
+  }
 }
 
 class BrowserSourcePathResolver implements SourcePathResolver {

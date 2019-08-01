@@ -81,7 +81,6 @@ export class TestP {
     await this.dap.configurationDone({});
     this._launchUrl = url;
     const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
-    this._connection = await this._browserDelegate.connection()!.clone();
     this._adapter = this._browserDelegate.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
@@ -111,7 +110,10 @@ export class TestP {
       this.adapter.selectTarget(selected);
     });
 
-    const { sessionId } = (await this._connection.browser().Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;
+    this._connection = this._browserDelegate.connectionForTest()!;
+    const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
+    const testSession = this._connection.createSession(result!.sessionId);
+    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;
     this._cdp = this._connection.createSession(sessionId);
     return mainTarget;
   }

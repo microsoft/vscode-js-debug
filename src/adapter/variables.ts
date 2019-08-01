@@ -11,9 +11,9 @@ import * as nls from 'vscode-nls';
 const localize = nls.loadMessageBundle();
 
 class RemoteObject {
-  o: Cdp.Runtime.RemoteObject;
-  objectId: Cdp.Runtime.RemoteObjectId;
-  cdp: Cdp.Api;
+  readonly o: Cdp.Runtime.RemoteObject;
+  readonly objectId: Cdp.Runtime.RemoteObjectId;
+  readonly cdp: Cdp.Api;
 
   scopeRef?: ScopeRef;
   // Scope remote object is never updated, even after changing local variables.

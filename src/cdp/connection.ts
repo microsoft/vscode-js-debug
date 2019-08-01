@@ -42,7 +42,7 @@ export default class Connection {
   private _transport: Transport;
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
-  private _browserSession: CDPSession;
+  private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new vscode.EventEmitter();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
@@ -53,12 +53,12 @@ export default class Connection {
     this._transport.onclose = this._onTransportClose.bind(this);
     this._sessions = new Map();
     this._closed = false;
-    this._browserSession = new CDPSession(this, '');
-    this._sessions.set('', this._browserSession);
+    this._rootSession = new CDPSession(this, '');
+    this._sessions.set('', this._rootSession);
   }
 
-  browser(): Cdp.Api {
-    return this._browserSession.cdp();
+  rootSession(): Cdp.Api {
+    return this._rootSession.cdp();
   }
 
   session(sessionId: string): Cdp.Api {
@@ -120,10 +120,6 @@ export default class Connection {
       return;
     session._onClose();
     this._sessions.delete(session.sessionId());
-  }
-
-  async clone(): Promise<Connection> {
-    return new Connection(await this._transport.clone());
   }
 }
 

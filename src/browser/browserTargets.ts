@@ -31,11 +31,11 @@ export class BrowserTargetManager implements vscode.Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  constructor(threadManager: ThreadManager, connection: CdpConnection, sourcePathResolver: SourcePathResolver) {
+  constructor(threadManager: ThreadManager, connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver) {
     this._connection = connection;
     this._threadManager = threadManager;
     this._sourcePathResolver = sourcePathResolver;
-    this._browser = connection.browser();
+    this._browser = browserSession;
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
@@ -224,7 +224,7 @@ export class BrowserTargetManager implements vscode.Disposable {
     this._onTargetRemovedEmitter.fire(target);
     debugTarget(`Detached from target ${targetId}`);
     if (!this._targets.size)
-      this._connection.browser().Browser.close({});
+      this._browser.Browser.close({});
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
