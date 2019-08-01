@@ -1,0 +1,22 @@
+{
+  "name": "simple-web-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdn/simple-web-worker.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mdn/simple-web-worker/issues"
+  },
+  "homepage": "https://github.com/mdn/simple-web-worker#readme",
+  "devDependencies": {
+    "serve": "^11.1.0"
+  }
+}
