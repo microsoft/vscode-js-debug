@@ -39,6 +39,16 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext, fac
       return;
     debugCommand(`node ${editor.document.uri.fsPath}`);
   }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('pwa.createDebuggerTerminal', async e => {
+    vscode.debug.startDebugging(vscode.workspace.workspaceFolders![0], {
+      type: 'pwa',
+      name: 'Debugger terminal',
+      request: 'launch',
+      attachToNode: 'always',
+      openTerminal: true
+    });
+  }));
 }
 
 function debugCommand(command: string) {

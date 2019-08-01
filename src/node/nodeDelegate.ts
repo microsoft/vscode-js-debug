@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ChildProcess, spawn } from 'child_process';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -28,7 +27,7 @@ let counter = 0;
 export class NodeDelegate implements DebugAdapterDelegate {
   private _rootPath: string | undefined;
   private _server: net.Server | undefined;
-  private _runtime: ChildProcess | undefined;
+  private _terminal: vscode.Terminal | undefined;
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
@@ -53,57 +52,51 @@ export class NodeDelegate implements DebugAdapterDelegate {
   }
 
   async _relaunch() {
-    await this._killRuntime();
+    this._killRuntime();
 
-    const { shell, param } = process.platform === 'win32' ?
-        { shell: 'cmd', param: '/C' } :
-        { shell: '/bin/sh', param: '-c' };
-    const commandLine = this._launchParams!.command;
-    this._runtime = spawn(shell, [param, commandLine], {
+    this._terminal = vscode.window.createTerminal({
+      name: this._launchParams!.command || 'Debugger terminal',
       cwd: this._launchParams!.cwd || this._rootPath,
-      env: this._buildEnv(),
-      stdio: ['ignore', 'pipe', 'pipe']
+      env: this._buildEnv()
     });
-    let output: vscode.OutputChannel | undefined = vscode.window.createOutputChannel(commandLine);
-    output.show();
-    this._runtime.stdout.on('data', data => output && output.append(data.toString()));
-    this._runtime.stderr.on('data', data => output && output.append(data.toString()));
-    this._runtime.on('exit', () => {
-      output = undefined;
-      this._runtime = undefined;
+    const commandLine = this._launchParams!.command;
+    const pid = await this._terminal.processId;
+    this._terminal.show();
+
+    onProcessExit(pid, () => {
       if (!this._isRestarting) {
         this._stopServer();
         this._debugAdapter.removeDelegate(this);
       }
     });
+
+    if (commandLine)
+      this._terminal.sendText(commandLine, true);
   }
 
   async onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    await this._killRuntime();
+    this._killRuntime();
     await this._stopServer();
     return {};
   }
 
   async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    await this._killRuntime();
+    this._killRuntime();
     await this._stopServer();
     return {};
   }
 
-  async _killRuntime() {
-    if (!this._runtime || this._runtime.killed)
+  _killRuntime() {
+    if (!this._terminal)
       return;
-    this._runtime.kill();
-    let callback = () => {};
-    const result = new Promise(f => callback = f);
-    this._runtime.on('exit', callback);
-    return result;
+    this._terminal.dispose();
+    this._terminal = undefined;
   }
 
   async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
-    await this._killRuntime();
+    this._killRuntime();
     this._stopServer();
     await this._startServer();
     await this._relaunch();
@@ -144,7 +137,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
     this._stopServer();
   }
 
-  _buildEnv(): Object {
+  _buildEnv(): { [key: string]: string | null } {
     const bootloaderJS = path.join(__dirname, 'bootloader.js');
     let result: any = {
       ...process.env,
@@ -314,4 +307,17 @@ class NodeSourcePathResolver implements SourcePathResolver {
     // Node executes files directly from disk, there is no need to check the content.
     return false;
   }
+}
+
+function onProcessExit(pid: number, callback: () => void) {
+  const interval = setInterval(() => {
+    try {
+      process.kill(pid, 0);
+    } catch(e) {
+      if (e.code !== 'EPERM') {
+        clearInterval(interval);
+        callback();
+      }
+    }
+  }, 1000);
 }

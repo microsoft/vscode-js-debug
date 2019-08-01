@@ -54,6 +54,7 @@
     "express": "^4.17.1",
     "tslint": "5.11.0",
     "vsce": "1.53.2",
+
     "vscode-test": "^1.0.0"
   },
   "main": "./out/extension",
@@ -63,7 +64,8 @@
     "onView:pwa.breakpoints",
     "onView:pwa.cacheStorage",
     "onCommand:pwa.debugTask",
-    "onCommand:pwa.debugCurrentScript"
+    "onCommand:pwa.debugCurrentScript",
+    "onCommand:pwa.createDebuggerTerminal"
   ],
   "contributes": {
     "viewsContainers": {
@@ -171,6 +173,10 @@
       {
         "command": "pwa.debugTask",
         "title": "Debug task"
+      },
+      {
+        "command": "pwa.createDebuggerTerminal",
+        "title": "Open debugger terminal"
       },
       {
         "command": "pwa.revealTargetScript",
@@ -316,6 +322,10 @@
                   "always",
                   "top-level"
                 ]
+              },
+              "openTerminal": {
+                "type": "boolean",
+                "description": "Open terminal that debugs all Node executables"
               }
             }
           }
