@@ -41,9 +41,11 @@ export class TestP {
   private _workspaceRoot: string;
   private _webRoot: string | undefined;
   private _launchUrl: string | undefined;
+  private _args: string[];
   readonly logger: Logger;
 
   constructor(goldenText: GoldenText) {
+    this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.logger = new Logger(this);
     this.assertLog = goldenText.assertLog.bind(goldenText);
@@ -76,11 +78,15 @@ export class TestP {
     return this._cdp!;
   }
 
+  setArgs(args: string[]) {
+    this._args = args;
+  }
+
   async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, true)) as BrowserTarget;
+    const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
     this._adapter = this._browserDelegate.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 

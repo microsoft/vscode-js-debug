@@ -243,6 +243,10 @@ export class Thread implements VariableStoreDelegate {
     return this._name;
   }
 
+  baseUrlForTest(): string | undefined {
+    return this._threadBaseUrl;
+  }
+
   pausedDetails(): PausedDetails | undefined {
     return this._pausedDetails;
   }

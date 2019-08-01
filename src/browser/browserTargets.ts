@@ -51,14 +51,14 @@ export class BrowserTargetManager implements vscode.Disposable {
 
   targetForest(): Target[] {
     const reported: Set<string> = new Set();
-    const toTarget = (target: BrowserTarget, context: ExecutionContext, isThread: boolean, type: string, name?: string): Target => {
+    const toTarget = (target: BrowserTarget, context: ExecutionContext, isThread: boolean, type: string, name?: string, url?: string): Target => {
       const uniqueContextId = target._targetInfo.targetId + ':' + context.description.id;
       reported.add(uniqueContextId);
       return {
         id: uniqueContextId,
         type,
         name: name || context.description.name || context.thread.name(),
-        fileName: this._sourcePathResolver.urlToAbsolutePath(target._targetInfo.url),
+        fileName: this._sourcePathResolver.urlToAbsolutePath(url || target._targetInfo.url),
         thread: isThread ? context.thread : undefined,
         executionContext: context,
         children: [],
@@ -83,7 +83,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         if (frame && isDefault) {
           const name = frame.parentFrame() ? frame.displayName() : thread.name();
           const isThread = !!this._targets.get(frame.id);
-          const dapContext = toTarget(target, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name);
+          const dapContext = toTarget(target, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name, frame.url());
           mainForFrameId.set(frameId, dapContext);
           if (isThread)
             mainForTarget.set(target, dapContext);
@@ -197,7 +197,7 @@ export class BrowserTargetManager implements vscode.Disposable {
       target._thread.initialize();
 
     if (domDebuggerTypes.has(targetInfo.type))
-      this.frameModel.attached(cdp);
+      this.frameModel.attached(cdp, targetInfo.targetId);
     this.serviceWorkerModel.attached(cdp);
 
     if (waitingForDebugger)

@@ -58,17 +58,13 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     this._disposables = [];
   }
 
-  async prepareLaunch(params: LaunchParams, isUnderTest: boolean): Promise<BrowserTarget | Dap.Error> {
+  async prepareLaunch(params: LaunchParams, args: string[]): Promise<BrowserTarget | Dap.Error> {
     // params.noDebug
 
     // Prefer canary over stable, it comes earlier in the list.
     const executablePath = findBrowser()[0];
     if (!executablePath)
       return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser'));
-    const args: string[] = [];
-    if (isUnderTest) {
-      args.push('--headless');
-    }
 
     try {
       fs.mkdirSync(this._storagePath);
@@ -77,7 +73,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     const connection = await launcher.launch(
       executablePath, {
         args,
-        userDataDir: path.join(this._storagePath, isUnderTest ? '.headless-profile' : 'profile'),
+        userDataDir: path.join(this._storagePath, args.indexOf('--headless') !== -1 ? '.headless-profile' : '.profile'),
         pipe: true,
       });
     connection.onDisconnected(() => {
@@ -117,7 +113,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   }
 
   async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
-    const result = await this.prepareLaunch(params as LaunchParams, false);
+    const result = await this.prepareLaunch(params as LaunchParams, []);
     if (!(result instanceof BrowserTarget))
       return result;
     await this.finishLaunch(result);
