@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as express from 'express';
+import express from 'express';
 import * as path from 'path';
 
 const port = +process.argv[2];

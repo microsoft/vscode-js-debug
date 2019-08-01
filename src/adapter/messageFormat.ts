@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as Color from 'color';
+import Color from 'color';
 import { BudgetStringBuilder } from '../utils/budgetStringBuilder';
 
 export interface FormatToken {

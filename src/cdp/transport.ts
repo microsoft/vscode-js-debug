@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as net from 'net';
-import * as WebSocket from 'ws';
+import WebSocket from 'ws';
 import * as eventUtils from '../utils/eventUtils';
 
 export interface Transport {

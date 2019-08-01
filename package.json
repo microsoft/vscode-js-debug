@@ -25,11 +25,10 @@
     "url": "https://github.com/Microsoft/vscode-pwa/issues"
   },
   "scripts": {
-    "prepublish": "tsc -p ./src",
     "compile": "tsc -p ./src",
     "tslint": "tslint ./src/**/*.ts",
     "watch": "tsc -w -p ./src",
-    "package": "vsce package",
+    "package": "./build.sh && vsce package",
     "publish": "vsce publish",
     "test": "node ./out/test/runTest.js"
   },
@@ -52,12 +51,12 @@
     "@types/vscode": "^1.30.0",
     "@types/ws": "^6.0.1",
     "express": "^4.17.1",
+    "parcel-bundler": "^1.12.3",
     "tslint": "5.11.0",
     "vsce": "1.53.2",
-
     "vscode-test": "^1.0.0"
   },
-  "main": "./out/extension",
+  "main": "./out/extension.js",
   "activationEvents": [
     "onDebug",
     "onView:pwa.threadsView",
