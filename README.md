@@ -1,3 +1,19 @@
+# Demos
+
+Win
+```
+git clone https://github.com/microsoft/vscode-pwa
+cd vscode-pwa\demos
+dir
+```
+
+Mac / Linux
+```
+git clone https://github.com/microsoft/vscode-pwa
+cd vscode-pwa/demos
+ls
+```
+
 # Features
 
 ## Multiple threads
