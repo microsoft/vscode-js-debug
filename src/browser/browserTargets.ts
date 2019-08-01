@@ -3,7 +3,7 @@
 
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
-import * as debug from 'debug';
+import { debug } from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
