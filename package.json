@@ -61,7 +61,6 @@
     "onDebug",
     "onView:pwa.threadsView",
     "onView:pwa.breakpoints",
-    "onView:pwa.serviceWorkers",
     "onView:pwa.cacheStorage",
     "onCommand:pwa.debugTask",
     "onCommand:pwa.debugCurrentScript"
@@ -85,16 +84,6 @@
         {
           "id": "pwa.breakpoints",
           "name": "Browser breakpoints"
-        }
-      ],
-      "pwa": [
-        {
-          "id": "pwa.serviceWorkers",
-          "name": "Service Workers"
-        },
-        {
-          "id": "pwa.cacheStorage",
-          "name": "Cache Storage"
         }
       ]
     },
@@ -126,14 +115,6 @@
       {
         "command": "pwa.prettyPrint",
         "title": "Pretty print for debugging"
-      },
-      {
-        "command": "pwa.changeServiceWorkersMode",
-        "title": "Configure Service Workers Mode",
-        "icon": {
-          "light": "resources/light/configure.svg",
-          "dark": "resources/dark/configure.svg"
-        }
       },
       {
         "command": "pwa.pauseThread",
@@ -230,11 +211,6 @@
         {
           "command": "pwa.removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
-        },
-        {
-          "command": "pwa.changeServiceWorkersMode",
-          "when": "view == pwa.serviceWorkers && viewItem == pwa.serviceWorkerMode",
-          "group": "inline"
         },
         {
           "command": "pwa.pauseThread",
