@@ -16,14 +16,19 @@ export async function run(): Promise<void> {
   });
   const {beforeEach, afterEach, beforeAll, afterAll, describe} = testRunner;
 
-  beforeAll(async (state: {server: child_process.ChildProcess}) => {
-    state.server = child_process.fork(path.join(__dirname, 'testServer.js'));
-    await new Promise(callback => state.server.once('message', callback));
+  beforeAll(async (state: {servers: child_process.ChildProcess[]}) => {
+    state.servers = [
+      child_process.fork(path.join(__dirname, 'testServer.js'), ['8001']),
+      child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'])
+    ];
+    await Promise.all(state.servers.map(server => {
+      return new Promise(callback => server.once('message', callback));
+    }));
   });
 
-  afterAll(async (state: {server: child_process.ChildProcess}) => {
-    state.server!.kill();
-    delete state.server;
+  afterAll(async (state: {servers: child_process.ChildProcess[]}) => {
+    state.servers.forEach(server => server.kill());
+    delete state.servers;
   });
 
   beforeEach(async (state, t) => {
@@ -53,6 +58,7 @@ export async function run(): Promise<void> {
     });
 
     (await import('./breakpoints/breakpointsTest')).addTests(testRunner);
+    (await import('./browser/framesTest')).addTests(testRunner);
     (await import('./evaluate/evaluate')).addTests(testRunner);
     (await import('./sources/sourcesTest')).addTests(testRunner);
     (await import('./stacks/stacksTest')).addTests(testRunner);
