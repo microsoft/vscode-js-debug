@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { Transport } from './transport';
-import * as debug from 'debug';
+import { debug } from 'debug';
 import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
 import Cdp from './api';

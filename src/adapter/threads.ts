@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as debug from 'debug';
+import { debug } from 'debug';
 import { EventEmitter } from 'vscode';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';

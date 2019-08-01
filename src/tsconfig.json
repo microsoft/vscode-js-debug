@@ -8,6 +8,7 @@
     "noImplicitThis": true,
     "sourceMap": true,
     "outDir": "../out",
-    "strict": true
+    "strict": true,
+    "esModuleInterop": true
   }
 }

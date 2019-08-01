@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import Dap from './api';
-import * as debug from 'debug';
+import { debug } from 'debug';
 
 const debugDAP = debug('dap');
 
