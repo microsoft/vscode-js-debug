@@ -24,6 +24,7 @@ export interface DebugAdapterDelegate {
   onTerminate: (params: Dap.TerminateParams) => Promise<Dap.TerminateResult | Dap.Error>;
   onDisconnect: (params: Dap.DisconnectParams) => Promise<Dap.DisconnectResult | Dap.Error>;
   onRestart: (params: Dap.RestartParams) => Promise<Dap.RestartResult | Dap.Error>;
+  onSetBreakpoints?: (params: Dap.SetBreakpointsParams) => Promise<void>;
 }
 
 // This class collects configuration issued before "launch" request,
@@ -121,6 +122,10 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+    for (const delegate of this._delegates) {
+      if (delegate.onSetBreakpoints)
+        await delegate.onSetBreakpoints(params);
+    }
     return this.breakpointManager.setBreakpoints(params);
   }
 
@@ -134,7 +139,7 @@ export class DebugAdapter {
   }
 
   async _onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
-    for (const delegate of this._delegates.values())
+    for (const delegate of this._delegates)
       delegate.onLaunch(params);
     return {};
   }
@@ -146,7 +151,7 @@ export class DebugAdapter {
   }
 
   async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    for (const delegate of this._delegates.values())
+    for (const delegate of this._delegates)
       delegate.onDisconnect(params);
     return {};
   }

@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
-import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
+import { SourcePathResolver, InlineScriptOffset, PathLocation } from '../adapter/sources';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
@@ -14,6 +14,7 @@ import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
 import { ThreadDelegate, Thread } from '../adapter/threads';
+import { NodeBreakpointsPredictor } from './nodeBreakpoints';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -34,18 +35,26 @@ export class NodeDelegate implements DebugAdapterDelegate {
   private _isRestarting = false;
   _debugAdapter: DebugAdapter;
   _targets = new Map<string, NodeTarget>();
-  _pathResolver: NodeSourcePathResolver | undefined;
+  _pathResolver: NodeSourcePathResolver;
+  private _launchBlocker: Promise<any>;
+  private _breakpointsPredictor?: NodeBreakpointsPredictor;
 
   constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
     this._rootPath = rootPath;
+    this._pathResolver = new NodeSourcePathResolver(this._rootPath);
+    this._launchBlocker = Promise.resolve();
+    if (rootPath) {
+      this._breakpointsPredictor = new NodeBreakpointsPredictor(this._pathResolver, rootPath);
+      this._pathResolver.setBreakpointsPredictor(this._breakpointsPredictor);
+    }
     debugAdapter.addDelegate(this);
   }
 
   async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+    await this._launchBlocker;
     // params.noDebug
     this._launchParams = params as LaunchParams;
-    this._pathResolver = new NodeSourcePathResolver(this._rootPath);
     await this._startServer();
     await this._relaunch();
     return {};
@@ -148,6 +157,14 @@ export class NodeDelegate implements DebugAdapterDelegate {
     };
     delete result['ELECTRON_RUN_AS_NODE'];
     return result;
+  }
+
+  onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+    if (!this._breakpointsPredictor)
+      return Promise.resolve();
+    const promise = this._breakpointsPredictor.onSetBreakpoints(params);
+    this._launchBlocker = Promise.all([this._launchBlocker, promise]);
+    return promise;
   }
 }
 
@@ -278,6 +295,7 @@ class NodeTarget implements ThreadDelegate {
 
 class NodeSourcePathResolver implements SourcePathResolver {
   private _rootPath: string | undefined;
+  private _breakpointsPredictor?: NodeBreakpointsPredictor;
 
   constructor(rootPath: string | undefined) {
     this._rootPath = rootPath;
@@ -306,6 +324,16 @@ class NodeSourcePathResolver implements SourcePathResolver {
   shouldCheckContentHash(): boolean {
     // Node executes files directly from disk, there is no need to check the content.
     return false;
+  }
+
+  predictResolvedLocations(location: PathLocation): PathLocation[] {
+    if (!this._breakpointsPredictor)
+      return [];
+    return this._breakpointsPredictor.predictResolvedLocations(location);
+  }
+
+  setBreakpointsPredictor(breakpointsPredictor?: NodeBreakpointsPredictor) {
+    this._breakpointsPredictor = breakpointsPredictor;
   }
 }
 

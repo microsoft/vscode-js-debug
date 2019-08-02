@@ -4,8 +4,11 @@
 import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
+import * as urlUtils from './urlUtils';
+import * as fsUtils from './fsUtils';
+import { calculateHash } from './hash';
 
-type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
+export type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
 
 export function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
   const source = beautify(minified);
@@ -186,4 +189,66 @@ export function wrapObjectLiteral(code: string): string {
   } catch (e) {
     return code;
   }
+}
+
+export async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
+  if (slowDown)
+    await new Promise(f => setTimeout(f, slowDown));
+  let content = await urlUtils.fetch(url);
+  if (content.slice(0, 3) === ')]}')
+    content = content.substring(content.indexOf('\n'));
+  return await new sourceMap.SourceMapConsumer(content);
+}
+
+export function parseSourceMappingUrl(content: string): string | undefined {
+  if (!content)
+    return;
+  const name = 'sourceMappingURL';
+  const length = content.length;
+  const nameLength = name.length;
+
+  let pos = length;
+  let equalSignPos = 0;
+  while (true) {
+    pos = content.lastIndexOf(name, pos);
+    if (pos === -1)
+      return;
+    // Check for a /\/[\/*][@#][ \t]/ regexp (length of 4) before found name.
+    if (pos < 4)
+      return;
+    pos -= 4;
+    if (content[pos] !== '/')
+      continue;
+    if (content[pos + 1] !== '/')
+      continue;
+    if (content[pos + 2] !== '#' && content[pos + 2] !== '@')
+      continue;
+    if (content[pos + 3] !== ' ' && content[pos + 3] !== '\t')
+      continue;
+    equalSignPos = pos + 4 + nameLength;
+    if (equalSignPos < length && content[equalSignPos] !== '=')
+      continue;
+    break;
+  }
+
+  let sourceMapUrl = content.substring(equalSignPos + 1);
+  const newLine = sourceMapUrl.indexOf("\n");
+  if (newLine !== -1)
+    sourceMapUrl = sourceMapUrl.substring(0, newLine);
+  sourceMapUrl = sourceMapUrl.trim();
+  for (let i = 0; i < sourceMapUrl.length; ++i) {
+    if (sourceMapUrl[i] == '"' || sourceMapUrl[i] == '\'' || sourceMapUrl[i] == ' ' || sourceMapUrl[i] == '\t')
+      return;
+  }
+  return sourceMapUrl;
+}
+
+export async function checkContentHash(absolutePath: string, contentHash?: string, contentOverride?: string): Promise<string | undefined> {
+  if (!contentHash) {
+    const exists = await fsUtils.exists(absolutePath);
+    return exists ? absolutePath : undefined;
+  }
+  const content = contentOverride || await fsUtils.readfile(absolutePath);
+  const hash = calculateHash(content);
+  return hash === contentHash ? absolutePath : undefined;
 }
