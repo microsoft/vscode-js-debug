@@ -42,8 +42,11 @@ export interface ExecutionContext {
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
 
-export interface ThreadDelegate {
+export interface UIDelegate {
   copyToClipboard: (text: string) => void;
+}
+
+export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   sourcePathResolver(): SourcePathResolver;
@@ -70,12 +73,14 @@ export class ThreadManager {
   readonly sourceContainer: SourceContainer;
   _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   _consoleIsDirty = false;
+  _uiDelegate: UIDelegate;
 
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, uiDelegate: UIDelegate) {
     this._dap = dap;
+    this._uiDelegate = uiDelegate;
     this._pauseOnExceptionsState = 'none';
     this._customBreakpoints = new Set();
     this.sourceContainer = sourceContainer;
@@ -947,7 +952,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this.delegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this.manager._uiDelegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -973,7 +978,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this.delegate.copyToClipboard(String(response.result.value));
+      this.manager._uiDelegate.copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 

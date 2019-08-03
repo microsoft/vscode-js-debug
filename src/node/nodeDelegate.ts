@@ -200,11 +200,6 @@ class NodeTarget implements ThreadDelegate {
       this._attach();
   }
 
-  copyToClipboard(text: string) {
-    // TODO: move into the UIDelegate.
-    vscode.env.clipboard.writeText(text);
-  }
-
   defaultScriptOffset(): InlineScriptOffset {
     return { lineOffset: 0, columnOffset: 62 };
   }

@@ -8,7 +8,7 @@ import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
 import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
-import { PauseOnExceptionsState, ThreadManager, ExecutionContext, Thread } from './threads';
+import { PauseOnExceptionsState, ThreadManager, ExecutionContext, Thread, UIDelegate } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
 import { Target } from './targets';
@@ -40,7 +40,7 @@ export class DebugAdapter {
   private _delegates = new Set<DebugAdapterDelegate>();
   readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, uiDelegate: UIDelegate) {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -58,7 +58,7 @@ export class DebugAdapter {
     this.dap.on('restart', params => this._onRestart(params));
     this.dap.thread({ reason: 'started', threadId: defaultThreadId });
     this.sourceContainer = new SourceContainer(this.dap);
-    this.threadManager = new ThreadManager(this.dap, this.sourceContainer);
+    this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
     this._threadAdapter = new DummyThreadAdapter(this.dap);
 

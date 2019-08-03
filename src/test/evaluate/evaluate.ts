@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import {TestP} from '../test';
-import * as vscode from 'vscode';
 import * as sourceUtils from '../../utils/sourceUtils';
 
 export function addTests(testRunner) {
@@ -131,11 +130,8 @@ export function addTests(testRunner) {
   it('copy', async({p} : {p: TestP}) => {
     await p.launchAndLoad('blank');
     await p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
-    p.log(await vscode.env.clipboard.readText());
     await p.dap.evaluate({expression: 'copy(123n)'});
-    p.log(await vscode.env.clipboard.readText());
     await p.dap.evaluate({expression: 'copy(NaN)'});
-    p.log(await vscode.env.clipboard.readText());
     p.assertLog();
   });
 

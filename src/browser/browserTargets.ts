@@ -270,10 +270,6 @@ export class BrowserTarget implements ThreadDelegate {
     return this._thread;
   }
 
-  copyToClipboard(text: string) {
-    return vscode.env.clipboard.writeText(text);
-  }
-
   canStop(): boolean {
     return this.isServiceWorkerWorker();
   }

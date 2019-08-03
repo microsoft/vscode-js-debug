@@ -56,7 +56,9 @@ export class TestP {
     const storagePath = path.join(__dirname, '..', '..');
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
-    const debugAdapter = new DebugAdapter(adapterConnection.dap());
+    const debugAdapter = new DebugAdapter(adapterConnection.dap(), {
+      copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
+    });
     this._browserDelegate = new BrowserDelegate(debugAdapter, storagePath, this._workspaceRoot);
     debugAdapter.addDelegate(this._browserDelegate);
     this.dap = testConnection.createTestApi();
