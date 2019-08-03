@@ -72,21 +72,20 @@ export class Breakpoint {
       }
     }, undefined, this._disposables);
 
-    const promises: Promise<void>[] = [];
+    const promises: Promise<any>[] = [];
     {
-      // For breakpoints set before launch, we don't know whether they are in a compiled or
-      // a source map source. To make them work, we always set by url to not miss compiled.
-      //
-      // Additionally, if we have two sources with the same url, but different path (or no path),
-      // this will make breakpoint work in all of them.
-      const lineNumber = this._lineNumber - 1;
-      const columnNumber = this._columnNumber - 1;
-      promises.push(...threadManager.threads().map(thread => {
-        return this._setByPath(thread, lineNumber, columnNumber);
-      }));
-      threadManager.onThreadAdded(thread => {
-        this._setByPath(thread, lineNumber, columnNumber);
-      }, undefined, this._disposables);
+      const onThread = (thread: Thread) => Promise.all([
+        // For breakpoints set before launch, we don't know whether they are in a compiled or
+        // a source map source. To make them work, we always set by url to not miss compiled.
+        // Additionally, if we have two sources with the same url, but different path (or no path),
+        // this will make breakpoint work in all of them.
+        this._setByPath(thread, this._lineNumber - 1, this._columnNumber - 1),
+
+        // Also use predicted locations if available.
+        this._setPredicted(thread)
+      ]);
+      promises.push(...threadManager.threads().map(onThread));
+      threadManager.onThreadAdded(onThread, undefined, this._disposables);
     }
 
     const source = this._manager._sourceContainer.source(this._source);
@@ -148,6 +147,23 @@ export class Breakpoint {
       await this._notifyResolved();
   }
 
+  async _setPredicted(thread: Thread): Promise<void> {
+    if (!this._source.path || !thread.sourcePathResolver.predictResolvedLocations)
+      return;
+    const locations = thread.sourcePathResolver.predictResolvedLocations({
+      absolutePath: this._source.path,
+      lineNumber: this._lineNumber,
+      columnNumber: this._columnNumber
+    });
+    const promises: Promise<void>[] = [];
+    for (const location of locations) {
+      const url = thread.sourcePathResolver.absolutePathToUrl(location.absolutePath);
+      if (url)
+        promises.push(this._setByUrl(thread, url, location.lineNumber - 1, location.columnNumber - 1));
+    }
+    await Promise.all(promises);
+  }
+
   async _setByLocation(location: Location, originalSource?: Source): Promise<void> {
     const promises: Promise<void>[] = [];
     if (location.source) {
@@ -176,7 +192,7 @@ export class Breakpoint {
     const url = source ? source.url() :
       (this._source.path ? thread.sourcePathResolver.absolutePathToUrl(this._source.path) : undefined);
     if (!url)
-      return
+      return;
     await this._setByUrl(thread, url, lineNumber, columnNumber);
   }
 

@@ -1,0 +1,14 @@
+{
+  "name": "node-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "out/index.js",
+  "scripts": {
+    "compile": "tsc -p ./src",
+    "tslint": "tslint ./src/**/*.ts",
+    "watch": "tsc -w -p ./src",
+    "execute": "node out/index.js"
+  },
+  "keywords": [],
+  "author": ""
+}

@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as sourcemap from 'source-map';
 import * as utils from '../utils/urlUtils';
-import * as fs from 'fs';
+import * as sourceUtils from '../utils/sourceUtils';
 import Dap from '../dap/api';
 import { URL } from 'url';
 import * as path from 'path';
 import * as errors from './errors';
 import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
-import { calculateHash } from './hash';
 
 // This is a ui location. Usually it corresponds to a position
 // in the document user can see (Source, Dap.Source). When no source
@@ -26,10 +24,8 @@ type ContentGetter = () => Promise<string | undefined>;
 // Script tags in html have line/column numbers offset relative to the actual script start.
 export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
 
-type SourceMapConsumer = sourcemap.BasicSourceMapConsumer | sourcemap.IndexedSourceMapConsumer;
-
 // Each source map has a number of compiled sources referncing it.
-type SourceMapData = { compiled: Set<Source>, map?: SourceMapConsumer, loaded: Promise<void> };
+type SourceMapData = { compiled: Set<Source>, map?: sourceUtils.SourceMapConsumer, loaded: Promise<void> };
 
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
@@ -61,6 +57,12 @@ export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
 }
 
+export interface PathLocation {
+  absolutePath: string;
+  lineNumber: number; // 1-based
+  columnNumber: number;  // 1-based
+}
+
 // Mapping between urls (operated in cdp) and paths (operated in dap) is
 // specific to the actual product being debugged.
 export interface SourcePathResolver {
@@ -69,6 +71,7 @@ export interface SourcePathResolver {
   absolutePathToUrl(absolutePath: string): string | undefined;
   scriptUrlToUrl(url: string): string;
   shouldCheckContentHash(): boolean;
+  predictResolvedLocations?(location: PathLocation): PathLocation[];
 }
 
 // Represents a text source visible to the user.
@@ -135,7 +138,7 @@ export class Source {
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset || !sourcePathResolver.shouldCheckContentHash())
       contentHash = undefined;
-    this._existingAbsolutePath = checkContentHash(this._absolutePath, contentHash, container._fileContentOverridesForTest.get(this._absolutePath));
+    this._existingAbsolutePath = sourceUtils.checkContentHash(this._absolutePath, contentHash, container._fileContentOverridesForTest.get(this._absolutePath));
   }
 
   url(): string {
@@ -360,7 +363,7 @@ export class SourceContainer {
     result.push(sourceMapLocation);
   }
 
-  _sourceMappedLocation(location: Location, map: SourceMapConsumer): Location | undefined {
+  _sourceMappedLocation(location: Location, map: sourceUtils.SourceMapConsumer): Location | undefined {
     const compiled = location.source!;
     if (!compiled._sourceMapSourceByUrl)
       return;
@@ -454,7 +457,7 @@ export class SourceContainer {
       return callback!();
 
     try {
-      sourceMap.map = await loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
+      sourceMap.map = await sourceUtils.loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
     } catch (e) {
       if (!this._brokenSourceMapReported) {
         errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
@@ -496,7 +499,7 @@ export class SourceContainer {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: SourceMapConsumer, sourceMapUrl: string) {
+  _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sources) {
@@ -520,7 +523,7 @@ export class SourceContainer {
     }
   }
 
-  _removeSourceMapSources(compiled: Source, map: SourceMapConsumer) {
+  _removeSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer) {
     for (const url of map.sources) {
       const source = compiled._sourceMapSourceByUrl!.get(url)!;
       compiled._sourceMapSourceByUrl!.delete(url);
@@ -548,34 +551,3 @@ export class SourceContainer {
       this._revealer.revealLocation(location);
   }
 };
-
-async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
-  if (slowDown)
-    await new Promise(f => setTimeout(f, slowDown));
-  let content = await utils.fetch(url);
-  if (content.slice(0, 3) === ')]}')
-    content = content.substring(content.indexOf('\n'));
-  return await new sourcemap.SourceMapConsumer(content);
-}
-
-function checkContentHash(absolutePath: string, contentHash?: string, contentOverride?: string): Promise<string | undefined> {
-  return new Promise(f => {
-    if (!contentHash) {
-      fs.exists(absolutePath, exists => {
-        f(exists ? absolutePath : undefined);
-      });
-      return;
-    }
-
-    fs.readFile(absolutePath, 'utf8', (err, content) => {
-      if (err) {
-        f(undefined);
-        return;
-      }
-      if (contentOverride !== undefined)
-        content = contentOverride;
-      const hash = calculateHash(content);
-      f(hash === contentHash ? absolutePath : undefined);
-    });
-  });
-}
