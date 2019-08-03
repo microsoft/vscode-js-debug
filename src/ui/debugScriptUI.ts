@@ -46,7 +46,7 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext, fac
       name: 'Debugger terminal',
       request: 'launch',
       attachToNode: 'always',
-      openTerminal: true
+      command: ''
     });
   }));
 }

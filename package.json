@@ -321,10 +321,6 @@
                   "always",
                   "top-level"
                 ]
-              },
-              "openTerminal": {
-                "type": "boolean",
-                "description": "Open terminal that debugs all Node executables"
               }
             }
           }

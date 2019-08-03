@@ -79,7 +79,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
         rootPath = session.workspaceFolder.uri.path;
       const adapter = new DebugAdapter(connection.dap());
       this._sessions.set(session.id, { session, server, adapter });
-      if (session.configuration['command'] || session.configuration['openTerminal'])
+      if ('command' in session.configuration)
         new NodeDelegate(adapter, rootPath);
       if (session.configuration['url'])
         new BrowserDelegate(adapter, this._context.storagePath || this._context.extensionPath, rootPath);
