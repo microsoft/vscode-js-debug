@@ -10,7 +10,7 @@ import { LocationRevealerUI } from './ui/locationRevealerUI';
 import { OutputUI } from './ui/outputUI';
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
-import { registerThreadsUI } from './ui/threadsUI';
+import { registerTargetsUI } from './ui/targetsUI';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
   new LocationRevealerUI(context, factory);
   new OutputUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
-  registerThreadsUI(context, factory);
+  registerTargetsUI(context, factory);
   registerPrettyPrintActions(context, factory);
   registerDebugScriptActions(context, factory);
 }

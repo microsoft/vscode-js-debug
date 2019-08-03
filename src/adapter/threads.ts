@@ -35,9 +35,18 @@ export interface PausedDetails {
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export interface ExecutionContext {
-  description: Cdp.Runtime.ExecutionContextDescription;
-  thread: Thread;
+export class ExecutionContext {
+  readonly thread: Thread;
+  readonly description: Cdp.Runtime.ExecutionContextDescription;
+
+  constructor(thread: Thread, description: Cdp.Runtime.ExecutionContextDescription) {
+    this.thread = thread;
+    this.description = description;
+  }
+
+  isDefault(): boolean {
+    return this.description.auxData && this.description.auxData['isDefault'];
+  }
 }
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
@@ -50,6 +59,7 @@ export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   sourcePathResolver(): SourcePathResolver;
+  executionContextName(context: ExecutionContext): string;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -220,6 +230,7 @@ export class Thread implements VariableStoreDelegate {
   readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
   _onExecutionContextDestroyedEmitter = new EventEmitter<ExecutionContext>();
   readonly onExecutionContextsDestroyed = this._onExecutionContextDestroyedEmitter.event;
+  private _selectedContext: ExecutionContext | undefined;
 
   constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this.manager = manager;
@@ -266,7 +277,7 @@ export class Thread implements VariableStoreDelegate {
 
   defaultExecutionContext(): ExecutionContext | undefined {
     for (const context of this._executionContexts.values()) {
-      if (context.description.auxData && context.description.auxData['isDefault'])
+      if (context.isDefault())
         return context;
     }
   }
@@ -354,7 +365,7 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  async completions(params: Dap.CompletionsParams, executionContextId: Cdp.Runtime.ExecutionContextId | undefined): Promise<Dap.CompletionsResult | Dap.Error> {
+  async completions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
     let stackFrame: StackFrame | undefined;
     if (params.frameId !== undefined) {
       stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(params.frameId) : undefined;
@@ -364,10 +375,15 @@ export class Thread implements VariableStoreDelegate {
         return this._evaluateOnAsyncFrameError();
     }
     const line = params.line === undefined ? 0 : params.line - 1;
-    return { targets: await completions.completions(this._cdp, executionContextId, stackFrame, params.text, line, params.column) };
+    const contexts: Dap.CompletionItem[] = [];
+    if (!params.text) {
+      for (const c of this._executionContexts.values())
+        contexts.push({ label: `cd ${this.delegate.executionContextName(c)}` });
+    }
+    return { targets: contexts.concat(await completions.completions(this._cdp, this._selectedContext ? this._selectedContext.description.id : undefined, stackFrame, params.text, line, params.column)) };
   }
 
-  async evaluate(args: Dap.EvaluateParams, executionContextId: Cdp.Runtime.ExecutionContextId | undefined): Promise<Dap.EvaluateResult | Dap.Error> {
+  async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     let callFrameId: Cdp.Debugger.CallFrameId | undefined;
     if (args.frameId !== undefined) {
       const stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(args.frameId) : undefined;
@@ -378,6 +394,22 @@ export class Thread implements VariableStoreDelegate {
         return this._evaluateOnAsyncFrameError();
     }
 
+    if (args.context === 'repl' && args.expression.startsWith('cd ')) {
+      const contextName = args.expression.substring('cd '.length).trim();
+      for (const ec of this._executionContexts.values()) {
+        if (this.delegate.executionContextName(ec) === contextName) {
+          this._selectedContext = ec;
+          const outputSlot = this._claimOutputSlot();
+          outputSlot({
+            output: `\x1b[33m↳[${contextName}]\x1b[0m `
+          });
+          return {
+            result: '',
+            variablesReference: 0
+          };
+        }
+      }
+    }
     // TODO: consider checking expression for side effects on hover.
     const params: Cdp.Runtime.EvaluateParams = {
       expression: args.expression,
@@ -399,7 +431,7 @@ export class Thread implements VariableStoreDelegate {
 
     const responsePromise = callFrameId
       ? this._cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId })
-      : this._cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
+      : this._cdp.Runtime.evaluate({ ...params, contextId: this._selectedContext ? this._selectedContext.description.id : undefined });
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
@@ -437,7 +469,8 @@ export class Thread implements VariableStoreDelegate {
     if (response.exceptionDetails) {
       outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
     } else {
-      const text = '\x1b[32m↳ ' + objectPreview.previewRemoteObject(response.result) + '\x1b[0m';
+      const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this.delegate.executionContextName(this._selectedContext)}] ` : '';
+      const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(response.result)}\x1b[0m`;
       const variablesReference = await this.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
@@ -577,7 +610,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
-    const context: ExecutionContext = { description, thread: this };
+    const context = new ExecutionContext(this, description);
     this._executionContexts.set(description.id, context);
     this._onExecutionContextCreatedEmitter.fire(context);
     this.manager._onExecutionContextsChangedEmitter.fire(this);

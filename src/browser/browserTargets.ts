@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
 import { Thread, ThreadManager, ThreadDelegate, ExecutionContext } from '../adapter/threads';
-import { FrameModel, Frame } from './frames';
+import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
 import { Target } from '../adapter/targets';
@@ -50,104 +50,28 @@ export class BrowserTargetManager implements vscode.Disposable {
   }
 
   targetForest(): Target[] {
-    const reported: Set<string> = new Set();
-    const toTarget = (target: BrowserTarget, context: ExecutionContext, isThread: boolean, type: string, name?: string, url?: string): Target => {
-      const uniqueContextId = target._targetInfo.targetId + ':' + context.description.id;
-      reported.add(uniqueContextId);
-      return {
-        id: uniqueContextId,
-        type,
-        name: name || context.description.name || context.thread.name(),
-        fileName: this._sourcePathResolver.urlToAbsolutePath(url || target._targetInfo.url),
-        thread: isThread ? context.thread : undefined,
-        executionContext: context,
-        children: [],
-        stop: target.canStop() ? () => target.stop() : undefined,
-        restart: type === 'page' ? () => target.restart() : undefined
-      };
-    };
-
-    // Go over the contexts, bind them to frames.
-    const mainForFrameId: Map<Cdp.Page.FrameId, Target> = new Map();
-    const mainForTarget: Map<BrowserTarget, Target> = new Map();
-    const worldsForFrameId: Map<Cdp.Page.FrameId, Target[]> = new Map();
-    for (const target of this.targets()) {
-      const thread = target.thread();
-      if (!thread)
-        continue;
-      for (const context of thread.executionContexts()) {
-        const description = context.description;
-        const frameId = description.auxData ? description.auxData['frameId'] : undefined;
-        const isDefault = description.auxData ? description.auxData['isDefault'] : false;
-        const frame = frameId ? this.frameModel.frameForId(frameId) : undefined;
-        if (frame && isDefault) {
-          const name = frame.parentFrame() ? frame.displayName() : thread.name();
-          const isThread = !!this._targets.get(frame.id);
-          const dapContext = toTarget(target, context, isThread, frame.isMainFrame() ? 'page' : 'iframe', name, frame.url());
-          mainForFrameId.set(frameId, dapContext);
-          if (isThread)
-            mainForTarget.set(target, dapContext);
-        } else if (frameId) {
-          let contexts = worldsForFrameId.get(frameId);
-          if (!contexts) {
-            contexts = [];
-            worldsForFrameId.set(frameId, contexts);
-          }
-          contexts.push(toTarget(target, context, false, 'content_script'));
-        }
-      }
-    }
-
-    // Visit frames and use bindings above to build context tree.
-    const visitFrames = (frame: Frame, container: Target[]) => {
-      const main = mainForFrameId.get(frame.id);
-      const worlds = worldsForFrameId.get(frame.id) || [];
-      if (main) {
-        main.children.push(...worlds);
-        container.push(main);
-        for (const childFrame of frame.childFrames())
-          visitFrames(childFrame, main.children);
-      } else {
-        container.push(...worlds);
-        for (const childFrame of frame.childFrames())
-          visitFrames(childFrame, container);
-      }
-    };
-
+    if (!this._targets.size)
+      return [];
     const result: Target[] = [];
-    const mainFrame = this.frameModel.mainFrame();
-    if (mainFrame)
-      visitFrames(mainFrame, result);
-
-    // Traverse remaining contexts, use target hierarchy. Unlink service workers to be top level.
-    for (const target of this.targets()) {
-      const thread = target.thread();
-      if (!thread)
-        continue;
-
-      let reportType = target._targetInfo.type;
-      let container = result;
-      if (target.isServiceWorkerWorker())
-        reportType = 'service_worker';
-
-      if (reportType !== 'service_worker') {
-        // Which target should own the context?
-        for (let t: BrowserTarget | undefined = target; t; t = t.parentTarget) {
-          const parentContext = mainForTarget.get(t);
-          if (parentContext) {
-            container = parentContext.children;
-            break;
-          }
-        }
+    const visitTargets = (target: BrowserTarget, container: Target[]) => {
+      if (target._targetInfo.type === 'service_worker') {
+        target._children.forEach(child => visitTargets(child, container));
+        return;
       }
-
-      // Put all contexts there, mark all as threads since they are independent.
-      for (const context of thread.executionContexts()) {
-        if (reported.has(target._targetInfo.targetId + ':' + context.description.id))
-          continue;
-        container.push(toTarget(target, context, true, reportType));
-      }
+      const children = [];
+      container.push({
+        id: target._targetInfo.targetId,
+        type: target._targetInfo.type,
+        name: target._computeName(),
+        fileName: target._targetInfo.url,
+        thread: target._thread,
+        children,
+        stop: target.canStop() ? () => target.stop() : undefined,
+        restart: target._targetInfo.type === 'page' ? () => target.restart() : undefined
+      });
+      target._children.forEach(child => visitTargets(child, children));
     }
+    visitTargets(this._targets.values().next().value, result);
     return result;
   }
 
@@ -284,6 +208,22 @@ export class BrowserTarget implements ThreadDelegate {
 
   restart() {
     this.cdp().Page.reload({});
+  }
+
+  executionContextName(context: ExecutionContext): string {
+    const auxData = context.description.auxData;
+    const contextName = context.description.name;
+    if (!auxData)
+      return contextName;
+    const frameId = auxData['frameId'];
+    const frame = frameId ? this._manager.frameModel.frameForId(frameId) : undefined;
+    if (frame && context.isDefault() && !frame.parentFrame())
+      return 'top';
+    if (frame && context.isDefault())
+      return frame.displayName();
+    if (frame)
+      return `${contextName}`;
+    return contextName;
   }
 
   supportsCustomBreakpoints(): boolean {

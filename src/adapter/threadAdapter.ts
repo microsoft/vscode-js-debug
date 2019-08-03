@@ -37,7 +37,6 @@ export class ThreadAdapter {
 
   constructor(dap: Dap.Api, thread: Thread, context?: ExecutionContext) {
     this._thread = thread;
-    const contextId = context ? context.description.id : undefined;
     this._unsubscribe = [
       dap.on('continue', _ => this._thread.resume()),
       dap.on('pause', _ => this._thread.pause()),
@@ -46,8 +45,8 @@ export class ThreadAdapter {
       dap.on('stepOut', _ => this._thread.stepOut()),
       dap.on('restartFrame', params => this._thread.restartFrame(params)),
       dap.on('scopes', params => this._thread.scopes(params)),
-      dap.on('evaluate', params => this._thread.evaluate(params, contextId)),
-      dap.on('completions', params => this._thread.completions(params, contextId)),
+      dap.on('evaluate', params => this._thread.evaluate(params)),
+      dap.on('completions', params => this._thread.completions(params)),
       dap.on('exceptionInfo', _ => this._thread.exceptionInfo()),
     ];
   }

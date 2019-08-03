@@ -104,18 +104,18 @@ export class TestP {
     });
     this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && selected.thread === thread) {
-        this.adapter.selectTarget(selected);
+        this.adapter.setThread(selected.thread);
       } else {
         for (const context of contexts) {
           if (context.thread === thread) {
-            this.adapter.selectTarget(context);
+            this.adapter.setThread(context.thread);
             break;
           }
         }
       }
     });
     this.adapter.threadManager.onThreadResumed(thread => {
-      this.adapter.selectTarget(selected);
+      this.adapter.setThread(selected ? selected.thread : undefined);
     });
 
     this._connection = this._browserDelegate.connectionForTest()!;
