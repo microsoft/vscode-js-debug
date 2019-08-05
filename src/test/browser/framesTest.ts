@@ -10,7 +10,7 @@ export function addTests(testRunner) {
 
   it('hierarchy', async ({ p }: { p: TestP }) => {
     p.setArgs(['--site-per-process']);
-    await p.launchUrl('frames.html');
+    p.launchUrl('frames.html');
 
     const logTarget = (t: Target, indent: number) => {
       const s = ' '.repeat(indent);
@@ -19,8 +19,19 @@ export function addTests(testRunner) {
       t.children().forEach(child => logTarget(child, indent + 2));
     };
 
-    await new Promise(p.adapter.onTargetForestChanged);
-    p.adapter.targetForest().forEach(target => logTarget(target, 0));
+    await new Promise(f => {
+      p.uberAdapter.onTargetForestChanged(() => {
+        let counter = 0;
+        const visit = t => {
+          counter++;
+          t.children().forEach(visit);
+        }
+        p.uberAdapter.targetForest().forEach(visit);
+        if (counter === 11)
+          f();
+      });
+    });
+    p.uberAdapter.targetForest().forEach(target => logTarget(target, 0));
 
     p.assertLog();
   });

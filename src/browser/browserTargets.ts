@@ -162,8 +162,8 @@ export class BrowserTarget implements Target {
   }
 
   id(): string {
-      return this._targetInfo.targetId;
-       }
+    return this._targetInfo.targetId;
+  }
 
   cdp(): Cdp.Api {
     return this._cdp;

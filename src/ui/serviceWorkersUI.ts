@@ -3,9 +3,8 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { DebugAdapter } from '../adapter/debugAdapter';
-import { AdapterFactory } from '../adapterFactory';
-import { BrowserDelegate } from '../browser/browserDelegate';
+import { AdapterFactory, Adapters } from '../adapterFactory';
+import { BrowserLauncher } from '../browser/browserDelegate';
 import { ServiceWorkerMode, ServiceWorkerModel, ServiceWorkerVersion } from '../browser/serviceWorkers';
 
 type DataItem = ServiceWorkerVersion | vscode.TreeItem;
@@ -47,15 +46,15 @@ class ServiceWorkersDataProvider implements vscode.TreeDataProvider<DataItem> {
     this._extensionPath = context.extensionPath;
     this._modeItem = new vscode.TreeItem('Mode: NORMAL');
     this._modeItem.contextValue = 'pwa.serviceWorkerMode';
-    factory.onActiveAdapterChanged(adapter => this._setActiveAdapter(adapter));
+    factory.onActiveAdaptersChanged(adapters => this._setActiveAdapters(adapters));
   }
 
-  _setActiveAdapter(adapter: DebugAdapter) {
+  _setActiveAdapters(adapters: Adapters) {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
     this._serviceWorkerModel = undefined;
-    const browserDelegate = (adapter as any)[BrowserDelegate.symbol] as BrowserDelegate;
+    const browserDelegate = (adapters.adapter as any)[BrowserLauncher.symbol] as BrowserLauncher;
     if (!browserDelegate)
       return;
     this._serviceWorkerModel = browserDelegate.targetManager()!.serviceWorkerModel;

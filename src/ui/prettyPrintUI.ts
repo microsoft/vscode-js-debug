@@ -50,7 +50,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.prettyPrint', async e => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || !factory.activeAdapter())
+    if (!editor || !factory.activeAdapters())
       return;
     const uri = editor.document.uri;
     if (uri.scheme !== 'debug')

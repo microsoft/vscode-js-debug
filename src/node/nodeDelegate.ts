@@ -5,7 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
+import { DebugAdapter } from '../adapter/debugAdapter';
 import { SourcePathResolver, InlineScriptOffset, PathLocation } from '../adapter/sources';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
@@ -15,6 +15,7 @@ import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
 import { Thread } from '../adapter/threads';
 import { NodeBreakpointsPredictor } from './nodeBreakpoints';
+import { Launcher } from '../uberAdapter';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -25,7 +26,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 
 let counter = 0;
 
-export class NodeDelegate implements DebugAdapterDelegate {
+export class NodeLauncher implements Launcher {
   private _rootPath: string | undefined;
   private _server: net.Server | undefined;
   private _terminal: vscode.Terminal | undefined;
@@ -38,6 +39,10 @@ export class NodeDelegate implements DebugAdapterDelegate {
   _pathResolver: NodeSourcePathResolver;
   private _launchBlocker: Promise<any>;
   private _breakpointsPredictor?: NodeBreakpointsPredictor;
+  private _onTerminatedEmitter = new vscode.EventEmitter<void>();
+  readonly onTerminated = this._onTerminatedEmitter.event;
+  _onTargetForestChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
 
   constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -48,16 +53,16 @@ export class NodeDelegate implements DebugAdapterDelegate {
       this._breakpointsPredictor = new NodeBreakpointsPredictor(this._pathResolver, rootPath);
       this._pathResolver.setBreakpointsPredictor(this._breakpointsPredictor);
     }
-    debugAdapter.addDelegate(this);
   }
 
-  async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+  async launch(params: Dap.LaunchParams): Promise<void> {
+    if (!('command' in params))
+      return;
     await this._launchBlocker;
     // params.noDebug
     this._launchParams = params as LaunchParams;
     await this._startServer();
     await this._relaunch();
-    return {};
   }
 
   async _relaunch() {
@@ -75,7 +80,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
     onProcessExit(pid, () => {
       if (!this._isRestarting) {
         this._stopServer();
-        this._debugAdapter.removeDelegate(this);
+        this._onTerminatedEmitter.fire();
       }
     });
 
@@ -83,16 +88,14 @@ export class NodeDelegate implements DebugAdapterDelegate {
       this._terminal.sendText(commandLine, true);
   }
 
-  async onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
+  async terminate(params: Dap.TerminateParams): Promise<void> {
     this._killRuntime();
     await this._stopServer();
-    return {};
   }
 
-  async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
+  async disconnect(params: Dap.DisconnectParams): Promise<void> {
     this._killRuntime();
     await this._stopServer();
-    return {};
   }
 
   _killRuntime() {
@@ -102,7 +105,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
     this._terminal = undefined;
   }
 
-  async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
+  async restart(params: Dap.RestartParams): Promise<void> {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
     this._killRuntime();
@@ -110,7 +113,6 @@ export class NodeDelegate implements DebugAdapterDelegate {
     await this._startServer();
     await this._relaunch();
     this._isRestarting = false;
-    return {};
   }
 
   _startServer() {
@@ -135,14 +137,14 @@ export class NodeDelegate implements DebugAdapterDelegate {
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
     new NodeTarget(this, connection, cdp, targetInfo);
-    this._debugAdapter.fireTargetForestChanged();
+    this._onTargetForestChangedEmitter.fire();
   }
 
   targetForest(): Target[] {
     return Array.from(this._targets.values()).filter(t => !t.hasParent());
   }
 
-  adapterDisposed() {
+  dispose() {
     this._stopServer();
   }
 
@@ -159,7 +161,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
     return result;
   }
 
-  onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
     if (!this._breakpointsPredictor)
       return Promise.resolve();
     const promise = this._breakpointsPredictor.onSetBreakpoints(params);
@@ -169,7 +171,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
 }
 
 class NodeTarget implements Target {
-  private _delegate: NodeDelegate;
+  private _delegate: NodeLauncher;
   private _connection: Connection;
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
@@ -181,7 +183,7 @@ class NodeTarget implements Target {
   private _thread: Thread | undefined;
   private _waitingForDebugger: boolean;
 
-  constructor(delegate: NodeDelegate, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
+  constructor(delegate: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
     this._delegate = delegate;
     this._connection = connection;
     this._cdp = cdp;
@@ -199,7 +201,7 @@ class NodeTarget implements Target {
     connection.onDisconnected(_ => this._disconnected());
 
     if (targetInfo.type === 'waitingForDebugger')
-      this._attach();
+      this.attach();
   }
 
  id(): string {
@@ -262,11 +264,11 @@ class NodeTarget implements Target {
     this._children.forEach(child => child._setParent(this._parent));
     this._setParent(undefined);
     this._delegate._targets.delete(this._targetId);
-    await this._detach();
-    this._delegate._debugAdapter.fireTargetForestChanged();
+    await this.detach();
+    this._delegate._onTargetForestChangedEmitter.fire();
   }
 
-  _attach() {
+  attach() {
     this._serialize = this._serialize.then(async () => {
       if (this._thread)
         return;
@@ -274,7 +276,7 @@ class NodeTarget implements Target {
     });
   }
 
-  _detach() {
+  detach() {
     this._serialize = this._serialize.then(async () => {
       if (!this._thread)
         return;

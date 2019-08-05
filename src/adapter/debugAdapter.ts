@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable, EventEmitter } from 'vscode';
+import { Disposable } from 'vscode';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
@@ -11,20 +11,13 @@ import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
 import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
-import { Target } from './targets';
 
 const localize = nls.loadMessageBundle();
 const defaultThreadId = 0;
 const revealLocationThreadId = 1;
 
 export interface DebugAdapterDelegate {
-  targetForest(): Target[];
-  adapterDisposed: () => void;
-  onLaunch: (params: Dap.LaunchParams) => Promise<Dap.LaunchResult | Dap.Error>;
-  onTerminate: (params: Dap.TerminateParams) => Promise<Dap.TerminateResult | Dap.Error>;
-  onDisconnect: (params: Dap.DisconnectParams) => Promise<Dap.DisconnectResult | Dap.Error>;
-  onRestart: (params: Dap.RestartParams) => Promise<Dap.RestartResult | Dap.Error>;
-  onSetBreakpoints?: (params: Dap.SetBreakpointsParams) => Promise<void>;
+  onSetBreakpoints: (params: Dap.SetBreakpointsParams) => Promise<void>;
 }
 
 // This class collects configuration issued before "launch" request,
@@ -36,11 +29,9 @@ export class DebugAdapter {
   readonly breakpointManager: BreakpointManager;
   private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
-  private _onTargetForestChangedEmitter = new EventEmitter<void>();
-  private _delegates = new Set<DebugAdapterDelegate>();
-  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
+  private _delegate: DebugAdapterDelegate;
 
-  constructor(dap: Dap.Api, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, delegate: DebugAdapterDelegate, uiDelegate: UIDelegate) {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -52,19 +43,12 @@ export class DebugAdapter {
     this.dap.on('stackTrace', params => this._onStackTrace(params));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
-    this.dap.on('launch', params => this._onLaunch(params));
-    this.dap.on('terminate', params => this._onTerminate(params));
-    this.dap.on('disconnect', params => this._onDisconnect(params));
-    this.dap.on('restart', params => this._onRestart(params));
     this.dap.thread({ reason: 'started', threadId: defaultThreadId });
+    this._delegate = delegate;
     this.sourceContainer = new SourceContainer(this.dap);
     this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
     this._threadAdapter = new DummyThreadAdapter(this.dap);
-
-    this.threadManager.onExecutionContextsChanged(_ => {
-      this.fireTargetForestChanged();
-    });
 
     const disposables: Disposable[] = [];
     this.threadManager.onThreadAdded(thread => {
@@ -122,10 +106,7 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    for (const delegate of this._delegates) {
-      if (delegate.onSetBreakpoints)
-        await delegate.onSetBreakpoints(params);
-    }
+    await this._delegate.onSetBreakpoints(params);
     return this.breakpointManager.setBreakpoints(params);
   }
 
@@ -135,30 +116,6 @@ export class DebugAdapter {
   }
 
   async _onConfigurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
-    return {};
-  }
-
-  async _onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
-    for (const delegate of this._delegates)
-      delegate.onLaunch(params);
-    return {};
-  }
-
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    for (const delegate of this._delegates)
-      delegate.onTerminate(params);
-    return {};
-  }
-
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    for (const delegate of this._delegates)
-      delegate.onDisconnect(params);
-    return {};
-  }
-
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
-    for (const delegate of this._delegates)
-      delegate.onRestart(params);
     return {};
   }
 
@@ -213,18 +170,6 @@ export class DebugAdapter {
     return variableStore.setVariable(params);
   }
 
-  async addDelegate(delegate: DebugAdapterDelegate): Promise<void> {
-    this._delegates.add(delegate);
-    this._onTargetForestChangedEmitter.fire();
-  }
-
-  async removeDelegate(delegate: DebugAdapterDelegate): Promise<void> {
-    this._delegates.delete(delegate);
-    if (!this._delegates.size)
-      this.dap.terminated({});
-    this._onTargetForestChangedEmitter.fire();
-  }
-
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
     // 1. Report about a new thread.
     // 2. Report that thread has stopped.
@@ -265,17 +210,6 @@ export class DebugAdapter {
         });
       }
     }
-  }
-
-  targetForest(): Target[] {
-    const result: Target[] = [];
-    for (const delegate of this._delegates)
-      result.push(...delegate.targetForest());
-    return result;
-  }
-
-  fireTargetForestChanged() {
-    this._onTargetForestChangedEmitter.fire();
   }
 
   setThread(thread: Thread | undefined) {
@@ -322,7 +256,5 @@ export class DebugAdapter {
   }
 
   dispose() {
-    for (const delegate of this._delegates)
-      delegate.adapterDisposed();
   }
 }

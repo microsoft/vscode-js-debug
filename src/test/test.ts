@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Target } from '../adapter/targets';
-import { BrowserDelegate } from '../browser/browserDelegate';
+import { BrowserLauncher } from '../browser/browserDelegate';
 import { BrowserTarget } from '../browser/browserTargets';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
@@ -14,6 +14,7 @@ import DapConnection from '../dap/connection';
 import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
+import { UberAdapter } from '../uberAdapter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -28,6 +29,7 @@ class Stream extends stream.Duplex {
 }
 
 export class TestP {
+  readonly uberAdapter: UberAdapter;
   readonly dap: Dap.TestApi;
   readonly initialize: Promise<Dap.InitializeResult>;
   readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
@@ -35,7 +37,7 @@ export class TestP {
   _cdp: Cdp.Api | undefined;
   _adapter: DebugAdapter | undefined;
 
-  private _browserDelegate: BrowserDelegate;
+  private _browserLauncher: BrowserLauncher;
   private _connection: CdpConnection | undefined;
   private _evaluateCounter = 0;
   private _workspaceRoot: string;
@@ -56,11 +58,13 @@ export class TestP {
     const storagePath = path.join(__dirname, '..', '..');
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
-    const debugAdapter = new DebugAdapter(adapterConnection.dap(), {
+
+    this.uberAdapter = new UberAdapter(adapterConnection.dap());
+    const debugAdapter = new DebugAdapter(adapterConnection.dap(), this.uberAdapter, {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
-    this._browserDelegate = new BrowserDelegate(debugAdapter, storagePath, this._workspaceRoot);
-    debugAdapter.addDelegate(this._browserDelegate);
+    this._browserLauncher = new BrowserLauncher(debugAdapter, storagePath, this._workspaceRoot);
+    this.uberAdapter.addLauncher(this._browserLauncher);
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({
       clientID: 'pwa-test',
@@ -88,19 +92,19 @@ export class TestP {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._browserDelegate.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
-    this._adapter = this._browserDelegate.adapter();
+    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
+    this._adapter = this._browserLauncher.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
     let contexts: Target[] = [];
     let selected: Target | undefined;
-    this.adapter.onTargetForestChanged(() => {
+    this.uberAdapter.onTargetForestChanged(() => {
       contexts = [];
       const visit = (item: Target) => {
         contexts.push(item);
         item.children().forEach(visit);
       };
-      this.adapter.targetForest().forEach(visit);
+      this.uberAdapter.targetForest().forEach(visit);
     });
     this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && selected.thread() === thread) {
@@ -108,6 +112,7 @@ export class TestP {
       } else {
         for (const context of contexts) {
           if (context.thread() === thread) {
+            selected = context;
             this.adapter.setThread(context.thread());
             break;
           }
@@ -118,7 +123,7 @@ export class TestP {
       this.adapter.setThread(selected ? selected.thread() : undefined);
     });
 
-    this._connection = this._browserDelegate.connectionForTest()!;
+    this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
     const { sessionId } = (await testSession.Target.attachToTarget({ targetId: mainTarget.id(), flatten: true }))!;
@@ -129,7 +134,7 @@ export class TestP {
   async launch(content: string): Promise<void> {
     const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
     const mainTarget = await this._launch(url);
-    await this._browserDelegate.finishLaunch(mainTarget);
+    await this._browserLauncher.finishLaunch(mainTarget);
   }
 
   async launchAndLoad(content: string): Promise<void> {
@@ -137,7 +142,7 @@ export class TestP {
     const mainTarget = await this._launch(url);
     await this.cdp.Page.enable({});
     await Promise.all([
-      this._browserDelegate.finishLaunch(mainTarget),
+      this._browserLauncher.finishLaunch(mainTarget),
       new Promise(f => this.cdp.Page.on('loadEventFired', f))
     ]);
     await this.cdp.Page.disable({});
@@ -148,7 +153,7 @@ export class TestP {
     const mainTarget = await this._launch(url);
     await this.cdp.Page.enable({});
     await Promise.all([
-      this._browserDelegate.finishLaunch(mainTarget),
+      this._browserLauncher.finishLaunch(mainTarget),
       new Promise(f => this.cdp.Page.on('loadEventFired', f))
     ]);
     await this.cdp.Page.disable({});

@@ -6,7 +6,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { DebugAdapter, DebugAdapterDelegate } from '../adapter/debugAdapter';
+import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
@@ -17,6 +17,7 @@ import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
+import { Launcher } from '../uberAdapter';
 
 const localize = nls.loadMessageBundle();
 
@@ -25,7 +26,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
-export class BrowserDelegate implements DebugAdapterDelegate {
+export class BrowserLauncher implements Launcher {
   static symbol = Symbol('BrowserDelegate');
   private _connectionForTest: CdpConnection | undefined;
   private _debugAdapter: DebugAdapter;
@@ -36,12 +37,15 @@ export class BrowserDelegate implements DebugAdapterDelegate {
   private _mainTarget?: BrowserTarget;
   private _disposables: vscode.Disposable[] = [];
   private _browserSession: Cdp.Api | undefined;
+  private _onTerminatedEmitter = new vscode.EventEmitter<void>();
+  readonly onTerminated = this._onTerminatedEmitter.event;
+  private _onTargetForestChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
 
   constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
     this._storagePath = storagePath;
     this._rootPath = rootPath;
-    debugAdapter.addDelegate(this);
   }
 
   targetManager(): BrowserTargetManager | undefined {
@@ -52,7 +56,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     return this._debugAdapter;
   }
 
-  _dispose() {
+  dispose() {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
@@ -77,7 +81,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
         pipe: true,
       });
     connection.onDisconnected(() => {
-      this._debugAdapter.removeDelegate(this);
+      this._onTerminatedEmitter.fire();
     }, undefined, this._disposables);
     this._connectionForTest = connection;
 
@@ -89,12 +93,19 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
-    (this._debugAdapter as any)[BrowserDelegate.symbol] = this;
+    (this._debugAdapter as any)[BrowserLauncher.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, connection, this._browserSession, pathResolver);
-    this._targetManager.serviceWorkerModel.onDidChange(() => this._debugAdapter.fireTargetForestChanged());
-    this._targetManager.frameModel.onFrameNavigated(() => this._debugAdapter.fireTargetForestChanged());
+    this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetForestChangedEmitter.fire());
+    this._targetManager.frameModel.onFrameNavigated(() => this._onTargetForestChangedEmitter.fire());
     this._disposables.push(this._targetManager);
+
+    this._targetManager.onTargetAdded((target: BrowserTarget) => {
+      this._onTargetForestChangedEmitter.fire();
+    });
+    this._targetManager.onTargetRemoved((target: BrowserTarget) => {
+      this._onTargetForestChangedEmitter.fire();
+    });
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
@@ -103,7 +114,7 @@ export class BrowserDelegate implements DebugAdapterDelegate {
       return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
-        this._debugAdapter.removeDelegate(this);
+        this._onTerminatedEmitter.fire();
     });
     return this._mainTarget;
   }
@@ -112,41 +123,32 @@ export class BrowserDelegate implements DebugAdapterDelegate {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult | Dap.Error> {
+  async launch(params: Dap.LaunchParams): Promise<void> {
+    if (!('url' in params))
+      return;
     const result = await this.prepareLaunch(params as LaunchParams, []);
     if (!(result instanceof BrowserTarget))
-      return result;
+      return;
     await this.finishLaunch(result);
-    return {};
   }
 
   _mainTargetNotAvailable(): Dap.Error {
     return errors.createSilentError('Page is not available');
   }
 
-  async onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult | Dap.Error> {
-    if (!this._mainTarget)
-      return this._mainTargetNotAvailable();
-    this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
-    return {};
+  async terminate(params: Dap.TerminateParams): Promise<void> {
+    if (this._mainTarget)
+      this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
   }
 
-  async onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult | Dap.Error> {
-    if (!this._browserSession)
-      return errors.createSilentError('Did not initialize');
-    await this._browserSession.Browser.close({});
-    return {};
+  async disconnect(params: Dap.DisconnectParams): Promise<void> {
+    if (this._browserSession)
+      await this._browserSession.Browser.close({});
   }
 
-  async onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult | Dap.Error> {
-    if (!this._mainTarget)
-      return this._mainTargetNotAvailable();
-    await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
-    return {};
-  }
-
-  adapterDisposed() {
-    this._dispose();
+  async restart(params: Dap.RestartParams): Promise<void> {
+    if (this._mainTarget)
+      await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
   targetForest(): Target[] {
@@ -156,6 +158,10 @@ export class BrowserDelegate implements DebugAdapterDelegate {
 
   connectionForTest(): CdpConnection | undefined {
     return this._connectionForTest;
+  }
+
+  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+    return Promise.resolve();
   }
 }
 
