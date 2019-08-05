@@ -141,8 +141,7 @@ const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class BrowserTarget implements Target {
-  readonly parentTarget?: BrowserTarget;
-
+  readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
   _thread: Thread | undefined;
@@ -184,6 +183,10 @@ export class BrowserTarget implements Target {
 
   type(): string {
     return this._targetInfo.type;
+  }
+
+  parent(): Target | undefined {
+    return this.parentTarget;
   }
 
   children(): Target[] {

@@ -62,7 +62,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   setTreeView(treeView: vscode.TreeView<Target>) {
-    this._treeView = treeView
+    this._treeView = treeView;
   }
 
   _setActiveAdapter(adapter: DebugAdapter) {
@@ -146,16 +146,22 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   getTreeItem(item: Target): vscode.TreeItem {
-    const result = new vscode.TreeItem(item.name());
+    const result = new vscode.TreeItem(
+        item.name(), item.children().length ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None);
     result.id = item.id();
-    if (!item.name().startsWith('\u00A0')) {
-      if (item.type() === 'page')
-        result.iconPath = this._iconPath('page.svg');
-      else if (item.type() === 'service_worker')
-        result.iconPath = this._iconPath('service-worker.svg');
-      else if (item.type() === 'node')
-        result.iconPath = this._iconPath('node.svg');
-    }
+    // Do not expand / collapse on selection trick.
+    result.command = {
+      title: '',
+      command: ''
+    };
+    if (item.type() === 'page')
+      result.iconPath = this._iconPath('page.svg');
+    else if (item.type() === 'service_worker')
+      result.iconPath = this._iconPath('service-worker.svg');
+    else if (item.type() === 'worker')
+      result.iconPath = this._iconPath('worker.svg');
+    else if (item.type() === 'node')
+      result.iconPath = this._iconPath('node.svg');
 
     if (item.thread()) {
       result.contextValue = ' ' + item.type();
@@ -182,35 +188,17 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   async getChildren(item?: Target): Promise<Target[]> {
-    return item ? [] : this._contexts;
+    return item ? item.children() : this._contexts;
   }
 
   async getParent(item: Target): Promise<Target | undefined> {
-    return undefined;
+    return item.parent();
   }
 
   _executionContextsChanged(): void {
     if (!this._adapter)
       return;
-    const contexts = this._adapter.targetForest();
-    this._contexts = [];
-    const keys = new Set<string>();
-    const tab = '\u00A0\u00A0\u00A0\u00A0';
-    const visit = (depth: number, item: Target) => {
-      keys.add(item.id());
-      let unicodeIcon = '';
-      if (item.type() === 'iframe')
-        unicodeIcon = '\uD83D\uDCC4 ';
-      else if (item.type() === 'worker')
-        unicodeIcon = '\uD83D\uDC77 ';
-      const indentation = tab.repeat(Math.max(0, depth - 1));  // Do not indent the first level.
-      this._contexts.push({
-        ...item,
-        name: () => indentation + unicodeIcon + item.name()
-      });
-      item.children().forEach(item => visit(depth + 1, item));
-    };
-    contexts.forEach(item => visit(0, item));
+    this._contexts = this._adapter.targetForest();
     this._onDidChangeTreeData.fire();
   }
 }

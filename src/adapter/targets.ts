@@ -10,6 +10,7 @@ export interface Target {
   name(): string;
   fileName(): string | undefined;
   type(): string;
+  parent(): Target | undefined;
   children(): Target[];
   canStop(): boolean;
   stop(): void;

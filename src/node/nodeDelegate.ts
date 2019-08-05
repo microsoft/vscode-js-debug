@@ -218,6 +218,10 @@ class NodeTarget implements Target {
     return 'node';
   }
 
+  parent(): Target | undefined {
+    return this._parent;
+  }
+
   children(): Target[] {
     return Array.from(this._children.values());
   }
