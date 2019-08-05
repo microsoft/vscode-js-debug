@@ -7,7 +7,7 @@ import { debug } from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ThreadDelegate, ExecutionContext } from '../adapter/threads';
+import { Thread, ThreadManager, ThreadDelegate } from '../adapter/threads';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
@@ -210,16 +210,16 @@ export class BrowserTarget implements ThreadDelegate {
     this.cdp().Page.reload({});
   }
 
-  executionContextName(context: ExecutionContext): string {
-    const auxData = context.description.auxData;
-    const contextName = context.description.name;
+  executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
+    const auxData = description.auxData;
+    const contextName = description.name;
     if (!auxData)
       return contextName;
     const frameId = auxData['frameId'];
     const frame = frameId ? this._manager.frameModel.frameForId(frameId) : undefined;
-    if (frame && context.isDefault() && !frame.parentFrame())
+    if (frame && auxData['isDefault'] && !frame.parentFrame())
       return 'top';
-    if (frame && context.isDefault())
+    if (frame && auxData['isDefault'])
       return frame.displayName();
     if (frame)
       return `${contextName}`;

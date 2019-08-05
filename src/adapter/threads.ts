@@ -59,7 +59,7 @@ export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   sourcePathResolver(): SourcePathResolver;
-  executionContextName(context: ExecutionContext): string;
+  executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -378,7 +378,7 @@ export class Thread implements VariableStoreDelegate {
     const contexts: Dap.CompletionItem[] = [];
     if (!params.text) {
       for (const c of this._executionContexts.values())
-        contexts.push({ label: `cd ${this.delegate.executionContextName(c)}` });
+        contexts.push({ label: `cd ${this.delegate.executionContextName(c.description)}` });
     }
     return { targets: contexts.concat(await completions.completions(this._cdp, this._selectedContext ? this._selectedContext.description.id : undefined, stackFrame, params.text, line, params.column)) };
   }
@@ -397,7 +397,7 @@ export class Thread implements VariableStoreDelegate {
     if (args.context === 'repl' && args.expression.startsWith('cd ')) {
       const contextName = args.expression.substring('cd '.length).trim();
       for (const ec of this._executionContexts.values()) {
-        if (this.delegate.executionContextName(ec) === contextName) {
+        if (this.delegate.executionContextName(ec.description) === contextName) {
           this._selectedContext = ec;
           const outputSlot = this._claimOutputSlot();
           outputSlot({
@@ -469,7 +469,7 @@ export class Thread implements VariableStoreDelegate {
     if (response.exceptionDetails) {
       outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
     } else {
-      const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this.delegate.executionContextName(this._selectedContext)}] ` : '';
+      const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this.delegate.executionContextName(this._selectedContext.description)}] ` : '';
       const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(response.result)}\x1b[0m`;
       const variablesReference = await this.replVariables.createVariableForOutput(text, [response.result]);
       const output = {

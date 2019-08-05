@@ -13,7 +13,7 @@ import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
-import { ThreadDelegate, Thread, ExecutionContext } from '../adapter/threads';
+import { ThreadDelegate, Thread } from '../adapter/threads';
 import { NodeBreakpointsPredictor } from './nodeBreakpoints';
 
 export interface LaunchParams extends Dap.LaunchParams {
@@ -212,7 +212,7 @@ class NodeTarget implements ThreadDelegate {
     return false;
   }
 
-  executionContextName(context: ExecutionContext): string {
+  executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
     return this._targetName;
   }
 
