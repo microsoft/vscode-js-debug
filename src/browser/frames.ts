@@ -176,9 +176,9 @@ export class Frame {
   }
 
   displayName(): string {
-    const name = this._name ? this._name + ' - ' : '';
-    const dname = name + displayName(this._url);
-    return dname || '<iframe>';
+    if (this._name)
+      return this._name;
+    return displayName(this._url) || `<iframe ${this.id}>`;
   }
 };
 

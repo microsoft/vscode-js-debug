@@ -8,9 +8,9 @@ import { Thread } from '../adapter/threads';
 import { AdapterFactory } from '../adapterFactory';
 import { Target } from '../adapter/targets';
 
-export function registerThreadsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
-  const provider = new ThreadsDataProvider(context, factory);
-  const treeView = vscode.window.createTreeView('pwa.threadsView', { treeDataProvider: provider });
+export function registerTargetsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
+  const provider = new TargetsDataProvider(context, factory);
+  const treeView = vscode.window.createTreeView('pwa.targetsView', { treeDataProvider: provider });
   provider.setTreeView(treeView);
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: Target) => {
@@ -42,11 +42,11 @@ export function registerThreadsUI(context: vscode.ExtensionContext, factory: Ada
     const adapter = factory.activeAdapter();
     if (!adapter)
       return;
-    adapter.selectTarget(item);
+    adapter.setThread(item.thread);
   }, undefined, context.subscriptions);
 }
 
-class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
+class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _contexts: Target[] = [];
@@ -117,7 +117,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
     const selection = this._treeView!.selection[0];
     if (selection && selection.thread === thread) {
       // Selection is in the good thread, reuse it.
-      this._adapter.selectTarget(selection);
+      this._adapter.setThread(thread);
     } else {
       // Pick a new item in the UI.
       for (const context of this._contexts) {
@@ -134,7 +134,7 @@ class ThreadsDataProvider implements vscode.TreeDataProvider<Target> {
       return;
     const selection = this._treeView!.selection[0];
     if (selection)
-      this._adapter.selectTarget(selection);
+      this._adapter.setThread(selection.thread);
     this._onDidChangeTreeData.fire();
   }
 

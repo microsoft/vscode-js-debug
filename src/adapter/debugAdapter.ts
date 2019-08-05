@@ -8,7 +8,7 @@ import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
 import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
-import { PauseOnExceptionsState, ThreadManager, ExecutionContext, Thread, UIDelegate } from './threads';
+import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
 import { Target } from './targets';
@@ -68,7 +68,7 @@ export class DebugAdapter {
 
     const disposables: Disposable[] = [];
     this.threadManager.onThreadAdded(thread => {
-      this._setExecutionContext(thread, undefined);
+      this.setThread(thread);
       disposables[0].dispose();
     }, undefined, disposables);
   }
@@ -278,21 +278,11 @@ export class DebugAdapter {
     this._onTargetForestChangedEmitter.fire();
   }
 
-  selectTarget(target: Target | undefined) {
-    if (target && target.executionContext) {
-      this._setExecutionContext(target.executionContext.thread, target.executionContext);
-      return;
-    }
-    const thread = target ? target.thread : this.threadManager.mainThread();
-    const defaultContext = thread ? thread.defaultExecutionContext() : undefined;
-    this._setExecutionContext(thread, defaultContext);
-  }
-
-  _setExecutionContext(thread: Thread | undefined, context: ExecutionContext | undefined) {
+  setThread(thread: Thread | undefined) {
     if (this._threadAdapter)
       this._threadAdapter.dispose();
     if (thread)
-      this._threadAdapter = new ThreadAdapter(this.dap, thread, context);
+      this._threadAdapter = new ThreadAdapter(this.dap, thread);
     else
       this._threadAdapter = new DummyThreadAdapter(this.dap);
 

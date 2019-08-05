@@ -19,22 +19,7 @@ export function addTests(testRunner) {
       t.children.forEach(child => logTarget(child, indent + 2));
     };
 
-    await new Promise(callback => {
-      const disposables = [];
-      p.adapter.onTargetForestChanged(() => {
-        let count = 0;
-        const visit = (t: Target) => {
-          ++count;
-          t.children.forEach(visit);
-        };
-        p.adapter.targetForest().forEach(visit);
-        if (count === 14) {
-          (disposables[0] as any).dispose();
-          callback();
-        }
-      }, undefined, disposables);
-    });
-
+    await new Promise(p.adapter.onTargetForestChanged);
     p.adapter.targetForest().forEach(target => logTarget(target, 0));
 
     p.assertLog();

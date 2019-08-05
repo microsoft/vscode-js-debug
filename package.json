@@ -59,7 +59,7 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onDebug",
-    "onView:pwa.threadsView",
+    "onView:pwa.targetsView",
     "onView:pwa.breakpoints",
     "onView:pwa.cacheStorage",
     "onCommand:pwa.debugTask",
@@ -79,8 +79,8 @@
     "views": {
       "debug": [
         {
-          "id": "pwa.threadsView",
-          "name": "Threads"
+          "id": "pwa.targetsView",
+          "name": "Targets"
         },
         {
           "id": "pwa.breakpoints",
@@ -219,37 +219,37 @@
         },
         {
           "command": "pwa.pauseThread",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canPause.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canPause.*/",
           "group": "inline"
         },
         {
           "command": "pwa.resumeThread",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canRun.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.canRun.*/",
           "group": "inline"
         },
         {
           "command": "pwa.stopTarget",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canStop.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canStop.*/",
           "group": "inline"
         },
         {
           "command": "pwa.restartTarget",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canRestart.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canRestart.*/",
           "group": "inline"
         },
         {
           "command": "pwa.attachToTarget",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canAttach.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canAttach.*/",
           "group": "inline"
         },
         {
           "command": "pwa.detachFromTarget",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canDetach.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canDetach.*/",
           "group": "inline"
         },
         {
           "command": "pwa.revealTargetScript",
-          "when": "view == pwa.threadsView && viewItem =~ /.*canReveal.*/",
+          "when": "view == pwa.targetsView && viewItem =~ /.*canReveal.*/",
           "group": "inline"
         }
       ],
