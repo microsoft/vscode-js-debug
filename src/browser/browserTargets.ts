@@ -7,7 +7,7 @@ import { debug } from 'debug';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager, ThreadDelegate } from '../adapter/threads';
+import { Thread, ThreadManager } from '../adapter/threads';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
@@ -50,29 +50,7 @@ export class BrowserTargetManager implements vscode.Disposable {
   }
 
   targetForest(): Target[] {
-    if (!this._targets.size)
-      return [];
-    const result: Target[] = [];
-    const visitTargets = (target: BrowserTarget, container: Target[]) => {
-      if (target._targetInfo.type === 'service_worker') {
-        target._children.forEach(child => visitTargets(child, container));
-        return;
-      }
-      const children = [];
-      container.push({
-        id: target._targetInfo.targetId,
-        type: target._targetInfo.type,
-        name: target._computeName(),
-        fileName: target._targetInfo.url,
-        thread: target._thread,
-        children,
-        stop: target.canStop() ? () => target.stop() : undefined,
-        restart: target._targetInfo.type === 'page' ? () => target.restart() : undefined
-      });
-      target._children.forEach(child => visitTargets(child, children));
-    }
-    visitTargets(this._targets.values().next().value, result);
-    return result;
+    return Array.from(this._targets.values()).filter(t => !t.parentTarget);
   }
 
   waitForMainTarget(): Promise<BrowserTarget | undefined> {
@@ -162,8 +140,7 @@ export class BrowserTargetManager implements vscode.Disposable {
 const jsTypes = new Set(['page', 'iframe', 'worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
-export class BrowserTarget implements ThreadDelegate {
-  readonly targetId: Cdp.Target.TargetID;
+export class BrowserTarget implements Target {
   readonly parentTarget?: BrowserTarget;
 
   private _manager: BrowserTargetManager;
@@ -177,7 +154,6 @@ export class BrowserTarget implements ThreadDelegate {
   constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, ondispose: (t: BrowserTarget) => void) {
     this._cdp = cdp;
     this._manager = targetManager;
-    this.targetId = targetInfo.targetId;
     this.parentTarget = parentTarget;
     if (jsTypes.has(targetInfo.type))
       this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, this);
@@ -185,6 +161,10 @@ export class BrowserTarget implements ThreadDelegate {
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
   }
+
+  id(): string {
+      return this._targetInfo.targetId;
+       }
 
   cdp(): Cdp.Api {
     return this._cdp;
@@ -194,20 +174,62 @@ export class BrowserTarget implements ThreadDelegate {
     return this._thread;
   }
 
+  name(): string {
+    return this._computeName();
+  }
+
+  fileName(): string | undefined {
+    return this._targetInfo.url;
+  }
+
+  type(): string {
+    return this._targetInfo.type;
+  }
+
+  children(): Target[] {
+    const result: Target[] = [];
+    for (const target of this._children.values()) {
+      if (target.type() === 'service_worker')
+        result.push(...target.children());
+      else
+        result.push(target);
+    }
+    return result;
+  }
+
   canStop(): boolean {
     return this.isServiceWorkerWorker();
   }
 
   stop() {
     // Stop both dedicated and parent service worker scopes for present and future browsers.
-    this._manager.serviceWorkerModel.stopWorker(this.targetId);
+    this._manager.serviceWorkerModel.stopWorker(this.id());
     if (!this.parentTarget)
       return;
-    this._manager.serviceWorkerModel.stopWorker(this.parentTarget.targetId);
+    this._manager.serviceWorkerModel.stopWorker(this.parentTarget.id());
+  }
+
+  canRestart() {
+    return this._targetInfo.type === 'page';
   }
 
   restart() {
-    this.cdp().Page.reload({});
+    this._cdp.Page.reload({});
+  }
+
+  waitingForDebugger() {
+    return true;
+  }
+
+  canAttach(): boolean {
+    return jsTypes.has(this._targetInfo.type);
+  }
+
+  async attach(): Promise<Cdp.Api> {
+    return Promise.resolve(this._cdp);
+  }
+
+  async detach(): Promise<void> {
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
@@ -252,7 +274,7 @@ export class BrowserTarget implements ThreadDelegate {
 
   _computeName(): string {
     if (this.isServiceWorkerWorker()) {
-      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.targetId);
+      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.id());
       if (version)
         return version.label();
     }
@@ -277,12 +299,6 @@ export class BrowserTarget implements ThreadDelegate {
       this._thread.dispose();
     this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
-  }
-
-  _visit(visitor: (t: BrowserTarget) => void) {
-    visitor(this);
-    for (const child of this._children.values())
-      child._visit(visitor);
   }
 
   _dumpTarget(indent: string | undefined = '') {

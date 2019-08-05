@@ -14,10 +14,10 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
   provider.setTreeView(treeView);
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: Target) => {
-    item.thread!.pause();
+    item.thread()!.pause();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: Target) => {
-    item.thread!.resume();
+    item.thread()!.resume();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.stopTarget', (item: Target) => {
     item.stop!();
@@ -32,7 +32,7 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
     item.detach!();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.revealTargetScript', async (item: Target) => {
-    const document = await vscode.workspace.openTextDocument(item.fileName!);
+    const document = await vscode.workspace.openTextDocument(item.fileName()!);
     if (document)
       vscode.window.showTextDocument(document);
   }));
@@ -42,7 +42,7 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
     const adapter = factory.activeAdapter();
     if (!adapter)
       return;
-    adapter.setThread(item.thread);
+    adapter.setThread(item.thread());
   }, undefined, context.subscriptions);
 }
 
@@ -115,13 +115,13 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
       return;
     this._flushThrottledUpdate();
     const selection = this._treeView!.selection[0];
-    if (selection && selection.thread === thread) {
+    if (selection && selection.thread() === thread) {
       // Selection is in the good thread, reuse it.
       this._adapter.setThread(thread);
     } else {
       // Pick a new item in the UI.
       for (const context of this._contexts) {
-        if (context.thread === thread) {
+        if (context.thread() === thread) {
           this._treeView!.reveal(context, { select: true });
           break;
         }
@@ -134,7 +134,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
       return;
     const selection = this._treeView!.selection[0];
     if (selection)
-      this._adapter.setThread(selection.thread);
+      this._adapter.setThread(selection.thread());
     this._onDidChangeTreeData.fire();
   }
 
@@ -146,20 +146,20 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   getTreeItem(item: Target): vscode.TreeItem {
-    const result = new vscode.TreeItem(item.name);
-    result.id = item.id;
-    if (!item.name.startsWith('\u00A0')) {
-      if (item.type === 'page')
+    const result = new vscode.TreeItem(item.name());
+    result.id = item.id();
+    if (!item.name().startsWith('\u00A0')) {
+      if (item.type() === 'page')
         result.iconPath = this._iconPath('page.svg');
-      else if (item.type === 'service_worker')
+      else if (item.type() === 'service_worker')
         result.iconPath = this._iconPath('service-worker.svg');
-      else if (item.type === 'node')
+      else if (item.type() === 'node')
         result.iconPath = this._iconPath('node.svg');
     }
 
-    if (item.thread) {
-      result.contextValue = ' ' + item.type;
-      if (item.thread.pausedDetails()) {
+    if (item.thread()) {
+      result.contextValue = ' ' + item.type();
+      if (item.thread()!.pausedDetails()) {
         result.description = 'PAUSED';
         result.contextValue += 'canRun';
       } else {
@@ -172,11 +172,11 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
       if (item.attach)
         result.contextValue += ' canAttach';
     }
-    if (item.restart)
+    if (item.canRestart())
       result.contextValue += ' canRestart';
-    if (item.stop)
+    if (item.canStop())
       result.contextValue += ' canStop';
-    if (item.fileName)
+    if (item.fileName())
       result.contextValue += ' canReveal';
     return result;
   }
@@ -197,18 +197,18 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
     const keys = new Set<string>();
     const tab = '\u00A0\u00A0\u00A0\u00A0';
     const visit = (depth: number, item: Target) => {
-      keys.add(item.id);
+      keys.add(item.id());
       let unicodeIcon = '';
-      if (item.type === 'iframe')
+      if (item.type() === 'iframe')
         unicodeIcon = '\uD83D\uDCC4 ';
-      else if (item.type === 'worker')
+      else if (item.type() === 'worker')
         unicodeIcon = '\uD83D\uDC77 ';
       const indentation = tab.repeat(Math.max(0, depth - 1));  // Do not indent the first level.
       this._contexts.push({
         ...item,
-        name: indentation + unicodeIcon + item.name
+        name: () => indentation + unicodeIcon + item.name()
       });
-      item.children.forEach(item => visit(depth + 1, item));
+      item.children().forEach(item => visit(depth + 1, item));
     };
     contexts.forEach(item => visit(0, item));
     this._onDidChangeTreeData.fire();

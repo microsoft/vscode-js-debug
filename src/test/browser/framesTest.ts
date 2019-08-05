@@ -14,9 +14,9 @@ export function addTests(testRunner) {
 
     const logTarget = (t: Target, indent: number) => {
       const s = ' '.repeat(indent);
-      const thread = t.thread ? ' [thread "' + t.thread.baseUrlForTest() + '"]' : '';
-      p.log(`${s}${t.type} "${t.name}"${thread}${t.fileName ? ' @ ' + t.fileName : ''}`);
-      t.children.forEach(child => logTarget(child, indent + 2));
+      const thread = t.thread() ? ' [thread "' + t.thread()!.baseUrlForTest() + '"]' : '';
+      p.log(`${s}${t.type()} "${t.name()}"${thread}${t.fileName() ? ' @ ' + t.fileName() : ''}`);
+      t.children().forEach(child => logTarget(child, indent + 2));
     };
 
     await new Promise(p.adapter.onTargetForestChanged);

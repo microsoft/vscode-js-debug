@@ -98,30 +98,30 @@ export class TestP {
       contexts = [];
       const visit = (item: Target) => {
         contexts.push(item);
-        item.children.forEach(visit);
+        item.children().forEach(visit);
       };
       this.adapter.targetForest().forEach(visit);
     });
     this.adapter.threadManager.onThreadPaused(thread => {
-      if (selected && selected.thread === thread) {
-        this.adapter.setThread(selected.thread);
+      if (selected && selected.thread() === thread) {
+        this.adapter.setThread(selected.thread());
       } else {
         for (const context of contexts) {
-          if (context.thread === thread) {
-            this.adapter.setThread(context.thread);
+          if (context.thread() === thread) {
+            this.adapter.setThread(context.thread());
             break;
           }
         }
       }
     });
     this.adapter.threadManager.onThreadResumed(thread => {
-      this.adapter.setThread(selected ? selected.thread : undefined);
+      this.adapter.setThread(selected ? selected.thread() : undefined);
     });
 
     this._connection = this._browserDelegate.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
-    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: mainTarget.targetId, flatten: true }))!;
+    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: mainTarget.id(), flatten: true }))!;
     this._cdp = this._connection.createSession(sessionId);
     return mainTarget;
   }

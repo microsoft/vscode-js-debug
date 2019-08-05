@@ -13,7 +13,7 @@ import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
-import { ThreadDelegate, Thread } from '../adapter/threads';
+import { Thread } from '../adapter/threads';
 import { NodeBreakpointsPredictor } from './nodeBreakpoints';
 
 export interface LaunchParams extends Dap.LaunchParams {
@@ -139,7 +139,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
   }
 
   targetForest(): Target[] {
-    return Array.from(this._targets.values()).filter(t => !t.hasParent()).map(t => t.toTarget());
+    return Array.from(this._targets.values()).filter(t => !t.hasParent());
   }
 
   adapterDisposed() {
@@ -168,7 +168,7 @@ export class NodeDelegate implements DebugAdapterDelegate {
   }
 }
 
-class NodeTarget implements ThreadDelegate {
+class NodeTarget implements Target {
   private _delegate: NodeDelegate;
   private _connection: Connection;
   private _cdp: Cdp.Api;
@@ -179,6 +179,7 @@ class NodeTarget implements ThreadDelegate {
   private _scriptName: string;
   private _serialize = Promise.resolve();
   private _thread: Thread | undefined;
+  private _waitingForDebugger: boolean;
 
   constructor(delegate: NodeDelegate, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
     this._delegate = delegate;
@@ -186,6 +187,7 @@ class NodeTarget implements ThreadDelegate {
     this._cdp = cdp;
     this._targetId = targetInfo.targetId;
     this._scriptName = targetInfo.title;
+    this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
     if (targetInfo.title)
       this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
@@ -198,6 +200,30 @@ class NodeTarget implements ThreadDelegate {
 
     if (targetInfo.type === 'waitingForDebugger')
       this._attach();
+  }
+
+ id(): string {
+    return this._targetId;
+  }
+
+  name(): string {
+    return this._targetName;
+  }
+
+  fileName(): string | undefined {
+    return this._scriptName;
+  }
+
+  type(): string {
+    return 'node';
+  }
+
+  children(): Target[] {
+    return Array.from(this._children.values());
+  }
+
+  waitingForDebugger(): boolean {
+    return this._waitingForDebugger;
   }
 
   defaultScriptOffset(): InlineScriptOffset {
@@ -272,23 +298,23 @@ class NodeTarget implements ThreadDelegate {
     thread.dispose();
   }
 
-  _stop() {
+  canRestart(): boolean {
+    return false;
+  }
+
+  restart() { }
+
+  canStop(): boolean {
+    return true;
+  }
+
+  stop() {
     process.kill(+this._targetId);
     this._connection.close();
   }
 
-  toTarget(): Target {
-    return {
-      id: this._targetId,
-      name: this._targetName,
-      fileName: this._scriptName,
-      children: this._children.map(t => t.toTarget()),
-      type: 'node',
-      thread: this._thread,
-      stop: () => this._stop(),
-      attach: this._thread ? undefined : () => this._attach(),
-      detach: this._thread ? () => this._detach() : undefined
-    };
+  thread(): Thread | undefined {
+    return this._thread;
   }
 }
 
