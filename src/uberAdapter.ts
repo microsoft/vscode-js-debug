@@ -5,7 +5,8 @@ import * as vscode from 'vscode';
 import { Target } from './adapter/targets';
 import Dap from './dap/api';
 import { DebugAdapterDelegate, DebugAdapter } from './adapter/debugAdapter';
-import { Thread, UIDelegate } from './adapter/threads';
+import { UIDelegate } from './utils/uiDelegate';
+import { Thread } from './adapter/threads';
 
 export interface Launcher extends vscode.Disposable {
   launch(params: Dap.LaunchParams): Promise<void>;

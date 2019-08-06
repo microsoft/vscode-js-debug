@@ -7,9 +7,6 @@ import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
 import { ScopeRef } from "./variables";
-import * as nls from 'vscode-nls';
-
-const localize = nls.loadMessageBundle();
 
 export class StackTrace {
   private _frames: StackFrame[] = [];
@@ -179,40 +176,40 @@ export class StackFrame {
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
       switch (scope.type) {
         case 'global':
-          name = localize('scope.global', 'Global');
+          name = this._thread.uiDelegate().localize('scope.global', 'Global');
           break;
         case 'local':
-          name = localize('scope.local', 'Local');
+          name = this._thread.uiDelegate().localize('scope.local', 'Local');
           presentationHint = 'locals';
           break;
         case 'with':
-          name = localize('scope.with', 'With Block');
+          name = this._thread.uiDelegate().localize('scope.with', 'With Block');
           presentationHint = 'locals';
           break;
         case 'closure':
-          name = localize('scope.closure', 'Closure');
+          name = this._thread.uiDelegate().localize('scope.closure', 'Closure');
           presentationHint = 'arguments';
           break;
         case 'catch':
-          name = localize('scope.catch', 'Catch Block');
+          name = this._thread.uiDelegate().localize('scope.catch', 'Catch Block');
           presentationHint = 'locals';
           break;
         case 'block':
-          name = localize('scope.block', 'Block');
+          name = this._thread.uiDelegate().localize('scope.block', 'Block');
           presentationHint = 'locals';
           break;
         case 'script':
-          name = localize('scope.script', 'Script');
+          name = this._thread.uiDelegate().localize('scope.script', 'Script');
           break;
         case 'eval':
-          name = localize('scope.eval', 'Eval');
+          name = this._thread.uiDelegate().localize('scope.eval', 'Eval');
           break;
         case 'module':
-          name = localize('scope.module', 'Module');
+          name = this._thread.uiDelegate().localize('scope.module', 'Module');
           break;
       }
       if (scope.name && scope.type === 'closure') {
-        name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
+        name = this._thread.uiDelegate().localize('scope.closureNamed', 'Closure ({0})', scope.name);
       } else if (scope.name) {
         name = scope.name;
       }

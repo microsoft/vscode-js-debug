@@ -10,12 +10,17 @@ import { LocationRevealerUI } from './ui/locationRevealerUI';
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { registerTargetsUI } from './ui/targetsUI';
+import { UIDelegate } from './utils/uiDelegate';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
-  const factory = new AdapterFactory(context);
+  const uiDelegate: UIDelegate = {
+    copyToClipboard: text => vscode.env.clipboard.writeText(text),
+    localize
+  };
+  const factory = new AdapterFactory(context, uiDelegate);
   new LocationRevealerUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
   registerTargetsUI(context, factory);

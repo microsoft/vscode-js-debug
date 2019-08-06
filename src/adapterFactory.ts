@@ -4,18 +4,20 @@
 import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
-import DapConnection from './dap/connection';
-import { BrowserLauncher } from './browser/browserDelegate';
-import { NodeLauncher } from './node/nodeDelegate';
-import { Source } from './adapter/sources';
-import Dap from './dap/api';
 import { DebugAdapter } from './adapter/debugAdapter';
+import { Source } from './adapter/sources';
+import { BrowserLauncher } from './browser/browserDelegate';
+import Dap from './dap/api';
+import DapConnection from './dap/connection';
+import { NodeLauncher } from './node/nodeDelegate';
 import { UberAdapter } from './uberAdapter';
+import { UIDelegate } from './utils/uiDelegate';
 
 export type Adapters = {adapter: DebugAdapter, uberAdapter: UberAdapter};
 
 export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   private _context: vscode.ExtensionContext;
+  private _uiDelegate: UIDelegate;
   private _sessions = new Map<string, { session: vscode.DebugSession, server: Net.Server, adapter: DebugAdapter, uberAdapter: UberAdapter }>();
   private _disposables: vscode.Disposable[];
   private _activeAdapters?: Adapters;
@@ -27,8 +29,9 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   readonly onAdapterRemoved = this._onAdapterRemovedEmitter.event;
   readonly onActiveAdaptersChanged = this._onActiveAdaptersChangedEmitter.event;
 
-  constructor(context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext, uiDelegate: UIDelegate) {
     this._context = context;
+    this._uiDelegate = uiDelegate;
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('pwa', this));
     context.subscriptions.push(this);
 
@@ -62,6 +65,10 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
     ];
   }
 
+  uiDelegate(): UIDelegate {
+    return this._uiDelegate;
+  }
+
   activeAdapters(): Adapters | undefined {
     return this._activeAdapters;
   }
@@ -81,13 +88,11 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       let rootPath = vscode.workspace.rootPath;
       if (session.workspaceFolder && session.workspaceFolder.uri.scheme === 'file:')
         rootPath = session.workspaceFolder.uri.path;
-      const uberAdapter = new UberAdapter(connection.dap(), {
-        copyToClipboard: text => vscode.env.clipboard.writeText(text)
-      });
+      const uberAdapter = new UberAdapter(connection.dap(), this._uiDelegate);
       const adapter = uberAdapter.debugAdapter;
       this._sessions.set(session.id, { session, server, adapter, uberAdapter });
       uberAdapter.addLauncher(new NodeLauncher(adapter, rootPath));
-      uberAdapter.addLauncher(new BrowserLauncher(adapter, this._context.storagePath || this._context.extensionPath, rootPath));
+      uberAdapter.addLauncher(new BrowserLauncher(adapter, this._uiDelegate, this._context.storagePath || this._context.extensionPath, rootPath));
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }

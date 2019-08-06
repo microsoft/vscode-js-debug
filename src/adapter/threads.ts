@@ -3,7 +3,6 @@
 
 import { debug } from 'debug';
 import { EventEmitter } from 'vscode';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as eventUtils from '../utils/eventUtils';
@@ -18,8 +17,8 @@ import { InlineScriptOffset, Location, Source, SourceContainer, SourcePathResolv
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../utils/sourceUtils';
+import { UIDelegate } from '../utils/uiDelegate';
 
-const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
@@ -50,10 +49,6 @@ export class ExecutionContext {
 }
 
 export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
-
-export interface UIDelegate {
-  copyToClipboard: (text: string) => void;
-}
 
 export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
@@ -267,7 +262,7 @@ export class Thread implements VariableStoreDelegate {
     this._dap = dap;
     this._threadId = threadId;
     this._name = threadName;
-    this.replVariables = new VariableStore(this._cdp, this);
+    this.replVariables = new VariableStore(this._cdp, this, this.uiDelegate());
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
     debugThread(`Thread created #${this._threadId}`);
@@ -308,42 +303,46 @@ export class Thread implements VariableStoreDelegate {
     return !!this._pauseOnSourceMapBreakpointId;
   }
 
+  uiDelegate(): UIDelegate {
+    return this.manager._uiDelegate;
+  }
+
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
     if (!await this._cdp.Debugger.resume({}))
-      return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
+      return errors.createSilentError(this.uiDelegate().localize('error.resumeDidFail', 'Unable to resume'));
     return { allThreadsContinued: false };
   }
 
   async pause(): Promise<Dap.PauseResult | Dap.Error> {
     if (!await this._cdp.Debugger.pause({}))
-      return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
+      return errors.createSilentError(this.uiDelegate().localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
     if (!await this._cdp.Debugger.stepOver({}))
-      return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
+      return errors.createSilentError(this.uiDelegate().localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
     if (!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
-      return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
+      return errors.createSilentError(this.uiDelegate().localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
     if (!await this._cdp.Debugger.stepOut({}))
-      return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+      return errors.createSilentError(this.uiDelegate().localize('error.stepOutDidFail', 'Unable to step out'));
     return {};
   }
 
   _stackFrameNotFoundError(): Dap.Error {
-    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+    return errors.createSilentError(this.uiDelegate().localize('error.stackFrameNotFound', 'Stack frame not found'));
   }
 
   _evaluateOnAsyncFrameError(): Dap.Error {
-    return errors.createSilentError(localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
+    return errors.createSilentError(this.uiDelegate().localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'));
   }
 
   async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
@@ -352,7 +351,7 @@ export class Thread implements VariableStoreDelegate {
       return this._stackFrameNotFoundError();
     const callFrameId = stackFrame.callFrameId();
     if (!callFrameId)
-      return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
+      return errors.createUserError(this.uiDelegate().localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
     const response = await this._cdp.Debugger.restartFrame({ callFrameId });
     if (response && this._pausedDetails)
       this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
@@ -361,7 +360,7 @@ export class Thread implements VariableStoreDelegate {
 
   async stackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (!this._pausedDetails)
-      return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
+      return errors.createSilentError(this.uiDelegate().localize('error.threadNotPaused', 'Thread is not paused'));
     return this._pausedDetails.stackTrace.toDap(params);
   }
 
@@ -375,7 +374,7 @@ export class Thread implements VariableStoreDelegate {
   async exceptionInfo(): Promise<Dap.ExceptionInfoResult | Dap.Error> {
     const exception = this._pausedDetails && this._pausedDetails.exception;
     if (!exception)
-      return errors.createSilentError(localize('error.threadNotPausedOnException', 'Thread is not paused on exception'));
+      return errors.createSilentError(this.uiDelegate().localize('error.threadNotPausedOnException', 'Thread is not paused on exception'));
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
@@ -463,7 +462,7 @@ export class Thread implements VariableStoreDelegate {
 
     const response = await responsePromise;
     if (!response)
-      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+      return errors.createSilentError(this.uiDelegate().localize('error.evaluateDidFail', 'Unable to evaluate'));
     if (response.exceptionDetails) {
       let text = response.exceptionDetails.exception ? objectPreview.previewException(response.exceptionDetails.exception).title : response.exceptionDetails.text;
       if (!text.startsWith('Uncaught'))
@@ -559,7 +558,7 @@ export class Thread implements VariableStoreDelegate {
 
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedDetails[kPausedEventSymbol] = event;
-      this._pausedVariables = new VariableStore(this._cdp, this);
+      this._pausedVariables = new VariableStore(this._cdp, this, this.uiDelegate());
       this.manager._onThreadPausedEmitter.fire(this);
 
       scheduledPauseOnAsyncCall = undefined;
@@ -715,7 +714,7 @@ export class Thread implements VariableStoreDelegate {
     // future changes in cdp vs stale breakpoints saved in the workspace.
     if (!this.delegate.supportsCustomBreakpoints())
       return true;
-    const breakpoint = customBreakpoints().get(id);
+    const breakpoint = customBreakpoints(this.uiDelegate()).get(id);
     if (!breakpoint)
       return true;
     breakpoint.apply(this._cdp, enabled);
@@ -729,33 +728,33 @@ export class Thread implements VariableStoreDelegate {
         thread: this,
         stackTrace,
         reason: 'exception',
-        description: localize('pause.assert', 'Paused on assert')
+        description: this.uiDelegate().localize('pause.assert', 'Paused on assert')
       };
       case 'debugCommand': return {
         thread: this,
         stackTrace,
         reason: 'pause',
-        description: localize('pause.debugCommand', 'Paused on debug() call')
+        description: this.uiDelegate().localize('pause.debugCommand', 'Paused on debug() call')
       };
       case 'DOM': return {
         thread: this,
         stackTrace,
         reason: 'data breakpoint',
-        description: localize('pause.DomBreakpoint', 'Paused on DOM breakpoint')
+        description: this.uiDelegate().localize('pause.DomBreakpoint', 'Paused on DOM breakpoint')
       };
       case 'EventListener': return this._resolveEventListenerBreakpointDetails(stackTrace, event);
       case 'exception': return {
         thread: this,
         stackTrace,
         reason: 'exception',
-        description: localize('pause.exception', 'Paused on exception'),
+        description: this.uiDelegate().localize('pause.exception', 'Paused on exception'),
         exception: event.data as (Cdp.Runtime.RemoteObject | undefined)
       };
       case 'promiseRejection': return {
         thread: this,
         stackTrace,
         reason: 'exception',
-        description: localize('pause.promiseRejection', 'Paused on promise rejection')
+        description: this.uiDelegate().localize('pause.promiseRejection', 'Paused on promise rejection')
       };
       case 'instrumentation':
         if (event.data && event.data['scriptId']) {
@@ -763,26 +762,26 @@ export class Thread implements VariableStoreDelegate {
             thread: this,
             stackTrace,
             reason: 'step',
-            description: localize('pause.default', 'Paused')
+            description: this.uiDelegate().localize('pause.default', 'Paused')
           };
         }
         return {
           thread: this,
           stackTrace,
           reason: 'function breakpoint',
-          description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
+          description: this.uiDelegate().localize('pause.instrumentation', 'Paused on instrumentation breakpoint')
         };
       case 'XHR': return {
         thread: this,
         stackTrace,
         reason: 'data breakpoint',
-        description: localize('pause.xhr', 'Paused on XMLHttpRequest or fetch')
+        description: this.uiDelegate().localize('pause.xhr', 'Paused on XMLHttpRequest or fetch')
       };
       case 'OOM': return {
         thread: this,
         stackTrace,
         reason: 'exception',
-        description: localize('pause.oom', 'Paused before Out Of Memory exception')
+        description: this.uiDelegate().localize('pause.oom', 'Paused before Out Of Memory exception')
       };
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
@@ -790,14 +789,14 @@ export class Thread implements VariableStoreDelegate {
             thread: this,
             stackTrace,
             reason: 'breakpoint',
-            description: localize('pause.breakpoint', 'Paused on breakpoint')
+            description: this.uiDelegate().localize('pause.breakpoint', 'Paused on breakpoint')
           };
         }
         return {
           thread: this,
           stackTrace,
           reason: 'step',
-          description: localize('pause.default', 'Paused')
+          description: this.uiDelegate().localize('pause.default', 'Paused')
         };
     }
   }
@@ -805,12 +804,12 @@ export class Thread implements VariableStoreDelegate {
   _resolveEventListenerBreakpointDetails(stackTrace: StackTrace, event: Cdp.Debugger.PausedEvent): PausedDetails {
     const data = event.data;
     const id = data ? (data['eventName'] || '') : '';
-    const breakpoint = customBreakpoints().get(id);
+    const breakpoint = customBreakpoints(this.uiDelegate()).get(id);
     if (breakpoint) {
       const details = breakpoint.details(data!);
       return { thread: this, stackTrace, reason: 'function breakpoint', description: details.short, text: details.long };
     }
-    return { thread: this, stackTrace, reason: 'function breakpoint', description: localize('pause.eventListener', 'Paused on event listener') };
+    return { thread: this, stackTrace, reason: 'function breakpoint', description: this.uiDelegate().localize('pause.eventListener', 'Paused on event listener') };
   }
 
   async _onConsoleMessage(event: Cdp.Runtime.ConsoleAPICalledEvent): Promise<Dap.OutputEventParams | undefined> {
@@ -839,7 +838,7 @@ export class Thread implements VariableStoreDelegate {
       category = 'console';
 
     if (isAssert && event.args[0] && event.args[0].value === 'console.assert')
-      event.args[0].value = localize('console.assert', 'Assertion failed');
+      event.args[0].value = this.uiDelegate().localize('console.assert', 'Assertion failed');
 
     let messageText: string;
     if (event.type === 'table' && event.args.length && event.args[0].preview) {
@@ -999,7 +998,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this.manager._uiDelegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this.uiDelegate().copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -1025,7 +1024,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this.manager._uiDelegate.copyToClipboard(String(response.result.value));
+      this.uiDelegate().copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 

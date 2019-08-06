@@ -2,16 +2,15 @@
 // Licensed under the MIT license.
 
 import { Disposable } from 'vscode';
-import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
-import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
+import { PauseOnExceptionsState, ThreadManager, Thread } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
+import { UIDelegate } from '../utils/uiDelegate';
 
-const localize = nls.loadMessageBundle();
 const revealLocationThreadId = 999999999;
 
 export interface DebugAdapterDelegate {
@@ -29,6 +28,7 @@ export class DebugAdapter {
   private _delegate: DebugAdapterDelegate;
   private _disposables: Disposable[] = [];
   private _selectedThread?: Thread;
+  private _uiDelegate: UIDelegate;
 
   constructor(dap: Dap.Api, delegate: DebugAdapterDelegate, uiDelegate: UIDelegate) {
     this.dap = dap;
@@ -53,6 +53,7 @@ export class DebugAdapter {
     this.dap.on('completions', params => this._onCompletions(params)),
     this.dap.on('exceptionInfo', params => this._withThread(params.threadId, thread => thread.exceptionInfo())),
     this._delegate = delegate;
+    this._uiDelegate = uiDelegate;
     this.sourceContainer = new SourceContainer(this.dap);
     this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
@@ -84,8 +85,8 @@ export class DebugAdapter {
       supportsHitConditionalBreakpoints: false,
       supportsEvaluateForHovers: true,
       exceptionBreakpointFilters: [
-        { filter: 'caught', label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false },
-        { filter: 'uncaught', label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false },
+        { filter: 'caught', label: this._uiDelegate.localize('breakpoint.caughtExceptions', 'Caught Exceptions'), default: false },
+        { filter: 'uncaught', label: this._uiDelegate.localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'), default: false },
       ],
       supportsStepBack: false,
       supportsSetVariable: true,
@@ -139,10 +140,10 @@ export class DebugAdapter {
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     const source = this.sourceContainer.source(params.source!);
     if (!source)
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+      return errors.createSilentError(this._uiDelegate.localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
     if (content === undefined)
-      return errors.createSilentError(localize('error.sourceContentDidFail', 'Unable to retrieve source content'));
+      return errors.createSilentError(this._uiDelegate.localize('error.sourceContentDidFail', 'Unable to retrieve source content'));
     return { content, mimeType: source.mimeType() };
   }
 
@@ -183,7 +184,7 @@ export class DebugAdapter {
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
     let variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
-      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
+      return errors.createSilentError(this._uiDelegate.localize('error.variableNotFound', 'Variable not found'));
     params.value = sourceUtils.wrapObjectLiteral(params.value.trim());
     return variableStore.setVariable(params);
   }
@@ -289,11 +290,11 @@ export class DebugAdapter {
   }
 
   _threadNotAvailableError(): Dap.Error {
-    return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+    return errors.createSilentError(this._uiDelegate.localize('error.threadNotFound', 'Thread not found'));
   }
 
   _stackFrameNotFoundError(): Dap.Error {
-    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+    return errors.createSilentError(this._uiDelegate.localize('error.stackFrameNotFound', 'Stack frame not found'));
   }
 
   dispose() {

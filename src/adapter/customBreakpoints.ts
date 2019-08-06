@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import Cdp from "../cdp/api";
-import * as nls from 'vscode-nls';
+import { UIDelegate } from "../utils/uiDelegate";
 
 export type CustomBreakpointId = string;
 
@@ -16,11 +16,9 @@ export interface CustomBreakpoint {
 
 const map: Map<string, CustomBreakpoint> = new Map();
 
-export function customBreakpoints(): Map<string, CustomBreakpoint> {
+export function customBreakpoints(uiDelegate: UIDelegate): Map<string, CustomBreakpoint> {
   if (map.size)
     return map;
-
-  const localize = nls.loadMessageBundle();
 
   function g(group: string, breakpoints: CustomBreakpoint[]) {
     for (const b of breakpoints) {
@@ -41,19 +39,19 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
           // If there is a hex code of the error, display only this.
           errorName = errorName.replace(/^.*(0x[0-9a-f]+).*$/i, '$1');
           return {
-            short: localize('breakpoint.webglErrorNamed', 'WebGL Error "{0}"', errorName),
-            long: localize('breakpoint.webglErrorNamedDetails', 'Paused on WebGL Error instrumentation breakpoint, error "{0}"', errorName)
+            short: uiDelegate.localize('breakpoint.webglErrorNamed', 'WebGL Error "{0}"', errorName),
+            long: uiDelegate.localize('breakpoint.webglErrorNamedDetails', 'Paused on WebGL Error instrumentation breakpoint, error "{0}"', errorName)
           };
         }
         if (instrumentation === 'scriptBlockedByCSP' && data['directiveText']) {
           return {
-            short: localize('breakpoint.cspViolationNamed', 'CSP violation "{0}"', data['directiveText']),
-            long: localize('breakpoint.cspViolationNamedDetails', 'Paused on Content Security Policy violation instrumentation breakpoint, directive "{0}"', data['directiveText'])
+            short: uiDelegate.localize('breakpoint.cspViolationNamed', 'CSP violation "{0}"', data['directiveText']),
+            long: uiDelegate.localize('breakpoint.cspViolationNamedDetails', 'Paused on Content Security Policy violation instrumentation breakpoint, directive "{0}"', data['directiveText'])
           };
         }
         return {
           short: title,
-          long: localize('breakpoint.instrumentationNamed', 'Paused on instrumentation breakpoint "{0}"', title)
+          long: uiDelegate.localize('breakpoint.instrumentationNamed', 'Paused on instrumentation breakpoint "{0}"', title)
         };
       },
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
@@ -75,7 +73,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
         const eventTargetName = (data['targetName'] || '*').toLowerCase();
         return {
           short: eventTargetName + '.' + eventName,
-          long: localize('breakpoint.eventListenerNamed', 'Paused on event listener breakpoint "{0}", triggered on "{1}"', eventName, eventTargetName)
+          long: uiDelegate.localize('breakpoint.eventListenerNamed', 'Paused on event listener breakpoint "{0}", triggered on "{1}"', eventName, eventTargetName)
         };
       },
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
@@ -92,18 +90,18 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
   }
 
   g(`Animation`, [
-    i('requestAnimationFrame', localize('breakpoint.requestAnimationFrame', 'Request Animation Frame')),
-    i('cancelAnimationFrame', localize('breakpoint.cancelAnimationFrame', 'Cancel Animation Frame')),
-    i('requestAnimationFrame.callback', localize('breakpoint.animationFrameFired', 'Animation Frame Fired')),
+    i('requestAnimationFrame', uiDelegate.localize('breakpoint.requestAnimationFrame', 'Request Animation Frame')),
+    i('cancelAnimationFrame', uiDelegate.localize('breakpoint.cancelAnimationFrame', 'Cancel Animation Frame')),
+    i('requestAnimationFrame.callback', uiDelegate.localize('breakpoint.animationFrameFired', 'Animation Frame Fired')),
   ]);
   g(`Canvas`, [
-    i('canvasContextCreated', localize('breakpoint.createCanvasContext', 'Create canvas context')),
-    i('webglErrorFired', localize('breakpoint.webglErrorFired', 'WebGL Error Fired')),
-    i('webglWarningFired', localize('breakpoint.webglWarningFired', 'WebGL Warning Fired')),
+    i('canvasContextCreated', uiDelegate.localize('breakpoint.createCanvasContext', 'Create canvas context')),
+    i('webglErrorFired', uiDelegate.localize('breakpoint.webglErrorFired', 'WebGL Error Fired')),
+    i('webglWarningFired', uiDelegate.localize('breakpoint.webglWarningFired', 'WebGL Warning Fired')),
   ]);
   g(`Script`, [
-    i('scriptFirstStatement', localize('breakpoint.scriptFirstStatement', 'Script First Statement')),
-    i('scriptBlockedByCSP', localize('breakpoint.cspViolation', 'Script Blocked by Content Security Policy')),
+    i('scriptFirstStatement', uiDelegate.localize('breakpoint.scriptFirstStatement', 'Script First Statement')),
+    i('scriptBlockedByCSP', uiDelegate.localize('breakpoint.cspViolation', 'Script Blocked by Content Security Policy')),
   ]);
   g(`Geolocation`, [
     i('Geolocation.getCurrentPosition', `getCurrentPosition`),
@@ -113,7 +111,7 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
     i('Notification.requestPermission', `requestPermission`),
   ]);
   g(`Parse`, [
-    i('Element.setInnerHTML', localize('breakpoint.setInnerHtml', 'Set innerHTML')),
+    i('Element.setInnerHTML', uiDelegate.localize('breakpoint.setInnerHtml', 'Set innerHTML')),
     i('Document.write', `document.write`),
   ]);
   g(`Timer`, [
@@ -121,17 +119,17 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
     i('clearTimeout'),
     i('setInterval'),
     i('clearInterval'),
-    i('setTimeout.callback', localize('breakpoint.setTimeoutFired', 'setTimeout fired')),
-    i('setInterval.callback', localize('breakpoint.setIntervalFired', 'setInterval fired')),
+    i('setTimeout.callback', uiDelegate.localize('breakpoint.setTimeoutFired', 'setTimeout fired')),
+    i('setInterval.callback', uiDelegate.localize('breakpoint.setIntervalFired', 'setInterval fired')),
   ]);
   g(`Window`, [
     i('DOMWindow.close', `window.close`),
   ]);
   g(`WebAudio`, [
-    i('audioContextCreated', localize('breakpoint.createAudioContext', 'Create AudioContext')),
-    i('audioContextClosed', localize('breakpoint.closeAudioContext', 'Close AudioContext')),
-    i('audioContextResumed', localize('breakpoint.resumeAudioContext', 'Resume AudioContext')),
-    i('audioContextSuspended', localize('breakpoint.suspendAudioContext', 'Suspend AudioContext')),
+    i('audioContextCreated', uiDelegate.localize('breakpoint.createAudioContext', 'Create AudioContext')),
+    i('audioContextClosed', uiDelegate.localize('breakpoint.closeAudioContext', 'Close AudioContext')),
+    i('audioContextResumed', uiDelegate.localize('breakpoint.resumeAudioContext', 'Resume AudioContext')),
+    i('audioContextSuspended', uiDelegate.localize('breakpoint.suspendAudioContext', 'Suspend AudioContext')),
   ]);
   const av = ['audio', 'video'];
   g(`Media`, [

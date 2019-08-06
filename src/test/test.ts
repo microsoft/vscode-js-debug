@@ -14,8 +14,11 @@ import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { UberAdapter } from '../uberAdapter';
+import * as nls from 'vscode-nls';
+import { UIDelegate } from '../utils/uiDelegate';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
+const localize = nls.loadMessageBundle();
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
@@ -58,11 +61,13 @@ export class TestP {
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this.uberAdapter = new UberAdapter(adapterConnection.dap(), {
-      copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
-    });
+    const uiDelegate: UIDelegate = {
+      copyToClipboard: text => this.log(`[copy to clipboard] ${text}`),
+      localize
+    };
+    this.uberAdapter = new UberAdapter(adapterConnection.dap(), uiDelegate);
     const debugAdapter = this.uberAdapter.debugAdapter;
-    this._browserLauncher = new BrowserLauncher(debugAdapter, storagePath, this._workspaceRoot);
+    this._browserLauncher = new BrowserLauncher(debugAdapter, uiDelegate, storagePath, this._workspaceRoot);
     this.uberAdapter.addLauncher(this._browserLauncher);
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({

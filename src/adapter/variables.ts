@@ -6,9 +6,7 @@ import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { StackTrace } from './stackTrace';
 import * as errors from './errors';
-import * as nls from 'vscode-nls';
-
-const localize = nls.loadMessageBundle();
+import { UIDelegate } from '../utils/uiDelegate';
 
 class RemoteObject {
   readonly o: Cdp.Runtime.RemoteObject;
@@ -49,10 +47,12 @@ export class VariableStore {
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
   private _referenceToObject: Map<number, RemoteObject> = new Map();
   private _delegate: VariableStoreDelegate;
+  private _uiDelegate: UIDelegate;
 
-  constructor(cdp: Cdp.Api, delegate: VariableStoreDelegate) {
+  constructor(cdp: Cdp.Api, delegate: VariableStoreDelegate, uiDelegate: UIDelegate) {
     this._cdp = cdp;
     this._delegate = delegate;
+    this._uiDelegate = uiDelegate;
   }
 
   hasVariables(variablesReference: number): boolean {
@@ -90,17 +90,17 @@ export class VariableStore {
   async setVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
     const object = this._referenceToObject.get(params.variablesReference);
     if (!object)
-      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
+      return errors.createSilentError(this._uiDelegate.localize('error.variableNotFound', 'Variable not found'));
 
     const expression = params.value;
     if (!expression)
-      return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
+      return errors.createUserError(this._uiDelegate.localize('error.emptyExpression', 'Cannot set an empty value'));
 
     const evaluateResponse = object.scopeRef
         ? await object.cdp.Debugger.evaluateOnCallFrame({ expression, callFrameId: object.scopeRef.callFrameId })
         : await object.cdp.Runtime.evaluate({ expression, silent: true });
     if (!evaluateResponse)
-      return errors.createUserError(localize('error.invalidExpression', 'Invalid expression'));
+      return errors.createUserError(this._uiDelegate.localize('error.invalidExpression', 'Invalid expression'));
     if (evaluateResponse.exceptionDetails)
       return errorFromException(evaluateResponse.exceptionDetails);
 
@@ -119,7 +119,7 @@ export class VariableStore {
         newValue: this._toCallArgument(evaluateResponse.result),
       });
       if (!setResponse)
-        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
+        return release(errors.createSilentError(this._uiDelegate.localize('error.setVariableDidFail', 'Unable to set variable value')));
     } else {
       const setResponse = await object.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
@@ -128,7 +128,7 @@ export class VariableStore {
         silent: true
       });
       if (!setResponse)
-        return release(errors.createSilentError(localize('error.setVariableDidFail', 'Unable to set variable value')));
+        return release(errors.createSilentError(this._uiDelegate.localize('error.setVariableDidFail', 'Unable to set variable value')));
       if (setResponse.exceptionDetails)
         return release(errorFromException(setResponse.exceptionDetails));
     }

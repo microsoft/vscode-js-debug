@@ -35,7 +35,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   constructor(factory: AdapterFactory) {
     this._factory = factory;
     this.breakpoints = [];
-    for (const cb of customBreakpoints().values())
+    for (const cb of customBreakpoints(factory.uiDelegate()).values())
       this.breakpoints.push(new Breakpoint(cb, false));
 
     const sendState = (adapter: DebugAdapter) => {

@@ -5,7 +5,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
@@ -18,8 +17,7 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
 import { Launcher } from '../uberAdapter';
-
-const localize = nls.loadMessageBundle();
+import { UIDelegate } from '../utils/uiDelegate';
 
 export interface LaunchParams extends Dap.LaunchParams {
   url: string;
@@ -29,6 +27,7 @@ export interface LaunchParams extends Dap.LaunchParams {
 export class BrowserLauncher implements Launcher {
   static symbol = Symbol('BrowserDelegate');
   private _connectionForTest: CdpConnection | undefined;
+  private _uiDelegate: UIDelegate;
   private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
@@ -42,7 +41,8 @@ export class BrowserLauncher implements Launcher {
   private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
+  constructor(debugAdapter: DebugAdapter, uiDelegate: UIDelegate, storagePath: string, rootPath: string | undefined) {
+    this._uiDelegate = uiDelegate;
     this._debugAdapter = debugAdapter;
     this._storagePath = storagePath;
     this._rootPath = rootPath;
@@ -68,7 +68,7 @@ export class BrowserLauncher implements Launcher {
     // Prefer canary over stable, it comes earlier in the list.
     const executablePath = findBrowser()[0];
     if (!executablePath)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser'));
+      return errors.createUserError(this._uiDelegate.localize('error.executableNotFound', 'Unable to find browser'));
 
     try {
       fs.mkdirSync(this._storagePath);
@@ -88,7 +88,7 @@ export class BrowserLauncher implements Launcher {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
     if (!result)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to attach to the browser'));
+      return errors.createUserError(this._uiDelegate.localize('error.executableNotFound', 'Unable to attach to the browser'));
 
     this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
@@ -111,7 +111,7 @@ export class BrowserLauncher implements Launcher {
     // sharing the browser instance. This can be fixed.
     this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return errors.createSilentError(this._uiDelegate.localize('error.threadNotFound', 'Thread not found'));
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
         this._onTerminatedEmitter.fire();
