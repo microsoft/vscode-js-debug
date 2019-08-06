@@ -2,21 +2,10 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { Target } from './adapter/targets';
+import { Target, Launcher } from './targets/targets';
 import Dap from './dap/api';
 import { DebugAdapterDelegate, DebugAdapter } from './adapter/debugAdapter';
 import { Thread, UIDelegate } from './adapter/threads';
-
-export interface Launcher extends vscode.Disposable {
-  launch(params: Dap.LaunchParams): Promise<void>;
-  terminate(params: Dap.TerminateParams): Promise<void>;
-  disconnect(params: Dap.DisconnectParams): Promise<void>;
-  restart(params: Dap.RestartParams): Promise<void>;
-  onTargetListChanged: vscode.Event<void>;
-  onTerminated: vscode.Event<void>;
-  targetList(): Target[];
-  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void>;
-}
 
 export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
   private _dap: Dap.Api;
@@ -43,21 +32,21 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
     return {};
   }
 
-  async _onTerminate(params: Dap.TerminateParams): Promise<Dap.TerminateResult> {
+  async _onTerminate(_: Dap.TerminateParams): Promise<Dap.TerminateResult> {
     for (const launcher of this._launchers)
-      launcher.terminate(params);
+      launcher.terminate();
     return {};
   }
 
-  async _onDisconnect(params: Dap.DisconnectParams): Promise<Dap.DisconnectResult> {
+  async _onDisconnect(_: Dap.DisconnectParams): Promise<Dap.DisconnectResult> {
     for (const launcher of this._launchers)
-      launcher.disconnect(params);
+      launcher.disconnect();
     return {};
   }
 
-  async _onRestart(params: Dap.RestartParams): Promise<Dap.RestartResult> {
+  async _onRestart(_: Dap.RestartParams): Promise<Dap.RestartResult> {
     for (const launcher of this._launchers)
-      launcher.restart(params);
+      launcher.restart();
     return {};
   }
 

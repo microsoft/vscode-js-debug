@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Cdp from '../cdp/api';
+import Cdp from '../../cdp/api';
 import { URL } from 'url';
 import * as path from 'path';
 import * as vscode from 'vscode';

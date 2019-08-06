@@ -5,7 +5,7 @@ import { Disposable } from 'vscode';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
-import * as errors from './errors';
+import * as errors from '../dap/errors';
 import { Location, SourceContainer } from './sources';
 import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
 import { VariableStore } from './variables';

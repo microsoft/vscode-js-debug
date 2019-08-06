@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { Thread } from '../adapter/threads';
 import { AdapterFactory, Adapters } from '../adapterFactory';
-import { Target } from '../adapter/targets';
+import { Target } from '../targets/targets';
 
 export function registerTargetsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
   const provider = new TargetsDataProvider(context, factory);

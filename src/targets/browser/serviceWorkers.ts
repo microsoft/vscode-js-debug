@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import Cdp from '../cdp/api';
+import Cdp from '../../cdp/api';
 import { FrameModel } from './frames';
 import { URL } from 'url';
 

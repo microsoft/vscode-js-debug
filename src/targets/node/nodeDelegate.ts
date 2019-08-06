@@ -5,15 +5,14 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { SourcePathResolver, InlineScriptOffset, PathLocation } from '../adapter/sources';
-import { Target } from '../adapter/targets';
-import Cdp from '../cdp/api';
-import Connection from '../cdp/connection';
-import { PipeTransport } from '../cdp/transport';
-import Dap from '../dap/api';
-import * as utils from '../utils/urlUtils';
+import Cdp from '../../cdp/api';
+import Connection from '../../cdp/connection';
+import { PipeTransport } from '../../cdp/transport';
+import { InlineScriptOffset, SourcePathResolver, WorkspaceLocation } from '../../common/sourcePathResolver';
+import Dap from '../../dap/api';
+import { Launcher, Target } from '../../targets/targets';
+import * as utils from '../../utils/urlUtils';
 import { NodeBreakpointsPredictor } from './nodeBreakpoints';
-import { Launcher } from '../uberAdapter';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -51,7 +50,7 @@ export class NodeLauncher implements Launcher {
     }
   }
 
-  async launch(params: Dap.LaunchParams): Promise<void> {
+  async launch(params: any): Promise<void> {
     if (!('command' in params))
       return;
     await this._launchBlocker;
@@ -84,12 +83,12 @@ export class NodeLauncher implements Launcher {
       this._terminal.sendText(commandLine, true);
   }
 
-  async terminate(params: Dap.TerminateParams): Promise<void> {
+  async terminate(): Promise<void> {
     this._killRuntime();
     await this._stopServer();
   }
 
-  async disconnect(params: Dap.DisconnectParams): Promise<void> {
+  async disconnect(): Promise<void> {
     this._killRuntime();
     await this._stopServer();
   }
@@ -101,7 +100,7 @@ export class NodeLauncher implements Launcher {
     this._terminal = undefined;
   }
 
-  async restart(params: Dap.RestartParams): Promise<void> {
+  async restart(): Promise<void> {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
     this._killRuntime();
@@ -356,7 +355,7 @@ class NodeSourcePathResolver implements SourcePathResolver {
     return false;
   }
 
-  predictResolvedLocations(location: PathLocation): PathLocation[] {
+  predictResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
     if (!this._breakpointsPredictor)
       return [];
     return this._breakpointsPredictor.predictResolvedLocations(location);

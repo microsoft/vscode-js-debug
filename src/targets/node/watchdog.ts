@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as net from 'net';
-import { WebSocketTransport, PipeTransport } from '../cdp/transport';
+import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 
 const info = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 

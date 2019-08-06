@@ -5,13 +5,13 @@ import { debug } from 'debug';
 import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
-import { InlineScriptOffset, SourcePathResolver } from '../adapter/sources';
-import { Target } from '../adapter/targets';
-import Cdp from '../cdp/api';
-import CdpConnection from '../cdp/connection';
-import * as urlUtils from '../utils/urlUtils';
+import { Target } from '../../targets/targets';
+import Cdp from '../../cdp/api';
+import CdpConnection from '../../cdp/connection';
+import * as urlUtils from '../../utils/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
+import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
 
 const debugTarget = debug('target');
 

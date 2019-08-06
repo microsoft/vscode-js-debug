@@ -6,9 +6,9 @@ import * as https from 'https';
 import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
-import * as eventUtils from '../utils/eventUtils';
-import CdpConnection from '../cdp/connection';
-import { PipeTransport, WebSocketTransport } from '../cdp/transport';
+import * as eventUtils from '../../utils/eventUtils';
+import CdpConnection from '../../cdp/connection';
+import { PipeTransport, WebSocketTransport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
 
 const DEFAULT_ARGS = [

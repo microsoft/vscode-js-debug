@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Dap from "../dap/api";
+import Dap from "./api";
 
 export function reportToConsole(dap: Dap.Api, error: string) {
   dap.output({

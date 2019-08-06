@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { TestP } from '../test';
-import { Target } from '../../adapter/targets';
+import { Target } from '../../targets/targets';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.

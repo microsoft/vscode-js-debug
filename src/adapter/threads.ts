@@ -11,13 +11,14 @@ import * as stringUtils from '../utils/stringUtils';
 import * as urlUtils from '../utils/urlUtils';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
-import * as errors from './errors';
+import * as errors from '../dap/errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { InlineScriptOffset, Location, Source, SourceContainer, SourcePathResolver } from './sources';
+import { Location, Source, SourceContainer } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../utils/sourceUtils';
+import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
 const debugThread = debug('thread');

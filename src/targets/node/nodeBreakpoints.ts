@@ -2,17 +2,17 @@
 // Licensed under the MIT license.
 
 import * as path from 'path';
-import { InlineScriptOffset, PathLocation, SourcePathResolver } from '../adapter/sources';
-import Dap from '../dap/api';
-import * as urlUtils from '../utils/urlUtils';
-import * as sourceUtils from '../utils/sourceUtils';
-import * as fsUtils from '../utils/fsUtils';
+import Dap from '../../dap/api';
+import * as urlUtils from '../../utils/urlUtils';
+import * as sourceUtils from '../../utils/sourceUtils';
+import * as fsUtils from '../../utils/fsUtils';
+import { InlineScriptOffset, WorkspaceLocation, SourcePathResolver } from '../../common/sourcePathResolver';
 
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
 
 type PredictedLocation = {
-  source: PathLocation,
-  compiled: PathLocation
+  source: WorkspaceLocation,
+  compiled: WorkspaceLocation
 };
 
 export class NodeBreakpointsPredictor {
@@ -44,8 +44,8 @@ export class NodeBreakpointsPredictor {
     await this._directoryScanner(root).predictResolvedLocations(params);
   }
 
-  predictResolvedLocations(location: PathLocation): PathLocation[] {
-    const result: PathLocation[] = [];
+  predictResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
+    const result: WorkspaceLocation[] = [];
     for (const p of this._predictedLocations) {
       if (p.source.absolutePath === location.absolutePath && p.source.lineNumber === location.lineNumber &&
           p.source.columnNumber === location.columnNumber) {

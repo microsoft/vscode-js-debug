@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as utils from '../utils/urlUtils';
-import * as sourceUtils from '../utils/sourceUtils';
-import Dap from '../dap/api';
-import { URL } from 'url';
 import * as path from 'path';
-import * as errors from './errors';
+import { URL } from 'url';
+import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import Dap from '../dap/api';
+import * as sourceUtils from '../utils/sourceUtils';
 import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
+import * as utils from '../utils/urlUtils';
+import * as errors from '../dap/errors';
 
 // This is a ui location. Usually it corresponds to a position
 // in the document user can see (Source, Dap.Source). When no source
@@ -20,9 +21,6 @@ export interface Location {
 };
 
 type ContentGetter = () => Promise<string | undefined>;
-
-// Script tags in html have line/column numbers offset relative to the actual script start.
-export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
 
 // Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<Source>, map?: sourceUtils.SourceMapConsumer, loaded: Promise<void> };
@@ -55,22 +53,6 @@ const defaultTimeouts: SourceMapTimeouts = {
 
 export interface LocationRevealer {
   revealLocation(location: Location): Promise<void>;
-}
-
-export interface PathLocation {
-  absolutePath: string;
-  lineNumber: number; // 1-based
-  columnNumber: number;  // 1-based
-}
-
-// Mapping between urls (operated in cdp) and paths (operated in dap) is
-// specific to the actual product being debugged.
-export interface SourcePathResolver {
-  rewriteSourceUrl(sourceUrl: string): string;
-  urlToAbsolutePath(url: string): string;
-  absolutePathToUrl(absolutePath: string): string | undefined;
-  shouldCheckContentHash(): boolean;
-  predictResolvedLocations?(location: PathLocation): PathLocation[];
 }
 
 // Represents a text source visible to the user.

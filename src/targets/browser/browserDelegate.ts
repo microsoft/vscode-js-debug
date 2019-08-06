@@ -6,17 +6,16 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import * as errors from '../adapter/errors';
-import { SourcePathResolver } from '../adapter/sources';
-import CdpConnection from '../cdp/connection';
-import Dap from '../dap/api';
-import * as utils from '../utils/urlUtils';
+import * as errors from '../../dap/errors';
+import CdpConnection from '../../cdp/connection';
+import Dap from '../../dap/api';
+import * as utils from '../../utils/urlUtils';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target } from '../adapter/targets';
-import Cdp from '../cdp/api';
-import { Launcher } from '../uberAdapter';
+import { Target, Launcher } from '../../targets/targets';
+import Cdp from '../../cdp/api';
+import { SourcePathResolver } from '../../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -115,7 +114,7 @@ export class BrowserLauncher implements Launcher {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: Dap.LaunchParams): Promise<void> {
+  async launch(params: any): Promise<void> {
     if (!('url' in params))
       return;
     const result = await this.prepareLaunch(params as LaunchParams, []);
@@ -128,17 +127,17 @@ export class BrowserLauncher implements Launcher {
     return errors.createSilentError('Page is not available');
   }
 
-  async terminate(params: Dap.TerminateParams): Promise<void> {
+  async terminate(): Promise<void> {
     if (this._mainTarget)
       this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
   }
 
-  async disconnect(params: Dap.DisconnectParams): Promise<void> {
+  async disconnect(): Promise<void> {
     if (this._browserSession)
       await this._browserSession.Browser.close({});
   }
 
-  async restart(params: Dap.RestartParams): Promise<void> {
+  async restart(): Promise<void> {
     if (this._mainTarget)
       await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }

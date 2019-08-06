@@ -5,7 +5,7 @@ import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { StackTrace } from './stackTrace';
-import * as errors from './errors';
+import * as errors from '../dap/errors';
 import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
