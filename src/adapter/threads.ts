@@ -511,6 +511,7 @@ export class Thread implements VariableStoreDelegate {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
+      this._ensureDebuggerEnabledAndRefreshDebuggerId();
       this.replVariables.clear();
       this._executionContextsCleared();
       const slot = this._claimOutputSlot();
@@ -568,10 +569,7 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
-    this._cdp.Debugger.enable({}).then(response => {
-      if (response)
-        this._debuggerId = response.debuggerId;
-    });
+    this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     this._updatePauseOnSourceMap();
     this._updatePauseOnExceptionsState();
@@ -653,6 +651,15 @@ export class Thread implements VariableStoreDelegate {
       this._onResumed();
     this._executionContexts.clear();
     this.manager._onExecutionContextsChangedEmitter.fire(this);
+  }
+
+  _ensureDebuggerEnabledAndRefreshDebuggerId() {
+    // There is a bug in Chrome that does not retain debugger id
+    // across cross-process navigations. Refresh it upon clearing contexts.
+    this._cdp.Debugger.enable({}).then(response => {
+      if (response)
+        this._debuggerId = response.debuggerId;
+    });
   }
 
   _onResumed() {
