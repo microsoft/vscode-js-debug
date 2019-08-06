@@ -2,7 +2,7 @@
     threads : [
         [0] : {
             id : <number>
-            name : PWA 
+            name : blank
         }
     ]
 }

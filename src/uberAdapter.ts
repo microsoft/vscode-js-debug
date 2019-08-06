@@ -115,7 +115,7 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
     const cdp = await target.attach();
     if (!cdp)
       return;
-    const thread = this.debugAdapter.threadManager.createThread(target.id(), cdp, target);
+    const thread = this.debugAdapter.threadManager.createThread(target.id(), target.name(), cdp, target);
     thread.initialize();
     this._threads.set(target, thread);
     cdp.Runtime.runIfWaitingForDebugger({});

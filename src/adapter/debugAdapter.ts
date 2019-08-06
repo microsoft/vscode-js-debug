@@ -7,14 +7,12 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from './errors';
 import { Location, SourceContainer } from './sources';
-import { DummyThreadAdapter, ThreadAdapter } from './threadAdapter';
 import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
-const defaultThreadId = 0;
-const revealLocationThreadId = 1;
+const revealLocationThreadId = 999999999;
 
 export interface DebugAdapterDelegate {
   onSetBreakpoints: (params: Dap.SetBreakpointsParams) => Promise<void>;
@@ -27,9 +25,10 @@ export class DebugAdapter {
   readonly sourceContainer: SourceContainer;
   readonly threadManager: ThreadManager;
   readonly breakpointManager: BreakpointManager;
-  private _threadAdapter: ThreadAdapter | DummyThreadAdapter;
   private _locationToReveal: Location | undefined;
   private _delegate: DebugAdapterDelegate;
+  private _disposables: Disposable[] = [];
+  private _selectedThread?: Thread;
 
   constructor(dap: Dap.Api, delegate: DebugAdapterDelegate, uiDelegate: UIDelegate) {
     this.dap = dap;
@@ -43,18 +42,35 @@ export class DebugAdapter {
     this.dap.on('stackTrace', params => this._onStackTrace(params));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
-    this.dap.thread({ reason: 'started', threadId: defaultThreadId });
+    this.dap.on('continue', params => this._withThread(params.threadId, thread => thread.resume())),
+    this.dap.on('pause', params => this._withThread(params.threadId, thread => thread.pause())),
+    this.dap.on('next', params => this._withThread(params.threadId, thread => thread.stepOver())),
+    this.dap.on('stepIn', params => this._withThread(params.threadId, thread => thread.stepInto())),
+    this.dap.on('stepOut', params => this._withThread(params.threadId, thread => thread.stepOut())),
+    this.dap.on('restartFrame', params => this._withFrame(params.frameId, thread => thread.restartFrame(params))),
+    this.dap.on('scopes', params => this._withFrame(params.frameId, thread => thread.scopes(params))),
+    this.dap.on('evaluate', params => this._onEvaluate(params)),
+    this.dap.on('completions', params => this._onCompletions(params)),
+    this.dap.on('exceptionInfo', params => this._withThread(params.threadId, thread => thread.exceptionInfo())),
     this._delegate = delegate;
     this.sourceContainer = new SourceContainer(this.dap);
     this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
-    this._threadAdapter = new DummyThreadAdapter(this.dap);
 
-    const disposables: Disposable[] = [];
-    this.threadManager.onThreadAdded(thread => {
-      this.setThread(thread);
-      disposables[0].dispose();
-    }, undefined, disposables);
+    this.threadManager.onThreadAdded(thread => this.dap.thread({
+      reason: 'started',
+      threadId: this.threadManager.dapIdByThread(thread)
+    }), undefined, this._disposables);
+    this.threadManager.onThreadRemoved(thread => {
+      this.dap.thread({
+        reason: 'exited',
+        threadId: this.threadManager.dapIdByThread(thread)
+      });
+      if (this._selectedThread === thread)
+        this._selectedThread = undefined;
+    }, undefined, this._disposables);
+    this.threadManager.onThreadPaused(thread => this._onThreadPaused(thread), undefined, this._disposables);
+    this.threadManager.onThreadResumed(thread => this._onThreadResumed(thread), undefined, this._disposables);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -97,21 +113,18 @@ export class DebugAdapter {
     };
   }
 
-  static resolvePausedOnExceptionsState(params: Dap.SetExceptionBreakpointsParams): PauseOnExceptionsState {
-    if (params.filters.includes('caught'))
-      return 'all';
-    if (params.filters.includes('uncaught'))
-      return 'uncaught';
-    return 'none';
-  }
-
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     await this._delegate.onSetBreakpoints(params);
     return this.breakpointManager.setBreakpoints(params);
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
-    await this.threadManager.setPauseOnExceptionsState(DebugAdapter.resolvePausedOnExceptionsState(params));
+    let pauseOnExceptionsState: PauseOnExceptionsState = 'none';
+    if (params.filters.includes('caught'))
+      pauseOnExceptionsState = 'all';
+    else if (params.filters.includes('uncaught'))
+      pauseOnExceptionsState = 'uncaught';
+    await this.threadManager.setPauseOnExceptionsState(pauseOnExceptionsState);
     return {};
   }
 
@@ -134,7 +147,9 @@ export class DebugAdapter {
   }
 
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
-    const threads = [{ id: defaultThreadId, name: 'PWA '}];
+    const threads = this.threadManager.threads().map(thread => {
+      return { id: this.threadManager.dapIdByThread(thread), name: thread.name() };
+    });
     if (this._locationToReveal)
       threads.push({ id: revealLocationThreadId, name: '' });
     return { threads };
@@ -143,7 +158,10 @@ export class DebugAdapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === revealLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
-    return this._threadAdapter.onStackTrace(params);
+    const thread = this.threadManager.threadByDapId(params.threadId);
+    if (!thread)
+      return this._threadNotAvailableError();
+    return thread.stackTrace(params);
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
@@ -170,6 +188,38 @@ export class DebugAdapter {
     return variableStore.setVariable(params);
   }
 
+  _withThread<T>(threadId: number, callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
+    const thread = this.threadManager.threadByDapId(threadId);
+    if (!thread)
+      return Promise.resolve(this._threadNotAvailableError());
+    return callback(thread);
+  }
+
+  _withFrame<T>(frameId: number, callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
+    const thread = this.threadManager.threadByFrameId(frameId);
+    if (!thread)
+      return Promise.resolve(this._stackFrameNotFoundError());
+    return callback(thread);
+  }
+
+  _onEvaluate(params: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
+    if (params.frameId)
+      return this._withFrame(params.frameId, thread => thread.evaluate(params));
+    const thread = this._selectedThread || this.threadManager.threads()[0];
+    if (!thread)
+      return Promise.resolve(this._threadNotAvailableError());
+    return thread.evaluate(params);
+  }
+
+  _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
+    if (params.frameId)
+      return this._withFrame(params.frameId, thread => thread.completions(params));
+    const thread = this._selectedThread || this.threadManager.threads()[0];
+    if (!thread)
+      return Promise.resolve(this._threadNotAvailableError());
+    return thread.completions(params);
+  }
+
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
     // 1. Report about a new thread.
     // 2. Report that thread has stopped.
@@ -192,49 +242,18 @@ export class DebugAdapter {
     this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
     this._locationToReveal = undefined;
 
-    if (this._threadAdapter instanceof ThreadAdapter) {
-      const thread = this._threadAdapter.thread();
-      const details = thread ? thread.pausedDetails() : undefined;
+    for (const thread of this.threadManager.threads()) {
+      const details = thread.pausedDetails();
       if (details) {
         thread.refreshStackTrace();
-        this.dap.continued({
-          threadId: defaultThreadId,
-          allThreadsContinued: false
-        });
-        this.dap.stopped({
-          reason: details.reason,
-          description: details.description,
-          threadId: defaultThreadId,
-          text: details.text,
-          allThreadsStopped: false
-        });
+        this._onThreadResumed(thread);
+        this._onThreadPaused(thread);
       }
     }
   }
 
-  setThread(thread: Thread | undefined) {
-    if (this._threadAdapter)
-      this._threadAdapter.dispose();
-    if (thread)
-      this._threadAdapter = new ThreadAdapter(this.dap, thread);
-    else
-      this._threadAdapter = new DummyThreadAdapter(this.dap);
-
-    const details = thread ? thread.pausedDetails() : undefined;
-    if (details) {
-      this.dap.stopped({
-        reason: details.reason,
-        description: details.description,
-        threadId: defaultThreadId,
-        text: details.text,
-        allThreadsStopped: false
-      });
-    } else {
-      this.dap.continued({
-        threadId: defaultThreadId,
-        allThreadsContinued: false
-      });
-    }
+  selectThread(thread: Thread | undefined) {
+    this._selectedThread = thread;
   }
 
   async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
@@ -251,10 +270,35 @@ export class DebugAdapter {
     };
   }
 
+  _onThreadPaused(thread: Thread) {
+    const details = thread.pausedDetails()!;
+    this.dap.stopped({
+      reason: details.reason,
+      description: details.description,
+      threadId: this.threadManager.dapIdByThread(thread),
+      text: details.text,
+      allThreadsStopped: false
+    });
+  }
+
+  _onThreadResumed(thread: Thread) {
+    this.dap.continued({
+      threadId: this.threadManager.dapIdByThread(thread),
+      allThreadsContinued: false
+    });
+  }
+
   _threadNotAvailableError(): Dap.Error {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
+  _stackFrameNotFoundError(): Dap.Error {
+    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+  }
+
   dispose() {
+    for (const disposable of this._disposables)
+      disposable.dispose();
+    this._disposables = [];
   }
 }

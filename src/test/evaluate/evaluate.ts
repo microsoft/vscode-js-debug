@@ -284,21 +284,26 @@ export function addTests(testRunner) {
 
   it('selected context', async({p} : {p: TestP}) => {
     await p.launchUrl('worker.html');
+    p.log('--- Evaluating in page');
     p.log('Pausing...');
-    p.dap.evaluate({expression: `window.w.postMessage('pause');`, context: 'repl'});
-    const {threadId} = await p.dap.once('stopped');
+    p.dap.evaluate({ expression: `window.w.postMessage('pause');`, context: 'repl' });
+    const { threadId: pageThreadId } = await p.dap.once('stopped');
     p.log('Paused');
-
-    p.log('Evaluating in page');
-    await p.logger.evaluateAndLog('self', {depth: 0});
-    p.dap.continue({threadId: threadId!});
+    const { id: pageFrameId } = (await p.dap.stackTrace({ threadId: pageThreadId! })).stackFrames[0];
+    await p.logger.logEvaluateResult(await p.dap.evaluate({ expression: 'self', frameId: pageFrameId }), { depth: 0 });
+    p.dap.continue({threadId: pageThreadId!});
     await p.dap.once('continued');
     p.log('Resumed');
 
-    p.log('Evaluating in worker');
-    const workerContext = p.uberAdapter.targetList()[0].children()[0];
-    p.adapter.setThread(p.uberAdapter.thread(workerContext));
-    await p.logger.evaluateAndLog('self', {depth: 0});
+    p.log('--- Evaluating in worker');
+    p.dap.evaluate({expression: `window.w.postMessage('pauseWorker');`, context: 'repl'});
+    const {threadId: workerThreadId} = await p.dap.once('stopped');
+    p.log('Paused');
+    const { id: workerFrameId } = (await p.dap.stackTrace({ threadId: workerThreadId! })).stackFrames[0];
+    await p.logger.logEvaluateResult(await p.dap.evaluate({ expression: 'self', frameId: workerFrameId }), { depth: 0 });
+    p.dap.continue({threadId: workerThreadId!});
+    await p.dap.once('continued');
+    p.log('Resumed');
 
     p.assertLog();
   });

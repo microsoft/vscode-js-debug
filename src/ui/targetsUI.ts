@@ -10,7 +10,6 @@ import { Target } from '../adapter/targets';
 export function registerTargetsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
   const provider = new TargetsDataProvider(context, factory);
   const treeView = vscode.window.createTreeView('pwa.targetsView', { treeDataProvider: provider });
-  provider.setTreeView(treeView);
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: Target) => {
     const thread = threadForTarget(factory, item);
@@ -49,27 +48,22 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
     const adapters = factory.activeAdapters();
     if (!adapters)
       return;
-    adapters.adapter.setThread(adapters.uberAdapter.thread(item));
+    adapters.adapter.selectThread(adapters.uberAdapter.thread(item));
   }, undefined, context.subscriptions);
 }
 
 class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private _contexts: Target[] = [];
+  private _targets: Target[] = [];
   private _disposables: vscode.Disposable[] = [];
   private _adapters: Adapters | undefined;
-  private _treeView: vscode.TreeView<Target> | undefined;
   private _extensionPath: string;
   private _throttlerTimer: NodeJS.Timer | undefined;
 
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
     this._extensionPath = context.extensionPath;
     factory.onActiveAdaptersChanged(adapters => this._setActiveAdapters(adapters), undefined, context.subscriptions);
-  }
-
-  setTreeView(treeView: vscode.TreeView<Target>) {
-    this._treeView = treeView;
   }
 
   _setActiveAdapters(adapters: Adapters) {
@@ -79,70 +73,26 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
     this._disposables = [];
 
     if (!this._adapters) {
-      this._contexts = [];
+      this._targets = [];
       if (this._throttlerTimer)
         clearTimeout(this._throttlerTimer);
       this._onDidChangeTreeData.fire();
       return;
     }
 
-    adapters.adapter.threadManager.onThreadPaused(thread => this._threadPaused(thread), undefined, this._disposables);
-    adapters.adapter.threadManager.onThreadResumed(thread => this._threadResumed(thread), undefined, this._disposables);
+    adapters.adapter.threadManager.onThreadPaused(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
+    adapters.adapter.threadManager.onThreadResumed(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
 
     this._scheduleThrottledTargetsUpdate();
     adapters.uberAdapter.onTargetListChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
-
-    // In case of lazy view initialization, pick already paused thread.
-    for (const thread of adapters.adapter.threadManager.threads()) {
-      if (thread.pausedDetails()) {
-        this._threadPaused(thread);
-        break;
-      }
-    }
   }
 
   _scheduleThrottledTargetsUpdate() {
     if (this._throttlerTimer)
       clearTimeout(this._throttlerTimer);
     this._throttlerTimer = setTimeout(() => {
-      this._executionContextsChanged();
+      this._targetsChanged();
     }, 100);
-  }
-
-  _flushThrottledUpdate() {
-    if (!this._throttlerTimer)
-      return;
-    clearTimeout(this._throttlerTimer);
-    this._throttlerTimer = undefined;
-    this._executionContextsChanged();
-  }
-
-  _threadPaused(thread: Thread) {
-    if (!this._adapters)
-      return;
-    this._flushThrottledUpdate();
-    const selection = this._treeView!.selection[0];
-    if (selection && this._adapters.uberAdapter.thread(selection) === thread) {
-      // Selection is in the good thread, reuse it.
-      this._adapters.adapter.setThread(thread);
-    } else {
-      // Pick a new item in the UI.
-      for (const context of this._contexts) {
-        if (this._adapters.uberAdapter.thread(context) === thread) {
-          this._treeView!.reveal(context, { select: true });
-          break;
-        }
-      }
-    }
-  }
-
-  _threadResumed(_: Thread) {
-    if (!this._adapters)
-      return;
-    const selection = this._treeView!.selection[0];
-    if (selection)
-      this._adapters.adapter.setThread(this._adapters.uberAdapter.thread(selection));
-    this._onDidChangeTreeData.fire();
   }
 
   _iconPath(fileName: string): { dark: string, light: string } {
@@ -196,23 +146,18 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   async getChildren(item?: Target): Promise<Target[]> {
-    return item ? item.children() : this._contexts.filter(t => !t.parent());
+    return item ? item.children() : this._targets.filter(t => !t.parent());
   }
 
   async getParent(item: Target): Promise<Target | undefined> {
     return item.parent();
   }
 
-  _executionContextsChanged(): void {
+  _targetsChanged(): void {
     if (!this._adapters)
       return;
-    this._contexts = this._adapters.uberAdapter.targetList();
+    this._targets = this._adapters.uberAdapter.targetList();
     this._onDidChangeTreeData.fire();
-    const selection = this._treeView!.selection[0];
-    if (selection) {
-      const thread = this._adapters.uberAdapter.thread(selection);
-      this._adapters.adapter.setThread(thread);
-    }
   }
 }
 

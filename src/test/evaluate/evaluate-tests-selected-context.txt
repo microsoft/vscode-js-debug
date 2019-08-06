@@ -1,7 +1,9 @@
+--- Evaluating in page
 Pausing...
 Paused
-Evaluating in page
 > result: Window {postMessage: ƒ, blur: ƒ, focus: ƒ, close: ƒ, parent: Window}
 Resumed
-Evaluating in worker
+--- Evaluating in worker
+Paused
 > result: DedicatedWorkerGlobalScope {name: '', onmessage: null, onmessageerror: null, postMessage: ƒ, close: ƒ}
+Resumed

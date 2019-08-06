@@ -69,7 +69,10 @@ export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
   private _threads: Map<string, Thread> = new Map();
+  private _threadToDapId: Map<Thread, number> = new Map();
+  private _dapIdToThread: Map<number, Thread> = new Map();
   private _dap: Dap.Api;
+  private _lastThreadDapId = 0;
 
   _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
@@ -101,8 +104,8 @@ export class ThreadManager {
     return this._threads.values().next().value;
   }
 
-  createThread(threadId: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    return new Thread(this, threadId, cdp, this._dap, delegate);
+  createThread(threadId: string, threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
+    return new Thread(this, threadId, threadName, cdp, this._dap, delegate);
   }
 
   async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
@@ -118,12 +121,18 @@ export class ThreadManager {
   _addThread(thread: Thread) {
     console.assert(!this._threads.has(thread.threadId()));
     this._threads.set(thread.threadId(), thread);
+    const dapId = ++this._lastThreadDapId;
+    this._dapIdToThread.set(dapId, thread);
+    this._threadToDapId.set(thread, dapId);
   }
 
   _removeThread(threadId: string) {
-    const thread = this._threads.get(threadId);
+    const thread = this._threads.get(threadId)!;
     console.assert(thread);
     this._threads.delete(threadId);
+    const dapId = this._threadToDapId.get(thread);
+    this._threadToDapId.delete(thread);
+    this._dapIdToThread.delete(dapId!);
     this._onThreadRemovedEmitter.fire(thread);
   }
 
@@ -133,6 +142,23 @@ export class ThreadManager {
 
   thread(threadId: string): Thread | undefined {
     return this._threads.get(threadId);
+  }
+
+  threadByDapId(dapId: number): Thread | undefined {
+    return this._dapIdToThread.get(dapId);
+  }
+
+  dapIdByThread(thread: Thread): number {
+    return this._threadToDapId.get(thread)!;
+  }
+
+  threadByFrameId(frameId: number): Thread | undefined {
+    for (const thread of this._threads.values()) {
+      const details = thread.pausedDetails();
+      const stackFrame = details ? details.stackTrace.frame(frameId) : undefined;
+      if (stackFrame)
+        return thread;
+    }
   }
 
   pauseOnExceptionsState(): PauseOnExceptionsState {
@@ -210,6 +236,7 @@ export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _threadId: string;
+  private _name: string;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
@@ -231,7 +258,7 @@ export class Thread implements VariableStoreDelegate {
   readonly onExecutionContextsDestroyed = this._onExecutionContextDestroyedEmitter.event;
   private _selectedContext: ExecutionContext | undefined;
 
-  constructor(manager: ThreadManager, threadId: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
+  constructor(manager: ThreadManager, threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this.manager = manager;
     this.delegate = delegate;
     this.sourceContainer = manager.sourceContainer;
@@ -239,6 +266,7 @@ export class Thread implements VariableStoreDelegate {
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = threadId;
+    this._name = threadName;
     this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
@@ -251,6 +279,10 @@ export class Thread implements VariableStoreDelegate {
 
   threadId(): string {
     return this._threadId;
+  }
+
+  name(): string {
+    return this._name;
   }
 
   pausedDetails(): PausedDetails | undefined {

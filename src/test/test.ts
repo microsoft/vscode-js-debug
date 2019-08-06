@@ -4,7 +4,6 @@
 import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
-import { Target } from '../adapter/targets';
 import { BrowserLauncher } from '../browser/browserDelegate';
 import { BrowserTarget } from '../browser/browserTargets';
 import Cdp from '../cdp/api';
@@ -95,29 +94,6 @@ export class TestP {
     const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
     this._adapter = this._browserLauncher.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
-
-    let targets: Target[] = [];
-    let selected: Target | undefined;
-    this.uberAdapter.onTargetListChanged(() => {
-      targets = this.uberAdapter.targetList();
-    });
-    this.adapter.threadManager.onThreadPaused(thread => {
-      if (selected && this.uberAdapter.thread(selected) === thread) {
-        this.adapter.setThread(this.uberAdapter.thread(selected));
-      } else {
-        for (const target of targets) {
-          if (this.uberAdapter.thread(target) === thread) {
-            selected = target;
-            this.adapter.setThread(this.uberAdapter.thread(target));
-            break;
-          }
-        }
-      }
-    });
-    this.adapter.threadManager.onThreadResumed(thread => {
-      this.adapter.setThread(selected ? this.uberAdapter.thread(selected) : undefined);
-    });
-
     this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);

@@ -3,7 +3,7 @@ stderr>     > arg0: {foo: {…}}
 stderr>     
 <anonymous> @ ${workspaceFolder}/web/worker.html:4:11
 ◀ postMessage ▶
-<anonymous> @ testWorkspace/web/worker.js:8:5
+<anonymous> @ testWorkspace/web/worker.js:10:5
 ◀ Worker.postMessage ▶
 <anonymous> @ testWorkspace/web/worker.html:8:10
 stderr> > {foo: {…}}
