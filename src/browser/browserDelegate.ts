@@ -6,7 +6,6 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { DebugAdapter } from '../adapter/debugAdapter';
 import * as errors from '../adapter/errors';
 import { SourcePathResolver } from '../adapter/sources';
 import CdpConnection from '../cdp/connection';
@@ -29,7 +28,6 @@ export interface LaunchParams extends Dap.LaunchParams {
 export class BrowserLauncher implements Launcher {
   static symbol = Symbol('BrowserDelegate');
   private _connectionForTest: CdpConnection | undefined;
-  private _debugAdapter: DebugAdapter;
   private _storagePath: string;
   private _rootPath: string | undefined;
   private _targetManager: BrowserTargetManager | undefined;
@@ -42,18 +40,13 @@ export class BrowserLauncher implements Launcher {
   private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
-    this._debugAdapter = debugAdapter;
+  constructor(storagePath: string, rootPath: string | undefined) {
     this._storagePath = storagePath;
     this._rootPath = rootPath;
   }
 
   targetManager(): BrowserTargetManager | undefined {
     return this._targetManager;
-  }
-
-  adapter(): DebugAdapter {
-    return this._debugAdapter;
   }
 
   dispose() {
@@ -93,9 +86,8 @@ export class BrowserLauncher implements Launcher {
     this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
-    (this._debugAdapter as any)[BrowserLauncher.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
-    this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, connection, this._browserSession, pathResolver);
+    this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);

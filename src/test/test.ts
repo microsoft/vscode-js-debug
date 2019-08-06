@@ -61,8 +61,7 @@ export class TestP {
     this.uberAdapter = new UberAdapter(adapterConnection.dap(), {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
-    const debugAdapter = this.uberAdapter.debugAdapter;
-    this._browserLauncher = new BrowserLauncher(debugAdapter, storagePath, this._workspaceRoot);
+    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
     this.uberAdapter.addLauncher(this._browserLauncher);
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({
@@ -92,7 +91,7 @@ export class TestP {
     await this.dap.configurationDone({});
     this._launchUrl = url;
     const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
-    this._adapter = this._browserLauncher.adapter();
+    this._adapter = this.uberAdapter.debugAdapter;
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
     this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});

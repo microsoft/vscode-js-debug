@@ -5,7 +5,6 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { DebugAdapter } from '../adapter/debugAdapter';
 import { SourcePathResolver, InlineScriptOffset, PathLocation } from '../adapter/sources';
 import { Target } from '../adapter/targets';
 import Cdp from '../cdp/api';
@@ -33,7 +32,6 @@ export class NodeLauncher implements Launcher {
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
   private _isRestarting = false;
-  _debugAdapter: DebugAdapter;
   _targets = new Map<string, NodeTarget>();
   _pathResolver: NodeSourcePathResolver;
   private _launchBlocker: Promise<any>;
@@ -43,8 +41,7 @@ export class NodeLauncher implements Launcher {
   _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
-    this._debugAdapter = debugAdapter;
+  constructor(rootPath: string | undefined) {
     this._rootPath = rootPath;
     this._pathResolver = new NodeSourcePathResolver(this._rootPath);
     this._launchBlocker = Promise.resolve();

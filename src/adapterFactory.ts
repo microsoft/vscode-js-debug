@@ -86,8 +86,10 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       });
       const adapter = uberAdapter.debugAdapter;
       this._sessions.set(session.id, { session, server, adapter, uberAdapter });
-      uberAdapter.addLauncher(new NodeLauncher(adapter, rootPath));
-      uberAdapter.addLauncher(new BrowserLauncher(adapter, this._context.storagePath || this._context.extensionPath, rootPath));
+      uberAdapter.addLauncher(new NodeLauncher(rootPath));
+      const browserLauncher = new BrowserLauncher(this._context.storagePath || this._context.extensionPath, rootPath);
+      uberAdapter.debugAdapter[BrowserLauncher.symbol] = browserLauncher;
+      uberAdapter.addLauncher(browserLauncher);
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);
   }

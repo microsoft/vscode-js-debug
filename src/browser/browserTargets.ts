@@ -7,7 +7,6 @@ import { URL } from 'url';
 import * as vscode from 'vscode';
 import { InlineScriptOffset, SourcePathResolver } from '../adapter/sources';
 import { Target } from '../adapter/targets';
-import { ThreadManager } from '../adapter/threads';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import * as urlUtils from '../utils/urlUtils';
@@ -24,7 +23,6 @@ export class BrowserTargetManager implements vscode.Disposable {
   private _browser: Cdp.Api;
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
-  _threadManager: ThreadManager;
   _sourcePathResolver: SourcePathResolver;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<BrowserTarget>();
@@ -32,9 +30,8 @@ export class BrowserTargetManager implements vscode.Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  constructor(threadManager: ThreadManager, connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver) {
+  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver) {
     this._connection = connection;
-    this._threadManager = threadManager;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
     this._browser.Target.on('targetInfoChanged', event => {
