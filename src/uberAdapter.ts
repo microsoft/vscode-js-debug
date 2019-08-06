@@ -12,17 +12,17 @@ export interface Launcher extends vscode.Disposable {
   terminate(params: Dap.TerminateParams): Promise<void>;
   disconnect(params: Dap.DisconnectParams): Promise<void>;
   restart(params: Dap.RestartParams): Promise<void>;
-  onTargetForestChanged: vscode.Event<void>;
+  onTargetListChanged: vscode.Event<void>;
   onTerminated: vscode.Event<void>;
-  targetForest(): Target[];
+  targetList(): Target[];
   predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void>;
 }
 
 export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
   private _dap: Dap.Api;
-  private _onTargetForestChangedEmitter = new vscode.EventEmitter<void>();
+  private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   private _launchers = new Set<Launcher>();
-  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
+  readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _disposables: vscode.Disposable[] = [];
   readonly debugAdapter: DebugAdapter;
   private _threads = new Map<Target, Thread>();
@@ -67,28 +67,28 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
 
   addLauncher(launcher: Launcher) {
     this._launchers.add(launcher);
-    launcher.onTargetForestChanged(() => {
-      const targets = flattenTargets(this.targetForest())
+    launcher.onTargetListChanged(() => {
+      const targets = this.targetList()
       this._attachThoseWaitingForDebugger(targets);
       this._detachOrphaneThreads(targets);
-      this._onTargetForestChangedEmitter.fire();
+      this._onTargetListChangedEmitter.fire();
     }, undefined, this._disposables);
 
     launcher.onTerminated(() => {
       this._launchers.delete(launcher);
       if (!this._launchers.size)
         this._dap.terminated({});
-      this._detachOrphaneThreads(flattenTargets(this.targetForest()));
-      this._onTargetForestChangedEmitter.fire();
+      this._detachOrphaneThreads(this.targetList());
+      this._onTargetListChangedEmitter.fire();
     }, undefined, this._disposables);
 
-    this._onTargetForestChangedEmitter.fire();
+    this._onTargetListChangedEmitter.fire();
   }
 
-  targetForest(): Target[] {
+  targetList(): Target[] {
     const result: Target[] = [];
     for (const delegate of this._launchers)
-      result.push(...delegate.targetForest());
+      result.push(...delegate.targetList());
     return result;
   }
 
@@ -119,7 +119,7 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
     thread.initialize();
     this._threads.set(target, thread);
     cdp.Runtime.runIfWaitingForDebugger({});
-    this._onTargetForestChangedEmitter.fire();
+    this._onTargetListChangedEmitter.fire();
   }
 
   async detach(target: Target) {
@@ -131,10 +131,10 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
       return;
     this._threads.delete(target);
     thread.dispose();
-    this._onTargetForestChangedEmitter.fire();
+    this._onTargetListChangedEmitter.fire();
   }
 
-  _attachThoseWaitingForDebugger(targets: Set<Target>) {
+  _attachThoseWaitingForDebugger(targets: Target[]) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger())
         continue;
@@ -144,22 +144,13 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
     }
   }
 
-  _detachOrphaneThreads(targets: Set<Target>) {
+  _detachOrphaneThreads(targets: Target[]) {
+    const set = new Set(targets);
     for (const [target, thread] of this._threads) {
-      if (!targets.has(target)) {
+      if (!set.has(target)) {
         this._threads.delete(target);
         thread.dispose();
       }
     }
   }
-}
-
-function flattenTargets(forest: Target[]): Set<Target> {
-  const targets = new Set<Target>();
-  const visit = (target: Target) => {
-    targets.add(target);
-    target.children().forEach(visit);
-  };
-  forest.forEach(visit);
-  return targets;
 }

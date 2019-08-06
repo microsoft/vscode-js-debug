@@ -96,24 +96,19 @@ export class TestP {
     this._adapter = this._browserLauncher.adapter();
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
 
-    let contexts: Target[] = [];
+    let targets: Target[] = [];
     let selected: Target | undefined;
-    this.uberAdapter.onTargetForestChanged(() => {
-      contexts = [];
-      const visit = (item: Target) => {
-        contexts.push(item);
-        item.children().forEach(visit);
-      };
-      this.uberAdapter.targetForest().forEach(visit);
+    this.uberAdapter.onTargetListChanged(() => {
+      targets = this.uberAdapter.targetList();
     });
     this.adapter.threadManager.onThreadPaused(thread => {
       if (selected && this.uberAdapter.thread(selected) === thread) {
         this.adapter.setThread(this.uberAdapter.thread(selected));
       } else {
-        for (const context of contexts) {
-          if (this.uberAdapter.thread(context) === thread) {
-            selected = context;
-            this.adapter.setThread(this.uberAdapter.thread(context));
+        for (const target of targets) {
+          if (this.uberAdapter.thread(target) === thread) {
+            selected = target;
+            this.adapter.setThread(this.uberAdapter.thread(target));
             break;
           }
         }

@@ -40,8 +40,8 @@ export class NodeLauncher implements Launcher {
   private _breakpointsPredictor?: NodeBreakpointsPredictor;
   private _onTerminatedEmitter = new vscode.EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
-  _onTargetForestChangedEmitter = new vscode.EventEmitter<void>();
-  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
+  _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(debugAdapter: DebugAdapter, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -136,11 +136,11 @@ export class NodeLauncher implements Launcher {
     const cdp = connection.createSession('');
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
     new NodeTarget(this, connection, cdp, targetInfo);
-    this._onTargetForestChangedEmitter.fire();
+    this._onTargetListChangedEmitter.fire();
   }
 
-  targetForest(): Target[] {
-    return Array.from(this._targets.values()).filter(t => !t.hasParent());
+  targetList(): Target[] {
+    return Array.from(this._targets.values());
   }
 
   dispose() {
@@ -269,7 +269,7 @@ class NodeTarget implements Target {
     this._setParent(undefined);
     this._delegate._targets.delete(this._targetId);
     // await this.detach();
-    this._delegate._onTargetForestChangedEmitter.fire();
+    this._delegate._onTargetListChangedEmitter.fire();
   }
 
   canAttach(): boolean {

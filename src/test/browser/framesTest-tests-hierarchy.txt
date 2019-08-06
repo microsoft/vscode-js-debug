@@ -4,8 +4,8 @@ page "frames.html" [thread "http://localhost:8001/frames.html"] @ http://localho
       worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
     worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
     worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
-  worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
   iframe "grandchild.html" [thread "http://127.0.0.1:8002/grandchild.html"] @ http://127.0.0.1:8002/grandchild.html
     worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
+  worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
   worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
   worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js

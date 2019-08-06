@@ -39,8 +39,8 @@ export class BrowserLauncher implements Launcher {
   private _browserSession: Cdp.Api | undefined;
   private _onTerminatedEmitter = new vscode.EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
-  private _onTargetForestChangedEmitter = new vscode.EventEmitter<void>();
-  readonly onTargetForestChanged = this._onTargetForestChangedEmitter.event;
+  private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(debugAdapter: DebugAdapter, storagePath: string, rootPath: string | undefined) {
     this._debugAdapter = debugAdapter;
@@ -96,15 +96,15 @@ export class BrowserLauncher implements Launcher {
     (this._debugAdapter as any)[BrowserLauncher.symbol] = this;
     const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(this._debugAdapter.threadManager, connection, this._browserSession, pathResolver);
-    this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetForestChangedEmitter.fire());
-    this._targetManager.frameModel.onFrameNavigated(() => this._onTargetForestChangedEmitter.fire());
+    this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
+    this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
 
     this._targetManager.onTargetAdded((target: BrowserTarget) => {
-      this._onTargetForestChangedEmitter.fire();
+      this._onTargetListChangedEmitter.fire();
     });
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
-      this._onTargetForestChangedEmitter.fire();
+      this._onTargetListChangedEmitter.fire();
     });
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
@@ -151,9 +151,9 @@ export class BrowserLauncher implements Launcher {
       await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  targetForest(): Target[] {
+  targetList(): Target[] {
     const manager = this.targetManager()
-    return manager ? manager.targetForest() : [];
+    return manager ? manager.targetList() : [];
   }
 
   connectionForTest(): CdpConnection | undefined {

@@ -90,7 +90,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
     adapters.adapter.threadManager.onThreadResumed(thread => this._threadResumed(thread), undefined, this._disposables);
 
     this._scheduleThrottledTargetsUpdate();
-    adapters.uberAdapter.onTargetForestChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
+    adapters.uberAdapter.onTargetListChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
 
     // In case of lazy view initialization, pick already paused thread.
     for (const thread of adapters.adapter.threadManager.threads()) {
@@ -196,7 +196,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   async getChildren(item?: Target): Promise<Target[]> {
-    return item ? item.children() : this._contexts;
+    return item ? item.children() : this._contexts.filter(t => !t.parent());
   }
 
   async getParent(item: Target): Promise<Target | undefined> {
@@ -206,7 +206,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   _executionContextsChanged(): void {
     if (!this._adapters)
       return;
-    this._contexts = this._adapters.uberAdapter.targetForest();
+    this._contexts = this._adapters.uberAdapter.targetList();
     this._onDidChangeTreeData.fire();
     const selection = this._treeView!.selection[0];
     if (selection) {

@@ -16,23 +16,21 @@ export function addTests(testRunner) {
       const s = ' '.repeat(indent);
       const thread = p.uberAdapter.thread(t) ? ' [thread "' + t.scriptUrlToUrl('') + '"]' : '';
       p.log(`${s}${t.type()} "${t.name()}"${thread}${t.fileName() ? ' @ ' + t.fileName() : ''}`);
-      t.children().forEach(child => logTarget(child, indent + 2));
+      const children = t.children();
+      children.sort((t1, t2) => {
+        return t1.name().localeCompare(t2.name());
+      });
+      children.forEach(child => logTarget(child, indent + 2));
     };
 
     await new Promise(f => {
-      p.uberAdapter.onTargetForestChanged(() => {
-        let counter = 0;
-        const visit = t => {
-          if (p.uberAdapter.thread(t))
-            counter++;
-          t.children().forEach(visit);
-        }
-        p.uberAdapter.targetForest().forEach(visit);
+      p.uberAdapter.onTargetListChanged(() => {
+        const counter = p.uberAdapter.targetList().filter(t => p.uberAdapter.thread(t)).length;
         if (counter === 11)
           f();
       });
     });
-    p.uberAdapter.targetForest().forEach(target => logTarget(target, 0));
+    p.uberAdapter.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
 
     p.assertLog();
   });

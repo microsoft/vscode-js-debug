@@ -46,12 +46,8 @@ export class BrowserTargetManager implements vscode.Disposable {
     this.serviceWorkerModel.dispose();
   }
 
-  targets(): BrowserTarget[] {
+  targetList(): Target[] {
     return Array.from(this._targets.values());
-  }
-
-  targetForest(): Target[] {
-    return Array.from(this._targets.values()).filter(t => !t.parentTarget);
   }
 
   waitForMainTarget(): Promise<BrowserTarget | undefined> {
@@ -182,6 +178,8 @@ export class BrowserTarget implements Target {
   }
 
   parent(): Target | undefined {
+    if (this.parentTarget && !jsTypes.has(this.parentTarget.type()))
+      return this.parentTarget.parentTarget;
     return this.parentTarget;
   }
 
