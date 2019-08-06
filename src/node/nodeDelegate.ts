@@ -198,9 +198,6 @@ class NodeTarget implements Target {
     delegate._targets.set(targetInfo.targetId, this);
     cdp.Target.on('targetDestroyed', () => this._connection.close());
     connection.onDisconnected(_ => this._disconnected());
-
-    if (targetInfo.type === 'waitingForDebugger')
-      this.attach();
   }
 
  id(): string {
