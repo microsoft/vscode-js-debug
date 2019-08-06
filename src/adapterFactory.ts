@@ -81,10 +81,10 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       let rootPath = vscode.workspace.rootPath;
       if (session.workspaceFolder && session.workspaceFolder.uri.scheme === 'file:')
         rootPath = session.workspaceFolder.uri.path;
-      const uberAdapter = new UberAdapter(connection.dap());
-      const adapter = new DebugAdapter(connection.dap(), uberAdapter, {
+      const uberAdapter = new UberAdapter(connection.dap(), {
         copyToClipboard: text => vscode.env.clipboard.writeText(text)
       });
+      const adapter = uberAdapter.debugAdapter;
       this._sessions.set(session.id, { session, server, adapter, uberAdapter });
       uberAdapter.addLauncher(new NodeLauncher(adapter, rootPath));
       uberAdapter.addLauncher(new BrowserLauncher(adapter, this._context.storagePath || this._context.extensionPath, rootPath));

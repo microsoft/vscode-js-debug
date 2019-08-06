@@ -4,7 +4,7 @@
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:3:9
+<anonymous> @ localhost꞉8001/test.js:3:9
 
 step over
 {
@@ -17,7 +17,7 @@ step over
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:4:9
+<anonymous> @ localhost꞉8001/test.js:4:9
 
 step in
 {
@@ -30,9 +30,9 @@ step in
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:5:19
+<anonymous> @ localhost꞉8001/test.js:5:19
 ----Promise.then----
-<anonymous> @ test.js:4:11
+<anonymous> @ localhost꞉8001/test.js:4:11
 
 resume
 {

@@ -4,7 +4,7 @@
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:1:1
+<anonymous> @ localhost꞉8001/test.js:1:1
 
 step over
 {
@@ -17,7 +17,7 @@ step over
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:2:1
+<anonymous> @ localhost꞉8001/test.js:2:1
 
 step in
 {
@@ -32,7 +32,7 @@ step in
 }
 <anonymous> @ ${workspaceFolder}/web/workerSourceMap.ts:1:0
 ----Worker Created----
-<anonymous> @ test.js:2:12
+<anonymous> @ localhost꞉8001/test.js:2:12
 
 resume
 {

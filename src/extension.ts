@@ -7,7 +7,6 @@ import * as nls from 'vscode-nls';
 import { AdapterFactory } from './adapterFactory';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
-import { OutputUI } from './ui/outputUI';
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { registerTargetsUI } from './ui/targetsUI';
@@ -18,7 +17,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
   const factory = new AdapterFactory(context);
   new LocationRevealerUI(context, factory);
-  new OutputUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
   registerTargetsUI(context, factory);
   registerPrettyPrintActions(context, factory);

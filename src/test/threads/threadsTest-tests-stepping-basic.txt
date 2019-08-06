@@ -15,8 +15,8 @@ Evaluating#1:
     reason : step
     threadId : <number>
 }
-foo @ eval1.js:6:11
-<anonymous> @ eval1.js:10:9
+foo @ localhost꞉8001/eval1.js:6:11
+<anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step over
 {
@@ -29,8 +29,8 @@ step over
     reason : step
     threadId : <number>
 }
-foo @ eval1.js:7:11
-<anonymous> @ eval1.js:10:9
+foo @ localhost꞉8001/eval1.js:7:11
+<anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step over
 {
@@ -43,8 +43,8 @@ step over
     reason : step
     threadId : <number>
 }
-foo @ eval1.js:8:11
-<anonymous> @ eval1.js:10:9
+foo @ localhost꞉8001/eval1.js:8:11
+<anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step in
 {
@@ -57,9 +57,9 @@ step in
     reason : step
     threadId : <number>
 }
-bar @ eval1.js:3:11
-foo @ eval1.js:8:11
-<anonymous> @ eval1.js:10:9
+bar @ localhost꞉8001/eval1.js:3:11
+foo @ localhost꞉8001/eval1.js:8:11
+<anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step out
 {
@@ -72,8 +72,8 @@ step out
     reason : step
     threadId : <number>
 }
-foo @ eval1.js:9:9
-<anonymous> @ eval1.js:10:9
+foo @ localhost꞉8001/eval1.js:9:9
+<anonymous> @ localhost꞉8001/eval1.js:10:9
 
 resume
 {

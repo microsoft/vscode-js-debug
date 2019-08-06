@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Cdp from '../cdp/api';
-import CdpConnection from '../cdp/connection';
 import { debug } from 'debug';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { URL } from 'url';
-import { Thread, ThreadManager } from '../adapter/threads';
+import * as vscode from 'vscode';
+import { InlineScriptOffset, SourcePathResolver } from '../adapter/sources';
+import { Target } from '../adapter/targets';
+import { ThreadManager } from '../adapter/threads';
+import Cdp from '../cdp/api';
+import CdpConnection from '../cdp/connection';
+import * as urlUtils from '../utils/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
-import { SourcePathResolver, InlineScriptOffset } from '../adapter/sources';
-import { Target } from '../adapter/targets';
 
 const debugTarget = debug('target');
 
@@ -68,7 +69,7 @@ export class BrowserTargetManager implements vscode.Disposable {
         callback(undefined);
         return;
       }
-      callback(this._attachedToTarget(targetInfo, response.sessionId, false));
+      callback(this._attachedToTarget(targetInfo, response.sessionId, true));
     });
     this._browser.Target.on('detachedFromTarget', event => {
       this._detachedFromTarget(event.targetId!);
@@ -80,7 +81,7 @@ export class BrowserTargetManager implements vscode.Disposable {
     debugTarget(`Attaching to target ${targetInfo.targetId}`);
 
     const cdp = this._connection.createSession(sessionId);
-    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, target => {
+    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, waitingForDebugger, target => {
       this._connection.disposeSession(sessionId);
     });
     this._targets.set(targetInfo.targetId, target);
@@ -95,17 +96,17 @@ export class BrowserTargetManager implements vscode.Disposable {
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
-    if (target._thread)
-      target._thread.initialize();
-
     if (domDebuggerTypes.has(targetInfo.type))
       this.frameModel.attached(cdp, targetInfo.targetId);
     this.serviceWorkerModel.attached(cdp);
 
-    if (waitingForDebugger)
-      cdp.Runtime.runIfWaitingForDebugger({});
     this._onTargetAddedEmitter.fire(target);
-    debugTarget(`Attached to target ${targetInfo.targetId}`);
+
+    // For targets that we don't report to the system, auto-resume them on our on.
+    if (!jsTypes.has(targetInfo.type))
+      cdp.Runtime.runIfWaitingForDebugger({});
+
+      debugTarget(`Attached to target ${targetInfo.targetId}`);
     return target;
   }
 
@@ -144,18 +145,17 @@ export class BrowserTarget implements Target {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
-  _thread: Thread | undefined;
   _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
+  private _waitingForDebugger: boolean;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
-  constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, ondispose: (t: BrowserTarget) => void) {
+  constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, waitingForDebugger: boolean, ondispose: (t: BrowserTarget) => void) {
     this._cdp = cdp;
     this._manager = targetManager;
     this.parentTarget = parentTarget;
-    if (jsTypes.has(targetInfo.type))
-      this._thread = targetManager._threadManager.createThread(targetInfo.targetId, cdp, this);
+    this._waitingForDebugger = waitingForDebugger;
     this._targetInfo = targetInfo;
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
@@ -167,10 +167,6 @@ export class BrowserTarget implements Target {
 
   cdp(): Cdp.Api {
     return this._cdp;
-  }
-
-  thread(): Thread | undefined {
-    return this._thread;
   }
 
   name(): string {
@@ -192,10 +188,10 @@ export class BrowserTarget implements Target {
   children(): Target[] {
     const result: Target[] = [];
     for (const target of this._children.values()) {
-      if (target.type() === 'service_worker')
-        result.push(...target.children());
-      else
+      if (jsTypes.has(target.type()))
         result.push(target);
+      else
+        result.push(...target.children());
     }
     return result;
   }
@@ -220,16 +216,21 @@ export class BrowserTarget implements Target {
     this._cdp.Page.reload({});
   }
 
-  waitingForDebugger() {
-    return true;
+  waitingForDebugger(): boolean {
+    return this._waitingForDebugger;
   }
 
   canAttach(): boolean {
-    return jsTypes.has(this._targetInfo.type);
+    return true;
   }
 
   async attach(): Promise<Cdp.Api> {
+    this._waitingForDebugger = false;
     return Promise.resolve(this._cdp);
+  }
+
+  canDetach(): boolean {
+    return false;
   }
 
   async detach(): Promise<void> {
@@ -255,6 +256,10 @@ export class BrowserTarget implements Target {
     return domDebuggerTypes.has(this._targetInfo.type);
   }
 
+  scriptUrlToUrl(url: string): string {
+    return urlUtils.completeUrl(this._targetInfo.url, url) || url;
+  }
+
   sourcePathResolver(): SourcePathResolver {
     return this._manager._sourcePathResolver;
   }
@@ -269,10 +274,8 @@ export class BrowserTarget implements Target {
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
     this._targetInfo = targetInfo;
-    if (this._thread) {
-      this._thread.setName(this._computeName());
-      this._thread.setBaseUrl(this._targetInfo.url);
-    }
+    // TODO
+    // this._thread.setBaseUrl(this._targetInfo.url);
   }
 
   _computeName(): string {
@@ -298,8 +301,6 @@ export class BrowserTarget implements Target {
   }
 
   _detached() {
-    if (this._thread)
-      this._thread.dispose();
     this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
   }

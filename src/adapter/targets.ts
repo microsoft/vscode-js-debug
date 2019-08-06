@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Thread } from "./threads";
 import Cdp from "../cdp/api";
 import { SourcePathResolver, InlineScriptOffset } from "./sources";
 
@@ -16,14 +15,15 @@ export interface Target {
   stop(): void;
   canRestart(): boolean;
   restart(): void;
-  attach?: () => void;
-  detach?: () => void;
+  canAttach(): boolean;
+  attach(): Promise<Cdp.Api | undefined>;
+  canDetach(): boolean;
+  detach(): Promise<void>;
 
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
+  scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
-
-  thread(): Thread | undefined;
 }

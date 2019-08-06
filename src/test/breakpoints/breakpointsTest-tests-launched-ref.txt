@@ -6,4 +6,4 @@ Evaluating#1: foo();
     threadId : <number>
 }
 foo @ <eval>/VM<xx>:3:11
-<anonymous> @ eval1.js:1:1
+<anonymous> @ localhost꞉8001/eval1.js:1:1

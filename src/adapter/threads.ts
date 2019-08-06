@@ -58,6 +58,7 @@ export interface UIDelegate {
 export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
+  scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
 }
@@ -209,8 +210,6 @@ export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _threadId: string;
-  private _name: string;
-  private _threadBaseUrl?: string;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
@@ -240,7 +239,6 @@ export class Thread implements VariableStoreDelegate {
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = threadId;
-    this._name = '';
     this.replVariables = new VariableStore(this._cdp, this);
     this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
@@ -253,14 +251,6 @@ export class Thread implements VariableStoreDelegate {
 
   threadId(): string {
     return this._threadId;
-  }
-
-  name(): string {
-    return this._name;
-  }
-
-  baseUrlForTest(): string | undefined {
-    return this._threadBaseUrl;
   }
 
   pausedDetails(): PausedDetails | undefined {
@@ -644,15 +634,7 @@ export class Thread implements VariableStoreDelegate {
     this.manager._removeThread(this._threadId);
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
-    debugThread(`Thread destroyed #${this._threadId}: ${this._name}`);
-  }
-
-  setName(name: string) {
-    this._name = name;
-  }
-
-  setBaseUrl(threadUrl: string) {
-    this._threadBaseUrl = threadUrl;
+    debugThread(`Thread destroyed #${this._threadId}`);
   }
 
   rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Promise<Location> {
@@ -902,7 +884,8 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    event.url = this.sourcePathResolver.scriptUrlToUrl(event.url);
+    if (event.url)
+      event.url = this.delegate.scriptUrlToUrl(event.url);
 
     let source: Source | undefined;
     if (event.url && event.hash)
@@ -920,8 +903,7 @@ export class Thread implements VariableStoreDelegate {
       if (event.sourceMapURL) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
-        const resolvedSourceUrl = urlUtils.completeUrl(this._threadBaseUrl, event.url);
-        resolvedSourceMapUrl = resolvedSourceUrl && urlUtils.completeUrl(resolvedSourceUrl, event.sourceMapURL);
+        resolvedSourceMapUrl = event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
         if (!resolvedSourceMapUrl)
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }

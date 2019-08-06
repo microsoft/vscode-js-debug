@@ -59,10 +59,10 @@ export class TestP {
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this.uberAdapter = new UberAdapter(adapterConnection.dap());
-    const debugAdapter = new DebugAdapter(adapterConnection.dap(), this.uberAdapter, {
+    this.uberAdapter = new UberAdapter(adapterConnection.dap(), {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
+    const debugAdapter = this.uberAdapter.debugAdapter;
     this._browserLauncher = new BrowserLauncher(debugAdapter, storagePath, this._workspaceRoot);
     this.uberAdapter.addLauncher(this._browserLauncher);
     this.dap = testConnection.createTestApi();
@@ -107,20 +107,20 @@ export class TestP {
       this.uberAdapter.targetForest().forEach(visit);
     });
     this.adapter.threadManager.onThreadPaused(thread => {
-      if (selected && selected.thread() === thread) {
-        this.adapter.setThread(selected.thread());
+      if (selected && this.uberAdapter.thread(selected) === thread) {
+        this.adapter.setThread(this.uberAdapter.thread(selected));
       } else {
         for (const context of contexts) {
-          if (context.thread() === thread) {
+          if (this.uberAdapter.thread(context) === thread) {
             selected = context;
-            this.adapter.setThread(context.thread());
+            this.adapter.setThread(this.uberAdapter.thread(context));
             break;
           }
         }
       }
     });
     this.adapter.threadManager.onThreadResumed(thread => {
-      this.adapter.setThread(selected ? selected.thread() : undefined);
+      this.adapter.setThread(selected ? this.uberAdapter.thread(selected) : undefined);
     });
 
     this._connection = this._browserLauncher.connectionForTest()!;

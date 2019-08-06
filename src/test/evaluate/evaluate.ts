@@ -297,7 +297,7 @@ export function addTests(testRunner) {
 
     p.log('Evaluating in worker');
     const workerContext = p.uberAdapter.targetForest()[0].children()[0];
-    p.adapter.setThread(workerContext.thread());
+    p.adapter.setThread(p.uberAdapter.thread(workerContext));
     await p.logger.evaluateAndLog('self', {depth: 0});
 
     p.assertLog();

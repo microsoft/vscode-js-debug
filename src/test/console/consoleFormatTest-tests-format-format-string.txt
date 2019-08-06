@@ -1,11 +1,5 @@
 Evaluating: 'console.log(array)'
 stdout> > (10) ['test', 'test2', …, 'test4', …, foo: {…}]
-stdout>     0: 'test'
-stdout>     1: 'test2'
-stdout>     4: 'test4'
-stdout>     > foo: {}
-stdout>     length: 10
-stdout>     > __proto__: Array(0)
 
 Evaluating: 'console.log("%o", array)'
 stdout> > (10) ['test', 'test2', …, 'test4', …, foo: {…}]

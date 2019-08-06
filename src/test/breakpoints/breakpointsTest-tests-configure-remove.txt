@@ -19,4 +19,4 @@ foo @ ${workspaceFolder}/web/script.js:2:3
     reason : step
     threadId : <number>
 }
-<anonymous> @ test.js:2:1
+<anonymous> @ localhost꞉8001/test.js:2:1

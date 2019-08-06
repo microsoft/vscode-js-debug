@@ -18,9 +18,9 @@ Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
 stderr> > Uncaught Error: bar
 stderr>     
-<anonymous> @ eval1.js:1:26
+<anonymous> @ localhost꞉8001/eval1.js:1:26
 ◀ setTimeout ▶
-<anonymous> @ eval1.js:1
+<anonymous> @ localhost꞉8001/eval1.js:1
 
 stderr> Uncaught Error: baz
 stderr> > Uncaught Error: baz

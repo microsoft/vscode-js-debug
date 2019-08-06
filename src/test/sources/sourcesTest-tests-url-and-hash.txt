@@ -4,7 +4,7 @@ Source event for foo.js
     reason : new
     source : {
         name : foo.js
-        path : foo.js
+        path : localhost꞉8001/foo.js
         sourceReference : <number>
     }
 }
@@ -19,7 +19,7 @@ Source event for foo.js
     reason : new
     source : {
         name : foo.js
-        path : foo.js
+        path : localhost꞉8001/foo.js
         sourceReference : <number>
     }
 }
@@ -62,12 +62,12 @@ Loaded sources: {
     sources : [
         [0] : {
             name : foo.js
-            path : foo.js
+            path : localhost꞉8001/foo.js
             sourceReference : <number>
         }
         [1] : {
             name : foo.js
-            path : foo.js
+            path : localhost꞉8001/foo.js
             sourceReference : <number>
         }
         [2] : {

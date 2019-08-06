@@ -13,7 +13,6 @@ import Connection from '../cdp/connection';
 import { PipeTransport } from '../cdp/transport';
 import Dap from '../dap/api';
 import * as utils from '../utils/urlUtils';
-import { Thread } from '../adapter/threads';
 import { NodeBreakpointsPredictor } from './nodeBreakpoints';
 import { Launcher } from '../uberAdapter';
 
@@ -179,8 +178,8 @@ class NodeTarget implements Target {
   private _targetId: string;
   private _targetName: string;
   private _scriptName: string;
-  private _serialize = Promise.resolve();
-  private _thread: Thread | undefined;
+  private _serialize: Promise<Cdp.Api | undefined> = Promise.resolve(undefined);
+  private _attached = false;
   private _waitingForDebugger: boolean;
 
   constructor(delegate: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
@@ -236,6 +235,11 @@ class NodeTarget implements Target {
     return { lineOffset: 0, columnOffset: 62 };
   }
 
+  scriptUrlToUrl(url: string): string {
+    const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
+    return isPath ? (utils.absolutePathToFileUrl(url) || url) : url;
+  }
+
   sourcePathResolver(): SourcePathResolver {
     return this._delegate._pathResolver!;
   }
@@ -264,44 +268,54 @@ class NodeTarget implements Target {
     this._children.forEach(child => child._setParent(this._parent));
     this._setParent(undefined);
     this._delegate._targets.delete(this._targetId);
-    await this.detach();
+    // await this.detach();
     this._delegate._onTargetForestChangedEmitter.fire();
   }
 
-  attach() {
-    this._serialize = this._serialize.then(async () => {
-      if (this._thread)
-        return;
-      await this._doAttach();
-    });
+  canAttach(): boolean {
+    return !this._attached;
   }
 
-  detach() {
+  async attach(): Promise<Cdp.Api | undefined> {
     this._serialize = this._serialize.then(async () => {
-      if (!this._thread)
+      if (this._attached)
         return;
-      await this._doDetach();
+      return this._doAttach();
     });
+    return this._serialize;
   }
 
-  async _doAttach() {
+  async _doAttach(): Promise<Cdp.Api> {
+    this._waitingForDebugger = false;
+    this._attached = true;
     await this._cdp.Target.attachToTarget({ targetId: this._targetId });
-    const thread = this._delegate._debugAdapter.threadManager.createThread(this._targetId, this._cdp, this);
-    thread.setName(this._targetName);
-    thread.initialize();
-    thread.onExecutionContextsDestroyed(context => {
-      if (context.isDefault())
+    let defaultCountextId: number;
+    this._cdp.Runtime.on('executionContextCreated', event => {
+      if (event.context.auxData && event.context.auxData['isDefault'])
+        defaultCountextId = event.context.id;
+    });
+    this._cdp.Runtime.on('executionContextDestroyed', event => {
+      if (event.executionContextId === defaultCountextId)
         this._connection.close();
     });
-    this._thread = thread;
-    this._cdp.Runtime.runIfWaitingForDebugger({});
+    return this._cdp;
+  }
+
+  canDetach(): boolean {
+    return this._attached;
+  }
+
+  async detach(): Promise<void> {
+    this._serialize = this._serialize.then(async () => {
+      if (!this._attached)
+        return undefined;
+      this._doDetach();
+    });
   }
 
   async _doDetach() {
     await this._cdp.Target.detachFromTarget({ targetId: this._targetId });
-    const thread = this._thread!;
-    this._thread = undefined;
-    thread.dispose();
+    this._attached = false;
   }
 
   canRestart(): boolean {
@@ -317,10 +331,6 @@ class NodeTarget implements Target {
   stop() {
     process.kill(+this._targetId);
     this._connection.close();
-  }
-
-  thread(): Thread | undefined {
-    return this._thread;
   }
 }
 
@@ -345,11 +355,6 @@ class NodeSourcePathResolver implements SourcePathResolver {
 
   absolutePathToUrl(absolutePath: string): string | undefined {
     return utils.absolutePathToFileUrl(path.normalize(absolutePath));
-  }
-
-  scriptUrlToUrl(url: string): string {
-    const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
-    return isPath ? (utils.absolutePathToFileUrl(url) || url) : url;
   }
 
   shouldCheckContentHash(): boolean {

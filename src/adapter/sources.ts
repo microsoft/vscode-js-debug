@@ -69,7 +69,6 @@ export interface SourcePathResolver {
   rewriteSourceUrl(sourceUrl: string): string;
   urlToAbsolutePath(url: string): string;
   absolutePathToUrl(absolutePath: string): string | undefined;
-  scriptUrlToUrl(url: string): string;
   shouldCheckContentHash(): boolean;
   predictResolvedLocations?(location: PathLocation): PathLocation[];
 }

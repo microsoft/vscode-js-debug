@@ -14,7 +14,7 @@ export function addTests(testRunner) {
 
     const logTarget = (t: Target, indent: number) => {
       const s = ' '.repeat(indent);
-      const thread = t.thread() ? ' [thread "' + t.thread()!.baseUrlForTest() + '"]' : '';
+      const thread = p.uberAdapter.thread(t) ? ' [thread "' + t.scriptUrlToUrl('') + '"]' : '';
       p.log(`${s}${t.type()} "${t.name()}"${thread}${t.fileName() ? ' @ ' + t.fileName() : ''}`);
       t.children().forEach(child => logTarget(child, indent + 2));
     };
@@ -23,7 +23,8 @@ export function addTests(testRunner) {
       p.uberAdapter.onTargetForestChanged(() => {
         let counter = 0;
         const visit = t => {
-          counter++;
+          if (p.uberAdapter.thread(t))
+            counter++;
           t.children().forEach(visit);
         }
         p.uberAdapter.targetForest().forEach(visit);
