@@ -4,11 +4,13 @@
   "description": "",
   "main": "out/index.js",
   "scripts": {
-    "compile": "tsc -p ./src",
-    "tslint": "tslint ./src/**/*.ts",
-    "watch": "tsc -w -p ./src",
-    "execute": "node out/index.js"
+    "compile": "./node_modules/.bin/tsc -p ./src",
+    "watch": "./node_modules/.bin/tsc -w -p ./src",
+    "execute": "./node_modules/.bin/node out/index.js"
   },
   "keywords": [],
-  "author": ""
+  "author": "",
+  "devDependencies": {
+    "typescript": "^3.5.3"
+  }
 }

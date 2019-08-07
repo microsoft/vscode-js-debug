@@ -4,7 +4,6 @@
 import Cdp from '../cdp/api';
 import { Event, Disposable } from 'vscode';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
-import Dap from '../dap/api';
 
 export interface Target {
   id(): string;
@@ -24,6 +23,7 @@ export interface Target {
 
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
+  shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
@@ -38,5 +38,4 @@ export interface Launcher extends Disposable {
   onTargetListChanged: Event<void>;
   onTerminated: Event<void>;
   targetList(): Target[];
-  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void>;
 }

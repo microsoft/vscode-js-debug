@@ -6,6 +6,7 @@ import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager, Script, ScriptWithSourceMapHandler } from './threads';
 import { Disposable } from 'vscode';
+import { BreakpointsPredictor } from './breakpointPredictor';
 
 let lastBreakpointId = 0;
 
@@ -148,9 +149,9 @@ export class Breakpoint {
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
-    if (!this._source.path || !thread.sourcePathResolver.predictResolvedLocations)
+    if (!this._source.path || !this._manager._breakpointsPredictor)
       return;
-    const locations = thread.sourcePathResolver.predictResolvedLocations({
+    const locations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this._source.path,
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber
@@ -259,6 +260,8 @@ export class BreakpointManager {
   _perThread = new Map<string, Map<Cdp.Debugger.BreakpointId, Breakpoint>>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
+  _breakpointsPredictor?: BreakpointsPredictor;
+  private _launchBlocker: Promise<any> = Promise.resolve();
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
@@ -294,9 +297,20 @@ export class BreakpointManager {
           breakpoint.updateForSourceMap(script);
       }
     };
+    if (sourceContainer.rootPath)
+      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath);
+  }
+
+  async launchBlocker(): Promise<void> {
+    return this._launchBlocker;
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+    if (this._breakpointsPredictor) {
+      const promise = this._breakpointsPredictor!.predictBreakpoints(params);
+      this._launchBlocker = Promise.all([this._launchBlocker, promise]);
+      await promise;
+    }
     const breakpoints: Breakpoint[] = [];
     const inBreakpoints = params.breakpoints || [];
     for (let index = 0; index < inBreakpoints.length; index++) {

@@ -8,11 +8,10 @@ import * as vscode from 'vscode';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { InlineScriptOffset, SourcePathResolver, WorkspaceLocation } from '../../common/sourcePathResolver';
+import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
 import Dap from '../../dap/api';
 import { Launcher, Target } from '../../targets/targets';
 import * as utils from '../../utils/urlUtils';
-import { NodeBreakpointsPredictor } from './nodeBreakpoints';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -33,8 +32,6 @@ export class NodeLauncher implements Launcher {
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
   _pathResolver: NodeSourcePathResolver;
-  private _launchBlocker: Promise<any>;
-  private _breakpointsPredictor?: NodeBreakpointsPredictor;
   private _onTerminatedEmitter = new vscode.EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
@@ -42,18 +39,12 @@ export class NodeLauncher implements Launcher {
 
   constructor(rootPath: string | undefined) {
     this._rootPath = rootPath;
-    this._pathResolver = new NodeSourcePathResolver(this._rootPath);
-    this._launchBlocker = Promise.resolve();
-    if (rootPath) {
-      this._breakpointsPredictor = new NodeBreakpointsPredictor(this._pathResolver, rootPath);
-      this._pathResolver.setBreakpointsPredictor(this._breakpointsPredictor);
-    }
+    this._pathResolver = new NodeSourcePathResolver();
   }
 
   async launch(params: any): Promise<void> {
     if (!('command' in params))
       return;
-    await this._launchBlocker;
     // params.noDebug
     this._launchParams = params as LaunchParams;
     await this._startServer();
@@ -155,18 +146,10 @@ export class NodeLauncher implements Launcher {
     delete result['ELECTRON_RUN_AS_NODE'];
     return result;
   }
-
-  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    if (!this._breakpointsPredictor)
-      return Promise.resolve();
-    const promise = this._breakpointsPredictor.onSetBreakpoints(params);
-    this._launchBlocker = Promise.all([this._launchBlocker, promise]);
-    return promise;
-  }
 }
 
 class NodeTarget implements Target {
-  private _delegate: NodeLauncher;
+  private _launcher: NodeLauncher;
   private _connection: Connection;
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
@@ -178,8 +161,8 @@ class NodeTarget implements Target {
   private _attached = false;
   private _waitingForDebugger: boolean;
 
-  constructor(delegate: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
-    this._delegate = delegate;
+  constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
+    this._launcher = launcher;
     this._connection = connection;
     this._cdp = cdp;
     this._targetId = targetInfo.targetId;
@@ -190,8 +173,8 @@ class NodeTarget implements Target {
     else
       this._targetName = `[${targetInfo.targetId}]`;
 
-    this._setParent(delegate._targets.get(targetInfo.openerId!));
-    delegate._targets.set(targetInfo.targetId, this);
+    this._setParent(launcher._targets.get(targetInfo.openerId!));
+    launcher._targets.set(targetInfo.targetId, this);
     cdp.Target.on('targetDestroyed', () => this._connection.close());
     connection.onDisconnected(_ => this._disconnected());
   }
@@ -234,10 +217,15 @@ class NodeTarget implements Target {
   }
 
   sourcePathResolver(): SourcePathResolver {
-    return this._delegate._pathResolver!;
+    return this._launcher._pathResolver!;
   }
 
   supportsCustomBreakpoints(): boolean {
+    return false;
+  }
+
+  shouldCheckContentHash(): boolean {
+    // Node executes files directly from disk, there is no need to check the content.
     return false;
   }
 
@@ -260,9 +248,9 @@ class NodeTarget implements Target {
   async _disconnected() {
     this._children.forEach(child => child._setParent(this._parent));
     this._setParent(undefined);
-    this._delegate._targets.delete(this._targetId);
+    this._launcher._targets.delete(this._targetId);
     // await this.detach();
-    this._delegate._onTargetListChangedEmitter.fire();
+    this._launcher._onTargetListChangedEmitter.fire();
   }
 
   canAttach(): boolean {
@@ -328,19 +316,6 @@ class NodeTarget implements Target {
 }
 
 class NodeSourcePathResolver implements SourcePathResolver {
-  private _rootPath: string | undefined;
-  private _breakpointsPredictor?: NodeBreakpointsPredictor;
-
-  constructor(rootPath: string | undefined) {
-    this._rootPath = rootPath;
-  }
-
-  rewriteSourceUrl(sourceUrl: string): string {
-    // See BrowserSourcePathResolver for explanation of this heuristic.
-    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
-      return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
-    return sourceUrl;
-  }
 
   urlToAbsolutePath(url: string): string {
     return utils.fileUrlToAbsolutePath(url) || '';
@@ -348,21 +323,6 @@ class NodeSourcePathResolver implements SourcePathResolver {
 
   absolutePathToUrl(absolutePath: string): string | undefined {
     return utils.absolutePathToFileUrl(path.normalize(absolutePath));
-  }
-
-  shouldCheckContentHash(): boolean {
-    // Node executes files directly from disk, there is no need to check the content.
-    return false;
-  }
-
-  predictResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
-    if (!this._breakpointsPredictor)
-      return [];
-    return this._breakpointsPredictor.predictResolvedLocations(location);
-  }
-
-  setBreakpointsPredictor(breakpointsPredictor?: NodeBreakpointsPredictor) {
-    this._breakpointsPredictor = breakpointsPredictor;
   }
 }
 

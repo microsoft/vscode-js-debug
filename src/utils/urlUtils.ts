@@ -131,3 +131,10 @@ export function absolutePathToFileUrl(absolutePath: string): string | undefined 
   } catch (e) {
   }
 }
+
+export function maybeAbsolutePathToFileUrl(rootPath: string | undefined, sourceUrl: string): string {
+  if (rootPath && sourceUrl.startsWith(rootPath) && !isValidUrl(sourceUrl))
+    return absolutePathToFileUrl(sourceUrl) || sourceUrl;
+  return sourceUrl;
+}
+

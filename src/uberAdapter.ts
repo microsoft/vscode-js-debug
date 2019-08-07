@@ -4,10 +4,10 @@
 import * as vscode from 'vscode';
 import { Target, Launcher } from './targets/targets';
 import Dap from './dap/api';
-import { DebugAdapterDelegate, DebugAdapter } from './adapter/debugAdapter';
+import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread, UIDelegate } from './adapter/threads';
 
-export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
+export class UberAdapter implements vscode.Disposable {
   private _dap: Dap.Api;
   private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   private _launchers = new Set<Launcher>();
@@ -16,17 +16,18 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
   readonly debugAdapter: DebugAdapter;
   private _threads = new Map<Target, Thread>();
 
-  constructor(dap: Dap.Api, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this._dap = dap;
     this._dap.on('launch', params => this._onLaunch(params));
     this._dap.on('terminate', params => this._onTerminate(params));
     this._dap.on('disconnect', params => this._onDisconnect(params));
     this._dap.on('restart', params => this._onRestart(params));
     this._dap.on('threads', params => this._onThreads(params));
-    this.debugAdapter = new DebugAdapter(dap, this, uiDelegate);
+    this.debugAdapter = new DebugAdapter(dap, rootPath, uiDelegate);
   }
 
   async _onLaunch(params: Dap.LaunchParams): Promise<Dap.LaunchResult> {
+    await this.debugAdapter.breakpointManager.launchBlocker();
     for (const launcher of this._launchers)
       launcher.launch(params);
     return {};
@@ -87,11 +88,6 @@ export class UberAdapter implements vscode.Disposable, DebugAdapterDelegate {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
-  }
-
-  async onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    for (const launcher of this._launchers)
-      await launcher.predictBreakpoints(params);
   }
 
   thread(target: Target): Thread | undefined {

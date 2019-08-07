@@ -58,7 +58,7 @@ export class TestP {
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this.uberAdapter = new UberAdapter(adapterConnection.dap(), {
+    this.uberAdapter = new UberAdapter(adapterConnection.dap(), this._workspaceRoot, {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
     this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);

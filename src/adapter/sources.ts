@@ -117,7 +117,7 @@ export class Source {
     this._absolutePath = sourcePathResolver.urlToAbsolutePath(url);
 
     // Inline scripts will never match content of the html file. We skip the content check.
-    if (inlineScriptOffset || !sourcePathResolver.shouldCheckContentHash())
+    if (inlineScriptOffset)
       contentHash = undefined;
     this._existingAbsolutePath = sourceUtils.checkContentHash(this._absolutePath, contentHash, container._fileContentOverridesForTest.get(this._absolutePath));
   }
@@ -245,9 +245,11 @@ export class SourceContainer {
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
   _reportAllLoadedSourcesForTest = false;
+  readonly rootPath: string | undefined;
 
-  constructor(dap: Dap.Api) {
+  constructor(dap: Dap.Api, rootPath: string | undefined) {
     this._dap = dap;
+    this.rootPath = rootPath;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -484,7 +486,10 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
     const addedSources: Source[] = [];
     for (const url of map.sources) {
-      const sourceUrl = compiled._sourcePathResolver.rewriteSourceUrl(url);
+      // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
+      // webpack emits absolute paths in some situations instead of a relative url. We check
+      // whether |sourceUrl| looks like a path and belongs to the workspace.
+      const sourceUrl = utils.maybeAbsolutePathToFileUrl(this.rootPath, url);
       const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
       const resolvedUrl = utils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
       const contentOrNull = map.sourceContentFor(url);

@@ -85,7 +85,7 @@ export class BrowserLauncher implements Launcher {
     this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(this._rootPath, params.url, params.webRoot || this._rootPath);
+    const pathResolver = new BrowserSourcePathResolver(params.url, params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
@@ -161,10 +161,8 @@ class BrowserSourcePathResolver implements SourcePathResolver {
   private _basePath?: string;
   private _baseUrl?: URL;
   private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
-  private _rootPath: string | undefined;
 
-  constructor(rootPath: string | undefined, url: string, webRoot: string | undefined) {
-    this._rootPath = rootPath;
+  constructor(url: string, webRoot: string | undefined) {
     this._basePath = webRoot ? path.normalize(webRoot) : undefined;
     try {
       this._baseUrl = new URL(url);
@@ -188,15 +186,6 @@ class BrowserSourcePathResolver implements SourcePathResolver {
       { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}/') },
       { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
     ];
-  }
-
-  rewriteSourceUrl(sourceUrl: string): string {
-    // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
-    // webpack emits absolute paths in some situations instead of a relative url. We check
-    // whether |sourceUrl| looks like a path and belongs to the workspace.
-    if (this._rootPath && sourceUrl.startsWith(this._rootPath) && !utils.isValidUrl(sourceUrl))
-      return utils.absolutePathToFileUrl(sourceUrl) || sourceUrl;
-    return sourceUrl;
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {
@@ -239,11 +228,5 @@ class BrowserSourcePathResolver implements SourcePathResolver {
     } catch (e) {
       return '';
     }
-  }
-
-  shouldCheckContentHash(): boolean {
-    // Browser executes scripts retrieved from network.
-    // We check content hash because served code can be different from actual files on disk.
-    return true;
   }
 }

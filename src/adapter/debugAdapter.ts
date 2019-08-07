@@ -14,10 +14,6 @@ import { BreakpointManager } from './breakpoints';
 const localize = nls.loadMessageBundle();
 const revealLocationThreadId = 999999999;
 
-export interface DebugAdapterDelegate {
-  onSetBreakpoints: (params: Dap.SetBreakpointsParams) => Promise<void>;
-}
-
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter {
@@ -26,11 +22,10 @@ export class DebugAdapter {
   readonly threadManager: ThreadManager;
   readonly breakpointManager: BreakpointManager;
   private _locationToReveal: Location | undefined;
-  private _delegate: DebugAdapterDelegate;
   private _disposables: Disposable[] = [];
   private _selectedThread?: Thread;
 
-  constructor(dap: Dap.Api, delegate: DebugAdapterDelegate, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -52,8 +47,7 @@ export class DebugAdapter {
     this.dap.on('evaluate', params => this._onEvaluate(params)),
     this.dap.on('completions', params => this._onCompletions(params)),
     this.dap.on('exceptionInfo', params => this._withThread(params.threadId, thread => thread.exceptionInfo())),
-    this._delegate = delegate;
-    this.sourceContainer = new SourceContainer(this.dap);
+    this.sourceContainer = new SourceContainer(this.dap, rootPath);
     this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
 
@@ -114,7 +108,6 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    await this._delegate.onSetBreakpoints(params);
     return this.breakpointManager.setBreakpoints(params);
   }
 

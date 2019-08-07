@@ -58,6 +58,7 @@ export interface UIDelegate {
 
 export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
+  shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
@@ -948,7 +949,8 @@ export class Thread implements VariableStoreDelegate {
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }
 
-      source = this.sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, event.hash);
+      const hash = this.delegate.shouldCheckContentHash() ? event.hash : undefined;
+      source = this.sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
       this.manager._addSourceForScript(event.url, event.hash, source);
     }
 
