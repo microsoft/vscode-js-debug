@@ -32,6 +32,7 @@ export class NodeLauncher implements Launcher {
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
   _pathResolver: NodeSourcePathResolver;
+  _targetOrigin: any;
   private _onTerminatedEmitter = new vscode.EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
@@ -42,11 +43,12 @@ export class NodeLauncher implements Launcher {
     this._pathResolver = new NodeSourcePathResolver();
   }
 
-  async launch(params: any): Promise<void> {
+  async launch(params: any, targetOrigin: any): Promise<void> {
     if (!('command' in params))
       return;
     // params.noDebug
     this._launchParams = params as LaunchParams;
+    this._targetOrigin = targetOrigin;
     await this._startServer();
     await this._relaunch();
   }
@@ -179,7 +181,7 @@ class NodeTarget implements Target {
     connection.onDisconnected(_ => this._disconnected());
   }
 
- id(): string {
+  id(): string {
     return this._targetId;
   }
 
@@ -193,6 +195,10 @@ class NodeTarget implements Target {
 
   type(): string {
     return 'node';
+  }
+
+  targetOrigin(): any {
+    return this._launcher._targetOrigin;
   }
 
   parent(): Target | undefined {

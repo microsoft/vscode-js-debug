@@ -53,7 +53,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async prepareLaunch(params: LaunchParams, args: string[]): Promise<BrowserTarget | Dap.Error> {
+  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | Dap.Error> {
     // params.noDebug
 
     // Prefer canary over stable, it comes earlier in the list.
@@ -85,7 +85,7 @@ export class BrowserLauncher implements Launcher {
     this._launchParams = params;
 
     const pathResolver = new BrowserSourcePathResolver(params.url, params.webRoot || this._rootPath);
-    this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver);
+    this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver, targetOrigin);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
@@ -113,10 +113,10 @@ export class BrowserLauncher implements Launcher {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: any): Promise<void> {
+  async launch(params: any, targetOrigin: any): Promise<void> {
     if (!('url' in params))
       return;
-    const result = await this.prepareLaunch(params as LaunchParams, []);
+    const result = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
     if (!(result instanceof BrowserTarget))
       return;
     await this.finishLaunch(result);

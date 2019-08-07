@@ -3,21 +3,23 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { Thread } from '../adapter/threads';
-import { AdapterFactory, Adapters } from '../adapterFactory';
+import { AdapterFactory } from '../adapterFactory';
 import { Target } from '../targets/targets';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export function registerTargetsUI(context: vscode.ExtensionContext, factory: AdapterFactory) {
   const provider = new TargetsDataProvider(context, factory);
   const treeView = vscode.window.createTreeView('pwa.targetsView', { treeDataProvider: provider });
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.pauseThread', (item: Target) => {
-    const thread = threadForTarget(factory, item);
+    const binder = factory.binderForTarget(item);
+    const thread = binder && binder.thread(item);
     if (thread)
       thread.pause();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.resumeThread', (item: Target) => {
-    const thread = threadForTarget(factory, item);
+    const binder = factory.binderForTarget(item);
+    const thread = binder && binder.thread(item);
     if (thread)
       thread.resume();
   }));
@@ -28,14 +30,14 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
     item.restart!();
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.attachToTarget', (item: Target) => {
-    const adapters = factory.activeAdapters();
-    if (adapters)
-      adapters.uberAdapter.attach(item);
+    const binder = factory.binderForTarget(item);
+    if (binder)
+      binder.attach(item);
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.detachFromTarget', (item: Target) => {
-    const adapters = factory.activeAdapters();
-    if (adapters)
-      adapters.uberAdapter.detach(item);
+    const binder = factory.binderForTarget(item);
+    if (binder)
+      binder.detach(item);
   }));
   context.subscriptions.push(vscode.commands.registerCommand('pwa.revealTargetScript', async (item: Target) => {
     const document = await vscode.workspace.openTextDocument(item.fileName()!);
@@ -43,48 +45,51 @@ export function registerTargetsUI(context: vscode.ExtensionContext, factory: Ada
       vscode.window.showTextDocument(document);
   }));
 
+  // TODO: delete once threadId is available in evaluate / completions.
   treeView.onDidChangeSelection(async () => {
     const item = treeView.selection[0];
-    const adapters = factory.activeAdapters();
-    if (!adapters)
+    const binder = item && factory.binderForTarget(item);
+    if (!binder)
       return;
-    adapters.adapter.selectThread(adapters.uberAdapter.thread(item));
+    const thread = binder.thread(item);
+    const debugAdapter = binder.debugAdapter(item);
+    if (thread && debugAdapter)
+      debugAdapter.selectThread(thread);
   }, undefined, context.subscriptions);
 }
+
+const kDisposablesSymbol = Symbol('Disposables');
 
 class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _targets: Target[] = [];
   private _disposables: vscode.Disposable[] = [];
-  private _adapters: Adapters | undefined;
   private _extensionPath: string;
   private _throttlerTimer: NodeJS.Timer | undefined;
+  private _factory: AdapterFactory;
 
   constructor(context: vscode.ExtensionContext, factory: AdapterFactory) {
     this._extensionPath = context.extensionPath;
-    factory.onActiveAdaptersChanged(adapters => this._setActiveAdapters(adapters), undefined, context.subscriptions);
-  }
 
-  _setActiveAdapters(adapters: Adapters) {
-    this._adapters = adapters;
-    for (const disposable of this._disposables)
-      disposable.dispose();
-    this._disposables = [];
+    const onAdapter = (debugAdapter: DebugAdapter) => {
+      debugAdapter[kDisposablesSymbol] = [
+        debugAdapter.threadManager.onThreadAdded(() => this._scheduleThrottledTargetsUpdate()),
+        debugAdapter.threadManager.onThreadRemoved(() => this._scheduleThrottledTargetsUpdate()),
+        debugAdapter.threadManager.onThreadPaused(() => this._scheduleThrottledTargetsUpdate()),
+        debugAdapter.threadManager.onThreadResumed(() => this._scheduleThrottledTargetsUpdate()),
+      ];
+    };
+    factory.onAdapterAdded(onAdapter, undefined, this._disposables);
+    factory.adapters().forEach(onAdapter);
+    factory.onAdapterRemoved(debugAdapter => {
+      for (const disposable of debugAdapter[kDisposablesSymbol] || [])
+        disposable.dispose();
+    });
 
-    if (!this._adapters) {
-      this._targets = [];
-      if (this._throttlerTimer)
-        clearTimeout(this._throttlerTimer);
-      this._onDidChangeTreeData.fire();
-      return;
-    }
-
-    adapters.adapter.threadManager.onThreadPaused(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
-    adapters.adapter.threadManager.onThreadResumed(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
-
+    this._factory = factory;
+    factory.onTargetListChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
     this._scheduleThrottledTargetsUpdate();
-    adapters.uberAdapter.onTargetListChanged(() => this._scheduleThrottledTargetsUpdate(), undefined, this._disposables);
   }
 
   _scheduleThrottledTargetsUpdate() {
@@ -120,7 +125,8 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
     else if (item.type() === 'node')
       result.iconPath = this._iconPath('node.svg');
 
-    const thread = this._adapters ? this._adapters.uberAdapter.thread(item) : undefined;
+    const binder = this._factory.binderForTarget(item);
+    const thread = binder && binder.thread(item);
     if (thread) {
       result.contextValue = ' ' + item.type();
       if (thread.pausedDetails()) {
@@ -154,16 +160,7 @@ class TargetsDataProvider implements vscode.TreeDataProvider<Target> {
   }
 
   _targetsChanged(): void {
-    if (!this._adapters)
-      return;
-    this._targets = this._adapters.uberAdapter.targetList();
+    this._targets = this._factory.targetList();
     this._onDidChangeTreeData.fire();
   }
-}
-
-function threadForTarget(factory: AdapterFactory, target: Target): Thread | undefined {
-  const adapters = factory.activeAdapters();
-  if (!adapters)
-    return undefined;
-  return adapters.uberAdapter.thread(target);
 }

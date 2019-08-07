@@ -65,7 +65,7 @@ export class Breakpoint {
     // 3. When new script with source map arrives, resolve all breakpoints in source map sources
     //    and apply them to this particular script. See setScriptSourceMapHandler.
     const threadManager = this._manager._threadManager;
-    threadManager.onThreadRemoved(thread => {
+    threadManager.onThreadRemoved(({thread}) => {
       this._perThread.delete(thread.threadId());
       if (!this._perThread.size) {
         this._resolvedLocation = undefined;
@@ -279,7 +279,7 @@ export class BreakpointManager {
     };
     this._threadManager.threads().forEach(onThread);
     this._threadManager.onThreadAdded(onThread, undefined, this._disposables);
-    this._threadManager.onThreadRemoved(thread => {
+    this._threadManager.onThreadRemoved(({thread}) => {
       this._perThread.delete(thread.threadId());
     }, undefined, this._disposables);
 
