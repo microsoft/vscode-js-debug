@@ -8,6 +8,13 @@ import * as inspector from 'inspector';
   if (!process.env.NODE_INSPECTOR_IPC)
     return;
 
+  // Do not enable for Electron and other hybrid environments.
+  try {
+    eval('window');
+    return;
+  } catch (e) {
+  }
+
   let scriptName = '';
   try {
     scriptName = require.resolve(process.argv[1]);
