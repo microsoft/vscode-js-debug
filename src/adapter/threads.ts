@@ -76,6 +76,8 @@ export class ThreadManager {
   private _dap: Dap.Api;
   private _lastThreadDapId = 0;
 
+  static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
+
   _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
   _onThreadRemovedEmitter = new EventEmitter<Thread>();
@@ -203,11 +205,8 @@ export class ThreadManager {
     return source[kScriptsSymbol] || new Set();
   }
 
-  threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
-    for (const thread of this._threads.values()) {
-      if (thread._debuggerId === debuggerId)
-        return thread;
-    }
+  static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
+    return ThreadManager._allThreadsByDebuggerId.get(debuggerId);
   }
 
   _addSourceForScript(url: string, hash: string, source: Source) {
@@ -253,7 +252,6 @@ export class Thread implements VariableStoreDelegate {
   private _eventListeners: eventUtils.Listener[] = [];
   private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
-  _debuggerId?: Cdp.Runtime.UniqueDebuggerId;
   _onExecutionContextCreatedEmitter = new EventEmitter<ExecutionContext>();
   readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
   _onExecutionContextDestroyedEmitter = new EventEmitter<ExecutionContext>();
@@ -555,7 +553,8 @@ export class Thread implements VariableStoreDelegate {
 
       if (event.asyncCallStackTraceId) {
         scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
-        await Promise.all(this.manager.threads().map(thread => thread._pauseOnScheduledAsyncCall()));
+        const threads = Array.from(ThreadManager._allThreadsByDebuggerId.values());
+        await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
         this.resume();
         return;
       }
@@ -660,7 +659,7 @@ export class Thread implements VariableStoreDelegate {
     // across cross-process navigations. Refresh it upon clearing contexts.
     this._cdp.Debugger.enable({}).then(response => {
       if (response)
-        this._debuggerId = response.debuggerId;
+        ThreadManager._allThreadsByDebuggerId.set(response.debuggerId, this);
     });
   }
 
@@ -672,6 +671,10 @@ export class Thread implements VariableStoreDelegate {
 
   dispose() {
     this._removeAllScripts();
+    for (const [debuggerId, thread] of ThreadManager._allThreadsByDebuggerId) {
+      if (thread === this)
+        ThreadManager._allThreadsByDebuggerId.delete(debuggerId);
+    }
     this.manager._removeThread(this._threadId);
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();

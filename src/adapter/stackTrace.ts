@@ -16,7 +16,6 @@ export class StackTrace {
   private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
-  private _threadManager: ThreadManager;
 
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
@@ -49,13 +48,12 @@ export class StackTrace {
 
   constructor(thread: Thread) {
     this._lastFrameThread = thread;
-    this._threadManager = thread.manager;
   }
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
-        this._lastFrameThread = this._threadManager.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
+        this._lastFrameThread = ThreadManager.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
       if (!this._lastFrameThread) {
         this._asyncStackTraceId = undefined;
         break;
