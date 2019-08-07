@@ -25,7 +25,6 @@ export interface LaunchParams extends Dap.LaunchParams {
 }
 
 export class BrowserLauncher implements Launcher {
-  static symbol = Symbol('BrowserDelegate');
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
   private _rootPath: string | undefined;

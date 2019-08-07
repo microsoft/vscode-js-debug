@@ -5,8 +5,8 @@ import * as Net from 'net';
 import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import DapConnection from './dap/connection';
-import { BrowserLauncher } from './targets/browser/browserDelegate';
-import { NodeLauncher } from './targets/node/nodeDelegate';
+import { BrowserLauncher } from './targets/browser/browserLauncher';
+import { NodeLauncher } from './targets/node/nodeLauncher';
 import { Source } from './adapter/sources';
 import Dap from './dap/api';
 import { DebugAdapter } from './adapter/debugAdapter';
@@ -88,7 +88,6 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory {
       this._sessions.set(session.id, { session, server, adapter, uberAdapter });
       uberAdapter.addLauncher(new NodeLauncher(rootPath));
       const browserLauncher = new BrowserLauncher(this._context.storagePath || this._context.extensionPath, rootPath);
-      uberAdapter.debugAdapter[BrowserLauncher.symbol] = browserLauncher;
       uberAdapter.addLauncher(browserLauncher);
     }).listen(0);
     return new vscode.DebugAdapterServer(server.address().port);

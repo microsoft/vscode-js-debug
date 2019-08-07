@@ -4,7 +4,7 @@
 import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
-import { BrowserLauncher } from '../targets/browser/browserDelegate';
+import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import { BrowserTarget } from '../targets/browser/browserTargets';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
