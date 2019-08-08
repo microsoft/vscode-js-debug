@@ -262,6 +262,7 @@ export class BreakpointManager {
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
   _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
+  private _sourceMapPauseDisabledForTest = false;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer, threadManager: ThreadManager) {
     this._dap = dap;
@@ -305,6 +306,10 @@ export class BreakpointManager {
     return this._launchBlocker;
   }
 
+  setSourceMapPauseDisabledForTest(disabled: boolean) {
+    this._sourceMapPauseDisabledForTest = disabled;
+  }
+
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     if (this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor!.predictBreakpoints(params);
@@ -331,7 +336,8 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     }
     this._totalBreakpointsCount += breakpoints.length;
-    await this._threadManager.setScriptSourceMapHandler(this._totalBreakpointsCount ? this._scriptSourceMapHandler : undefined);
+    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
+    await this._threadManager.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
     breakpoints.forEach(b => b.set());
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }

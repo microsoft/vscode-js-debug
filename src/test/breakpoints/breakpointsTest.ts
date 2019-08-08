@@ -73,6 +73,20 @@ export function addTests(testRunner) {
       await waitForPause(p);
       p.assertLog();
     });
+
+    it('source map predicted', async({p}: {p: TestP}) => {
+      // Breakpoint in source mapped script set before launch use breakpoints predictor.
+      await p.initialize;
+      p.adapter.breakpointManager.setSourceMapPauseDisabledForTest(true);
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/module2.ts')
+      };
+      p.dap.setBreakpoints({source, breakpoints: [{line: 3}]});
+      p.launchUrl('browserify/pause.html');
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
   });
 
   describe('launched', () => {
