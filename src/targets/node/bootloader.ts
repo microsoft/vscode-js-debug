@@ -25,9 +25,12 @@ import * as inspector from 'inspector';
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
   inspector.open(0, undefined, false);
-  const parent = !!ppid;
-  const waitForDebugger = process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER === 'always' ||
-      (!parent && process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER === 'top-level');
+
+  let waitForDebugger = true;
+  try {
+    waitForDebugger = new RegExp(process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER || '').test(scriptName);
+  } catch (e) {
+  }
 
   const info = {
     pid: String(process.pid),

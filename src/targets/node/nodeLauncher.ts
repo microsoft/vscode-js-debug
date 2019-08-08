@@ -15,9 +15,9 @@ import * as utils from '../../utils/urlUtils';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
-  cwd: string;
-  env: Object;
-  attachToNode: ['never', 'always', 'top-level'];
+  cwd?: string;
+  env?: Object;
+  nodeFilter?: string;
 }
 
 let counter = 0;
@@ -140,7 +140,7 @@ export class NodeLauncher implements Launcher {
       ...process.env,
       ...this._launchParams!.env || {},
       NODE_INSPECTOR_IPC: this._pipe,
-      NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.attachToNode || 'never',
+      NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
       NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require ${bootloaderJS}`,
     };
     delete result['ELECTRON_RUN_AS_NODE'];
