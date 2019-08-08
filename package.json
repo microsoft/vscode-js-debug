@@ -347,8 +347,7 @@
               "type": "pwa",
               "request": "launch",
               "name": "PWA: launch program",
-              "command": "${1:npm start}",
-              "attachToNode": "always"
+              "command": "${1:npm start}"
             }
           }
         ]

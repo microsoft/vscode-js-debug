@@ -8,8 +8,7 @@
       "type": "pwa",
       "request": "launch",
       "name": "PWA: launch program",
-      "command": "npm run execute",
-      "attachToNode": "always"
+      "command": "npm run execute"
     }
   ]
 }

@@ -9,8 +9,7 @@
       "request": "launch",
       "name": "Express",
       "url": "http://localhost:3000",
-      "command": "node ./bin/www",
-      "attachToNode": "always"
+      "command": "node ./bin/www"
     }
   ]
 }

@@ -45,7 +45,6 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext, fac
       type: 'pwa',
       name: 'Debugger terminal',
       request: 'launch',
-      attachToNode: 'always',
       command: ''
     });
   }));
@@ -56,7 +55,6 @@ function debugCommand(command: string) {
     type: 'pwa',
 		name: `Debug ${command}`,
     request: 'launch',
-    attachToNode: 'always',
     command,
   });
 }
