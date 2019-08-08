@@ -9,7 +9,8 @@
             "request": "launch",
             "name": "Web page",
             "command": "node_modules/.bin/serve -p 5001",
-            "url": "http://localhost:5001"
+            "url": "http://localhost:5001",
+            "nodeFilter": "serve.js"
         }
     ]
 }

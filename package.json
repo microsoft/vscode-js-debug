@@ -313,14 +313,9 @@
                 "type": "object",
                 "description": "Environment variables"
               },
-              "attachToNode": {
+              "nodeFilter": {
                 "type": "string",
-                "description": "Attach to Node processes",
-                "enum": [
-                  "never",
-                  "always",
-                  "top-level"
-                ]
+                "description": "Regular expresison for the main script path. If matches, debugger will attach to the node process. Defaults to empty, which matches everything."
               }
             }
           }
