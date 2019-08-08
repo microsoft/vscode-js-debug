@@ -21,7 +21,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       return;
     }
 
-    const { source } = await factory.sourceForUri(factory, editor.document.uri);
+    const { source } = await factory.sourceForUri(editor.document.uri);
 
     // The rest of the code is about suggesting the pretty printing upon editor change.
     // We only want to do it once per document.
@@ -50,12 +50,12 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
 
   context.subscriptions.push(vscode.commands.registerCommand('pwa.prettyPrint', async e => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || !factory.activeAdapters())
+    if (!editor)
       return;
     const uri = editor.document.uri;
     if (uri.scheme !== 'debug')
       return;
-    const { adapter, source } = await factory.sourceForUri(factory, editor.document.uri);
+    const { adapter, source } = await factory.sourceForUri(editor.document.uri);
     if (!source || !adapter || !source.canPrettyPrint())
       return;
     const success = await source.prettyPrint();

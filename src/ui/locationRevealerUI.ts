@@ -18,7 +18,7 @@ export class LocationRevealerUI {
         return;
       }
 
-      const { source } = await factory.sourceForUri(factory, editor.document.uri);
+      const { source } = await factory.sourceForUri(editor.document.uri);
       if (!source)
         return;
       const callback = this._revealRequests.get(source);

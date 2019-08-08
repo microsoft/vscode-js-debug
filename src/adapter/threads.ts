@@ -80,7 +80,7 @@ export class ThreadManager {
 
   _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
-  _onThreadRemovedEmitter = new EventEmitter<Thread>();
+  _onThreadRemovedEmitter = new EventEmitter<{thread: Thread, dapId: number}>();
   _onThreadPausedEmitter = new EventEmitter<Thread>();
   _onThreadResumedEmitter = new EventEmitter<Thread>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
@@ -134,10 +134,10 @@ export class ThreadManager {
     const thread = this._threads.get(threadId)!;
     console.assert(thread);
     this._threads.delete(threadId);
-    const dapId = this._threadToDapId.get(thread);
+    const dapId = this._threadToDapId.get(thread)!;
     this._threadToDapId.delete(thread);
-    this._dapIdToThread.delete(dapId!);
-    this._onThreadRemovedEmitter.fire(thread);
+    this._dapIdToThread.delete(dapId);
+    this._onThreadRemovedEmitter.fire({thread, dapId});
   }
 
   threads(): Thread[] {

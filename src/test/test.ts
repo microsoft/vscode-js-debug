@@ -13,7 +13,8 @@ import DapConnection from '../dap/connection';
 import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { UberAdapter } from '../uberAdapter';
+import { Binder } from '../binder';
+import { Target } from '../targets/targets';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -28,7 +29,7 @@ class Stream extends stream.Duplex {
 }
 
 export class TestP {
-  readonly uberAdapter: UberAdapter;
+  readonly adapter: DebugAdapter;
   readonly dap: Dap.TestApi;
   readonly initialize: Promise<Dap.InitializeResult>;
   readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
@@ -36,6 +37,7 @@ export class TestP {
   _cdp: Cdp.Api | undefined;
   _adapter: DebugAdapter | undefined;
 
+  readonly binder: Binder;
   private _browserLauncher: BrowserLauncher;
   private _connection: CdpConnection | undefined;
   private _evaluateCounter = 0;
@@ -58,11 +60,12 @@ export class TestP {
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this.uberAdapter = new UberAdapter(adapterConnection.dap(), this._workspaceRoot, {
+    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
+    this.adapter = new DebugAdapter(adapterConnection.dap(), this._workspaceRoot, {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
-    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
-    this.uberAdapter.addLauncher(this._browserLauncher);
+    this.binder = new Binder(this, this.adapter, [this._browserLauncher], undefined);
+
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({
       clientID: 'pwa-test',
@@ -74,8 +77,11 @@ export class TestP {
     });
   }
 
-  get adapter(): DebugAdapter {
-    return this._adapter!;
+  async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
+    return this.adapter;
+  }
+
+  releaseDebugAdapter(debugAdapter: DebugAdapter) {
   }
 
   get cdp(): Cdp.Api {
@@ -90,8 +96,7 @@ export class TestP {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
-    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args)) as BrowserTarget;
-    this._adapter = this.uberAdapter.debugAdapter;
+    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args, undefined)) as BrowserTarget;
     this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
     this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});

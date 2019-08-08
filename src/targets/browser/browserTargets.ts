@@ -24,19 +24,21 @@ export class BrowserTargetManager implements vscode.Disposable {
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: SourcePathResolver;
+  _targetOrigin: any;
 
   private _onTargetAddedEmitter = new vscode.EventEmitter<BrowserTarget>();
   private _onTargetRemovedEmitter = new vscode.EventEmitter<BrowserTarget>();
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver) {
+  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver, targetOrigin: any) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
+    this._targetOrigin = targetOrigin;
   }
 
   dispose() {
@@ -152,6 +154,10 @@ export class BrowserTarget implements Target {
     this._targetInfo = targetInfo;
     this._updateFromInfo(targetInfo);
     this._ondispose = ondispose;
+  }
+
+  targetOrigin(): any {
+    return this._manager._targetOrigin;
   }
 
   id(): string {

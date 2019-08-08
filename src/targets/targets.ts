@@ -20,6 +20,7 @@ export interface Target {
   attach(): Promise<Cdp.Api | undefined>;
   canDetach(): boolean;
   detach(): Promise<void>;
+  targetOrigin(): any;
 
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
@@ -31,7 +32,7 @@ export interface Target {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: any): Promise<void>;
+  launch(params: any, targetOrigin: any): Promise<void>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

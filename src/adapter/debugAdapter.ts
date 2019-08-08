@@ -55,10 +55,10 @@ export class DebugAdapter {
       reason: 'started',
       threadId: this.threadManager.dapIdByThread(thread)
     }), undefined, this._disposables);
-    this.threadManager.onThreadRemoved(thread => {
+    this.threadManager.onThreadRemoved(({thread, dapId}) => {
       this.dap.thread({
         reason: 'exited',
-        threadId: this.threadManager.dapIdByThread(thread)
+        threadId: dapId
       });
       if (this._selectedThread === thread)
         this._selectedThread = undefined;
@@ -245,6 +245,7 @@ export class DebugAdapter {
     }
   }
 
+  // TODO: delete once threadId is available in evaluate / completions.
   selectThread(thread: Thread | undefined) {
     this._selectedThread = thread;
   }

@@ -14,8 +14,7 @@ export function addTests(testRunner) {
 
     const logTarget = (t: Target, indent: number) => {
       const s = ' '.repeat(indent);
-      const thread = p.uberAdapter.thread(t) ? ' [thread "' + t.scriptUrlToUrl('') + '"]' : '';
-      p.log(`${s}${t.type()} "${t.name()}"${thread}${t.fileName() ? ' @ ' + t.fileName() : ''}`);
+      p.log(`${s}${t.type()} "${t.name()}" [thread "${t.scriptUrlToUrl('')}"]${t.fileName() ? ' @ ' + t.fileName() : ''}`);
       const children = t.children();
       children.sort((t1, t2) => {
         return t1.name().localeCompare(t2.name());
@@ -24,13 +23,12 @@ export function addTests(testRunner) {
     };
 
     await new Promise(f => {
-      p.uberAdapter.onTargetListChanged(() => {
-        const counter = p.uberAdapter.targetList().filter(t => p.uberAdapter.thread(t)).length;
-        if (counter === 11)
+      p.adapter.threadManager.onThreadAdded(() => {
+        if (p.adapter.threadManager.threads().length === 11)
           f();
       });
     });
-    p.uberAdapter.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
+    p.binder.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
 
     p.assertLog();
   });
