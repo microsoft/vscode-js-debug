@@ -149,10 +149,6 @@ export class BrowserLauncher implements Launcher {
   connectionForTest(): CdpConnection | undefined {
     return this._connectionForTest;
   }
-
-  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    return Promise.resolve();
-  }
 }
 
 class BrowserSourcePathResolver implements SourcePathResolver {

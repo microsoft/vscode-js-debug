@@ -42,6 +42,7 @@ export class Binder implements Disposable {
     }
 
     debugAdapter.dap.on('launch', async params => {
+      await debugAdapter.breakpointManager.launchBlocker();
       for (const launcher of this._launchers)
         await launcher.launch(params, targetOrigin);
       return {};
