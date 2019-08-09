@@ -65,6 +65,7 @@ export class TestP {
       copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
     });
     this.binder = new Binder(this, this.adapter, [this._browserLauncher], undefined);
+    this.binder.considerLaunchedForTest(this._browserLauncher);
 
     this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({

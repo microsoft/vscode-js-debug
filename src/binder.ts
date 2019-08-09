@@ -49,8 +49,16 @@ export class Binder implements Disposable {
   async _launch(launcher: Launcher, params: any) {
     if (!launcher.canLaunch(params))
       return;
-    this._launchers.add(launcher);
+    this._initLaunched(launcher);
+    await launcher.launch(params, this._targetOrigin);
+  }
 
+  considerLaunchedForTest(launcher) {
+    this._initLaunched(launcher);
+  }
+
+  _initLaunched(launcher) {
+    this._launchers.add(launcher);
     launcher.onTerminated(() => {
       this._launchers.delete(launcher);
       this._detachOrphaneThreads(this.targetList());
@@ -65,8 +73,6 @@ export class Binder implements Disposable {
       this._detachOrphaneThreads(targets);
       this._onTargetListChangedEmitter.fire();
     }, undefined, this._disposables);
-
-    await launcher.launch(params, this._targetOrigin);
   }
 
   dispose() {
