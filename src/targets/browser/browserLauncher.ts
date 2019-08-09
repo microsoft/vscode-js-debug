@@ -3,24 +3,25 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as errors from '../../dap/errors';
 import CdpConnection from '../../cdp/connection';
 import Dap from '../../dap/api';
-import * as utils from '../../utils/urlUtils';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher } from '../../targets/targets';
 import Cdp from '../../cdp/api';
-import { SourcePathResolver } from '../../common/sourcePathResolver';
+import { BrowserSourcePathResolver } from './browserPathResolver';
+import { URL } from 'url';
 
 const localize = nls.loadMessageBundle();
 
 export interface LaunchParams extends Dap.LaunchParams {
-  url: string;
+  url?: string;
+  remoteDebuggingPort?: string;
+  baseURL?: string;
   webRoot?: string;
 }
 
@@ -53,24 +54,49 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | Dap.Error> {
-    // params.noDebug
-
+  async _launchBrowser(args: string[]): Promise<CdpConnection> {
     // Prefer canary over stable, it comes earlier in the list.
     const executablePath = findBrowser()[0];
     if (!executablePath)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser'));
+      throw new Error('Unable to find browser');
 
     try {
       fs.mkdirSync(this._storagePath);
     } catch (e) {
     }
-    const connection = await launcher.launch(
+    return await launcher.launch(
       executablePath, {
         args,
         userDataDir: path.join(this._storagePath, args.indexOf('--headless') !== -1 ? '.headless-profile' : '.profile'),
         pipe: true,
       });
+  }
+
+  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | Dap.Error> {
+    let connection: CdpConnection;
+
+    if (params.remoteDebuggingPort) {
+      let c: CdpConnection | undefined;
+      for (let i = 0; i < 10; ++i) {
+        // Attempt to connect 10 times, 1 second each.
+        await new Promise(f => setTimeout(f, 1000));
+        try {
+          c = await launcher.attach({ browserURL: `http://localhost:${params.remoteDebuggingPort}` });
+          break;
+        } catch (e) {
+        }
+      }
+      if (!c)
+        return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
+      connection = c;
+    } else {
+      try {
+        connection = await this._launchBrowser(args);
+      } catch (e) {
+        return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser executable'));
+      }
+    }
+
     connection.onDisconnected(() => {
       this._onTerminatedEmitter.fire();
     }, undefined, this._disposables);
@@ -79,12 +105,12 @@ export class BrowserLauncher implements Launcher {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
     if (!result)
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to attach to the browser'));
+      return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
 
     this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(params.url, params.webRoot || this._rootPath);
+    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || this._rootPath);
     this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver, targetOrigin);
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
@@ -110,11 +136,12 @@ export class BrowserLauncher implements Launcher {
   }
 
   async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
+    if (this._launchParams!.url)
+      await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
   canLaunch(params: any): boolean {
-    return 'url' in params;
+    return 'url' in params || 'remoteDebuggingPort' in params;
   }
 
   async launch(params: any, targetOrigin: any): Promise<void> {
@@ -141,8 +168,12 @@ export class BrowserLauncher implements Launcher {
   }
 
   async restart(): Promise<void> {
-    if (this._mainTarget)
+    if (!this._mainTarget)
+      return;
+    if (this._launchParams!.url)
       await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
+    else
+      await this._mainTarget.cdp().Page.reload({ });
   }
 
   targetList(): Target[] {
@@ -155,77 +186,24 @@ export class BrowserLauncher implements Launcher {
   }
 }
 
-class BrowserSourcePathResolver implements SourcePathResolver {
-  // We map all urls under |_baseUrl| to files under |_basePath|.
-  private _basePath?: string;
-  private _baseUrl?: URL;
-  private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
-
-  constructor(url: string, webRoot: string | undefined) {
-    this._basePath = webRoot ? path.normalize(webRoot) : undefined;
+function baseURL(params: LaunchParams): URL | undefined {
+  if (params.baseURL) {
     try {
-      this._baseUrl = new URL(url);
-      this._baseUrl.pathname = '/';
-      this._baseUrl.search = '';
-      this._baseUrl.hash = '';
-      if (this._baseUrl.protocol === 'data:')
-        this._baseUrl = undefined;
-    } catch (e) {
-      this._baseUrl = undefined;
-    }
-
-    if (!this._basePath)
-      return;
-    const substitute = (s: string): string => {
-      return s.replace(/{webRoot}/g, this._basePath!);
-    };
-    this._rules = [
-      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}/node_modules/') },
-      { urlPrefix: 'webpack:///./', pathPrefix: substitute('{webRoot}/') },
-      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}/') },
-      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
-    ];
-  }
-
-  absolutePathToUrl(absolutePath: string): string | undefined {
-    absolutePath = path.normalize(absolutePath);
-    if (!this._baseUrl || !this._basePath || !absolutePath.startsWith(this._basePath))
-      return utils.absolutePathToFileUrl(absolutePath);
-    const relative = path.relative(this._basePath, absolutePath);
-    try {
-      return new URL(relative, this._baseUrl).toString();
+      return new URL(params.baseURL);
     } catch (e) {
     }
   }
 
-  urlToAbsolutePath(url: string): string {
-    const absolutePath = utils.fileUrlToAbsolutePath(url);
-    if (absolutePath)
-      return absolutePath;
-
-    for (const rule of this._rules) {
-      if (url.startsWith(rule.urlPrefix))
-        return rule.pathPrefix + url.substring(rule.pathPrefix.length);
-    }
-
-    if (!this._basePath || !this._baseUrl)
-      return '';
+  if (params.url) {
     try {
-      const u = new URL(url);
-      if (u.origin !== this._baseUrl.origin)
-        return '';
-      const pathname = path.normalize(u.pathname);
-      let basepath = path.normalize(this._baseUrl.pathname);
-      if (!basepath.endsWith(path.sep))
-        basepath += '/';
-      if (!pathname.startsWith(basepath))
-        return '';
-      let relative = basepath === pathname ? '' : path.normalize(path.relative(basepath, pathname));
-      if (relative === '' || relative === '/')
-        relative = 'index.html';
-      return path.join(this._basePath, relative);
+      const baseUrl = new URL(params.url);
+      baseUrl.pathname = '/';
+      baseUrl.search = '';
+      baseUrl.hash = '';
+      if (baseUrl.protocol === 'data:')
+        return undefined;
+      return baseUrl;
     } catch (e) {
-      return '';
     }
   }
 }

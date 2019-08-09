@@ -297,6 +297,14 @@
                 "type": "string",
                 "description": "Page url"
               },
+              "remoteDebuggingPort": {
+                "type": "string",
+                "description": "Browser remote debugging port"
+              },
+              "baseURL": {
+                "type": "string",
+                "description": "Base URL to resolve paths agsint. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain."
+              },
               "webRoot": {
                 "type": "string",
                 "description": "Path to source files"

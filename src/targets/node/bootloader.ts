@@ -4,16 +4,24 @@
 import { spawn } from 'child_process';
 import * as inspector from 'inspector';
 
+function debugLog(text: string) {
+  // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
+}
+
 (function() {
   if (!process.env.NODE_INSPECTOR_IPC)
     return;
 
+  // Electron support
   // Do not enable for Electron and other hybrid environments.
   try {
     eval('window');
     return;
   } catch (e) {
   }
+  // Do not run watchdog using electron executable, stick with the cli's one.
+  if (!process.env.NODE_INSPECTOR_EXEC_PATH && process.execPath.endsWith('node'))
+    process.env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
 
   let scriptName = '';
   try {
@@ -24,6 +32,7 @@ import * as inspector from 'inspector';
   const ppid = process.env.NODE_INSPECTOR_PPID || '';
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
+  debugLog('Opening inspector for scriptName: ' + scriptName);
   inspector.open(0, undefined, false);
 
   let waitForDebugger = true;
@@ -40,7 +49,10 @@ import * as inspector from 'inspector';
     ppid
   };
 
-  const p = spawn(process.execPath, [__filename.replace('/bootloader.js', '/watchdog.js')], {
+  debugLog('Info: ' + JSON.stringify(info));
+  debugLog('Spawning: ' + process.execPath + ' ' + __filename.replace('/bootloader.js', '/watchdog.js'));
+
+  const p = spawn(process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath, [__filename.replace('/bootloader.js', '/watchdog.js')], {
     env: {
       NODE_INSPECTOR_INFO: JSON.stringify(info),
       NODE_INSPECTOR_IPC: process.env.NODE_INSPECTOR_IPC
@@ -51,6 +63,9 @@ import * as inspector from 'inspector';
   p.unref();
   process.on('exit', () => p.kill());
 
-  if (waitForDebugger)
+  if (waitForDebugger) {
+    debugLog('Will wait for debugger');
     inspector.open(0, undefined, true);
+    debugLog('Got debugger');
+  }
 })();
