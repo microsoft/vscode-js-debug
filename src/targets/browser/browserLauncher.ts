@@ -113,8 +113,12 @@ export class BrowserLauncher implements Launcher {
     await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
+  canLaunch(params: any): boolean {
+    return 'url' in params;
+  }
+
   async launch(params: any, targetOrigin: any): Promise<void> {
-    if (!('url' in params))
+    if (!this.canLaunch(params))
       return;
     const result = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
     if (!(result instanceof BrowserTarget))

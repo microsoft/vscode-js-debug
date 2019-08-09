@@ -18,50 +18,55 @@ export class Binder implements Disposable {
   private _launchers = new Set<Launcher>();
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
+  private _debugAdapter: DebugAdapter;
+  private _targetOrigin: any;
 
   constructor(delegate: BinderDelegate, debugAdapter: DebugAdapter, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
+    this._debugAdapter = debugAdapter;
+    this._targetOrigin = targetOrigin;
     this._disposables = [this._onTargetListChangedEmitter];
-
-    for (const launcher of launchers) {
-      this._launchers.add(launcher);
-      launcher.onTerminated(() => {
-        this._launchers.delete(launcher);
-        this._detachOrphaneThreads(this.targetList());
-        this._onTargetListChangedEmitter.fire();
-        if (!this._launchers.size)
-          debugAdapter.dap.terminated({});
-      }, undefined, this._disposables);
-
-      launcher.onTargetListChanged(() => {
-        const targets = this.targetList();
-        this._attachThoseWaitingForDebugger(targets);
-        this._detachOrphaneThreads(targets);
-        this._onTargetListChangedEmitter.fire();
-      }, undefined, this._disposables);
-    }
 
     debugAdapter.dap.on('launch', async params => {
       await debugAdapter.breakpointManager.launchBlocker();
-      for (const launcher of this._launchers)
-        await launcher.launch(params, targetOrigin);
+      await Promise.all(launchers.map(l => this._launch(l, params)));
       return {};
     });
     debugAdapter.dap.on('terminate', async () => {
-      for (const launcher of this._launchers)
-        await launcher.terminate();
+      await Promise.all([...this._launchers].map(l => l.terminate()));
       return {};
     });
     debugAdapter.dap.on('disconnect', async () => {
-      for (const launcher of this._launchers)
-        await launcher.disconnect();
+      await Promise.all([...this._launchers].map(l => l.disconnect()));
       return {};
     });
     debugAdapter.dap.on('restart', async () => {
-      for (const launcher of this._launchers)
-        await launcher.restart();
+      await Promise.all([...this._launchers].map(l => l.restart()));
       return {};
     });
+  }
+
+  async _launch(launcher: Launcher, params: any) {
+    if (!launcher.canLaunch(params))
+      return;
+    this._launchers.add(launcher);
+
+    launcher.onTerminated(() => {
+      this._launchers.delete(launcher);
+      this._detachOrphaneThreads(this.targetList());
+      this._onTargetListChangedEmitter.fire();
+      if (!this._launchers.size)
+        this._debugAdapter.dap.terminated({});
+    }, undefined, this._disposables);
+
+    launcher.onTargetListChanged(() => {
+      const targets = this.targetList();
+      this._attachThoseWaitingForDebugger(targets);
+      this._detachOrphaneThreads(targets);
+      this._onTargetListChangedEmitter.fire();
+    }, undefined, this._disposables);
+
+    await launcher.launch(params, this._targetOrigin);
   }
 
   dispose() {

@@ -43,10 +43,13 @@ export class NodeLauncher implements Launcher {
     this._pathResolver = new NodeSourcePathResolver();
   }
 
+  canLaunch(params: any): boolean {
+    return 'command' in params;
+  }
+
   async launch(params: any, targetOrigin: any): Promise<void> {
-    if (!('command' in params))
+    if (!this.canLaunch(params))
       return;
-    // params.noDebug
     this._launchParams = params as LaunchParams;
     this._targetOrigin = targetOrigin;
     await this._startServer();
@@ -62,11 +65,9 @@ export class NodeLauncher implements Launcher {
       env: this._buildEnv()
     });
     const commandLine = this._launchParams!.command;
-    const pid = await this._terminal.processId;
     this._terminal.show();
-
-    onProcessExit(pid, () => {
-      if (!this._isRestarting) {
+    vscode.window.onDidCloseTerminal(terminal => {
+      if (terminal === this._terminal && !this._isRestarting) {
         this._stopServer();
         this._onTerminatedEmitter.fire();
       }
@@ -330,17 +331,4 @@ class NodeSourcePathResolver implements SourcePathResolver {
   absolutePathToUrl(absolutePath: string): string | undefined {
     return utils.absolutePathToFileUrl(path.normalize(absolutePath));
   }
-}
-
-function onProcessExit(pid: number, callback: () => void) {
-  const interval = setInterval(() => {
-    try {
-      process.kill(pid, 0);
-    } catch(e) {
-      if (e.code !== 'EPERM') {
-        clearInterval(interval);
-        callback();
-      }
-    }
-  }, 1000);
 }

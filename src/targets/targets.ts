@@ -32,6 +32,7 @@ export interface Target {
 }
 
 export interface Launcher extends Disposable {
+  canLaunch(params: any): boolean;
   launch(params: any, targetOrigin: any): Promise<void>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
