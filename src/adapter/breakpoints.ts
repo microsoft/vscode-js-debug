@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Location, SourceContainer, Source } from './sources';
+import { Location, SourceContainer } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, ThreadManager, Script, ScriptWithSourceMapHandler } from './threads';
@@ -73,8 +73,8 @@ export class Breakpoint {
       }
     }, undefined, this._disposables);
 
-    const promises: Promise<any>[] = [];
-    {
+    const source = this._manager._sourceContainer.source(this._source);
+    if (!source) {
       const onThread = (thread: Thread) => Promise.all([
         // For breakpoints set before launch, we don't know whether they are in a compiled or
         // a source map source. To make them work, we always set by url to not miss compiled.
@@ -85,21 +85,18 @@ export class Breakpoint {
         // Also use predicted locations if available.
         this._setPredicted(thread)
       ]);
-      promises.push(...threadManager.threads().map(onThread));
+      await Promise.all(threadManager.threads().map(onThread));
       threadManager.onThreadAdded(onThread, undefined, this._disposables);
+    } else {
+      const locations = this._manager._sourceContainer.currentSiblingLocations({
+        url: source.url(),
+        lineNumber: this._lineNumber,
+        columnNumber: this._columnNumber,
+        source
+      });
+      await Promise.all(locations.map(location => this._setByLocation(location)));
     }
 
-    const source = this._manager._sourceContainer.source(this._source);
-    const url = source ? source.url() : '';
-    const locations = this._manager._sourceContainer.currentSiblingLocations({
-      url,
-      lineNumber: this._lineNumber,
-      columnNumber: this._columnNumber,
-      source
-    });
-    promises.push(...locations.map(location => this._setByLocation(location, source)));
-
-    await Promise.all(promises);
     await this._notifyResolved();
   }
 
@@ -165,26 +162,13 @@ export class Breakpoint {
     await Promise.all(promises);
   }
 
-  async _setByLocation(location: Location, originalSource?: Source): Promise<void> {
+  async _setByLocation(location: Location): Promise<void> {
+    if (!location.source)
+      return;
     const promises: Promise<void>[] = [];
-    if (location.source) {
-      const scripts = this._manager._threadManager.scriptsFromSource(location.source);
-      for (const script of scripts)
-        promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
-    }
-    if (location.url && (!originalSource || location.source !== originalSource)) {
-      for (const thread of this._manager._threadManager.threads()) {
-        // Threads which support "pause before script with source map" will always have
-        // breakpoints resolved to specific scripts before the script is run, therefore we
-        // can just set by script id above.
-        //
-        // For older versions of threads without this capability, we try a best-effort
-        // set by url method, hoping that all scripts referring to the same source map
-        // will have the same url.
-        if (!thread.supportsSourceMapPause())
-          promises.push(this._setByUrl(thread, location.url, location.lineNumber - 1, location.columnNumber - 1));
-      }
-    }
+    const scripts = this._manager._threadManager.scriptsFromSource(location.source);
+    for (const script of scripts)
+      promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
   }
 
