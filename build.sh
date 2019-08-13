@@ -17,3 +17,4 @@ fi
 ./node_modules/.bin/parcel build src/extension.ts src/targets/node/bootloader.ts src/targets/node/watchdog.ts --target node -d out/ --no-source-maps --bundle-node-modules
 cp out/targets/node/watchdog.js out/
 cp out/targets/node/bootloader.js out/
+cp ./node_modules/source-map/lib/mappings.wasm out/

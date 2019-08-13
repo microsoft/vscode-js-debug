@@ -9,6 +9,7 @@ out/**/*
 !out/extension.js
 !out/bootloader.js
 !out/watchdog.js
+!out/mappings.wasm
 scripts/**/*
 src/**/*
 testWorkspace/**/*
