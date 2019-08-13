@@ -85,8 +85,8 @@ export class Breakpoint {
         // Also use predicted locations if available.
         this._setPredicted(thread)
       ]);
-      await Promise.all(threadManager.threads().map(onThread));
       threadManager.onThreadAdded(onThread, undefined, this._disposables);
+      await Promise.all(threadManager.threads().map(onThread));
     } else {
       const locations = this._manager._sourceContainer.currentSiblingLocations({
         url: source.url(),
