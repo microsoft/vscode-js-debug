@@ -210,7 +210,7 @@ export namespace Dap {
     on(request: 'goto', handler: (params: GotoParams) => Promise<GotoResult | Error>): () => void;
 
     /**
-     * The request suspenses the debuggee.
+     * The request suspends the debuggee.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'pause') after the thread has been paused successfully.
      */
     on(request: 'pause', handler: (params: PauseParams) => Promise<PauseResult | Error>): () => void;
@@ -533,7 +533,7 @@ export namespace Dap {
     goto(params: GotoParams): Promise<GotoResult>;
 
     /**
-     * The request suspenses the debuggee.
+     * The request suspends the debuggee.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'pause') after the thread has been paused successfully.
      */
     pause(params: PauseParams): Promise<PauseResult>;
@@ -848,21 +848,21 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    variablesReference: number;
+    variablesReference: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    namedVariables?: number;
+    namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    indexedVariables?: number;
+    indexedVariables?: integer;
 
     /**
      * Memory reference to a location appropriate for this result. For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
@@ -1064,6 +1064,11 @@ export namespace Dap {
     supportsCompletionsRequest?: boolean;
 
     /**
+     * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the '.' character.
+     */
+    completionTriggerCharacters?: string[];
+
+    /**
      * The debug adapter supports the 'modules' request.
      */
     supportsModulesRequest?: boolean;
@@ -1249,9 +1254,9 @@ export namespace Dap {
     output: string;
 
     /**
-     * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request.
+     * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    variablesReference?: number;
+    variablesReference?: integer;
 
     /**
      * An optional source location where the output was produced.
@@ -1482,21 +1487,21 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    variablesReference?: number;
+    variablesReference?: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    namedVariables?: number;
+    namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    indexedVariables?: number;
+    indexedVariables?: integer;
   }
 
   export interface SetFunctionBreakpointsParams {
@@ -1547,21 +1552,21 @@ export namespace Dap {
     type?: string;
 
     /**
-     * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    variablesReference?: number;
+    variablesReference?: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    namedVariables?: number;
+    namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    indexedVariables?: number;
+    indexedVariables?: integer;
   }
 
   export interface SourceParams {
@@ -1764,7 +1769,7 @@ export namespace Dap {
     variablesReference: integer;
 
     /**
-     * Optional filter to limit the child variables to either named or indexed. If ommited, both types are fetched.
+     * Optional filter to limit the child variables to either named or indexed. If omitted, both types are fetched.
      */
     filter?: string;
 
@@ -2279,9 +2284,9 @@ export namespace Dap {
     path?: string;
 
     /**
-     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source.
+     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source. The value should be less than or equal to 2147483647 (2^31 - 1).
      */
-    sourceReference?: number;
+    sourceReference?: integer;
 
     /**
      * An optional hint for how to present the source in the UI. A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
@@ -2363,7 +2368,7 @@ export namespace Dap {
    * This enumeration defines all possible conditions when a thrown exception should result in a break.
    * never: never breaks,
    * always: always breaks,
-   * unhandled: breaks when excpetion unhandled,
+   * unhandled: breaks when exception unhandled,
    * userUnhandled: breaks if the exception is not handled by user code.
    */
   export type ExceptionBreakMode = string;
@@ -2418,7 +2423,7 @@ export namespace Dap {
     instruction: string;
 
     /**
-     * Name of the symbol that correponds with the location of this instruction, if any.
+     * Name of the symbol that corresponds with the location of this instruction, if any.
      */
     symbol?: string;
 
@@ -2466,6 +2471,11 @@ export namespace Dap {
      * If text is not falsy then it is inserted instead of the label.
      */
     text?: string;
+
+    /**
+     * A string that should be used when comparing this item with other items. When `falsy` the label is used.
+     */
+    sortText?: string;
 
     /**
      * The item's type. Typically the client uses this information to render the item in the UI with an icon.
@@ -2553,6 +2563,11 @@ export namespace Dap {
      * The debug adapter supports the 'completions' request.
      */
     supportsCompletionsRequest?: boolean;
+
+    /**
+     * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the '.' character.
+     */
+    completionTriggerCharacters?: string[];
 
     /**
      * The debug adapter supports the 'modules' request.

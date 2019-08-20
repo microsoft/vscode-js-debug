@@ -101,6 +101,7 @@ export class DebugAdapter {
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
       supportsTerminateRequest: false,
+      completionTriggerCharacters: ['.', '[', '"', "'"]
       //supportsDataBreakpoints: false,
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,

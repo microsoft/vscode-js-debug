@@ -39,6 +39,7 @@ export namespace Cdp {
     IO: IOApi;
     LayerTree: LayerTreeApi;
     Log: LogApi;
+    Media: MediaApi;
     Memory: MemoryApi;
     Network: NetworkApi;
     Overlay: OverlayApi;
@@ -1208,6 +1209,11 @@ export namespace Cdp {
    */
   export interface BrowserApi {
     /**
+     * Set permission settings for given origin.
+     */
+    setPermission(params: Browser.SetPermissionParams): Promise<Browser.SetPermissionResult | undefined>;
+
+    /**
      * Grant specific permissions to the given origin and reject all others.
      */
     grantPermissions(params: Browser.GrantPermissionsParams): Promise<Browser.GrantPermissionsResult | undefined>;
@@ -1278,6 +1284,37 @@ export namespace Cdp {
    * Types of the 'Browser' domain.
    */
   export namespace Browser {
+    /**
+     * Parameters of the 'Browser.setPermission' method.
+     */
+    export interface SetPermissionParams {
+      /**
+       * Origin the permission applies to.
+       */
+      origin: string;
+
+      /**
+       * Descriptor of permission to override.
+       */
+      permission: PermissionDescriptor;
+
+      /**
+       * Setting of the permission.
+       */
+      setting: PermissionSetting;
+
+      /**
+       * Context to override. When omitted, default browser context is used.
+       */
+      browserContextId?: Target.TargetID;
+    }
+
+    /**
+     * Return value of the 'Browser.setPermission' method.
+     */
+    export interface SetPermissionResult {
+    }
+
     /**
      * Parameters of the 'Browser.grantPermissions' method.
      */
@@ -1579,6 +1616,36 @@ export namespace Cdp {
     }
 
     export type PermissionType = 'accessibilityEvents' | 'audioCapture' | 'backgroundSync' | 'backgroundFetch' | 'clipboardRead' | 'clipboardWrite' | 'durableStorage' | 'flash' | 'geolocation' | 'midi' | 'midiSysex' | 'notifications' | 'paymentHandler' | 'periodicBackgroundSync' | 'protectedMediaIdentifier' | 'sensors' | 'videoCapture' | 'idleDetection' | 'wakeLockScreen' | 'wakeLockSystem';
+
+    export type PermissionSetting = 'granted' | 'denied' | 'prompt';
+
+    /**
+     * Definition of PermissionDescriptor defined in the Permissions API:
+     * https://w3c.github.io/permissions/#dictdef-permissiondescriptor.
+     */
+    export interface PermissionDescriptor {
+      /**
+       * Name of permission.
+       * See https://cs.chromium.org/chromium/src/third_party/blink/renderer/modules/permissions/permission_descriptor.idl for valid permission names.
+       */
+      name: string;
+
+      /**
+       * For "midi" permission, may also specify sysex control.
+       */
+      sysex?: boolean;
+
+      /**
+       * For "push" permission, may specify userVisibleOnly.
+       * Note that userVisibleOnly = true is the only currently supported type.
+       */
+      userVisibleOnly?: boolean;
+
+      /**
+       * For "wake-lock" permission, must specify type as either "screen" or "system".
+       */
+      type?: string;
+    }
 
     /**
      * Chrome histogram bucket.
@@ -6960,6 +7027,11 @@ export namespace Cdp {
       computedStyles: string[];
 
       /**
+       * Whether to include layout object paint orders into the snapshot.
+       */
+      includePaintOrder?: boolean;
+
+      /**
        * Whether to include DOM rectangles (offsetRects, clientRects, scrollRects) into the snapshot
        */
       includeDOMRects?: boolean;
@@ -7424,6 +7496,13 @@ export namespace Cdp {
        * Stacking context information.
        */
       stackingContexts: RareBooleanData;
+
+      /**
+       * Global paint order index, which is determined by the stacking order of the nodes. Nodes
+       * that are painted together will have the same index. Only provided if includePaintOrder in
+       * captureSnapshot was true.
+       */
+      paintOrders?: integer[];
 
       /**
        * The offset rect of nodes. Only available when includeDOMRects is set to true
@@ -10936,6 +11015,129 @@ export namespace Cdp {
        * Time threshold to trigger upon.
        */
       threshold: number;
+    }
+  }
+
+  /**
+   * Methods and events of the 'Media' domain.
+   */
+  export interface MediaApi {
+    /**
+     * Enables the Media domain
+     */
+    enable(params: Media.EnableParams): Promise<Media.EnableResult | undefined>;
+
+    /**
+     * Disables the Media domain.
+     */
+    disable(params: Media.DisableParams): Promise<Media.DisableResult | undefined>;
+
+    /**
+     * This can be called multiple times, and can be used to set / override /
+     * remove player properties. A null propValue indicates removal.
+     */
+    on(event: 'playerPropertiesChanged', listener: (event: Media.PlayerPropertiesChangedEvent) => void): void;
+
+    /**
+     * Send events as a list, allowing them to be batched on the browser for less
+     * congestion. If batched, events must ALWAYS be in chronological order.
+     */
+    on(event: 'playerEventsAdded', listener: (event: Media.PlayerEventsAddedEvent) => void): void;
+
+    /**
+     * Called whenever a player is created, or when a new agent joins and recieves
+     * a list of active players. If an agent is restored, it will recieve the full
+     * list of player ids and all events again.
+     */
+    on(event: 'playersCreated', listener: (event: Media.PlayersCreatedEvent) => void): void;
+  }
+
+  /**
+   * Types of the 'Media' domain.
+   */
+  export namespace Media {
+    /**
+     * Parameters of the 'Media.enable' method.
+     */
+    export interface EnableParams {
+    }
+
+    /**
+     * Return value of the 'Media.enable' method.
+     */
+    export interface EnableResult {
+    }
+
+    /**
+     * Parameters of the 'Media.disable' method.
+     */
+    export interface DisableParams {
+    }
+
+    /**
+     * Return value of the 'Media.disable' method.
+     */
+    export interface DisableResult {
+    }
+
+    /**
+     * Parameters of the 'Media.playerPropertiesChanged' event.
+     */
+    export interface PlayerPropertiesChangedEvent {
+      playerId: PlayerId;
+
+      properties: PlayerProperty[];
+    }
+
+    /**
+     * Parameters of the 'Media.playerEventsAdded' event.
+     */
+    export interface PlayerEventsAddedEvent {
+      playerId: PlayerId;
+
+      events: PlayerEvent[];
+    }
+
+    /**
+     * Parameters of the 'Media.playersCreated' event.
+     */
+    export interface PlayersCreatedEvent {
+      players: PlayerId[];
+    }
+
+    /**
+     * Players will get an ID that is unique within the agent context.
+     */
+    export type PlayerId = string;
+
+    export type Timestamp = number;
+
+    /**
+     * Player Property type
+     */
+    export interface PlayerProperty {
+      name: string;
+
+      value?: string;
+    }
+
+    /**
+     * Break out events into different types
+     */
+    export type PlayerEventType = 'playbackEvent' | 'systemEvent' | 'messageEvent';
+
+    export interface PlayerEvent {
+      type: PlayerEventType;
+
+      /**
+       * Events are timestamped relative to the start of the player creation
+       * not relative to the start of playback.
+       */
+      timestamp: Timestamp;
+
+      name: string;
+
+      value: string;
     }
   }
 
@@ -15986,7 +16188,7 @@ export namespace Cdp {
       /**
        * Frame unique identifier.
        */
-      id: string;
+      id: FrameId;
 
       /**
        * Parent frame identifier.
@@ -18590,6 +18792,8 @@ export namespace Cdp {
 
     dispatchSyncEvent(params: ServiceWorker.DispatchSyncEventParams): Promise<ServiceWorker.DispatchSyncEventResult | undefined>;
 
+    dispatchPeriodicSyncEvent(params: ServiceWorker.DispatchPeriodicSyncEventParams): Promise<ServiceWorker.DispatchPeriodicSyncEventResult | undefined>;
+
     enable(params: ServiceWorker.EnableParams): Promise<ServiceWorker.EnableResult | undefined>;
 
     inspectWorker(params: ServiceWorker.InspectWorkerParams): Promise<ServiceWorker.InspectWorkerResult | undefined>;
@@ -18665,6 +18869,23 @@ export namespace Cdp {
      * Return value of the 'ServiceWorker.dispatchSyncEvent' method.
      */
     export interface DispatchSyncEventResult {
+    }
+
+    /**
+     * Parameters of the 'ServiceWorker.dispatchPeriodicSyncEvent' method.
+     */
+    export interface DispatchPeriodicSyncEventParams {
+      origin: string;
+
+      registrationId: RegistrationID;
+
+      tag: string;
+    }
+
+    /**
+     * Return value of the 'ServiceWorker.dispatchPeriodicSyncEvent' method.
+     */
+    export interface DispatchPeriodicSyncEventResult {
     }
 
     /**
@@ -20336,6 +20557,56 @@ export namespace Cdp {
      * Notifies that existing BaseAudioContext has changed some properties (id stays the same)..
      */
     on(event: 'contextChanged', listener: (event: WebAudio.ContextChangedEvent) => void): void;
+
+    /**
+     * Notifies that the construction of an AudioListener has finished.
+     */
+    on(event: 'audioListenerCreated', listener: (event: WebAudio.AudioListenerCreatedEvent) => void): void;
+
+    /**
+     * Notifies that a new AudioListener has been created.
+     */
+    on(event: 'audioListenerWillBeDestroyed', listener: (event: WebAudio.AudioListenerWillBeDestroyedEvent) => void): void;
+
+    /**
+     * Notifies that a new AudioNode has been created.
+     */
+    on(event: 'audioNodeCreated', listener: (event: WebAudio.AudioNodeCreatedEvent) => void): void;
+
+    /**
+     * Notifies that an existing AudioNode has been destroyed.
+     */
+    on(event: 'audioNodeWillBeDestroyed', listener: (event: WebAudio.AudioNodeWillBeDestroyedEvent) => void): void;
+
+    /**
+     * Notifies that a new AudioParam has been created.
+     */
+    on(event: 'audioParamCreated', listener: (event: WebAudio.AudioParamCreatedEvent) => void): void;
+
+    /**
+     * Notifies that an existing AudioParam has been destroyed.
+     */
+    on(event: 'audioParamWillBeDestroyed', listener: (event: WebAudio.AudioParamWillBeDestroyedEvent) => void): void;
+
+    /**
+     * Notifies that two AudioNodes are connected.
+     */
+    on(event: 'nodesConnected', listener: (event: WebAudio.NodesConnectedEvent) => void): void;
+
+    /**
+     * Notifies that AudioNodes are disconnected. The destination can be null, and it means all the outgoing connections from the source are disconnected.
+     */
+    on(event: 'nodesDisconnected', listener: (event: WebAudio.NodesDisconnectedEvent) => void): void;
+
+    /**
+     * Notifies that an AudioNode is connected to an AudioParam.
+     */
+    on(event: 'nodeParamConnected', listener: (event: WebAudio.NodeParamConnectedEvent) => void): void;
+
+    /**
+     * Notifies that an AudioNode is disconnected to an AudioParam.
+     */
+    on(event: 'nodeParamDisconnected', listener: (event: WebAudio.NodeParamDisconnectedEvent) => void): void;
   }
 
   /**
@@ -20370,7 +20641,7 @@ export namespace Cdp {
      * Parameters of the 'WebAudio.getRealtimeData' method.
      */
     export interface GetRealtimeDataParams {
-      contextId: ContextId;
+      contextId: GraphObjectId;
     }
 
     /**
@@ -20391,7 +20662,7 @@ export namespace Cdp {
      * Parameters of the 'WebAudio.contextWillBeDestroyed' event.
      */
     export interface ContextWillBeDestroyedEvent {
-      contextId: ContextId;
+      contextId: GraphObjectId;
     }
 
     /**
@@ -20402,9 +20673,115 @@ export namespace Cdp {
     }
 
     /**
-     * Context's UUID in string
+     * Parameters of the 'WebAudio.audioListenerCreated' event.
      */
-    export type ContextId = string;
+    export interface AudioListenerCreatedEvent {
+      listener: AudioListener;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.audioListenerWillBeDestroyed' event.
+     */
+    export interface AudioListenerWillBeDestroyedEvent {
+      contextId: GraphObjectId;
+
+      listenerId: GraphObjectId;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.audioNodeCreated' event.
+     */
+    export interface AudioNodeCreatedEvent {
+      node: AudioNode;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.audioNodeWillBeDestroyed' event.
+     */
+    export interface AudioNodeWillBeDestroyedEvent {
+      contextId: GraphObjectId;
+
+      nodeId: GraphObjectId;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.audioParamCreated' event.
+     */
+    export interface AudioParamCreatedEvent {
+      param: AudioParam;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.audioParamWillBeDestroyed' event.
+     */
+    export interface AudioParamWillBeDestroyedEvent {
+      contextId: GraphObjectId;
+
+      nodeId: GraphObjectId;
+
+      paramId: GraphObjectId;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.nodesConnected' event.
+     */
+    export interface NodesConnectedEvent {
+      contextId: GraphObjectId;
+
+      sourceId: GraphObjectId;
+
+      destinationId: GraphObjectId;
+
+      sourceOutputIndex?: number;
+
+      destinationInputIndex?: number;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.nodesDisconnected' event.
+     */
+    export interface NodesDisconnectedEvent {
+      contextId: GraphObjectId;
+
+      sourceId: GraphObjectId;
+
+      destinationId: GraphObjectId;
+
+      sourceOutputIndex?: number;
+
+      destinationInputIndex?: number;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.nodeParamConnected' event.
+     */
+    export interface NodeParamConnectedEvent {
+      contextId: GraphObjectId;
+
+      sourceId: GraphObjectId;
+
+      destinationId: GraphObjectId;
+
+      sourceOutputIndex?: number;
+    }
+
+    /**
+     * Parameters of the 'WebAudio.nodeParamDisconnected' event.
+     */
+    export interface NodeParamDisconnectedEvent {
+      contextId: GraphObjectId;
+
+      sourceId: GraphObjectId;
+
+      destinationId: GraphObjectId;
+
+      sourceOutputIndex?: number;
+    }
+
+    /**
+     * An unique ID for a graph object (AudioContext, AudioNode, AudioParam) in Web Audio API
+     */
+    export type GraphObjectId = string;
 
     /**
      * Enum of BaseAudioContext types
@@ -20415,6 +20792,31 @@ export namespace Cdp {
      * Enum of AudioContextState from the spec
      */
     export type ContextState = 'suspended' | 'running' | 'closed';
+
+    /**
+     * Enum of AudioNode types
+     */
+    export type NodeType = string;
+
+    /**
+     * Enum of AudioNode::ChannelCountMode from the spec
+     */
+    export type ChannelCountMode = 'clamped-max' | 'explicit' | 'max';
+
+    /**
+     * Enum of AudioNode::ChannelInterpretation from the spec
+     */
+    export type ChannelInterpretation = 'discrete' | 'speakers';
+
+    /**
+     * Enum of AudioParam types
+     */
+    export type ParamType = string;
+
+    /**
+     * Enum of AudioParam::AutomationRate from the spec
+     */
+    export type AutomationRate = 'a-rate' | 'k-rate';
 
     /**
      * Fields in AudioContext that change in real-time.
@@ -20447,7 +20849,7 @@ export namespace Cdp {
      * Protocol object for BaseAudioContext
      */
     export interface BaseAudioContext {
-      contextId: ContextId;
+      contextId: GraphObjectId;
 
       contextType: ContextType;
 
@@ -20469,6 +20871,57 @@ export namespace Cdp {
        * Context sample rate.
        */
       sampleRate: number;
+    }
+
+    /**
+     * Protocol object for AudioListner
+     */
+    export interface AudioListener {
+      listenerId: GraphObjectId;
+
+      contextId: GraphObjectId;
+    }
+
+    /**
+     * Protocol object for AudioNode
+     */
+    export interface AudioNode {
+      nodeId: GraphObjectId;
+
+      contextId: GraphObjectId;
+
+      nodeType: NodeType;
+
+      numberOfInputs: number;
+
+      numberOfOutputs: number;
+
+      channelCount: number;
+
+      channelCountMode: ChannelCountMode;
+
+      channelInterpretation: ChannelInterpretation;
+    }
+
+    /**
+     * Protocol object for AudioParam
+     */
+    export interface AudioParam {
+      paramId: GraphObjectId;
+
+      nodeId: GraphObjectId;
+
+      contextId: GraphObjectId;
+
+      paramType: ParamType;
+
+      rate: AutomationRate;
+
+      defaultValue: number;
+
+      minValue: number;
+
+      maxValue: number;
     }
   }
 
@@ -20501,6 +20954,12 @@ export namespace Cdp {
      * Adds the credential to the specified authenticator.
      */
     addCredential(params: WebAuthn.AddCredentialParams): Promise<WebAuthn.AddCredentialResult | undefined>;
+
+    /**
+     * Returns a single credential stored in the given virtual authenticator that
+     * matches the credential ID.
+     */
+    getCredential(params: WebAuthn.GetCredentialParams): Promise<WebAuthn.GetCredentialResult | undefined>;
 
     /**
      * Returns all the credentials stored in the given virtual authenticator.
@@ -20590,6 +21049,22 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'WebAuthn.getCredential' method.
+     */
+    export interface GetCredentialParams {
+      authenticatorId: AuthenticatorId;
+
+      credentialId: string;
+    }
+
+    /**
+     * Return value of the 'WebAuthn.getCredential' method.
+     */
+    export interface GetCredentialResult {
+      credential: Credential;
+    }
+
+    /**
      * Parameters of the 'WebAuthn.getCredentials' method.
      */
     export interface GetCredentialsParams {
@@ -20656,17 +21131,24 @@ export namespace Cdp {
     export interface Credential {
       credentialId: string;
 
-      /**
-       * SHA-256 hash of the Relying Party ID the credential is scoped to. Must
-       * be 32 bytes long.
-       * See https://w3c.github.io/webauthn/#rpidhash
-       */
-      rpIdHash: string;
+      isResidentCredential: boolean;
 
       /**
-       * The private key in PKCS#8 format.
+       * Relying Party ID the credential is scoped to. Must be set when adding a
+       * credential.
+       */
+      rpId?: string;
+
+      /**
+       * The ECDSA P-256 private key in PKCS#8 format.
        */
       privateKey: string;
+
+      /**
+       * An opaque byte sequence with a maximum size of 64 bytes mapping the
+       * credential to a specific user.
+       */
+      userHandle?: string;
 
       /**
        * Signature counter. This is incremented by one for each successful
