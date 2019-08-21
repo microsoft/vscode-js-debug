@@ -129,24 +129,13 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
   }
 
   createDebugAdapterDescriptor(debugSession: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    const factory = ('sessionPerThread' in debugSession.configuration) ? this._sessionManager : this;
-    const session = factory.createSession(this._context, debugSession, debugAdapter => {
+    const session = this._sessionManager.createSession(this._context, debugSession, debugAdapter => {
       this._onAdapterAddedEmitter.fire(debugAdapter);
       if (session.binder())
         session.binder()!.onTargetListChanged(() => this._onTargetListChangedEmitter.fire());
     });
     this._sessions.set(debugSession.id, session);
     return session.descriptor();
-  }
-
-  createSession(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, callback: (debugAdapter: DebugAdapter) => void): Session {
-    const session = new Session(context, debugSession, {
-      acquireDebugAdapter: async () => session.debugAdapter()!,
-      releaseDebugAdapter: () => {}
-    }, debugAdapter => {
-      callback(debugAdapter);
-    });
-    return session;
   }
 
   sourceForUri(uri: vscode.Uri): { adapter: DebugAdapter | undefined, source: Source | undefined } {
