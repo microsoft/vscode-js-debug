@@ -94,7 +94,7 @@ export function addTests(testRunner) {
     });
   });
 
-  describe('multiple threads', () => {
+  xdescribe('multiple threads', () => {
     it('worker', async ({ p }: { p: TestP }) => {
       await p.launchUrl('worker.html');
       const kLogs = 3;

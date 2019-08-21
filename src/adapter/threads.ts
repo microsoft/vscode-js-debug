@@ -70,17 +70,14 @@ export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => 
 export class ThreadManager {
   private _pauseOnExceptionsState: PauseOnExceptionsState;
   private _customBreakpoints: Set<string>;
-  private _threads: Map<string, Thread> = new Map();
-  private _threadToDapId: Map<Thread, number> = new Map();
-  private _dapIdToThread: Map<number, Thread> = new Map();
+  private _thread: Thread | undefined;
   private _dap: Dap.Api;
-  private _lastThreadDapId = 0;
 
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
 
   _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
   _onThreadAddedEmitter = new EventEmitter<Thread>();
-  _onThreadRemovedEmitter = new EventEmitter<{thread: Thread, dapId: number}>();
+  _onThreadRemovedEmitter = new EventEmitter<{thread: Thread}>();
   _onThreadPausedEmitter = new EventEmitter<Thread>();
   _onThreadResumedEmitter = new EventEmitter<Thread>();
   readonly onThreadAdded = this._onThreadAddedEmitter.event;
@@ -104,10 +101,6 @@ export class ThreadManager {
     this.sourceContainer = sourceContainer;
   }
 
-  mainThread(): Thread | undefined {
-    return this._threads.values().next().value;
-  }
-
   createThread(threadId: string, threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
     return new Thread(this, threadId, threadName, cdp, this._dap, delegate);
   }
@@ -116,52 +109,35 @@ export class ThreadManager {
     if (this._scriptWithSourceMapHandler === handler)
       return;
     this._scriptWithSourceMapHandler = handler;
-    const promises: Promise<void>[] = [];
-    for (const thread of this._threads.values())
-      promises.push(thread._updatePauseOnSourceMap());
-    await Promise.all(promises);
+    if (this._thread)
+      await this._thread._updatePauseOnSourceMap();
   }
 
   _addThread(thread: Thread) {
-    console.assert(!this._threads.has(thread.threadId()));
-    this._threads.set(thread.threadId(), thread);
-    const dapId = ++this._lastThreadDapId;
-    this._dapIdToThread.set(dapId, thread);
-    this._threadToDapId.set(thread, dapId);
+    console.assert(!this._thread);
+    this._thread = thread;
   }
 
-  _removeThread(threadId: string) {
-    const thread = this._threads.get(threadId)!;
-    console.assert(thread);
-    this._threads.delete(threadId);
-    const dapId = this._threadToDapId.get(thread)!;
-    this._threadToDapId.delete(thread);
-    this._dapIdToThread.delete(dapId);
-    this._onThreadRemovedEmitter.fire({thread, dapId});
+  _removeThread(thread: Thread) {
+    console.assert(thread === this._thread);
+    this._thread = undefined;
+    this._onThreadRemovedEmitter.fire({thread});
+    this._dap.thread({
+      reason: 'exited',
+      threadId: 0
+    });
   }
 
-  threads(): Thread[] {
-    return Array.from(this._threads.values());
-  }
-
-  thread(threadId: string): Thread | undefined {
-    return this._threads.get(threadId);
-  }
-
-  threadByDapId(dapId: number): Thread | undefined {
-    return this._dapIdToThread.get(dapId);
-  }
-
-  dapIdByThread(thread: Thread): number {
-    return this._threadToDapId.get(thread)!;
+  thread(): Thread | undefined {
+    return this._thread;
   }
 
   threadByFrameId(frameId: number): Thread | undefined {
-    for (const thread of this._threads.values()) {
-      const details = thread.pausedDetails();
+    if (this._thread) {
+      const details = this._thread.pausedDetails();
       const stackFrame = details ? details.stackTrace.frame(frameId) : undefined;
       if (stackFrame)
-        return thread;
+        return this._thread;
     }
   }
 
@@ -171,18 +147,16 @@ export class ThreadManager {
 
   async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
     this._pauseOnExceptionsState = state;
-    const promises: Promise<boolean>[] = [];
-    for (const thread of this._threads.values())
-      promises.push(thread._updatePauseOnExceptionsState());
-    await Promise.all(promises);
+    if (this._thread)
+      await this._thread._updatePauseOnExceptionsState();
   }
 
   async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
     const promises: Promise<boolean>[] = [];
     for (const id of ids) {
       this._customBreakpoints.add(id);
-      for (const thread of this._threads.values())
-        promises.push(thread.updateCustomBreakpoint(id, true));
+      if (this._thread)
+        promises.push(this._thread.updateCustomBreakpoint(id, true));
     }
     await Promise.all(promises);
   }
@@ -191,8 +165,8 @@ export class ThreadManager {
     const promises: Promise<boolean>[] = [];
     for (const id of ids) {
       this._customBreakpoints.add(id);
-      for (const thread of this._threads.values())
-        promises.push(thread.updateCustomBreakpoint(id, false));
+      if (this._thread)
+        promises.push(this._thread.updateCustomBreakpoint(id, false));
     }
     await Promise.all(promises);
   }
@@ -581,6 +555,10 @@ export class Thread implements VariableStoreDelegate {
     this._pauseOnScheduledAsyncCall();
 
     this.manager._onThreadAddedEmitter.fire(this);
+    this._dap.thread({
+      reason: 'started',
+      threadId: 0
+    });
   }
 
   refreshStackTrace() {
@@ -675,7 +653,7 @@ export class Thread implements VariableStoreDelegate {
       if (thread === this)
         ThreadManager._allThreadsByDebuggerId.delete(debuggerId);
     }
-    this.manager._removeThread(this._threadId);
+    this.manager._removeThread(this);
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}`);

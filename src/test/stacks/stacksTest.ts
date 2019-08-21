@@ -69,7 +69,7 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('cross target', async({p}: {p: TestP}) => {
+  xit('cross target', async({p}: {p: TestP}) => {
     await p.launchUrl('worker.html');
     p.cdp.Runtime.evaluate({expression: `window.w.postMessage('pause')`});
     await dumpStackAndContinue(p, true);

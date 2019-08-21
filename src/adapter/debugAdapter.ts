@@ -23,7 +23,6 @@ export class DebugAdapter {
   readonly breakpointManager: BreakpointManager;
   private _locationToReveal: Location | undefined;
   private _disposables: Disposable[] = [];
-  private _selectedThread?: Thread;
 
   constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this.dap = dap;
@@ -51,18 +50,6 @@ export class DebugAdapter {
     this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
 
-    this.threadManager.onThreadAdded(thread => this.dap.thread({
-      reason: 'started',
-      threadId: this.threadManager.dapIdByThread(thread)
-    }), undefined, this._disposables);
-    this.threadManager.onThreadRemoved(({thread, dapId}) => {
-      this.dap.thread({
-        reason: 'exited',
-        threadId: dapId
-      });
-      if (this._selectedThread === thread)
-        this._selectedThread = undefined;
-    }, undefined, this._disposables);
     this.threadManager.onThreadPaused(thread => this._onThreadPaused(thread), undefined, this._disposables);
     this.threadManager.onThreadResumed(thread => this._onThreadResumed(thread), undefined, this._disposables);
   }
@@ -141,9 +128,10 @@ export class DebugAdapter {
   }
 
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
-    const threads = this.threadManager.threads().map(thread => {
-      return { id: this.threadManager.dapIdByThread(thread), name: thread.name() };
-    });
+    const threads: Dap.Thread[] = [];
+    const thread = this.threadManager.thread();
+    if (thread)
+      threads.push({ id: 0, name: thread.name() });
     if (this._locationToReveal)
       threads.push({ id: revealLocationThreadId, name: '' });
     return { threads };
@@ -152,14 +140,15 @@ export class DebugAdapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === revealLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
-    const thread = this.threadManager.threadByDapId(params.threadId);
+    const thread = this.threadManager.thread();
     if (!thread)
       return this._threadNotAvailableError();
     return thread.stackTrace(params);
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
-    for (const thread of this.threadManager.threads()) {
+    const thread = this.threadManager.thread();
+    if (thread) {
       if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
         return thread.pausedVariables();
       if (thread.replVariables.hasVariables(variablesReference))
@@ -183,7 +172,7 @@ export class DebugAdapter {
   }
 
   _withThread<T>(threadId: number, callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
-    const thread = this.threadManager.threadByDapId(threadId);
+    const thread = this.threadManager.thread();
     if (!thread)
       return Promise.resolve(this._threadNotAvailableError());
     return callback(thread);
@@ -199,7 +188,7 @@ export class DebugAdapter {
   _onEvaluate(params: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     if (params.frameId)
       return this._withFrame(params.frameId, thread => thread.evaluate(params));
-    const thread = this._selectedThread || this.threadManager.threads()[0];
+    const thread = this.threadManager.thread();
     if (!thread)
       return Promise.resolve(this._threadNotAvailableError());
     return thread.evaluate(params);
@@ -208,7 +197,7 @@ export class DebugAdapter {
   _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
     if (params.frameId)
       return this._withFrame(params.frameId, thread => thread.completions(params));
-    const thread = this._selectedThread || this.threadManager.threads()[0];
+    const thread = this.threadManager.thread();
     if (!thread)
       return Promise.resolve(this._threadNotAvailableError());
     return thread.completions(params);
@@ -236,7 +225,8 @@ export class DebugAdapter {
     this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
     this._locationToReveal = undefined;
 
-    for (const thread of this.threadManager.threads()) {
+    const thread = this.threadManager.thread();
+    if (thread) {
       const details = thread.pausedDetails();
       if (details) {
         thread.refreshStackTrace();
@@ -244,11 +234,6 @@ export class DebugAdapter {
         this._onThreadPaused(thread);
       }
     }
-  }
-
-  // TODO: delete once threadId is available in evaluate / completions.
-  selectThread(thread: Thread | undefined) {
-    this._selectedThread = thread;
   }
 
   async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
@@ -270,7 +255,7 @@ export class DebugAdapter {
     this.dap.stopped({
       reason: details.reason,
       description: details.description,
-      threadId: this.threadManager.dapIdByThread(thread),
+      threadId: 0,
       text: details.text,
       allThreadsStopped: false
     });
@@ -278,7 +263,7 @@ export class DebugAdapter {
 
   _onThreadResumed(thread: Thread) {
     this.dap.continued({
-      threadId: this.threadManager.dapIdByThread(thread),
+      threadId: 0,
       allThreadsContinued: false
     });
   }

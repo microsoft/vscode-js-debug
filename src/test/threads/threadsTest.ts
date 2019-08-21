@@ -71,7 +71,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread', async ({ p }: { p: TestP }) => {
+    xit('cross thread', async ({ p }: { p: TestP }) => {
       await p.launchUrl('worker.html');
 
       p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w.postMessage('message')\n//# sourceURL=test.js`});
@@ -123,7 +123,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
+    xit('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
       await p.launchUrl('index.html');
 
       p.cdp.Runtime.evaluate({expression: `
