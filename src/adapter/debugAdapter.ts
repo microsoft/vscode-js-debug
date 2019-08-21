@@ -7,9 +7,11 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from '../dap/errors';
 import { Location, SourceContainer } from './sources';
-import { PauseOnExceptionsState, ThreadManager, Thread, UIDelegate } from './threads';
+import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
+import { Cdp } from '../cdp/api';
+import { CustomBreakpointId } from './customBreakpoints';
 
 const localize = nls.loadMessageBundle();
 const revealLocationThreadId = 999999999;
@@ -19,13 +21,17 @@ const revealLocationThreadId = 999999999;
 export class DebugAdapter {
   readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
-  readonly threadManager: ThreadManager;
   readonly breakpointManager: BreakpointManager;
   private _locationToReveal: Location | undefined;
   private _disposables: Disposable[] = [];
+  private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
+  private _customBreakpoints = new Set<string>();
+  private _thread: Thread | undefined;
+  private _uiDelegate: UIDelegate;
 
   constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this.dap = dap;
+    this._uiDelegate = uiDelegate;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this.dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
@@ -36,22 +42,18 @@ export class DebugAdapter {
     this.dap.on('stackTrace', params => this._onStackTrace(params));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
-    this.dap.on('continue', params => this._withThread(params.threadId, thread => thread.resume())),
-    this.dap.on('pause', params => this._withThread(params.threadId, thread => thread.pause())),
-    this.dap.on('next', params => this._withThread(params.threadId, thread => thread.stepOver())),
-    this.dap.on('stepIn', params => this._withThread(params.threadId, thread => thread.stepInto())),
-    this.dap.on('stepOut', params => this._withThread(params.threadId, thread => thread.stepOut())),
-    this.dap.on('restartFrame', params => this._withFrame(params.frameId, thread => thread.restartFrame(params))),
-    this.dap.on('scopes', params => this._withFrame(params.frameId, thread => thread.scopes(params))),
+    this.dap.on('continue', params => this._withThread(thread => thread.resume())),
+    this.dap.on('pause', params => this._withThread(thread => thread.pause())),
+    this.dap.on('next', params => this._withThread(thread => thread.stepOver())),
+    this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto())),
+    this.dap.on('stepOut', params => this._withThread(thread => thread.stepOut())),
+    this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params))),
+    this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params))),
     this.dap.on('evaluate', params => this._onEvaluate(params)),
     this.dap.on('completions', params => this._onCompletions(params)),
-    this.dap.on('exceptionInfo', params => this._withThread(params.threadId, thread => thread.exceptionInfo())),
+    this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo())),
     this.sourceContainer = new SourceContainer(this.dap, rootPath);
-    this.threadManager = new ThreadManager(this.dap, this.sourceContainer, uiDelegate);
-    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, this.threadManager);
-
-    this.threadManager.onThreadPaused(thread => this._onThreadPaused(thread), undefined, this._disposables);
-    this.threadManager.onThreadResumed(thread => this._onThreadResumed(thread), undefined, this._disposables);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -105,7 +107,7 @@ export class DebugAdapter {
       pauseOnExceptionsState = 'all';
     else if (params.filters.includes('uncaught'))
       pauseOnExceptionsState = 'uncaught';
-    await this.threadManager.setPauseOnExceptionsState(pauseOnExceptionsState);
+    await this._setPauseOnExceptionsState(pauseOnExceptionsState);
     return {};
   }
 
@@ -129,9 +131,8 @@ export class DebugAdapter {
 
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
-    const thread = this.threadManager.thread();
-    if (thread)
-      threads.push({ id: 0, name: thread.name() });
+    if (this._thread)
+      threads.push({ id: 0, name: this._thread.name() });
     if (this._locationToReveal)
       threads.push({ id: revealLocationThreadId, name: '' });
     return { threads };
@@ -140,20 +141,18 @@ export class DebugAdapter {
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
     if (params.threadId === revealLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
-    const thread = this.threadManager.thread();
-    if (!thread)
+    if (!this._thread)
       return this._threadNotAvailableError();
-    return thread.stackTrace(params);
+    return this._thread.stackTrace(params);
   }
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
-    const thread = this.threadManager.thread();
-    if (thread) {
-      if (thread.pausedVariables() && thread.pausedVariables()!.hasVariables(variablesReference))
-        return thread.pausedVariables();
-      if (thread.replVariables.hasVariables(variablesReference))
-        return thread.replVariables;
-    }
+    if (!this._thread)
+      return;
+    if (this._thread.pausedVariables() && this._thread.pausedVariables()!.hasVariables(variablesReference))
+      return this._thread.pausedVariables();
+    if (this._thread.replVariables.hasVariables(variablesReference))
+      return this._thread.replVariables;
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
@@ -171,36 +170,22 @@ export class DebugAdapter {
     return variableStore.setVariable(params);
   }
 
-  _withThread<T>(threadId: number, callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
-    const thread = this.threadManager.thread();
-    if (!thread)
+  _withThread<T>(callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
+    if (!this._thread)
       return Promise.resolve(this._threadNotAvailableError());
-    return callback(thread);
-  }
-
-  _withFrame<T>(frameId: number, callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
-    const thread = this.threadManager.threadByFrameId(frameId);
-    if (!thread)
-      return Promise.resolve(this._stackFrameNotFoundError());
-    return callback(thread);
+    return callback(this._thread);
   }
 
   _onEvaluate(params: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    if (params.frameId)
-      return this._withFrame(params.frameId, thread => thread.evaluate(params));
-    const thread = this.threadManager.thread();
-    if (!thread)
+    if (!this._thread)
       return Promise.resolve(this._threadNotAvailableError());
-    return thread.evaluate(params);
+    return this._thread.evaluate(params);
   }
 
   _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    if (params.frameId)
-      return this._withFrame(params.frameId, thread => thread.completions(params));
-    const thread = this.threadManager.thread();
-    if (!thread)
+    if (!this._thread)
       return Promise.resolve(this._threadNotAvailableError());
-    return thread.completions(params);
+    return this._thread.completions(params);
   }
 
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
@@ -225,14 +210,10 @@ export class DebugAdapter {
     this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
     this._locationToReveal = undefined;
 
-    const thread = this.threadManager.thread();
-    if (thread) {
-      const details = thread.pausedDetails();
-      if (details) {
-        thread.refreshStackTrace();
-        this._onThreadResumed(thread);
-        this._onThreadPaused(thread);
-      }
+    if (this._thread) {
+      const details = this._thread.pausedDetails();
+      if (details)
+        this._thread.refreshStackTrace();
     }
   }
 
@@ -250,30 +231,63 @@ export class DebugAdapter {
     };
   }
 
-  _onThreadPaused(thread: Thread) {
-    const details = thread.pausedDetails()!;
-    this.dap.stopped({
-      reason: details.reason,
-      description: details.description,
-      threadId: 0,
-      text: details.text,
-      allThreadsStopped: false
-    });
-  }
-
-  _onThreadResumed(thread: Thread) {
-    this.dap.continued({
-      threadId: 0,
-      allThreadsContinued: false
-    });
-  }
-
   _threadNotAvailableError(): Dap.Error {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
   _stackFrameNotFoundError(): Dap.Error {
     return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+  }
+
+  createThread(threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate): Thread {
+    this._thread = new Thread(this.sourceContainer, threadId, threadName, cdp, dap, delegate, this._uiDelegate);
+    this._thread.setCustomBreakpoints(this._customBreakpoints);
+    this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
+    this.breakpointManager.setThread(this._thread);
+    return this._thread;
+  }
+
+  threadByFrameId(frameId: number): Thread | undefined {
+    if (this._thread) {
+      const details = this._thread.pausedDetails();
+      const stackFrame = details ? details.stackTrace.frame(frameId) : undefined;
+      if (stackFrame)
+        return this._thread;
+    }
+  }
+
+  pauseOnExceptionsState(): PauseOnExceptionsState {
+    return this._pauseOnExceptionsState;
+  }
+
+  async _setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
+    this._pauseOnExceptionsState = state;
+    if (this._thread)
+      await this._thread.setPauseOnExceptionsState(state);
+  }
+
+  async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+    const promises: Promise<boolean>[] = [];
+    for (const id of ids) {
+      this._customBreakpoints.add(id);
+      if (this._thread)
+        this._thread.setCustomBreakpoints(this._customBreakpoints);
+    }
+    await Promise.all(promises);
+  }
+
+  async disableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+    const promises: Promise<boolean>[] = [];
+    for (const id of ids) {
+      this._customBreakpoints.delete(id);
+      if (this._thread)
+        this._thread.setCustomBreakpoints(this._customBreakpoints);
+    }
+    await Promise.all(promises);
+  }
+
+  customBreakpoints(): Set<string> {
+    return this._customBreakpoints;
   }
 
   dispose() {

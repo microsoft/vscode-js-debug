@@ -67,146 +67,6 @@ export interface ThreadDelegate {
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
 
-export class ThreadManager {
-  private _pauseOnExceptionsState: PauseOnExceptionsState;
-  private _customBreakpoints: Set<string>;
-  private _thread: Thread | undefined;
-  private _dap: Dap.Api;
-
-  static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
-
-  _onExecutionContextsChangedEmitter = new EventEmitter<Thread>();
-  _onThreadAddedEmitter = new EventEmitter<Thread>();
-  _onThreadRemovedEmitter = new EventEmitter<{thread: Thread}>();
-  _onThreadPausedEmitter = new EventEmitter<Thread>();
-  _onThreadResumedEmitter = new EventEmitter<Thread>();
-  readonly onThreadAdded = this._onThreadAddedEmitter.event;
-  readonly onThreadRemoved = this._onThreadRemovedEmitter.event;
-  readonly onThreadPaused = this._onThreadPausedEmitter.event;
-  readonly onThreadResumed = this._onThreadResumedEmitter.event;
-  readonly onExecutionContextsChanged = this._onExecutionContextsChangedEmitter.event;
-  readonly sourceContainer: SourceContainer;
-  _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
-  _consoleIsDirty = false;
-  _uiDelegate: UIDelegate;
-
-  // url => (hash => Source)
-  private _scriptSources = new Map<string, Map<string, Source>>();
-
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer, uiDelegate: UIDelegate) {
-    this._dap = dap;
-    this._uiDelegate = uiDelegate;
-    this._pauseOnExceptionsState = 'none';
-    this._customBreakpoints = new Set();
-    this.sourceContainer = sourceContainer;
-  }
-
-  createThread(threadId: string, threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    return new Thread(this, threadId, threadName, cdp, this._dap, delegate);
-  }
-
-  async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
-    if (this._scriptWithSourceMapHandler === handler)
-      return;
-    this._scriptWithSourceMapHandler = handler;
-    if (this._thread)
-      await this._thread._updatePauseOnSourceMap();
-  }
-
-  _addThread(thread: Thread) {
-    console.assert(!this._thread);
-    this._thread = thread;
-  }
-
-  _removeThread(thread: Thread) {
-    console.assert(thread === this._thread);
-    this._thread = undefined;
-    this._onThreadRemovedEmitter.fire({thread});
-    this._dap.thread({
-      reason: 'exited',
-      threadId: 0
-    });
-  }
-
-  thread(): Thread | undefined {
-    return this._thread;
-  }
-
-  threadByFrameId(frameId: number): Thread | undefined {
-    if (this._thread) {
-      const details = this._thread.pausedDetails();
-      const stackFrame = details ? details.stackTrace.frame(frameId) : undefined;
-      if (stackFrame)
-        return this._thread;
-    }
-  }
-
-  pauseOnExceptionsState(): PauseOnExceptionsState {
-    return this._pauseOnExceptionsState;
-  }
-
-  async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
-    this._pauseOnExceptionsState = state;
-    if (this._thread)
-      await this._thread._updatePauseOnExceptionsState();
-  }
-
-  async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
-    const promises: Promise<boolean>[] = [];
-    for (const id of ids) {
-      this._customBreakpoints.add(id);
-      if (this._thread)
-        promises.push(this._thread.updateCustomBreakpoint(id, true));
-    }
-    await Promise.all(promises);
-  }
-
-  async disableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
-    const promises: Promise<boolean>[] = [];
-    for (const id of ids) {
-      this._customBreakpoints.add(id);
-      if (this._thread)
-        promises.push(this._thread.updateCustomBreakpoint(id, false));
-    }
-    await Promise.all(promises);
-  }
-
-  customBreakpoints(): Set<string> {
-    return this._customBreakpoints;
-  }
-
-  scriptsFromSource(source: Source): Set<Script> {
-    return source[kScriptsSymbol] || new Set();
-  }
-
-  static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
-    return ThreadManager._allThreadsByDebuggerId.get(debuggerId);
-  }
-
-  _addSourceForScript(url: string, hash: string, source: Source) {
-    let map = this._scriptSources.get(url);
-    if (!map) {
-      map = new Map();
-      this._scriptSources.set(url, map);
-    }
-    map.set(hash, source);
-  }
-
-  _getSourceForScript(url: string, hash: string): Source | undefined {
-    const map = this._scriptSources.get(url);
-    return map ? map.get(hash) : undefined;
-  }
-
-  _removeSourceForScript(url: string, hash: string) {
-    const map = this._scriptSources.get(url);
-    if (!map)
-      return;
-    map.delete(hash);
-    if (!map.size)
-      this._scriptSources.delete(url);
-  }
-}
-
 export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
@@ -219,30 +79,33 @@ export class Thread implements VariableStoreDelegate {
   private _executionContexts: Map<number, ExecutionContext> = new Map();
   readonly delegate: ThreadDelegate;
   readonly replVariables: VariableStore;
-  readonly manager: ThreadManager;
-  readonly sourceContainer: SourceContainer;
+  readonly _sourceContainer: SourceContainer;
   readonly sourcePathResolver: SourcePathResolver;
   readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
   private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
-  _onExecutionContextCreatedEmitter = new EventEmitter<ExecutionContext>();
-  readonly onExecutionContextsCreated = this._onExecutionContextCreatedEmitter.event;
-  _onExecutionContextDestroyedEmitter = new EventEmitter<ExecutionContext>();
-  readonly onExecutionContextsDestroyed = this._onExecutionContextDestroyedEmitter.event;
   private _selectedContext: ExecutionContext | undefined;
+  private _consoleIsDirty = false;
+  static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
+  private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
+  // url => (hash => Source)
+  private _scriptSources = new Map<string, Map<string, Source>>();
+  private _uiDelegate: UIDelegate;
+  private _customBreakpoints = new Set<string>();
+  private _pauseOnExceptionsState: any;
+  private _initialized = false;
 
-  constructor(manager: ThreadManager, threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
-    this.manager = manager;
+  constructor(sourceContainer: SourceContainer, threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, uiDelegate: UIDelegate) {
     this.delegate = delegate;
-    this.sourceContainer = manager.sourceContainer;
+    this._uiDelegate = uiDelegate;
+    this._sourceContainer = sourceContainer;
     this.sourcePathResolver = delegate.sourcePathResolver();
     this._cdp = cdp;
     this._dap = dap;
     this._threadId = threadId;
     this._name = threadName;
     this.replVariables = new VariableStore(this._cdp, this);
-    this.manager._addThread(this);
     this._serializedOutput = Promise.resolve();
     debugThread(`Thread created #${this._threadId}`);
   }
@@ -527,7 +390,7 @@ export class Thread implements VariableStoreDelegate {
 
       if (event.asyncCallStackTraceId) {
         scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
-        const threads = Array.from(ThreadManager._allThreadsByDebuggerId.values());
+        const threads = Array.from(Thread._allThreadsByDebuggerId.values());
         await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
         this.resume();
         return;
@@ -536,9 +399,8 @@ export class Thread implements VariableStoreDelegate {
       this._pausedDetails = this._createPausedDetails(event);
       this._pausedDetails[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
-      this.manager._onThreadPausedEmitter.fire(this);
-
       scheduledPauseOnAsyncCall = undefined;
+      this._onThreadPaused();
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
 
@@ -548,22 +410,22 @@ export class Thread implements VariableStoreDelegate {
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     this._updatePauseOnSourceMap();
     this._updatePauseOnExceptionsState();
-
-    for (const id of this.manager.customBreakpoints())
-      this.updateCustomBreakpoint(id, true);
+    this._updateCustomBreakpoints();
 
     this._pauseOnScheduledAsyncCall();
 
-    this.manager._onThreadAddedEmitter.fire(this);
     this._dap.thread({
       reason: 'started',
       threadId: 0
     });
+    this._initialized = true;
   }
 
   refreshStackTrace() {
     if (this._pausedDetails)
       this._pausedDetails = this._createPausedDetails(this._pausedDetails[kPausedEventSymbol]);
+    this._onThreadResumed();
+    this._onThreadPaused();
   }
 
   // It is important to produce debug console output in the same order as it happens
@@ -587,10 +449,10 @@ export class Thread implements VariableStoreDelegate {
       await slot;
       if (payload) {
         const isClearConsole = payload.output === '\x1b[2J';
-        const noop = isClearConsole && !this.manager._consoleIsDirty;
+        const noop = isClearConsole && !this._consoleIsDirty;
         if (!noop) {
           this._dap.output(payload);
-          this.manager._consoleIsDirty = !isClearConsole;
+          this._consoleIsDirty = !isClearConsole;
         }
       }
       callback();
@@ -598,7 +460,7 @@ export class Thread implements VariableStoreDelegate {
     const p = new Promise<void>(f => callback = f);
     this._serializedOutput = slot.then(() => p);
     // Timeout to avoid blocking future slots if this one does stall.
-    setTimeout(callback!, this.manager.sourceContainer.sourceMapTimeouts().output);
+    setTimeout(callback!, this._sourceContainer.sourceMapTimeouts().output);
     return result;
   }
 
@@ -611,8 +473,6 @@ export class Thread implements VariableStoreDelegate {
   _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
     const context = new ExecutionContext(this, description);
     this._executionContexts.set(description.id, context);
-    this._onExecutionContextCreatedEmitter.fire(context);
-    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _executionContextDestroyed(contextId: number) {
@@ -620,8 +480,6 @@ export class Thread implements VariableStoreDelegate {
     if (!context)
       return;
     this._executionContexts.delete(contextId);
-    this._onExecutionContextDestroyedEmitter.fire(context);
-    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _executionContextsCleared() {
@@ -629,7 +487,6 @@ export class Thread implements VariableStoreDelegate {
     if (this._pausedDetails)
       this._onResumed();
     this._executionContexts.clear();
-    this.manager._onExecutionContextsChangedEmitter.fire(this);
   }
 
   _ensureDebuggerEnabledAndRefreshDebuggerId() {
@@ -637,23 +494,27 @@ export class Thread implements VariableStoreDelegate {
     // across cross-process navigations. Refresh it upon clearing contexts.
     this._cdp.Debugger.enable({}).then(response => {
       if (response)
-        ThreadManager._allThreadsByDebuggerId.set(response.debuggerId, this);
+        Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
     });
   }
 
   _onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
-    this.manager._onThreadResumedEmitter.fire(this);
+    this._onThreadResumed();
   }
 
   dispose() {
     this._removeAllScripts();
-    for (const [debuggerId, thread] of ThreadManager._allThreadsByDebuggerId) {
+    for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this)
-        ThreadManager._allThreadsByDebuggerId.delete(debuggerId);
+        Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
-    this.manager._removeThread(this);
+    this._dap.thread({
+      reason: 'exited',
+      threadId: 0
+    });
+
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
     debugThread(`Thread destroyed #${this._threadId}`);
@@ -670,7 +531,7 @@ export class Thread implements VariableStoreDelegate {
         columnNumber = Math.max(columnNumber - defaultOffset.columnOffset, 0);
     }
     // Note: cdp locations are 0-based, while ui locations are 1-based.
-    return this.sourceContainer.preferredLocation({
+    return this._sourceContainer.preferredLocation({
       url: script ? script.source.url() : (rawLocation.url || ''),
       lineNumber: lineNumber + 1,
       columnNumber: columnNumber + 1,
@@ -684,12 +545,29 @@ export class Thread implements VariableStoreDelegate {
     return `@ ${name}:${location.lineNumber}`;
   }
 
-  async _updatePauseOnExceptionsState(): Promise<boolean> {
-    return !!await this._cdp.Debugger.setPauseOnExceptions({ state: this.manager.pauseOnExceptionsState() });
+  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
+    this._pauseOnExceptionsState = state;
+    if (this._initialized)
+      this._updatePauseOnExceptionsState();
+  }
+
+  _updatePauseOnExceptionsState() {
+    this._cdp.Debugger.setPauseOnExceptions({ state: this._pauseOnExceptionsState });
+  }
+
+  setCustomBreakpoints(breakpoints: Set<string>) {
+    this._customBreakpoints = breakpoints;
+    if (this._initialized)
+      this._updateCustomBreakpoints()
+  }
+
+  _updateCustomBreakpoints() {
+    for (const id of this._customBreakpoints.values())
+      this._updateCustomBreakpoint(id, true);
   }
 
   async _updatePauseOnSourceMap(): Promise<void> {
-    const needsPause = this.manager.sourceContainer.sourceMapTimeouts().scriptPaused && this.manager._scriptWithSourceMapHandler;
+    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
       this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
@@ -700,16 +578,15 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
-  async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<boolean> {
+  _updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean) {
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
     if (!this.delegate.supportsCustomBreakpoints())
-      return true;
+      return;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
-      return true;
+      return;
     breakpoint.apply(this._cdp, enabled);
-    return true;
   }
 
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
@@ -892,6 +769,10 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
+  scriptsFromSource(source: Source): Set<Script> {
+    return source[kScriptsSymbol] || new Set();
+  }
+
   _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
@@ -899,8 +780,8 @@ export class Thread implements VariableStoreDelegate {
       const set = script.source[kScriptsSymbol];
       set.delete(script);
       if (!set.size) {
-        this.sourceContainer.removeSource(script.source);
-        this.manager._removeSourceForScript(script.source.url(), script.hash);
+        this._sourceContainer.removeSource(script.source);
+        this._removeSourceForScript(script.source.url(), script.hash);
       }
     }
   }
@@ -911,7 +792,7 @@ export class Thread implements VariableStoreDelegate {
 
     let source: Source | undefined;
     if (event.url && event.hash)
-      source = this.manager._getSourceForScript(event.url, event.hash);
+      source = this._getSourceForScript(event.url, event.hash);
 
     if (!source) {
       const contentGetter = async () => {
@@ -931,8 +812,8 @@ export class Thread implements VariableStoreDelegate {
       }
 
       const hash = this.delegate.shouldCheckContentHash() ? event.hash : undefined;
-      source = this.sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
-      this.manager._addSourceForScript(event.url, event.hash, source);
+      source = this._sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
+      this._addSourceForScript(event.url, event.hash, source);
     }
 
     const script = { scriptId: event.scriptId, source, hash: event.hash, thread: this };
@@ -945,9 +826,9 @@ export class Thread implements VariableStoreDelegate {
       // If we won't pause before executing this script (thread does not support it),
       // try to load source map and set breakpoints as soon as possible. This is still
       // racy against the script execution, but better than nothing.
-      this.sourceContainer.waitForSourceMapSources(source).then(sources => {
-        if (sources.length && this.manager._scriptWithSourceMapHandler)
-          this.manager._scriptWithSourceMapHandler(script, sources);
+      this._sourceContainer.waitForSourceMapSources(source).then(sources => {
+        if (sources.length && this._scriptWithSourceMapHandler)
+          this._scriptWithSourceMapHandler(script, sources);
       });
     }
   }
@@ -957,14 +838,14 @@ export class Thread implements VariableStoreDelegate {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
     if (script) {
-      const timeout = this.manager.sourceContainer.sourceMapTimeouts().scriptPaused;
+      const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
-        this.sourceContainer.waitForSourceMapSources(script.source),
+        this._sourceContainer.waitForSourceMapSources(script.source),
         // Make typescript happy by resolving with empty array.
         new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
       ]);
-      if (sources && this.manager._scriptWithSourceMapHandler)
-        await this.manager._scriptWithSourceMapHandler(script, sources);
+      if (sources && this._scriptWithSourceMapHandler)
+        await this._scriptWithSourceMapHandler(script, sources);
     }
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
@@ -983,14 +864,14 @@ export class Thread implements VariableStoreDelegate {
       if (p.name !== '[[FunctionLocation]]' || !p.value || p.value.subtype as string !== 'internal#location')
         continue;
       const loc = p.value.value as Cdp.Debugger.Location;
-      this.sourceContainer.revealLocation(await this.rawLocationToUiLocation(loc));
+      this._sourceContainer.revealLocation(await this.rawLocationToUiLocation(loc));
       break;
     }
   }
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this.manager._uiDelegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this._uiDelegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
       return;
     }
 
@@ -1016,7 +897,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this.manager._uiDelegate.copyToClipboard(String(response.result.value));
+      this._uiDelegate.copyToClipboard(String(response.result.value));
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 
@@ -1046,6 +927,58 @@ export class Thread implements VariableStoreDelegate {
       variablesReference
     }
     slot(output);
+  }
+
+  _onThreadPaused() {
+    const details = this.pausedDetails()!;
+    this._dap.stopped({
+      reason: details.reason,
+      description: details.description,
+      threadId: 0,
+      text: details.text,
+      allThreadsStopped: false
+    });
+  }
+
+  _onThreadResumed() {
+    this._dap.continued({
+      threadId: 0,
+      allThreadsContinued: false
+    });
+  }
+
+  async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
+    if (this._scriptWithSourceMapHandler === handler)
+      return;
+    this._scriptWithSourceMapHandler = handler;
+    await this._updatePauseOnSourceMap();
+  }
+
+  _addSourceForScript(url: string, hash: string, source: Source) {
+    let map = this._scriptSources.get(url);
+    if (!map) {
+      map = new Map();
+      this._scriptSources.set(url, map);
+    }
+    map.set(hash, source);
+  }
+
+  _getSourceForScript(url: string, hash: string): Source | undefined {
+    const map = this._scriptSources.get(url);
+    return map ? map.get(hash) : undefined;
+  }
+
+  _removeSourceForScript(url: string, hash: string) {
+    const map = this._scriptSources.get(url);
+    if (!map)
+      return;
+    map.delete(hash);
+    if (!map.size)
+      this._scriptSources.delete(url);
+  }
+
+  static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
+    return Thread._allThreadsByDebuggerId.get(debuggerId);
   }
 };
 

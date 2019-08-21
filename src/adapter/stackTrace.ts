@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Thread, ThreadManager } from "./threads";
+import { Thread } from "./threads";
 import { Location } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
@@ -53,7 +53,7 @@ export class StackTrace {
   async loadFrames(limit: number): Promise<StackFrame[]> {
     while (this._frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
-        this._lastFrameThread = ThreadManager.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
+        this._lastFrameThread = Thread.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
       if (!this._lastFrameThread) {
         this._asyncStackTraceId = undefined;
         break;

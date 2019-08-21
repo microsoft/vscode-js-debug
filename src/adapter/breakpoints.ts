@@ -4,7 +4,7 @@
 import { Location, SourceContainer } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { Thread, ThreadManager, Script, ScriptWithSourceMapHandler } from './threads';
+import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
 import { Disposable } from 'vscode';
 import { BreakpointsPredictor } from './breakpointPredictor';
 
@@ -64,24 +64,12 @@ export class Breakpoint {
     //    in scripts without urls, which are set by script id.
     // 3. When new script with source map arrives, resolve all breakpoints in source map sources
     //    and apply them to this particular script. See setScriptSourceMapHandler.
-    const threadManager = this._manager._threadManager;
+
+    this._manager._breakpoints.add(this);
 
     const source = this._manager._sourceContainer.source(this._source);
     if (!source) {
-      const onThread = (thread: Thread) => Promise.all([
-        // For breakpoints set before launch, we don't know whether they are in a compiled or
-        // a source map source. To make them work, we always set by url to not miss compiled.
-        // Additionally, if we have two sources with the same url, but different path (or no path),
-        // this will make breakpoint work in all of them.
-        this._setByPath(thread, this._lineNumber - 1, this._columnNumber - 1),
-
-        // Also use predicted locations if available.
-        this._setPredicted(thread)
-      ]);
-      threadManager.onThreadAdded(onThread, undefined, this._disposables);
-      const thread = threadManager.thread();
-      if (thread)
-        await onThread(thread);
+      await this._setInThread();
     } else {
       const locations = this._manager._sourceContainer.currentSiblingLocations({
         url: source.url(),
@@ -95,10 +83,26 @@ export class Breakpoint {
     await this._notifyResolved();
   }
 
+  async _setInThread() {
+    const thread = this._manager._thread;
+    if (!thread)
+      return;
+    await Promise.all([
+      // For breakpoints set before launch, we don't know whether they are in a compiled or
+      // a source map source. To make them work, we always set by url to not miss compiled.
+      // Additionally, if we have two sources with the same url, but different path (or no path),
+      // this will make breakpoint work in all of them.
+      this._setByPath(thread, this._lineNumber - 1, this._columnNumber - 1),
+
+      // Also use predicted locations if available.
+      this._setPredicted(thread)
+    ]);
+  }
+
   async breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
     // Register cdpId so we can later remove it.
     this._resolvedBreakpoints.add(cdpId);
-    this._manager._breakpoints.set(cdpId, this);
+    this._manager._resolvedBreakpoints.set(cdpId, this);
 
     // If this is a first resolved location, we should update the breakpoint as "verified".
     if (this._resolvedLocation || !resolvedLocations.length)
@@ -153,7 +157,7 @@ export class Breakpoint {
     if (!location.source)
       return;
     const promises: Promise<void>[] = [];
-    const scripts = this._manager._threadManager.scriptsFromSource(location.source);
+    const scripts = this._manager._thread ? this._manager._thread!.scriptsFromSource(location.source) : [];
     for (const script of scripts)
       promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
@@ -202,6 +206,7 @@ export class Breakpoint {
       disposable.dispose();
     this._disposables = [];
     this._resolvedLocation = undefined;
+    this._manager._breakpoints.delete(this);
 
     // Let all setters finish, so that we can remove all breakpoints including
     // ones being set right now.
@@ -209,8 +214,8 @@ export class Breakpoint {
 
     const promises: Promise<any>[] = [];
     for (const id of this._resolvedBreakpoints) {
-      this._manager._breakpoints.delete(id);
-      promises.push(this._manager._threadManager.thread()!.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
+      this._manager._resolvedBreakpoints.delete(id);
+      promises.push(this._manager._thread!.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
     }
     this._resolvedBreakpoints.clear();
     await promises;
@@ -223,31 +228,19 @@ export class BreakpointManager {
 
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
-  _threadManager: ThreadManager;
+  _thread: Thread | undefined;
   _disposables: Disposable[] = [];
-  _breakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
+  _breakpoints = new Set<Breakpoint>();
+  _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
   _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
   private _sourceMapPauseDisabledForTest = false;
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer, threadManager: ThreadManager) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
-    this._threadManager = threadManager;
-
-    const onThread = (thread: Thread) => {
-      thread.cdp().Debugger.on('breakpointResolved', event => {
-        const breakpoint = this._breakpoints.get(event.breakpointId);
-        if (breakpoint)
-          breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
-      });
-    };
-    const thread = this._threadManager.thread();
-    if (thread)
-      onThread(thread);
-    this._threadManager.onThreadAdded(onThread, undefined, this._disposables);
 
     this._scriptSourceMapHandler = async (script, sources) => {
       // New script arrived, pointing to |sources| through a source map.
@@ -265,6 +258,21 @@ export class BreakpointManager {
     };
     if (sourceContainer.rootPath)
       this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath);
+  }
+
+  async setThread(thread: Thread) {
+    this._thread = thread;
+    this._thread.cdp().Debugger.on('breakpointResolved', event => {
+      const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
+      if (breakpoint)
+        breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
+    });
+    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
+    await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
+    const promises: Promise<void>[] = [];
+    for (const breakpoint of this._breakpoints.values())
+      promises.push(breakpoint._setInThread());
+    await Promise.all(promises);
   }
 
   async launchBlocker(): Promise<void> {
@@ -301,8 +309,6 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     }
     this._totalBreakpointsCount += breakpoints.length;
-    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
-    await this._threadManager.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
     breakpoints.forEach(b => b.set());
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }

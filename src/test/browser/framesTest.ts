@@ -23,10 +23,10 @@ export function addTests(testRunner) {
     };
 
     await new Promise(f => {
-      p.adapter.threadManager.onThreadAdded(() => {
-        // if (p.adapter.threadManager.threads().length === 11)
-        //   f();
-      });
+      // p.adapter.threadManager.onThreadCreated(() => {
+      //   if (p.adapter.threadManager.threads().length === 11)
+      //     f();
+      // });
     });
     p.binder.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
 
