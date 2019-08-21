@@ -8,7 +8,7 @@ import { Launcher, Target } from './targets/targets';
 
 export interface BinderDelegate {
   acquireDebugAdapter(target: Target): Promise<DebugAdapter>;
-  releaseDebugAdapter(debugAdapter: DebugAdapter): void;
+  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter): void;
 }
 
 export class Binder implements Disposable {
@@ -69,7 +69,7 @@ export class Binder implements Disposable {
 
     launcher.onTargetListChanged(() => {
       const targets = this.targetList();
-      this._attachThoseWaitingForDebugger(targets);
+      this._attachToNewTargets(targets);
       this._detachOrphaneThreads(targets);
       this._onTargetListChangedEmitter.fire();
     }, undefined, this._disposables);
@@ -120,10 +120,10 @@ export class Binder implements Disposable {
       return;
     this._threads.delete(target);
     data.thread.dispose();
-    this._delegate.releaseDebugAdapter(data.debugAdapter);
+    this._delegate.releaseDebugAdapter(target, data.debugAdapter);
   }
 
-  _attachThoseWaitingForDebugger(targets: Target[]) {
+  _attachToNewTargets(targets: Target[]) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger())
         continue;
@@ -139,7 +139,7 @@ export class Binder implements Disposable {
       if (!set.has(target)) {
         this._threads.delete(target);
         data.thread.dispose();
-        this._delegate.releaseDebugAdapter(data.debugAdapter);
+        this._delegate.releaseDebugAdapter(target, data.debugAdapter);
       }
     }
   }

@@ -82,7 +82,7 @@ export class TestP {
     return this.adapter;
   }
 
-  releaseDebugAdapter(debugAdapter: DebugAdapter) {
+  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
   }
 
   get cdp(): Cdp.Api {

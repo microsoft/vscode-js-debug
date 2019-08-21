@@ -143,6 +143,7 @@ export class BrowserTarget implements Target {
   _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
+  private _attached: boolean = false;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
@@ -222,19 +223,21 @@ export class BrowserTarget implements Target {
   }
 
   canAttach(): boolean {
-    return true;
+    return !this._attached;
   }
 
   async attach(): Promise<Cdp.Api> {
     this._waitingForDebugger = false;
+    this._attached = true;
     return Promise.resolve(this._cdp);
   }
 
   canDetach(): boolean {
-    return false;
+    return this._attached;
   }
 
   async detach(): Promise<void> {
+    this._attached = false;
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {

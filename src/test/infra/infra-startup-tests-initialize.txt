@@ -2,6 +2,12 @@ initialized
 {
     additionalModuleColumns : [
     ]
+    completionTriggerCharacters : [
+        [0] : .
+        [1] : [
+        [2] : "
+        [3] : '
+    ]
     exceptionBreakpointFilters : [
         [0] : {
             default : false

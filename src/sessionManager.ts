@@ -9,12 +9,14 @@ import { Target } from './targets/targets';
 
 export class SessionManager implements BinderDelegate {
   private _lastPendingSessionId = 0;
-  private _pendingSessionCallbacks = new Map<number, (debugAdapter: DebugAdapter) => void>();
-  private _sessions = new Map<string, vscode.DebugSession>();
+  private _pendingSessions = new Map<number, { target: Target, callback: (debugAdapter: DebugAdapter) => void }>();
+  private _rootSessions = new Map<string, vscode.DebugSession>();
+  private _sessions = new Map<Target, vscode.DebugSession>();
   private _disposable: vscode.Disposable;
+  private _sessionForTargetRequests = new Map<Target, { fulfill: (session: vscode.DebugSession) => void, reject: (error: Error) => void}[]>();
 
   constructor() {
-    this._disposable = vscode.debug.onDidTerminateDebugSession(debugSession => this._sessions.delete(debugSession.id));
+    this._disposable = vscode.debug.onDidTerminateDebugSession(debugSession => this._rootSessions.delete(debugSession.id));
   }
 
   createSession(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, callback: (debugAdapter: DebugAdapter) => void): Session {
@@ -22,12 +24,17 @@ export class SessionManager implements BinderDelegate {
 
     if (debugSession.configuration['__pendingSessionId']) {
       const pendingSessionId = debugSession.configuration['__pendingSessionId'] as number;
+      const pendingSession = this._pendingSessions.get(pendingSessionId)!;
+      this._pendingSessions.delete(pendingSessionId);
+      this._sessions.set(pendingSession.target, debugSession);
+      const requests = this._sessionForTargetRequests.get(pendingSession.target);
+      if (requests)
+        requests.map(request => request.fulfill(debugSession));
+      this._sessionForTargetRequests.delete(pendingSession.target);
+
       session = new Session(context, debugSession, undefined, debugAdapter => {
         debugAdapter.dap.on('attach', async () => {
-          const pendingSessionCallback = this._pendingSessionCallbacks.get(pendingSessionId);
-          this._pendingSessionCallbacks.delete(pendingSessionId);
-          if (pendingSessionCallback)
-            pendingSessionCallback(debugAdapter);
+          pendingSession.callback(debugAdapter);
           return {};
         });
         callback(debugAdapter);
@@ -36,20 +43,36 @@ export class SessionManager implements BinderDelegate {
       session = new Session(context, debugSession, this, callback);
     }
 
-    this._sessions.set(debugSession.id, debugSession);
+    this._rootSessions.set(debugSession.id, debugSession);
     return session;
   }
 
   dispose() {
     this._disposable.dispose();
+    this._rootSessions.clear();
     this._sessions.clear();
   }
 
+  async sessionForTarget(target: Target): Promise<vscode.DebugSession> {
+    const result = this._sessions.get(target);
+    if (result)
+      return result;
+    return new Promise((fulfill, reject) => {
+      let requests = this._sessionForTargetRequests.get(target);
+      if (!requests) {
+        requests = [];
+        this._sessionForTargetRequests.set(target, requests);
+      }
+      requests.push({ fulfill, reject });
+    });
+  }
+
   acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
-    return new Promise<DebugAdapter>(callback => {
+    return new Promise<DebugAdapter>(async callback => {
       const pendingSessionId = ++this._lastPendingSessionId;
-      this._pendingSessionCallbacks.set(pendingSessionId, callback);
-      const rootSession = this._sessions.get(target.targetOrigin() as string)!;
+      this._pendingSessions.set(pendingSessionId, { target, callback });
+      const rootSession = this._rootSessions.get(target.targetOrigin() as string)!;
+      const parentSession = target.parent() ? await this.sessionForTarget(target.parent()!) : undefined;
       const config = {
         type: 'pwa',
         name: target.name(),
@@ -57,12 +80,15 @@ export class SessionManager implements BinderDelegate {
         __pendingSessionId: pendingSessionId,
         sessionPerThread: true
       };
-      vscode.debug.startDebugging(rootSession.workspaceFolder, config, rootSession);
+      vscode.debug.startDebugging(rootSession.workspaceFolder, config, parentSession || rootSession);
     });
   }
 
-  releaseDebugAdapter(debugAdapter: DebugAdapter) {
+  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
     // One adapter per thread, we can remove it when removing the thread.
     debugAdapter.dap.terminated({});
+    this._sessions.delete(target);
+    for (const request of this._sessionForTargetRequests.get(target) || [])
+      request.reject(new Error('Target gone'));
   }
 }
