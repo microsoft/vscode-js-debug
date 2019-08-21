@@ -59,9 +59,7 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onDebug",
-    "onView:pwa.targetsView",
     "onView:pwa.breakpoints",
-    "onView:pwa.cacheStorage",
     "onCommand:pwa.debugTask",
     "onCommand:pwa.debugCurrentScript",
     "onCommand:pwa.createDebuggerTerminal"
@@ -78,10 +76,6 @@
     },
     "views": {
       "debug": [
-        {
-          "id": "pwa.targetsView",
-          "name": "Targets"
-        },
         {
           "id": "pwa.breakpoints",
           "name": "Browser breakpoints"
@@ -118,54 +112,6 @@
         "title": "Pretty print for debugging"
       },
       {
-        "command": "pwa.pauseThread",
-        "title": "Pause thread",
-        "icon": {
-          "light": "resources/light/pause.svg",
-          "dark": "resources/dark/pause.svg"
-        }
-      },
-      {
-        "command": "pwa.resumeThread",
-        "title": "Resume thread",
-        "icon": {
-          "light": "resources/light/resume.svg",
-          "dark": "resources/dark/resume.svg"
-        }
-      },
-      {
-        "command": "pwa.stopTarget",
-        "title": "Terminate target",
-        "icon": {
-          "light": "resources/light/stop.svg",
-          "dark": "resources/dark/stop.svg"
-        }
-      },
-      {
-        "command": "pwa.restartTarget",
-        "title": "Restart target",
-        "icon": {
-          "light": "resources/light/restart.svg",
-          "dark": "resources/dark/restart.svg"
-        }
-      },
-      {
-        "command": "pwa.attachToTarget",
-        "title": "Attach to target",
-        "icon": {
-          "light": "resources/light/connect.svg",
-          "dark": "resources/dark/connect.svg"
-        }
-      },
-      {
-        "command": "pwa.detachFromTarget",
-        "title": "Detach from target",
-        "icon": {
-          "light": "resources/light/disconnect.svg",
-          "dark": "resources/dark/disconnect.svg"
-        }
-      },
-      {
         "command": "pwa.debugCurrentScript",
         "title": "Debug script in Node"
       },
@@ -176,14 +122,6 @@
       {
         "command": "pwa.createDebuggerTerminal",
         "title": "Open debugger terminal"
-      },
-      {
-        "command": "pwa.revealTargetScript",
-        "title": "Open file",
-        "icon": {
-          "light": "resources/light/open-file.svg",
-          "dark": "resources/dark/open-file.svg"
-        }
       }
     ],
     "menus": {
@@ -216,41 +154,6 @@
         {
           "command": "pwa.removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
-        },
-        {
-          "command": "pwa.pauseThread",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canPause.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.resumeThread",
-          "when": "view == pwa.targetsView && viewItem =~ /.canRun.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.stopTarget",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canStop.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.restartTarget",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canRestart.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.attachToTarget",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canAttach.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.detachFromTarget",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canDetach.*/",
-          "group": "inline"
-        },
-        {
-          "command": "pwa.revealTargetScript",
-          "when": "view == pwa.targetsView && viewItem =~ /.*canReveal.*/",
-          "group": "inline"
         }
       ],
       "explorer/context": [

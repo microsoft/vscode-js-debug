@@ -9,7 +9,6 @@ import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { LocationRevealerUI } from './ui/locationRevealerUI';
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
-import { registerTargetsUI } from './ui/targetsUI';
 
 const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
 
@@ -18,7 +17,6 @@ export function activate(context: vscode.ExtensionContext) {
   const factory = new AdapterFactory(context);
   new LocationRevealerUI(context, factory);
   registerCustomBreakpointsUI(context, factory);
-  registerTargetsUI(context, factory);
   registerPrettyPrintActions(context, factory);
   registerDebugScriptActions(context, factory);
 }
