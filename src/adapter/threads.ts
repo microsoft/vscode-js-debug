@@ -127,10 +127,6 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
-  supportsSourceMapPause() {
-    return !!this._pauseOnSourceMapBreakpointId;
-  }
-
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
     if (!await this._cdp.Debugger.resume({}))
       return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
@@ -725,13 +721,12 @@ export class Thread implements VariableStoreDelegate {
   _removeAllScripts() {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
+    this._scriptSources.clear();
     for (const script of scripts) {
       const set = script.source[kScriptsSymbol];
       set.delete(script);
-      if (!set.size) {
+      if (!set.size)
         this._sourceContainer.removeSource(script.source);
-        this._removeSourceForScript(script.source.url(), script.hash);
-      }
     }
   }
 
@@ -739,9 +734,15 @@ export class Thread implements VariableStoreDelegate {
     if (event.url)
       event.url = this._delegate.scriptUrlToUrl(event.url);
 
+    let urlHashMap = this._scriptSources.get(event.url);
+    if (!urlHashMap) {
+      urlHashMap = new Map();
+      this._scriptSources.set(event.url, urlHashMap);
+    }
+
     let source: Source | undefined;
-    if (event.url && event.hash)
-      source = this._getSourceForScript(event.url, event.hash);
+    if (event.url && event.hash && urlHashMap)
+      source = urlHashMap.get(event.hash);
 
     if (!source) {
       const contentGetter = async () => {
@@ -762,7 +763,7 @@ export class Thread implements VariableStoreDelegate {
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
       source = this._sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
-      this._addSourceForScript(event.url, event.hash, source);
+      urlHashMap.set(event.hash, source);
     }
 
     const script = { scriptId: event.scriptId, source, hash: event.hash, thread: this };
@@ -771,10 +772,10 @@ export class Thread implements VariableStoreDelegate {
       source[kScriptsSymbol] = new Set();
     source[kScriptsSymbol].add(script);
 
-    if (!this.supportsSourceMapPause() && event.sourceMapURL) {
-      // If we won't pause before executing this script (thread does not support it),
-      // try to load source map and set breakpoints as soon as possible. This is still
-      // racy against the script execution, but better than nothing.
+    if (!this._pauseOnSourceMapBreakpointId && event.sourceMapURL) {
+      // If we won't pause before executing this script, try to load source map
+      // and set breakpoints as soon as possible. This is still racy against the script execution,
+      // but better than nothing.
       this._sourceContainer.waitForSourceMapSources(source).then(sources => {
         if (sources.length && this._scriptWithSourceMapHandler)
           this._scriptWithSourceMapHandler(script, sources);
@@ -909,29 +910,6 @@ export class Thread implements VariableStoreDelegate {
       this._pauseOnSourceMapBreakpointId = undefined;
       await this._cdp.Debugger.removeBreakpoint({breakpointId});
     }
-  }
-
-  _addSourceForScript(url: string, hash: string, source: Source) {
-    let map = this._scriptSources.get(url);
-    if (!map) {
-      map = new Map();
-      this._scriptSources.set(url, map);
-    }
-    map.set(hash, source);
-  }
-
-  _getSourceForScript(url: string, hash: string): Source | undefined {
-    const map = this._scriptSources.get(url);
-    return map ? map.get(hash) : undefined;
-  }
-
-  _removeSourceForScript(url: string, hash: string) {
-    const map = this._scriptSources.get(url);
-    if (!map)
-      return;
-    map.delete(hash);
-    if (!map.size)
-      this._scriptSources.delete(url);
   }
 
   static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
