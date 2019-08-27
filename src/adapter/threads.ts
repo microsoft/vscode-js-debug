@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debug } from 'debug';
-import { EventEmitter } from 'vscode';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import * as eventUtils from '../utils/eventUtils';
-import * as stringUtils from '../utils/stringUtils';
 import * as urlUtils from '../utils/urlUtils';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
@@ -21,7 +18,6 @@ import * as sourceUtils from '../utils/sourceUtils';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
-const debugThread = debug('thread');
 
 export type PausedReason = 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
 
@@ -70,18 +66,16 @@ export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => 
 export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
-  private _threadId: string;
   private _name: string;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
   private _executionContexts: Map<number, ExecutionContext> = new Map();
-  readonly delegate: ThreadDelegate;
+  private _delegate: ThreadDelegate;
   readonly replVariables: VariableStore;
-  readonly _sourceContainer: SourceContainer;
+  private _sourceContainer: SourceContainer;
   readonly sourcePathResolver: SourcePathResolver;
-  readonly threadLog = new ThreadLog();
   private _eventListeners: eventUtils.Listener[] = [];
   private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
@@ -92,30 +86,22 @@ export class Thread implements VariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _uiDelegate: UIDelegate;
-  private _customBreakpoints = new Set<string>();
-  private _pauseOnExceptionsState: any;
-  private _initialized = false;
 
-  constructor(sourceContainer: SourceContainer, threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, uiDelegate: UIDelegate) {
-    this.delegate = delegate;
+  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, uiDelegate: UIDelegate) {
+    this._delegate = delegate;
     this._uiDelegate = uiDelegate;
     this._sourceContainer = sourceContainer;
     this.sourcePathResolver = delegate.sourcePathResolver();
     this._cdp = cdp;
     this._dap = dap;
-    this._threadId = threadId;
     this._name = threadName;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
-    debugThread(`Thread created #${this._threadId}`);
+    this._initialize();
   }
 
   cdp(): Cdp.Api {
     return this._cdp;
-  }
-
-  threadId(): string {
-    return this._threadId;
   }
 
   name(): string {
@@ -237,7 +223,7 @@ export class Thread implements VariableStoreDelegate {
     const contexts: Dap.CompletionItem[] = [];
     if (!params.text) {
       for (const c of this._executionContexts.values())
-        contexts.push({ label: `cd ${this.delegate.executionContextName(c.description)}` });
+        contexts.push({ label: `cd ${this._delegate.executionContextName(c.description)}` });
     }
     return { targets: contexts.concat(await completions.completions(this._cdp, this._selectedContext ? this._selectedContext.description.id : undefined, stackFrame, params.text, line, params.column)) };
   }
@@ -256,7 +242,7 @@ export class Thread implements VariableStoreDelegate {
     if (args.context === 'repl' && args.expression.startsWith('cd ')) {
       const contextName = args.expression.substring('cd '.length).trim();
       for (const ec of this._executionContexts.values()) {
-        if (this.delegate.executionContextName(ec.description) === contextName) {
+        if (this._delegate.executionContextName(ec.description) === contextName) {
           this._selectedContext = ec;
           const outputSlot = this._claimOutputSlot();
           outputSlot({
@@ -328,7 +314,7 @@ export class Thread implements VariableStoreDelegate {
     if (response.exceptionDetails) {
       outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
     } else {
-      const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this.delegate.executionContextName(this._selectedContext.description)}] ` : '';
+      const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this._delegate.executionContextName(this._selectedContext.description)}] ` : '';
       const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(response.result)}\x1b[0m`;
       const variablesReference = await this.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
@@ -340,7 +326,7 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
-  initialize() {
+  private _initialize() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
@@ -408,17 +394,12 @@ export class Thread implements VariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    this._updatePauseOnSourceMap();
-    this._updatePauseOnExceptionsState();
-    this._updateCustomBreakpoints();
-
     this._pauseOnScheduledAsyncCall();
 
     this._dap.thread({
       reason: 'started',
       threadId: 0
     });
-    this._initialized = true;
   }
 
   refreshStackTrace() {
@@ -517,14 +498,13 @@ export class Thread implements VariableStoreDelegate {
 
     eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
-    debugThread(`Thread destroyed #${this._threadId}`);
   }
 
   rawLocationToUiLocation(rawLocation: { lineNumber: number, columnNumber?: number, url?: string, scriptId?: Cdp.Runtime.ScriptId }): Promise<Location> {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     let {lineNumber, columnNumber} = rawLocation;
     columnNumber = columnNumber || 0;
-    const defaultOffset = this.delegate.defaultScriptOffset();
+    const defaultOffset = this._delegate.defaultScriptOffset();
     if (defaultOffset) {
       lineNumber -= defaultOffset.lineOffset;
       if (!lineNumber)
@@ -545,48 +525,19 @@ export class Thread implements VariableStoreDelegate {
     return `@ ${name}:${location.lineNumber}`;
   }
 
-  setPauseOnExceptionsState(state: PauseOnExceptionsState) {
-    this._pauseOnExceptionsState = state;
-    if (this._initialized)
-      this._updatePauseOnExceptionsState();
+  async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
+    await this._cdp.Debugger.setPauseOnExceptions({ state });
   }
 
-  _updatePauseOnExceptionsState() {
-    this._cdp.Debugger.setPauseOnExceptions({ state: this._pauseOnExceptionsState });
-  }
-
-  setCustomBreakpoints(breakpoints: Set<string>) {
-    this._customBreakpoints = breakpoints;
-    if (this._initialized)
-      this._updateCustomBreakpoints()
-  }
-
-  _updateCustomBreakpoints() {
-    for (const id of this._customBreakpoints.values())
-      this._updateCustomBreakpoint(id, true);
-  }
-
-  async _updatePauseOnSourceMap(): Promise<void> {
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
-    if (needsPause && !this._pauseOnSourceMapBreakpointId) {
-      const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
-      this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
-    } else if (!needsPause && this._pauseOnSourceMapBreakpointId) {
-      const breakpointId = this._pauseOnSourceMapBreakpointId;
-      this._pauseOnSourceMapBreakpointId = undefined;
-      await this._cdp.Debugger.removeBreakpoint({breakpointId});
-    }
-  }
-
-  _updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean) {
-    // Do not fail for custom breakpoints, to account for
-    // future changes in cdp vs stale breakpoints saved in the workspace.
-    if (!this.delegate.supportsCustomBreakpoints())
+  async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<void> {
+    if (!this._delegate.supportsCustomBreakpoints())
       return;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint)
       return;
-    breakpoint.apply(this._cdp, enabled);
+    // Do not fail for custom breakpoints, to account for
+    // future changes in cdp vs stale breakpoints saved in the workspace.
+    await breakpoint.apply(this._cdp, enabled);
   }
 
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
@@ -717,8 +668,6 @@ export class Thread implements VariableStoreDelegate {
       messageText = messageFormat.formatMessage(formatString, useMessageFormat ? event.args.slice(1) : event.args, objectPreview.messageFormatters);
     }
 
-    this.threadLog.addLine(event, messageText);
-
     const variablesReference = await this.replVariables.createVariableForOutput(messageText + '\n', event.args, stackTrace);
     return {
       category,
@@ -788,7 +737,7 @@ export class Thread implements VariableStoreDelegate {
 
   _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     if (event.url)
-      event.url = this.delegate.scriptUrlToUrl(event.url);
+      event.url = this._delegate.scriptUrlToUrl(event.url);
 
     let source: Source | undefined;
     if (event.url && event.hash)
@@ -811,7 +760,7 @@ export class Thread implements VariableStoreDelegate {
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
       }
 
-      const hash = this.delegate.shouldCheckContentHash() ? event.hash : undefined;
+      const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
       source = this._sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
       this._addSourceForScript(event.url, event.hash, source);
     }
@@ -951,7 +900,15 @@ export class Thread implements VariableStoreDelegate {
     if (this._scriptWithSourceMapHandler === handler)
       return;
     this._scriptWithSourceMapHandler = handler;
-    await this._updatePauseOnSourceMap();
+    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
+    if (needsPause && !this._pauseOnSourceMapBreakpointId) {
+      const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
+      this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
+    } else if (!needsPause && this._pauseOnSourceMapBreakpointId) {
+      const breakpointId = this._pauseOnSourceMapBreakpointId;
+      this._pauseOnSourceMapBreakpointId = undefined;
+      await this._cdp.Debugger.removeBreakpoint({breakpointId});
+    }
   }
 
   _addSourceForScript(url: string, hash: string, source: Source) {
@@ -981,22 +938,6 @@ export class Thread implements VariableStoreDelegate {
     return Thread._allThreadsByDebuggerId.get(debuggerId);
   }
 };
-
-export class ThreadLog {
-  private _lines: string[] = [];
-  private _onLineAddedEmitter = new EventEmitter<string>();
-  readonly onLineAdded = this._onLineAddedEmitter.event;
-
-  addLine(event: Cdp.Runtime.ConsoleAPICalledEvent, text: string) {
-    const line = `[${stringUtils.formatMillisForLog(event.timestamp)}] ${text.replace(/\x1b[^m]+m/g, '')}`;
-    this._lines.push(line);
-    this._onLineAddedEmitter.fire(line);
-  }
-
-  lines(): string[] {
-    return this._lines;
-  }
-}
 
 const kScriptsSymbol = Symbol('script');
 const kPausedEventSymbol = Symbol('pausedEvent');

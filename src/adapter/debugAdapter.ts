@@ -42,16 +42,16 @@ export class DebugAdapter {
     this.dap.on('stackTrace', params => this._onStackTrace(params));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
-    this.dap.on('continue', params => this._withThread(thread => thread.resume())),
-    this.dap.on('pause', params => this._withThread(thread => thread.pause())),
-    this.dap.on('next', params => this._withThread(thread => thread.stepOver())),
-    this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto())),
-    this.dap.on('stepOut', params => this._withThread(thread => thread.stepOut())),
-    this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params))),
-    this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params))),
-    this.dap.on('evaluate', params => this._onEvaluate(params)),
-    this.dap.on('completions', params => this._onCompletions(params)),
-    this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo())),
+    this.dap.on('continue', params => this._withThread(thread => thread.resume()));
+    this.dap.on('pause', params => this._withThread(thread => thread.pause()));
+    this.dap.on('next', params => this._withThread(thread => thread.stepOver()));
+    this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto()));
+    this.dap.on('stepOut', params => this._withThread(thread => thread.stepOut()));
+    this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params)));
+    this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params)));
+    this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
+    this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
+    this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
     this.sourceContainer = new SourceContainer(this.dap, rootPath);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
@@ -102,12 +102,13 @@ export class DebugAdapter {
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
-    let pauseOnExceptionsState: PauseOnExceptionsState = 'none';
+    this._pauseOnExceptionsState = 'none';
     if (params.filters.includes('caught'))
-      pauseOnExceptionsState = 'all';
+      this._pauseOnExceptionsState = 'all';
     else if (params.filters.includes('uncaught'))
-      pauseOnExceptionsState = 'uncaught';
-    await this._setPauseOnExceptionsState(pauseOnExceptionsState);
+      this._pauseOnExceptionsState = 'uncaught';
+    if (this._thread)
+      await this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
     return {};
   }
 
@@ -176,18 +177,6 @@ export class DebugAdapter {
     return callback(this._thread);
   }
 
-  _onEvaluate(params: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
-    if (!this._thread)
-      return Promise.resolve(this._threadNotAvailableError());
-    return this._thread.evaluate(params);
-  }
-
-  _onCompletions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
-    if (!this._thread)
-      return Promise.resolve(this._threadNotAvailableError());
-    return this._thread.completions(params);
-  }
-
   async revealLocation(location: Location, revealConfirmed: Promise<void>) {
     // 1. Report about a new thread.
     // 2. Report that thread has stopped.
@@ -235,59 +224,33 @@ export class DebugAdapter {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  _stackFrameNotFoundError(): Dap.Error {
-    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
-  }
-
-  createThread(threadId: string, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this.sourceContainer, threadId, threadName, cdp, dap, delegate, this._uiDelegate);
-    this._thread.setCustomBreakpoints(this._customBreakpoints);
+  createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
+    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this._uiDelegate);
+    for (const breakpoint of this._customBreakpoints)
+      this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
     this.breakpointManager.setThread(this._thread);
     return this._thread;
   }
 
-  threadByFrameId(frameId: number): Thread | undefined {
-    if (this._thread) {
-      const details = this._thread.pausedDetails();
-      const stackFrame = details ? details.stackTrace.frame(frameId) : undefined;
-      if (stackFrame)
-        return this._thread;
-    }
-  }
-
-  pauseOnExceptionsState(): PauseOnExceptionsState {
-    return this._pauseOnExceptionsState;
-  }
-
-  async _setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
-    this._pauseOnExceptionsState = state;
-    if (this._thread)
-      await this._thread.setPauseOnExceptionsState(state);
-  }
-
   async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
-    const promises: Promise<boolean>[] = [];
+    const promises: Promise<void>[] = [];
     for (const id of ids) {
       this._customBreakpoints.add(id);
       if (this._thread)
-        this._thread.setCustomBreakpoints(this._customBreakpoints);
+        promises.push(this._thread.updateCustomBreakpoint(id, true));
     }
     await Promise.all(promises);
   }
 
   async disableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
-    const promises: Promise<boolean>[] = [];
+    const promises: Promise<void>[] = [];
     for (const id of ids) {
       this._customBreakpoints.delete(id);
       if (this._thread)
-        this._thread.setCustomBreakpoints(this._customBreakpoints);
+        promises.push(this._thread.updateCustomBreakpoint(id, false));
     }
     await Promise.all(promises);
-  }
-
-  customBreakpoints(): Set<string> {
-    return this._customBreakpoints;
   }
 
   dispose() {

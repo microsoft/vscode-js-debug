@@ -282,7 +282,7 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('selected context', async({p} : {p: TestP}) => {
+  xit('selected context', async({p} : {p: TestP}) => {
     await p.launchUrl('worker.html');
     p.log('--- Evaluating in page');
     p.log('Pausing...');

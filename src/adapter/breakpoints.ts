@@ -260,19 +260,16 @@ export class BreakpointManager {
       this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath);
   }
 
-  async setThread(thread: Thread) {
+  setThread(thread: Thread) {
     this._thread = thread;
     this._thread.cdp().Debugger.on('breakpointResolved', event => {
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
       if (breakpoint)
         breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
     });
-    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
-    await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
-    const promises: Promise<void>[] = [];
     for (const breakpoint of this._breakpoints.values())
-      promises.push(breakpoint._setInThread());
-    await Promise.all(promises);
+      breakpoint._setInThread();
+    this._updateSourceMapHandler();
   }
 
   async launchBlocker(): Promise<void> {
@@ -281,6 +278,13 @@ export class BreakpointManager {
 
   setSourceMapPauseDisabledForTest(disabled: boolean) {
     this._sourceMapPauseDisabledForTest = disabled;
+  }
+
+  async _updateSourceMapHandler() {
+    if (!this._thread)
+      return;
+    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
+    await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
@@ -310,6 +314,7 @@ export class BreakpointManager {
     }
     this._totalBreakpointsCount += breakpoints.length;
     breakpoints.forEach(b => b.set());
+    await this._updateSourceMapHandler();
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }
 }
