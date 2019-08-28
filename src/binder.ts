@@ -41,9 +41,13 @@ export class Binder implements Disposable {
       return {};
     });
     debugAdapter.dap.on('restart', async () => {
-      await Promise.all([...this._launchers].map(l => l.restart()));
+      await this._restart();
       return {};
     });
+  }
+
+  async _restart() {
+    await Promise.all([...this._launchers].map(l => l.restart()));
   }
 
   async _launch(launcher: Launcher, params: any) {
@@ -107,6 +111,23 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const debugAdapter = await this._delegate.acquireDebugAdapter(target);
+    debugAdapter.dap.on('disconnect', async () => {
+      if (target.canStop())
+        target.stop();
+      return {};
+    });
+    debugAdapter.dap.on('terminate', async () => {
+      if (target.canStop())
+        target.stop();
+      return {};
+    });
+    debugAdapter.dap.on('restart', async () => {
+      if (target.canRestart())
+        target.restart();
+      else
+        await this._restart();
+      return {};
+    });
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     cdp.Runtime.runIfWaitingForDebugger({});
