@@ -57,37 +57,8 @@ export class Breakpoint {
     });
   }
 
-  async set(): Promise<void> {
-    // General strategy:
-    // 1. Set all breakpoints by original url if any.
-    // 2. Resolve and set to all locations immediately. This covers breakpoints
-    //    in scripts without urls, which are set by script id.
-    // 3. When new script with source map arrives, resolve all breakpoints in source map sources
-    //    and apply them to this particular script. See setScriptSourceMapHandler.
-
-    this._manager._breakpoints.add(this);
-
-    const source = this._manager._sourceContainer.source(this._source);
-    if (!source) {
-      await this._setInThread();
-    } else {
-      const locations = this._manager._sourceContainer.currentSiblingLocations({
-        url: source.url(),
-        lineNumber: this._lineNumber,
-        columnNumber: this._columnNumber,
-        source
-      });
-      await Promise.all(locations.map(location => this._setByLocation(location)));
-    }
-
-    await this._notifyResolved();
-  }
-
-  async _setInThread() {
-    const thread = this._manager._thread;
-    if (!thread)
-      return;
-    await Promise.all([
+  async set(thread: Thread): Promise<void> {
+    const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
       // Additionally, if we have two sources with the same url, but different path (or no path),
@@ -96,7 +67,21 @@ export class Breakpoint {
 
       // Also use predicted locations if available.
       this._setPredicted(thread)
-    ]);
+    ];
+
+    const source = this._manager._sourceContainer.source(this._source);
+    if (source) {
+      const locations = this._manager._sourceContainer.currentSiblingLocations({
+        url: source.url(),
+        lineNumber: this._lineNumber,
+        columnNumber: this._columnNumber,
+        source
+      });
+      promises.push(...locations.map(location => this._setByLocation(thread, location)));
+    }
+
+    await Promise.all(promises);
+    await this._notifyResolved();
   }
 
   async breakpointResolved(thread: Thread, cdpId: string, resolvedLocations: Cdp.Debugger.Location[]) {
@@ -116,7 +101,7 @@ export class Breakpoint {
     this._notifyResolved();
   }
 
-  async updateForSourceMap(script: Script) {
+  async updateForSourceMap(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
       return;
@@ -127,13 +112,10 @@ export class Breakpoint {
       columnNumber: this._columnNumber,
       source
     }, script.source);
-    const resolvedLocation = this._resolvedLocation;
     const promises: Promise<void>[] = [];
     for (const location of locations)
-      promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
+      promises.push(this._setByScriptId(thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
-    if (resolvedLocation !== this._resolvedLocation)
-      await this._notifyResolved();
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
@@ -153,13 +135,13 @@ export class Breakpoint {
     await Promise.all(promises);
   }
 
-  async _setByLocation(location: Location): Promise<void> {
+  async _setByLocation(thread: Thread, location: Location): Promise<void> {
     if (!location.source)
       return;
     const promises: Promise<void>[] = [];
-    const scripts = this._manager._thread ? this._manager._thread!.scriptsFromSource(location.source) : [];
+    const scripts = thread.scriptsFromSource(location.source);
     for (const script of scripts)
-      promises.push(this._setByScriptId(script.thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
+      promises.push(this._setByScriptId(thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
     await Promise.all(promises);
   }
 
@@ -206,7 +188,6 @@ export class Breakpoint {
       disposable.dispose();
     this._disposables = [];
     this._resolvedLocation = undefined;
-    this._manager._breakpoints.delete(this);
 
     // Let all setters finish, so that we can remove all breakpoints including
     // ones being set right now.
@@ -218,7 +199,7 @@ export class Breakpoint {
       promises.push(this._manager._thread!.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
     }
     this._resolvedBreakpoints.clear();
-    await promises;
+    await Promise.all(promises);
   }
 };
 
@@ -230,7 +211,6 @@ export class BreakpointManager {
   _sourceContainer: SourceContainer;
   _thread: Thread | undefined;
   _disposables: Disposable[] = [];
-  _breakpoints = new Set<Breakpoint>();
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
@@ -250,10 +230,10 @@ export class BreakpointManager {
         const path = source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
-          breakpoint.updateForSourceMap(script);
+          breakpoint.updateForSourceMap(this._thread!, script);
         const byRef = this._byRef.get(source.sourceReference());
         for (const breakpoint of byRef || [])
-          breakpoint.updateForSourceMap(script);
+          breakpoint.updateForSourceMap(this._thread!, script);
       }
     };
     if (sourceContainer.rootPath)
@@ -267,8 +247,10 @@ export class BreakpointManager {
       if (breakpoint)
         breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
     });
-    for (const breakpoint of this._breakpoints.values())
-      breakpoint._setInThread();
+    for (const breakpoints of this._byPath.values())
+      breakpoints.forEach(b => b.set(thread));
+    for (const breakpoints of this._byRef.values())
+      breakpoints.forEach(b => b.set(thread));
     this._updateSourceMapHandler();
   }
 
@@ -313,7 +295,8 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     }
     this._totalBreakpointsCount += breakpoints.length;
-    breakpoints.forEach(b => b.set());
+    if (this._thread)
+      breakpoints.forEach(b => b.set(this._thread!));
     await this._updateSourceMapHandler();
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }
