@@ -79,6 +79,8 @@ export class Binder implements Disposable {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
+    this._launchers.clear();
+    this._detachOrphaneThreads([]);
   }
 
   debugAdapter(target: Target): DebugAdapter | undefined {
