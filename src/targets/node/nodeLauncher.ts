@@ -12,6 +12,7 @@ import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathR
 import Dap from '../../dap/api';
 import { Launcher, Target } from '../../targets/targets';
 import * as utils from '../../utils/urlUtils';
+import { execFileSync } from 'child_process';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -145,6 +146,9 @@ export class NodeLauncher implements Launcher {
       NODE_INSPECTOR_IPC: this._pipe,
       NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
       NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require ${bootloaderJS}`,
+      // Supply some node executable for running top-level watchdog in Electron
+      // environments. Bootloader will replace this with actual node executable used if any.
+      NODE_INSPECTOR_EXEC_PATH: findNode() || ''
     };
     delete result['ELECTRON_RUN_AS_NODE'];
     return result;
@@ -330,5 +334,14 @@ class NodeSourcePathResolver implements SourcePathResolver {
 
   absolutePathToUrl(absolutePath: string): string | undefined {
     return utils.absolutePathToFileUrl(path.normalize(absolutePath));
+  }
+}
+
+function findNode(): string | undefined {
+  if (process.platform !== 'linux' && process.platform !== 'darwin')
+    return;
+  try {
+    return execFileSync('which', ['node'], { stdio: 'pipe' }).toString().split(/\r?\n/)[0];
+  } catch (e) {
   }
 }

@@ -26,6 +26,13 @@
       ],
       "preLaunchTask": "npm: watch"
     },
+    {
+      "name": "Dogfood",
+      "type": "pwa",
+      "request": "launch",
+      "command": "code-insiders --disable-extensions --extensionDevelopmentPath=${workspaceFolder}/",
+      "preLaunchTask": "npm: watch"
+    },
 		{
 			"name": "Run Tests",
 			"type": "extensionHost",
