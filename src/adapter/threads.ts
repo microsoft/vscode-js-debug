@@ -46,7 +46,7 @@ export class ExecutionContext {
   }
 }
 
-export type Script = { scriptId: string, hash: string, source: Source, thread: Thread };
+export type Script = { scriptId: string, hash: string, source: Source };
 
 export interface UIDelegate {
   copyToClipboard: (text: string) => void;
@@ -766,7 +766,7 @@ export class Thread implements VariableStoreDelegate {
       urlHashMap.set(event.hash, source);
     }
 
-    const script = { scriptId: event.scriptId, source, hash: event.hash, thread: this };
+    const script = { scriptId: event.scriptId, source, hash: event.hash };
     this._scripts.set(event.scriptId, script);
     if (!source[kScriptsSymbol])
       source[kScriptsSymbol] = new Set();

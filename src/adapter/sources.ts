@@ -367,8 +367,8 @@ export class SourceContainer {
       return;
 
     return {
-      lineNumber: entry.line === null ? 1 : entry.line,
-      columnNumber: entry.column === null ? 1 : entry.column,
+      lineNumber: entry.line || 1,
+      columnNumber: entry.column || 1,
       url: source._url,
       source: source
     };
@@ -385,8 +385,8 @@ export class SourceContainer {
       if (entry.line === null)
         continue;
       const compiledLocation = {
-        lineNumber: entry.line === null ? 1 : entry.line,
-        columnNumber: entry.column === null ? 1 : entry.column,
+        lineNumber: entry.line || 1,
+        columnNumber: entry.column || 1,
         url: compiled.url(),
         source: compiled
       };
