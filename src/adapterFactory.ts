@@ -12,12 +12,10 @@ import DapConnection from './dap/connection';
 import { SessionManager } from './sessionManager';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
-import { Target } from './targets/targets';
 
 export class Session implements vscode.Disposable {
   private _server: net.Server;
   private _debugAdapter?: DebugAdapter;
-  private _disposables: vscode.Disposable[] = [];
   private _binder?: Binder;
 
   constructor(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, binderDelegate: BinderDelegate | undefined, callback: (debugAdapter: DebugAdapter) => void) {
@@ -51,19 +49,12 @@ export class Session implements vscode.Disposable {
     return this._debugAdapter;
   }
 
-  binder(): Binder | undefined {
-    return this._binder;
-  }
-
   dispose() {
     if (this._binder)
       this._binder.dispose();
     if (this._debugAdapter)
       this._debugAdapter.dispose();
     this._server.close();
-    for (const disposable of this._disposables)
-      disposable.dispose();
-    this._disposables = [];
   }
 }
 
@@ -72,11 +63,9 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
   private _disposables: vscode.Disposable[];
   private _onAdapterAddedEmitter = new vscode.EventEmitter<DebugAdapter>();
   private _onAdapterRemovedEmitter = new vscode.EventEmitter<DebugAdapter>();
-  private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
   private _sessions = new Map<string, Session>();
   private _sessionManager: SessionManager;
 
-  readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   readonly onAdapterAdded = this._onAdapterAddedEmitter.event;
   readonly onAdapterRemoved = this._onAdapterRemovedEmitter.event;
 
@@ -84,7 +73,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
     this._context = context;
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('pwa', this));
     context.subscriptions.push(this);
-    this._disposables = [this._onAdapterAddedEmitter, this._onAdapterRemovedEmitter, this._onTargetListChangedEmitter];
+    this._disposables = [this._onAdapterAddedEmitter, this._onAdapterRemovedEmitter];
     this._sessionManager = new SessionManager();
 
     vscode.debug.onDidTerminateDebugSession(debugSession => {
@@ -98,16 +87,6 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
     }, undefined, this._disposables);
   }
 
-  sessionForTarget(target: Target): Session | undefined {
-    const sessionId = target.targetOrigin() as string;
-    return this._sessions.get(sessionId);
-  }
-
-  binderForTarget(target: Target): Binder | undefined {
-    const session = this.sessionForTarget(target);
-    return session && session.binder();
-  }
-
   adapters(): DebugAdapter[] {
     const result: DebugAdapter[] = [];
     for (const session of this._sessions.values()) {
@@ -118,21 +97,9 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
     return result;
   }
 
-  targetList(): Target[] {
-    const result: Target[] = [];
-    for (const session of this._sessions.values()) {
-      const binder = session.binder();
-      if (binder)
-        result.push(...binder.targetList());
-    }
-    return result;
-  }
-
   createDebugAdapterDescriptor(debugSession: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const session = this._sessionManager.createSession(this._context, debugSession, debugAdapter => {
       this._onAdapterAddedEmitter.fire(debugAdapter);
-      if (session.binder())
-        session.binder()!.onTargetListChanged(() => this._onTargetListChangedEmitter.fire());
     });
     this._sessions.set(debugSession.id, session);
     return session.descriptor();

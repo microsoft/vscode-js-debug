@@ -282,7 +282,7 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  xit('selected context', async({p} : {p: TestP}) => {
+  it('selected context', async({p} : {p: TestP}) => {
     await p.launchUrl('worker.html');
     p.log('--- Evaluating in page');
     p.log('Pausing...');
@@ -297,12 +297,13 @@ export function addTests(testRunner) {
 
     p.log('--- Evaluating in worker');
     p.dap.evaluate({expression: `window.w.postMessage('pauseWorker');`, context: 'repl'});
-    const {threadId: workerThreadId} = await p.dap.once('stopped');
+    const worker = await p.worker();
+    const {threadId: workerThreadId} = await worker.dap.once('stopped');
     p.log('Paused');
-    const { id: workerFrameId } = (await p.dap.stackTrace({ threadId: workerThreadId! })).stackFrames[0];
-    await p.logger.logEvaluateResult(await p.dap.evaluate({ expression: 'self', frameId: workerFrameId }), { depth: 0 });
-    p.dap.continue({threadId: workerThreadId!});
-    await p.dap.once('continued');
+    const { id: workerFrameId } = (await worker.dap.stackTrace({ threadId: workerThreadId! })).stackFrames[0];
+    await worker.logger.logEvaluateResult(await worker.dap.evaluate({ expression: 'self', frameId: workerFrameId }), { depth: 0 });
+    worker.dap.continue({threadId: workerThreadId!});
+    await worker.dap.once('continued');
     p.log('Resumed');
 
     p.assertLog();

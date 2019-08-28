@@ -41,11 +41,6 @@ export async function run(): Promise<void> {
     delete state.goldenText;
   });
 
-  await describe('startup tests', async () => {
-    (await import('./infra/infra')).addStartupTests(testRunner);
-    (await import('./threads/threadsTest')).addStartupTests(testRunner);
-  });
-
   await describe('tests', async () => {
     beforeEach(async (state: {goldenText: GoldenText, p: TestP}) => {
       state.p = new TestP(state.goldenText);
@@ -57,6 +52,7 @@ export async function run(): Promise<void> {
       delete state.p;
     });
 
+    (await import('./infra/infra')).addTests(testRunner);
     (await import('./breakpoints/breakpointsTest')).addTests(testRunner);
     (await import('./browser/framesTest')).addTests(testRunner);
     (await import('./evaluate/evaluate')).addTests(testRunner);

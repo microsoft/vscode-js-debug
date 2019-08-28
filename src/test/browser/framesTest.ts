@@ -8,7 +8,7 @@ export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
-  xit('hierarchy', async ({ p }: { p: TestP }) => {
+  it('hierarchy', async ({ p }: { p: TestP }) => {
     p.setArgs(['--site-per-process']);
     p.launchUrl('frames.html');
 
@@ -23,10 +23,10 @@ export function addTests(testRunner) {
     };
 
     await new Promise(f => {
-      // p.adapter.threadManager.onThreadCreated(() => {
-      //   if (p.adapter.threadManager.threads().length === 11)
-      //     f();
-      // });
+      p.onSessionCreated(() => {
+        if (p.binder.targetList().length === 11)
+          f();
+      });
     });
     p.binder.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
 

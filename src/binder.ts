@@ -53,7 +53,7 @@ export class Binder implements Disposable {
     await launcher.launch(params, this._targetOrigin);
   }
 
-  considerLaunchedForTest(launcher) {
+  considerLaunchedForTest(launcher: Launcher) {
     this._initLaunched(launcher);
   }
 

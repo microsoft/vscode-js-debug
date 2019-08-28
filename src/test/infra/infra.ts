@@ -1,16 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as test from '../test';
-import { GoldenText } from '../goldenText';
+import { TestP } from '../test';
 
-export function addStartupTests(testRunner) {
+export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const {it, fit, xit} = testRunner;
 
-  it('initialize', async({goldenText} : {goldenText: GoldenText}) => {
-    const p = new test.TestP(goldenText);
-    p.dap.on('initialized', () => p.log('initialized'));
+  it('initialize', async({p} : {p: TestP}) => {
     p.log(await p.initialize);
     p.assertLog();
   });

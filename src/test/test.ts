@@ -13,8 +13,9 @@ import DapConnection from '../dap/connection';
 import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { Binder } from '../binder';
+import { Binder, BinderDelegate } from '../binder';
 import { Target } from '../targets/targets';
+import * as vscode from 'vscode';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -28,46 +29,80 @@ class Stream extends stream.Duplex {
   }
 }
 
+export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
+
+export class Session implements vscode.Disposable {
+  readonly debugAdapter: DebugAdapter;
+  readonly dap: Dap.TestApi;
+  readonly logger: Logger;
+
+  constructor(log: Log, binderDelegate: BinderDelegate | undefined) {
+    const testToAdapter = new Stream();
+    const adapterToTest = new Stream();
+    const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
+    const testConnection = new DapConnection(adapterToTest, testToAdapter);
+    this.dap = testConnection.createTestApi();
+
+    const workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
+
+    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, {
+      copyToClipboard: text => log(`[copy to clipboard] ${text}`)
+    });
+
+    this.logger = new Logger(this.dap, log);
+  }
+
+  dispose() {
+    this.debugAdapter.dispose();
+  }
+}
+
 export class TestP {
   readonly adapter: DebugAdapter;
   readonly dap: Dap.TestApi;
   readonly initialize: Promise<Dap.InitializeResult>;
-  readonly log: (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
+  readonly log: Log;
   readonly assertLog: () => void;
   _cdp: Cdp.Api | undefined;
   _adapter: DebugAdapter | undefined;
 
-  readonly binder: Binder;
-  private _browserLauncher: BrowserLauncher;
+  private _root: Session;
+  private _sessions = new Map<DebugAdapter, Session>();
   private _connection: CdpConnection | undefined;
   private _evaluateCounter = 0;
   private _workspaceRoot: string;
   private _webRoot: string | undefined;
   private _launchUrl: string | undefined;
   private _args: string[];
+  private _worker: Promise<Session>;
+  private _workerCallback: (session: Session) => void;
   readonly logger: Logger;
+
+  private _browserLauncher: BrowserLauncher;
+  readonly binder: Binder;
+
+  private _onSessionCreatedEmitter = new vscode.EventEmitter<Session>();
+  readonly onSessionCreated = this._onSessionCreatedEmitter.event;
 
   constructor(goldenText: GoldenText) {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
-    this.logger = new Logger(this);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    const testToAdapter = new Stream();
-    const adapterToTest = new Stream();
-    const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
-    const testConnection = new DapConnection(adapterToTest, testToAdapter);
-    const storagePath = path.join(__dirname, '..', '..');
     this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
-    this.adapter = new DebugAdapter(adapterConnection.dap(), this._workspaceRoot, {
-      copyToClipboard: text => this.log(`[copy to clipboard] ${text}`)
-    });
-    this.binder = new Binder(this, this.adapter, [this._browserLauncher], undefined);
+    this._root = new Session(this.log, this);
+    this._sessions.set(this._root.debugAdapter, this._root);
+    this.dap = this._root.dap;
+    this.adapter = this._root.debugAdapter;
+    this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
+    this.logger = this._root.logger;
+
+    const storagePath = path.join(__dirname, '..', '..');
+    this._browserLauncher = new BrowserLauncher(storagePath, this.adapter.sourceContainer.rootPath);
+    this.binder = new Binder(this, this.adapter, [this._browserLauncher], '0');
     this.binder.considerLaunchedForTest(this._browserLauncher);
 
-    this.dap = testConnection.createTestApi();
     this.initialize = this.dap.initialize({
       clientID: 'pwa-test',
       adapterID: 'pwa',
@@ -76,13 +111,41 @@ export class TestP {
       pathFormat: 'path',
       supportsVariablePaging: true
     });
+
+    this._workerCallback = () => {};
+    this._worker = new Promise(f => this._workerCallback = f);
+  }
+
+  _disposeSessions() {
+    for (const session of this._sessions.values())
+      session.dispose();
+    this._sessions.clear();
   }
 
   async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
-    return this.adapter;
+    if (!target.parent())
+      return this._root.debugAdapter;
+
+    const session = new Session(this.log, undefined);
+    this._sessions.set(session.debugAdapter, session);
+    session.dap.initialize({
+      clientID: 'pwa-test',
+      adapterID: 'pwa',
+      linesStartAt1: true,
+      columnsStartAt1: true,
+      pathFormat: 'path',
+      supportsVariablePaging: true
+    });
+    session.dap.configurationDone({});
+    this._workerCallback(session);
+    this._onSessionCreatedEmitter.fire(session);
+    return session.debugAdapter;
   }
 
   releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
+    const session = this._sessions.get(debugAdapter)!;
+    session.dispose();
+    this._sessions.delete(debugAdapter);
   }
 
   get cdp(): Cdp.Api {
@@ -93,12 +156,15 @@ export class TestP {
     this._args = args;
   }
 
+  worker(): Promise<Session> {
+    return this._worker;
+  }
+
   async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
     this._launchUrl = url;
     const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args, undefined)) as BrowserTarget;
-    this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
     this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
@@ -140,10 +206,12 @@ export class TestP {
       this.initialize.then(() => {
         if (this._connection) {
           const disposable = this._connection.onDisconnected(() => {
+            this._disposeSessions();
             cb();
             disposable.dispose();
           });
         } else {
+          this._disposeSessions();
           cb();
         }
         this.dap.disconnect({});

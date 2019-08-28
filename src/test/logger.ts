@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from './test';
+import { Log } from './test';
 import Dap from '../dap/api';
 
 interface LogOptions {
@@ -10,10 +10,12 @@ interface LogOptions {
 }
 
 export class Logger {
-  private _testP: TestP;
+  private _dap: Dap.TestApi;
+  private _log: Log;
 
-  constructor(testP: TestP) {
-    this._testP = testP;
+  constructor(dap: Dap.TestApi, log: Log) {
+    this._dap = dap;
+    this._log = log;
   }
 
   logAsConsole(text: string) {
@@ -21,7 +23,7 @@ export class Logger {
       return;
     if (text.endsWith('\n'))
       text = text.substring(0, text.length - 1);
-    this._testP.log(text);
+    this._log(text);
   }
 
   async logVariable(variable: Dap.Variable, options?: LogOptions, indent?: string) {
@@ -54,7 +56,7 @@ export class Logger {
       const hasHints = typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
       if (hasHints) {
         if (variable.namedVariables) {
-          const named = await this._testP.dap.variables({
+          const named = await this._dap.variables({
             variablesReference: variable.variablesReference,
             filter: 'named'
           });
@@ -62,7 +64,7 @@ export class Logger {
             await this.logVariable(variable, { ...options, depth: options.depth - 1 }, indent + '    ');
         }
         if (variable.indexedVariables) {
-          const indexed = await this._testP.dap.variables({
+          const indexed = await this._dap.variables({
             variablesReference: variable.variablesReference,
             filter: 'indexed',
             start: 0,
@@ -72,7 +74,7 @@ export class Logger {
             await this.logVariable(variable, { ...options, depth: options.depth - 1 }, indent + '    ');
         }
       } else {
-        const all = await this._testP.dap.variables({
+        const all = await this._dap.variables({
           variablesReference: variable.variablesReference
         });
         for (const variable of all.variables)
@@ -86,7 +88,7 @@ export class Logger {
     if (params.output)
       this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
-      const result = await this._testP.dap.variables({ variablesReference: params.variablesReference });
+      const result = await this._dap.variables({ variablesReference: params.variablesReference });
       for (const variable of result.variables)
         await this.logVariable(variable, options, prefix);
     }
@@ -99,11 +101,11 @@ export class Logger {
   }
 
   async logStackTrace(threadId: number, withScopes?: boolean) {
-    const initial = await this._testP.dap.stackTrace({threadId});
+    const initial = await this._dap.stackTrace({threadId});
     const stack = initial.stackFrames;
     let totalFrames = initial.totalFrames || stack.length;
     while (stack.length < totalFrames) {
-      const response = await this._testP.dap.stackTrace({threadId, startFrame: stack.length, levels: Math.min(20, totalFrames - stack.length)});
+      const response = await this._dap.stackTrace({threadId, startFrame: stack.length, levels: Math.min(20, totalFrames - stack.length)});
       stack.push(...response.stackFrames);
       if (response.totalFrames)
         totalFrames = Math.min(totalFrames, response.totalFrames);
@@ -111,20 +113,20 @@ export class Logger {
     let emptyLine = !!withScopes;
     for (const frame of stack) {
       if (emptyLine)
-        this._testP.log('');
+        this._log('');
       if (frame.presentationHint === 'label') {
-        this._testP.log(`----${frame.name}----`);
+        this._log(`----${frame.name}----`);
         emptyLine = false;
         continue;
       }
-      this._testP.log(`${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${frame.column}`);
+      this._log(`${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${frame.column}`);
       if (!withScopes)
         continue;
-      const scopes = await this._testP.dap.scopes({frameId: frame.id});
+      const scopes = await this._dap.scopes({frameId: frame.id});
       for (let i = 0; i < scopes.scopes.length; i++) {
         const scope = scopes.scopes[i];
         if (scope.expensive) {
-          this._testP.log(`  scope #${i}: ${scope.name} [expensive]`);
+          this._log(`  scope #${i}: ${scope.name} [expensive]`);
           continue;
         }
         await this.logVariable({
@@ -142,9 +144,9 @@ export class Logger {
   evaluateAndLog(expressions: string[], options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<void>;
   async evaluateAndLog(expressions: string[] | string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable | void> {
     if (typeof expressions === 'string') {
-      const result = await this._testP.dap.evaluate({ expression: expressions, context });
+      const result = await this._dap.evaluate({ expression: expressions, context });
       if (typeof result === 'string') {
-        this._testP.log(`<error>: ${result}`);
+        this._log(`<error>: ${result}`);
         return { name: 'result', value: result, variablesReference: 0 };
       }
       return await this.logEvaluateResult(result, options);
@@ -157,16 +159,16 @@ export class Logger {
       if (!expression) {
         complete();
       } else {
-        this._testP.log(`Evaluating: '${expression}'`);
-        await this._testP.dap.evaluate({ expression, context });
+        this._log(`Evaluating: '${expression}'`);
+        await this._dap.evaluate({ expression, context });
       }
     };
 
     let chain = Promise.resolve();
-    this._testP.dap.on('output', async params => {
+    this._dap.on('output', async params => {
       chain = chain.then(async () => {
-        await this._testP.logger.logOutput(params, options);
-        this._testP.log(``);
+        await this.logOutput(params, options);
+        this._log(``);
         next();
       });
     });

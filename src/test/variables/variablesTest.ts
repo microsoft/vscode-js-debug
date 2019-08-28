@@ -3,6 +3,7 @@
 
 import { TestP } from '../test';
 import Dap from '../../dap/api';
+import { Logger } from '../logger';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -94,16 +95,17 @@ export function addTests(testRunner) {
     });
   });
 
-  xdescribe('multiple threads', () => {
+  describe('multiple threads', () => {
     it('worker', async ({ p }: { p: TestP }) => {
       await p.launchUrl('worker.html');
-      const kLogs = 3;
-      const outputs: Dap.OutputEventParams[] = [];
-      for (let i = 0; i < kLogs; i++)
-        outputs.push(await p.dap.once('output'));
-      outputs.sort((a, b) => a.source!.name!.localeCompare(b.source!.name!));
-      for (let i = 0; i < kLogs; i++)
-        await p.logger.logOutput(outputs[i]);
+      const outputs: {output: Dap.OutputEventParams, logger: Logger}[] = [];
+      outputs.push({output: await p.dap.once('output'), logger: p.logger});
+      const worker = await p.worker();
+      outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
+      outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
+      outputs.sort((a, b) => a.output.source!.name!.localeCompare(b.output.source!.name!));
+      for (const {output, logger} of outputs)
+        await logger.logOutput(output);
       p.assertLog();
     });
   });

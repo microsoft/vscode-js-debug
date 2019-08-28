@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import {TestP} from '../test';
-import {GoldenText} from '../goldenText';
 
 export function addTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
@@ -71,7 +70,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    xit('cross thread', async ({ p }: { p: TestP }) => {
+    it('cross thread', async ({ p }: { p: TestP }) => {
       await p.launchUrl('worker.html');
 
       p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w.postMessage('message')\n//# sourceURL=test.js`});
@@ -87,12 +86,13 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
-      await p.logger.logStackTrace(secondThreadId);
+      const worker = await p.worker();
+      const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
+      await worker.logger.logStackTrace(secondThreadId);
 
       p.log('\nresume');
-      p.dap.continue({threadId: secondThreadId});
-      p.log(await p.dap.once('continued'));
+      worker.dap.continue({threadId: secondThreadId});
+      p.log(await worker.dap.once('continued'));
       p.assertLog();
     });
 
@@ -114,16 +114,17 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
-      await p.logger.logStackTrace(secondThreadId);
+      const worker = await p.worker();
+      const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
+      await worker.logger.logStackTrace(secondThreadId);
 
       p.log('\nresume');
-      p.dap.continue({threadId: secondThreadId});
-      p.log(await p.dap.once('continued'));
+      worker.dap.continue({threadId: secondThreadId});
+      p.log(await worker.dap.once('continued'));
       p.assertLog();
     });
 
-    xit('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
+    it('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
       await p.launchUrl('index.html');
 
       p.cdp.Runtime.evaluate({expression: `
@@ -173,12 +174,13 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
-      await p.logger.logStackTrace(secondThreadId);
+      const worker = await p.worker();
+      const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
+      await worker.logger.logStackTrace(secondThreadId);
 
       p.log('\nresume');
-      p.dap.continue({threadId: secondThreadId});
-      p.log(await p.dap.once('continued'));
+      worker.dap.continue({threadId: secondThreadId});
+      p.log(await worker.dap.once('continued'));
       p.assertLog();
     });
 
@@ -201,12 +203,13 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const {threadId: secondThreadId} = p.log(await p.dap.once('stopped'));
-      await p.logger.logStackTrace(secondThreadId);
+      const worker = await p.worker();
+      const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
+      await worker.logger.logStackTrace(secondThreadId);
 
       p.log('\nresume');
-      p.dap.continue({threadId: secondThreadId});
-      p.log(await p.dap.once('continued'));
+      worker.dap.continue({threadId: secondThreadId});
+      p.log(await worker.dap.once('continued'));
       p.assertLog();
     });
   });
@@ -256,41 +259,5 @@ export function addTests(testRunner) {
       await waitForPauseOnException(p);
       p.assertLog();
     });
-  });
-}
-
-export function addStartupTests(testRunner) {
-  // @ts-ignore unused variables xit/fit.
-  const {it, xit, fit} = testRunner;
-
-  xit('events', async({goldenText}: {goldenText: GoldenText}) => {
-    const p = new TestP(goldenText);
-    p.dap.on('thread', e => {
-      if (e.reason === 'started')
-        p.log(e, 'Thread started: ');
-    });
-
-    p.log('Initializing');
-    // Initializing does not create a thread.
-    await p.initialize;
-
-    p.log('Launching');
-    // One thread during launch.
-    const launch = p.launch('blank');
-    const {threadId} = await p.dap.once('thread', e => e.reason === 'started');
-
-    p.log(await p.dap.threads({}), 'Requesting threads: ');
-
-    await launch;
-    p.log('Launched');
-    p.log(await p.dap.threads({}), 'Requesting threads: ');
-
-    p.log('Disconnecting');
-    const [, exited] = await Promise.all([
-      p.disconnect(),
-      p.dap.once('thread', e => e.reason === 'exited' && e.threadId === threadId)
-    ]);
-    p.log(exited, 'Thread exited: ');
-    p.assertLog();
   });
 }
