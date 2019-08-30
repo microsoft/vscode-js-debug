@@ -6,7 +6,7 @@ import { Location } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
-import { ScopeRef } from "./variables";
+import { ScopeRef, ExtraProperty } from "./variables";
 import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
@@ -117,6 +117,8 @@ export class StackTrace {
 
 interface Scope {
   chain: Cdp.Debugger.Scope[];
+  thisObject: Cdp.Runtime.RemoteObject;
+  returnValue?: Cdp.Runtime.RemoteObject;
   variables: (Dap.Variable | undefined)[];
   callFrameId: string;
 }
@@ -142,6 +144,8 @@ export class StackFrame {
     }));
     result._scope = {
       chain: callFrame.scopeChain,
+      thisObject: callFrame.this,
+      returnValue: callFrame.returnValue,
       variables: new Array(callFrame.scopeChain.length).fill(undefined),
       callFrameId: callFrame.callFrameId!
     };
@@ -275,7 +279,13 @@ export class StackFrame {
     const scope = this._scope!;
     if (!scope.variables[scopeNumber]) {
       const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
-      const variable = await this._thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef);
+      const extraProperties: ExtraProperty[] = [];
+      if (scopeNumber === 0 && scope.chain[scopeNumber].type === 'local') {
+        extraProperties.push({name: 'this', value: scope.thisObject});
+        if (scope.returnValue)
+          extraProperties.push({name: localize('scope.returnValue', 'Return value'), value: scope.returnValue});
+      }
+      const variable = await this._thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
       scope.variables[scopeNumber] = variable;
     }
     return scope.variables[scopeNumber]!;

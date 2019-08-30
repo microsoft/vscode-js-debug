@@ -111,23 +111,25 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const debugAdapter = await this._delegate.acquireDebugAdapter(target);
-    debugAdapter.dap.on('disconnect', async () => {
-      if (target.canStop())
-        target.stop();
-      return {};
-    });
-    debugAdapter.dap.on('terminate', async () => {
-      if (target.canStop())
-        target.stop();
-      return {};
-    });
-    debugAdapter.dap.on('restart', async () => {
-      if (target.canRestart())
-        target.restart();
-      else
-        await this._restart();
-      return {};
-    });
+    if (debugAdapter !== this._debugAdapter) {
+      debugAdapter.dap.on('disconnect', async () => {
+        if (target.canStop())
+          target.stop();
+        return {};
+      });
+      debugAdapter.dap.on('terminate', async () => {
+        if (target.canStop())
+          target.stop();
+        return {};
+      });
+      debugAdapter.dap.on('restart', async () => {
+        if (target.canRestart())
+          target.restart();
+        else
+          await this._restart();
+        return {};
+      });
+    }
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     cdp.Runtime.runIfWaitingForDebugger({});

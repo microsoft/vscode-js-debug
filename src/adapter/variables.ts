@@ -16,6 +16,7 @@ class RemoteObject {
   readonly cdp: Cdp.Api;
 
   scopeRef?: ScopeRef;
+  extraProperties?: ExtraProperty[];
   // Scope remote object is never updated, even after changing local variables.
   // So, we cache variables here and update locally.
   scopeVariables?: Dap.Variable[];
@@ -36,6 +37,11 @@ class RemoteObject {
 export interface ScopeRef {
   callFrameId: Cdp.Debugger.CallFrameId;
   scopeNumber: number;
+}
+
+export interface ExtraProperty {
+  name: string;
+  value: Cdp.Runtime.RemoteObject;
 }
 
 export interface VariableStoreDelegate {
@@ -82,8 +88,11 @@ export class VariableStore {
     }
 
     const variables = await this._getObjectProperties(object);
-    if (object.scopeRef)
+    if (object.scopeRef) {
+      for (const extraProperty of object.extraProperties || [])
+        variables.push(this._createVariable(extraProperty.name, object.wrap(extraProperty.value), 'propertyValue'));
       object.scopeVariables = variables;
+    }
     return variables;
   }
 
@@ -112,6 +121,8 @@ export class VariableStore {
     }
 
     if (object.scopeRef) {
+      if (object.extraProperties && object.extraProperties.find(p => p.name === params.name))
+        return release(errors.createSilentError(localize('error.variableNotFound', 'Variable not found')));
       const setResponse = await object.cdp.Debugger.setVariableValue({
         callFrameId: object.scopeRef.callFrameId,
         scopeNumber: object.scopeRef.scopeNumber,
@@ -153,9 +164,10 @@ export class VariableStore {
     return this._createVariable('', new RemoteObject(this._cdp, value), context);
   }
 
-  async createScope(value: Cdp.Runtime.RemoteObject, scopeRef: ScopeRef): Promise<Dap.Variable> {
+  async createScope(value: Cdp.Runtime.RemoteObject, scopeRef: ScopeRef, extraProperties: ExtraProperty[]): Promise<Dap.Variable> {
     const object = new RemoteObject(this._cdp, value);
     object.scopeRef = scopeRef;
+    object.extraProperties = extraProperties;
     return this._createVariable('', object);
   }
 

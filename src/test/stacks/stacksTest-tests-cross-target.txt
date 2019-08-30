@@ -2,6 +2,7 @@
 <anonymous> @ ${workspaceFolder}/web/worker.html:6:5
   > scope #0: Local
       > e: MessageEvent {isTrusted: true, data: 'pause', origin: '', lastEventId: '', source: null}
+      this: undefined
   scope #1: Global [expensive]
 
 ----postMessage----

@@ -1,0 +1,9 @@
+
+foo @ <eval>/VM<xx>:4:19
+  > scope #0: foo
+      > this: Window
+      Return value: 42
+  scope #1: Global [expensive]
+
+<anonymous> @ <eval>/VM<xx>:6:7
+  scope #0: Global [expensive]

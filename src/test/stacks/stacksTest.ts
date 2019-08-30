@@ -82,4 +82,21 @@ export function addTests(testRunner) {
     await dumpStackAndContinue(p, true);
     p.assertLog();
   });
+
+  it('return value', async({p}: {p: TestP}) => {
+    await p.launchAndLoad('blank');
+    p.cdp.Runtime.evaluate({expression: `
+      function foo() {
+        debugger;
+        return 42;
+      }
+      foo();
+    `});
+    const {threadId} = await p.dap.once('stopped');  // debugger
+    p.dap.next({threadId: threadId!});
+    await p.dap.once('stopped');  // return 42
+    p.dap.next({threadId: threadId!});
+    await dumpStackAndContinue(p, true);  // exit point
+    p.assertLog();
+  });
 }
