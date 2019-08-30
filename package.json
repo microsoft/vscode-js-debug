@@ -222,6 +222,9 @@
               },
               "env": {
                 "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
                 "description": "Environment variables"
               },
               "nodeFilter": {
