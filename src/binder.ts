@@ -112,6 +112,7 @@ export class Binder implements Disposable {
       return;
     const debugAdapter = await this._delegate.acquireDebugAdapter(target);
     if (debugAdapter !== this._debugAdapter) {
+      await debugAdapter.breakpointManager.launchBlocker();
       debugAdapter.dap.on('disconnect', async () => {
         if (target.canStop())
           target.stop();

@@ -297,7 +297,7 @@ export class BreakpointManager {
     this._totalBreakpointsCount += breakpoints.length;
     if (this._thread)
       breakpoints.forEach(b => b.set(this._thread!));
-    await this._updateSourceMapHandler();
+    this._updateSourceMapHandler();
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
   }
 }
