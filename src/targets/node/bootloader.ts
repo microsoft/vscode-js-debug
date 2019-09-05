@@ -30,17 +30,20 @@ function debugLog(text: string) {
   } catch (e) {
   }
 
-  const ppid = process.env.NODE_INSPECTOR_PPID || '';
-  process.env.NODE_INSPECTOR_PPID = '' + process.pid;
-
-  debugLog('Opening inspector for scriptName: ' + scriptName);
-  inspector.open(0, undefined, false);
-
   let waitForDebugger = true;
   try {
     waitForDebugger = new RegExp(process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER || '').test(scriptName);
   } catch (e) {
   }
+
+  if (!waitForDebugger)
+    return;
+
+  const ppid = process.env.NODE_INSPECTOR_PPID || '';
+  process.env.NODE_INSPECTOR_PPID = '' + process.pid;
+
+  debugLog('Opening inspector for scriptName: ' + scriptName);
+  inspector.open(0, undefined, false);
 
   const info = {
     pid: String(process.pid),
