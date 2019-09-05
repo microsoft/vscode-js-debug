@@ -45,17 +45,14 @@ export class NodeLauncher implements Launcher {
     this._pathResolver = new NodeSourcePathResolver();
   }
 
-  canLaunch(params: any): boolean {
-    return 'command' in params;
-  }
-
-  async launch(params: any, targetOrigin: any): Promise<void> {
-    if (!this.canLaunch(params))
-      return;
+  async launch(params: any, targetOrigin: any): Promise<boolean> {
+    if (!('command' in params))
+      return false;
     this._launchParams = params as LaunchParams;
     this._targetOrigin = targetOrigin;
     await this._startServer();
     await this._relaunch();
+    return true;  // Block session on termination.
   }
 
   async _relaunch() {

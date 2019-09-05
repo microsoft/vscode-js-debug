@@ -16,6 +16,7 @@ export class Binder implements Disposable {
   private _disposables: Disposable[];
   private _threads = new Map<Target, {thread: Thread, debugAdapter: DebugAdapter}>();
   private _launchers = new Set<Launcher>();
+  private _terminationCount = 0;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _debugAdapter: DebugAdapter;
@@ -26,6 +27,16 @@ export class Binder implements Disposable {
     this._debugAdapter = debugAdapter;
     this._targetOrigin = targetOrigin;
     this._disposables = [this._onTargetListChangedEmitter];
+
+    for (const launcher of launchers) {
+      this._launchers.add(launcher);
+      launcher.onTargetListChanged(() => {
+        const targets = this.targetList();
+        this._attachToNewTargets(targets);
+        this._detachOrphaneThreads(targets);
+        this._onTargetListChangedEmitter.fire();
+      }, undefined, this._disposables);
+    }
 
     debugAdapter.dap.on('launch', async params => {
       await debugAdapter.breakpointManager.launchBlocker();
@@ -51,31 +62,25 @@ export class Binder implements Disposable {
   }
 
   async _launch(launcher: Launcher, params: any) {
-    if (!launcher.canLaunch(params))
+    if (!await launcher.launch(params, this._targetOrigin))
       return;
-    this._initLaunched(launcher);
-    await launcher.launch(params, this._targetOrigin);
+
+    this._listenToTermination(launcher);
   }
 
   considerLaunchedForTest(launcher: Launcher) {
-    this._initLaunched(launcher);
+    this._listenToTermination(launcher);
   }
 
-  _initLaunched(launcher) {
-    this._launchers.add(launcher);
+  _listenToTermination(launcher: Launcher) {
+    ++this._terminationCount;
     launcher.onTerminated(() => {
       this._launchers.delete(launcher);
       this._detachOrphaneThreads(this.targetList());
       this._onTargetListChangedEmitter.fire();
-      if (!this._launchers.size)
+      --this._terminationCount;
+      if (!this._terminationCount)
         this._debugAdapter.dap.terminated({});
-    }, undefined, this._disposables);
-
-    launcher.onTargetListChanged(() => {
-      const targets = this.targetList();
-      this._attachToNewTargets(targets);
-      this._detachOrphaneThreads(targets);
-      this._onTargetListChangedEmitter.fire();
     }, undefined, this._disposables);
   }
 
@@ -83,6 +88,8 @@ export class Binder implements Disposable {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
+    for (const launcher of this._launchers)
+      launcher.dispose();
     this._launchers.clear();
     this._detachOrphaneThreads([]);
   }

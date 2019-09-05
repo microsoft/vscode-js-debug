@@ -32,8 +32,8 @@ export interface Target {
 }
 
 export interface Launcher extends Disposable {
-  canLaunch(params: any): boolean;
-  launch(params: any, targetOrigin: any): Promise<void>;
+  // If returns true, session should be blocked on the launcher termination.
+  launch(params: any, targetOrigin: any): Promise<boolean>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

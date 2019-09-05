@@ -12,6 +12,7 @@ import DapConnection from './dap/connection';
 import { SessionManager } from './sessionManager';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
+import { BrowserAttacher } from './targets/browser/browserAttacher';
 
 export class Session implements vscode.Disposable {
   private _server: net.Server;
@@ -32,7 +33,8 @@ export class Session implements vscode.Disposable {
       if (binderDelegate) {
         const launchers = [
           new NodeLauncher(this._debugAdapter.sourceContainer.rootPath),
-          new BrowserLauncher(context.storagePath || context.extensionPath, this._debugAdapter.sourceContainer.rootPath)
+          new BrowserLauncher(context.storagePath || context.extensionPath, this._debugAdapter.sourceContainer.rootPath),
+          new BrowserAttacher(this._debugAdapter.sourceContainer.rootPath),
         ];
         this._binder = new Binder(binderDelegate, this._debugAdapter, launchers, debugSession.id);
       }
