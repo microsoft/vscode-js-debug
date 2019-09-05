@@ -19,6 +19,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   cwd?: string;
   env?: Object;
   nodeFilter?: string;
+  args?: string[];
 }
 
 let counter = 0;
@@ -60,12 +61,14 @@ export class NodeLauncher implements Launcher {
   async _relaunch() {
     this._killRuntime();
 
+    const launchParams = this._launchParams!;
     this._terminal = vscode.window.createTerminal({
-      name: this._launchParams!.command || 'Debugger terminal',
-      cwd: this._launchParams!.cwd || this._rootPath,
+      name: launchParams.command || 'Debugger terminal',
+      cwd: launchParams.cwd || this._rootPath,
       env: this._buildEnv()
     });
-    const commandLine = this._launchParams!.command;
+    const args = (launchParams.args || []).map(arg => `"${arg}"`);
+    const commandLine = [launchParams.command, ...args].join(' ');
     this._terminal.show();
     vscode.window.onDidCloseTerminal(terminal => {
       if (terminal === this._terminal && !this._isRestarting) {

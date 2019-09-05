@@ -216,6 +216,14 @@
                 "type": "string",
                 "description": "Command line to run"
               },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Additional arguments to append to command line",
+                "default": []
+              },
               "cwd": {
                 "type": "string",
                 "description": "Current working directory"
