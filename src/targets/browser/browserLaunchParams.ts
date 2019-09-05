@@ -11,13 +11,9 @@ export interface LaunchParams extends Dap.LaunchParams {
   webRoot?: string;
 }
 
-export function baseURL(params: LaunchParams): URL | undefined {
-  if (params.baseURL) {
-    try {
-      return new URL(params.baseURL);
-    } catch (e) {
-    }
-  }
+export function baseURL(params: LaunchParams): string | undefined {
+  if (params.baseURL)
+    return params.baseURL;
 
   if (params.url) {
     try {
@@ -27,7 +23,7 @@ export function baseURL(params: LaunchParams): URL | undefined {
       baseUrl.hash = '';
       if (baseUrl.protocol === 'data:')
         return undefined;
-      return baseUrl;
+      return baseUrl.href;
     } catch (e) {
     }
   }

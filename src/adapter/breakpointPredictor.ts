@@ -112,7 +112,7 @@ class DirectoryScanner {
       for (const url of map.sources) {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
         const baseUrl = sourceMapUrl.startsWith('data:') ? fileUrl : sourceMapUrl;
-        const resolvedUrl = urlUtils.completeUrl(baseUrl, sourceUrl) || sourceUrl;
+        const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = urlUtils.fileUrlToAbsolutePath(resolvedUrl);
         if (resolvedPath)
           this._addMapping(absolutePath, resolvedPath, url);

@@ -1,0 +1,13 @@
+{
+  "name": "simple-web-worker",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "cp src/index.html out/index.html && npm run compile",
+    "compile": "./node_modules/.bin/tsc -p ./src"
+  },
+  "author": "",
+  "devDependencies": {
+    "serve": "^11.1.0"
+  }
+}

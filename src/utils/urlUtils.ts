@@ -3,6 +3,7 @@
 
 import { URL } from 'url';
 import * as fs from 'fs';
+import * as path from 'path';
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
@@ -49,6 +50,31 @@ export function completeUrl(base: string | undefined, relative: string): string 
     return new URL(relative, base).href;
   } catch (e) {
   }
+};
+
+// This function allows relative path to escape the root:
+// "http://example.com/foo/bar.js" + "../../baz/qux.js" => "http://example.com/../baz/qux.js"
+// This allows relative source map sources to reference outside of webRoot.
+export function completeUrlEscapingRoot(base: string | undefined, relative: string): string {
+  try {
+    new URL(relative);
+    return relative;
+  } catch (e) {
+  }
+
+  let url: URL;
+  try {
+    url = new URL(base || '');
+  } catch (e) {
+    return relative;
+  }
+
+  let s = url.protocol + '//';
+  if (url.username)
+    s += url.username + ':' + url.password + '@';
+  s += url.host;
+  s += path.dirname(url.pathname) + relative;
+  return s;
 };
 
 export function isValidUrl(url: string): boolean {
