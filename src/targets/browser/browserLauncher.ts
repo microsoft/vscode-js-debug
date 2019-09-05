@@ -12,18 +12,10 @@ import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher } from '../../targets/targets';
-import Cdp from '../../cdp/api';
 import { BrowserSourcePathResolver } from './browserPathResolver';
-import { URL } from 'url';
+import { LaunchParams, baseURL } from './browserLaunchParams';
 
 const localize = nls.loadMessageBundle();
-
-export interface LaunchParams extends Dap.LaunchParams {
-  url?: string;
-  remoteDebuggingPort?: string;
-  baseURL?: string;
-  webRoot?: string;
-}
 
 export class BrowserLauncher implements Launcher {
   private _connectionForTest: CdpConnection | undefined;
@@ -33,7 +25,6 @@ export class BrowserLauncher implements Launcher {
   private _launchParams: LaunchParams | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: vscode.Disposable[] = [];
-  private _browserSession: Cdp.Api | undefined;
   private _onTerminatedEmitter = new vscode.EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
@@ -74,44 +65,23 @@ export class BrowserLauncher implements Launcher {
 
   async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | Dap.Error> {
     let connection: CdpConnection;
-
-    if (params.remoteDebuggingPort) {
-      let c: CdpConnection | undefined;
-      for (let i = 0; i < 10; ++i) {
-        // Attempt to connect 10 times, 1 second each.
-        await new Promise(f => setTimeout(f, 1000));
-        try {
-          c = await launcher.attach({ browserURL: `http://localhost:${params.remoteDebuggingPort}` });
-          break;
-        } catch (e) {
-        }
-      }
-      if (!c)
-        return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
-      connection = c;
-    } else {
-      try {
-        connection = await this._launchBrowser(args);
-      } catch (e) {
-        return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser executable'));
-      }
+    try {
+      connection = await this._launchBrowser(args);
+    } catch (e) {
+      return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser executable'));
     }
 
     connection.onDisconnected(() => {
       this._onTerminatedEmitter.fire();
     }, undefined, this._disposables);
     this._connectionForTest = connection;
-
-    const rootSession = connection.rootSession();
-    const result = await rootSession.Target.attachToBrowserTarget({});
-    if (!result)
-      return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
-
-    this._browserSession = connection.createSession(result.sessionId);
     this._launchParams = params;
 
     const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || this._rootPath);
-    this._targetManager = new BrowserTargetManager(connection, this._browserSession, pathResolver, targetOrigin);
+    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
+    if (!this._targetManager)
+      return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
+
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
@@ -140,21 +110,14 @@ export class BrowserLauncher implements Launcher {
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  canLaunch(params: any): boolean {
-    return 'url' in params || 'remoteDebuggingPort' in params;
-  }
-
-  async launch(params: any, targetOrigin: any): Promise<void> {
-    if (!this.canLaunch(params))
-      return;
+  async launch(params: any, targetOrigin: any): Promise<boolean> {
+    if (!('url' in params))
+      return false;
     const result = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
     if (!(result instanceof BrowserTarget))
-      return;
+      return false;
     await this.finishLaunch(result);
-  }
-
-  _mainTargetNotAvailable(): Dap.Error {
-    return errors.createSilentError('Page is not available');
+    return true;  // Block session on termination.
   }
 
   async terminate(): Promise<void> {
@@ -163,8 +126,8 @@ export class BrowserLauncher implements Launcher {
   }
 
   async disconnect(): Promise<void> {
-    if (this._browserSession)
-      await this._browserSession.Browser.close({});
+    if (this._targetManager)
+      await this._targetManager.closeBrowser();
   }
 
   async restart(): Promise<void> {
@@ -183,27 +146,5 @@ export class BrowserLauncher implements Launcher {
 
   connectionForTest(): CdpConnection | undefined {
     return this._connectionForTest;
-  }
-}
-
-function baseURL(params: LaunchParams): URL | undefined {
-  if (params.baseURL) {
-    try {
-      return new URL(params.baseURL);
-    } catch (e) {
-    }
-  }
-
-  if (params.url) {
-    try {
-      const baseUrl = new URL(params.url);
-      baseUrl.pathname = '/';
-      baseUrl.search = '';
-      baseUrl.hash = '';
-      if (baseUrl.protocol === 'data:')
-        return undefined;
-      return baseUrl;
-    } catch (e) {
-    }
   }
 }

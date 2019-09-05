@@ -31,6 +31,15 @@ export class BrowserTargetManager implements vscode.Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
+  static async connect(connection: CdpConnection, sourcePathResolver: SourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
+    const rootSession = connection.rootSession();
+    const result = await rootSession.Target.attachToBrowserTarget({});
+    if (!result)
+      return;
+    const browserSession = connection.createSession(result.sessionId);
+    return new BrowserTargetManager(connection, browserSession, sourcePathResolver, targetOrigin);
+  }
+
   constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver, targetOrigin: any) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
@@ -47,6 +56,10 @@ export class BrowserTargetManager implements vscode.Disposable {
 
   targetList(): Target[] {
     return Array.from(this._targets.values());
+  }
+
+  async closeBrowser(): Promise<void> {
+    await this._browser.Browser.close({});
   }
 
   waitForMainTarget(): Promise<BrowserTarget | undefined> {
