@@ -23,7 +23,7 @@ bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
       > this: Object
   scope #1: Global [expensive]
 
-o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
+o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   > scope #0: o
       a: undefined
       c: undefined
@@ -41,7 +41,7 @@ o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
       > r: ƒ r(e,n,t)
   scope #3: Global [expensive]
 
-r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
+r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   > scope #0: r
       > e: {1: Array(2), 2: Array(2), 3: Array(2)}
       i: 0
@@ -54,5 +54,5 @@ r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
       > r: ƒ r(e,n,t)
   scope #2: Global [expensive]
 
-<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
+<anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   scope #0: Global [expensive]

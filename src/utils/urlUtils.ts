@@ -73,7 +73,10 @@ export function completeUrlEscapingRoot(base: string | undefined, relative: stri
   if (url.username)
     s += url.username + ':' + url.password + '@';
   s += url.host;
-  s += path.dirname(url.pathname) + relative;
+  s += path.dirname(url.pathname);
+  if (s[s.length - 1] !== '/')
+    s += '/';
+  s += relative;
   return s;
 };
 

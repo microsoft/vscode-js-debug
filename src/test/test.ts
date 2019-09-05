@@ -48,6 +48,8 @@ export class Session implements vscode.Disposable {
     this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, {
       copyToClipboard: text => log(`[copy to clipboard] ${text}`)
     });
+    this.debugAdapter.sourceContainer.reportAllLoadedSourcesForTest();
+    this.debugAdapter.breakpointManager.setPredictorDisabledForTest(true);
 
     this.logger = new Logger(this.dap, log);
   }
@@ -95,7 +97,6 @@ export class TestP {
     this._sessions.set(this._root.debugAdapter, this._root);
     this.dap = this._root.dap;
     this.adapter = this._root.debugAdapter;
-    this.adapter.sourceContainer.reportAllLoadedSourcesForTest();
     this.logger = this._root.logger;
 
     const storagePath = path.join(__dirname, '..', '..');
@@ -163,6 +164,7 @@ export class TestP {
   async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
+    await this.adapter.breakpointManager.launchBlocker();
     this._launchUrl = url;
     const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args, undefined)) as BrowserTarget;
     this._connection = this._browserLauncher.connectionForTest()!;

@@ -6,9 +6,9 @@
 }
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
-o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
-r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
-<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
+o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+<anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 {
     allThreadsStopped : false
     description : Paused
@@ -18,6 +18,6 @@ r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
-o @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
-r @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
-<anonymous> @ localhost꞉8001/node_modules/browser-pack/_prelude.js:1:1
+o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+<anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1

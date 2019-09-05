@@ -217,6 +217,7 @@ export class BreakpointManager {
   _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
   private _sourceMapPauseDisabledForTest = false;
+  private _predictorDisabledForTest = false;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
@@ -255,11 +256,15 @@ export class BreakpointManager {
   }
 
   async launchBlocker(): Promise<void> {
-    return this._launchBlocker;
+    return this._predictorDisabledForTest ? Promise.resolve() : this._launchBlocker;
   }
 
   setSourceMapPauseDisabledForTest(disabled: boolean) {
     this._sourceMapPauseDisabledForTest = disabled;
+  }
+
+  setPredictorDisabledForTest(disabled: boolean) {
+    this._predictorDisabledForTest = disabled;
   }
 
   async _updateSourceMapHandler() {
@@ -270,7 +275,7 @@ export class BreakpointManager {
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    if (this._breakpointsPredictor) {
+    if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor!.predictBreakpoints(params);
       this._launchBlocker = Promise.all([this._launchBlocker, promise]);
       await promise;
