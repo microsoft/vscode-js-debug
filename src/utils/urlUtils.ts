@@ -140,23 +140,26 @@ export function positionToOffset(text: string, line: number, column: number): nu
   return offset;
 }
 
+// TODO: this does not escape/unescape special characters, but it should.
 export function fileUrlToAbsolutePath(url: string): string | undefined {
   try {
     const uri = new URL(url);
     if (uri.protocol !== 'file:')
       return;
+    const pathname = urlPathToPlatformPath(uri.pathname);
     if (process.platform === 'win32')
-      return uri.pathname.replace(/\//g, '\\').substring(1);
-    return uri.pathname;
+      return pathname.substring(1);
+    return pathname;
   } catch (e) {
   }
 }
 
+// TODO: this does not escape/unescape special characters, but it should.
 export function absolutePathToFileUrl(absolutePath: string): string | undefined {
   try {
     if (process.platform === 'win32')
-      return 'file:///' + absolutePath.replace(/\\/g, '/');
-    return 'file://' + absolutePath;
+      return 'file:///' + platformPathToUrlPath(absolutePath);
+    return 'file://' + platformPathToUrlPath(absolutePath);
   } catch (e) {
   }
 }
@@ -167,3 +170,14 @@ export function maybeAbsolutePathToFileUrl(rootPath: string | undefined, sourceU
   return sourceUrl;
 }
 
+export function urlPathToPlatformPath(p: string): string {
+  if (process.platform === 'win32')
+    return p.replace(/\//g, '\\');
+  return p;
+}
+
+export function platformPathToUrlPath(p: string): string {
+  if (process.platform === 'win32')
+    return p.replace(/\\/g, '/');
+  return p;
+}

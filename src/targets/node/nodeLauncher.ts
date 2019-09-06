@@ -333,7 +333,6 @@ class NodeTarget implements Target {
 }
 
 class NodeSourcePathResolver implements SourcePathResolver {
-
   urlToAbsolutePath(url: string): string {
     return utils.fileUrlToAbsolutePath(url) || '';
   }
@@ -344,6 +343,7 @@ class NodeSourcePathResolver implements SourcePathResolver {
 }
 
 function findNode(): string | undefined {
+  // TODO: implement this for Windows.
   if (process.platform !== 'linux' && process.platform !== 'darwin')
     return;
   try {

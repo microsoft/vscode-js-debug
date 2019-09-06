@@ -8,7 +8,8 @@
             "type": "pwa",
             "request": "launch",
             "name": "PWA: launch program",
-            "command": "node main.js"
+            "command": "node main.js",
+            "nodeFilter": "main.js"
         }
     ]
 }

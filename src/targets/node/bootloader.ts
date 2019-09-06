@@ -3,6 +3,7 @@
 
 import { spawn } from 'child_process';
 import * as inspector from 'inspector';
+import * as path from 'path';
 
 function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
@@ -39,6 +40,12 @@ function debugLog(text: string) {
   if (!waitForDebugger)
     return;
 
+  const kBootloader = path.sep + 'bootloader.js';
+  const kWatchdog = path.sep + 'watchdog.js';
+  if (!__filename.endsWith(kBootloader))
+    return;
+  const fileName = __filename.substring(0, __filename.length - kBootloader.length) + kWatchdog;
+
   const ppid = process.env.NODE_INSPECTOR_PPID || '';
   if (ppid === '' + process.pid) {
     // When we have two of our bootloaders in NODE_OPTIONS,
@@ -60,9 +67,9 @@ function debugLog(text: string) {
 
   debugLog('Info: ' + JSON.stringify(info));
   const execPath = process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath;
-  debugLog('Spawning: ' + execPath + ' ' + __filename.replace('/bootloader.js', '/watchdog.js'));
+  debugLog('Spawning: ' + execPath + ' ' + fileName);
 
-  const p = spawn(execPath, [__filename.replace('/bootloader.js', '/watchdog.js')], {
+  const p = spawn(execPath, [fileName], {
     env: {
       NODE_INSPECTOR_INFO: JSON.stringify(info),
       NODE_INSPECTOR_IPC: process.env.NODE_INSPECTOR_IPC

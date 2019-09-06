@@ -22,10 +22,10 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
       return s.replace(/{webRoot}/g, this._basePath!);
     };
     this._rules = [
-      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}/node_modules/') },
-      { urlPrefix: 'webpack:///./', pathPrefix: substitute('{webRoot}/') },
-      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}/') },
-      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },
+      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}' + path.sep + 'node_modules' + path.sep) },
+      { urlPrefix: 'webpack:///./', pathPrefix: substitute('{webRoot}' + path.sep) },
+      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}' + path.sep) },
+      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },  // TODO: what would this be on Windows?
     ];
   }
 
@@ -36,7 +36,7 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
     if (!this._baseUrl || !this._basePath)
       return utils.absolutePathToFileUrl(absolutePath);
     const relative = path.relative(this._basePath, absolutePath);
-    return utils.completeUrlEscapingRoot(this._baseUrl, relative);
+    return utils.completeUrlEscapingRoot(this._baseUrl, utils.platformPathToUrlPath(relative));
   }
 
   urlToAbsolutePath(url: string): string {
@@ -55,12 +55,12 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
 
     for (const rule of this._rules) {
       if (url.startsWith(rule.urlPrefix))
-        return rule.pathPrefix + url.substring(rule.pathPrefix.length);
+        return rule.pathPrefix + utils.urlPathToPlatformPath(url.substring(rule.pathPrefix.length));
     }
 
     if (!this._basePath || !this._baseUrl || !url.startsWith(this._baseUrl))
       return '';
-    url = url.substring(this._baseUrl.length);
+    url = utils.urlPathToPlatformPath(url.substring(this._baseUrl.length));
     if (url === '' || url === '/')
       url = 'index.html';
     return path.join(this._basePath, url);
