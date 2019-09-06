@@ -40,6 +40,11 @@ function debugLog(text: string) {
     return;
 
   const ppid = process.env.NODE_INSPECTOR_PPID || '';
+  if (ppid === '' + process.pid) {
+    // When we have two of our bootloaders in NODE_OPTIONS,
+    // let the first one attach.
+    return;
+  }
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
   debugLog('Opening inspector for scriptName: ' + scriptName);

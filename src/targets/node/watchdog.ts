@@ -58,9 +58,7 @@ process.on('exit', () => {
           server.send(JSON.stringify({ method: 'Target.targetDestroyed', params: { targetId: info.pid, sessionId: info.pid } }));
       };
       result = { sessionId: info.pid };
-    }
-
-    if (object.method === 'Target.detachFromTarget') {
+    } else if (object.method === 'Target.detachFromTarget') {
       debugLog('DETACH FROM TARGET');
       if (target) {
         const t = target;
@@ -70,6 +68,9 @@ process.on('exit', () => {
         debugLog('DETACH WITHOUT ATTACH');
       }
       result = {};
+    } else {
+      target!.send(data);
+      return;
     }
 
     server.send(JSON.stringify({ id: object.id, result }));

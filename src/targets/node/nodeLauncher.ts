@@ -124,7 +124,7 @@ export class NodeLauncher implements Launcher {
   async _startSession(socket: net.Socket) {
     const connection = new Connection(new PipeTransport(socket));
     this._connections.push(connection);
-    const cdp = connection.createSession('');
+    const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
     new NodeTarget(this, connection, cdp, targetInfo);
     this._onTargetListChangedEmitter.fire();
@@ -144,8 +144,11 @@ export class NodeLauncher implements Launcher {
       ...process.env,
       ...this._launchParams!.env || {},
       NODE_INSPECTOR_IPC: this._pipe,
+      NODE_INSPECTOR_PPID: '',
       NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
-      NODE_OPTIONS: `${process.env.NODE_OPTIONS|| ''} --require ${bootloaderJS}`,
+      // Require our bootloader first, to run it before any other bootloader
+      // we could have injected in the parent process.
+      NODE_OPTIONS: `--require ${bootloaderJS} ${process.env.NODE_OPTIONS|| ''}`,
       // Supply some node executable for running top-level watchdog in Electron
       // environments. Bootloader will replace this with actual node executable used if any.
       NODE_INSPECTOR_EXEC_PATH: findNode() || ''
@@ -321,7 +324,10 @@ class NodeTarget implements Target {
   }
 
   stop() {
-    process.kill(+this._targetId);
+    try {
+      process.kill(+this._targetId);
+    } catch (e) {
+    }
     this._connection.close();
   }
 }
