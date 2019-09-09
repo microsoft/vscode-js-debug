@@ -245,7 +245,9 @@ export class SourceContainer {
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
   _reportAllLoadedSourcesForTest = false;
+
   readonly rootPath: string | undefined;
+  private _disabledSourceMaps = new Set<Source>();
 
   constructor(dap: Dap.Api, rootPath: string | undefined) {
     this._dap = dap;
@@ -348,6 +350,8 @@ export class SourceContainer {
 
   _sourceMappedLocation(location: Location, map: sourceUtils.SourceMapConsumer): Location | undefined {
     const compiled = location.source!;
+    if (this._disabledSourceMaps.has(compiled))
+      return;
     if (!compiled._sourceMapSourceByUrl)
       return;
 
@@ -460,6 +464,7 @@ export class SourceContainer {
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
+    this._disabledSourceMaps.delete(source);
     source.toDap().then(payload => {
       if (payload.sourceReference || this._reportAllLoadedSourcesForTest)
         this._dap.loadedSource({ reason: 'removed', source: payload });
@@ -535,5 +540,13 @@ export class SourceContainer {
   async revealLocation(location: Location): Promise<void> {
     if (this._revealer)
       this._revealer.revealLocation(location);
+  }
+
+  disableSourceMapForSource(source: Source) {
+    this._disabledSourceMaps.add(source);
+  }
+
+  clearDisabledSourceMaps() {
+    this._disabledSourceMaps.clear();
   }
 };

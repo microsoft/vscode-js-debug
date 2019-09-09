@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Location, SourceContainer } from './sources';
+import { Location, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
@@ -13,7 +13,7 @@ let lastBreakpointId = 0;
 export class Breakpoint {
   private _manager: BreakpointManager;
   private _dapId: number;
-  private _source: Dap.Source;
+  _source: Dap.Source;
   private _condition?: string;
   private _lineNumber: number;  // 1-based
   private _columnNumber: number;  // 1-based
@@ -247,6 +247,18 @@ export class BreakpointManager {
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
       if (breakpoint)
         breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
+    });
+    this._thread.setSourceMapDisabler(breakpointIds => {
+      const sources: Source[] = [];
+      for (const id of breakpointIds) {
+        const breakpoint = this._resolvedBreakpoints.get(id);
+        if (breakpoint) {
+          const source = this._sourceContainer.source(breakpoint._source);
+          if (source)
+            sources.push(source);
+        }
+      }
+      return sources;
     });
     for (const breakpoints of this._byPath.values())
       breakpoints.forEach(b => b.set(thread));

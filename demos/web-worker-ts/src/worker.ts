@@ -3,5 +3,5 @@ onmessage = function(e) {
   // Step over evaluation.
   let result = e.data[0] * e.data[1];
   // Step into postMessage.
-  postMessage(result);
+  (self as any).postMessage(result);
 }

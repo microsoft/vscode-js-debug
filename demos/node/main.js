@@ -7,6 +7,11 @@ async function foo() {
   console.log(result + 1);
 }
 
+let counter = 0;
+setInterval(() => {
+  console.log("a\nb\nc\nd" + (++counter));
+}, 2000);
+
 console.log('Hello world!');
 
 var path = './.vscode/launch.json:4';

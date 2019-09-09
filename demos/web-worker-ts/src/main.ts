@@ -5,6 +5,7 @@ const result = document.querySelector('#result') as any;
 const worker = new Worker("worker.js");
 
 first.onchange = function() {
+  console.log('hello');
   debugger; // Step _into_ the next line
   worker.postMessage([first.value, second.value]);
 }

@@ -196,6 +196,48 @@ export function addTests(testRunner) {
       await waitForPause(p);
       p.assertLog();
     });
+
+    it('source map set compiled', async({p}: {p: TestP}) => {
+      // Breakpoint in compiled script which has a source map should resolve
+      // to the compiled script.
+      await p.launchUrl('browserify/browserify.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/bundle.js')
+      };
+      p.dap.setBreakpoints({source, breakpoints: [{line: 36}]});
+      const resolved = await p.dap.once('breakpoint', event => !!event.breakpoint.verified);
+      delete resolved.breakpoint.source!.sources;
+      p.log(resolved, 'Breakpoint resolved: ');
+      p.cdp.Runtime.evaluate({expression: 'window.callBack(window.pause);\n//# sourceURL=test.js'});
+
+      // Should pause in 'bundle.js'.
+      const {threadId} = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId);
+      p.dap.stepIn({threadId});
+
+      // Should step into in 'bundle.js'.
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    it('source map set compiled 2', async({p}: {p: TestP}) => {
+      // Breakpoint in compiled script which has a source map should resolve
+      // to the compiled script.
+      await p.launchUrl('browserify/browserify.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/bundle.js')
+      };
+      p.dap.setBreakpoints({source, breakpoints: [{line: 36}]});
+      const resolved = await p.dap.once('breakpoint', event => !!event.breakpoint.verified);
+      delete resolved.breakpoint.source!.sources;
+      p.log(resolved, 'Breakpoint resolved: ');
+      p.cdp.Runtime.evaluate({expression: 'window.callBack(window.pause);\n//# sourceURL=test.js'});
+      // Should pause in 'bundle.js'.
+      await waitForPause(p);
+      // Should resume and pause on 'debugger' in module1.ts.
+      await waitForPause(p);
+      p.assertLog();
+    });
   });
 
   describe('custom', () => {

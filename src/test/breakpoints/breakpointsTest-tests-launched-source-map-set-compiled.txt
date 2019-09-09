@@ -1,0 +1,31 @@
+Breakpoint resolved: {
+    breakpoint : {
+        column : 4
+        id : <number>
+        line : 36
+        source : {
+            name : bundle.js
+            path : ${workspaceFolder}/web/browserify/bundle.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
+<anonymous> @ localhost꞉8001/browserify/test.js:1:8
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/browserify/bundle.js:19:5
+bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
+<anonymous> @ localhost꞉8001/browserify/test.js:1:8

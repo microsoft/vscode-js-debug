@@ -62,6 +62,7 @@ export interface ThreadDelegate {
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
+export type SourceMapDisabler = (hitBreakpoints: string[]) => Source[];
 
 export class Thread implements VariableStoreDelegate {
   private _dap: Dap.Api;
@@ -83,6 +84,7 @@ export class Thread implements VariableStoreDelegate {
   private _consoleIsDirty = false;
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
   private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
+  private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _uiDelegate: UIDelegate;
@@ -128,6 +130,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
+    this._sourceContainer.clearDisabledSourceMaps();
     if (!await this._cdp.Debugger.resume({}))
       return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
     return { allThreadsContinued: false };
@@ -537,6 +540,20 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
+    // When hitting breakpoint in compiled source, we ignore source maps during the stepping
+    // sequence (or exceptions) until user resumes or hits another breakpoint-alike pause.
+    // TODO: this does not work for async stepping just yet.
+    const sameDebuggingSequence = event.reason === 'assert' || event.reason === 'exception' ||
+        event.reason === 'promiseRejection' || event.reason === 'other' || event.reason === 'ambiguous';
+    const hitAnyBreakpoint = !!(event.hitBreakpoints && event.hitBreakpoints.length);
+    if (hitAnyBreakpoint || !sameDebuggingSequence)
+      this._sourceContainer.clearDisabledSourceMaps();
+
+    if (event.hitBreakpoints && this._sourceMapDisabler) {
+      for (const sourceToDisable of this._sourceMapDisabler(event.hitBreakpoints))
+        this._sourceContainer.disableSourceMapForSource(sourceToDisable);
+    }
+
     const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
     switch (event.reason) {
       case 'assert': return {
@@ -910,6 +927,10 @@ export class Thread implements VariableStoreDelegate {
       this._pauseOnSourceMapBreakpointId = undefined;
       await this._cdp.Debugger.removeBreakpoint({breakpointId});
     }
+  }
+
+  setSourceMapDisabler(sourceMapDisabler?: SourceMapDisabler) {
+    this._sourceMapDisabler = sourceMapDisabler;
   }
 
   static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
