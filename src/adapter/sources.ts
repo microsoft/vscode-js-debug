@@ -10,14 +10,11 @@ import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
 import * as utils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
 
-// This is a ui location. Usually it corresponds to a position
-// in the document user can see (Source, Dap.Source). When no source
-// is available, it just holds a url to show in the ui.
-export interface Location {
+// This is a ui location which corresponds to a position in the document user can see (Source, Dap.Source).
+export interface UiLocation {
   lineNumber: number; // 1-based
   columnNumber: number;  // 1-based
-  url: string;
-  source?: Source;
+  source: Source;
 };
 
 type ContentGetter = () => Promise<string | undefined>;
@@ -51,8 +48,8 @@ const defaultTimeouts: SourceMapTimeouts = {
   output: 1000,
 };
 
-export interface LocationRevealer {
-  revealLocation(location: Location): Promise<void>;
+export interface UiLocationRevealer {
+  revealUiLocation(uiLocation: UiLocation): Promise<void>;
 }
 
 // Represents a text source visible to the user.
@@ -239,7 +236,7 @@ export class SourceContainer {
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
-  private _revealer?: LocationRevealer;
+  private _revealer?: UiLocationRevealer;
   private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
 
   // Test support.
@@ -273,7 +270,7 @@ export class SourceContainer {
     this._reportAllLoadedSourcesForTest = true;
   }
 
-  installRevealer(revealer: LocationRevealer) {
+  installRevealer(revealer: UiLocationRevealer) {
     this._revealer = revealer;
   }
 
@@ -298,64 +295,60 @@ export class SourceContainer {
   // This method returns a "preferred" location. This usually means going through a source map
   // and showing the source map source instead of a compiled one. We use timeout to avoid
   // waiting for the source map for too long.
-  async preferredLocation(location: Location): Promise<Location> {
+  async preferredUiLocation(uiLocation: UiLocation): Promise<UiLocation> {
     while (true) {
-      if (!location.source)
-        return location;
-      if (!location.source._sourceMapUrl)
-        return location;
-      const sourceMap = this._sourceMaps.get(location.source._sourceMapUrl)!;
+      if (!uiLocation.source._sourceMapUrl)
+        return uiLocation;
+      const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
         new Promise(f => setTimeout(f, this._sourceMapTimeouts.resolveLocation)),
       ]);
       if (!sourceMap.map)
-        return location;
-      const sourceMapped = this._sourceMappedLocation(location, sourceMap.map);
+        return uiLocation;
+      const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
       if (!sourceMapped)
-        return location;
-      location = sourceMapped;
+        return uiLocation;
+      uiLocation = sourceMapped;
     }
   }
 
   // This method shows all possible locations for a given one. For example, all compiled sources
   // which refer to the same source map will be returned given the location in source map source.
   // This method does not wait for the source map to be loaded.
-  currentSiblingLocations(location: Location, inSource?: Source): Location[] {
-    return this._locations(location).filter(location => !inSource || location.source === inSource);
+  currentSiblingUiLocations(uiLocation: UiLocation, inSource?: Source): UiLocation[] {
+    return this._uiLocations(uiLocation).filter(uiLocation => !inSource || uiLocation.source === inSource);
   }
 
-  _locations(location: Location): Location[] {
-    const result: Location[] = [];
-    this._addSourceMapLocations(location, result);
-    result.push(location);
-    this._addCompiledLocations(location, result);
+  _uiLocations(uiLocation: UiLocation): UiLocation[] {
+    const result: UiLocation[] = [];
+    this._addSourceMapUiLocations(uiLocation, result);
+    result.push(uiLocation);
+    this._addCompiledUiLocations(uiLocation, result);
     return result;
   }
 
-  _addSourceMapLocations(location: Location, result: Location[]) {
-    if (!location.source)
+  _addSourceMapUiLocations(uiLocation: UiLocation, result: UiLocation[]) {
+    if (!uiLocation.source._sourceMapUrl)
       return;
-    if (!location.source._sourceMapUrl)
-      return;
-    const map = this._sourceMaps.get(location.source._sourceMapUrl)!.map;
+    const map = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!.map;
     if (!map)
       return;
-    const sourceMapLocation = this._sourceMappedLocation(location, map);
-    if (!sourceMapLocation)
+    const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
+    if (!sourceMapUiLocation)
       return;
-    this._addSourceMapLocations(sourceMapLocation, result);
-    result.push(sourceMapLocation);
+    this._addSourceMapUiLocations(sourceMapUiLocation, result);
+    result.push(sourceMapUiLocation);
   }
 
-  _sourceMappedLocation(location: Location, map: sourceUtils.SourceMapConsumer): Location | undefined {
-    const compiled = location.source!;
+  _sourceMappedUiLocation(uiLocation: UiLocation, map: sourceUtils.SourceMapConsumer): UiLocation | undefined {
+    const compiled = uiLocation.source;
     if (this._disabledSourceMaps.has(compiled))
       return;
     if (!compiled._sourceMapSourceByUrl)
       return;
 
-    let { lineNumber, columnNumber } = location;
+    let { lineNumber, columnNumber } = uiLocation;
     if (compiled._inlineScriptOffset) {
       lineNumber -= compiled._inlineScriptOffset.lineOffset;
       if (lineNumber === 1)
@@ -373,34 +366,32 @@ export class SourceContainer {
     return {
       lineNumber: entry.line || 1,
       columnNumber: entry.column || 1,
-      url: source._url,
       source: source
     };
   }
 
-  _addCompiledLocations(location: Location, result: Location[]) {
-    if (!location.source || !location.source._compiledToSourceUrl)
+  _addCompiledUiLocations(uiLocation: UiLocation, result: UiLocation[]) {
+    if (!uiLocation.source._compiledToSourceUrl)
       return;
-    for (const [compiled, sourceUrl] of location.source._compiledToSourceUrl) {
+    for (const [compiled, sourceUrl] of uiLocation.source._compiledToSourceUrl) {
       const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
       if (!map)
         continue;
-      const entry = map.generatedPositionFor({source: sourceUrl, line: location.lineNumber, column: location.columnNumber});
+      const entry = map.generatedPositionFor({source: sourceUrl, line: uiLocation.lineNumber, column: uiLocation.columnNumber});
       if (entry.line === null)
         continue;
-      const compiledLocation = {
+      const compiledUiLocation: UiLocation = {
         lineNumber: entry.line || 1,
         columnNumber: entry.column || 1,
-        url: compiled.url(),
         source: compiled
       };
       if (compiled._inlineScriptOffset) {
-        compiledLocation.lineNumber += compiled._inlineScriptOffset.lineOffset;
-        if (compiledLocation.lineNumber === 1)
-          compiledLocation.columnNumber += compiled._inlineScriptOffset.columnOffset;
+        compiledUiLocation.lineNumber += compiled._inlineScriptOffset.lineOffset;
+        if (compiledUiLocation.lineNumber === 1)
+          compiledUiLocation.columnNumber += compiled._inlineScriptOffset.columnOffset;
       }
-      result.push(compiledLocation);
-      this._addCompiledLocations(compiledLocation, result);
+      result.push(compiledUiLocation);
+      this._addCompiledUiLocations(compiledUiLocation, result);
     }
   }
 
@@ -537,9 +528,9 @@ export class SourceContainer {
     return Array.from(source._sourceMapSourceByUrl.values());
   }
 
-  async revealLocation(location: Location): Promise<void> {
+  async revealUiLocation(uiLocation: UiLocation): Promise<void> {
     if (this._revealer)
-      this._revealer.revealLocation(location);
+      this._revealer.revealUiLocation(uiLocation);
   }
 
   disableSourceMapForSource(source: Source) {

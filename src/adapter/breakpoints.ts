@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Location, SourceContainer, Source } from './sources';
+import { UiLocation, SourceContainer, Source } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
@@ -10,6 +10,7 @@ import { BreakpointsPredictor } from './breakpointPredictor';
 
 let lastBreakpointId = 0;
 
+// TODO: every "-1" here is incorrect, and should take "defaultScriptOffset" into account.
 export class Breakpoint {
   private _manager: BreakpointManager;
   private _dapId: number;
@@ -21,7 +22,7 @@ export class Breakpoint {
   private _activeSetters = new Set<Promise<void>>();
 
   private _resolvedBreakpoints = new Set<Cdp.Debugger.BreakpointId>();
-  private _resolvedLocation?: Location;
+  private _resolvedUiLocation?: UiLocation;
 
   constructor(manager: BreakpointManager, dapId: number, source: Dap.Source, params: Dap.SourceBreakpoint) {
     this._manager = manager;
@@ -43,16 +44,16 @@ export class Breakpoint {
   }
 
   async _notifyResolved(): Promise<void> {
-    if (!this._resolvedLocation)
+    if (!this._resolvedUiLocation)
       return;
     this._manager._dap.breakpoint({
       reason: 'changed',
       breakpoint: {
         id: this._dapId,
         verified: true,
-        source: this._resolvedLocation.source ? await this._resolvedLocation.source.toDap() : undefined,
-        line: this._resolvedLocation.lineNumber,
-        column: this._resolvedLocation.columnNumber
+        source: await this._resolvedUiLocation.source.toDap(),
+        line: this._resolvedUiLocation.lineNumber,
+        column: this._resolvedUiLocation.columnNumber
       }
     });
   }
@@ -71,13 +72,12 @@ export class Breakpoint {
 
     const source = this._manager._sourceContainer.source(this._source);
     if (source) {
-      const locations = this._manager._sourceContainer.currentSiblingLocations({
-        url: source.url(),
+      const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this._lineNumber,
         columnNumber: this._columnNumber,
         source
       });
-      promises.push(...locations.map(location => this._setByLocation(thread, location)));
+      promises.push(...uiLocations.map(uiLocation => this._setByUiLocation(thread, uiLocation)));
     }
 
     await Promise.all(promises);
@@ -90,14 +90,14 @@ export class Breakpoint {
     this._manager._resolvedBreakpoints.set(cdpId, this);
 
     // If this is a first resolved location, we should update the breakpoint as "verified".
-    if (this._resolvedLocation || !resolvedLocations.length)
+    if (this._resolvedUiLocation || !resolvedLocations.length)
       return;
-    const location = await thread.rawLocationToUiLocation(resolvedLocations[0]);
-    if (this._resolvedLocation)
+    const uiLocation = await thread.rawLocationToUiLocation(thread.rawLocation(resolvedLocations[0]));
+    if (this._resolvedUiLocation || !uiLocation)
       return;
     const source = this._manager._sourceContainer.source(this._source);
     if (source)
-      this._resolvedLocation = this._manager._sourceContainer.currentSiblingLocations(location, source)[0];
+      this._resolvedUiLocation = this._manager._sourceContainer.currentSiblingUiLocations(uiLocation, source)[0];
     this._notifyResolved();
   }
 
@@ -106,42 +106,39 @@ export class Breakpoint {
     if (!source)
       return;
     // Find all locations for this breakpoint in the new script.
-    const locations = this._manager._sourceContainer.currentSiblingLocations({
-      url: source.url(),
+    const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber,
       source
     }, script.source);
     const promises: Promise<void>[] = [];
-    for (const location of locations)
-      promises.push(this._setByScriptId(thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
+    for (const uiLocation of uiLocations)
+      promises.push(this._setByScriptId(thread, script.scriptId, uiLocation.lineNumber - 1, uiLocation.columnNumber - 1));
     await Promise.all(promises);
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
     if (!this._source.path || !this._manager._breakpointsPredictor)
       return;
-    const locations = this._manager._breakpointsPredictor.predictedResolvedLocations({
+    const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this._source.path,
       lineNumber: this._lineNumber,
       columnNumber: this._columnNumber
     });
     const promises: Promise<void>[] = [];
-    for (const location of locations) {
-      const url = thread.sourcePathResolver.absolutePathToUrl(location.absolutePath);
+    for (const workspaceLocation of workspaceLocations) {
+      const url = thread.sourcePathResolver.absolutePathToUrl(workspaceLocation.absolutePath);
       if (url)
-        promises.push(this._setByUrl(thread, url, location.lineNumber - 1, location.columnNumber - 1));
+        promises.push(this._setByUrl(thread, url, workspaceLocation.lineNumber - 1, workspaceLocation.columnNumber - 1));
     }
     await Promise.all(promises);
   }
 
-  async _setByLocation(thread: Thread, location: Location): Promise<void> {
-    if (!location.source)
-      return;
+  async _setByUiLocation(thread: Thread, uiLocation: UiLocation): Promise<void> {
     const promises: Promise<void>[] = [];
-    const scripts = thread.scriptsFromSource(location.source);
+    const scripts = thread.scriptsFromSource(uiLocation.source);
     for (const script of scripts)
-      promises.push(this._setByScriptId(thread, script.scriptId, location.lineNumber - 1, location.columnNumber - 1));
+      promises.push(this._setByScriptId(thread, script.scriptId, uiLocation.lineNumber - 1, uiLocation.columnNumber - 1));
     await Promise.all(promises);
   }
 
@@ -187,7 +184,7 @@ export class Breakpoint {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
-    this._resolvedLocation = undefined;
+    this._resolvedUiLocation = undefined;
 
     // Let all setters finish, so that we can remove all breakpoints including
     // ones being set right now.

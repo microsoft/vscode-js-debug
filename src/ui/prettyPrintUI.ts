@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
-import { Location } from '../adapter/sources';
+import { UiLocation } from '../adapter/sources';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
@@ -63,14 +63,13 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       return;
 
     // Or reveal this source manually.
-    const originalLocation: Location = {
+    const originalUiLocation: UiLocation = {
       source,
-      url: source.url(),
       lineNumber: editor.selection.start.line + 1,
       columnNumber: editor.selection.start.character + 1,
     };
-    const newLocation = await adapter.sourceContainer.preferredLocation(originalLocation);
-    adapter.sourceContainer.revealLocation(newLocation);
+    const newUiLocation = await adapter.sourceContainer.preferredUiLocation(originalUiLocation);
+    adapter.sourceContainer.revealUiLocation(newUiLocation);
   }));
 }
 

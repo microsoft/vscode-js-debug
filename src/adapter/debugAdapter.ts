@@ -6,7 +6,7 @@ import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as errors from '../dap/errors';
-import { Location, SourceContainer } from './sources';
+import { UiLocation, SourceContainer } from './sources';
 import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
@@ -14,7 +14,7 @@ import { Cdp } from '../cdp/api';
 import { CustomBreakpointId } from './customBreakpoints';
 
 const localize = nls.loadMessageBundle();
-const revealLocationThreadId = 999999999;
+const revealUiLocationThreadId = 999999999;
 
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
@@ -22,7 +22,7 @@ export class DebugAdapter {
   readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
-  private _locationToReveal: Location | undefined;
+  private _uiLocationToReveal: UiLocation | undefined;
   private _disposables: Disposable[] = [];
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
@@ -134,13 +134,13 @@ export class DebugAdapter {
     const threads: Dap.Thread[] = [];
     if (this._thread)
       threads.push({ id: 0, name: this._thread.name() });
-    if (this._locationToReveal)
-      threads.push({ id: revealLocationThreadId, name: '' });
+    if (this._uiLocationToReveal)
+      threads.push({ id: revealUiLocationThreadId, name: '' });
     return { threads };
   }
 
   async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    if (params.threadId === revealLocationThreadId)
+    if (params.threadId === revealUiLocationThreadId)
       return this._syntheticStackTraceForSourceReveal(params);
     if (!this._thread)
       return this._threadNotAvailableError();
@@ -177,27 +177,27 @@ export class DebugAdapter {
     return callback(this._thread);
   }
 
-  async revealLocation(location: Location, revealConfirmed: Promise<void>) {
+  async revealUiLocation(uiLocation: UiLocation, revealConfirmed: Promise<void>) {
     // 1. Report about a new thread.
     // 2. Report that thread has stopped.
     // 3. Wait for stackTrace call, return a single frame pointing to |location|.
     // 4. Wait for the source to be opened in the editor.
     // 5. Report thread as continuted and terminated.
-    if (this._locationToReveal)
+    if (this._uiLocationToReveal)
       return;
-    this._locationToReveal = location;
-    this.dap.thread({ reason: 'started', threadId: revealLocationThreadId });
+    this._uiLocationToReveal = uiLocation;
+    this.dap.thread({ reason: 'started', threadId: revealUiLocationThreadId });
     this.dap.stopped({
       reason: 'goto',
-      threadId: revealLocationThreadId,
+      threadId: revealUiLocationThreadId,
       allThreadsStopped: false,
     });
 
     await revealConfirmed;
 
-    this.dap.continued({ threadId: revealLocationThreadId, allThreadsContinued: false });
-    this.dap.thread({ reason: 'exited', threadId: revealLocationThreadId });
-    this._locationToReveal = undefined;
+    this.dap.continued({ threadId: revealUiLocationThreadId, allThreadsContinued: false });
+    this.dap.thread({ reason: 'exited', threadId: revealUiLocationThreadId });
+    this._uiLocationToReveal = undefined;
 
     if (this._thread) {
       const details = this._thread.pausedDetails();
@@ -207,15 +207,15 @@ export class DebugAdapter {
   }
 
   async _syntheticStackTraceForSourceReveal(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
-    if (!this._locationToReveal || params.startFrame)
+    if (!this._uiLocationToReveal || params.startFrame)
       return { stackFrames: [] };
     return {
       stackFrames: [{
         id: 1,
         name: '',
-        line: this._locationToReveal.lineNumber,
-        column: this._locationToReveal.columnNumber,
-        source: await this._locationToReveal.source!.toDap()
+        line: this._uiLocationToReveal.lineNumber,
+        column: this._uiLocationToReveal.columnNumber,
+        source: await this._uiLocationToReveal.source.toDap()
       }]
     };
   }

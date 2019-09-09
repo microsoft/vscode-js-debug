@@ -171,13 +171,12 @@ export function addTests(testRunner) {
 
     it('source map', async({p}: {p: TestP}) => {
       // Breakpoint in source mapped script set after launch.
-      // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
-      // on 'pause before executing script with source map' functionality in CDP.
       await p.launchUrl('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };
-      await p.dap.setBreakpoints({source, breakpoints: [{line: 3}]});
+      p.dap.setBreakpoints({source, breakpoints: [{line: 3}]});
+      await p.dap.once('breakpoint', event => event.breakpoint.verified);
       p.cdp.Runtime.evaluate({expression: 'window.callBack(window.pause);\n//# sourceURL=test.js'});
       await waitForPause(p);
       await waitForPause(p);

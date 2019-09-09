@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { AdapterFactory } from '../adapterFactory';
-import { Location, Source, LocationRevealer } from '../adapter/sources';
+import { UiLocation, Source, UiLocationRevealer } from '../adapter/sources';
 import { DebugAdapter } from '../adapter/debugAdapter';
 
 export class LocationRevealerUI {
@@ -36,7 +36,7 @@ export class LocationRevealerUI {
   }
 }
 
-class Revealer implements LocationRevealer {
+class Revealer implements UiLocationRevealer {
   private _revealerUI: LocationRevealerUI;
   private _adapter: DebugAdapter;
 
@@ -45,10 +45,10 @@ class Revealer implements LocationRevealer {
     this._adapter = adapter;
   }
 
-  async revealLocation(location: Location): Promise<undefined> {
-    if (!location.source || this._revealerUI._revealRequests.has(location.source))
+  async revealUiLocation(uiLocation: UiLocation): Promise<undefined> {
+    if (this._revealerUI._revealRequests.has(uiLocation.source))
       return;
-    const absolutePath = await location.source.existingAbsolutePath();
+    const absolutePath = await uiLocation.source.existingAbsolutePath();
     if (absolutePath) {
       const document = await vscode.workspace.openTextDocument(absolutePath);
       if (!document)
@@ -56,13 +56,13 @@ class Revealer implements LocationRevealer {
       const editor = await vscode.window.showTextDocument(document);
       if (!editor)
         return;
-      const position = new vscode.Position(location.lineNumber - 1, location.columnNumber - 1);
+      const position = new vscode.Position(uiLocation.lineNumber - 1, uiLocation.columnNumber - 1);
       editor.selection = new vscode.Selection(position, position);
       return;
     }
 
-    const callback = new Promise<undefined>(f => this._revealerUI._revealRequests.set(location.source!, f));
-    this._adapter.revealLocation(location, callback);
+    const callback = new Promise<undefined>(f => this._revealerUI._revealRequests.set(uiLocation.source, f));
+    this._adapter.revealUiLocation(uiLocation, callback);
     await callback;
   }
 }

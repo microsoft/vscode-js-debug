@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Thread } from "./threads";
-import { Location } from "./sources";
+import { Thread, RawLocation } from "./threads";
+import { UiLocation } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
@@ -128,20 +128,18 @@ export class StackFrame {
 
   _id: number;
   private _name: string;
-  private _location: Promise<Location>;
+  private _rawLocation: RawLocation;
+  private _uiLocation: Promise<UiLocation | undefined>;
   private _isAsyncSeparator = false;
   private _scope: Scope | undefined;
   private _thread: Thread;
 
   static fromRuntime(thread: Thread, callFrame: Cdp.Runtime.CallFrame): StackFrame {
-    return new StackFrame(thread, callFrame.functionName, thread.rawLocationToUiLocation(callFrame));
+    return new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame));
   }
 
   static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(thread, callFrame.functionName, thread.rawLocationToUiLocation({
-      ...callFrame.location,
-      url: callFrame.url,
-    }));
+    const result = new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame));
     result._scope = {
       chain: callFrame.scopeChain,
       thisObject: callFrame.this,
@@ -153,15 +151,16 @@ export class StackFrame {
   }
 
   static asyncSeparator(thread: Thread, name: string): StackFrame {
-    const result = new StackFrame(thread, name, Promise.resolve({ lineNumber: 1, columnNumber: 1, url: '' }));
+    const result = new StackFrame(thread, name, { lineNumber: 1, columnNumber: 1, url: '' });
     result._isAsyncSeparator = true;
     return result;
   }
 
-  constructor(thread: Thread, name: string, location: Promise<Location>) {
+  constructor(thread: Thread, name: string, rawLocation: RawLocation) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
-    this._location = location;
+    this._rawLocation = rawLocation;
+    this._uiLocation = thread.rawLocationToUiLocation(rawLocation);
     this._thread = thread;
   }
 
@@ -229,15 +228,17 @@ export class StackFrame {
         variablesReference: variable.variablesReference,
       };
       if (scope.startLocation) {
-        const startLocation = await this._thread.rawLocationToUiLocation(scope.startLocation);
-        dap.line = startLocation.lineNumber;
-        dap.column = startLocation.columnNumber;
-        if (startLocation.source)
-          dap.source = await startLocation.source.toDap();
+        const startRawLocation = this._thread.rawLocation(scope.startLocation);
+        const startUiLocation = await this._thread.rawLocationToUiLocation(startRawLocation);
+        dap.line = (startUiLocation || startRawLocation).lineNumber;
+        dap.column = (startUiLocation || startRawLocation).columnNumber;
+        if (startUiLocation)
+          dap.source = await startUiLocation.source.toDap();
         if (scope.endLocation) {
-          const endLocation = await this._thread.rawLocationToUiLocation(scope.endLocation);
-          dap.endLine = endLocation.lineNumber;
-          dap.endColumn = endLocation.columnNumber;
+          const endRawLocation = this._thread.rawLocation(scope.endLocation);
+          const endUiLocation = await this._thread.rawLocationToUiLocation(endRawLocation);
+          dap.endLine = (endUiLocation || endRawLocation).lineNumber;
+          dap.endColumn = (endUiLocation || endRawLocation).columnNumber;
         }
       }
       scopes.push(dap);
@@ -247,14 +248,14 @@ export class StackFrame {
   }
 
   async toDap(): Promise<Dap.StackFrame> {
-    const location = await this._location;
-    const source = location.source ? await location.source.toDap() : undefined;
+    const uiLocation = await this._uiLocation;
+    const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const presentationHint = this._isAsyncSeparator ? 'label' : 'normal';
     return {
       id: this._id,
       name: this._name,
-      line: location.lineNumber,
-      column: location.columnNumber,
+      line: (uiLocation || this._rawLocation).lineNumber,
+      column: (uiLocation || this._rawLocation).columnNumber,
       source,
       presentationHint,
     };
@@ -263,16 +264,17 @@ export class StackFrame {
   async format(): Promise<string> {
     if (this._isAsyncSeparator)
       return `◀ ${this._name} ▶`;
-    const location = await this._location;
-    let prettyName = (location.source && await location.source.prettyName()) || location.url;
-    let text = `${prettyName}:${location.lineNumber}`;
-    if (location.columnNumber > 1)
-      text += `:${location.columnNumber}`;
-    return `${this._name} @ ${text}`;
+    const uiLocation = await this._uiLocation;
+    const prettyName = (uiLocation && await uiLocation.source.prettyName()) || this._rawLocation.url;
+    const anyLocation = uiLocation || this._rawLocation;
+    let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
+    if (anyLocation.columnNumber > 1)
+      text += `:${anyLocation.columnNumber}`;
+    return text;
   }
 
-  location(): Promise<Location> {
-    return this._location;
+  uiLocation(): Promise<UiLocation | undefined> {
+    return this._uiLocation;
   }
 
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {
