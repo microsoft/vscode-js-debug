@@ -1,3 +1,4 @@
+console.log('hi');console.log('hi2');
 async function bar() {
   return 42;
 }

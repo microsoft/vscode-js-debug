@@ -10,7 +10,7 @@ import { BreakpointsPredictor } from './breakpointPredictor';
 
 let lastBreakpointId = 0;
 
-// TODO: every "-1" here is incorrect, and should take "defaultScriptOffset" into account.
+// TODO: every "+/-1" here is incorrect, and should take "defaultScriptOffset" into account.
 export class Breakpoint {
   private _manager: BreakpointManager;
   private _dapId: number;

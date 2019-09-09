@@ -348,13 +348,7 @@ export class SourceContainer {
     if (!compiled._sourceMapSourceByUrl)
       return;
 
-    let { lineNumber, columnNumber } = uiLocation;
-    if (compiled._inlineScriptOffset) {
-      lineNumber -= compiled._inlineScriptOffset.lineOffset;
-      if (lineNumber === 1)
-        columnNumber -= compiled._inlineScriptOffset.columnOffset;
-    }
-
+    const {lineNumber, columnNumber} = rawToUiOffset(uiLocation, compiled._inlineScriptOffset);
     const entry = map.originalPositionFor({line: lineNumber, column: columnNumber});
     if (!entry.source)
       return;
@@ -380,16 +374,12 @@ export class SourceContainer {
       const entry = map.generatedPositionFor({source: sourceUrl, line: uiLocation.lineNumber, column: uiLocation.columnNumber});
       if (entry.line === null)
         continue;
+      const {lineNumber, columnNumber} = uiToRawOffset({lineNumber: entry.line || 1, columnNumber: entry.column || 1}, compiled._inlineScriptOffset);
       const compiledUiLocation: UiLocation = {
-        lineNumber: entry.line || 1,
-        columnNumber: entry.column || 1,
+        lineNumber,
+        columnNumber,
         source: compiled
       };
-      if (compiled._inlineScriptOffset) {
-        compiledUiLocation.lineNumber += compiled._inlineScriptOffset.lineOffset;
-        if (compiledUiLocation.lineNumber === 1)
-          compiledUiLocation.columnNumber += compiled._inlineScriptOffset.columnOffset;
-      }
       result.push(compiledUiLocation);
       this._addCompiledUiLocations(compiledUiLocation, result);
     }
@@ -541,3 +531,25 @@ export class SourceContainer {
     this._disabledSourceMaps.clear();
   }
 };
+
+type LineColumn = {lineNumber: number, columnNumber: number};  // 1-based
+
+export function uiToRawOffset(lc: LineColumn, offset?: InlineScriptOffset): LineColumn {
+  let {lineNumber, columnNumber} = lc;
+  if (offset) {
+    lineNumber += offset.lineOffset;
+    if (lineNumber <= 1)
+      columnNumber += offset.columnOffset;
+  }
+  return {lineNumber, columnNumber};
+}
+
+export function rawToUiOffset(lc: LineColumn, offset?: InlineScriptOffset): LineColumn {
+  let {lineNumber, columnNumber} = lc;
+  if (offset) {
+    lineNumber = Math.max(1, lineNumber - offset.lineOffset);
+    if (lineNumber <= 1)
+      columnNumber = Math.max(1, columnNumber - offset.columnOffset);
+  }
+  return {lineNumber, columnNumber};
+}

@@ -7,7 +7,9 @@ import * as urlUtils from '../utils/urlUtils';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as fsUtils from '../utils/fsUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
+import { uiToRawOffset } from './sources';
 
+// TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
 
 export interface WorkspaceLocation {
@@ -149,10 +151,7 @@ class DirectoryScanner {
           const entry = map.generatedPositionFor({source: sourceUrl, line: b.line, column: b.column || 1});
           if (entry.line === null)
             continue;
-          const lineNumber = (entry.line || 1) + kNodeScriptOffset.lineOffset;
-          let columnNumber = entry.column || 1;
-          if (lineNumber === 1)
-            columnNumber += kNodeScriptOffset.columnOffset;
+          const {lineNumber, columnNumber} = uiToRawOffset({lineNumber: entry.line || 1, columnNumber: entry.column || 1}, kNodeScriptOffset);
           const predicted: PredictedLocation = {
             source: {
               absolutePath,

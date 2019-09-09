@@ -11,7 +11,7 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as errors from '../dap/errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { UiLocation, Source, SourceContainer } from './sources';
+import { UiLocation, Source, SourceContainer, rawToUiOffset } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../utils/sourceUtils';
@@ -530,13 +530,7 @@ export class Thread implements VariableStoreDelegate {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     if (!script)
       return Promise.resolve(undefined);
-    let {lineNumber, columnNumber} = rawLocation;
-    const defaultOffset = this._delegate.defaultScriptOffset();
-    if (defaultOffset) {
-      lineNumber -= defaultOffset.lineOffset;
-      if (lineNumber <= 1)
-        columnNumber = Math.max(columnNumber - defaultOffset.columnOffset, 1);
-    }
+    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this._delegate.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
       lineNumber,
       columnNumber,
