@@ -136,6 +136,10 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
+  defaultScriptOffset(): InlineScriptOffset | undefined {
+    return this._delegate.defaultScriptOffset();
+  }
+
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
     this._sourceContainer.clearDisabledSourceMaps();
     if (!await this._cdp.Debugger.resume({}))
@@ -530,7 +534,7 @@ export class Thread implements VariableStoreDelegate {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     if (!script)
       return Promise.resolve(undefined);
-    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this._delegate.defaultScriptOffset());
+    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
       lineNumber,
       columnNumber,
