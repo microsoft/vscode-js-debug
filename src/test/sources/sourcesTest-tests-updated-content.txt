@@ -1,0 +1,43 @@
+
+Source event for test.js
+{
+    reason : new
+    source : {
+        name : test.js
+        path : localhost꞉8001/test.js
+        sourceReference : <number>
+    }
+}
+text/javascript
+---------
+content1//# sourceURL=test.js
+---------
+
+Source event for test.js updated
+{
+    reason : new
+    source : {
+        name : test.js
+        path : localhost꞉8001/test.js
+        sourceReference : <number>
+    }
+}
+text/javascript
+---------
+content2//# sourceURL=test.js
+---------
+
+Loaded sources: {
+    sources : [
+        [0] : {
+            name : test.js
+            path : localhost꞉8001/test.js
+            sourceReference : <number>
+        }
+        [1] : {
+            name : test.js
+            path : localhost꞉8001/test.js
+            sourceReference : <number>
+        }
+    ]
+}

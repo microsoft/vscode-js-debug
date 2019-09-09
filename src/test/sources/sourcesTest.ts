@@ -36,6 +36,16 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
+  it('updated content', async({p}: {p: TestP}) => {
+    await p.launchUrl('index.html');
+    p.cdp.Runtime.evaluate({expression: 'content1//# sourceURL=test.js'});
+    await dumpSource(p, await p.waitForSource('test'), 'test.js');
+    p.cdp.Runtime.evaluate({expression: 'content2//# sourceURL=test.js'});
+    await dumpSource(p, await p.waitForSource('test'), 'test.js updated');
+    p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
+    p.assertLog();
+  });
+
   it('basic source map', async({p}: {p: TestP}) => {
     await p.launchUrl('index.html');
     p.addScriptTag('browserify/bundle.js');
