@@ -88,7 +88,7 @@ class DirectoryScanner {
       await this._handleFile(dirOrFile);
     } else if (stat && stat.isDirectory()) {
       const entries = await fsUtils.readdir(dirOrFile);
-      const filtered = entries.filter(entry => entry !== 'node_modules');
+      const filtered = entries.filter(entry => entry !== 'node_modules' && entry[0] !== '.');
       await Promise.all(filtered.map(entry => this._scan(path.join(dirOrFile, entry))));
     }
   }

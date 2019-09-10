@@ -5,10 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/out/index.js",
+      "preLaunchTask": "npm: compile"
+    },
+    {
       "type": "pwa",
       "request": "launch",
       "name": "PWA: launch program",
-      "command": "npm run execute"
+      "command": "npm run execute",
+      "preLaunchTask": "npm: compile"
     }
   ]
 }
