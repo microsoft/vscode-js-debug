@@ -119,7 +119,8 @@ export class Logger {
         emptyLine = false;
         continue;
       }
-      this._log(`${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${frame.column}`);
+      const origin = frame.source && frame.source.presentationHint === 'deemphasize' ? ` <hidden: ${frame.source.origin || ''}>` : '';
+      this._log(`${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${frame.column}${origin}`);
       if (!withScopes)
         continue;
       const scopes = await this._dap.scopes({frameId: frame.id});

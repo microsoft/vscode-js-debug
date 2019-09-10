@@ -76,6 +76,7 @@ export class TestP {
   private _webRoot: string | undefined;
   private _launchUrl: string | undefined;
   private _args: string[];
+  private _blackboxPattern?: string;
   private _worker: Promise<Session>;
   private _workerCallback: (session: Session) => void;
   readonly logger: Logger;
@@ -124,6 +125,9 @@ export class TestP {
   }
 
   async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
+    if (this._blackboxPattern)
+      target.blackboxPattern = () => this._blackboxPattern;
+
     if (!target.parent())
       return this._root.debugAdapter;
 
@@ -155,6 +159,10 @@ export class TestP {
 
   setArgs(args: string[]) {
     this._args = args;
+  }
+
+  setBlackboxPattern(blackboxPattern?: string) {
+    this._blackboxPattern = blackboxPattern;
   }
 
   worker(): Promise<Session> {

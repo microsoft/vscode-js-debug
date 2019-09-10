@@ -29,6 +29,7 @@ export interface Target {
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
+  blackboxPattern(): string | undefined;
 }
 
 export interface Launcher extends Disposable {

@@ -291,6 +291,10 @@ export class BrowserTarget implements Target {
     return undefined;
   }
 
+  blackboxPattern(): string | undefined {
+    return undefined;
+  }
+
   isServiceWorkerWorker(): boolean {
     return this._targetInfo.type === 'worker' && !!this.parentTarget && this.parentTarget._targetInfo.type === 'service_worker';
   }

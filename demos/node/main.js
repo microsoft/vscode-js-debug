@@ -10,7 +10,9 @@ async function foo() {
 
 let counter = 0;
 setInterval(() => {
-  console.log("a\nb\nc\nd" + (++counter));
+  setTimeout(() => {
+    console.log("a\nb\nc\nd" + (++counter));
+  }, 0);
 }, 2000);
 
 console.log('Hello world!');

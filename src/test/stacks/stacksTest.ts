@@ -83,6 +83,14 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
+  it('blackboxed', async({p}: {p: TestP}) => {
+    p.setBlackboxPattern('^.*/node_modules/.*|.*module2.ts$');
+    await p.launchUrl('index.html');
+    p.addScriptTag('browserify/pause.js');
+    await dumpStackAndContinue(p, false);
+    p.assertLog();
+  });
+
   it('return value', async({p}: {p: TestP}) => {
     await p.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `

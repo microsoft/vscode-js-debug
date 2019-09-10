@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as nls from 'vscode-nls';
 import * as path from 'path';
 import { URL } from 'url';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
@@ -9,6 +10,8 @@ import * as sourceUtils from '../utils/sourceUtils';
 import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
 import * as utils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
+
+const localize = nls.loadMessageBundle();
 
 // This is a ui location which corresponds to a position in the document user can see (Source, Dap.Source).
 export interface UiLocation {
@@ -75,6 +78,7 @@ export class Source {
   _sourceReference: number;
   _url: string;
   _name: string;
+  _blackboxed?: boolean;
   _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
@@ -101,7 +105,7 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
+  constructor(container: SourceContainer, sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, blackboxed?: boolean) {
     this._sourceReference = ++Source._lastSourceReference;
     this._sourcePathResolver = sourcePathResolver;
     this._url = url;
@@ -111,6 +115,7 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
+    this._blackboxed = blackboxed;
     this._absolutePath = sourcePathResolver.urlToAbsolutePath(url);
 
     // Inline scripts will never match content of the html file. We skip the content check.
@@ -167,20 +172,19 @@ export class Source {
     const sources = this._sourceMapSourceByUrl
       ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
       : undefined;
-    if (existingAbsolutePath) {
-      return {
-        name: this._name,
-        path: existingAbsolutePath,
-        sourceReference: 0,
-        sources,
-      };
-    }
-    return {
+    const dap: Dap.Source = {
       name: this._name,
       path: this._fqname,
       sourceReference: this._sourceReference,
       sources,
+      presentationHint: this._blackboxed ? 'deemphasize' : undefined,
+      origin: this._blackboxed ? localize('source.isBlackboxed', 'blackboxed') : undefined,
     };
+    if (existingAbsolutePath) {
+      dap.sourceReference = 0;
+      dap.path = existingAbsolutePath;
+    }
+    return dap;
   }
 
   absolutePath(): string {
@@ -245,6 +249,8 @@ export class SourceContainer {
 
   readonly rootPath: string | undefined;
   private _disabledSourceMaps = new Set<Source>();
+  private _blackboxRegex?: RegExp;
+  private _isBlackboxedUrlMap = new Map<string, boolean>();
 
   constructor(dap: Dap.Api, rootPath: string | undefined) {
     this._dap = dap;
@@ -267,11 +273,17 @@ export class SourceContainer {
   }
 
   reportAllLoadedSourcesForTest() {
+    console.assert(!this._sourceByReference.size);
     this._reportAllLoadedSourcesForTest = true;
   }
 
   installRevealer(revealer: UiLocationRevealer) {
     this._revealer = revealer;
+  }
+
+  setBlackboxRegex(blackboxRegex?: RegExp) {
+    console.assert(!this._sourceByReference.size);
+    this._blackboxRegex = blackboxRegex;
   }
 
   async loadedSources(): Promise<Dap.Source[]> {
@@ -385,8 +397,18 @@ export class SourceContainer {
     }
   }
 
-  addSource(sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
-    const source = new Source(this, sourcePathResolver, url, contentGetter, sourceMapUrl, inlineSourceRange, contentHash);
+  _isBlackboxedUrl(url: string): boolean {
+    if (!this._blackboxRegex)
+      return false;
+    if (!this._isBlackboxedUrlMap.has(url))
+      this._isBlackboxedUrlMap.set(url, this._blackboxRegex.test(url));
+    return this._isBlackboxedUrlMap.get(url)!;
+  }
+
+  addSource(sourcePathResolver: SourcePathResolver, url: string, contentGetter: ContentGetter,
+      sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
+    const source = new Source(this, sourcePathResolver, url, contentGetter, sourceMapUrl,
+        inlineSourceRange, contentHash, this._isBlackboxedUrl(url));
     this._addSource(source);
     return source;
   }
@@ -484,7 +506,10 @@ export class SourceContainer {
       const isNew = !source;
       if (!source) {
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
-        source = new Source(this, compiled._sourcePathResolver, resolvedUrl, content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl));
+        const blackboxed = compiled._blackboxed || this._isBlackboxedUrl(resolvedUrl);
+        source = new Source(this, compiled._sourcePathResolver, resolvedUrl,
+            content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
+            undefined, undefined, undefined, blackboxed);
         source._compiledToSourceUrl = new Map();
       }
       source._compiledToSourceUrl!.set(compiled, url);
