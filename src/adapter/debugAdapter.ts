@@ -5,6 +5,7 @@ import { Disposable } from 'vscode';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
+import * as urlUtils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
 import { UiLocation, SourceContainer } from './sources';
 import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './threads';
@@ -121,6 +122,7 @@ export class DebugAdapter {
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
+    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
     const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));

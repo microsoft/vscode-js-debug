@@ -7,6 +7,7 @@ import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
 import { Disposable } from 'vscode';
 import { BreakpointsPredictor } from './breakpointPredictor';
+import * as urlUtils from '../utils/urlUtils';
 
 let lastBreakpointId = 0;
 
@@ -286,6 +287,7 @@ export class BreakpointManager {
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor!.predictBreakpoints(params);
       this._launchBlocker = Promise.all([this._launchBlocker, promise]);

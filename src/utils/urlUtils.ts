@@ -165,7 +165,7 @@ export function absolutePathToFileUrl(absolutePath: string): string | undefined 
 }
 
 export function maybeAbsolutePathToFileUrl(rootPath: string | undefined, sourceUrl: string): string {
-  if (rootPath && sourceUrl.startsWith(rootPath) && !isValidUrl(sourceUrl))
+  if (rootPath && platformPathToPreferredCase(sourceUrl).startsWith(rootPath) && !isValidUrl(sourceUrl))
     return absolutePathToFileUrl(sourceUrl) || sourceUrl;
   return sourceUrl;
 }
@@ -177,7 +177,16 @@ export function urlPathToPlatformPath(p: string): string {
 }
 
 export function platformPathToUrlPath(p: string): string {
+  p = platformPathToPreferredCase(p);
   if (process.platform === 'win32')
     return p.replace(/\\/g, '/');
+  return p;
+}
+
+export function platformPathToPreferredCase(p: string): string;
+export function platformPathToPreferredCase(p: string | undefined): string | undefined;
+export function platformPathToPreferredCase(p: string | undefined): string | undefined {
+  if (p && process.platform === 'win32' && p[1] === ':')
+    return p[0].toUpperCase() + p.substring(1);
   return p;
 }
