@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -58,8 +59,8 @@ export class GoldenText {
     this._hasNonAssertedLogs = false;
     const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
     const actualFilePath = testFilePath.substring(0, testFilePath.lastIndexOf('.')) + '-' + fileFriendlyName + '.txt';
-    const index = actualFilePath.lastIndexOf('out/test');
-    const goldenFilePath = actualFilePath.substring(0, index) + 'src/test' + actualFilePath.substring(index + 'out/test'.length);
+    const index = actualFilePath.lastIndexOf(path.join('out', 'test'));
+    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'test').length);
     fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);
@@ -74,10 +75,16 @@ export class GoldenText {
   }
 
   _sanitize(value: any): string {
-    return String(value)
-        .replace(/VM\d+/g, 'VM<xx>')
+    value = String(value);
+    if (value.includes(this._workspaceFolder)) {
+      value = value
         .replace(this._workspaceFolder, '${workspaceFolder}')
-        .replace(/@\ .*vscode-pwa\//g, '@ ')
+        .replace(/\\/g, '/');
+    }
+    return value
+        .replace(/VM\d+/g, 'VM<xx>')
+        .replace(/\r\n/g, '\n')
+        .replace(/@\ .*vscode-pwa(\/|\\)/g, '@ ')
         .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');
   }
 
