@@ -3,6 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as urlUtils from '../utils/urlUtils';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -16,7 +17,7 @@ export class GoldenText {
     this._results = [];
     this._testName = testName;
     this._hasNonAssertedLogs = false;
-    this._workspaceFolder = workspaceFolder;
+    this._workspaceFolder = urlUtils.platformPathToPreferredCase(workspaceFolder);
   }
 
   _getLocation() {

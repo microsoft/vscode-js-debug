@@ -14,7 +14,7 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
   private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
 
   constructor(baseUrl: string | undefined, webRoot: string | undefined) {
-    this._basePath = webRoot ? path.normalize(webRoot) : undefined;
+    this._basePath = utils.platformPathToPreferredCase(webRoot ? path.normalize(webRoot) : undefined);
     this._baseUrl = baseUrl;
     if (!this._basePath)
       return;

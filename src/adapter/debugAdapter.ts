@@ -33,6 +33,7 @@ export class DebugAdapter {
   constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this.dap = dap;
     this._uiDelegate = uiDelegate;
+    rootPath = urlUtils.platformPathToPreferredCase(rootPath);
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this.dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));

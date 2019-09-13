@@ -43,7 +43,7 @@ export class Session implements vscode.Disposable {
     const testConnection = new DapConnection(adapterToTest, testToAdapter);
     this.dap = testConnection.createTestApi();
 
-    const workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
+    const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
     this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, {
       copyToClipboard: text => log(`[copy to clipboard] ${text}`)
@@ -91,7 +91,7 @@ export class TestP {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = path.join(__dirname, '..', '..', 'testWorkspace');
+    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     this._root = new Session(this.log, this);

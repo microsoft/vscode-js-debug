@@ -84,7 +84,7 @@ export function addTests(testRunner) {
   });
 
   it('blackboxed', async({p}: {p: TestP}) => {
-    p.setBlackboxPattern('^.*/node_modules/.*|.*module2.ts$');
+    p.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
     await p.launchUrl('index.html');
     p.addScriptTag('browserify/pause.js');
     await dumpStackAndContinue(p, false);
