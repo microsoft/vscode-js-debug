@@ -32,7 +32,7 @@ export class SessionManager implements BinderDelegate {
         requests.map(request => request.fulfill(debugSession));
       this._sessionForTargetRequests.delete(pendingSession.target);
 
-      session = new Session(context, debugSession, undefined, debugAdapter => {
+      session = new Session(context, debugSession, pendingSession.target, undefined, debugAdapter => {
         debugAdapter.dap.on('attach', async () => {
           pendingSession.callback(debugAdapter);
           return {};
@@ -40,7 +40,7 @@ export class SessionManager implements BinderDelegate {
         callback(debugAdapter);
       });
     } else {
-      session = new Session(context, debugSession, this, callback);
+      session = new Session(context, debugSession, undefined, this, callback);
     }
 
     this._rootSessions.set(debugSession.id, debugSession);

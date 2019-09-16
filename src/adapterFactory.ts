@@ -13,13 +13,28 @@ import { SessionManager } from './sessionManager';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
+import { Target } from './targets/targets';
+
+function checkVersion(version: string): boolean {
+  const toNumber = (v: string): number => {
+    if (v.includes('-'))
+      v = v.substring(0, v.indexOf('-'));
+    const s = v.split('.');
+    return (+s[0]) * 10000 + (+s[1]) * 100 + (+s[2]);
+  };
+  return toNumber(vscode.version) >= toNumber(version);
+}
 
 export class Session implements vscode.Disposable {
   private _server: net.Server;
   private _debugAdapter?: DebugAdapter;
   private _binder?: Binder;
+  private _onTargetNameChanged?: vscode.Disposable;
 
-  constructor(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, binderDelegate: BinderDelegate | undefined, callback: (debugAdapter: DebugAdapter) => void) {
+  constructor(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, target: Target | undefined, binderDelegate: BinderDelegate | undefined, callback: (debugAdapter: DebugAdapter) => void) {
+    if (target && checkVersion('1.39.0'))
+      this._onTargetNameChanged = target.onNameChanged(() => debugSession.name = target.name());
+
     this._server = net.createServer(async socket => {
       let rootPath = vscode.workspace.rootPath;
       if (debugSession.workspaceFolder && debugSession.workspaceFolder.uri.scheme === 'file:')
@@ -56,6 +71,8 @@ export class Session implements vscode.Disposable {
       this._binder.dispose();
     if (this._debugAdapter)
       this._debugAdapter.dispose();
+    if (this._onTargetNameChanged)
+      this._onTargetNameChanged.dispose();
     this._server.close();
   }
 }

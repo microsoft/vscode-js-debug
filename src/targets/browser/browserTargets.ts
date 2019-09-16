@@ -157,6 +157,8 @@ export class BrowserTarget implements Target {
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached: boolean = false;
+  private _onNameChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onNameChanged = this._onNameChangedEmitter.event;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
@@ -301,8 +303,7 @@ export class BrowserTarget implements Target {
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
     this._targetInfo = targetInfo;
-    // TODO
-    // this._thread.setBaseUrl(this._targetInfo.url);
+    this._onNameChangedEmitter.fire();
   }
 
   _computeName(): string {

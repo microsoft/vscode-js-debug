@@ -8,6 +8,7 @@ import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathReso
 export interface Target {
   id(): string;
   name(): string;
+  onNameChanged: Event<void>;
   fileName(): string | undefined;
   type(): string;
   parent(): Target | undefined;

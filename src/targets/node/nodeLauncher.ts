@@ -170,6 +170,8 @@ class NodeTarget implements Target {
   private _serialize: Promise<Cdp.Api | undefined> = Promise.resolve(undefined);
   private _attached = false;
   private _waitingForDebugger: boolean;
+  private _onNameChangedEmitter = new vscode.EventEmitter<void>();
+  readonly onNameChanged = this._onNameChangedEmitter.event;
 
   constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
     this._launcher = launcher;
