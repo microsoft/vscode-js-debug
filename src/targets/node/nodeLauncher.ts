@@ -4,6 +4,7 @@
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import { EventEmitter } from '../../utils/eventUtils';
 import * as vscode from 'vscode';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
@@ -35,9 +36,9 @@ export class NodeLauncher implements Launcher {
   _targets = new Map<string, NodeTarget>();
   _pathResolver: NodeSourcePathResolver;
   _targetOrigin: any;
-  private _onTerminatedEmitter = new vscode.EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
-  _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
+  _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(rootPath: string | undefined) {
@@ -170,7 +171,7 @@ class NodeTarget implements Target {
   private _serialize: Promise<Cdp.Api | undefined> = Promise.resolve(undefined);
   private _attached = false;
   private _waitingForDebugger: boolean;
-  private _onNameChangedEmitter = new vscode.EventEmitter<void>();
+  private _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
   constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {

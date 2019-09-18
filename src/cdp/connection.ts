@@ -3,8 +3,7 @@
 
 import { Transport } from './transport';
 import { debug } from 'debug';
-import * as vscode from 'vscode';
-import { EventEmitter } from 'events';
+import { EventEmitter } from '../utils/eventUtils';
 import Cdp from './api';
 
 const debugConnection = debug('connection');
@@ -43,7 +42,7 @@ export default class Connection {
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _rootSession: CDPSession;
-  private _onDisconnectedEmitter = new vscode.EventEmitter();
+  private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
   constructor(transport: Transport) {
@@ -123,15 +122,15 @@ export default class Connection {
   }
 }
 
-class CDPSession extends EventEmitter {
+class CDPSession {
   private _connection?: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
   private _queue?: ProtocolResponse[];
+  private _listeners = new Map<string, Set<(params: any) => void>>();
 
   constructor(connection: Connection, sessionId: string) {
-    super();
     this._callbacks = new Map();
     this._connection = connection;
     this._sessionId = sessionId;
@@ -158,15 +157,25 @@ class CDPSession extends EventEmitter {
       get: (target, agentName: string, receiver) => new Proxy({}, {
         get: (target, methodName: string, receiver) => {
           if (methodName === 'on')
-            return (eventName: string, listener: () => void) => this.on(`${agentName}.${eventName}`, listener);
-          if (methodName === 'once')
-            return (eventName: string, listener: () => void) => this.once(`${agentName}.${eventName}`, listener);
+            return (eventName: string, listener: (params: any) => void) => this._on(`${agentName}.${eventName}`, listener);
           if (methodName === 'off')
-            return (eventName: string, listener: () => void) => this.removeListener(`${agentName}.${eventName}`, listener);
+            return (eventName: string, listener: (params: any) => void) => this._off(`${agentName}.${eventName}`, listener);
           return (params: object | undefined) => this._send(`${agentName}.${methodName}`, params);
         }
       })
     }) as Cdp.Api;
+  }
+
+  _on(method: string, listener: (params: any) => void): void {
+    if (!this._listeners.has(method))
+      this._listeners.set(method, new Set());
+    this._listeners.get(method)!.add(listener);
+  }
+
+  _off(method: string, listener: (params: any) => void): void {
+    const listeners = this._listeners.get(method);
+    if (listeners)
+      listeners.delete(listener);
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
@@ -216,7 +225,9 @@ class CDPSession extends EventEmitter {
     } else {
       if (object.id)
         throw new Error();
-      this.emit(object.method!, object.params);
+      const listeners = this._listeners.get(object.method!);
+      for (const listener of listeners || [])
+        listener(object.params);
     }
   }
 

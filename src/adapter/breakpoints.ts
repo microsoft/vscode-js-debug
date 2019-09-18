@@ -5,7 +5,7 @@ import { UiLocation, SourceContainer, Source, uiToRawOffset } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
-import { Disposable } from 'vscode';
+import { Disposable } from '../utils/eventUtils';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../utils/urlUtils';
 

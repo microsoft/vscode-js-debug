@@ -4,7 +4,6 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
-import * as eventUtils from '../utils/eventUtils';
 import * as urlUtils from '../utils/urlUtils';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
@@ -85,7 +84,6 @@ export class Thread implements VariableStoreDelegate {
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
   readonly sourcePathResolver: SourcePathResolver;
-  private _eventListeners: eventUtils.Listener[] = [];
   private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
   private _selectedContext: ExecutionContext | undefined;
@@ -513,7 +511,6 @@ export class Thread implements VariableStoreDelegate {
       threadId: 0
     });
 
-    eventUtils.removeEventListeners(this._eventListeners);
     this._executionContextsCleared();
   }
 

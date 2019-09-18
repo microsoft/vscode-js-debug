@@ -15,7 +15,7 @@ import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { Binder, BinderDelegate } from '../binder';
 import { Target } from '../targets/targets';
-import * as vscode from 'vscode';
+import { Disposable, EventEmitter } from '../utils/eventUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -31,7 +31,7 @@ class Stream extends stream.Duplex {
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
 
-export class Session implements vscode.Disposable {
+export class Session implements Disposable {
   readonly debugAdapter: DebugAdapter;
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
@@ -84,7 +84,7 @@ export class TestP {
   private _browserLauncher: BrowserLauncher;
   readonly binder: Binder;
 
-  private _onSessionCreatedEmitter = new vscode.EventEmitter<Session>();
+  private _onSessionCreatedEmitter = new EventEmitter<Session>();
   readonly onSessionCreated = this._onSessionCreatedEmitter.event;
 
   constructor(goldenText: GoldenText) {

@@ -3,7 +3,7 @@
 
 import * as net from 'net';
 import WebSocket from 'ws';
-import * as eventUtils from '../utils/eventUtils';
+import * as events from 'events';
 
 export interface Transport {
   send(message: string): void;
@@ -29,8 +29,8 @@ export class PipeTransport implements Transport {
       this._socket = pipeWrite as net.Socket;
     this._pendingBuffers = [];
     this._eventListeners = [
-      eventUtils.addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
-      eventUtils.addEventListener(pipeRead || pipeWrite, 'close', () => {
+      addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
+      addEventListener(pipeRead || pipeWrite, 'close', () => {
         this._pipeWrite = undefined;
         if (this.onclose)
           this.onclose.call(null);
@@ -72,7 +72,7 @@ export class PipeTransport implements Transport {
       this._socket.destroy();
     this._socket = undefined;
     this._pipeWrite = undefined;
-    eventUtils.removeEventListeners(this._eventListeners);
+    removeEventListeners(this._eventListeners);
   }
 }
 
@@ -123,4 +123,23 @@ export class WebSocketTransport implements Transport {
     this._ws.close();
     return result;
   }
+}
+
+type HandlerFunction = (...args: any[]) => void;
+
+export interface Listener {
+  emitter: events.EventEmitter;
+  eventName: string;
+  handler: HandlerFunction;
+}
+
+export function addEventListener(emitter: events.EventEmitter, eventName: string, handler: HandlerFunction): Listener {
+  emitter.on(eventName, handler);
+  return { emitter, eventName, handler };
+}
+
+export function removeEventListeners(listeners: Listener[]) {
+  for (const listener of listeners)
+    listener.emitter.removeListener(listener.eventName, listener.handler);
+  listeners.splice(0, listeners.length);
 }

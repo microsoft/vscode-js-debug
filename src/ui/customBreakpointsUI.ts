@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
 import { AdapterFactory } from '../adapterFactory';
 import { DebugAdapter } from '../adapter/debugAdapter';
+import { EventEmitter } from '../utils/eventUtils';
 
 class Breakpoint {
   id: CustomBreakpointId;
@@ -26,7 +27,7 @@ class Breakpoint {
 }
 
 class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<Breakpoint | undefined>();
+  private _onDidChangeTreeData = new EventEmitter<Breakpoint | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private _factory: AdapterFactory;

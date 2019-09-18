@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as vscode from 'vscode';
+import { Disposable, EventEmitter } from '../../utils/eventUtils';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
@@ -16,10 +16,10 @@ export class BrowserAttacher implements Launcher {
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: LaunchParams | undefined;
   private _targetOrigin: any;
-  private _disposables: vscode.Disposable[] = [];
-  private _onTerminatedEmitter = new vscode.EventEmitter<void>();
+  private _disposables: Disposable[] = [];
+  private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
-  private _onTargetListChangedEmitter = new vscode.EventEmitter<void>();
+  private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(rootPath: string | undefined) {

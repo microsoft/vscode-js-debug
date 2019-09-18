@@ -4,13 +4,13 @@
 import Cdp from '../../cdp/api';
 import { URL } from 'url';
 import * as path from 'path';
-import * as vscode from 'vscode';
+import { EventEmitter } from '../../utils/eventUtils';
 
 export class FrameModel {
   private _mainFrame?: Frame;
-  private _onFrameAddedEmitter = new vscode.EventEmitter<Frame>();
-  _onFrameRemovedEmitter = new vscode.EventEmitter<Frame>();
-  private _onFrameNavigatedEmitter = new vscode.EventEmitter<Frame>();
+  private _onFrameAddedEmitter = new EventEmitter<Frame>();
+  _onFrameRemovedEmitter = new EventEmitter<Frame>();
+  private _onFrameNavigatedEmitter = new EventEmitter<Frame>();
 
   readonly onFrameAdded = this._onFrameAddedEmitter.event;
   readonly onFrameRemoved = this._onFrameRemovedEmitter.event;

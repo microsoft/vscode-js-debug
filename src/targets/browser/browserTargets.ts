@@ -4,7 +4,7 @@
 import { debug } from 'debug';
 import * as path from 'path';
 import { URL } from 'url';
-import * as vscode from 'vscode';
+import { Disposable, EventEmitter } from '../../utils/eventUtils';
 import { Target } from '../../targets/targets';
 import Cdp from '../../cdp/api';
 import CdpConnection from '../../cdp/connection';
@@ -17,7 +17,7 @@ const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class BrowserTargetManager implements vscode.Disposable {
+export class BrowserTargetManager implements Disposable {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
   private _browser: Cdp.Api;
@@ -26,8 +26,8 @@ export class BrowserTargetManager implements vscode.Disposable {
   _sourcePathResolver: SourcePathResolver;
   _targetOrigin: any;
 
-  private _onTargetAddedEmitter = new vscode.EventEmitter<BrowserTarget>();
-  private _onTargetRemovedEmitter = new vscode.EventEmitter<BrowserTarget>();
+  private _onTargetAddedEmitter = new EventEmitter<BrowserTarget>();
+  private _onTargetRemovedEmitter = new EventEmitter<BrowserTarget>();
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
@@ -157,7 +157,7 @@ export class BrowserTarget implements Target {
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached: boolean = false;
-  private _onNameChangedEmitter = new vscode.EventEmitter<void>();
+  private _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();

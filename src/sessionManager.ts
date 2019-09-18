@@ -6,13 +6,14 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Session } from './adapterFactory';
 import { BinderDelegate } from './binder';
 import { Target } from './targets/targets';
+import { Disposable } from './utils/eventUtils';
 
 export class SessionManager implements BinderDelegate {
   private _lastPendingSessionId = 0;
   private _pendingSessions = new Map<number, { target: Target, callback: (debugAdapter: DebugAdapter) => void }>();
   private _rootSessions = new Map<string, vscode.DebugSession>();
   private _sessions = new Map<Target, vscode.DebugSession>();
-  private _disposable: vscode.Disposable;
+  private _disposable: Disposable;
   private _sessionForTargetRequests = new Map<Target, { fulfill: (session: vscode.DebugSession) => void, reject: (error: Error) => void}[]>();
 
   constructor() {

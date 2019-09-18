@@ -34,7 +34,7 @@ export class GoldenText {
         const from = frame.indexOf('(');
         frame = frame.substring(from + 1, frame.length - 1);
       } else {
-        frame = frame.substring('at '.length + 1);
+        frame = frame.substring('at '.length);
       }
 
       const match = frame.match(/^(.*):(\d+):(\d+)$/);

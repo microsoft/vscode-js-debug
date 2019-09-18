@@ -14,6 +14,7 @@ import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { Target } from './targets/targets';
+import { Disposable, EventEmitter } from './utils/eventUtils';
 
 function checkVersion(version: string): boolean {
   const toNumber = (v: string): number => {
@@ -25,11 +26,11 @@ function checkVersion(version: string): boolean {
   return toNumber(vscode.version) >= toNumber(version);
 }
 
-export class Session implements vscode.Disposable {
+export class Session implements Disposable {
   private _server: net.Server;
   private _debugAdapter?: DebugAdapter;
   private _binder?: Binder;
-  private _onTargetNameChanged?: vscode.Disposable;
+  private _onTargetNameChanged?: Disposable;
 
   constructor(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, target: Target | undefined, binderDelegate: BinderDelegate | undefined, callback: (debugAdapter: DebugAdapter) => void) {
     if (target && checkVersion('1.39.0'))
@@ -77,11 +78,11 @@ export class Session implements vscode.Disposable {
   }
 }
 
-export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vscode.Disposable {
+export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, Disposable {
   private _context: vscode.ExtensionContext;
-  private _disposables: vscode.Disposable[];
-  private _onAdapterAddedEmitter = new vscode.EventEmitter<DebugAdapter>();
-  private _onAdapterRemovedEmitter = new vscode.EventEmitter<DebugAdapter>();
+  private _disposables: Disposable[];
+  private _onAdapterAddedEmitter = new EventEmitter<DebugAdapter>();
+  private _onAdapterRemovedEmitter = new EventEmitter<DebugAdapter>();
   private _sessions = new Map<string, Session>();
   private _sessionManager: SessionManager;
 
@@ -101,7 +102,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
         return;
       this._sessions.delete(debugSession.id);
       if (session.debugAdapter())
-        this._onAdapterRemovedEmitter.fire(session.debugAdapter());
+        this._onAdapterRemovedEmitter.fire(session.debugAdapter()!);
       session.dispose();
     }, undefined, this._disposables);
   }
@@ -138,7 +139,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, vsc
   dispose() {
     for (const session of this._sessions.values()) {
       if (session.debugAdapter())
-        this._onAdapterRemovedEmitter.fire(session.debugAdapter());
+        this._onAdapterRemovedEmitter.fire(session.debugAdapter()!);
       session.dispose();
     }
     this._sessions.clear();

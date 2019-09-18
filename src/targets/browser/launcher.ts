@@ -6,7 +6,6 @@ import * as https from 'https';
 import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
-import * as eventUtils from '../../utils/eventUtils';
 import CdpConnection from '../../cdp/connection';
 import { PipeTransport, WebSocketTransport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
@@ -84,7 +83,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   }
 
   let browserClosed = false;
-  const listeners = [eventUtils.addEventListener(process, 'exit', killBrowser)];
+  process.on('exit', killBrowser);
   try {
     if (!usePipe) {
       const browserWSEndpoint = await waitForWSEndpoint(browserProcess, timeout);
@@ -102,7 +101,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
 
   // This method has to be sync to be used as 'exit' event handler.
   function killBrowser() {
-    eventUtils.removeEventListeners(listeners);
+    process.removeListener('exit', killBrowser);
     if (browserProcess.pid && !browserProcess.killed && !browserClosed) {
       // Force kill browser.
       try {
@@ -157,15 +156,18 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
   return new Promise((resolve, reject) => {
     const rl = readline.createInterface({ input: browserProcess.stderr });
     let stderr = '';
-    const listeners = [
-      eventUtils.addEventListener(rl, 'line', onLine),
-      eventUtils.addEventListener(rl, 'close', () => onClose()),
-      eventUtils.addEventListener(browserProcess, 'exit', () => onClose()),
-      eventUtils.addEventListener(browserProcess, 'error', error => onClose(error))
-    ];
+    const onClose = () => onDone();
+    const onExit = () => onDone();
+    const onError = error => onDone(error);
+
+    rl.on('line', onLine);
+    rl.on('close', onClose);
+    browserProcess.on('exit', onExit);
+    browserProcess.on('error', onError);
+
     const timeoutId = timeout ? setTimeout(onTimeout, timeout) : 0;
 
-    function onClose(error?: Error) {
+    function onDone(error?: Error) {
       cleanup();
       reject(new Error([
         'Failed to launch browser!' + (error ? ' ' + error.message : ''),
@@ -193,7 +195,10 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
     function cleanup() {
       if (timeoutId)
         clearTimeout(timeoutId);
-      eventUtils.removeEventListeners(listeners);
+      rl.removeListener('line', onLine);
+      rl.removeListener('close', onClose);
+      browserProcess.removeListener('exit', onExit);
+      browserProcess.removeListener('error', onError);
     }
   });
 }
