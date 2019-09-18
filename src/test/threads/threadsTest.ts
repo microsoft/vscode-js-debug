@@ -42,26 +42,34 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');
       p.dap.stepIn({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep out');
       p.dap.stepOut({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nresume');
@@ -79,8 +87,10 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');
@@ -107,8 +117,10 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');
@@ -142,8 +154,10 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');
@@ -167,8 +181,10 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');
@@ -196,8 +212,10 @@ export function addTests(testRunner) {
 
       p.log('\nstep over');
       p.dap.next({threadId});
-      p.log(await p.dap.once('continued'));
-      p.log(await p.dap.once('stopped'));
+      p.log(await Promise.all([
+        p.dap.once('continued'),
+        p.dap.once('stopped')
+      ]));
       await p.logger.logStackTrace(threadId);
 
       p.log('\nstep in');

@@ -917,7 +917,7 @@ export class Thread implements VariableStoreDelegate {
     if (!withPreview)
       return slot();
 
-      const text = '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview.result) + '\x1b[0m';
+    const text = '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview.result) + '\x1b[0m';
     const variablesReference = await this.replVariables.createVariableForOutput(text, [withPreview.result]) || 0;
     const output = {
       category: 'stdout' as 'stdout',
