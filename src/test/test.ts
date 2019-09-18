@@ -50,6 +50,12 @@ export class Session implements Disposable {
     });
     this.debugAdapter.sourceContainer.reportAllLoadedSourcesForTest();
     this.debugAdapter.breakpointManager.setPredictorDisabledForTest(true);
+    this.debugAdapter.sourceContainer.setSourceMapTimeouts({
+      load: 0,
+      resolveLocation: 2000,
+      scriptPaused: 1000,
+      output: 3000,
+    });
 
     this.logger = new Logger(this.dap, log);
   }

@@ -28,6 +28,7 @@ export function addTests(testRunner) {
     it('clear console', async ({ p }: { p: TestP }) => {
       let complete: () => void;
       const result = new Promise(f => complete = f);
+      let chain = Promise.resolve();
       p.launchAndLoad(`
         <script>
         console.clear();
@@ -39,10 +40,12 @@ export function addTests(testRunner) {
         console.error('DONE');
         </script>`);
       p.dap.on('output', async params => {
-        if (params.category === 'stderr')
-          complete();
-        else
-          await p.logger.logOutput(params);
+        chain = chain.then(async () => {
+          if (params.category === 'stderr')
+            complete();
+          else
+            await p.logger.logOutput(params);
+        });
       });
 
       await result;
