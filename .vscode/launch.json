@@ -19,6 +19,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
+        "--enable-proposed-api=msjsdiag.pwa-debugger",
         "--extensionDevelopmentPath=${workspaceFolder}"
       ],
       "outFiles": [

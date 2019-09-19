@@ -7,6 +7,7 @@ import { Session } from './adapterFactory';
 import { BinderDelegate } from './binder';
 import { Target } from './targets/targets';
 import { Disposable } from './utils/eventUtils';
+import { checkVersion } from './version';
 
 export class SessionManager implements BinderDelegate {
   private _lastPendingSessionId = 0;
@@ -81,7 +82,14 @@ export class SessionManager implements BinderDelegate {
         __pendingSessionId: pendingSessionId,
         sessionPerThread: true
       };
-      vscode.debug.startDebugging(rootSession.workspaceFolder, config, parentSession || rootSession);
+      if (checkVersion('1.39.1')) {
+        vscode.debug.startDebugging(rootSession.workspaceFolder, config, {
+          parentSession: parentSession || rootSession,
+          consoleMode: vscode.DebugConsoleMode.MergeWithParent
+        });
+      } else {
+        vscode.debug.startDebugging(rootSession.workspaceFolder, config, parentSession || rootSession);
+      }
     });
   }
 

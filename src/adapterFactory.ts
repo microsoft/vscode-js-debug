@@ -15,16 +15,7 @@ import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { Target } from './targets/targets';
 import { Disposable, EventEmitter } from './utils/eventUtils';
-
-function checkVersion(version: string): boolean {
-  const toNumber = (v: string): number => {
-    if (v.includes('-'))
-      v = v.substring(0, v.indexOf('-'));
-    const s = v.split('.');
-    return (+s[0]) * 10000 + (+s[1]) * 100 + (+s[2]);
-  };
-  return toNumber(vscode.version) >= toNumber(version);
-}
+import { checkVersion } from './version';
 
 export class Session implements Disposable {
   private _server: net.Server;
