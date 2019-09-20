@@ -16,6 +16,7 @@ import { Logger } from './logger';
 import { Binder, BinderDelegate } from '../binder';
 import { Target } from '../targets/targets';
 import { Disposable, EventEmitter } from '../utils/eventUtils';
+import { UiLocation } from '../adapter/sources';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -46,7 +47,8 @@ export class Session implements Disposable {
     const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
     this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, {
-      copyToClipboard: text => log(`[copy to clipboard] ${text}`)
+      copyToClipboard: text => log(`[copy to clipboard] ${text}`),
+      revealUiLocation: async (uiLocation: UiLocation) => log(`[reveal]: ${uiLocation.source.url()}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`)
     });
     this.debugAdapter.sourceContainer.reportAllLoadedSourcesForTest();
     this.debugAdapter.breakpointManager.setPredictorDisabledForTest(true);
@@ -74,6 +76,7 @@ export class TestP {
   _cdp: Cdp.Api | undefined;
   _adapter: DebugAdapter | undefined;
 
+  private _goldenText: GoldenText;
   private _root: Session;
   private _sessions = new Map<DebugAdapter, Session>();
   private _connection: CdpConnection | undefined;
@@ -85,6 +88,8 @@ export class TestP {
   private _blackboxPattern?: string;
   private _worker: Promise<Session>;
   private _workerCallback: (session: Session) => void;
+  private _nextLog: Promise<void>;
+  private _nextLogCallback: () => void;
   readonly logger: Logger;
 
   private _browserLauncher: BrowserLauncher;
@@ -95,7 +100,10 @@ export class TestP {
 
   constructor(goldenText: GoldenText) {
     this._args = ['--headless'];
-    this.log = goldenText.log.bind(goldenText);
+    this._goldenText = goldenText;
+    this.log = this._log.bind(this);
+    this._nextLogCallback = () => {};
+    this._nextLog = new Promise(f => this._nextLogCallback = f);
     this.assertLog = goldenText.assertLog.bind(goldenText);
     this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
@@ -122,6 +130,17 @@ export class TestP {
 
     this._workerCallback = () => {};
     this._worker = new Promise(f => this._workerCallback = f);
+  }
+
+  _log(value: any, title?: string, stabilizeNames?: string[]): typeof value {
+    const result = this._goldenText.log(value, title, stabilizeNames);
+    this._nextLogCallback();
+    this._nextLog = new Promise(f => this._nextLogCallback = f);
+    return result;
+  }
+
+  nextLog(): Promise<void> {
+    return this._nextLog;
   }
 
   _disposeSessions() {

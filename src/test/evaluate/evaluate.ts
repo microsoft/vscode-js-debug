@@ -129,9 +129,21 @@ export function addTests(testRunner) {
 
   it('copy', async({p} : {p: TestP}) => {
     await p.launchAndLoad('blank');
-    await p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
-    await p.dap.evaluate({expression: 'copy(123n)'});
-    await p.dap.evaluate({expression: 'copy(NaN)'});
+    p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
+    await p.nextLog();
+    p.dap.evaluate({expression: 'copy(123n)'});
+    await p.nextLog();
+    p.dap.evaluate({expression: 'copy(NaN)'});
+    await p.nextLog();
+    p.dap.evaluate({expression: 'copy({foo: "bar"})'});
+    await p.nextLog();
+    p.assertLog();
+  });
+
+  it('inspect', async({p} : {p: TestP}) => {
+    await p.launchAndLoad('blank');
+    p.dap.evaluate({expression: 'function foo() {}; inspect(foo)\n//# sourceURL=test.js'});
+    await p.nextLog();
     p.assertLog();
   });
 

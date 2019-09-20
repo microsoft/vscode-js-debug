@@ -62,7 +62,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     if (!success)
       return;
 
-    // Or reveal this source manually.
+    adapter.refreshStackTrace();
     const originalUiLocation: UiLocation = {
       source,
       lineNumber: editor.selection.start.line + 1,

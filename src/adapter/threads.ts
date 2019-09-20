@@ -48,7 +48,8 @@ export class ExecutionContext {
 export type Script = { scriptId: string, hash: string, source: Source };
 
 export interface UIDelegate {
-  copyToClipboard: (text: string) => void;
+  copyToClipboard(text: string): void;
+  revealUiLocation(uiLocation: UiLocation): Promise<void>;
 }
 
 export interface ThreadDelegate {

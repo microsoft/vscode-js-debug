@@ -1,3 +1,6 @@
 [copy to clipboard] hello
 [copy to clipboard] 123n
 [copy to clipboard] NaN
+[copy to clipboard] {
+  "foo": "bar"
+}

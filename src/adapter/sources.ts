@@ -10,6 +10,7 @@ import * as sourceUtils from '../utils/sourceUtils';
 import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
 import * as utils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
+import { UIDelegate } from './threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -50,10 +51,6 @@ const defaultTimeouts: SourceMapTimeouts = {
   scriptPaused: 1000,
   output: 1000,
 };
-
-export interface UiLocationRevealer {
-  revealUiLocation(uiLocation: UiLocation): Promise<void>;
-}
 
 // Represents a text source visible to the user.
 //
@@ -232,6 +229,7 @@ export class Source {
 
 export class SourceContainer {
   private _dap: Dap.Api;
+  private _uiDelegate: UIDelegate;
   _brokenSourceMapReported = false;
 
   private _sourceByReference: Map<number, Source> = new Map();
@@ -240,7 +238,6 @@ export class SourceContainer {
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
-  private _revealer?: UiLocationRevealer;
   private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
 
   // Test support.
@@ -252,8 +249,9 @@ export class SourceContainer {
   private _blackboxRegex?: RegExp;
   private _isBlackboxedUrlMap = new Map<string, boolean>();
 
-  constructor(dap: Dap.Api, rootPath: string | undefined) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, uiDelegate: UIDelegate) {
     this._dap = dap;
+    this._uiDelegate = uiDelegate;
     this.rootPath = rootPath;
   }
 
@@ -275,10 +273,6 @@ export class SourceContainer {
   reportAllLoadedSourcesForTest() {
     console.assert(!this._sourceByReference.size);
     this._reportAllLoadedSourcesForTest = true;
-  }
-
-  installRevealer(revealer: UiLocationRevealer) {
-    this._revealer = revealer;
   }
 
   setBlackboxRegex(blackboxRegex?: RegExp) {
@@ -442,9 +436,6 @@ export class SourceContainer {
     const promise = new Promise<void>(f => callback = f);
     sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
-    // Source map could have been detached while loading.
-    if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
-      return callback!();
 
     try {
       sourceMap.map = await sourceUtils.loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
@@ -455,6 +446,10 @@ export class SourceContainer {
       }
       return callback!();
     }
+
+    // Source map could have been detached while loading.
+    if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
+      return callback!();
 
     for (const anyCompiled of sourceMap.compiled)
       this._addSourceMapSources(anyCompiled, sourceMap.map!, sourceMapUrl);
@@ -492,7 +487,6 @@ export class SourceContainer {
 
   _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
-    const addedSources: Source[] = [];
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
       // webpack emits absolute paths in some situations instead of a relative url. We check
@@ -516,7 +510,6 @@ export class SourceContainer {
       compiled._sourceMapSourceByUrl.set(url, source);
       if (isNew)
         this._addSource(source);
-      addedSources.push(source);
     }
   }
 
@@ -543,9 +536,8 @@ export class SourceContainer {
     return Array.from(source._sourceMapSourceByUrl.values());
   }
 
-  async revealUiLocation(uiLocation: UiLocation): Promise<void> {
-    if (this._revealer)
-      this._revealer.revealUiLocation(uiLocation);
+  revealUiLocation(uiLocation: UiLocation): Promise<void> {
+    return this._uiDelegate.revealUiLocation(uiLocation);
   }
 
   disableSourceMapForSource(source: Source) {
