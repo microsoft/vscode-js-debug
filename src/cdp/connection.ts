@@ -137,8 +137,8 @@ class CDPSession {
     this._cdp = this._createApi();
 
     const nodeVersion = +process.version.substring(1).split('.')[0];
-    if (nodeVersion < 11) {
-      // Node versions before 11 do not guarantee relative order of tasks and microstasks.
+    if (nodeVersion <= 12) {
+      // Node versions before 12 do not guarantee relative order of tasks and microstasks.
       // We artificially queue protocol messages to achieve this.
       this._queue = [];
     }
