@@ -8,6 +8,7 @@ import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
 import { Disposable } from '../utils/eventUtils';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../utils/urlUtils';
+import { rewriteLogPoint } from '../utils/sourceUtils';
 
 let lastBreakpointId = 0;
 
@@ -31,7 +32,7 @@ export class Breakpoint {
     this._source = source;
     this._lineColumn = {lineNumber: params.line, columnNumber: params.column || 1};
     if (params.logMessage)
-      this._condition = logMessageToExpression(params.logMessage);
+      this._condition = rewriteLogPoint(params.logMessage) + `\n//# sourceURL=${kLogPointUrl}`;
     if (params.condition)
       this._condition = this._condition ? `(${params.condition}) && ${this._condition}` : params.condition;
   }
@@ -321,20 +322,3 @@ export class BreakpointManager {
 }
 
 export const kLogPointUrl = 'logpoint.cdp';
-
-function logMessageToExpression(msg: string): string {
-  msg = msg.replace('%', '%%');
-  const args: string[] = [];
-  let format = msg.replace(/{(.*?)}/g, (match, group) => {
-    const a = group.trim();
-    if (a) {
-      args.push(`(${a})`);
-      return '%O';
-    } else {
-      return '';
-    }
-  });
-  format = format.replace('\'', '\\\'');
-  const argStr = args.length ? `, ${args.join(', ')}` : '';
-  return `console.log('${format}'${argStr});\n//# sourceURL=${kLogPointUrl}`;
-}

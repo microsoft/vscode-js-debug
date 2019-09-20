@@ -239,6 +239,36 @@ export function addTests(testRunner) {
     });
   });
 
+  describe('logpoints', () => {
+    it('basic', async({p}: {p: TestP}) => {
+      await p.initialize;
+      const source: Dap.Source = {
+        path: p.workspacePath('web/logging.js')
+      };
+      await p.dap.setBreakpoints({source, breakpoints: [
+        {line: 6, column: 0, logMessage: "123"},
+        {line: 7, column: 0, logMessage: "{foo: 'bar'}"},
+        {line: 8, column: 0, logMessage: "`bar`"},
+        {line: 9, column: 0, logMessage: "`${bar}`"},
+        {line: 10, column: 0, logMessage: "`${bar} ${foo}`"},
+        {line: 11, column: 0, logMessage: "const a = bar + baz; a"},
+        {line: 12, column: 0, logMessage: "const a = bar + baz; `a=${a}`"},
+        {line: 13, column: 0, logMessage: "(x=>x+baz)(bar)"},
+        {line: 14, column: 0, logMessage: "const b=(x=>x+baz)(bar); `b=${b}`"},
+        {line: 15, column: 0, logMessage: "'hi'"},
+      ]});
+      p.launchUrl('logging.html');
+      const outputs: Dap.OutputEventParams[] = [];
+      for (let i = 0; i < 20; i++) {
+        outputs.push(await p.dap.once('output'));
+      }
+      for (const o of outputs) {
+        await p.logger.logOutput(o);
+      }
+      p.assertLog();
+    });
+  });
+
   describe('custom', () => {
     it('inner html', async({p}: {p: TestP}) => {
       // Custom breakpoint for innerHtml.

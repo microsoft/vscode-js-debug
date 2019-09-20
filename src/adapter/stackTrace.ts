@@ -20,7 +20,7 @@ export class StackTrace {
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
     const callFrames = stack.callFrames;
-    if (callFrames.length && callFrames[0].url === kLogPointUrl)
+    while (callFrames.length && callFrames[0].url === kLogPointUrl)
       callFrames.splice(0, 1);
     for (const callFrame of stack.callFrames)
       result._frames.push(StackFrame.fromRuntime(thread, callFrame));

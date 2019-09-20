@@ -1,0 +1,20 @@
+stdout> 123
+stdout> > {foo: 'bar'}
+stdout> bar
+stdout> bar
+stdout> bar 1
+stdout> barbaz
+stdout> a=barbaz
+stdout> barbaz
+stdout> b=barbaz
+stdout> hi
+stdout> 123
+stdout> > {foo: 'bar'}
+stdout> bar
+stdout> bar
+stdout> bar 1
+stdout> barbaz
+stdout> a=barbaz
+stdout> barbaz
+stdout> b=barbaz
+stdout> hi
