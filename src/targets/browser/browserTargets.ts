@@ -48,6 +48,12 @@ export class BrowserTargetManager implements Disposable {
       this._targetInfoChanged(event.targetInfo);
     });
     this._targetOrigin = targetOrigin;
+    this.serviceWorkerModel.onDidChange(() => {
+      for (const target of this._targets.values()) {
+        if (target.isServiceWorker())
+          target._onNameChangedEmitter.fire();
+      }
+    });
   }
 
   dispose() {
@@ -55,7 +61,7 @@ export class BrowserTargetManager implements Disposable {
   }
 
   targetList(): Target[] {
-    return Array.from(this._targets.values());
+    return Array.from(this._targets.values()).filter(target => jsTypes.has(target._targetInfo.type));
   }
 
   async closeBrowser(): Promise<void> {
@@ -114,7 +120,7 @@ export class BrowserTargetManager implements Disposable {
     if (!jsTypes.has(targetInfo.type))
       cdp.Runtime.runIfWaitingForDebugger({});
 
-      debugTarget(`Attached to target ${targetInfo.targetId}`);
+    debugTarget(`Attached to target ${targetInfo.targetId}`);
     return target;
   }
 
@@ -146,7 +152,7 @@ export class BrowserTargetManager implements Disposable {
   }
 }
 
-const jsTypes = new Set(['page', 'iframe', 'worker']);
+const jsTypes = new Set(['page', 'iframe', 'worker', 'service_worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class BrowserTarget implements Target {
@@ -157,7 +163,7 @@ export class BrowserTarget implements Target {
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached: boolean = false;
-  private _onNameChangedEmitter = new EventEmitter<void>();
+  _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
@@ -214,7 +220,7 @@ export class BrowserTarget implements Target {
   }
 
   canStop(): boolean {
-    return this.isServiceWorkerWorker();
+    return this.isServiceWorker();
   }
 
   stop() {
@@ -297,8 +303,8 @@ export class BrowserTarget implements Target {
     return undefined;
   }
 
-  isServiceWorkerWorker(): boolean {
-    return this._targetInfo.type === 'worker' && !!this.parentTarget && this.parentTarget._targetInfo.type === 'service_worker';
+  isServiceWorker(): boolean {
+    return this._targetInfo.type === 'service_worker';
   }
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
@@ -307,10 +313,10 @@ export class BrowserTarget implements Target {
   }
 
   _computeName(): string {
-    if (this.isServiceWorkerWorker()) {
-      const version = this._manager.serviceWorkerModel.version(this.parentTarget!.id());
+    if (this.isServiceWorker()) {
+      const version = this._manager.serviceWorkerModel.version(this.id());
       if (version)
-        return version.label();
+        return version.label() + ' [Service Worker]';
     }
 
     let threadName = '';
