@@ -82,7 +82,7 @@ export class SessionManager implements BinderDelegate {
         __pendingSessionId: pendingSessionId,
         sessionPerThread: true
       };
-      if (checkVersion('1.39.1')) {
+      if (checkVersion('1.39.0')) {
         vscode.debug.startDebugging(rootSession.workspaceFolder, config, {
           parentSession: parentSession || rootSession,
           consoleMode: vscode.DebugConsoleMode.MergeWithParent
