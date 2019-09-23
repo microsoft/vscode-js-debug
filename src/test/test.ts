@@ -50,7 +50,6 @@ export class Session implements Disposable {
       copyToClipboard: text => log(`[copy to clipboard] ${text}`),
       revealUiLocation: async (uiLocation: UiLocation) => log(`[reveal]: ${uiLocation.source.url()}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`)
     });
-    this.debugAdapter.sourceContainer.reportAllLoadedSourcesForTest();
     this.debugAdapter.breakpointManager.setPredictorDisabledForTest(true);
     this.debugAdapter.sourceContainer.setSourceMapTimeouts({
       load: 0,

@@ -242,7 +242,6 @@ export class SourceContainer {
 
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
-  _reportAllLoadedSourcesForTest = false;
 
   readonly rootPath: string | undefined;
   private _disabledSourceMaps = new Set<Source>();
@@ -270,11 +269,6 @@ export class SourceContainer {
       this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  reportAllLoadedSourcesForTest() {
-    console.assert(!this._sourceByReference.size);
-    this._reportAllLoadedSourcesForTest = true;
-  }
-
   setBlackboxRegex(blackboxRegex?: RegExp) {
     console.assert(!this._sourceByReference.size);
     this._blackboxRegex = blackboxRegex;
@@ -284,10 +278,7 @@ export class SourceContainer {
     const promises: Promise<Dap.Source>[] = [];
     for (const source of this._sourceByReference.values())
       promises.push(source.toDap());
-    const result = await Promise.all(promises);
-    if (this._reportAllLoadedSourcesForTest)
-      return result;
-    return result.filter(source => !!source.sourceReference);
+    return await Promise.all(promises);
   }
 
   source(ref: Dap.Source): Source | undefined {
@@ -412,10 +403,7 @@ export class SourceContainer {
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.set(source._url, source);
     this._sourceByAbsolutePath.set(source._absolutePath, source);
-    source.toDap().then(payload => {
-      if (payload.sourceReference || this._reportAllLoadedSourcesForTest)
-        this._dap.loadedSource({ reason: 'new', source: payload });
-    });
+    source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
     if (!sourceMapUrl)
@@ -463,10 +451,7 @@ export class SourceContainer {
       this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
-    source.toDap().then(payload => {
-      if (payload.sourceReference || this._reportAllLoadedSourcesForTest)
-        this._dap.loadedSource({ reason: 'removed', source: payload });
-    });
+    source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
     if (!sourceMapUrl)
