@@ -3,6 +3,7 @@
 
 import {TestP} from '../test';
 import * as sourceUtils from '../../utils/sourceUtils';
+import Dap from '../../dap/api';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
@@ -318,6 +319,26 @@ export function addTests(testRunner) {
     await worker.dap.once('continued');
     p.log('Resumed');
 
+    p.assertLog();
+  });
+
+  it('cd', async ({ p }: { p: TestP }) => {
+    await p.launchUrl('index.html');
+
+    async function logCompletions(params: Dap.CompletionsParams) {
+      const completions = await p.dap.completions(params);
+      const text = params.text.substring(0, params.column - 1) + '|' + params.text.substring(params.column - 1);
+      p.log(completions.targets.filter(c => c.label.startsWith('cd')), `"${text}": `);
+    }
+
+    await logCompletions({line: 1, column: 1, text: ''});
+    await logCompletions({line: 1, column: 3, text: 'cd'});
+    await logCompletions({line: 1, column: 4, text: 'cd '});
+    await logCompletions({line: 1, column: 5, text: 'cd t'});
+
+    await logCompletions({line: 1, column: 5, text: 'cd h'});
+    await logCompletions({line: 1, column: 2, text: 'cd'});
+    await logCompletions({line: 1, column: 3, text: 'co'});
     p.assertLog();
   });
 }

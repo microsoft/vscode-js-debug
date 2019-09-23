@@ -229,13 +229,20 @@ export class Thread implements VariableStoreDelegate {
       if (!stackFrame.callFrameId())
         return this._evaluateOnAsyncFrameError();
     }
-    const line = params.line === undefined ? 0 : params.line - 1;
     const contexts: Dap.CompletionItem[] = [];
-    if (!params.text) {
-      for (const c of this._executionContexts.values())
-        contexts.push({ label: `cd ${this._delegate.executionContextName(c.description)}` });
+    for (const c of this._executionContexts.values()) {
+      const text = `cd ${this._delegate.executionContextName(c.description)}`;
+      if (text.startsWith(params.text)) {
+        contexts.push({ label: text, start: 0, length: params.text.length });
+      }
     }
-    return { targets: contexts.concat(await completions.completions(this._cdp, this._selectedContext ? this._selectedContext.description.id : undefined, stackFrame, params.text, line, params.column)) };
+    if (params.line === 1 && (params.column === params.text.length + 1) && params.text.startsWith('cd '))
+      return { targets: contexts };
+    const line = params.line === undefined ? 0 : params.line - 1;
+    const targets = await completions.completions(this._cdp, this._selectedContext ? this._selectedContext.description.id : undefined, stackFrame, params.text, line, params.column);
+    if (params.line === 1 && (params.column === params.text.length + 1) && 'cd '.startsWith(params.text))
+      return { targets: contexts.concat(targets) };
+    return { targets };
   }
 
   async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
