@@ -46,16 +46,16 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
 
     try {
       const u = new URL(url);
-      if (url.endsWith('#' + u.hash))
-        url = url.substring(url.length - u.hash.length - 1);
-      if (url.endsWith('?' + u.search))
-        url = url.substring(url.length - u.search.length - 1);
+      if (url.endsWith(u.hash))
+        url = url.substring(0, url.length - u.hash.length);
+      if (url.endsWith(u.search))
+        url = url.substring(0, url.length - u.search.length);
     } catch (e) {
     }
 
     for (const rule of this._rules) {
       if (url.startsWith(rule.urlPrefix))
-        return rule.pathPrefix + utils.urlPathToPlatformPath(url.substring(rule.pathPrefix.length));
+        return rule.pathPrefix + utils.urlPathToPlatformPath(url.substring(rule.urlPrefix.length));
     }
 
     if (!this._basePath || !this._baseUrl || !url.startsWith(this._baseUrl))
