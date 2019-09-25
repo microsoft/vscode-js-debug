@@ -43,7 +43,7 @@ export class NodeLauncher implements Launcher {
 
   constructor(rootPath: string | undefined) {
     this._rootPath = rootPath;
-    this._pathResolver = new FileSourcePathResolver();
+    this._pathResolver = new FileSourcePathResolver(rootPath);
   }
 
   async launch(params: any, targetOrigin: any): Promise<boolean> {

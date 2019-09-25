@@ -15,8 +15,22 @@ export interface SourcePathResolver {
 export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
 
 export class FileSourcePathResolver implements SourcePathResolver {
+  private _basePath: string | undefined;
+
+  constructor(basePath: string | undefined) {
+    this._basePath = basePath;
+  }
+
   urlToAbsolutePath(url: string): string {
-    return urlUtils.fileUrlToAbsolutePath(url) || '';
+    const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
+    if (absolutePath)
+      return absolutePath;
+
+    if (!this._basePath)
+      return '';
+
+    const webpackPath = urlUtils.webpackUrlToPath(url, this._basePath);
+    return webpackPath || '';
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {

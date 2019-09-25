@@ -3,7 +3,6 @@
 // Licensed under the MIT license.
 
 import * as path from 'path';
-import { URL } from "url";
 import { SourcePathResolver } from "../../common/sourcePathResolver";
 import * as utils from '../../utils/urlUtils';
 
@@ -11,20 +10,10 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
   // We map all urls under |_baseUrl| to files under |_basePath|.
   private _basePath?: string;
   private _baseUrl?: string;
-  private _rules: { urlPrefix: string, pathPrefix: string }[] = [];
 
   constructor(baseUrl: string | undefined, webRoot: string | undefined) {
     this._basePath = utils.platformPathToPreferredCase(webRoot ? path.normalize(webRoot) : undefined);
     this._baseUrl = baseUrl;
-    if (!this._basePath)
-      return;
-    const substitute = (s: string): string => {
-      return s.replace(/{webRoot}/g, this._basePath!);
-    };
-    this._rules = [
-      { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}' + path.sep + 'node_modules' + path.sep) },
-      { urlPrefix: 'webpack:///', pathPrefix: substitute('{webRoot}' + path.sep) },
-    ];
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {
@@ -42,21 +31,14 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
     if (absolutePath)
       return absolutePath;
 
-    try {
-      const u = new URL(url);
-      if (url.endsWith(u.hash))
-        url = url.substring(0, url.length - u.hash.length);
-      if (url.endsWith(u.search))
-        url = url.substring(0, url.length - u.search.length);
-    } catch (e) {
-    }
+    if (!this._basePath)
+      return '';
 
-    for (const rule of this._rules) {
-      if (url.startsWith(rule.urlPrefix))
-        return rule.pathPrefix + utils.urlPathToPlatformPath(url.substring(rule.urlPrefix.length));
-    }
+    const webpackPath = utils.webpackUrlToPath(url, this._basePath);
+    if (webpackPath)
+      return webpackPath;
 
-    if (!this._basePath || !this._baseUrl || !url.startsWith(this._baseUrl))
+    if (!this._baseUrl || !url.startsWith(this._baseUrl))
       return '';
     url = utils.urlPathToPlatformPath(url.substring(this._baseUrl.length));
     if (url === '' || url === '/')

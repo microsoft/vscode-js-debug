@@ -181,3 +181,23 @@ export function platformPathToPreferredCase(p: string | undefined): string | und
     return p[0].toUpperCase() + p.substring(1);
   return p;
 }
+
+const kRules = [
+  { urlPrefix: 'webpack:///./~/', pathPrefix: '{basePath}' + path.sep + 'node_modules' + path.sep },
+  { urlPrefix: 'webpack:///', pathPrefix: '{basePath}' + path.sep },
+];
+export function webpackUrlToPath(url: string, basePath: string): string | undefined {
+  // Drop hash and query used by webpack probably for cache-busting.
+  try {
+    const u = new URL(url);
+    if (url.endsWith(u.hash))
+      url = url.substring(0, url.length - u.hash.length);
+    if (url.endsWith(u.search))
+      url = url.substring(0, url.length - u.search.length);
+  } catch (e) {
+  }
+  for (const rule of kRules) {
+    if (url.startsWith(rule.urlPrefix))
+      return rule.pathPrefix.replace(/{basePath}/g, basePath) + urlPathToPlatformPath(url.substring(rule.urlPrefix.length));
+  }
+}
