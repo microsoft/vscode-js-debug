@@ -267,6 +267,26 @@ export function addTests(testRunner) {
       }
       p.assertLog();
     });
+
+    it('no double log', async({p}: {p: TestP}) => {
+      await p.initialize;
+      await p.launchUrl('logging.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/logging.js')
+      };
+      await p.dap.setBreakpoints({source, breakpoints: [
+        {line: 28, column: 0, logMessage: "window.logValue = (window.logValue || 0) + 1; 'LOG' + window.logValue"},
+      ]});
+      p.cdp.Runtime.evaluate({expression: "g(); console.log('DONE' + window.logValue)"});
+      const outputs: Dap.OutputEventParams[] = [];
+      for (let i = 0; i < 2; i++) {
+        outputs.push(await p.dap.once('output'));
+      }
+      for (const o of outputs) {
+        await p.logger.logOutput(o);
+      }
+      p.assertLog();
+    });
   });
 
   describe('custom', () => {

@@ -23,3 +23,7 @@ function f() {
 }
 f();
 f();
+
+function g() {
+  1+2;
+}
