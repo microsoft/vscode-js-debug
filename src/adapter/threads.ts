@@ -621,7 +621,8 @@ export class Thread implements VariableStoreDelegate {
         thread: this,
         stackTrace,
         reason: 'exception',
-        description: localize('pause.promiseRejection', 'Paused on promise rejection')
+        description: localize('pause.promiseRejection', 'Paused on promise rejection'),
+        exception: event.data as (Cdp.Runtime.RemoteObject | undefined)
       };
       case 'instrumentation':
         if (event.data && event.data['scriptId']) {
