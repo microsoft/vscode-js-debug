@@ -9,6 +9,7 @@ import { Disposable } from '../utils/eventUtils';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../utils/urlUtils';
 import { rewriteLogPoint } from '../utils/sourceUtils';
+import { SourcePathResolver } from '../common/sourcePathResolver';
 
 let lastBreakpointId = 0;
 
@@ -220,7 +221,7 @@ export class BreakpointManager {
   private _sourceMapPauseDisabledForTest = false;
   private _predictorDisabledForTest = false;
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer, sourcePathResolver: SourcePathResolver | undefined) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
 
@@ -239,7 +240,7 @@ export class BreakpointManager {
       }
     };
     if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath);
+      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourcePathResolver);
   }
 
   setThread(thread: Thread) {
@@ -283,6 +284,7 @@ export class BreakpointManager {
   async _updateSourceMapHandler() {
     if (!this._thread)
       return;
+    // TODO: disable pausing before source map with a setting or unconditionally.
     const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
     await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
   }

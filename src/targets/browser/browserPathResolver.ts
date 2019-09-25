@@ -23,9 +23,7 @@ export class BrowserSourcePathResolver implements SourcePathResolver {
     };
     this._rules = [
       { urlPrefix: 'webpack:///./~/', pathPrefix: substitute('{webRoot}' + path.sep + 'node_modules' + path.sep) },
-      { urlPrefix: 'webpack:///./', pathPrefix: substitute('{webRoot}' + path.sep) },
-      { urlPrefix: 'webpack:///src/', pathPrefix: substitute('{webRoot}' + path.sep) },
-      { urlPrefix: 'webpack:///', pathPrefix: substitute('/') },  // TODO: what would this be on Windows?
+      { urlPrefix: 'webpack:///', pathPrefix: substitute('{webRoot}' + path.sep) },
     ];
   }
 

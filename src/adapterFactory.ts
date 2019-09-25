@@ -33,7 +33,7 @@ export class Session implements Disposable {
         rootPath = debugSession.workspaceFolder.uri.path;
 
       const connection = new DapConnection(socket, socket);
-      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, {
+      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : undefined, {
         copyToClipboard: text => vscode.env.clipboard.writeText(text),
         revealUiLocation: async (uiLocation: UiLocation) => {
           const position = new vscode.Position(uiLocation.lineNumber - 1, uiLocation.columnNumber - 1);

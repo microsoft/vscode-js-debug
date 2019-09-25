@@ -46,7 +46,7 @@ export class Session implements Disposable {
 
     const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
-    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, {
+    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, undefined, {
       copyToClipboard: text => log(`[copy to clipboard] ${text}`),
       revealUiLocation: async (uiLocation: UiLocation) => log(`[reveal]: ${uiLocation.source.url()}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`)
     });

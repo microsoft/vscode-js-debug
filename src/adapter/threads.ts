@@ -57,6 +57,7 @@ export interface ThreadDelegate {
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
+  // TODO: move source path resolver to DebugAdapter/SourceContainer.
   sourcePathResolver(): SourcePathResolver;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   blackboxPattern(): string | undefined;

@@ -6,7 +6,7 @@ import Dap from '../dap/api';
 import * as urlUtils from '../utils/urlUtils';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as fsUtils from '../utils/fsUtils';
-import { InlineScriptOffset } from '../common/sourcePathResolver';
+import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
@@ -28,9 +28,11 @@ export class BreakpointsPredictor {
   private _nodeModules: Promise<string | undefined>;
   private _directoryScanners = new Map<string, DirectoryScanner>();
   _predictedLocations: PredictedLocation[] = [];
+  _sourcePathResolver?: SourcePathResolver;
 
-  constructor(rootPath: string) {
+  constructor(rootPath: string, sourcePathResolver: SourcePathResolver | undefined) {
     this._rootPath = rootPath;
+    this._sourcePathResolver = sourcePathResolver;
 
     const nodeModules = path.join(this._rootPath, 'node_modules');
     this._nodeModules = fsUtils.exists(nodeModules).then(exists => exists ? nodeModules : undefined);
@@ -115,7 +117,9 @@ class DirectoryScanner {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
         const baseUrl = sourceMapUrl.startsWith('data:') ? fileUrl : sourceMapUrl;
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
-        const resolvedPath = urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+        const resolvedPath = this._predictor._sourcePathResolver
+            ? this._predictor._sourcePathResolver.urlToAbsolutePath(resolvedUrl)
+            : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
         if (resolvedPath)
           this._addMapping(absolutePath, resolvedPath, url);
       }
