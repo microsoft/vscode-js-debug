@@ -5,7 +5,7 @@ import { Disposable, EventEmitter } from '../../utils/eventUtils';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher } from '../targets';
+import { Target, Launcher, LaunchResult } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL, LaunchParams } from './browserLaunchParams';
 
@@ -40,14 +40,14 @@ export class BrowserAttacher implements Launcher {
       this._targetManager.dispose();
   }
 
-  async launch(params: any, targetOrigin: any): Promise<boolean> {
+  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
     if (!('remoteDebuggingPort' in params))
-      return false;
+      return { blockSessionTermination: false };
 
     this._launchParams = params;
     this._targetOrigin = targetOrigin;
     this._attemptToAttach();
-    return false;  // Do not block session on termination.
+    return { blockSessionTermination: false };
   }
 
   _scheduleAttach() {

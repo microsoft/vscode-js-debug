@@ -204,6 +204,10 @@
                 "type": "string",
                 "description": "Browser remote debugging port"
               },
+              "browser": {
+                "type": "string",
+                "description": "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable. When omitted, canary is preferred over stable."
+              },
               "baseURL": {
                 "type": "string",
                 "description": "Base URL to resolve paths agsint. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain."

@@ -76,13 +76,18 @@ export async function launch(executablePath: string, options: LaunchOptions | un
       stdio
     }
   );
+  let browserClosed = false;
+
+  if (browserProcess.pid === undefined) {
+    killBrowser();
+    throw new Error('Unable to launch the executable');
+  }
 
   if (dumpio) {
     browserProcess.stderr.on('data', data => console.warn(data.toString()));
     browserProcess.stdout.on('data', data => console.warn(data.toString()));
   }
 
-  let browserClosed = false;
   process.on('exit', killBrowser);
   try {
     if (!usePipe) {

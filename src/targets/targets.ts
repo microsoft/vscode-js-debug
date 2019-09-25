@@ -33,9 +33,13 @@ export interface Target {
   blackboxPattern(): string | undefined;
 }
 
+export interface LaunchResult {
+  error?: string;
+  blockSessionTermination?: boolean;
+}
+
 export interface Launcher extends Disposable {
-  // If returns true, session should be blocked on the launcher termination.
-  launch(params: any, targetOrigin: any): Promise<boolean>;
+  launch(params: any, targetOrigin: any): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

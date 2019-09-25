@@ -11,7 +11,7 @@ import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
 import { InlineScriptOffset, SourcePathResolver, FileSourcePathResolver } from '../../common/sourcePathResolver';
 import Dap from '../../dap/api';
-import { Launcher, Target } from '../../targets/targets';
+import { Launcher, Target, LaunchResult } from '../../targets/targets';
 import * as utils from '../../utils/urlUtils';
 import { execFileSync } from 'child_process';
 
@@ -46,14 +46,14 @@ export class NodeLauncher implements Launcher {
     this._pathResolver = new FileSourcePathResolver(rootPath);
   }
 
-  async launch(params: any, targetOrigin: any): Promise<boolean> {
+  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
     if (!('command' in params))
-      return false;
+      return { blockSessionTermination: false };
     this._launchParams = params as LaunchParams;
     this._targetOrigin = targetOrigin;
     await this._startServer();
     await this._relaunch();
-    return true;  // Block session on termination.
+    return { blockSessionTermination: true };
   }
 
   async _relaunch() {

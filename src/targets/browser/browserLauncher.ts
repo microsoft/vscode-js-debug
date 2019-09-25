@@ -5,13 +5,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Disposable, EventEmitter } from '../../utils/eventUtils';
 import * as nls from 'vscode-nls';
-import * as errors from '../../dap/errors';
 import CdpConnection from '../../cdp/connection';
-import Dap from '../../dap/api';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher } from '../../targets/targets';
+import { Target, Launcher, LaunchResult } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { LaunchParams, baseURL } from './browserLaunchParams';
 
@@ -45,9 +43,22 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser(args: string[]): Promise<CdpConnection> {
-    // Prefer canary over stable, it comes earlier in the list.
-    const executablePath = findBrowser()[0];
+  async _launchBrowser(args: string[], executable: string | undefined): Promise<CdpConnection> {
+    let executablePath = '';
+    if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
+      executablePath = executable;
+    } else {
+      const installations = findBrowser();
+      if (executable) {
+        const installation = installations.find(e => e.type === executable);
+        if (installation)
+          executablePath = installation.path;
+      } else {
+        // Prefer canary over stable, it comes earlier in the list.
+        if (installations.length)
+          executablePath = installations[0].path;
+      }
+    }
     if (!executablePath)
       throw new Error('Unable to find browser');
 
@@ -63,12 +74,14 @@ export class BrowserLauncher implements Launcher {
       });
   }
 
-  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | Dap.Error> {
+  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(args);
+      connection = await this._launchBrowser(args, params.browser);
     } catch (e) {
-      return errors.createUserError(localize('error.executableNotFound', 'Unable to find browser executable'));
+      if (params.browser)
+        return localize('error.executableNotFoundParam', 'Unable to find browser "{0}"', params.browser);
+      return localize('error.executableNotFound', 'Unable to find browser executable');
     }
 
     connection.onDisconnected(() => {
@@ -80,7 +93,7 @@ export class BrowserLauncher implements Launcher {
     const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || this._rootPath);
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
     if (!this._targetManager)
-      return errors.createUserError(localize('error.unableToAttachToBrowser', 'Unable to attach to the browser'));
+      return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
 
     this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
@@ -97,7 +110,7 @@ export class BrowserLauncher implements Launcher {
     // sharing the browser instance. This can be fixed.
     this._mainTarget = await this._targetManager.waitForMainTarget();
     if (!this._mainTarget)
-      return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
+      return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
         this._onTerminatedEmitter.fire();
@@ -110,14 +123,14 @@ export class BrowserLauncher implements Launcher {
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: any, targetOrigin: any): Promise<boolean> {
+  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
     if (!('url' in params))
-      return false;
-    const result = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
-    if (!(result instanceof BrowserTarget))
-      return false;
-    await this.finishLaunch(result);
-    return true;  // Block session on termination.
+      return { blockSessionTermination: false };
+    const targetOrError = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
+    if (typeof targetOrError === 'string')
+      return { error: targetOrError };
+    await this.finishLaunch(targetOrError);
+    return { blockSessionTermination: true };
   }
 
   async terminate(): Promise<void> {

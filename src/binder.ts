@@ -5,6 +5,7 @@ import { Disposable, EventEmitter } from './utils/eventUtils';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { Launcher, Target } from './targets/targets';
+import * as errors from './dap/errors';
 
 export interface BinderDelegate {
   acquireDebugAdapter(target: Target): Promise<DebugAdapter>;
@@ -40,7 +41,10 @@ export class Binder implements Disposable {
 
     debugAdapter.dap.on('launch', async params => {
       await debugAdapter.breakpointManager.launchBlocker();
-      await Promise.all(launchers.map(l => this._launch(l, params)));
+      let results = await Promise.all(launchers.map(l => this._launch(l, params)));
+      results = results.filter(result => !!result);
+      if (results.length)
+        return errors.createUserError(results.join('\n'));
       return {};
     });
     debugAdapter.dap.on('terminate', async () => {
@@ -61,11 +65,12 @@ export class Binder implements Disposable {
     await Promise.all([...this._launchers].map(l => l.restart()));
   }
 
-  async _launch(launcher: Launcher, params: any) {
-    if (!await launcher.launch(params, this._targetOrigin))
-      return;
-
-    this._listenToTermination(launcher);
+  async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
+    const result = await launcher.launch(params, this._targetOrigin);
+    if (result.error)
+      return result.error;
+    if (result.blockSessionTermination)
+      this._listenToTermination(launcher);
   }
 
   considerLaunchedForTest(launcher: Launcher) {
