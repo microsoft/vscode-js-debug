@@ -17,6 +17,8 @@ import { Binder, BinderDelegate } from '../binder';
 import { Target } from '../targets/targets';
 import { Disposable, EventEmitter } from '../utils/eventUtils';
 import { UiLocation } from '../adapter/sources';
+import { BrowserSourcePathResolver } from '../targets/browser/browserPathResolver';
+import { SourcePathResolver } from '../common/sourcePathResolver';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -37,7 +39,7 @@ export class Session implements Disposable {
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
 
-  constructor(log: Log, binderDelegate: BinderDelegate | undefined) {
+  constructor(log: Log, binderDelegate: BinderDelegate | undefined, sourcePathResolver: SourcePathResolver) {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
     const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
@@ -46,7 +48,7 @@ export class Session implements Disposable {
 
     const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
-    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, undefined, {
+    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, sourcePathResolver, {
       copyToClipboard: text => log(`[copy to clipboard] ${text}`),
       revealUiLocation: async (uiLocation: UiLocation) => log(`[reveal]: ${uiLocation.source.url()}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`)
     });
@@ -107,7 +109,7 @@ export class TestP {
     this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this._root = new Session(this.log, this);
+    this._root = new Session(this.log, this, new BrowserSourcePathResolver('http://localhost:8001/', this._webRoot));
     this._sessions.set(this._root.debugAdapter, this._root);
     this.dap = this._root.dap;
     this.adapter = this._root.debugAdapter;
@@ -155,7 +157,7 @@ export class TestP {
     if (!target.parent())
       return this._root.debugAdapter;
 
-    const session = new Session(this.log, undefined);
+    const session = new Session(this.log, undefined, target.sourcePathResolver());
     this._sessions.set(session.debugAdapter, session);
     session.dap.initialize({
       clientID: 'pwa-test',

@@ -16,6 +16,7 @@ import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { Target } from './targets/targets';
 import { Disposable, EventEmitter } from './utils/eventUtils';
 import { checkVersion } from './version';
+import { FileSourcePathResolver } from './common/sourcePathResolver';
 
 export class Session implements Disposable {
   private _server: net.Server;
@@ -33,7 +34,7 @@ export class Session implements Disposable {
         rootPath = debugSession.workspaceFolder.uri.path;
 
       const connection = new DapConnection(socket, socket);
-      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : undefined, {
+      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : new FileSourcePathResolver(), {
         copyToClipboard: text => vscode.env.clipboard.writeText(text),
         revealUiLocation: async (uiLocation: UiLocation) => {
           const position = new vscode.Position(uiLocation.lineNumber - 1, uiLocation.columnNumber - 1);

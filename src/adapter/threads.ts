@@ -14,7 +14,7 @@ import { UiLocation, Source, SourceContainer, rawToUiOffset } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../utils/sourceUtils';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset } from '../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -57,8 +57,6 @@ export interface ThreadDelegate {
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
-  // TODO: move source path resolver to DebugAdapter/SourceContainer.
-  sourcePathResolver(): SourcePathResolver;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   blackboxPattern(): string | undefined;
 }
@@ -85,7 +83,6 @@ export class Thread implements VariableStoreDelegate {
   private _delegate: ThreadDelegate;
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
-  readonly sourcePathResolver: SourcePathResolver;
   private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
   private _selectedContext: ExecutionContext | undefined;
@@ -101,7 +98,6 @@ export class Thread implements VariableStoreDelegate {
     this._delegate = delegate;
     this._uiDelegate = uiDelegate;
     this._sourceContainer = sourceContainer;
-    this.sourcePathResolver = delegate.sourcePathResolver();
     this._cdp = cdp;
     this._dap = dap;
     this._name = threadName;
@@ -818,7 +814,7 @@ export class Thread implements VariableStoreDelegate {
       }
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
-      source = this._sourceContainer.addSource(this.sourcePathResolver, event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
+      source = this._sourceContainer.addSource(event.url, contentGetter, resolvedSourceMapUrl, inlineSourceOffset, hash);
       urlHashMap.set(event.hash, source);
     }
 

@@ -29,7 +29,7 @@ export class DebugAdapter {
   private _thread: Thread | undefined;
   private _uiDelegate: UIDelegate;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver | undefined, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver, uiDelegate: UIDelegate) {
     this.dap = dap;
     this._uiDelegate = uiDelegate;
     rootPath = urlUtils.platformPathToPreferredCase(rootPath);
@@ -53,8 +53,8 @@ export class DebugAdapter {
     this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
-    this.sourceContainer = new SourceContainer(this.dap, rootPath, uiDelegate);
-    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, sourcePathResolver);
+    this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver, uiDelegate);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {

@@ -9,7 +9,6 @@ import { Disposable } from '../utils/eventUtils';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../utils/urlUtils';
 import { rewriteLogPoint } from '../utils/sourceUtils';
-import { SourcePathResolver } from '../common/sourcePathResolver';
 
 let lastBreakpointId = 0;
 
@@ -129,7 +128,7 @@ export class Breakpoint {
     });
     const promises: Promise<void>[] = [];
     for (const workspaceLocation of workspaceLocations) {
-      const url = thread.sourcePathResolver.absolutePathToUrl(workspaceLocation.absolutePath);
+      const url = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(workspaceLocation.absolutePath);
       if (url)
         promises.push(this._setByUrl(thread, url, workspaceLocation));
     }
@@ -146,8 +145,11 @@ export class Breakpoint {
 
   async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
     const source = this._manager._sourceContainer.source(this._source);
-    const url = source ? source.url() :
-      (this._source.path ? thread.sourcePathResolver.absolutePathToUrl(this._source.path) : undefined);
+    const url = source
+        ? source.url()
+        : (this._source.path
+              ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this._source.path)
+              : undefined);
     if (!url)
       return;
     await this._setByUrl(thread, url, lineColumn);
@@ -221,7 +223,7 @@ export class BreakpointManager {
   private _sourceMapPauseDisabledForTest = false;
   private _predictorDisabledForTest = false;
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer, sourcePathResolver: SourcePathResolver | undefined) {
+  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
 
@@ -240,7 +242,7 @@ export class BreakpointManager {
       }
     };
     if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourcePathResolver);
+      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
   }
 
   setThread(thread: Thread) {

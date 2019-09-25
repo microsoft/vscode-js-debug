@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
+import { InlineScriptOffset, SourcePathResolver, FileSourcePathResolver } from '../../common/sourcePathResolver';
 import Dap from '../../dap/api';
 import { Launcher, Target } from '../../targets/targets';
 import * as utils from '../../utils/urlUtils';
@@ -34,7 +34,7 @@ export class NodeLauncher implements Launcher {
   private _pipe: string | undefined;
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
-  _pathResolver: NodeSourcePathResolver;
+  _pathResolver: FileSourcePathResolver;
   _targetOrigin: any;
   private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -43,7 +43,7 @@ export class NodeLauncher implements Launcher {
 
   constructor(rootPath: string | undefined) {
     this._rootPath = rootPath;
-    this._pathResolver = new NodeSourcePathResolver();
+    this._pathResolver = new FileSourcePathResolver();
   }
 
   async launch(params: any, targetOrigin: any): Promise<boolean> {
@@ -336,16 +336,6 @@ class NodeTarget implements Target {
     } catch (e) {
     }
     this._connection.close();
-  }
-}
-
-class NodeSourcePathResolver implements SourcePathResolver {
-  urlToAbsolutePath(url: string): string {
-    return utils.fileUrlToAbsolutePath(url) || '';
-  }
-
-  absolutePathToUrl(absolutePath: string): string | undefined {
-    return utils.absolutePathToFileUrl(path.normalize(absolutePath));
   }
 }
 
