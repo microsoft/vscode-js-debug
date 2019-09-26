@@ -329,7 +329,7 @@ export class Thread implements VariableStoreDelegate {
       outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
     } else {
       const contextName = this._selectedContext && this.defaultExecutionContext() !== this._selectedContext ? `\x1b[33m[${this._delegate.executionContextName(this._selectedContext.description)}] ` : '';
-      const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(response.result)}\x1b[0m`;
+      const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(response.result, 'repl')}\x1b[0m`;
       const variablesReference = await this.replVariables.createVariableForOutput(text, [response.result]);
       const output = {
         category: 'stdout',
@@ -875,7 +875,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this._uiDelegate.copyToClipboard(objectPreview.renderValue(object, 1000000, false /* quote */));
+      this._uiDelegate.copyToClipboard(objectPreview.previewRemoteObject(object, 'copy'));
       return;
     }
 
@@ -923,7 +923,7 @@ export class Thread implements VariableStoreDelegate {
     if (!withPreview)
       return slot();
 
-    const text = '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview.result) + '\x1b[0m';
+    const text = '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview.result, 'repl') + '\x1b[0m';
     const variablesReference = await this.replVariables.createVariableForOutput(text, [withPreview.result]) || 0;
     const output = {
       category: 'stdout' as 'stdout',

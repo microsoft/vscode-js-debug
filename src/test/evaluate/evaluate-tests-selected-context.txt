@@ -5,5 +5,5 @@ Paused
 Resumed
 --- Evaluating in worker
 Paused
-> result: DedicatedWorkerGlobalScope {name: '', onmessage: null, onmessageerror: null, postMessage: ƒ, close: ƒ}
+> result: DedicatedWorkerGlobalScope {name: '', onmessage: null, onmessageerror: null, postMessage: ƒ, …}
 Resumed

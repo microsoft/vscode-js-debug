@@ -35,25 +35,25 @@ Evaluating: 'console.log([obj])'
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(map)'
-stdout> > Map(1) {{…} => {foo: 1}}
+stdout> > Map(1) {{getter: <a…r>, …} => {foo: 1}}
 
 Evaluating: 'console.log([map])'
 stdout> > (1) [Map(1)]
 
 Evaluating: 'console.log(weakMap)'
-stdout> > WeakMap {{…} => {foo: 1}}
+stdout> > WeakMap {{getter: <a…r>, …} => {foo: 1}}
 
 Evaluating: 'console.log([weakMap])'
 stdout> > (1) [WeakMap]
 
 Evaluating: 'console.log(set)'
-stdout> > Set(1) {{…}}
+stdout> > Set(1) {{getter: <a…r>, …}}
 
 Evaluating: 'console.log([set])'
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(weakSet)'
-stdout> > WeakSet {{…}}
+stdout> > WeakSet {{getter: <a…r>, …}}
 
 Evaluating: 'console.log([weakSet])'
 stdout> > (1) [WeakSet]
@@ -89,7 +89,7 @@ Evaluating: 'console.log([bigmap])'
 stdout> > (1) [Map(6)]
 
 Evaluating: 'console.log(generator)'
-stdout> > genFunction {<suspended>}}
+stdout> > genFunction {<suspended>}
 
 Evaluating: 'console.log([generator])'
 stdout> > (1) [genFunction]

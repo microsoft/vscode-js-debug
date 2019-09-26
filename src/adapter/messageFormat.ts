@@ -62,10 +62,10 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
   const defaultFormatter = formatters.get('')!;
   const builder = new BudgetStringBuilder(maxMessageFormatLength);
   let cssFormatApplied = false;
-  for (let i = 0; builder.hasBudget() && i < tokens.length; ++i) {
+  for (let i = 0; builder.checkBudget() && i < tokens.length; ++i) {
     const token = tokens[i];
     if (token.type === 'string') {
-      builder.appendCanSkip(token.value!);
+      builder.append(token.value!);
       continue;
     }
 
@@ -73,25 +73,25 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
     if (index >= substitutions.length) {
       // If there are not enough substitutions for the current substitutionIndex
       // just output the format specifier literally and move on.
-      builder.appendCanSkip('%' + (token.precision || '') + token.specifier);
+      builder.append('%' + (token.precision || '') + token.specifier);
       continue;
     }
     usedSubstitutionIndexes.add(index);
     if (token.specifier === 'c')
       cssFormatApplied = true;
     const formatter = formatters.get(token.specifier!) || defaultFormatter;
-    builder.appendCanSkip(formatter(substitutions[index], builder.budget()));
+    builder.append(formatter(substitutions[index], builder.budget()));
   }
 
   if (cssFormatApplied)
-    builder.appendCanSkip('\x1b[0m');  // clear format
+    builder.append('\x1b[0m');  // clear format
 
-  for (let i = 0; builder.hasBudget() && i < substitutions.length; ++i) {
+  for (let i = 0; builder.checkBudget() && i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i))
       continue;
     if (format || i)  // either we are second argument or we had format.
-      builder.appendCanSkip(' ');
-    builder.appendCanSkip(defaultFormatter(substitutions[i], builder.budget()));
+      builder.append(' ');
+    builder.append(defaultFormatter(substitutions[i], builder.budget()));
   }
 
   return builder.build();
