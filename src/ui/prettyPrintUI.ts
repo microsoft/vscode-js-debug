@@ -2,16 +2,27 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { AdapterFactory } from '../adapterFactory';
-import { UiLocation } from '../adapter/sources';
+import * as queryString from 'querystring';
+import Dap from '../dap/api';
+import { DebugSessionTracker } from './debugSessionTracker';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
 let prettyPrintedUris: Set<string> = new Set();
 
-export function registerPrettyPrintActions(context: vscode.ExtensionContext, factory: AdapterFactory) {
+export function registerPrettyPrintActions(context: vscode.ExtensionContext, debugSessionTracker: DebugSessionTracker) {
   context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()));
   context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()));
+
+  function sourceForUri(uri: vscode.Uri): ({ session?: vscode.DebugSession, source: Dap.Source }) {
+    const query = queryString.parse(uri.query);
+    const sessionId = query['session'] as string;
+    const source: Dap.Source = {
+      path: uri.path,
+      sourceReference: +(query['ref'] as string)
+    };
+    return { session: debugSessionTracker.sessions.get(sessionId), source };
+  }
 
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
     if (!editor || !isDebugging ||
@@ -21,7 +32,7 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       return;
     }
 
-    const { source } = await factory.sourceForUri(editor.document.uri);
+    //const { source } = await factory.sourceForUri(editor.document.uri);
 
     // The rest of the code is about suggesting the pretty printing upon editor change.
     // We only want to do it once per document.
@@ -31,7 +42,11 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
       return;
     }
 
-    if (!source || !source.canPrettyPrint())
+    const { session, source } = sourceForUri(editor.document.uri);
+    if (!session)
+      return;
+    const canPrettyPrintResponse = await session.customRequest('canPrettyPrintSource', { source });
+    if (!canPrettyPrintResponse || !canPrettyPrintResponse.canPrettyPrint)
       return;
 
     prettyPrintedUris.add(editor.document.uri.toString());
@@ -55,21 +70,9 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, fac
     const uri = editor.document.uri;
     if (uri.scheme !== 'debug')
       return;
-    const { adapter, source } = await factory.sourceForUri(editor.document.uri);
-    if (!source || !adapter || !source.canPrettyPrint())
-      return;
-    const success = await source.prettyPrint();
-    if (!success)
-      return;
-
-    adapter.refreshStackTrace();
-    const originalUiLocation: UiLocation = {
-      source,
-      lineNumber: editor.selection.start.line + 1,
-      columnNumber: editor.selection.start.character + 1,
-    };
-    const newUiLocation = await adapter.sourceContainer.preferredUiLocation(originalUiLocation);
-    adapter.sourceContainer.revealUiLocation(newUiLocation);
+    const { session, source } = sourceForUri(editor.document.uri);
+    if (session)
+      session.customRequest('prettyPrintSource', { source, line: editor.selection.start.line + 1, column: editor.selection.start.character + 1 });
   }));
 }
 

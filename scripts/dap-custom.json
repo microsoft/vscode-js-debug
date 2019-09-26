@@ -72,6 +72,95 @@
 				"type": "object",
 				"description": "Response to 'disableCustomBreakpoints' request."
 			}]
+		},
+
+    "CanPrettyPrintSourceRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Returns whether particular source can be pretty-printed.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "canPrettyPrintSource" ]
+					},
+					"arguments": {
+						"$ref": "#/definitions/CanPrettyPrintSourceArguments"
+					}
+				},
+				"required": [ "command", "arguments"  ]
+			}]
+		},
+		"CanPrettyPrintSourceArguments": {
+			"type": "object",
+			"description": "Arguments for 'canPrettyPrintSource' request.",
+			"properties": {
+				"source": {
+					"$ref": "#/definitions/Source",
+					"description": "Source to be pretty printed."
+				}
+			},
+			"required": [ "source" ]
+		},
+		"CanPrettyPrintSourceResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object",
+        "description": "Response to 'canPrettyPrintSource' request.",
+        "properties": {
+					"body": {
+						"type": "object",
+						"properties": {
+							"canPrettyPrint": {
+								"type": "boolean",
+								"description": "Whether source can be pretty printed."
+							}
+						},
+						"required": [ "canPrettyPrint" ]
+					}
+				},
+				"required": [ "body" ]
+			}]
+		},
+
+    "PrettyPrintSourceRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Pretty prints source for debugging.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "prettyPrintSource" ]
+					},
+					"arguments": {
+						"$ref": "#/definitions/PrettyPrintSourceArguments"
+					}
+				},
+				"required": [ "command", "arguments"  ]
+			}]
+		},
+		"PrettyPrintSourceArguments": {
+			"type": "object",
+			"description": "Arguments for 'prettyPrintSource' request.",
+			"properties": {
+				"source": {
+					"$ref": "#/definitions/Source",
+					"description": "Source to be pretty printed."
+        },
+        "line": {
+          "type": "number",
+          "description": "Line number of currently selected location to reveal after pretty printing. If not present, nothing is revealed."
+        },
+        "column": {
+          "type": "number",
+          "description": "Column number of currently selected location to reveal after pretty printing."
+        }
+			},
+			"required": [ "source" ]
+		},
+		"PrettyPrintSourceResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object",
+        "description": "Response to 'prettyPrintSource' request."
+			}]
 		}
   }
 }

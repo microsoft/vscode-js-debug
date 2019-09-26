@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../utils/sourceUtils';
 import * as urlUtils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
-import { SourceContainer } from './sources';
+import { SourceContainer, UiLocation } from './sources';
 import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
@@ -54,6 +54,8 @@ export class DebugAdapter {
     this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
     this.dap.on('enableCustomBreakpoints', params => this._enableCustomBreakpoints(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
+    this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
+    this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
@@ -176,7 +178,7 @@ export class DebugAdapter {
     return callback(this._thread);
   }
 
-  refreshStackTrace() {
+  _refreshStackTrace() {
     if (!this._thread)
       return;
     const details = this._thread.pausedDetails();
@@ -216,6 +218,36 @@ export class DebugAdapter {
         promises.push(this._thread.updateCustomBreakpoint(id, false));
     }
     await Promise.all(promises);
+    return {};
+  }
+
+  async _canPrettyPrintSource(params: Dap.CanPrettyPrintSourceParams): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
+    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
+    const source = this.sourceContainer.source(params.source!);
+    if (!source)
+      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    return { canPrettyPrint: source.canPrettyPrint() };
+  }
+
+  async _prettyPrintSource(params: Dap.PrettyPrintSourceParams): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
+    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
+    const source = this.sourceContainer.source(params.source!);
+    if (!source)
+      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+
+    if (!source.canPrettyPrint() || !(await source.prettyPrint()))
+      return errors.createSilentError(localize('error.cannotPrettyPrint', 'Unable to pretty print'));
+
+    this._refreshStackTrace();
+    if (params.line) {
+      const originalUiLocation: UiLocation = {
+        source,
+        lineNumber: params.line || 1,
+        columnNumber: params.column || 1,
+      };
+      const newUiLocation = await this.sourceContainer.preferredUiLocation(originalUiLocation);
+      this.sourceContainer.revealUiLocation(newUiLocation);
+    }
     return {};
   }
 

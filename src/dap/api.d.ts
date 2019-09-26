@@ -333,6 +333,16 @@ export namespace Dap {
      * Disable custom breakpoints.
      */
     on(request: 'disableCustomBreakpoints', handler: (params: DisableCustomBreakpointsParams) => Promise<DisableCustomBreakpointsResult | Error>): () => void;
+
+    /**
+     * Returns whether particular source can be pretty-printed.
+     */
+    on(request: 'canPrettyPrintSource', handler: (params: CanPrettyPrintSourceParams) => Promise<CanPrettyPrintSourceResult | Error>): () => void;
+
+    /**
+     * Pretty prints source for debugging.
+     */
+    on(request: 'prettyPrintSource', handler: (params: PrettyPrintSourceParams) => Promise<PrettyPrintSourceResult | Error>): () => void;
   }
 
   export interface TestApi {
@@ -682,6 +692,16 @@ export namespace Dap {
      * Disable custom breakpoints.
      */
     disableCustomBreakpoints(params: DisableCustomBreakpointsParams): Promise<DisableCustomBreakpointsResult>;
+
+    /**
+     * Returns whether particular source can be pretty-printed.
+     */
+    canPrettyPrintSource(params: CanPrettyPrintSourceParams): Promise<CanPrettyPrintSourceResult>;
+
+    /**
+     * Pretty prints source for debugging.
+     */
+    prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
   }
 
   export interface AttachParams {
@@ -740,6 +760,20 @@ export namespace Dap {
      * Sorted set of possible breakpoint locations.
      */
     breakpoints: BreakpointLocation[];
+  }
+
+  export interface CanPrettyPrintSourceParams {
+    /**
+     * Source to be pretty printed.
+     */
+    source: Source;
+  }
+
+  export interface CanPrettyPrintSourceResult {
+    /**
+     * Whether source can be pretty printed.
+     */
+    canPrettyPrint: boolean;
   }
 
   export interface CancelParams {
@@ -1413,6 +1447,26 @@ export namespace Dap {
   }
 
   export interface PauseResult {
+  }
+
+  export interface PrettyPrintSourceParams {
+    /**
+     * Source to be pretty printed.
+     */
+    source: Source;
+
+    /**
+     * Line number of currently selected location to focus on.
+     */
+    line?: number;
+
+    /**
+     * Column number of currently selected location to focus on.
+     */
+    column?: number;
+  }
+
+  export interface PrettyPrintSourceResult {
   }
 
   export interface ProcessEventParams {

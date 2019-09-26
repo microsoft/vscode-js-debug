@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
 import { EventEmitter } from '../utils/eventUtils';
+import { DebugSessionTracker } from './debugSessionTracker';
 
 class Breakpoint {
   id: CustomBreakpointId;
@@ -24,32 +25,25 @@ class Breakpoint {
   }
 }
 
-class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint>, vscode.Disposable {
+class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   private _onDidChangeTreeData = new EventEmitter<Breakpoint | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  private _disposables: vscode.Disposable[] = [];
-  private _sessions = new Set<vscode.DebugSession>();
+  private _debugSessionTracker: DebugSessionTracker;
 
   breakpoints: Breakpoint[];
 
-  constructor() {
+  constructor(debugSessionTracker: DebugSessionTracker) {
     this.breakpoints = [];
     for (const cb of customBreakpoints().values())
       this.breakpoints.push(new Breakpoint(cb, false));
 
-    vscode.debug.onDidStartDebugSession(session => {
-      if (session.type === 'pwa') {
-        this._sessions.add(session);
-        session.customRequest('enableCustomBreakpoints', {
-          ids: this.breakpoints.filter(b => b.enabled).map(b => b.id)
-        });
-      }
-    }, undefined, this._disposables);
-
-    vscode.debug.onDidTerminateDebugSession(session => {
-      this._sessions.delete(session);
-    }, undefined, this._disposables);
+    this._debugSessionTracker = debugSessionTracker;
+    debugSessionTracker.onSessionAdded(session => {
+      session.customRequest('enableCustomBreakpoints', {
+        ids: this.breakpoints.filter(b => b.enabled).map(b => b.id)
+      });
+    });
   }
 
   getTreeItem(item: Breakpoint): vscode.TreeItem {
@@ -70,7 +64,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint>, vs
     for (const breakpoint of breakpoints)
       breakpoint.enabled = true;
     const ids = breakpoints.map(b => b.id);
-    for (const session of this._sessions)
+    for (const session of this._debugSessionTracker.sessions.values())
       session.customRequest('enableCustomBreakpoints', { ids })
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -81,21 +75,14 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint>, vs
       if (ids.has(breakpoint.id))
         breakpoint.enabled = false;
     }
-    for (const session of this._sessions)
+    for (const session of this._debugSessionTracker.sessions.values())
       session.customRequest('disableCustomBreakpoints', { ids: breakpointIds })
     this._onDidChangeTreeData.fire(undefined);
   }
-
-  dispose() {
-    for (const disposable of this._disposables)
-      disposable.dispose();
-    this._disposables = [];
-  }
 }
 
-export function registerCustomBreakpointsUI(context: vscode.ExtensionContext) {
-  const provider = new BreakpointsDataProvider();
-  context.subscriptions.push(provider);
+export function registerCustomBreakpointsUI(context: vscode.ExtensionContext, debugSessionTracker: DebugSessionTracker) {
+  const provider = new BreakpointsDataProvider(debugSessionTracker);
 
   vscode.window.createTreeView('pwa.breakpoints', { treeDataProvider: provider });
   context.subscriptions.push(vscode.commands.registerCommand('pwa.addCustomBreakpoints', e => {
