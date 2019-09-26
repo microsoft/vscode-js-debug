@@ -4,8 +4,7 @@
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
-import { EventEmitter } from '../../utils/eventUtils';
-import * as vscode from 'vscode';
+import { EventEmitter, Event, Disposable } from '../../utils/eventUtils';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
@@ -23,12 +22,18 @@ export interface LaunchParams extends Dap.LaunchParams {
   args?: string[];
 }
 
+export interface ProgramLauncher extends Disposable {
+  launchProgram(name: string, cwd: string | undefined, env: { [key: string]: string | null }, command: string): void;
+  stopProgram(): void;
+  onProgramStopped: Event<void>;
+}
+
 let counter = 0;
 
 export class NodeLauncher implements Launcher {
   private _rootPath: string | undefined;
   private _server: net.Server | undefined;
-  private _terminal: vscode.Terminal | undefined;
+  private _programLauncher: ProgramLauncher;
   private _connections: Connection[] = [];
   private _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
@@ -41,9 +46,16 @@ export class NodeLauncher implements Launcher {
   _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(rootPath: string | undefined) {
+  constructor(rootPath: string | undefined, programLauncher: ProgramLauncher) {
     this._rootPath = rootPath;
+    this._programLauncher = programLauncher;
     this._pathResolver = new FileSourcePathResolver(rootPath);
+    this._programLauncher.onProgramStopped(() => {
+      if (!this._isRestarting) {
+        this._stopServer();
+        this._onTerminatedEmitter.fire();
+      }
+    });
   }
 
   async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
@@ -52,57 +64,35 @@ export class NodeLauncher implements Launcher {
     this._launchParams = params as LaunchParams;
     this._targetOrigin = targetOrigin;
     await this._startServer();
-    await this._relaunch();
+    this._launchProgram();
     return { blockSessionTermination: true };
   }
 
-  async _relaunch() {
-    this._killRuntime();
-
+  _launchProgram() {
+    this._programLauncher.stopProgram();
     const launchParams = this._launchParams!;
-    this._terminal = vscode.window.createTerminal({
-      name: launchParams.command || 'Debugger terminal',
-      cwd: launchParams.cwd || this._rootPath,
-      env: this._buildEnv()
-    });
     const args = (launchParams.args || []).map(arg => `"${arg}"`);
     const commandLine = [launchParams.command, ...args].join(' ');
-    this._terminal.show();
-    vscode.window.onDidCloseTerminal(terminal => {
-      if (terminal === this._terminal && !this._isRestarting) {
-        this._stopServer();
-        this._onTerminatedEmitter.fire();
-      }
-    });
-
-    if (commandLine)
-      this._terminal.sendText(commandLine, true);
+    this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || this._rootPath, this._buildEnv(), commandLine);
   }
 
   async terminate(): Promise<void> {
-    this._killRuntime();
+    this._programLauncher.stopProgram();
     await this._stopServer();
   }
 
   async disconnect(): Promise<void> {
-    this._killRuntime();
+    this._programLauncher.stopProgram();
     await this._stopServer();
-  }
-
-  _killRuntime() {
-    if (!this._terminal)
-      return;
-    this._terminal.dispose();
-    this._terminal = undefined;
   }
 
   async restart(): Promise<void> {
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
-    this._killRuntime();
+    this._programLauncher.stopProgram();
     this._stopServer();
     await this._startServer();
-    await this._relaunch();
+    this._launchProgram();
     this._isRestarting = false;
   }
 
