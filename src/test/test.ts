@@ -200,7 +200,7 @@ export class TestP {
     await this.dap.configurationDone({});
     await this.adapter.breakpointManager.launchBlocker();
     this._launchUrl = url;
-    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot}, this._args, undefined)) as BrowserTarget;
+    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot, browserArgs: this._args}, undefined)) as BrowserTarget;
     this._connection = this._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);

@@ -204,9 +204,33 @@
                 "type": "string",
                 "description": "Browser remote debugging port"
               },
-              "browser": {
+              "port": {
+                "type": "string",
+                "description": "Browser remote debugging port. Ignored when 'remoteDebuggingPort' is present."
+              },
+              "browserExecutable": {
                 "type": "string",
                 "description": "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable. When omitted, canary is preferred over stable."
+              },
+              "runtimeExecutable": {
+                "type": "string",
+                "description": "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable. Ignored when 'browserExecutable' is present."
+              },
+              "browserArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Additional browser command line arguments",
+                "default": []
+              },
+              "runtimeArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Additional browser command line arguments. Ignored when 'browserArgs' is present.",
+                "default": []
               },
               "baseURL": {
                 "type": "string",

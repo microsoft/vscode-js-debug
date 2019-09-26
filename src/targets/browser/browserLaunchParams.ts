@@ -7,7 +7,11 @@ import { URL } from "url";
 export interface LaunchParams extends Dap.LaunchParams {
   url?: string;
   remoteDebuggingPort?: string;
-  browser?: string;
+  port?: string;
+  browserExecutable?: string;
+  runtimeExecutable?: string;
+  browserArgs?: string[];
+  runtimeArgs?: string[];
   baseURL?: string;
   webRoot?: string;
 }

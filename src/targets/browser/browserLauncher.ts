@@ -74,13 +74,13 @@ export class BrowserLauncher implements Launcher {
       });
   }
 
-  async prepareLaunch(params: LaunchParams, args: string[], targetOrigin: any): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: LaunchParams, targetOrigin: any): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(args, params.browser);
+      connection = await this._launchBrowser(params.browserArgs || params.runtimeArgs || [], params.browserExecutable || params.runtimeExecutable);
     } catch (e) {
-      if (params.browser)
-        return localize('error.executableNotFoundParam', 'Unable to find browser "{0}"', params.browser);
+      if (params.browserExecutable || params.runtimeExecutable)
+        return localize('error.executableNotFoundParam', 'Unable to find browser "{0}"', params.browserExecutable || params.runtimeExecutable);
       return localize('error.executableNotFound', 'Unable to find browser executable');
     }
 
@@ -126,7 +126,7 @@ export class BrowserLauncher implements Launcher {
   async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
     if (!('url' in params))
       return { blockSessionTermination: false };
-    const targetOrError = await this.prepareLaunch(params as LaunchParams, [], targetOrigin);
+    const targetOrError = await this.prepareLaunch(params as LaunchParams, targetOrigin);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
     await this.finishLaunch(targetOrError);
