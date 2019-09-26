@@ -7,7 +7,7 @@ import { Session } from './adapterFactory';
 import { BinderDelegate } from './binder';
 import { Target } from './targets/targets';
 import { Disposable } from './utils/eventUtils';
-import { checkVersion } from './version';
+import { checkVersion } from './ui/version';
 
 export class SessionManager implements BinderDelegate {
   private _lastPendingSessionId = 0;
