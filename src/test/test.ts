@@ -16,7 +16,6 @@ import { Logger } from './logger';
 import { Binder, BinderDelegate } from '../binder';
 import { Target } from '../targets/targets';
 import { Disposable, EventEmitter } from '../utils/eventUtils';
-import { UiLocation } from '../adapter/sources';
 import { BrowserSourcePathResolver } from '../targets/browser/browserPathResolver';
 import { SourcePathResolver } from '../common/sourcePathResolver';
 
@@ -48,12 +47,9 @@ export class Session implements Disposable {
 
     const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
-    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, sourcePathResolver, {
-      copyToClipboard: text => log(`[copy to clipboard] ${text}`),
-      revealUiLocation: async (uiLocation: UiLocation) => log(`[reveal]: ${uiLocation.source.url()}:${uiLocation.lineNumber}:${uiLocation.columnNumber}`)
-    });
-    this.debugAdapter.breakpointManager.setPredictorDisabledForTest(true);
-    this.debugAdapter.sourceContainer.setSourceMapTimeouts({
+    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, sourcePathResolver);
+    this.debugAdapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
+    this.debugAdapter.sourceContainerForTest().setSourceMapTimeouts({
       load: 0,
       resolveLocation: 2000,
       scriptPaused: 1000,
@@ -77,7 +73,6 @@ export class TestP {
   _cdp: Cdp.Api | undefined;
   _adapter: DebugAdapter | undefined;
 
-  private _goldenText: GoldenText;
   private _root: Session;
   private _sessions = new Map<DebugAdapter, Session>();
   private _connection: CdpConnection | undefined;
@@ -89,8 +84,6 @@ export class TestP {
   private _blackboxPattern?: string;
   private _worker: Promise<Session>;
   private _workerCallback: (session: Session) => void;
-  private _nextLog: Promise<void>;
-  private _nextLogCallback: () => void;
   readonly logger: Logger;
 
   private _browserLauncher: BrowserLauncher;
@@ -101,10 +94,7 @@ export class TestP {
 
   constructor(goldenText: GoldenText) {
     this._args = ['--headless'];
-    this._goldenText = goldenText;
-    this.log = this._log.bind(this);
-    this._nextLogCallback = () => {};
-    this._nextLog = new Promise(f => this._nextLogCallback = f);
+    this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
     this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
@@ -116,7 +106,7 @@ export class TestP {
     this.logger = this._root.logger;
 
     const storagePath = path.join(__dirname, '..', '..');
-    this._browserLauncher = new BrowserLauncher(storagePath, this.adapter.sourceContainer.rootPath);
+    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
     this.binder = new Binder(this, this.adapter, [this._browserLauncher], '0');
     this.binder.considerLaunchedForTest(this._browserLauncher);
 
@@ -131,17 +121,6 @@ export class TestP {
 
     this._workerCallback = () => {};
     this._worker = new Promise(f => this._workerCallback = f);
-  }
-
-  _log(value: any, title?: string, stabilizeNames?: string[]): typeof value {
-    const result = this._goldenText.log(value, title, stabilizeNames);
-    this._nextLogCallback();
-    this._nextLog = new Promise(f => this._nextLogCallback = f);
-    return result;
-  }
-
-  nextLog(): Promise<void> {
-    return this._nextLog;
   }
 
   _disposeSessions() {
@@ -198,7 +177,7 @@ export class TestP {
   async _launch(url: string): Promise<BrowserTarget> {
     await this.initialize;
     await this.dap.configurationDone({});
-    await this.adapter.breakpointManager.launchBlocker();
+    await this.adapter.launchBlocker();
     this._launchUrl = url;
     const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot, browserArgs: this._args}, undefined)) as BrowserTarget;
     this._connection = this._browserLauncher.connectionForTest()!;

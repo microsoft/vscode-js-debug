@@ -2,12 +2,9 @@
 // Licensed under the MIT license.
 
 import * as net from 'net';
-import * as queryString from 'querystring';
 import * as vscode from 'vscode';
 import { DebugAdapter } from './adapter/debugAdapter';
-import { Source, UiLocation } from './adapter/sources';
 import { Binder, BinderDelegate } from './binder';
-import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { SessionManager } from './sessionManager';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
@@ -71,26 +68,13 @@ export class Session implements Disposable {
         rootPath = debugSession.workspaceFolder.uri.path;
 
       const connection = new DapConnection(socket, socket);
-      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : new FileSourcePathResolver(rootPath), {
-        copyToClipboard: text => vscode.env.clipboard.writeText(text),
-        revealUiLocation: async (uiLocation: UiLocation) => {
-          const position = new vscode.Position(uiLocation.lineNumber - 1, uiLocation.columnNumber - 1);
-          const dap = await uiLocation.source.toDap();
-          let uri: vscode.Uri;
-          if (!dap.sourceReference) {
-            uri = vscode.Uri.file(dap.path!);
-          } else {
-            uri = vscode.Uri.parse(`debug:${encodeURIComponent(dap.path!)}?session=${encodeURIComponent(debugSession.id)}&ref=${dap.sourceReference}`);
-          }
-          vscode.window.showTextDocument(uri, {selection: new vscode.Range(position, position)});
-        }
-      });
+      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : new FileSourcePathResolver(rootPath));
 
       if (binderDelegate) {
         const launchers = [
-          new NodeLauncher(this._debugAdapter.sourceContainer.rootPath, new TerminalProgramLauncher()),
-          new BrowserLauncher(context.storagePath || context.extensionPath, this._debugAdapter.sourceContainer.rootPath),
-          new BrowserAttacher(this._debugAdapter.sourceContainer.rootPath),
+          new NodeLauncher(rootPath, new TerminalProgramLauncher()),
+          new BrowserLauncher(context.storagePath || context.extensionPath, rootPath),
+          new BrowserAttacher(rootPath),
         ];
         this._binder = new Binder(binderDelegate, this._debugAdapter, launchers, debugSession.id);
       }

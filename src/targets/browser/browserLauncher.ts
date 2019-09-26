@@ -12,6 +12,7 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { LaunchParams, baseURL } from './browserLaunchParams';
+import * as urlUtils from '../../utils/urlUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -30,7 +31,7 @@ export class BrowserLauncher implements Launcher {
 
   constructor(storagePath: string, rootPath: string | undefined) {
     this._storagePath = storagePath;
-    this._rootPath = rootPath;
+    this._rootPath = urlUtils.platformPathToPreferredCase(rootPath);;
   }
 
   targetManager(): BrowserTargetManager | undefined {

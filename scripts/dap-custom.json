@@ -146,11 +146,11 @@
 					"description": "Source to be pretty printed."
         },
         "line": {
-          "type": "number",
+          "type": "integer",
           "description": "Line number of currently selected location to reveal after pretty printing. If not present, nothing is revealed."
         },
         "column": {
-          "type": "number",
+          "type": "integer",
           "description": "Column number of currently selected location to reveal after pretty printing."
         }
 			},
@@ -160,6 +160,62 @@
 			"allOf": [ { "$ref": "#/definitions/Response" }, {
 				"type": "object",
         "description": "Response to 'prettyPrintSource' request."
+			}]
+    },
+
+		"RevealLocationRequestedEvent": {
+			"allOf": [ { "$ref": "#/definitions/Event" }, {
+				"type": "object",
+				"description": "A request to reveal a certain location in the UI.",
+				"properties": {
+					"event": {
+						"type": "string",
+						"enum": [ "revealLocationRequested" ]
+					},
+					"body": {
+						"type": "object",
+						"properties": {
+							"source": {
+								"$ref": "#/definitions/Source",
+								"description": "The source to reveal."
+							},
+							"line": {
+								"type": "integer",
+								"description": "The line number to reveal."
+							},
+							"column": {
+								"type": "integer",
+								"description": "The column number to reveal."
+							}
+						},
+						"required": ["source"]
+					}
+				},
+				"required": [ "event", "body" ]
+			}]
+		},
+
+		"CopyRequestedEvent": {
+			"allOf": [ { "$ref": "#/definitions/Event" }, {
+				"type": "object",
+				"description": "A request to copy a certain string to clipboard.",
+				"properties": {
+					"event": {
+						"type": "string",
+						"enum": [ "copyRequested" ]
+					},
+					"body": {
+						"type": "object",
+						"properties": {
+							"text": {
+								"type": "string",
+								"description": "Text to copy."
+							}
+						},
+						"required": ["text"]
+					}
+				},
+				"required": [ "event", "body" ]
 			}]
 		}
   }

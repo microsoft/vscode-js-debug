@@ -47,11 +47,6 @@ export class ExecutionContext {
 
 export type Script = { url: string, scriptId: string, hash: string, source: Source };
 
-export interface UIDelegate {
-  copyToClipboard(text: string): void;
-  revealUiLocation(uiLocation: UiLocation): Promise<void>;
-}
-
 export interface ThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
@@ -92,11 +87,9 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
-  private _uiDelegate: UIDelegate;
 
-  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, uiDelegate: UIDelegate) {
+  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
     this._delegate = delegate;
-    this._uiDelegate = uiDelegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
@@ -875,7 +868,7 @@ export class Thread implements VariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this._uiDelegate.copyToClipboard(objectPreview.previewRemoteObject(object, 'copy'));
+      this._dap.copyRequested({ text: objectPreview.previewRemoteObject(object, 'copy') });
       return;
     }
 
@@ -901,7 +894,7 @@ export class Thread implements VariableStoreDelegate {
       returnByValue: true
     });
     if (response && response.result)
-      this._uiDelegate.copyToClipboard(String(response.result.value));
+      this._dap.copyRequested({ text: String(response.result.value) });
     this.cdp().Runtime.releaseObject({objectId: object.objectId});
   }
 

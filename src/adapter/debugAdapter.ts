@@ -8,7 +8,7 @@ import * as sourceUtils from '../utils/sourceUtils';
 import * as urlUtils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
 import { SourceContainer, UiLocation } from './sources';
-import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './threads';
+import { Thread, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
 import { Cdp } from '../cdp/api';
@@ -20,17 +20,15 @@ const localize = nls.loadMessageBundle();
 // to be applied after launch.
 export class DebugAdapter {
   readonly dap: Dap.Api;
-  readonly sourceContainer: SourceContainer;
-  readonly breakpointManager: BreakpointManager;
+  private _sourceContainer: SourceContainer;
+  private _breakpointManager: BreakpointManager;
   private _disposables: Disposable[] = [];
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
-  private _uiDelegate: UIDelegate;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
     this.dap = dap;
-    this._uiDelegate = uiDelegate;
     rootPath = urlUtils.platformPathToPreferredCase(rootPath);
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -56,8 +54,8 @@ export class DebugAdapter {
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
-    this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver, uiDelegate);
-    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
+    this._sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
+    this._breakpointManager = new BreakpointManager(this.dap, this._sourceContainer);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -102,7 +100,7 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    return this.breakpointManager.setBreakpoints(params);
+    return this._breakpointManager.setBreakpoints(params);
   }
 
   async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
@@ -121,12 +119,12 @@ export class DebugAdapter {
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return { sources: await this.sourceContainer.loadedSources() };
+    return { sources: await this._sourceContainer.loadedSources() };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    const source = this._sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
@@ -191,11 +189,11 @@ export class DebugAdapter {
   }
 
   createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this._uiDelegate);
+    this._thread = new Thread(this._sourceContainer, threadName, cdp, this.dap, delegate);
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
-    this.breakpointManager.setThread(this._thread);
+    this._breakpointManager.setThread(this._thread);
     return this._thread;
   }
 
@@ -223,7 +221,7 @@ export class DebugAdapter {
 
   async _canPrettyPrintSource(params: Dap.CanPrettyPrintSourceParams): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    const source = this._sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     return { canPrettyPrint: source.canPrettyPrint() };
@@ -231,7 +229,7 @@ export class DebugAdapter {
 
   async _prettyPrintSource(params: Dap.PrettyPrintSourceParams): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    const source = this._sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
 
@@ -245,8 +243,8 @@ export class DebugAdapter {
         lineNumber: params.line || 1,
         columnNumber: params.column || 1,
       };
-      const newUiLocation = await this.sourceContainer.preferredUiLocation(originalUiLocation);
-      this.sourceContainer.revealUiLocation(newUiLocation);
+      const newUiLocation = await this._sourceContainer.preferredUiLocation(originalUiLocation);
+      this._sourceContainer.revealUiLocation(newUiLocation);
     }
     return {};
   }
@@ -255,5 +253,17 @@ export class DebugAdapter {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
+  }
+
+  sourceContainerForTest(): SourceContainer {
+    return this._sourceContainer;
+  }
+
+  breakpointManagerForTest(): BreakpointManager {
+    return this._breakpointManager;
+  }
+
+  launchBlocker(): Promise<void> {
+    return this._breakpointManager.launchBlocker();
   }
 }

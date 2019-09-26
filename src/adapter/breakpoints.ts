@@ -284,7 +284,7 @@ export class BreakpointManager {
     this._updateSourceMapHandler();
   }
 
-  async launchBlocker(): Promise<void> {
+  launchBlocker(): Promise<void> {
     return this._predictorDisabledForTest ? Promise.resolve() : this._launchBlocker;
   }
 

@@ -10,7 +10,6 @@ import * as sourceUtils from '../utils/sourceUtils';
 import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
 import * as utils from '../utils/urlUtils';
 import * as errors from '../dap/errors';
-import { UIDelegate } from './threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -227,7 +226,6 @@ export class Source {
 
 export class SourceContainer {
   private _dap: Dap.Api;
-  private _uiDelegate: UIDelegate;
   _brokenSourceMapReported = false;
 
   private _sourceByReference: Map<number, Source> = new Map();
@@ -247,9 +245,8 @@ export class SourceContainer {
   private _blackboxRegex?: RegExp;
   private _isBlackboxedUrlMap = new Map<string, boolean>();
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver, uiDelegate: UIDelegate) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
     this._dap = dap;
-    this._uiDelegate = uiDelegate;
     this.rootPath = rootPath;
     this.sourcePathResolver = sourcePathResolver;
   }
@@ -521,8 +518,12 @@ export class SourceContainer {
     return Array.from(source._sourceMapSourceByUrl.values());
   }
 
-  revealUiLocation(uiLocation: UiLocation): Promise<void> {
-    return this._uiDelegate.revealUiLocation(uiLocation);
+  async revealUiLocation(uiLocation: UiLocation) {
+    this._dap.revealLocationRequested({
+      source: await uiLocation.source.toDap(),
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber
+    });
   }
 
   disableSourceMapForSource(source: Source) {

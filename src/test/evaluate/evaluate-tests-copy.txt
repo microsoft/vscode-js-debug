@@ -1,6 +1,12 @@
-[copy to clipboard] hello
-[copy to clipboard] 123n
-[copy to clipboard] NaN
-[copy to clipboard] {
-  "foo": "bar"
+{
+    text : hello
+}
+{
+    text : 123n
+}
+{
+    text : NaN
+}
+{
+    text : {   "foo": "bar" }
 }

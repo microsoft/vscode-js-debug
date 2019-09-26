@@ -40,7 +40,6 @@ export class Binder implements Disposable {
     }
 
     debugAdapter.dap.on('launch', async params => {
-      await debugAdapter.breakpointManager.launchBlocker();
       let results = await Promise.all(launchers.map(l => this._launch(l, params)));
       results = results.filter(result => !!result);
       if (results.length)
@@ -123,8 +122,8 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const debugAdapter = await this._delegate.acquireDebugAdapter(target);
+    await debugAdapter.launchBlocker();
     if (debugAdapter !== this._debugAdapter) {
-      await debugAdapter.breakpointManager.launchBlocker();
       debugAdapter.dap.on('disconnect', async () => {
         if (target.canStop())
           target.stop();

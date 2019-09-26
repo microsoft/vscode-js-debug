@@ -47,7 +47,7 @@ export class NodeLauncher implements Launcher {
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(rootPath: string | undefined, programLauncher: ProgramLauncher) {
-    this._rootPath = rootPath;
+    this._rootPath = utils.platformPathToPreferredCase(rootPath);
     this._programLauncher = programLauncher;
     this._pathResolver = new FileSourcePathResolver(rootPath);
     this._programLauncher.onProgramStopped(() => {

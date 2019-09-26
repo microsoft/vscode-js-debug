@@ -77,8 +77,8 @@ export function addTests(testRunner) {
     it('source map predicted', async({p}: {p: TestP}) => {
       // Breakpoint in source mapped script set before launch use breakpoints predictor.
       await p.initialize;
-      p.adapter.breakpointManager.setSourceMapPauseDisabledForTest(true);
-      p.adapter.breakpointManager.setPredictorDisabledForTest(false);
+      p.adapter.breakpointManagerForTest().setSourceMapPauseDisabledForTest(true);
+      p.adapter.breakpointManagerForTest().setPredictorDisabledForTest(false);
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };

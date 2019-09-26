@@ -343,6 +343,16 @@ export namespace Dap {
      * Pretty prints source for debugging.
      */
     on(request: 'prettyPrintSource', handler: (params: PrettyPrintSourceParams) => Promise<PrettyPrintSourceResult | Error>): () => void;
+
+    /**
+     * A request to reveal a certain location in the UI.
+     */
+    revealLocationRequested(params: RevealLocationRequestedEventParams): void;
+
+    /**
+     * A request to copy a certain string to clipboard.
+     */
+    copyRequested(params: CopyRequestedEventParams): void;
   }
 
   export interface TestApi {
@@ -702,6 +712,20 @@ export namespace Dap {
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
+
+    /**
+     * A request to reveal a certain location in the UI.
+     */
+    on(request: 'revealLocationRequested', handler: (params: RevealLocationRequestedEventParams) => void): void;
+    off(request: 'revealLocationRequested', handler: (params: RevealLocationRequestedEventParams) => void): void;
+    once(request: 'revealLocationRequested', filter?: (event: RevealLocationRequestedEventParams) => boolean): Promise<RevealLocationRequestedEventParams>;
+
+    /**
+     * A request to copy a certain string to clipboard.
+     */
+    on(request: 'copyRequested', handler: (params: CopyRequestedEventParams) => void): void;
+    off(request: 'copyRequested', handler: (params: CopyRequestedEventParams) => void): void;
+    once(request: 'copyRequested', filter?: (event: CopyRequestedEventParams) => boolean): Promise<CopyRequestedEventParams>;
   }
 
   export interface AttachParams {
@@ -852,6 +876,13 @@ export namespace Dap {
      * If 'allThreadsContinued' is true, a debug adapter can announce that all threads have continued.
      */
     allThreadsContinued?: boolean;
+  }
+
+  export interface CopyRequestedEventParams {
+    /**
+     * Text to copy.
+     */
+    text: string;
   }
 
   export interface DataBreakpointInfoParams {
@@ -1456,14 +1487,14 @@ export namespace Dap {
     source: Source;
 
     /**
-     * Line number of currently selected location to focus on.
+     * Line number of currently selected location to reveal after pretty printing. If not present, nothing is revealed.
      */
-    line?: number;
+    line?: integer;
 
     /**
-     * Column number of currently selected location to focus on.
+     * Column number of currently selected location to reveal after pretty printing.
      */
-    column?: number;
+    column?: integer;
   }
 
   export interface PrettyPrintSourceResult {
@@ -1544,6 +1575,23 @@ export namespace Dap {
   }
 
   export interface RestartResult {
+  }
+
+  export interface RevealLocationRequestedEventParams {
+    /**
+     * The source to reveal.
+     */
+    source: Source;
+
+    /**
+     * The line number to reveal.
+     */
+    line?: integer;
+
+    /**
+     * The column number to reveal.
+     */
+    column?: integer;
   }
 
   export interface ReverseContinueParams {

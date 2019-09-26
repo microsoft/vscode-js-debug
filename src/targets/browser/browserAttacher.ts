@@ -8,6 +8,7 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL, LaunchParams } from './browserLaunchParams';
+import * as urlUtils from '../../utils/urlUtils';
 
 export class BrowserAttacher implements Launcher {
   private _rootPath: string | undefined;
@@ -23,7 +24,7 @@ export class BrowserAttacher implements Launcher {
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(rootPath: string | undefined) {
-    this._rootPath = rootPath;
+    this._rootPath = urlUtils.platformPathToPreferredCase(rootPath);
   }
 
   targetManager(): BrowserTargetManager | undefined {
