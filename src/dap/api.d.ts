@@ -13,6 +13,17 @@ export namespace Dap {
 
   export interface Api {
     /**
+     * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
+     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
+     * The 'cancel' request may return an error if it could not cancel an operation but a frontend should refrain from presenting this error to end users.
+     * A frontend client should only call this request if the capability 'supportsCancelRequest' is true.
+     * The request that got canceled still needs to send a response back.
+     * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
+     * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
+     */
+    on(request: 'cancel', handler: (params: CancelParams) => Promise<CancelResult | Error>): () => void;
+
+    /**
      * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
      * A debug adapter is expected to send this event when it is ready to accept configuration requests (but not before the 'initialize' request has finished).
      * The sequence of events/requests is as follows:
@@ -125,6 +136,11 @@ export namespace Dap {
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
      */
     on(request: 'terminate', handler: (params: TerminateParams) => Promise<TerminateResult | Error>): () => void;
+
+    /**
+     * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
+     */
+    on(request: 'breakpointLocations', handler: (params: BreakpointLocationsParams) => Promise<BreakpointLocationsResult | Error>): () => void;
 
     /**
      * Sets multiple breakpoints for a single source and clears all previous breakpoints in that source.
@@ -307,9 +323,30 @@ export namespace Dap {
      * Disassembles code stored at the provided location.
      */
     on(request: 'disassemble', handler: (params: DisassembleParams) => Promise<DisassembleResult | Error>): () => void;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    on(request: 'enableCustomBreakpoints', handler: (params: EnableCustomBreakpointsParams) => Promise<EnableCustomBreakpointsResult | Error>): () => void;
+
+    /**
+     * Disable custom breakpoints.
+     */
+    on(request: 'disableCustomBreakpoints', handler: (params: DisableCustomBreakpointsParams) => Promise<DisableCustomBreakpointsResult | Error>): () => void;
   }
 
   export interface TestApi {
+
+    /**
+     * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
+     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
+     * The 'cancel' request may return an error if it could not cancel an operation but a frontend should refrain from presenting this error to end users.
+     * A frontend client should only call this request if the capability 'supportsCancelRequest' is true.
+     * The request that got canceled still needs to send a response back.
+     * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
+     * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
+     */
+    cancel(params: CancelParams): Promise<CancelResult>;
 
     /**
      * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
@@ -448,6 +485,11 @@ export namespace Dap {
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
      */
     terminate(params: TerminateParams): Promise<TerminateResult>;
+
+    /**
+     * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
+     */
+    breakpointLocations(params: BreakpointLocationsParams): Promise<BreakpointLocationsResult>;
 
     /**
      * Sets multiple breakpoints for a single source and clears all previous breakpoints in that source.
@@ -630,6 +672,16 @@ export namespace Dap {
      * Disassembles code stored at the provided location.
      */
     disassemble(params: DisassembleParams): Promise<DisassembleResult>;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    enableCustomBreakpoints(params: EnableCustomBreakpointsParams): Promise<EnableCustomBreakpointsResult>;
+
+    /**
+     * Disable custom breakpoints.
+     */
+    disableCustomBreakpoints(params: DisableCustomBreakpointsParams): Promise<DisableCustomBreakpointsResult>;
   }
 
   export interface AttachParams {
@@ -654,6 +706,50 @@ export namespace Dap {
      * The 'id' attribute is used to find the target breakpoint and the other attributes are used as the new values.
      */
     breakpoint: Breakpoint;
+  }
+
+  export interface BreakpointLocationsParams {
+    /**
+     * The source location of the breakpoints; either 'source.path' or 'source.reference' must be specified.
+     */
+    source: Source;
+
+    /**
+     * Start line of range to search possible breakpoint locations in. If only the line is specified, the request returns all possible locations in that line.
+     */
+    line: integer;
+
+    /**
+     * Optional start column of range to search possible breakpoint locations in. If no start column is given, the first column in the start line is assumed.
+     */
+    column?: integer;
+
+    /**
+     * Optional end line of range to search possible breakpoint locations in. If no end line is given, then the end line is assumed to be the start line.
+     */
+    endLine?: integer;
+
+    /**
+     * Optional end column of range to search possible breakpoint locations in. If no end column is given, then it is assumed to be in the last column of the end line.
+     */
+    endColumn?: integer;
+  }
+
+  export interface BreakpointLocationsResult {
+    /**
+     * Sorted set of possible breakpoint locations.
+     */
+    breakpoints: BreakpointLocation[];
+  }
+
+  export interface CancelParams {
+    /**
+     * The ID (attribute 'seq') of the request to cancel.
+     */
+    requestId?: integer;
+  }
+
+  export interface CancelResult {
   }
 
   export interface CapabilitiesEventParams {
@@ -758,6 +854,16 @@ export namespace Dap {
     canPersist?: boolean;
   }
 
+  export interface DisableCustomBreakpointsParams {
+    /**
+     * Id of breakpoints to disable.
+     */
+    ids: string[];
+  }
+
+  export interface DisableCustomBreakpointsResult {
+  }
+
   export interface DisassembleParams {
     /**
      * Memory reference to the base location containing the instructions to disassemble.
@@ -807,6 +913,16 @@ export namespace Dap {
   }
 
   export interface DisconnectResult {
+  }
+
+  export interface EnableCustomBreakpointsParams {
+    /**
+     * Id of breakpoints to enable.
+     */
+    ids: string[];
+  }
+
+  export interface EnableCustomBreakpointsResult {
   }
 
   export interface EvaluateParams {
@@ -1152,6 +1268,16 @@ export namespace Dap {
      * The debug adapter supports the 'disassemble' request.
      */
     supportsDisassembleRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'cancel' request.
+     */
+    supportsCancelRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'breakpointLocations' request.
+     */
+    supportsBreakpointLocationsRequest?: boolean;
   }
 
   export interface InitializedEventParams {
@@ -2270,66 +2396,6 @@ export namespace Dap {
   }
 
   /**
-   * A Source is a descriptor for source code. It is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.
-   */
-  export interface Source {
-    /**
-     * The short name of the source. Every source returned from the debug adapter has a name. When sending a source to the debug adapter this name is optional.
-     */
-    name?: string;
-
-    /**
-     * The path of the source to be shown in the UI. It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
-     */
-    path?: string;
-
-    /**
-     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source. The value should be less than or equal to 2147483647 (2^31 - 1).
-     */
-    sourceReference?: integer;
-
-    /**
-     * An optional hint for how to present the source in the UI. A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
-     */
-    presentationHint?: string;
-
-    /**
-     * The (optional) origin of this source: possible values 'internal module', 'inlined content from source map', etc.
-     */
-    origin?: string;
-
-    /**
-     * An optional list of sources that are related to this source. These may be the source that generated this source.
-     */
-    sources?: Source[];
-
-    /**
-     * Optional data that a debug adapter might want to loop through the client. The client should leave the data intact and persist it across sessions. The client should not interpret the data.
-     */
-    adapterData?: any[] | boolean | integer | null | number | object | string;
-
-    /**
-     * The checksums associated with this file.
-     */
-    checksums?: Checksum[];
-  }
-
-  /**
-   * The checksum of an item calculated by the specified algorithm.
-   */
-  export interface Checksum {
-    /**
-     * The algorithm used to calculate this checksum.
-     */
-    algorithm: ChecksumAlgorithm;
-
-    /**
-     * Value of the checksum.
-     */
-    checksum: string;
-  }
-
-  /**
    * Detailed information about an exception that has occurred.
    */
   export interface ExceptionDetails {
@@ -2653,6 +2719,101 @@ export namespace Dap {
      * The debug adapter supports the 'disassemble' request.
      */
     supportsDisassembleRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'cancel' request.
+     */
+    supportsCancelRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'breakpointLocations' request.
+     */
+    supportsBreakpointLocationsRequest?: boolean;
+  }
+
+  /**
+   * Properties of a breakpoint location returned from the 'breakpointLocations' request.
+   */
+  export interface BreakpointLocation {
+    /**
+     * Start line of breakpoint location.
+     */
+    line: integer;
+
+    /**
+     * Optional start column of breakpoint location.
+     */
+    column?: integer;
+
+    /**
+     * Optional end line of breakpoint location if the location covers a range.
+     */
+    endLine?: integer;
+
+    /**
+     * Optional end column of breakpoint location if the location covers a range.
+     */
+    endColumn?: integer;
+  }
+
+  /**
+   * A Source is a descriptor for source code. It is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.
+   */
+  export interface Source {
+    /**
+     * The short name of the source. Every source returned from the debug adapter has a name. When sending a source to the debug adapter this name is optional.
+     */
+    name?: string;
+
+    /**
+     * The path of the source to be shown in the UI. It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
+     */
+    path?: string;
+
+    /**
+     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source. The value should be less than or equal to 2147483647 (2^31 - 1).
+     */
+    sourceReference?: integer;
+
+    /**
+     * An optional hint for how to present the source in the UI. A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
+     */
+    presentationHint?: string;
+
+    /**
+     * The (optional) origin of this source: possible values 'internal module', 'inlined content from source map', etc.
+     */
+    origin?: string;
+
+    /**
+     * An optional list of sources that are related to this source. These may be the source that generated this source.
+     */
+    sources?: Source[];
+
+    /**
+     * Optional data that a debug adapter might want to loop through the client. The client should leave the data intact and persist it across sessions. The client should not interpret the data.
+     */
+    adapterData?: any[] | boolean | integer | null | number | object | string;
+
+    /**
+     * The checksums associated with this file.
+     */
+    checksums?: Checksum[];
+  }
+
+  /**
+   * The checksum of an item calculated by the specified algorithm.
+   */
+  export interface Checksum {
+    /**
+     * The algorithm used to calculate this checksum.
+     */
+    algorithm: ChecksumAlgorithm;
+
+    /**
+     * Value of the checksum.
+     */
+    checksum: string;
   }
 
   /**

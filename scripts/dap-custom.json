@@ -1,4 +1,77 @@
 {
   "definitions": {
+    "EnableCustomBreakpointsRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Enable custom breakpoints.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "enableCustomBreakpoints" ]
+					},
+					"arguments": {
+						"$ref": "#/definitions/EnableCustomBreakpointsArguments"
+					}
+				},
+				"required": [ "command", "arguments"  ]
+			}]
+		},
+		"EnableCustomBreakpointsArguments": {
+			"type": "object",
+			"description": "Arguments for 'enableCustomBreakpoints' request.",
+			"properties": {
+				"ids": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Id of breakpoints to enable."
+				}
+			},
+			"required": [ "ids" ]
+		},
+		"EnableCustomBreakpointsResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object",
+				"description": "Response to 'enableCustomBreakpoints' request."
+			}]
+    },
+
+    "DisableCustomBreakpointsRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Disable custom breakpoints.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "disableCustomBreakpoints" ]
+					},
+					"arguments": {
+						"$ref": "#/definitions/DisableCustomBreakpointsArguments"
+					}
+				},
+				"required": [ "command", "arguments"  ]
+			}]
+		},
+		"DisableCustomBreakpointsArguments": {
+			"type": "object",
+			"description": "Arguments for 'disableCustomBreakpoints' request.",
+			"properties": {
+				"ids": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Id of breakpoints to disable."
+				}
+			},
+			"required": [ "ids" ]
+		},
+		"DisableCustomBreakpointsResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object",
+				"description": "Response to 'disableCustomBreakpoints' request."
+			}]
+		}
   }
 }

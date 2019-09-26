@@ -14,7 +14,7 @@ const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))()
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
   const factory = new AdapterFactory(context);
-  registerCustomBreakpointsUI(context, factory);
+  registerCustomBreakpointsUI(context);
   registerPrettyPrintActions(context, factory);
   registerDebugScriptActions(context, factory);
 }

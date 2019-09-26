@@ -12,7 +12,6 @@ import { Thread, UIDelegate, ThreadDelegate, PauseOnExceptionsState } from './th
 import { VariableStore } from './variables';
 import { BreakpointManager } from './breakpoints';
 import { Cdp } from '../cdp/api';
-import { CustomBreakpointId } from './customBreakpoints';
 import { SourcePathResolver } from '../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
@@ -53,6 +52,8 @@ export class DebugAdapter {
     this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
+    this.dap.on('enableCustomBreakpoints', params => this._enableCustomBreakpoints(params));
+    this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver, uiDelegate);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
@@ -196,24 +197,26 @@ export class DebugAdapter {
     return this._thread;
   }
 
-  async enableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+  async _enableCustomBreakpoints(params: Dap.EnableCustomBreakpointsParams): Promise<Dap.EnableCustomBreakpointsResult> {
     const promises: Promise<void>[] = [];
-    for (const id of ids) {
+    for (const id of params.ids) {
       this._customBreakpoints.add(id);
       if (this._thread)
         promises.push(this._thread.updateCustomBreakpoint(id, true));
     }
     await Promise.all(promises);
+    return {};
   }
 
-  async disableCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+  async _disableCustomBreakpoints(params: Dap.DisableCustomBreakpointsParams): Promise<Dap.DisableCustomBreakpointsResult> {
     const promises: Promise<void>[] = [];
-    for (const id of ids) {
+    for (const id of params.ids) {
       this._customBreakpoints.delete(id);
       if (this._thread)
         promises.push(this._thread.updateCustomBreakpoint(id, false));
     }
     await Promise.all(promises);
+    return {};
   }
 
   dispose() {
