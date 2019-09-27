@@ -156,6 +156,8 @@ class CDPSession {
     return new Proxy({}, {
       get: (target, agentName: string, receiver) => new Proxy({}, {
         get: (target, methodName: string, receiver) => {
+          if (methodName === 'then')
+            return;
           if (methodName === 'on')
             return (eventName: string, listener: (params: any) => void) => this._on(`${agentName}.${eventName}`, listener);
           if (methodName === 'off')

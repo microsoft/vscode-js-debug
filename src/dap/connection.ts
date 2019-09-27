@@ -29,13 +29,19 @@ export default class Connection {
   private _pendingRequests = new Map<number, (result: string | object) => void>();
   private _requestHandlers = new Map<string, (params: any) => Promise<any>>();
   private _eventListeners = new Map<string, Set<(params: any) => any>>();
-  private _dap: Dap.Api;
+  private _dap: Promise<Dap.Api>;
 
-  constructor(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
-    this._writableStream = outStream;
+  private _ready: (dap: Dap.Api) => void;
+
+  constructor() {
     this._sequence = 1;
     this._rawData = new Buffer(0);
+    this._ready = () => {};
+    this._dap = new Promise<Dap.Api>(f => this._ready = f);
+  }
 
+  public init(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
+    this._writableStream = outStream;
     inStream.on('data', (data: Buffer) => {
       this._handleData(data);
     });
@@ -48,17 +54,18 @@ export default class Connection {
       // error.message
     });
     inStream.resume();
-
-    this._dap = this._createApi();
+    this._ready(this._createApi());
   }
 
-  public dap(): Dap.Api {
+  public dap(): Promise<Dap.Api> {
     return this._dap;
   }
 
   _createApi(): Dap.Api {
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
+        if (methodName === 'then')
+          return;
         if (methodName === 'on') {
           return (requestName: string, handler: (params: any) => Promise<any>) => {
             this._requestHandlers.set(requestName, handler);

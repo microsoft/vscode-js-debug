@@ -39,12 +39,15 @@ class Session {
   constructor() {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
-    this.adapterConnection = new DapConnection(testToAdapter, adapterToTest);
-    const testConnection = new DapConnection(adapterToTest, testToAdapter);
+    this.adapterConnection = new DapConnection();
+    this.adapterConnection.init(testToAdapter, adapterToTest);
+    const testConnection = new DapConnection();
+    testConnection.init(adapterToTest, testToAdapter);
     this.dap = testConnection.createTestApi();
   }
 
   async _init(): Promise<Dap.InitializeResult> {
+    await this.adapterConnection.dap();
     const [r, ] = await Promise.all([
       this.dap.initialize({
         clientID: 'pwa-test',
@@ -61,13 +64,13 @@ class Session {
 }
 
 export class TestP {
-  readonly adapter: DebugAdapter;
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
   readonly log: Log;
   readonly assertLog: () => void;
 
-  private _session: Session;
+  _session: Session;
+  _adapter?: DebugAdapter;
   private _root: TestRoot;
   private _evaluateCounter = 0;
   private _connection: CdpConnection | undefined;
@@ -81,23 +84,15 @@ export class TestP {
     this.assertLog = root.assertLog;
     this._session = new Session();
     this.dap = this._session.dap;
-
-    const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
-
-    this.adapter = new DebugAdapter(this._session.adapterConnection.dap(), workspaceRoot, target.sourcePathResolver());
-    this.adapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
-    this.adapter.sourceContainerForTest().setSourceMapTimeouts({
-      load: 0,
-      resolveLocation: 2000,
-      scriptPaused: 1000,
-      output: 3000,
-    });
-
     this.logger = new Logger(this.dap, this.log);
   }
 
   get cdp(): Cdp.Api {
     return this._cdp!;
+  }
+
+  get adapter(): DebugAdapter {
+    return this._adapter!;
   }
 
   async evaluate(expression: string, sourceUrl?: string): Promise<Cdp.Runtime.EvaluateResult> {
@@ -174,7 +169,7 @@ export class TestRoot {
   readonly log: Log;
   readonly assertLog: () => void;
 
-  private _adapters = new Set<DebugAdapter>();
+  private _targetToP = new Map<Target, TestP>();
   private _root: Session;
   private _workspaceRoot: string;
   private _webRoot: string | undefined;
@@ -200,19 +195,38 @@ export class TestRoot {
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     this._root = new Session();
-    const rootDap = this._root.adapterConnection.dap();
-    rootDap.on('initialize', async () => {
-      rootDap.initialized({});
-      return DebugAdapter.capabilities();
-    });
-    rootDap.on('configurationDone', async () => {
-      return {};
+    this._root.adapterConnection.dap().then(dap => {
+      dap.on('initialize', async () => {
+        dap.initialized({});
+        return DebugAdapter.capabilities();
+      });
+      dap.on('configurationDone', async () => {
+        return {};
+      });
     });
 
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
-    this.binder = new Binder(this, rootDap, [this._browserLauncher], '0');
-    this.binder.considerLaunchedForTest(this._browserLauncher);  /// !!!!
+    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher], this._workspaceRoot, '0');
+    this.binder.installTestHook(async (target: Target, adapter: DebugAdapter) => {
+      const p = this._targetToP.get(target);
+      if (p) {
+        adapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
+        adapter.sourceContainerForTest().setSourceMapTimeouts({
+          load: 0,
+          resolveLocation: 2000,
+          scriptPaused: 1000,
+          output: 3000,
+        });
+        p._adapter = adapter;
+        await p._init();
+        if (target.parent())
+          this._workerCallback(p);
+        else
+          this._launchCallback(p);
+        this._onSessionCreatedEmitter.fire(p);
+      }
+    });
 
     this.initialize = this._root._init();
 
@@ -221,36 +235,17 @@ export class TestRoot {
     this._worker = new Promise(f => this._workerCallback = f);
   }
 
-  _disposeSessions() {
-    for (const adapter of this._adapters)
-      adapter.dispose();
-    this._adapters.clear();
-  }
-
-  async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
+  async acquireDap(target: Target): Promise<DapConnection> {
     if (this._blackboxPattern)
       target.blackboxPattern = () => this._blackboxPattern;
 
     const p = new TestP(this, target);
-    this._adapters.add(p.adapter);
-    await p._init();
-    if (target.parent())
-      this._workerCallback(p);
-    else
-      this._launchCallback(p);
-    this._onSessionCreatedEmitter.fire(p);
-    await new Promise(f => {
-      p.adapter.dap.on('attach', async () => {
-        f();
-        return {};
-      });
-    })
-    return p.adapter;
+    this._targetToP.set(target, p);
+    return p._session.adapterConnection;
   }
 
-  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
-    debugAdapter.dispose();
-    this._adapters.delete(debugAdapter);
+  releaseDap(target: Target) {
+    this._targetToP.delete(target);
   }
 
   setArgs(args: string[]) {
@@ -307,12 +302,10 @@ export class TestRoot {
         const connection = this._browserLauncher.connectionForTest();
         if (connection) {
           const disposable = connection.onDisconnected(() => {
-            this._disposeSessions();
             cb();
             disposable.dispose();
           });
         } else {
-          this._disposeSessions();
           cb();
         }
         this._root.dap.disconnect({});

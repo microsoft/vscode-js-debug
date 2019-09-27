@@ -3,7 +3,6 @@
 
 import * as net from 'net';
 import * as vscode from 'vscode';
-import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, BinderDelegate } from './binder';
 import DapConnection from './dap/connection';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
@@ -12,40 +11,38 @@ import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { Target } from './targets/targets';
 import { Disposable } from './utils/eventUtils';
 import { checkVersion } from './ui/version';
-import { FileSourcePathResolver } from './common/sourcePathResolver';
 import { TerminalProgramLauncher } from './ui/terminalProgramLauncher';
 
 export class Session implements Disposable {
-  _debugSession: vscode.DebugSession;
+  readonly debugSession: vscode.DebugSession;
+  readonly connection: DapConnection;
   private _server: net.Server;
-  _debugAdapter?: DebugAdapter;
   private _binder?: Binder;
   private _onTargetNameChanged?: Disposable;
 
-  constructor(context: vscode.ExtensionContext, debugSession: vscode.DebugSession, target: Target | undefined, binderDelegate: BinderDelegate | undefined, callback: (debugAdapter: DebugAdapter) => void) {
-    this._debugSession = debugSession;
-    if (target && checkVersion('1.39.0'))
-      this._onTargetNameChanged = target.onNameChanged(() => debugSession.name = target.name());
-
+  constructor(debugSession: vscode.DebugSession) {
+    this.debugSession = debugSession;
+    this.connection = new DapConnection();
     this._server = net.createServer(async socket => {
-      let rootPath = vscode.workspace.rootPath;
-      if (debugSession.workspaceFolder && debugSession.workspaceFolder.uri.scheme === 'file:')
-        rootPath = debugSession.workspaceFolder.uri.path;
-
-      const connection = new DapConnection(socket, socket);
-      this._debugAdapter = new DebugAdapter(connection.dap(), rootPath, target ? target.sourcePathResolver() : new FileSourcePathResolver(rootPath));
-
-      if (binderDelegate) {
-        const launchers = [
-          new NodeLauncher(rootPath, new TerminalProgramLauncher()),
-          new BrowserLauncher(context.storagePath || context.extensionPath, rootPath),
-          new BrowserAttacher(rootPath),
-        ];
-        this._binder = new Binder(binderDelegate, this._debugAdapter.dap, launchers, debugSession.id);
-      }
-
-      callback(this._debugAdapter);
+      this.connection.init(socket, socket);
     }).listen(0);
+  }
+
+  listenToTarget(target: Target) {
+    if (checkVersion('1.39.0'))
+      this._onTargetNameChanged = target.onNameChanged(() => this.debugSession.name = target.name());
+  }
+
+  createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
+    let rootPath = vscode.workspace.rootPath;
+    if (this.debugSession.workspaceFolder && this.debugSession.workspaceFolder.uri.scheme === 'file:')
+      rootPath = this.debugSession.workspaceFolder.uri.path;
+    const launchers = [
+      new NodeLauncher(rootPath, new TerminalProgramLauncher()),
+      new BrowserLauncher(context.storagePath || context.extensionPath, rootPath),
+      new BrowserAttacher(rootPath),
+    ];
+    this._binder = new Binder(delegate, this.connection, launchers, rootPath, this.debugSession.id);
   }
 
   descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
@@ -55,8 +52,6 @@ export class Session implements Disposable {
   dispose() {
     if (this._binder)
       this._binder.dispose();
-    if (this._debugAdapter)
-      this._debugAdapter.dispose();
     if (this._onTargetNameChanged)
       this._onTargetNameChanged.dispose();
     this._server.close();
@@ -86,33 +81,26 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, Dis
   }
 
   createDebugAdapterDescriptor(debugSession: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    let session: Session;
-
+    const session = new Session(debugSession);
     if (debugSession.configuration['__pendingTargetId']) {
       const pendingTargetId = debugSession.configuration['__pendingTargetId'] as string;
       const target = this._pendingTarget.get(pendingTargetId)!;
       this._pendingTarget.delete(pendingTargetId);
-
-      session = new Session(this._context, debugSession, target, undefined, debugAdapter => {
-        debugAdapter.dap.on('attach', async () => {
-          const callbacks = this._sessionForTargetCallbacks.get(target);
-          this._sessionForTargetCallbacks.delete(target);
-          if (callbacks)
-            callbacks.fulfill(session);
-          return {};
-        });
-      });
+      session.listenToTarget(target); 
+      const callbacks = this._sessionForTargetCallbacks.get(target);
+      this._sessionForTargetCallbacks.delete(target);
+      if (callbacks)
+        callbacks.fulfill(session);
     } else {
-      session = new Session(this._context, debugSession, undefined, this, () => {});
+      session.createBinder(this._context, this);
     }
-
     this._sessions.set(debugSession.id, session);
     return session.descriptor();
   }
 
-  async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
+  async acquireDap(target: Target): Promise<DapConnection> {
     const session = await this._createSession(target);
-    return session._debugAdapter!;
+    return session.connection;
   }
 
   _createSession(target: Target): Promise<Session> {
@@ -125,9 +113,9 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, Dis
         const parentTarget = target.parent();
         if (parentTarget) {
           const parentSession = await this._createSession(parentTarget);
-          parentDebugSession = parentSession._debugSession;
+          parentDebugSession = parentSession.debugSession;
         } else {
-          parentDebugSession = this._sessions.get(target.targetOrigin() as string)!._debugSession;
+          parentDebugSession = this._sessions.get(target.targetOrigin() as string)!.debugSession;
         }
 
         const config = {
@@ -150,8 +138,7 @@ export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, Dis
     return this._sessionForTarget.get(target)!;
   }
 
-  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
-    debugAdapter.dap.terminated({});
+  releaseDap(target: Target) {
     this._sessionForTarget.delete(target);
     const callbacks = this._sessionForTargetCallbacks.get(target);
     if (callbacks)
