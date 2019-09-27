@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Disposable, EventEmitter } from '../../utils/eventUtils';
+import { Disposable, EventEmitter } from '../../common/events';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
@@ -12,7 +12,7 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { LaunchParams, baseURL } from './browserLaunchParams';
-import * as urlUtils from '../../utils/urlUtils';
+import * as urlUtils from '../../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
 

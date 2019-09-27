@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import Color from 'color';
-import { BudgetStringBuilder } from '../utils/budgetStringBuilder';
+import { BudgetStringBuilder } from '../common/budgetStringBuilder';
 
 export interface FormatToken {
   type: string;

@@ -4,7 +4,7 @@
 import Cdp from '../../cdp/api';
 import { URL } from 'url';
 import * as path from 'path';
-import { EventEmitter } from '../../utils/eventUtils';
+import { EventEmitter } from '../../common/events';
 
 export class FrameModel {
   private _mainFrame?: Frame;

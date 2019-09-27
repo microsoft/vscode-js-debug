@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable, EventEmitter } from '../../utils/eventUtils';
+import { Disposable, EventEmitter } from '../../common/events';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL, LaunchParams } from './browserLaunchParams';
-import * as urlUtils from '../../utils/urlUtils';
+import * as urlUtils from '../../common/urlUtils';
 
 export class BrowserAttacher implements Launcher {
   private _rootPath: string | undefined;

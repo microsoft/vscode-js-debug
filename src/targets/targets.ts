@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import Cdp from '../cdp/api';
-import { Disposable, Event } from '../utils/eventUtils';
+import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 
 export interface Target {

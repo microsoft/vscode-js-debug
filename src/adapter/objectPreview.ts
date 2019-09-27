@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 import Cdp from '../cdp/api';
-import * as stringUtils from '../utils/stringUtils';
-import { BudgetStringBuilder } from '../utils/budgetStringBuilder'
+import * as stringUtils from '../common/stringUtils';
+import { BudgetStringBuilder } from '../common/budgetStringBuilder'
 import * as messageFormat from './messageFormat';
 
 const maxArrowFunctionCharacterLength = 30;

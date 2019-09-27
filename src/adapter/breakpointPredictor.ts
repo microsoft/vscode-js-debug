@@ -3,9 +3,9 @@
 
 import * as path from 'path';
 import Dap from '../dap/api';
-import * as urlUtils from '../utils/urlUtils';
-import * as sourceUtils from '../utils/sourceUtils';
-import * as fsUtils from '../utils/fsUtils';
+import * as urlUtils from '../common/urlUtils';
+import * as sourceUtils from '../common/sourceUtils';
+import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
 

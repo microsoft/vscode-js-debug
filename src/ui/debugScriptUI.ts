@@ -4,9 +4,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { AdapterFactory } from '../adapterFactory';
 
-export function registerDebugScriptActions(context: vscode.ExtensionContext, factory: AdapterFactory) {
+export function registerDebugScriptActions(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('pwa.debugTask', async e => {
     if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length)
       return;

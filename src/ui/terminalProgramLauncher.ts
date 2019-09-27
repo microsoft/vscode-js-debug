@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { ProgramLauncher } from '../targets/node/nodeLauncher';
-import { EventEmitter } from '../utils/eventUtils';
+import { EventEmitter } from '../common/events';
 
 export class TerminalProgramLauncher implements ProgramLauncher {
   private _terminal: vscode.Terminal | undefined;

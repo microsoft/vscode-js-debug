@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import * as path from 'path';
-import * as urlUtils from '../utils/urlUtils';
+import * as urlUtils from '../common/urlUtils';
 
 // Mapping between urls (operated in cdp) and paths (operated in dap) is
 // specific to the actual product being debugged.

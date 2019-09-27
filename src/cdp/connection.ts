@@ -3,7 +3,7 @@
 
 import { Transport } from './transport';
 import { debug } from 'debug';
-import { EventEmitter } from '../utils/eventUtils';
+import { EventEmitter } from '../common/events';
 import Cdp from './api';
 
 const debugConnection = debug('connection');

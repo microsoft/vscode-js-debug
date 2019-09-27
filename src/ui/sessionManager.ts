@@ -3,15 +3,15 @@
 
 import * as net from 'net';
 import * as vscode from 'vscode';
-import { Binder, BinderDelegate } from './binder';
-import DapConnection from './dap/connection';
-import { BrowserLauncher } from './targets/browser/browserLauncher';
-import { NodeLauncher } from './targets/node/nodeLauncher';
-import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { Target } from './targets/targets';
-import { Disposable } from './utils/eventUtils';
-import { checkVersion } from './ui/version';
-import { TerminalProgramLauncher } from './ui/terminalProgramLauncher';
+import { Binder, BinderDelegate } from '../binder';
+import DapConnection from '../dap/connection';
+import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { NodeLauncher } from '../targets/node/nodeLauncher';
+import { BrowserAttacher } from '../targets/browser/browserAttacher';
+import { Target } from '../targets/targets';
+import { Disposable } from '../common/events';
+import { checkVersion } from './version';
+import { TerminalProgramLauncher } from './terminalProgramLauncher';
 
 export class Session implements Disposable {
   readonly debugSession: vscode.DebugSession;
@@ -58,7 +58,7 @@ export class Session implements Disposable {
   }
 }
 
-export class AdapterFactory implements vscode.DebugAdapterDescriptorFactory, Disposable, BinderDelegate {
+export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Disposable, BinderDelegate {
   private _context: vscode.ExtensionContext;
   private _disposables: Disposable[] = [];
   private _sessions = new Map<string, Session>();

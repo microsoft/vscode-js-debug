@@ -9,12 +9,12 @@ import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import * as utils from '../utils/urlUtils';
+import * as utils from '../common/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { Binder } from '../binder';
 import { Target } from '../targets/targets';
-import { EventEmitter } from '../utils/eventUtils';
+import { EventEmitter } from '../common/events';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 

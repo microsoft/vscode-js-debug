@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import { SourcePathResolver } from "../../common/sourcePathResolver";
-import * as utils from '../../utils/urlUtils';
+import * as utils from '../../common/urlUtils';
 
 export class BrowserSourcePathResolver implements SourcePathResolver {
   // We map all urls under |_baseUrl| to files under |_basePath|.

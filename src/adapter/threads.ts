@@ -4,7 +4,7 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
-import * as urlUtils from '../utils/urlUtils';
+import * as urlUtils from '../common/urlUtils';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as errors from '../dap/errors';
@@ -13,7 +13,7 @@ import * as objectPreview from './objectPreview';
 import { UiLocation, Source, SourceContainer, rawToUiOffset } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
-import * as sourceUtils from '../utils/sourceUtils';
+import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();

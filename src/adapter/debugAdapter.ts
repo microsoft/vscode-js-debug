@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable } from '../utils/eventUtils';
+import { Disposable } from '../common/events';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
-import * as sourceUtils from '../utils/sourceUtils';
-import * as urlUtils from '../utils/urlUtils';
+import * as sourceUtils from '../common/sourceUtils';
+import * as urlUtils from '../common/urlUtils';
 import * as errors from '../dap/errors';
 import { SourceContainer, UiLocation } from './sources';
 import { Thread, ThreadDelegate, PauseOnExceptionsState } from './threads';

@@ -4,14 +4,14 @@
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
-import { EventEmitter, Event, Disposable } from '../../utils/eventUtils';
+import { EventEmitter, Event, Disposable } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
 import { InlineScriptOffset, SourcePathResolver, FileSourcePathResolver } from '../../common/sourcePathResolver';
 import Dap from '../../dap/api';
 import { Launcher, Target, LaunchResult } from '../../targets/targets';
-import * as utils from '../../utils/urlUtils';
+import * as utils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
 
 export interface LaunchParams extends Dap.LaunchParams {

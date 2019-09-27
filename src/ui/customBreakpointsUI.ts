@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
-import { EventEmitter } from '../utils/eventUtils';
+import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
 
 class Breakpoint {

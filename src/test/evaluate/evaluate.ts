@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import {TestRoot} from '../test';
-import * as sourceUtils from '../../utils/sourceUtils';
+import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 
 export function addTests(testRunner) {

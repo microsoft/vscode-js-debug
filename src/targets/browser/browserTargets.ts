@@ -4,11 +4,11 @@
 import { debug } from 'debug';
 import * as path from 'path';
 import { URL } from 'url';
-import { Disposable, EventEmitter } from '../../utils/eventUtils';
+import { Disposable, EventEmitter } from '../../common/events';
 import { Target } from '../../targets/targets';
 import Cdp from '../../cdp/api';
 import CdpConnection from '../../cdp/connection';
-import * as urlUtils from '../../utils/urlUtils';
+import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';

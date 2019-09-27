@@ -6,9 +6,9 @@ import * as path from 'path';
 import { URL } from 'url';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 import Dap from '../dap/api';
-import * as sourceUtils from '../utils/sourceUtils';
-import { prettyPrintAsSourceMap } from '../utils/sourceUtils';
-import * as utils from '../utils/urlUtils';
+import * as sourceUtils from '../common/sourceUtils';
+import { prettyPrintAsSourceMap } from '../common/sourceUtils';
+import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
 
 const localize = nls.loadMessageBundle();

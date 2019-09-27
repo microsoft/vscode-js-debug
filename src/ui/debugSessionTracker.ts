@@ -13,7 +13,7 @@ export class DebugSessionTracker implements vscode.Disposable {
 
   constructor() {
     vscode.debug.onDidStartDebugSession(session => {
-      if (session.type === 'pwa') {
+      if (session.type === 'pwa' && session.configuration.request === 'attach') {
         this.sessions.set(session.id, session);
         this._onSessionAddedEmitter.fire(session);
       }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable, EventEmitter } from '../../utils/eventUtils';
+import { Disposable, EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import { FrameModel } from './frames';
 import { URL } from 'url';

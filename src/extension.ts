@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { CancellationToken, DebugConfiguration, ProviderResult, WorkspaceFolder } from 'vscode';
 import * as nls from 'vscode-nls';
-import { AdapterFactory } from './adapterFactory';
+import { SessionManager } from './ui/sessionManager';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
@@ -14,11 +14,11 @@ const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))()
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
-  const factory = new AdapterFactory(context);
+  new SessionManager(context);
   const debugSessionTracker = new DebugSessionTracker();
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
-  registerDebugScriptActions(context, factory);
+  registerDebugScriptActions(context);
 }
 
 export function deactivate() {
