@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from '../test';
+import {TestRoot, TestP} from '../test';
 import Dap from '../../dap/api';
 
 export function addTests(testRunner) {
@@ -17,39 +17,39 @@ export function addTests(testRunner) {
   }
 
   describe('configure', () => {
-    it('inline', async({p}: {p: TestP}) => {
+    it('inline', async({r}: {r: TestRoot}) => {
       // Breakpoint in inline script set before launch.
-      await p.initialize;
+      const p = await r.launchUrl('inlinescript.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/inlinescript.html')
       };
       await p.dap.setBreakpoints({source, breakpoints: [{line: 3, column: 2}]});
-      p.launchUrl('inlinescript.html');
+      p.load();
       await waitForPause(p);
       p.assertLog();
     });
 
-    it('script', async({p}: {p: TestP}) => {
+    it('script', async({r}: {r: TestRoot}) => {
       // Breakpoint in separate script set before launch.
-      await p.initialize;
+      const p = await r.launchUrl('script.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/script.js')
       };
       await p.dap.setBreakpoints({source, breakpoints: [{line: 9, column: 0}]});
-      p.launchUrl('script.html');
+      p.load();
       await waitForPause(p);
       await waitForPause(p);
       p.assertLog();
     });
 
-    it('remove', async({p}: {p: TestP}) => {
+    it('remove', async({r}: {r: TestRoot}) => {
       // Breakpoint in separate script set before launch, but then removed.
-      await p.initialize;
+      const p = await r.launchUrl('script.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/script.js')
       };
       await p.dap.setBreakpoints({source, breakpoints: [{line: 2, column: 0}]});
-      p.launchUrl('script.html');
+      p.load();
       await waitForPause(p, async () => {
         await p.dap.setBreakpoints({source});
       });
@@ -59,31 +59,31 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('source map', async({p}: {p: TestP}) => {
+    it('source map', async({r}: {r: TestRoot}) => {
       // Breakpoint in source mapped script set before launch.
       // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
       // on 'pause before executing script with source map' functionality in CDP.
-      await p.initialize;
+      const p = await r.launchUrl('browserify/pause.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };
       await p.dap.setBreakpoints({source, breakpoints: [{line: 3}]});
-      p.launchUrl('browserify/pause.html');
+      p.load();
       await waitForPause(p);
       await waitForPause(p);
       p.assertLog();
     });
 
-    it('source map predicted', async({p}: {p: TestP}) => {
+    it('source map predicted', async({r}: {r: TestRoot}) => {
       // Breakpoint in source mapped script set before launch use breakpoints predictor.
-      await p.initialize;
+      const p = await r.launchUrl('browserify/pause.html');
       p.adapter.breakpointManagerForTest().setSourceMapPauseDisabledForTest(true);
       p.adapter.breakpointManagerForTest().setPredictorDisabledForTest(false);
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };
       p.dap.setBreakpoints({source, breakpoints: [{line: 3}]});
-      p.launchUrl('browserify/pause.html');
+      p.load();
       await waitForPause(p);
       await waitForPause(p);
       p.assertLog();
@@ -91,9 +91,10 @@ export function addTests(testRunner) {
   });
 
   describe('launched', () => {
-    it('inline', async({p}: {p: TestP}) => {
+    it('inline', async({r}: {r: TestRoot}) => {
       // Breakpoint in inline script set after launch.
-      p.launchUrl('inlinescriptpause.html');
+      const p = await r.launchUrl('inlinescriptpause.html');
+      p.load();
       await waitForPause(p, async () => {
         const source: Dap.Source = {
           path: p.workspacePath('web/inlinescriptpause.html')
@@ -104,9 +105,10 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('script', async({p}: {p: TestP}) => {
+    it('script', async({r}: {r: TestRoot}) => {
       // Breakpoint in separate script set after launch.
-      p.launchUrl('script.html');
+      const p = await r.launchUrl('script.html');
+      p.load();
       await waitForPause(p, async () => {
         const source: Dap.Source = {
           path: p.workspacePath('web/script.js')
@@ -117,9 +119,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('ref', async({p}: {p: TestP}) => {
+    it('ref', async({r}: {r: TestRoot}) => {
       // Breakpoint in eval script set after launch using source reference.
-      await p.launchUrl('index.html');
+      const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({expression: `
         function foo() {
           return 2;
@@ -133,9 +135,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('remove', async({p}: {p: TestP}) => {
+    it('remove', async({r}: {r: TestRoot}) => {
       // Breakpoint in eval script set after launch and immediately removed.
-      await p.launchUrl('index.html');
+      const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({expression: `
         function foo() {
           return 2;
@@ -150,9 +152,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('overwrite', async({p}: {p: TestP}) => {
+    it('overwrite', async({r}: {r: TestRoot}) => {
       // Breakpoint in eval script set after launch and immediately overwritten.
-      await p.launchUrl('index.html');
+      const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({expression: `
         function foo() {
           var x = 3;
@@ -169,9 +171,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('source map', async({p}: {p: TestP}) => {
+    it('source map', async({r}: {r: TestRoot}) => {
       // Breakpoint in source mapped script set after launch.
-      await p.launchUrl('browserify/browserify.html');
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };
@@ -183,9 +185,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('source map remove', async({p}: {p: TestP}) => {
+    it('source map remove', async({r}: {r: TestRoot}) => {
       // Breakpoint in source mapped script set after launch and immediately removed.
-      await p.launchUrl('browserify/browserify.html');
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts')
       };
@@ -196,10 +198,10 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('source map set compiled', async({p}: {p: TestP}) => {
+    it('source map set compiled', async({r}: {r: TestRoot}) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
-      await p.launchUrl('browserify/browserify.html');
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js')
       };
@@ -219,10 +221,10 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('source map set compiled 2', async({p}: {p: TestP}) => {
+    it('source map set compiled 2', async({r}: {r: TestRoot}) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
-      await p.launchUrl('browserify/browserify.html');
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js')
       };
@@ -240,8 +242,8 @@ export function addTests(testRunner) {
   });
 
   describe('logpoints', () => {
-    it('basic', async({p}: {p: TestP}) => {
-      await p.initialize;
+    it('basic', async({r}: {r: TestRoot}) => {
+      const p = await r.launchUrl('logging.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js')
       };
@@ -257,7 +259,7 @@ export function addTests(testRunner) {
         {line: 14, column: 0, logMessage: "const b=(x=>x+baz)(bar); `b=${b}`"},
         {line: 15, column: 0, logMessage: "'hi'"},
       ]});
-      p.launchUrl('logging.html');
+      p.load();
       const outputs: Dap.OutputEventParams[] = [];
       for (let i = 0; i < 20; i++) {
         outputs.push(await p.dap.once('output'));
@@ -268,9 +270,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('no double log', async({p}: {p: TestP}) => {
-      await p.initialize;
-      await p.launchUrl('logging.html');
+    it('no double log', async({r}: {r: TestRoot}) => {
+      const p = await r.launchUrlAndLoad('logging.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js')
       };
@@ -290,9 +291,9 @@ export function addTests(testRunner) {
   });
 
   describe('custom', () => {
-    it('inner html', async({p}: {p: TestP}) => {
+    it('inner html', async({r}: {r: TestRoot}) => {
       // Custom breakpoint for innerHtml.
-      await p.launchAndLoad('<div>text</div>');
+      const p = await r.launchAndLoad('<div>text</div>');
 
       p.log('Not pausing on innerHTML');
       await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);

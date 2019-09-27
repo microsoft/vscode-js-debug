@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from '../test';
+import {TestRoot, TestP} from '../test';
 import Dap from '../../dap/api';
 
 export function addTests(testRunner) {
@@ -21,8 +21,9 @@ export function addTests(testRunner) {
     p.log('---------');
   }
 
-  it('basic sources', async({p}: {p: TestP}) => {
-    p.launchUrl('inlinescript.html');
+  it('basic sources', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrl('inlinescript.html');
+    p.load();
     await dumpSource(p, await p.waitForSource('inline'), 'inline');
     p.addScriptTag('empty.js');
     await dumpSource(p, await p.waitForSource('empty.js'), 'empty.js');
@@ -36,8 +37,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('updated content', async({p}: {p: TestP}) => {
-    await p.launchUrl('index.html');
+  it('updated content', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('index.html');
     p.cdp.Runtime.evaluate({expression: 'content1//# sourceURL=test.js'});
     await dumpSource(p, await p.waitForSource('test'), 'test.js');
     p.cdp.Runtime.evaluate({expression: 'content2//# sourceURL=test.js'});
@@ -46,8 +47,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('basic source map', async({p}: {p: TestP}) => {
-    await p.launchUrl('index.html');
+  it('basic source map', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/bundle.js');
     const sources = await Promise.all([
       p.waitForSource('index.ts'),
@@ -59,16 +60,16 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('waiting for source map', async ({ p }: { p: TestP }) => {
-    await p.launchUrl('index.html');
+  it('waiting for source map', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchUrlAndLoad('index.html');
     await p.addScriptTag('browserify/bundle.js');
     p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
     await p.logger.logOutput(await p.dap.once('output'));
     p.assertLog();
   });
 
-  it('waiting for source map failure', async ({ p }: { p: TestP }) => {
-    await p.launchUrl('index.html');
+  it('waiting for source map failure', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchUrlAndLoad('index.html');
     p.adapter.sourceContainerForTest().setSourceMapTimeouts({
       load: 2000,
       resolveLocation: 0,
@@ -81,8 +82,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('url and hash', async({p}: {p: TestP}) => {
-    await p.launchUrl('index.html');
+  it('url and hash', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('index.html');
 
     p.cdp.Runtime.evaluate({expression: 'a\n//# sourceURL=foo.js'});
     await dumpSource(p, await p.waitForSource('foo.js'), 'foo.js');

@@ -5,7 +5,6 @@ import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
-import { BrowserTarget } from '../targets/browser/browserTargets';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import Dap from '../dap/api';
@@ -13,18 +12,18 @@ import DapConnection from '../dap/connection';
 import * as utils from '../utils/urlUtils';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { Binder, BinderDelegate } from '../binder';
+import { Binder } from '../binder';
 import { Target } from '../targets/targets';
-import { Disposable, EventEmitter } from '../utils/eventUtils';
-import { BrowserSourcePathResolver } from '../targets/browser/browserPathResolver';
-import { SourcePathResolver } from '../common/sourcePathResolver';
+import { EventEmitter } from '../utils/eventUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
-    this.push(chunk, encoding);
-    callback();
+    Promise.resolve().then().then().then().then().then().then().then().then().then().then().then(() => {
+      this.push(chunk, encoding);
+      callback();
+    });
   }
 
   _read(size: number) {
@@ -33,205 +32,72 @@ class Stream extends stream.Duplex {
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
 
-export class Session implements Disposable {
-  readonly debugAdapter: DebugAdapter;
+class Session {
   readonly dap: Dap.TestApi;
-  readonly logger: Logger;
+  readonly adapterConnection: DapConnection;
 
-  constructor(log: Log, binderDelegate: BinderDelegate | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor() {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
-    const adapterConnection = new DapConnection(testToAdapter, adapterToTest);
+    this.adapterConnection = new DapConnection(testToAdapter, adapterToTest);
     const testConnection = new DapConnection(adapterToTest, testToAdapter);
     this.dap = testConnection.createTestApi();
-
-    const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
-
-    this.debugAdapter = new DebugAdapter(adapterConnection.dap(), workspaceRoot, sourcePathResolver);
-    this.debugAdapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
-    this.debugAdapter.sourceContainerForTest().setSourceMapTimeouts({
-      load: 0,
-      resolveLocation: 2000,
-      scriptPaused: 1000,
-      output: 3000,
-    });
-
-    this.logger = new Logger(this.dap, log);
   }
 
-  dispose() {
-    this.debugAdapter.dispose();
+  async _init(): Promise<Dap.InitializeResult> {
+    const [r, ] = await Promise.all([
+      this.dap.initialize({
+        clientID: 'pwa-test',
+        adapterID: 'pwa',
+        linesStartAt1: true,
+        columnsStartAt1: true,
+        pathFormat: 'path',
+        supportsVariablePaging: true
+      }),
+      this.dap.once('initialized')
+    ]);
+    return r;
   }
 }
 
 export class TestP {
   readonly adapter: DebugAdapter;
   readonly dap: Dap.TestApi;
-  readonly initialize: Promise<Dap.InitializeResult>;
+  readonly logger: Logger;
   readonly log: Log;
   readonly assertLog: () => void;
-  _cdp: Cdp.Api | undefined;
-  _adapter: DebugAdapter | undefined;
 
-  private _root: Session;
-  private _sessions = new Map<DebugAdapter, Session>();
-  private _connection: CdpConnection | undefined;
+  private _session: Session;
+  private _root: TestRoot;
   private _evaluateCounter = 0;
-  private _workspaceRoot: string;
-  private _webRoot: string | undefined;
-  private _launchUrl: string | undefined;
-  private _args: string[];
-  private _blackboxPattern?: string;
-  private _worker: Promise<Session>;
-  private _workerCallback: (session: Session) => void;
-  readonly logger: Logger;
+  private _connection: CdpConnection | undefined;
+  private _cdp: Cdp.Api | undefined;
+  private _target: Target;
 
-  private _browserLauncher: BrowserLauncher;
-  readonly binder: Binder;
+  constructor(root: TestRoot, target: Target) {
+    this._root = root;
+    this._target = target;
+    this.log = root.log;
+    this.assertLog = root.assertLog;
+    this._session = new Session();
+    this.dap = this._session.dap;
 
-  private _onSessionCreatedEmitter = new EventEmitter<Session>();
-  readonly onSessionCreated = this._onSessionCreatedEmitter.event;
+    const workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
 
-  constructor(goldenText: GoldenText) {
-    this._args = ['--headless'];
-    this.log = goldenText.log.bind(goldenText);
-    this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
-    this._webRoot = path.join(this._workspaceRoot, 'web');
-
-    this._root = new Session(this.log, this, new BrowserSourcePathResolver('http://localhost:8001/', this._webRoot));
-    this._sessions.set(this._root.debugAdapter, this._root);
-    this.dap = this._root.dap;
-    this.adapter = this._root.debugAdapter;
-    this.logger = this._root.logger;
-
-    const storagePath = path.join(__dirname, '..', '..');
-    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
-    this.binder = new Binder(this, this.adapter, [this._browserLauncher], '0');
-    this.binder.considerLaunchedForTest(this._browserLauncher);
-
-    this.initialize = this.dap.initialize({
-      clientID: 'pwa-test',
-      adapterID: 'pwa',
-      linesStartAt1: true,
-      columnsStartAt1: true,
-      pathFormat: 'path',
-      supportsVariablePaging: true
+    this.adapter = new DebugAdapter(this._session.adapterConnection.dap(), workspaceRoot, target.sourcePathResolver());
+    this.adapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
+    this.adapter.sourceContainerForTest().setSourceMapTimeouts({
+      load: 0,
+      resolveLocation: 2000,
+      scriptPaused: 1000,
+      output: 3000,
     });
 
-    this._workerCallback = () => {};
-    this._worker = new Promise(f => this._workerCallback = f);
-  }
-
-  _disposeSessions() {
-    for (const session of this._sessions.values())
-      session.dispose();
-    this._sessions.clear();
-  }
-
-  async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
-    if (this._blackboxPattern)
-      target.blackboxPattern = () => this._blackboxPattern;
-
-    if (!target.parent())
-      return this._root.debugAdapter;
-
-    const session = new Session(this.log, undefined, target.sourcePathResolver());
-    this._sessions.set(session.debugAdapter, session);
-    session.dap.initialize({
-      clientID: 'pwa-test',
-      adapterID: 'pwa',
-      linesStartAt1: true,
-      columnsStartAt1: true,
-      pathFormat: 'path',
-      supportsVariablePaging: true
-    });
-    session.dap.configurationDone({});
-    this._workerCallback(session);
-    this._onSessionCreatedEmitter.fire(session);
-    return session.debugAdapter;
-  }
-
-  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
-    const session = this._sessions.get(debugAdapter)!;
-    session.dispose();
-    this._sessions.delete(debugAdapter);
+    this.logger = new Logger(this.dap, this.log);
   }
 
   get cdp(): Cdp.Api {
     return this._cdp!;
-  }
-
-  setArgs(args: string[]) {
-    this._args = args;
-  }
-
-  setBlackboxPattern(blackboxPattern?: string) {
-    this._blackboxPattern = blackboxPattern;
-  }
-
-  worker(): Promise<Session> {
-    return this._worker;
-  }
-
-  async _launch(url: string): Promise<BrowserTarget> {
-    await this.initialize;
-    await this.dap.configurationDone({});
-    await this.adapter.launchBlocker();
-    this._launchUrl = url;
-    const mainTarget = (await this._browserLauncher.prepareLaunch({url, webRoot: this._webRoot, browserArgs: this._args}, undefined)) as BrowserTarget;
-    this._connection = this._browserLauncher.connectionForTest()!;
-    const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
-    const testSession = this._connection.createSession(result!.sessionId);
-    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: mainTarget.id(), flatten: true }))!;
-    this._cdp = this._connection.createSession(sessionId);
-    return mainTarget;
-  }
-
-  async launch(content: string): Promise<void> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
-    const mainTarget = await this._launch(url);
-    await this._browserLauncher.finishLaunch(mainTarget);
-  }
-
-  async launchAndLoad(content: string): Promise<void> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
-    const mainTarget = await this._launch(url);
-    await this.cdp.Page.enable({});
-    await Promise.all([
-      this._browserLauncher.finishLaunch(mainTarget),
-      new Promise(f => this.cdp.Page.on('loadEventFired', f))
-    ]);
-    await this.cdp.Page.disable({});
-  }
-
-  async launchUrl(url: string) {
-    url = utils.completeUrl('http://localhost:8001/', url) || url;
-    const mainTarget = await this._launch(url);
-    await this.cdp.Page.enable({});
-    await Promise.all([
-      this._browserLauncher.finishLaunch(mainTarget),
-      new Promise(f => this.cdp.Page.on('loadEventFired', f))
-    ]);
-    await this.cdp.Page.disable({});
-  }
-
-  async disconnect(): Promise<void> {
-    return new Promise<void>(cb => {
-      this.initialize.then(() => {
-        if (this._connection) {
-          const disposable = this._connection.onDisconnected(() => {
-            this._disposeSessions();
-            cb();
-            disposable.dispose();
-          });
-        } else {
-          this._disposeSessions();
-          cb();
-        }
-        this.dap.disconnect({});
-      });
-    });
   }
 
   async evaluate(expression: string, sourceUrl?: string): Promise<Cdp.Runtime.EvaluateResult> {
@@ -240,8 +106,8 @@ export class TestP {
     if (sourceUrl === undefined)
       sourceUrl = `//# sourceURL=eval${this._evaluateCounter}.js`;
     else if (sourceUrl)
-      sourceUrl = `//# sourceURL=${utils.completeUrl(this._launchUrl, sourceUrl)}`;
-    return this.cdp.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(result => {
+      sourceUrl = `//# sourceURL=${this.completeUrl(sourceUrl)}`;
+    return this._cdp!.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(result => {
       if (!result) {
         this.log(expression, 'Error evaluating');
         debugger;
@@ -255,15 +121,11 @@ export class TestP {
     });
   }
 
-  completeUrl(relativePath: string): string {
-    return utils.completeUrl(this._launchUrl, relativePath) || '';
-  }
-
   async addScriptTag(relativePath: string): Promise<void> {
-    await this.cdp.Runtime.evaluate({expression: `
+    await this._cdp!.Runtime.evaluate({expression: `
       new Promise(f => {
         var script = document.createElement('script');
-        script.src = '${this.completeUrl(relativePath)}';
+        script.src = '${this._root.completeUrl(relativePath)}';
         script.onload = () => f(undefined);
         document.head.appendChild(script);
       })
@@ -274,6 +136,192 @@ export class TestP {
     return this.dap.once('loadedSource', event => {
       return filter === undefined || (event.source.path || '').indexOf(filter) !== -1;
     });
+  }
+
+  completeUrl(relativePath: string): string {
+    return this._root.completeUrl(relativePath);
+  }
+
+  workspacePath(relative: string): string {
+    return this._root.workspacePath(relative);
+  }
+
+  async _init() {
+    this._connection = this._root._browserLauncher.connectionForTest()!;
+    const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
+    const testSession = this._connection.createSession(result!.sessionId);
+    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: this._target.id(), flatten: true }))!;
+    this._cdp = this._connection.createSession(sessionId);
+    await this._session._init();
+    if (this._target.parent()) {
+      this.dap.configurationDone({});
+      this.dap.attach({});
+    }
+  }
+
+  async load() {
+    await this.dap.configurationDone({});
+    await this.dap.attach({});
+    this._cdp!.Page.enable({});
+    this._cdp!.Page.navigate({ url: this._root._launchUrl! });
+    await new Promise(f => this._cdp!.Page.on('loadEventFired', f));
+    await this._cdp!.Page.disable({});
+  }
+}
+
+export class TestRoot {
+  readonly initialize: Promise<Dap.InitializeResult>;
+  readonly log: Log;
+  readonly assertLog: () => void;
+
+  private _adapters = new Set<DebugAdapter>();
+  private _root: Session;
+  private _workspaceRoot: string;
+  private _webRoot: string | undefined;
+  _launchUrl: string | undefined;
+  private _args: string[];
+  private _blackboxPattern?: string;
+
+  private _worker: Promise<TestP>;
+  private _workerCallback: (session: TestP) => void;
+  private _launchCallback: (session: TestP) => void;
+
+  _browserLauncher: BrowserLauncher;
+  readonly binder: Binder;
+
+  private _onSessionCreatedEmitter = new EventEmitter<TestP>();
+  readonly onSessionCreated = this._onSessionCreatedEmitter.event;
+
+  constructor(goldenText: GoldenText) {
+    this._args = ['--headless'];
+    this.log = goldenText.log.bind(goldenText);
+    this.assertLog = goldenText.assertLog.bind(goldenText);
+    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
+    this._webRoot = path.join(this._workspaceRoot, 'web');
+
+    this._root = new Session();
+    const rootDap = this._root.adapterConnection.dap();
+    rootDap.on('initialize', async () => {
+      rootDap.initialized({});
+      return DebugAdapter.capabilities();
+    });
+    rootDap.on('configurationDone', async () => {
+      return {};
+    });
+
+    const storagePath = path.join(__dirname, '..', '..');
+    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
+    this.binder = new Binder(this, rootDap, [this._browserLauncher], '0');
+    this.binder.considerLaunchedForTest(this._browserLauncher);  /// !!!!
+
+    this.initialize = this._root._init();
+
+    this._launchCallback = () => {};
+    this._workerCallback = () => {};
+    this._worker = new Promise(f => this._workerCallback = f);
+  }
+
+  _disposeSessions() {
+    for (const adapter of this._adapters)
+      adapter.dispose();
+    this._adapters.clear();
+  }
+
+  async acquireDebugAdapter(target: Target): Promise<DebugAdapter> {
+    if (this._blackboxPattern)
+      target.blackboxPattern = () => this._blackboxPattern;
+
+    const p = new TestP(this, target);
+    this._adapters.add(p.adapter);
+    await p._init();
+    if (target.parent())
+      this._workerCallback(p);
+    else
+      this._launchCallback(p);
+    this._onSessionCreatedEmitter.fire(p);
+    await new Promise(f => {
+      p.adapter.dap.on('attach', async () => {
+        f();
+        return {};
+      });
+    })
+    return p.adapter;
+  }
+
+  releaseDebugAdapter(target: Target, debugAdapter: DebugAdapter) {
+    debugAdapter.dispose();
+    this._adapters.delete(debugAdapter);
+  }
+
+  setArgs(args: string[]) {
+    this._args = args;
+  }
+
+  setBlackboxPattern(blackboxPattern?: string) {
+    this._blackboxPattern = blackboxPattern;
+  }
+
+  worker(): Promise<TestP> {
+    return this._worker;
+  }
+
+  async _launch(url: string): Promise<TestP> {
+    await this.initialize;
+    this._launchUrl = url;
+    this._root.dap.launch({
+      url,
+      browserArgs: this._args,
+      webRoot: this._webRoot,
+      skipNavigateForTest: true
+    } as Dap.LaunchParams);
+    return new Promise(f => this._launchCallback = f);
+  }
+
+  async launch(content: string): Promise<TestP> {
+    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    return this._launch(url);
+  }
+
+  async launchAndLoad(content: string): Promise<TestP> {
+    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    const p = await this._launch(url);
+    await p.load();
+    return p;
+  }
+
+  async launchUrl(url: string): Promise<TestP> {
+    url = utils.completeUrl('http://localhost:8001/', url) || url;
+    return await this._launch(url);
+  }
+
+  async launchUrlAndLoad(url: string): Promise<TestP> {
+    url = utils.completeUrl('http://localhost:8001/', url) || url;
+    const p = await this._launch(url);
+    await p.load();
+    return p;
+  }
+
+  async disconnect(): Promise<void> {
+    return new Promise<void>(cb => {
+      this.initialize.then(() => {
+        const connection = this._browserLauncher.connectionForTest();
+        if (connection) {
+          const disposable = connection.onDisconnected(() => {
+            this._disposeSessions();
+            cb();
+            disposable.dispose();
+          });
+        } else {
+          this._disposeSessions();
+          cb();
+        }
+        this._root.dap.disconnect({});
+      });
+    });
+  }
+
+  completeUrl(relativePath: string): string {
+    return utils.completeUrl(this._launchUrl, relativePath) || '';
   }
 
   workspacePath(relative: string): string {

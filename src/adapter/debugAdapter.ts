@@ -62,6 +62,10 @@ export class DebugAdapter {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     this.dap.initialized({});
+    return DebugAdapter.capabilities();
+  }
+
+  static capabilities(): Dap.Capabilities {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,

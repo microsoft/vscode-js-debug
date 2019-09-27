@@ -120,7 +120,7 @@ export class BrowserLauncher implements Launcher {
   }
 
   async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    if (this._launchParams!.url)
+    if (this._launchParams!.url && !this._launchParams!['skipNavigateForTest'])
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 

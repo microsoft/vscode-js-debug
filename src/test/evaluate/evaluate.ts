@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from '../test';
+import {TestRoot} from '../test';
 import * as sourceUtils from '../../utils/sourceUtils';
 import Dap from '../../dap/api';
 
@@ -9,8 +9,8 @@ export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const {it, fit, xit} = testRunner;
 
-  it('default', async ({ p }: { p: TestP }) => {
-    await p.launchUrl('index.html');
+  it('default', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchUrlAndLoad('index.html');
 
     await p.logger.evaluateAndLog(`42`);
     p.log('');
@@ -59,8 +59,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('repl', async ({ p }: { p: TestP }) => {
-    await p.launchUrl('index.html');
+  it('repl', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchUrlAndLoad('index.html');
 
     p.dap.evaluate({expression: `42`, context: 'repl'});
     await p.logger.logOutput(await p.dap.once('output'));
@@ -128,8 +128,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('copy', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('copy', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.dap.evaluate({expression: 'var x = "hello"; copy(x)'});
     p.log(await p.dap.once('copyRequested'));
     p.dap.evaluate({expression: 'copy(123n)'});
@@ -141,15 +141,15 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('inspect', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('inspect', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.dap.evaluate({expression: 'function foo() {}; inspect(foo)\n//# sourceURL=test.js'});
     p.log(await p.dap.once('revealLocationRequested'));
     p.assertLog();
   });
 
-  it('queryObjects', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('queryObjects', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     await p.dap.evaluate({expression: `
       class Foo {
         constructor(value) {
@@ -164,8 +164,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('rewriteTopLevelAwait', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('rewriteTopLevelAwait', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     const tests = [
       '0',
       'await 0',
@@ -206,8 +206,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('topLevelAwait', async({p} : {p: TestP}) => {
-    await p.launchAndLoad(`
+  it('topLevelAwait', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad(`
       <script>
         function foo(x) {
           return x;
@@ -264,8 +264,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('output slots', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('output slots', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({expression: 'let i = 0; console.log(++i); ++i', context: 'repl'});
     const console = await p.dap.once('output');
     const result = await p.dap.once('output');
@@ -275,8 +275,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('output slots 2', async({p} : {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('output slots 2', async({r} : {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({expression: `
       let i = 0;
       setTimeout(() => {
@@ -295,8 +295,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('selected context', async({p} : {p: TestP}) => {
-    await p.launchUrl('worker.html');
+  it('selected context', async({r} : {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('worker.html');
     p.log('--- Evaluating in page');
     p.log('Pausing...');
     p.dap.evaluate({ expression: `window.w.postMessage('pause');`, context: 'repl' });
@@ -310,7 +310,7 @@ export function addTests(testRunner) {
 
     p.log('--- Evaluating in worker');
     p.dap.evaluate({expression: `window.w.postMessage('pauseWorker');`, context: 'repl'});
-    const worker = await p.worker();
+    const worker = await r.worker();
     const {threadId: workerThreadId} = await worker.dap.once('stopped');
     p.log('Paused');
     const { id: workerFrameId } = (await worker.dap.stackTrace({ threadId: workerThreadId! })).stackFrames[0];
@@ -322,8 +322,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('cd', async ({ p }: { p: TestP }) => {
-    await p.launchUrl('index.html');
+  it('cd', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchUrlAndLoad('index.html');
 
     async function logCompletions(params: Dap.CompletionsParams) {
       const completions = await p.dap.completions(params);

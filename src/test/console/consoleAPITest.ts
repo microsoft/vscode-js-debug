@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from '../test';
+import { TestRoot } from '../test';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
   describe('format', () => {
-    it('format string', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`blank`);
+    it('format string', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`blank`);
       await p.logger.evaluateAndLog([
         `console.log('Log')`,
         `console.info('Info')`,
@@ -25,8 +25,8 @@ export function addTests(testRunner) {
     });
   });
 
-  it('format string', async ({ p }: { p: TestP }) => {
-    await p.launchAndLoad(`<script>
+  it('format string', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`<script>
     var peopleObject = {
       one: ["John", "Smith"],
       two: ["Jane", "Doe"],

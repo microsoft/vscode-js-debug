@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from '../test';
+import { TestRoot } from '../test';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const {it, fit, xit} = testRunner;
 
-  it('initialize', async({p} : {p: TestP}) => {
-    p.log(await p.initialize);
-    p.assertLog();
+  it('initialize', async({r} : {r: TestRoot}) => {
+    r.log(await r.initialize);
+    r.assertLog();
   });
 }
 

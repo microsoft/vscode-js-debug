@@ -41,7 +41,7 @@ export class Session implements Disposable {
           new BrowserLauncher(context.storagePath || context.extensionPath, rootPath),
           new BrowserAttacher(rootPath),
         ];
-        this._binder = new Binder(binderDelegate, this._debugAdapter, launchers, debugSession.id);
+        this._binder = new Binder(binderDelegate, this._debugAdapter.dap, launchers, debugSession.id);
       }
 
       callback(this._debugAdapter);

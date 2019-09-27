@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from './test';
+import {TestRoot} from './test';
 import {GoldenText} from './goldenText';
 import * as child_process from 'child_process';
 import * as path from 'path';
@@ -10,7 +10,7 @@ import {TestRunner, Reporter} from '@pptr/testrunner';
 
 export async function run(): Promise<void> {
   const testRunner = new TestRunner({
-    timeout: 30000,
+    timeout: 300000,
     // Somehow "inspector" is always enabled in this electron context.
     disableTimeoutWhenInspectorIsEnabled: false,
   });
@@ -42,14 +42,14 @@ export async function run(): Promise<void> {
   });
 
   await describe('tests', async () => {
-    beforeEach(async (state: {goldenText: GoldenText, p: TestP}) => {
-      state.p = new TestP(state.goldenText);
-      await state.p.initialize;
+    beforeEach(async (state: {goldenText: GoldenText, r: TestRoot}) => {
+      state.r = new TestRoot(state.goldenText);
+      await state.r.initialize;
     });
 
-    afterEach(async (state) => {
-      await state.p.disconnect();
-      delete state.p;
+    afterEach(async (state: {r: TestRoot}) => {
+      await state.r.disconnect();
+      delete state.r;
     });
 
     (await import('./infra/infra')).addTests(testRunner);

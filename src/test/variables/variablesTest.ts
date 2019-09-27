@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from '../test';
+import { TestRoot } from '../test';
 import Dap from '../../dap/api';
 import { Logger } from '../logger';
 
@@ -10,26 +10,27 @@ export function addTests(testRunner) {
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
   describe('basic', () => {
-    it('basic object', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
+    it('basic object', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('({a: 1})');
       p.assertLog();
     });
 
-    it('simple log', async ({ p }: { p: TestP }) => {
-      p.launchAndLoad(`
+    it('simple log', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launch(`
         <script>
           console.log('Hello world');
         </script>`);
+      p.load();
       await p.logger.logOutput(await p.dap.once('output'));
       p.assertLog();
     });
 
-    it('clear console', async ({ p }: { p: TestP }) => {
+    it('clear console', async ({ r }: { r: TestRoot }) => {
       let complete: () => void;
       const result = new Promise(f => complete = f);
       let chain = Promise.resolve();
-      p.launchAndLoad(`
+      const p = await r.launch(`
         <script>
         console.clear();
         console.log('Hello world');
@@ -39,6 +40,7 @@ export function addTests(testRunner) {
         console.clear();
         console.error('DONE');
         </script>`);
+      p.load();
       p.dap.on('output', async params => {
         chain = chain.then(async () => {
           if (params.category === 'stderr')
@@ -54,20 +56,20 @@ export function addTests(testRunner) {
   });
 
   describe('object', () => {
-    it('simple array', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
+    it('simple array', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true});
       p.assertLog();
     });
 
-    it('large array', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
+    it('large array', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', { logInternalInfo: true });
       p.assertLog();
     });
 
-    it('get set', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
+    it('get set', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         const a = {};
         Object.defineProperty(a, 'getter', { get: () => {} });
@@ -77,8 +79,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('deep accessor', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad('blank');
+    it('deep accessor', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         class Foo { get getter() {} }
         class Bar extends Foo { }
@@ -88,8 +90,8 @@ export function addTests(testRunner) {
   });
 
   describe('web', () => {
-    it('tags', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`<head>
+    it('tags', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
       </head>`);
@@ -99,11 +101,11 @@ export function addTests(testRunner) {
   });
 
   describe('multiple threads', () => {
-    it('worker', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('worker.html');
+    it('worker', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('worker.html');
       const outputs: {output: Dap.OutputEventParams, logger: Logger}[] = [];
       outputs.push({output: await p.dap.once('output'), logger: p.logger});
-      const worker = await p.worker();
+      const worker = await r.worker();
       outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
       outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
       outputs.sort((a, b) => a.output.source!.name!.localeCompare(b.output.source!.name!));
@@ -114,8 +116,8 @@ export function addTests(testRunner) {
   });
 
   describe('setVariable', () => {
-    it('basic', async({p} : {p: TestP}) => {
-      await p.launchAndLoad('blank');
+    it('basic', async({r} : {r: TestRoot}) => {
+      const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
       p.log(`\nSetting "foo" to "{bar: 17}"`);
@@ -131,8 +133,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('scope', async({p} : {p: TestP}) => {
-      await p.launchAndLoad('blank');
+    it('scope', async({r} : {r: TestRoot}) => {
+      const p = await r.launchAndLoad('blank');
       p.cdp.Runtime.evaluate({expression: `
         (function foo() {
           let y = 'value of y';

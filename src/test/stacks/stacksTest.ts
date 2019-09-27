@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from '../test';
+import {TestRoot, TestP} from '../test';
 
 export function addTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
@@ -13,21 +13,22 @@ export function addTests(testRunner) {
     await p.dap.continue({threadId: event.threadId!});
   }
 
-  it('eval in anonymous', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('eval in anonymous', async({r}: {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: '\n\ndebugger;\n//# sourceURL=eval.js'});
     await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 
-  it('anonymous initial script', async({p}: {p: TestP}) => {
-    p.launch('<script>debugger;</script>');
+  it('anonymous initial script', async({r}: {r: TestRoot}) => {
+    const p = await r.launch('<script>debugger;</script>');
+    p.load();
     await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 
-  it('anonymous scopes', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('anonymous scopes', async({r}: {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `
       function paused() {
         let y = 'paused';
@@ -47,8 +48,8 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('async', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('async', async({r}: {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `
       function foo(n) {
         if (!n) {
@@ -69,30 +70,30 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('cross target', async({p}: {p: TestP}) => {
-    await p.launchUrl('worker.html');
+  it('cross target', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('worker.html');
     p.cdp.Runtime.evaluate({expression: `window.w.postMessage('pause')`});
     await dumpStackAndContinue(p, true);
     p.assertLog();
   });
 
-  it('source map', async({p}: {p: TestP}) => {
-    await p.launchUrl('index.html');
+  it('source map', async({r}: {r: TestRoot}) => {
+    const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/pause.js');
     await dumpStackAndContinue(p, true);
     p.assertLog();
   });
 
-  it('blackboxed', async({p}: {p: TestP}) => {
-    p.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
-    await p.launchUrl('index.html');
+  it('blackboxed', async({r}: {r: TestRoot}) => {
+    r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
+    const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/pause.js');
     await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 
-  it('return value', async({p}: {p: TestP}) => {
-    await p.launchAndLoad('blank');
+  it('return value', async({r}: {r: TestRoot}) => {
+    const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({expression: `
       function foo() {
         debugger;

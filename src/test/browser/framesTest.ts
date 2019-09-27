@@ -1,16 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from '../test';
+import { TestRoot } from '../test';
 import { Target } from '../../targets/targets';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
-  it('hierarchy', async ({ p }: { p: TestP }) => {
-    p.setArgs(['--site-per-process']);
-    p.launchUrl('frames.html');
+  it('hierarchy', async ({ r }: { r: TestRoot }) => {
+    r.setArgs(['--site-per-process']);
+    const p = await r.launchUrl('frames.html');
+    p.load();
 
     const logTarget = (t: Target, indent: number) => {
       const s = ' '.repeat(indent);
@@ -23,12 +24,12 @@ export function addTests(testRunner) {
     };
 
     await new Promise(f => {
-      p.onSessionCreated(() => {
-        if (p.binder.targetList().length === 11)
+      r.onSessionCreated(() => {
+        if (r.binder.targetList().length === 11)
           f();
       });
     });
-    p.binder.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
+    r.binder.targetList().filter(t => !t.parent()).forEach(target => logTarget(target, 0));
 
     p.assertLog();
   });

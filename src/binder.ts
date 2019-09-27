@@ -6,6 +6,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { Launcher, Target } from './targets/targets';
 import * as errors from './dap/errors';
+import Dap from './dap/api';
 
 export interface BinderDelegate {
   acquireDebugAdapter(target: Target): Promise<DebugAdapter>;
@@ -20,12 +21,12 @@ export class Binder implements Disposable {
   private _terminationCount = 0;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
-  private _debugAdapter: DebugAdapter;
+  private _dap: Dap.Api;
   private _targetOrigin: any;
 
-  constructor(delegate: BinderDelegate, debugAdapter: DebugAdapter, launchers: Launcher[], targetOrigin: any) {
+  constructor(delegate: BinderDelegate, dap: Dap.Api, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
-    this._debugAdapter = debugAdapter;
+    this._dap = dap;
     this._targetOrigin = targetOrigin;
     this._disposables = [this._onTargetListChangedEmitter];
 
@@ -39,22 +40,22 @@ export class Binder implements Disposable {
       }, undefined, this._disposables);
     }
 
-    debugAdapter.dap.on('launch', async params => {
+    dap.on('launch', async params => {
       let results = await Promise.all(launchers.map(l => this._launch(l, params)));
       results = results.filter(result => !!result);
       if (results.length)
         return errors.createUserError(results.join('\n'));
       return {};
     });
-    debugAdapter.dap.on('terminate', async () => {
+    dap.on('terminate', async () => {
       await Promise.all([...this._launchers].map(l => l.terminate()));
       return {};
     });
-    debugAdapter.dap.on('disconnect', async () => {
+    dap.on('disconnect', async () => {
       await Promise.all([...this._launchers].map(l => l.disconnect()));
       return {};
     });
-    debugAdapter.dap.on('restart', async () => {
+    dap.on('restart', async () => {
       await this._restart();
       return {};
     });
@@ -84,7 +85,7 @@ export class Binder implements Disposable {
       this._onTargetListChangedEmitter.fire();
       --this._terminationCount;
       if (!this._terminationCount)
-        this._debugAdapter.dap.terminated({});
+        this._dap.terminated({});
     }, undefined, this._disposables);
   }
 
@@ -123,25 +124,23 @@ export class Binder implements Disposable {
       return;
     const debugAdapter = await this._delegate.acquireDebugAdapter(target);
     await debugAdapter.launchBlocker();
-    if (debugAdapter !== this._debugAdapter) {
-      debugAdapter.dap.on('disconnect', async () => {
-        if (target.canStop())
-          target.stop();
-        return {};
-      });
-      debugAdapter.dap.on('terminate', async () => {
-        if (target.canStop())
-          target.stop();
-        return {};
-      });
-      debugAdapter.dap.on('restart', async () => {
-        if (target.canRestart())
-          target.restart();
-        else
-          await this._restart();
-        return {};
-      });
-    }
+    debugAdapter.dap.on('disconnect', async () => {
+      if (target.canStop())
+        target.stop();
+      return {};
+    });
+    debugAdapter.dap.on('terminate', async () => {
+      if (target.canStop())
+        target.stop();
+      return {};
+    });
+    debugAdapter.dap.on('restart', async () => {
+      if (target.canRestart())
+        target.restart();
+      else
+        await this._restart();
+      return {};
+    });
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     cdp.Runtime.runIfWaitingForDebugger({});

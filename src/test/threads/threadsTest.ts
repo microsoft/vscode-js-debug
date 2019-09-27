@@ -1,31 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestP} from '../test';
+import {TestRoot, TestP} from '../test';
 
 export function addTests(testRunner) {
   // @ts-ignore unused variables xit/fit.
   const {it, xit, fit, describe, fdescribe, xdescribe} = testRunner;
 
   describe('threads', () => {
-    it('paused', async({p} : {p: TestP}) => {
-      await p.launchUrl('index.html');
+    it('paused', async({r} : {r: TestRoot}) => {
+      const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({expression: 'debugger;'});
       await p.dap.once('stopped');
       p.log(await p.dap.threads({}));
       p.assertLog();
     });
 
-    it('not paused', async({p}: {p: TestP}) => {
-      await p.launchUrl('index.html');
+    it('not paused', async({r}: {r: TestRoot}) => {
+      const p = await r.launchUrlAndLoad('index.html');
       p.log(await p.dap.threads({}));
       p.assertLog();
     });
   });
 
   describe('stepping', () => {
-    it('basic', async({p} : {p: TestP}) => {
-      await p.launchUrl('index.html');
+    it('basic', async({r} : {r: TestRoot}) => {
+      const p = await r.launchUrlAndLoad('index.html');
       p.evaluate(`
         function bar() {
           return 2;
@@ -78,8 +78,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('worker.html');
+    it('cross thread', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('worker.html');
 
       p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w.postMessage('message')\n//# sourceURL=test.js`});
       const {threadId} = p.log(await p.dap.once('stopped'));
@@ -96,7 +96,7 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const worker = await p.worker();
+      const worker = await r.worker();
       const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
       await worker.logger.logStackTrace(secondThreadId);
 
@@ -106,8 +106,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread constructor', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('index.html');
+    it('cross thread constructor', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({expression: `
         debugger;
@@ -126,7 +126,7 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const worker = await p.worker();
+      const worker = await r.worker();
       const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
       await worker.logger.logStackTrace(secondThreadId);
 
@@ -136,8 +136,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread skip over tasks', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('index.html');
+    it('cross thread skip over tasks', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({expression: `
         window.p = new Promise(f => window.cb = f);
@@ -172,8 +172,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread constructor source map', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('index.html');
+    it('cross thread constructor source map', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({expression: `debugger;\nwindow.w = new Worker('workerSourceMap.js');\n//# sourceURL=test.js`});
       const {threadId} = p.log(await p.dap.once('stopped'));
@@ -190,7 +190,7 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const worker = await p.worker();
+      const worker = await r.worker();
       const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
       await worker.logger.logStackTrace(secondThreadId);
 
@@ -200,8 +200,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('cross thread source map', async ({ p }: { p: TestP }) => {
-      await p.launchUrl('index.html');
+    it('cross thread source map', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({expression: `
         window.w = new Worker('workerSourceMap.js');
@@ -221,7 +221,7 @@ export function addTests(testRunner) {
       p.log('\nstep in');
       p.dap.stepIn({threadId});
       p.log(await p.dap.once('continued'));
-      const worker = await p.worker();
+      const worker = await r.worker();
       const {threadId: secondThreadId} = p.log(await worker.dap.once('stopped'));
       await worker.logger.logStackTrace(secondThreadId);
 
@@ -239,8 +239,8 @@ export function addTests(testRunner) {
       p.log(await p.dap.continue({threadId: event.threadId}));
     }
 
-    it('cases', async({p}: {p: TestP}) => {
-      await p.launchAndLoad('blank');
+    it('cases', async({r}: {r: TestRoot}) => {
+      const p = await r.launchAndLoad('blank');
 
       p.log('Not pausing on exceptions');
       await p.dap.setExceptionBreakpoints({filters: []});
@@ -262,10 +262,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('configuration', async({p}: {p: TestP}) => {
-      await p.initialize;
-      await p.dap.setExceptionBreakpoints({filters: ['uncaught']});
-      p.launch(`
+    it('configuration', async({r}: {r: TestRoot}) => {
+      const  p = await r.launch(`
         <script>
           try {
             throw new Error('this error is caught');
@@ -274,6 +272,8 @@ export function addTests(testRunner) {
           throw new Error('this error is uncaught');
         </script>
       `);
+      await p.dap.setExceptionBreakpoints({filters: ['uncaught']});
+      p.load();
       await waitForPauseOnException(p);
       p.assertLog();
     });

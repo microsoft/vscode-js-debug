@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestP } from '../test';
+import { TestRoot } from '../test';
 
 export function addTests(testRunner) {
   // @ts-ignore unused xit/fit variables.
   const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
 
   describe('format', () => {
-    it('format string', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('format string', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;
           array.foo = {};
@@ -30,8 +30,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('popular types', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('popular types', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <p id="p"></p>
         <script>
           // Populate Globals
@@ -104,8 +104,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('collections', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('collections', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <div style="display:none" class="c1 c2 c3">
           <form id="f">
               <select id="sel" name="sel">
@@ -162,8 +162,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('es6', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('es6', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <script>
           var p = Promise.reject(-0);
           p.catch(function() {});
@@ -223,8 +223,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('es6-2', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('es6-2', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <script>
           var map2 = new Map();
           map2.set(41, 42);
@@ -251,8 +251,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('array', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('array', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
           var a1 = []; a1.length = 1;
@@ -282,8 +282,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('class', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`
+    it('class', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
           var a1 = []; a1.length = 1;
@@ -313,8 +313,8 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('colors', async ({ p }: { p: TestP }) => {
-      await p.launchAndLoad(`blank`);
+    it('colors', async ({ r }: { r: TestRoot }) => {
+      const p = await r.launchAndLoad(`blank`);
 
       await p.logger.evaluateAndLog([
         `console.log('%cColors are awesome.', 'color: blue;')`,
