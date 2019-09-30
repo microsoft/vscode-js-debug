@@ -208,25 +208,6 @@ export class TestRoot {
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
     this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher], this._workspaceRoot, '0');
-    this.binder.installTestHook(async (target: Target, adapter: DebugAdapter) => {
-      const p = this._targetToP.get(target);
-      if (p) {
-        adapter.breakpointManagerForTest().setPredictorDisabledForTest(true);
-        adapter.sourceContainerForTest().setSourceMapTimeouts({
-          load: 0,
-          resolveLocation: 2000,
-          scriptPaused: 1000,
-          output: 3000,
-        });
-        p._adapter = adapter;
-        await p._init();
-        if (target.parent())
-          this._workerCallback(p);
-        else
-          this._launchCallback(p);
-        this._onSessionCreatedEmitter.fire(p);
-      }
-    });
 
     this.initialize = this._root._init();
 
@@ -242,6 +223,27 @@ export class TestRoot {
     const p = new TestP(this, target);
     this._targetToP.set(target, p);
     return p._session.adapterConnection;
+  }
+
+  async initAdapter(adapter: DebugAdapter, target: Target): Promise<boolean> {
+    const p = this._targetToP.get(target);
+    if (p) {
+      adapter.breakpointManager.setPredictorDisabledForTest(true);
+      adapter.sourceContainer.setSourceMapTimeouts({
+        load: 0,
+        resolveLocation: 2000,
+        scriptPaused: 1000,
+        output: 3000,
+      });
+      p._adapter = adapter;
+      await p._init();
+      if (target.parent())
+        this._workerCallback(p);
+      else
+        this._launchCallback(p);
+      this._onSessionCreatedEmitter.fire(p);
+    }
+    return false;
   }
 
   releaseDap(target: Target) {

@@ -1,24 +1,47 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "type": "node",
-        "request": "launch",
-        "name": "Launch Program",
-        "program": "${workspaceFolder}/dummy.js"
-      },
-        {
-          "type": "pwa",
-          "request": "launch",
-          "name": "Client/Server",
-          "command": "node_modules/.bin/serve -p 5002 ./out",
-          "url": "http://localhost:5002",
-          "preLaunchTask": "npm: build",
-          "webRoot": "${workspaceFolder}/out",
-          "nodeFilter": ""
-        }
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/dummy.js"
+    },
+    {
+      "type": "pwa",
+      "request": "launch",
+      "name": "Client/Server",
+      "command": "node_modules/.bin/serve -p 5002 ./out",
+      "url": "http://localhost:5002",
+      "preLaunchTask": "npm: build",
+      "webRoot": "${workspaceFolder}/out",
+      "nodeFilter": ""
+    },
+    {
+      "type": "pwa",
+      "request": "launch",
+      "name": "[Debug Server] for Server",
+      "command": "node_modules/.bin/serve -p 5002 ./out",
+      "nodeFilter": "",
+      "debugServer": 4711
+    },
+    {
+      "type": "pwa",
+      "request": "launch",
+      "name": "[Debug Server] for Client",
+      "url": "http://localhost:5002",
+      "preLaunchTask": "npm: build",
+      "webRoot": "${workspaceFolder}/out",
+      "debugServer": 4711
+    }
+  ],
+  "compounds": [
+    {
+      "name": "[Debug Server]",
+      "configurations": ["[Debug Server] for Server", "[Debug Server] for Client"]
+    }
   ]
 }

@@ -10,8 +10,6 @@ import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { rewriteLogPoint } from '../common/sourceUtils';
 
-let lastBreakpointId = 0;
-
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
 export class Breakpoint {
@@ -304,7 +302,7 @@ export class BreakpointManager {
     await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
   }
 
-  async setBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+  async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor!.predictBreakpoints(params);
@@ -313,10 +311,8 @@ export class BreakpointManager {
     }
     const breakpoints: Breakpoint[] = [];
     const inBreakpoints = params.breakpoints || [];
-    for (let index = 0; index < inBreakpoints.length; index++) {
-      const id = ++lastBreakpointId;
-      breakpoints.push(new Breakpoint(this, id, params.source, inBreakpoints[index]));
-    }
+    for (let index = 0; index < inBreakpoints.length; index++)
+      breakpoints.push(new Breakpoint(this, ids[index], params.source, inBreakpoints[index]));
     let previous: Breakpoint[] | undefined;
     if (params.source.path) {
       previous = this._byPath.get(params.source.path);
@@ -339,3 +335,11 @@ export class BreakpointManager {
 }
 
 export const kLogPointUrl = 'logpoint.cdp';
+
+let lastBreakpointId = 0;
+export function generateBreakpointIds(params: Dap.SetBreakpointsParams): number[] {
+  const ids: number[] = [];
+  for (const _ of params.breakpoints || [])
+    ids.push(++lastBreakpointId);
+  return ids;
+}

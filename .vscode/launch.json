@@ -14,6 +14,14 @@
       "program": "${workspaceFolder}/scripts/generate-dap-api.js"
     },
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Server",
+      "program": "${workspaceFolder}/out/debugServer.js",
+      "args": ["../demos/node", "4711"],
+      "preLaunchTask": "npm: watch"
+    },
+    {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",

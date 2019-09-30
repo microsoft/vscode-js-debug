@@ -16,6 +16,14 @@
             "name": "PWA: launch program",
             "command": "node main.js",
             "nodeFilter": "main.js"
+        },
+        {
+          "type": "pwa",
+          "request": "launch",
+          "name": "PWA debug server",
+          "debugServer": 4711,
+          "command": "node main.js",
+          "nodeFilter": "main.js"
         }
-    ]
+  ]
 }

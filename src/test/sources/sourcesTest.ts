@@ -70,7 +70,7 @@ export function addTests(testRunner) {
 
   it('waiting for source map failure', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
-    p.adapter.sourceContainerForTest().setSourceMapTimeouts({
+    p.adapter.sourceContainer.setSourceMapTimeouts({
       load: 2000,
       resolveLocation: 0,
       output: 0,
@@ -102,7 +102,7 @@ export function addTests(testRunner) {
 
     // Content does not match => debugger script.
     const path = p.workspacePath('web/empty2.js');
-    p.adapter.sourceContainerForTest().setFileContentOverrideForTest(path, '123');
+    p.adapter.sourceContainer.setFileContentOverrideForTest(path, '123');
     p.addScriptTag('empty2.js');
     await dumpSource(p, await p.waitForSource('empty2.js'), 'empty2.js');
 

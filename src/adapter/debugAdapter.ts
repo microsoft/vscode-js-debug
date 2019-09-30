@@ -10,7 +10,7 @@ import * as errors from '../dap/errors';
 import { SourceContainer, UiLocation } from './sources';
 import { Thread, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
-import { BreakpointManager } from './breakpoints';
+import { BreakpointManager, generateBreakpointIds } from './breakpoints';
 import { Cdp } from '../cdp/api';
 import { SourcePathResolver } from '../common/sourcePathResolver';
 
@@ -20,8 +20,8 @@ const localize = nls.loadMessageBundle();
 // to be applied after launch.
 export class DebugAdapter {
   readonly dap: Dap.Api;
-  private _sourceContainer: SourceContainer;
-  private _breakpointManager: BreakpointManager;
+  readonly sourceContainer: SourceContainer;
+  readonly breakpointManager: BreakpointManager;
   private _disposables: Disposable[] = [];
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
@@ -32,8 +32,8 @@ export class DebugAdapter {
     rootPath = urlUtils.platformPathToPreferredCase(rootPath);
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
-    this.dap.on('setExceptionBreakpoints', params => this._onSetExceptionBreakpoints(params));
-    this.dap.on('configurationDone', params => this._onConfigurationDone(params));
+    this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
+    this.dap.on('configurationDone', params => this.configurationDone(params));
     this.dap.on('loadedSources', params => this._onLoadedSources(params));
     this.dap.on('source', params => this._onSource(params));
     this.dap.on('threads', params => this._onThreads(params));
@@ -50,12 +50,12 @@ export class DebugAdapter {
     this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
-    this.dap.on('enableCustomBreakpoints', params => this._enableCustomBreakpoints(params));
+    this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
-    this._sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
-    this._breakpointManager = new BreakpointManager(this.dap, this._sourceContainer);
+    this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -104,10 +104,11 @@ export class DebugAdapter {
   }
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    return this._breakpointManager.setBreakpoints(params);
+    const ids = generateBreakpointIds(params);
+    return this.breakpointManager.setBreakpoints(params, ids);
   }
 
-  async _onSetExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
+  async setExceptionBreakpoints(params: Dap.SetExceptionBreakpointsParams): Promise<Dap.SetExceptionBreakpointsResult> {
     this._pauseOnExceptionsState = 'none';
     if (params.filters.includes('caught'))
       this._pauseOnExceptionsState = 'all';
@@ -118,17 +119,17 @@ export class DebugAdapter {
     return {};
   }
 
-  async _onConfigurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
+  async configurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
     return {};
   }
 
   async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
-    return { sources: await this._sourceContainer.loadedSources() };
+    return { sources: await this.sourceContainer.loadedSources() };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this._sourceContainer.source(params.source!);
+    const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
@@ -193,15 +194,15 @@ export class DebugAdapter {
   }
 
   createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this._sourceContainer, threadName, cdp, this.dap, delegate);
+    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate);
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
-    this._breakpointManager.setThread(this._thread);
+    this.breakpointManager.setThread(this._thread);
     return this._thread;
   }
 
-  async _enableCustomBreakpoints(params: Dap.EnableCustomBreakpointsParams): Promise<Dap.EnableCustomBreakpointsResult> {
+  async enableCustomBreakpoints(params: Dap.EnableCustomBreakpointsParams): Promise<Dap.EnableCustomBreakpointsResult> {
     const promises: Promise<void>[] = [];
     for (const id of params.ids) {
       this._customBreakpoints.add(id);
@@ -225,7 +226,7 @@ export class DebugAdapter {
 
   async _canPrettyPrintSource(params: Dap.CanPrettyPrintSourceParams): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this._sourceContainer.source(params.source!);
+    const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     return { canPrettyPrint: source.canPrettyPrint() };
@@ -233,7 +234,7 @@ export class DebugAdapter {
 
   async _prettyPrintSource(params: Dap.PrettyPrintSourceParams): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
     params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this._sourceContainer.source(params.source!);
+    const source = this.sourceContainer.source(params.source!);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
 
@@ -247,8 +248,8 @@ export class DebugAdapter {
         lineNumber: params.line || 1,
         columnNumber: params.column || 1,
       };
-      const newUiLocation = await this._sourceContainer.preferredUiLocation(originalUiLocation);
-      this._sourceContainer.revealUiLocation(newUiLocation);
+      const newUiLocation = await this.sourceContainer.preferredUiLocation(originalUiLocation);
+      this.sourceContainer.revealUiLocation(newUiLocation);
     }
     return {};
   }
@@ -257,17 +258,5 @@ export class DebugAdapter {
     for (const disposable of this._disposables)
       disposable.dispose();
     this._disposables = [];
-  }
-
-  sourceContainerForTest(): SourceContainer {
-    return this._sourceContainer;
-  }
-
-  breakpointManagerForTest(): BreakpointManager {
-    return this._breakpointManager;
-  }
-
-  launchBlocker(): Promise<void> {
-    return this._breakpointManager.launchBlocker();
   }
 }

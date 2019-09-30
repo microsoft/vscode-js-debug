@@ -11,10 +11,10 @@ import DapConnection from './dap/connection';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
+  // Returns whether we should disable child session treatment.
+  initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean>;
   releaseDap(target: Target): void;
 }
-
-type TestHook = (target: Target, adapter: DebugAdapter) => void;
 
 export class Binder implements Disposable {
   private _delegate: BinderDelegate;
@@ -27,7 +27,6 @@ export class Binder implements Disposable {
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
   private _rootPath?: string;
-  private _testHook?: TestHook;
 
   constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], rootPath: string | undefined, targetOrigin: any) {
     this._delegate = delegate;
@@ -125,30 +124,33 @@ export class Binder implements Disposable {
     const debugAdapter = new DebugAdapter(dap, this._rootPath, target.sourcePathResolver());
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
-    dap.on('attach', async () => {
-      await debugAdapter.launchBlocker();
+    const startThread = async () => {
+      await debugAdapter.breakpointManager.launchBlocker();
       cdp.Runtime.runIfWaitingForDebugger({});
       return {};
-    });
-    dap.on('disconnect', async () => {
-      if (target.canStop())
-        target.stop();
-      return {};
-    });
-    dap.on('terminate', async () => {
-      if (target.canStop())
-        target.stop();
-      return {};
-    });
-    dap.on('restart', async () => {
-      if (target.canRestart())
-        target.restart();
-      else
-        await this._restart();
-      return {};
-    });
-    if (this._testHook)
-      this._testHook(target, debugAdapter);
+    };
+    if (await this._delegate.initAdapter(debugAdapter, target)) {
+      startThread();
+    } else {
+      dap.on('attach', startThread);
+      dap.on('disconnect', async () => {
+        if (target.canStop())
+          target.stop();
+        return {};
+      });
+      dap.on('terminate', async () => {
+        if (target.canStop())
+          target.stop();
+        return {};
+      });
+      dap.on('restart', async () => {
+        if (target.canRestart())
+          target.restart();
+        else
+          await this._restart();
+        return {};
+      });
+    }
   }
 
   async detach(target: Target) {
@@ -185,9 +187,5 @@ export class Binder implements Disposable {
     data.debugAdapter.dap.terminated({});
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
-  }
-
-  installTestHook(hook: TestHook) {
-    this._testHook = hook;
   }
 }

@@ -12,6 +12,7 @@ import { Target } from '../targets/targets';
 import { Disposable } from '../common/events';
 import { checkVersion } from './version';
 import { TerminalProgramLauncher } from './terminalProgramLauncher';
+import { DebugAdapter } from '../adapter/debugAdapter';
 
 export class Session implements Disposable {
   readonly debugSession: vscode.DebugSession;
@@ -136,6 +137,10 @@ export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Dis
       }));
     }
     return this._sessionForTarget.get(target)!;
+  }
+
+  initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+    return Promise.resolve(false);
   }
 
   releaseDap(target: Target) {
