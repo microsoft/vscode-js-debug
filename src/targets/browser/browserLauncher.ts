@@ -85,6 +85,8 @@ export class BrowserLauncher implements Launcher {
       return localize('error.executableNotFound', 'Unable to find browser executable');
     }
 
+    if (params.logging)
+      connection.setLogConfig(params.url || '', params.logging.cdp);
     connection.onDisconnected(() => {
       this._onTerminatedEmitter.fire();
     }, undefined, this._disposables);

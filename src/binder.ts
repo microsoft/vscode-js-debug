@@ -8,6 +8,7 @@ import { Launcher, Target } from './targets/targets';
 import * as errors from './dap/errors';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
+import { LogConfig } from './common/logConfig';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -15,6 +16,10 @@ export interface BinderDelegate {
   initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean>;
   releaseDap(target: Target): void;
 }
+
+type CommonLaunchParams = Dap.LaunchParams & {
+  logging?: LogConfig;
+};
 
 export class Binder implements Disposable {
   private _delegate: BinderDelegate;
@@ -27,6 +32,7 @@ export class Binder implements Disposable {
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
   private _rootPath?: string;
+  private _logConfig?: LogConfig;
 
   constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], rootPath: string | undefined, targetOrigin: any) {
     this._delegate = delegate;
@@ -53,7 +59,8 @@ export class Binder implements Disposable {
       dap.on('configurationDone', async () => {
         return {};
       });
-      dap.on('launch', async params => {
+      dap.on('launch', async (params: CommonLaunchParams) => {
+        this._logConfig = params.logging;
         let results = await Promise.all(launchers.map(l => this._launch(l, params)));
         results = results.filter(result => !!result);
         if (results.length)
@@ -120,6 +127,8 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
+    if (this._logConfig)
+      connection.setLogConfig(target.name(), this._logConfig.dap);
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(dap, this._rootPath, target.sourcePathResolver());
     const thread = debugAdapter.createThread(target.name(), cdp, target);

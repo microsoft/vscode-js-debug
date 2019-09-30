@@ -13,6 +13,7 @@ import Dap from '../../dap/api';
 import { Launcher, Target, LaunchResult } from '../../targets/targets';
 import * as utils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
+import { LogConfig } from '../../common/logConfig';
 
 export interface LaunchParams extends Dap.LaunchParams {
   command: string;
@@ -20,6 +21,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   env?: Object;
   nodeFilter?: string;
   args?: string[];
+  logging?: LogConfig;
 }
 
 export interface ProgramLauncher extends Disposable {
@@ -35,7 +37,7 @@ export class NodeLauncher implements Launcher {
   private _server: net.Server | undefined;
   private _programLauncher: ProgramLauncher;
   private _connections: Connection[] = [];
-  private _launchParams: LaunchParams | undefined;
+  _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
@@ -175,6 +177,8 @@ class NodeTarget implements Target {
       this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
       this._targetName = `[${targetInfo.targetId}]`;
+    if (this._launcher._launchParams && this._launcher._launchParams.logging)
+      connection.setLogConfig(this._targetName, this._launcher._launchParams.logging.cdp);
 
     this._setParent(launcher._targets.get(targetInfo.openerId!));
     launcher._targets.set(targetInfo.targetId, this);

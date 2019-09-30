@@ -3,6 +3,7 @@
 
 import Dap from "../../dap/api";
 import { URL } from "url";
+import { LogConfig } from "../../common/logConfig";
 
 export interface LaunchParams extends Dap.LaunchParams {
   url?: string;
@@ -14,6 +15,7 @@ export interface LaunchParams extends Dap.LaunchParams {
   runtimeArgs?: string[];
   baseURL?: string;
   webRoot?: string;
+  logging?: LogConfig;
 }
 
 export function baseURL(params: LaunchParams): string | undefined {

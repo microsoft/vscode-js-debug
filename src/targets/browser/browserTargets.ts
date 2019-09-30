@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debug } from 'debug';
 import * as path from 'path';
 import { URL } from 'url';
 import { Disposable, EventEmitter } from '../../common/events';
@@ -12,8 +11,6 @@ import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
-
-const debugTarget = debug('target');
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -92,8 +89,6 @@ export class BrowserTargetManager implements Disposable {
   }
 
   _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: BrowserTarget): BrowserTarget {
-    debugTarget(`Attaching to target ${targetInfo.targetId}`);
-
     const cdp = this._connection.createSession(sessionId);
     const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, waitingForDebugger, target => {
       this._connection.disposeSession(sessionId);
@@ -120,7 +115,6 @@ export class BrowserTargetManager implements Disposable {
     if (!jsTypes.has(targetInfo.type))
       cdp.Runtime.runIfWaitingForDebugger({});
 
-    debugTarget(`Attached to target ${targetInfo.targetId}`);
     return target;
   }
 
@@ -128,7 +122,6 @@ export class BrowserTargetManager implements Disposable {
     const target = this._targets.get(targetId);
     if (!target)
       return;
-    debugTarget(`Detaching from target ${targetId}`);
 
     for (const childTargetId of target._children.keys())
       this._detachedFromTarget(childTargetId);
@@ -139,7 +132,6 @@ export class BrowserTargetManager implements Disposable {
       target.parentTarget._children.delete(targetId);
 
     this._onTargetRemovedEmitter.fire(target);
-    debugTarget(`Detached from target ${targetId}`);
     if (!this._targets.size)
       this._browser.Browser.close({});
   }
@@ -337,11 +329,5 @@ export class BrowserTarget implements Target {
   _detached() {
     this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
-  }
-
-  _dumpTarget(indent: string | undefined = '') {
-    debugTarget(`${indent}${this._targetInfo.type} - ${this._targetInfo.url}`);
-    for (const child of this._children.values())
-      child._dumpTarget(indent + '  ');
   }
 }

@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "color": "^3.1.2",
-    "debug": "^4.1.1",
     "js-beautify": "^1.10.0",
     "source-map": "^0.7.3",
     "typescript": "^3.5.3",
@@ -266,6 +265,21 @@
               "nodeFilter": {
                 "type": "string",
                 "description": "Regular expresison for the main script path. If matches, debugger will attach to the node process. Defaults to empty, which matches everything."
+              },
+              "logging": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cdp": {
+                    "type": "string",
+                    "description": "Path to the log file for Chrome DevTools Protocol messages"
+                  },
+                  "dap": {
+                    "type": "string",
+                    "description": "Path to the log file for Debug Adapter Protocol messages"
+                  }
+                },
+                "description": "Logging configuration"
               }
             }
           }

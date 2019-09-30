@@ -2,9 +2,6 @@
 // Licensed under the MIT license.
 
 import Dap from './api';
-import { debug } from 'debug';
-
-const debugDAP = debug('dap');
 
 interface Message {
   seq: number;
@@ -32,6 +29,8 @@ export default class Connection {
   private _dap: Promise<Dap.Api>;
 
   private _ready: (dap: Dap.Api) => void;
+  private _logPath?: string;
+  private _logPrefix = '';
 
   constructor() {
     this._sequence = 1;
@@ -59,6 +58,11 @@ export default class Connection {
 
   public dap(): Promise<Dap.Api> {
     return this._dap;
+  }
+
+  public setLogConfig(prefix: string, path?: string) {
+    this._logPrefix = prefix;
+    this._logPath = path;
   }
 
   _createApi(): Dap.Api {
@@ -138,7 +142,8 @@ export default class Connection {
   _send(message: Message) {
     message.seq = this._sequence++;
     const json = JSON.stringify(message);
-    debugDAP('SEND ► ' + json);
+    if (this._logPath)
+      require('fs').appendFileSync(this._logPath, `◀ SEND [${this._logPrefix}] ${json}\n`);
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
     if (!this._writableStream) {
       console.error('Writing to a closed connection');
@@ -216,8 +221,9 @@ export default class Connection {
           this._contentLength = -1;
           if (message.length > 0) {
             try {
+              if (this._logPath)
+                require('fs').appendFileSync(this._logPath, `RECV ► [${this._logPrefix}] ${message}\n`);
               let msg: Message = JSON.parse(message);
-              debugDAP('◀ RECV ' + msg);
               this._onMessage(msg);
             }
             catch (e) {

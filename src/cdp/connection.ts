@@ -2,11 +2,8 @@
 // Licensed under the MIT license.
 
 import { Transport } from './transport';
-import { debug } from 'debug';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
-
-const debugConnection = debug('connection');
 
 interface ProtocolCommand {
   id: number;
@@ -42,6 +39,8 @@ export default class Connection {
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _rootSession: CDPSession;
+  private _logPath?: string;
+  private _logPrefix = '';
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
@@ -54,6 +53,11 @@ export default class Connection {
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
     this._sessions.set('', this._rootSession);
+  }
+
+  setLogConfig(prefix: string, path?: string) {
+    this._logPrefix = prefix;
+    this._logPath = path;
   }
 
   rootSession(): Cdp.Api {
@@ -70,13 +74,15 @@ export default class Connection {
     if (sessionId)
       message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    debugConnection('SEND ► ' + messageString);
+    if (this._logPath)
+      require('fs').appendFileSync(this._logPath, `SEND ► [${this._logPrefix}] ${messageString}\n`);
     this._transport.send(messageString);
     return id;
   }
 
   async _onMessage(message: string) {
-    debugConnection('◀ RECV ' + message);
+    if (this._logPath)
+      require('fs').appendFileSync(this._logPath, `◀ RECV [${this._logPrefix}] ${message}\n`);
     const object = JSON.parse(message);
 
     const session = this._sessions.get(object.sessionId || '');
