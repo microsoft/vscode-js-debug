@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import Dap from "../../dap/api";
 import { URL } from "url";
-import { LogConfig } from "../../common/logConfig";
+import { CommonLaunchParams } from "../../common/commonLaunchParams";
 
-export interface LaunchParams extends Dap.LaunchParams {
+export interface LaunchParams extends CommonLaunchParams {
   url?: string;
   remoteDebuggingPort?: string;
   port?: string;
@@ -15,7 +14,6 @@ export interface LaunchParams extends Dap.LaunchParams {
   runtimeArgs?: string[];
   baseURL?: string;
   webRoot?: string;
-  logging?: LogConfig;
 }
 
 export function baseURL(params: LaunchParams): string | undefined {

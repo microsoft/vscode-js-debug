@@ -8,20 +8,18 @@ import { EventEmitter, Event, Disposable } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { InlineScriptOffset, SourcePathResolver, FileSourcePathResolver } from '../../common/sourcePathResolver';
-import Dap from '../../dap/api';
+import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
 import { Launcher, Target, LaunchResult } from '../../targets/targets';
-import * as utils from '../../common/urlUtils';
+import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
-import { LogConfig } from '../../common/logConfig';
+import { CommonLaunchParams } from '../../common/commonLaunchParams';
 
-export interface LaunchParams extends Dap.LaunchParams {
+export interface LaunchParams extends CommonLaunchParams {
   command: string;
   cwd?: string;
   env?: Object;
   nodeFilter?: string;
   args?: string[];
-  logging?: LogConfig;
 }
 
 export interface ProgramLauncher extends Disposable {
@@ -33,7 +31,6 @@ export interface ProgramLauncher extends Disposable {
 let counter = 0;
 
 export class NodeLauncher implements Launcher {
-  private _rootPath: string | undefined;
   private _server: net.Server | undefined;
   private _programLauncher: ProgramLauncher;
   private _connections: Connection[] = [];
@@ -41,17 +38,15 @@ export class NodeLauncher implements Launcher {
   private _pipe: string | undefined;
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
-  _pathResolver: FileSourcePathResolver;
+  _pathResolver?: NodeSourcePathResolver;
   _targetOrigin: any;
   private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(rootPath: string | undefined, programLauncher: ProgramLauncher) {
-    this._rootPath = utils.platformPathToPreferredCase(rootPath);
+  constructor(programLauncher: ProgramLauncher) {
     this._programLauncher = programLauncher;
-    this._pathResolver = new FileSourcePathResolver(rootPath);
     this._programLauncher.onProgramStopped(() => {
       if (!this._isRestarting) {
         this._stopServer();
@@ -60,10 +55,11 @@ export class NodeLauncher implements Launcher {
     });
   }
 
-  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
+  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
     if (!('command' in params))
       return { blockSessionTermination: false };
     this._launchParams = params as LaunchParams;
+    this._pathResolver = new NodeSourcePathResolver(this._launchParams.rootPath);
     this._targetOrigin = targetOrigin;
     await this._startServer();
     this._launchProgram();
@@ -75,7 +71,7 @@ export class NodeLauncher implements Launcher {
     const launchParams = this._launchParams!;
     const args = (launchParams.args || []).map(arg => `"${arg}"`);
     const commandLine = [launchParams.command, ...args].join(' ');
-    this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || this._rootPath, this._buildEnv(), commandLine);
+    this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || launchParams.rootPath, this._buildEnv(), commandLine);
   }
 
   async terminate(): Promise<void> {
@@ -228,7 +224,7 @@ class NodeTarget implements Target {
 
   scriptUrlToUrl(url: string): string {
     const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
-    return isPath ? (utils.absolutePathToFileUrl(url) || url) : url;
+    return isPath ? (urlUtils.absolutePathToFileUrl(url) || url) : url;
   }
 
   sourcePathResolver(): SourcePathResolver {
@@ -330,6 +326,30 @@ class NodeTarget implements Target {
     } catch (e) {
     }
     this._connection.close();
+  }
+}
+
+export class NodeSourcePathResolver implements SourcePathResolver {
+  private _basePath: string | undefined;
+
+  constructor(basePath: string | undefined) {
+    this._basePath = basePath;
+  }
+
+  urlToAbsolutePath(url: string): string {
+    const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
+    if (absolutePath)
+      return absolutePath;
+
+    if (!this._basePath)
+      return '';
+
+    const webpackPath = urlUtils.webpackUrlToPath(url, this._basePath);
+    return webpackPath || '';
+  }
+
+  absolutePathToUrl(absolutePath: string): string | undefined {
+    return urlUtils.absolutePathToFileUrl(path.normalize(absolutePath));
   }
 }
 

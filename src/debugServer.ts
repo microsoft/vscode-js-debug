@@ -17,7 +17,6 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
 
-const rootPath = path.isAbsolute(process.argv[2]) ? process.argv[2] : path.join(__dirname, process.argv[2]);
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
 class ChildProcessProgramLauncher implements ProgramLauncher {
@@ -143,9 +142,9 @@ class Configurator {
 
 const server = net.createServer(async socket => {
   const launchers = [
-    new NodeLauncher(rootPath, new ChildProcessProgramLauncher()),
-    new BrowserLauncher(storagePath, rootPath),
-    new BrowserAttacher(rootPath),
+    new NodeLauncher(new ChildProcessProgramLauncher()),
+    new BrowserLauncher(storagePath),
+    new BrowserAttacher(),
   ];
 
   const binderDelegate: BinderDelegate = {
@@ -167,9 +166,9 @@ const server = net.createServer(async socket => {
   };
 
   const connection = new DapConnection();
-  new Binder(binderDelegate, connection, launchers, rootPath, 'targetOrigin');
+  new Binder(binderDelegate, connection, launchers, 'targetOrigin');
   const configurator = new Configurator(connection.dap());
 
   connection.init(socket, socket);
-}).listen(process.argv.length >= 4 ? +process.argv[3] : 0);
+}).listen(process.argv.length >= 3 ? +process.argv[2] : 0);
 console.log(`Listening at ${server.address().port}`);

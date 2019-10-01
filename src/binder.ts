@@ -6,9 +6,10 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { Launcher, Target } from './targets/targets';
 import * as errors from './dap/errors';
+import * as urlUtils from './common/urlUtils';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
-import { LogConfig } from './common/logConfig';
+import { CommonLaunchParams } from './common/commonLaunchParams';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -16,10 +17,6 @@ export interface BinderDelegate {
   initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean>;
   releaseDap(target: Target): void;
 }
-
-type CommonLaunchParams = Dap.LaunchParams & {
-  logging?: LogConfig;
-};
 
 export class Binder implements Disposable {
   private _delegate: BinderDelegate;
@@ -31,14 +28,12 @@ export class Binder implements Disposable {
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
-  private _rootPath?: string;
-  private _logConfig?: LogConfig;
+  private _launchParams?: CommonLaunchParams;
 
-  constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], rootPath: string | undefined, targetOrigin: any) {
+  constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._rootPath = rootPath;
     this._disposables = [this._onTargetListChangedEmitter];
 
     for (const launcher of launchers) {
@@ -60,7 +55,9 @@ export class Binder implements Disposable {
         return {};
       });
       dap.on('launch', async (params: CommonLaunchParams) => {
-        this._logConfig = params.logging;
+        if (params.rootPath)
+          params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
+        this._launchParams = params;
         let results = await Promise.all(launchers.map(l => this._launch(l, params)));
         results = results.filter(result => !!result);
         if (results.length)
@@ -127,10 +124,10 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
-    if (this._logConfig)
-      connection.setLogConfig(target.name(), this._logConfig.dap);
+    if (this._launchParams && this._launchParams.logging)
+      connection.setLogConfig(target.name(), this._launchParams.logging.dap);
     const dap = await connection.dap();
-    const debugAdapter = new DebugAdapter(dap, this._rootPath, target.sourcePathResolver());
+    const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver());
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     const startThread = async () => {

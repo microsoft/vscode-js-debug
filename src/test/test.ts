@@ -206,8 +206,8 @@ export class TestRoot {
     });
 
     const storagePath = path.join(__dirname, '..', '..');
-    this._browserLauncher = new BrowserLauncher(storagePath, this._workspaceRoot);
-    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher], this._workspaceRoot, '0');
+    this._browserLauncher = new BrowserLauncher(storagePath);
+    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher], '0');
 
     this.initialize = this._root._init();
 
@@ -269,6 +269,7 @@ export class TestRoot {
       url,
       browserArgs: this._args,
       webRoot: this._webRoot,
+      rootPath: this._workspaceRoot,
       skipNavigateForTest: true
     } as Dap.LaunchParams);
     return new Promise(f => this._launchCallback = f);

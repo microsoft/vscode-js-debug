@@ -4,6 +4,7 @@
 import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { CommonLaunchParams } from '../common/commonLaunchParams';
 
 export interface Target {
   id(): string;
@@ -39,7 +40,7 @@ export interface LaunchResult {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: any, targetOrigin: any): Promise<LaunchResult>;
+  launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

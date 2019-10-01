@@ -35,15 +35,12 @@ export class Session implements Disposable {
   }
 
   createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
-    let rootPath = vscode.workspace.rootPath;
-    if (this.debugSession.workspaceFolder && this.debugSession.workspaceFolder.uri.scheme === 'file:')
-      rootPath = this.debugSession.workspaceFolder.uri.path;
     const launchers = [
-      new NodeLauncher(rootPath, new TerminalProgramLauncher()),
-      new BrowserLauncher(context.storagePath || context.extensionPath, rootPath),
-      new BrowserAttacher(rootPath),
+      new NodeLauncher(new TerminalProgramLauncher()),
+      new BrowserLauncher(context.storagePath || context.extensionPath),
+      new BrowserAttacher(),
     ];
-    this._binder = new Binder(delegate, this.connection, launchers, rootPath, this.debugSession.id);
+    this._binder = new Binder(delegate, this.connection, launchers, this.debugSession.id);
   }
 
   descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {

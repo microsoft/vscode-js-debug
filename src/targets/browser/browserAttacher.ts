@@ -8,10 +8,9 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL, LaunchParams } from './browserLaunchParams';
-import * as urlUtils from '../../common/urlUtils';
+import { CommonLaunchParams } from '../../common/commonLaunchParams';
 
 export class BrowserAttacher implements Launcher {
-  private _rootPath: string | undefined;
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
@@ -22,10 +21,6 @@ export class BrowserAttacher implements Launcher {
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
-
-  constructor(rootPath: string | undefined) {
-    this._rootPath = urlUtils.platformPathToPreferredCase(rootPath);
-  }
 
   targetManager(): BrowserTargetManager | undefined {
     return this._targetManager;
@@ -41,7 +36,7 @@ export class BrowserAttacher implements Launcher {
       this._targetManager.dispose();
   }
 
-  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
+  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
     if (!('remoteDebuggingPort' in params) && !('port' in params))
       return { blockSessionTermination: false };
 
@@ -84,7 +79,7 @@ export class BrowserAttacher implements Launcher {
         this._scheduleAttach();
     }, undefined, this._disposables);
 
-    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || this._rootPath);
+    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || params.rootPath);
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, this._targetOrigin);
     if (!this._targetManager)
       return;

@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "Debug Server",
       "program": "${workspaceFolder}/out/debugServer.js",
-      "args": ["../demos/node", "4711"],
+      "args": ["4711"],
       "preLaunchTask": "npm: watch"
     },
     {
@@ -39,7 +39,7 @@
       "name": "Dogfood",
       "type": "pwa",
       "request": "launch",
-      "command": "code-insiders --disable-extensions --extensionDevelopmentPath=${workspaceFolder}/",
+      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/",
       "preLaunchTask": "npm: watch"
     },
 		{

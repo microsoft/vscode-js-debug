@@ -12,14 +12,13 @@ import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { LaunchParams, baseURL } from './browserLaunchParams';
-import * as urlUtils from '../../common/urlUtils';
+import { CommonLaunchParams } from '../../common/commonLaunchParams';
 
 const localize = nls.loadMessageBundle();
 
 export class BrowserLauncher implements Launcher {
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
-  private _rootPath: string | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: LaunchParams | undefined;
   private _mainTarget?: BrowserTarget;
@@ -29,9 +28,8 @@ export class BrowserLauncher implements Launcher {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(storagePath: string, rootPath: string | undefined) {
+  constructor(storagePath: string) {
     this._storagePath = storagePath;
-    this._rootPath = urlUtils.platformPathToPreferredCase(rootPath);;
   }
 
   targetManager(): BrowserTargetManager | undefined {
@@ -93,7 +91,7 @@ export class BrowserLauncher implements Launcher {
     this._connectionForTest = connection;
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || this._rootPath);
+    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || params.rootPath);
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
@@ -126,7 +124,7 @@ export class BrowserLauncher implements Launcher {
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: any, targetOrigin: any): Promise<LaunchResult> {
+  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
     if (!('url' in params))
       return { blockSessionTermination: false };
     const targetOrError = await this.prepareLaunch(params as LaunchParams, targetOrigin);

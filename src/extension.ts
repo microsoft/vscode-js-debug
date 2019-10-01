@@ -27,6 +27,8 @@ export function deactivate() {
 
 class DebugConfigurationProvider implements vscode.DebugConfigurationProvider {
   resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+    if (folder && (folder.uri.scheme === 'file:' || folder.uri.scheme === 'file'))
+      config.rootPath = folder.uri.fsPath;
     if (!config.type && !config.request && !config.name) {
       config.type = 'pwa';
       config.name = localize('debugConfig.launch.name', 'Launch browser with PWA');
