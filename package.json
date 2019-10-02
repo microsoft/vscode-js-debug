@@ -35,6 +35,7 @@
   "dependencies": {
     "color": "^3.1.2",
     "js-beautify": "^1.10.0",
+    "long": "^4.0.0",
     "source-map": "^0.7.3",
     "typescript": "^3.5.3",
     "vscode-nls": "^4.1.1",

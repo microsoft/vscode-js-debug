@@ -1,103 +1,75 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
+import Long from 'long';
 
-const kLen = 8;
-const kBits = 8;
-const kMask = (1 << kBits) - 1;
-type Num = [number, number, number, number, number, number, number, number];
+export function calculateHash(input: Buffer): string {
 
-function norm(x: Num): Num {
-  for (let i = 0; i < kLen; i++) {
-    if (i + 1 < kLen)
-      x[i + 1] += (x[i] >>> kBits);
-    x[i] = x[i] & kMask;
-  }
-  return x;
-}
+  const prime = [new Long(0x3fb75161,0,true), new Long(0xab1f4e4f,0,true), new Long(0x82675bc5,0,true), new Long(0xcd924d35,0,true), new Long(0x81abe279,0,true)];
+  const random = [new Long(0x67452301,0,true), new Long(0xefcdab89,0,true), new Long(0x98badcfe,0,true), new Long(0x10325476,0,true), new Long(0xc3d2e1f0,0,true)];
+  const randomOdd = [new Long(0xb4663807,0,true), new Long(0xcc322bf5,0,true), new Long(0xd4f91bbd,0,true), new Long(0xa7bea11d,0,true), new Long(0x8f462907,0,true)];
 
-function num(x: number): Num {
-  return norm([x, 0, 0, 0, 0, 0, 0, 0]);
-}
+  let hashes = [new Long(0,0,true), new Long(0,0,true),new Long(0,0,true),new Long(0,0,true),new Long(0,0,true)];
+  let zi = ([new Long(1,0,true), new Long(1,0,true), new Long(1,0,true), new Long(1,0,true), new Long(1,0,true)]);
+  const k0x7FFFFFFF = new Long(0x7fffffff)
 
-function val(x: Num): number {
-  let res = 0;
-  for (let i = kLen - 1; i >= 0; i--)
-    res = (res << kBits) + x[i];
-  return res;
-}
+  const buffer = normalize(input);
+  const inc = 4;
 
-function mul(a: Num, b: Num): Num {
-  const result: Num = [0, 0, 0, 0, 0, 0, 0, 0];
-  for (let i = 0; i < kLen; i++) {
-    for (let j = 0; i + j < kLen; j++)
-      result[i + j] += a[i] * b[j];
-  }
-  return norm(result);
-}
-
-function add(a: Num, b: Num): Num {
-  return norm(a.map((_, i) => a[i] + b[i]) as Num);
-}
-
-function and(a: Num, b: Num): Num {
-  return norm(a.map((_, i) => a[i] & b[i]) as Num);
-}
-
-function mod(a: Num, b: number): Num {
-  let x = 0;
-  for (let i = kLen - 1; i >= 0; i--) {
-    x = x * (1 << kBits) + a[i];
-    x = x % b;
-  }
-  return num(x);
-}
-
-const kPrimeVal = [0x3FB75161, 0xAB1F4E4F, 0x82675BC5, 0xCD924D35, 0x81ABE279];
-const kPrimeMinus1 = kPrimeVal.map(x => num(x - 1));
-const kRandom = [num(0x67452301), num(0xEFCDAB89), num(0x98BADCFE), num(0x10325476), num(0xC3D2E1F0)];
-const kRandomOdd = [num(0xB4663807), num(0xCC322BF5), num(0xD4F91BBD), num(0xA7BEA11D), num(0x8F462907)];
-const kHex = '0123456789abcdef';
-const kPower16 = num(1 << 16);
-const k0x7FFFFFFF = num(0x7FFFFFFF);
-
-// This is the same hash algorithm used by V8.
-export function calculateHash(content: string): string {
-  const hashes = [num(0), num(0), num(0), num(0), num(0)];
-  const zi = [num(1), num(1), num(1), num(1), num(1)];
-  const hashesSize = hashes.length;
-
+  // First pass reads 4 bytes at a time
   let current = 0;
-  for (let i = 0; i < content.length; i += 2) {
-    let v: Num;
-    if (i + 1 < content.length) {
-      v = num(content.charCodeAt(i + 1));
-      v = add(mul(v, kPower16), num(content.charCodeAt(i)));
-    } else {
-      let c = content.charCodeAt(i);
-      v = num((c << 8) | (c >>> 8));
-    }
-    const xi = and(mul(v, kRandomOdd[current]), k0x7FFFFFFF);
-    hashes[current] = mod(add(hashes[current], mul(zi[current], xi)), kPrimeVal[current]);
-    zi[current] = mod(mul(zi[current], kRandom[current]), kPrimeVal[current]);
-    current = current === hashesSize - 1 ? 0 : current + 1;
+  for (let i = 0; i < buffer.byteLength - (buffer.byteLength % inc); i += inc) {
+    let d = buffer.readUInt32LE(i);
+    let v = d;
+
+    let xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
+    hashes[current] = hashes[current].add(zi[current].mul(xi)).mod(prime[current]);
+    zi[current] = zi[current].mul(random[current]).mod(prime[current]);
+    current = current === hashes.length - 1 ? 0 : current + 1;
   }
 
-  for (let i = 0; i < hashesSize; ++i)
-    hashes[i] = mod(add(hashes[i], mul(zi[i], kPrimeMinus1[i])), kPrimeVal[i]);
-
-  const result: string[] = [];
-  for (let i = 0; i < hashesSize; i++) {
-    const v = hashes[i];
-    for (let j = 0; 2 * j < kLen; j++) {
-      v[kLen - j - 1] = 0;
+  // If we have an odd number of bytes, calculate the rest of the hash
+  if (buffer.byteLength % inc) {
+    let v = 0;
+    for (let i = buffer.byteLength - (buffer.byteLength % inc); i < buffer.byteLength; ++i) {
+      v <<= 8;
+      v |= buffer.readUInt8(i);
     }
-    let x = val(v);
-    let s = '';
-    for (let j = 0; j < 8; j++) {
-      s = kHex[x & 0xF] + s;
-      x = x >>> 4;
-    }
-    result.push(s);
+    let xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
+    hashes[current] = hashes[current].add(zi[current].mul(xi)).mod(prime[current]);
+    zi[current] = zi[current].mul(random[current]).mod(prime[current]);
+    current = current === hashes.length - 1 ? 0 : current + 1;
   }
-  return result.join('');
+
+  for (let i = 0; i < hashes.length; ++i) {
+    hashes[i] = hashes[i].add(zi[i].mul((prime[i].sub(1)))).mod(prime[i]);
+  }
+
+  let hash = "";
+  for (let i = 0; i < hashes.length; ++i) {
+      hash += hashes[i].toString(16).padStart(8, '0');
+  }
+  return hash;
+}
+
+const hasUTF8BOM = (buffer: Buffer) => (buffer.byteLength >= 3 &&
+  buffer[0] === 0xEF &&
+  buffer[1] === 0xBB &&
+  buffer[2] === 0xBF);
+const hasUtf16LEBOM = (buffer: Buffer) => (buffer.byteLength >= 2 &&
+     buffer[0] === 0xFF &&
+     buffer[1] === 0xFE);
+const hasUtf16BEBOM = (buffer: Buffer) => (buffer.byteLength >= 2 &&
+     buffer[0] === 0xFE &&
+     buffer[1] === 0xFF);
+
+function normalize(buffer: Buffer): Buffer {
+  if (hasUTF8BOM(buffer)) return normalize(buffer.slice(3));
+  if (hasUtf16LEBOM(buffer)) return buffer.slice(2);
+  if (hasUtf16BEBOM(buffer)) return buffer.slice(2).swap16();
+  // if no byte order mark, assume it's utf8
+  return utf8ToUtf16(buffer);
+}
+
+function utf8ToUtf16(buffer: Buffer) {
+  return Buffer.from(buffer.toString('utf8'), 'utf16le');
 }
