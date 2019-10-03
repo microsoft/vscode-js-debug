@@ -2,6 +2,8 @@
 // Licensed under the MIT license.
 
 import * as fs from 'fs';
+import * as util from 'util';
+const readFileAsync = util.promisify(fs.readFile);
 
 export function stat(path: string): Promise<fs.Stats | undefined> {
   return new Promise(cb => {
@@ -25,6 +27,10 @@ export function readfile(path: string): Promise<string> {
       cb(err ? '' : content);
     });
   });
+}
+
+export function readFileRaw(path: string): Promise<Buffer> {
+  return readFileAsync(path).catch(err => Buffer.alloc(0));
 }
 
 export function exists(path: string): Promise<boolean> {

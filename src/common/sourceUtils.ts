@@ -290,7 +290,8 @@ export async function checkContentHash(absolutePath: string, contentHash?: strin
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content = contentOverride || await fsUtils.readfile(absolutePath);
+  const content = (contentOverride != null) ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
+
   const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;
 }
