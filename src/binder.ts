@@ -10,6 +10,7 @@ import * as urlUtils from './common/urlUtils';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { CommonLaunchParams } from './common/commonLaunchParams';
+import { generateBreakpointIds } from './adapter/breakpoints';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -51,9 +52,13 @@ export class Binder implements Disposable {
         dap.initialized({});
         return DebugAdapter.capabilities();
       });
-      dap.on('configurationDone', async () => {
-        return {};
+      dap.on('setExceptionBreakpoints', async () => ({}));
+      dap.on('setBreakpoints', async params => {
+        return { breakpoints: generateBreakpointIds(params).map(id => ({ id, verified: false })) };
       });
+      dap.on('configurationDone', async () => ({}));
+      dap.on('threads', async () => ({ threads: [] }));
+      dap.on('loadedSources', async () => ({ sources: [] }));
       dap.on('launch', async (params: CommonLaunchParams) => {
         if (params.rootPath)
           params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);

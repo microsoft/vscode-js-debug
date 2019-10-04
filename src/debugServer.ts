@@ -96,7 +96,7 @@ class Configurator {
     dap.on('setBreakpoints', async params => {
       const ids = generateBreakpointIds(params);
       this._setBreakpointsParams.push({params, ids});
-      const breakpoints = ids.map(id => ({ id, verified: false, message: 'Oh my!' }));
+      const breakpoints = ids.map(id => ({ id, verified: false }));
       return { breakpoints };
     });
 
