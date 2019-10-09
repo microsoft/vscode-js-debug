@@ -11,6 +11,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { generateBreakpointIds } from './adapter/breakpoints';
 import { AnyLaunchConfiguration } from './configuration';
+import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -30,6 +31,7 @@ export class Binder implements Disposable {
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
   private _launchParams?: AnyLaunchConfiguration;
+  private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
 
   constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
@@ -48,6 +50,7 @@ export class Binder implements Disposable {
     }
 
     this._dap.then(dap => {
+      this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
       dap.on('initialize', async () => {
         dap.initialized({});
         return DebugAdapter.capabilities();
@@ -76,7 +79,7 @@ export class Binder implements Disposable {
         return {};
       });
       dap.on('restart', async () => {
-        await this._restart();
+        await this._restart(this._rawTelemetryReporter!);
         return {};
       });
     });
@@ -93,12 +96,12 @@ export class Binder implements Disposable {
     return {};
   }
 
-  async _restart() {
-    await Promise.all([...this._launchers].map(l => l.restart()));
+  async _restart(rawTelemetryReporter: RawTelemetryReporterToDap) {
+    await Promise.all([...this._launchers].map(l => l.restart(rawTelemetryReporter)));
   }
 
   async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap });
+    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap }, this._rawTelemetryReporter!);
     if (result.error)
       return result.error;
     if (!result.blockSessionTermination)
@@ -154,6 +157,7 @@ export class Binder implements Disposable {
     } else {
       dap.on('attach', startThread);
       dap.on('disconnect', async () => {
+        this._rawTelemetryReporter!.flush.fire();
         if (target.canStop())
           target.stop();
         return {};
@@ -167,7 +171,7 @@ export class Binder implements Disposable {
         if (target.canRestart())
           target.restart();
         else
-          await this._restart();
+          await this._restart(this._rawTelemetryReporter!);
         return {};
       });
     }

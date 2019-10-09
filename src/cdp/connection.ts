@@ -4,6 +4,8 @@
 import { Transport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
+import { CdpTelemetryReporter, RawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { HighResolutionTime } from '../utils/performance';
 
 interface ProtocolCommand {
   id: number;
@@ -43,8 +45,9 @@ export default class Connection {
   private _logPrefix = '';
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
+  private readonly _telemetryReporter: CdpTelemetryReporter;
 
-  constructor(transport: Transport) {
+  constructor(transport: Transport, rawTelemetryReporter: RawTelemetryReporter) {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -53,6 +56,7 @@ export default class Connection {
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
     this._sessions.set('', this._rootSession);
+    this._telemetryReporter = new CdpTelemetryReporter(rawTelemetryReporter);
   }
 
   setLogConfig(prefix: string, path?: string) {
@@ -80,16 +84,25 @@ export default class Connection {
     return id;
   }
 
-  async _onMessage(message: string) {
+  async _onMessage(message: string, receivedTime: HighResolutionTime) {
     if (this._logPath)
       require('fs').appendFileSync(this._logPath, `◀ RECV [${this._logPrefix}] ${message}\n`);
     const object = JSON.parse(message);
 
     const session = this._sessions.get(object.sessionId || '');
-    if (session)
-      session._onMessage(object);
-    else
+    if (session) {
+      const eventName = object.method;
+      try {
+        session._onMessage(object);
+        if (eventName)
+          this._telemetryReporter.reportSuccesfullyHandledEvent(eventName, receivedTime);
+      } catch (error) {
+        if (eventName)
+          this._telemetryReporter.reportErrorWhileHandlingEvent(eventName, receivedTime, error);
+      }
+    } else {
       throw new Error(`Unknown session id: ${object.sessionId}`)
+    }
   }
 
   _onTransportClose() {

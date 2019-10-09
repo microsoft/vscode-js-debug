@@ -8,6 +8,7 @@ import { CallbackFile } from './callback-file';
 import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
+import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(

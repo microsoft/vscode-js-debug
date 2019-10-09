@@ -3,6 +3,9 @@
 
 import Dap from './api';
 
+import { HighResolutionTime } from '../utils/performance';
+import { DapRequestTelemetryReporter } from '../telemetry/telemetryReporter';
+
 export interface Message {
   sessionId?: string;
   seq: number;
@@ -14,6 +17,7 @@ export interface Message {
   request_seq?: number;
   success?: boolean;
   message?: string;
+  __receivedTime?: HighResolutionTime;
 }
 
 export default class Connection {
@@ -32,6 +36,7 @@ export default class Connection {
   protected _ready: (dap: Dap.Api) => void;
   private _logPath?: string;
   private _logPrefix = '';
+  private _telemetryReporter: DapRequestTelemetryReporter | undefined;
 
   constructor() {
     this._sequence = 1;
@@ -54,7 +59,9 @@ export default class Connection {
       // error.message
     });
     inStream.resume();
-    this._ready(this._createApi());
+    const dap = this._createApi();
+    this._ready(dap);
+    this._telemetryReporter = new DapRequestTelemetryReporter(dap);
   }
 
   public dap(): Promise<Dap.Api> {
@@ -160,7 +167,7 @@ export default class Connection {
     this._writableStream.write(data, 'utf8');
   }
 
-  async _onMessage(msg: Message): Promise<void> {
+  async _onMessage(msg: Message, receivedTime: HighResolutionTime): Promise<void> {
     if (msg.type === 'request') {
       const response: Message = { seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true };
       try {
@@ -188,6 +195,7 @@ export default class Connection {
           }
           this._send(response);
         }
+        this._telemetryReporter!.reportSuccesfullyHandledDapMessage(msg.command!, receivedTime);
       } catch (e) {
         console.error(e);
         response.success = false;
@@ -200,6 +208,7 @@ export default class Connection {
           }
         };
         this._send(response);
+        this._telemetryReporter!.reportErrorWhileHandlingDapMessage(msg.command!, receivedTime, e);
       }
     }
     if (msg.type === 'event') {
@@ -220,6 +229,7 @@ export default class Connection {
   }
 
   _handleData(data: Buffer): void {
+    const receivedTime = process.hrtime();
     this._rawData = Buffer.concat([this._rawData, data]);
     while (true) {
       if (this._contentLength >= 0) {
@@ -232,7 +242,7 @@ export default class Connection {
               if (this._logPath)
                 require('fs').appendFileSync(this._logPath, `RECV ► [${this._logPrefix}] ${message}\n`);
               let msg: Message = JSON.parse(message);
-              this._onMessage(msg);
+              this._onMessage(msg, receivedTime);
             }
             catch (e) {
               console.error('Error handling data: ' + (e && e.message));
