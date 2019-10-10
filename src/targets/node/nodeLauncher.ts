@@ -70,25 +70,15 @@ export class NodeLauncher implements Launcher {
     this._programLauncher.stopProgram();
     const launchParams = this._launchParams!;
     const args = (launchParams.args || []).map(arg => `"${arg}"`);
-    const commandLine = [this._adaptCommandToOsIfNeeded(launchParams.command), ...args].join(' ');
+    const commandLine = [this._normalizeCommandLine(launchParams.command), ...args].join(' ');
     this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || launchParams.rootPath, this._buildEnv(), commandLine);
   }
 
-  /** Adapts the command to the current OS when needed */
-  private _adaptCommandToOsIfNeeded(unnormalizedCommand: string) {
-    const isWindows = process.platform === 'win32';
-    if (isWindows) {
-      const tokens = unnormalizedCommand.split(' ');
-      if (tokens.length >= 1) {
-        const originalPath = tokens[0];
-        const normalizedPath = path.normalize(originalPath);
-        if (normalizedPath !== originalPath) {
-          tokens[0] = normalizedPath;
-          return tokens.join(' ');
-        }
-      }
-      return unnormalizedCommand;
-    }
+  /** Normalize the command line */
+  private _normalizeCommandLine(unnormalizedCommand: string): string {
+    const tokens = unnormalizedCommand.split(' ');
+    tokens[0] = path.normalize(tokens[0]);
+    return tokens.join(' ');
   }
 
   async terminate(): Promise<void> {
