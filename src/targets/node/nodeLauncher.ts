@@ -76,7 +76,8 @@ export class NodeLauncher implements Launcher {
 
   /** Normalize the command line */
   private _normalizeCommandLine(unnormalizedCommand: string): string {
-    const tokens = unnormalizedCommand.split(' ');
+    // We trim the left spaces to make sure we normalize the first word of the command
+    const tokens = unnormalizedCommand.trimLeft().split(' ');
     tokens[0] = path.normalize(tokens[0]);
     return tokens.join(' ');
   }
