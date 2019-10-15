@@ -14,7 +14,7 @@
       "type": "pwa",
       "request": "launch",
       "name": "Client/Server",
-      "command": "node_modules/.bin/serve -p 5002 ./out",
+      "command": "${workspaceFolder}/node_modules/.bin/serve -p 5002 ./out",
       "url": "http://localhost:5002",
       "preLaunchTask": "npm: build",
       "webRoot": "${workspaceFolder}/out",
@@ -24,7 +24,7 @@
       "type": "pwa",
       "request": "launch",
       "name": "[Debug Server] for Server",
-      "command": "node_modules/.bin/serve -p 5002 ./out",
+      "command": "${workspaceFolder}/node_modules/.bin/serve -p 5002 ./out",
       "nodeFilter": "",
       "debugServer": 4711
     },
