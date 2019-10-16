@@ -25,12 +25,12 @@
     "url": "https://github.com/Microsoft/vscode-pwa/issues"
   },
   "scripts": {
-    "compile": "tsc -p ./src",
-    "tslint": "tslint ./src/**/*.ts",
-    "watch": "tsc -w -p ./src",
-    "package": "./build.sh && vsce package",
-    "publish": "vsce publish",
-    "test": "node ./out/test/runTest.js"
+    "compile": "gulp",
+    "tslint": "gulp lint",
+    "watch": "gulp watch",
+    "package": "gulp package",
+    "publish": "gulp publish",
+    "test": "gulp --drop-in && node ./out/test/runTest.js"
   },
   "dependencies": {
     "color": "^3.1.2",
@@ -41,6 +41,12 @@
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
+  "prettier": {
+    "trailingComma": "all",
+    "singleQuote": true,
+    "printWidth": 100,
+    "tabWidth": 2
+  },
   "devDependencies": {
     "@pptr/testrunner": "^0.7.0",
     "@types/color": "^3.0.0",
@@ -49,20 +55,42 @@
     "@types/js-beautify": "^1.8.1",
     "@types/node": "^8.9.3",
     "@types/ws": "^6.0.1",
+    "del": "^5.1.0",
+    "event-stream": "^4.0.1",
     "express": "^4.17.1",
+    "gulp": "^4.0.2",
+    "gulp-filter": "^6.0.0",
+    "gulp-replace": "^1.0.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-tslint": "^8.1.4",
+    "gulp-typescript": "^5.0.1",
+    "gulp-util": "^3.0.8",
+    "minimist": "^1.2.0",
+    "npm-run-all": "^4.1.5",
     "parcel-bundler": "^1.12.3",
     "tslint": "5.11.0",
-    "vsce": "1.53.2",
+    "vsce": "^1.67.1",
+    "vscode-nls-dev": "^3.3.1",
     "vscode-test": "^1.0.0"
   },
   "main": "./out/extension.js",
   "enableProposedApi": true,
   "activationEvents": [
-    "onDebug",
-    "onView:pwa.breakpoints",
-    "onCommand:pwa.debugTask",
-    "onCommand:pwa.debugCurrentScript",
-    "onCommand:pwa.createDebuggerTerminal"
+    "onDebugInitialConfigurations",
+
+    "onDebugResolve:NAMESPACE(node)",
+    "onCommand:extension.pickNodeProcess",
+    "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
+    "onCommand:extension.NAMESPACE(node-debug).pickLoadedScript",
+    "onCommand:extension.NAMESPACE(node-debug).toggleSkippingFile",
+    "onCommand:extension.NAMESPACE(node-debug).attachNodeProcess",
+    "onCommand:extension.NAMESPACE(node-debug).startAutoAttach",
+    "onCommand:extension.NAMESPACE(node-debug).startWithStopOnEntry",
+
+    "onDebugResolve:NAMESPACE(chrome)",
+    "onCommand:extension.NAMESPACE(chrome).addCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome).removeCustomBreakpoint"
   ],
   "contributes": {
     "viewsContainers": {
@@ -84,57 +112,62 @@
     },
     "commands": [
       {
-        "command": "pwa.addCustomBreakpoints",
-        "title": "Add Browser Breakpoint",
+        "command": "extension.NAMESPACE(node-debug).prettyPrint",
+        "title": "%pretty.print.script%"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
+        "title": "%open.loaded.script%",
+        "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
+        "title": "%toggle.skipping.this.file%",
+        "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(chrome).addCustomBreakpoints",
+        "title": "%add.browser.breakpoint%",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
         }
       },
       {
-        "command": "pwa.removeCustomBreakpoint",
-        "title": "Remove Browser Breakpoint",
+        "command": "extension.NAMESPACE(chrome).removeCustomBreakpoint",
+        "title": "%remove.browser.breakpoint%",
         "icon": {
           "light": "resources/light/remove.svg",
           "dark": "resources/dark/remove.svg"
         }
       },
       {
-        "command": "pwa.removeAllCustomBreakpoints",
-        "title": "Remove All Browser Breakpoints",
+        "command": "extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
+        "title": "%remove.browser.breakpoint.all%",
         "icon": {
           "light": "resources/light/remove-all.svg",
           "dark": "resources/dark/remove-all.svg"
         }
-      },
-      {
-        "command": "pwa.prettyPrint",
-        "title": "Pretty print for debugging"
-      },
-      {
-        "command": "pwa.debugCurrentScript",
-        "title": "Debug script in Node"
-      },
-      {
-        "command": "pwa.debugTask",
-        "title": "Debug task"
-      },
-      {
-        "command": "pwa.createDebuggerTerminal",
-        "title": "Open debugger terminal"
       }
     ],
     "menus": {
-      "view/title": [
+      "explorer/context": [
         {
-          "command": "pwa.addCustomBreakpoints",
-          "when": "view == pwa.breakpoints",
-          "group": "navigation"
-        },
+          "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
+          "when": "resourceLangId == javascript"
+        }
+      ],
+      "editor/context": [
         {
-          "command": "pwa.removeAllCustomBreakpoints",
-          "when": "view == pwa.breakpoints",
-          "group": "navigation"
+          "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
+          "when": "resourceLangId == javascript"
+        }
+      ],
+      "debug/callstack/context": [
+        {
+          "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
+          "group": "navigation",
+          "when": "inDebugMode && debugType == 'node' && callStackItemType == 'stackFrame'"
         }
       ],
       "view/item/context": [
@@ -154,18 +187,6 @@
         {
           "command": "pwa.removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "pwa.debugCurrentScript",
-          "when": "resourceLangId == javascript"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "pwa.debugCurrentScript",
-          "when": "resourceLangId == javascript"
         }
       ]
     },
@@ -191,81 +212,348 @@
     ],
     "debuggers": [
       {
-        "type": "pwa",
-        "label": "PWA: launch",
+        "type": "NAMESPACE(node)",
+        "label": "%node.label%",
+        "configurationSnippets": [
+          {
+            "label": "%node.snippet.launch.label%",
+            "description": "%node.snippet.launch.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "${2:Launch Program}",
+              "program": "^\"\\${workspaceFolder}/${1:app.js}\"",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.npm.label%",
+            "markdownDescription": "%node.snippet.npm.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "${1:Launch via NPM}",
+              "runtimeExecutable": "npm",
+              "runtimeArgs": [
+                "run-script",
+                "debug"
+              ],
+              "port": 9229,
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.attach.label%",
+            "description": "%node.snippet.attach.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "attach",
+              "name": "${1:Attach}",
+              "port": 9229,
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.remoteattach.label%",
+            "description": "%node.snippet.remoteattach.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "attach",
+              "name": "${1:Attach to Remote}",
+              "address": "${2:TCP/IP address of process to be debugged}",
+              "port": 9229,
+              "localRoot": "^\"\\${workspaceFolder}\"",
+              "remoteRoot": "${3:Absolute path to the remote directory containing the program}",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.attachProcess.label%",
+            "description": "%node.snippet.attachProcess.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "attach",
+              "name": "${1:Attach by Process ID}",
+              "processId": "^\"\\${command:PickProcess}\"",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.nodemon.label%",
+            "description": "%node.snippet.nodemon.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "nodemon",
+              "runtimeExecutable": "nodemon",
+              "program": "^\"\\${workspaceFolder}/${1:app.js}\"",
+              "restart": true,
+              "console": "integratedTerminal",
+              "internalConsoleOptions": "neverOpen",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.mocha.label%",
+            "description": "%node.snippet.mocha.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "Mocha Tests",
+              "program": "^\"\\${workspaceFolder}/node_modules/mocha/bin/_mocha\"",
+              "args": [
+                "-u",
+                "tdd",
+                "--timeout",
+                "999999",
+                "--colors",
+                "^\"\\${workspaceFolder}/${1:test}\""
+              ],
+              "internalConsoleOptions": "openOnSessionStart",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.yo.label%",
+            "markdownDescription": "%node.snippet.yo.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "Yeoman ${1:generator}",
+              "program": "^\"\\${workspaceFolder}/node_modules/yo/lib/cli.js\"",
+              "args": [
+                "${1:generator}"
+              ],
+              "console": "integratedTerminal",
+              "internalConsoleOptions": "neverOpen",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.gulp.label%",
+            "description": "%node.snippet.gulp.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "Gulp ${1:task}",
+              "program": "^\"\\${workspaceFolder}/node_modules/gulp/bin/gulp.js\"",
+              "args": [
+                "${1:task}"
+              ],
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          },
+          {
+            "label": "%node.snippet.electron.label%",
+            "description": "%node.snippet.electron.description%",
+            "body": {
+              "type": "NAMESPACE(node)",
+              "request": "launch",
+              "name": "Electron Main",
+              "runtimeExecutable": "^\"\\${workspaceFolder}/node_modules/.bin/electron\"",
+              "program": "^\"\\${workspaceFolder}/main.js\"",
+              "skipFiles": [
+                "<node_internals>/**"
+              ]
+            }
+          }
+        ],
         "configurationAttributes": {
           "launch": {
             "properties": {
-              "url": {
+              "program": {
                 "type": "string",
-                "description": "Page url"
+                "description": "%node.launch.program.description%"
               },
-              "remoteDebuggingPort": {
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "%node.stopOnEntry.description%",
+                "default": true
+              },
+              "console": {
                 "type": "string",
-                "description": "Browser remote debugging port"
-              },
-              "port": {
-                "type": "string",
-                "description": "Browser remote debugging port. Ignored when 'remoteDebuggingPort' is present."
-              },
-              "browserExecutable": {
-                "type": "string",
-                "description": "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable. When omitted, canary is preferred over stable."
-              },
-              "runtimeExecutable": {
-                "type": "string",
-                "description": "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable. Ignored when 'browserExecutable' is present."
-              },
-              "browserArgs": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Additional browser command line arguments",
-                "default": []
-              },
-              "runtimeArgs": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Additional browser command line arguments. Ignored when 'browserArgs' is present.",
-                "default": []
-              },
-              "baseURL": {
-                "type": "string",
-                "description": "Base URL to resolve paths agsint. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain."
-              },
-              "webRoot": {
-                "type": "string",
-                "description": "Path to source files"
-              },
-              "command": {
-                "type": "string",
-                "description": "Command line to run"
+                "enum": [
+                  "internalConsole",
+                  "integratedTerminal",
+                  "externalTerminal"
+                ],
+                "enumDescriptions": [
+                  "%node.launch.console.internalConsole.description%",
+                  "%node.launch.console.integratedTerminal.description%",
+                  "%node.launch.console.externalTerminal.description%"
+                ],
+                "description": "%node.launch.console.description%",
+                "default": "internalConsole"
               },
               "args": {
                 "type": "array",
+                "description": "%launch.args.description%",
                 "items": {
                   "type": "string"
                 },
-                "description": "Additional arguments to append to command line",
                 "default": []
               },
               "cwd": {
                 "type": "string",
-                "description": "Current working directory"
+                "description": "%node.launch.cwd.description%",
+                "default": "${workspaceFolder}"
+              },
+              "runtimeExecutable": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "markdownDescription": "%node.launch.runtimeExecutable.description%",
+                "default": "node"
+              },
+              "runtimeVersion": {
+                "type": "string",
+                "markdownDescription": "%node.launch.runtimeVersion.description%",
+                "default": "default"
+              },
+              "runtimeArgs": {
+                "type": "array",
+                "description": "%node.launch.runtimeArgs.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
               },
               "env": {
                 "type": "object",
                 "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "markdownDescription": "%node.launch.env.description%",
+                "default": {}
+              },
+              "envFile": {
+                "type": "string",
+                "description": "%node.launch.envFile.description%",
+                "default": "${workspaceFolder}/.env"
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%node.sourceMaps.description%",
+                "default": true
+              },
+              "outFiles": {
+                "type": "array",
+                "markdownDescription": "%outFiles.description%",
+                "items": {
                   "type": "string"
                 },
-                "description": "Environment variables"
+                "default": []
               },
-              "nodeFilter": {
+              "port": {
+                "type": "number",
+                "description": "%node.port.description%",
+                "default": 9229
+              },
+              "address": {
                 "type": "string",
-                "description": "Regular expresison for the main script path. If matches, debugger will attach to the node process. Defaults to empty, which matches everything."
+                "description": "%node.address.description%",
+                "default": "localhost"
+              },
+              "timeout": {
+                "type": "number",
+                "description": "%node.timeout.description%",
+                "default": 10000
+              },
+              "restart": {
+                "type": "boolean",
+                "description": "%node.restart.description%",
+                "default": true
+              },
+              "localRoot": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "%node.localRoot.description%",
+                "default": null
+              },
+              "remoteRoot": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "%node.remoteRoot.description%",
+                "default": null
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "markdownDescription": "%skipFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%node.showAsyncStacks.description%",
+                "default": true
+              },
+              "trace": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "%trace.description%",
+                "default": true
+              },
+              "outputCapture": {
+                "enum": [
+                  "console",
+                  "std"
+                ],
+                "description": "%node.launch.outputCapture.description%",
+                "default": "console"
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%node.sourceMapPathOverrides.description%",
+                "default": {
+                  "webpack:///./~/*": "${workspaceRoot}/node_modules/*",
+                  "webpack:///./*": "${workspaceRoot}/*",
+                  "webpack:///*": "*"
+                }
+              },
+              "autoAttachChildProcesses": {
+                "type": "boolean",
+                "description": "%node.launch.autoAttachChildProcesses.description%",
+                "default": true
+              },
+              "disableOptimisticBPs": {
+                "type": "boolean",
+                "description": "%node.disableOptimisticBPs.description%",
+                "default": true
               },
               "logging": {
                 "type": "object",
@@ -273,49 +561,631 @@
                 "properties": {
                   "cdp": {
                     "type": "string",
-                    "description": "Path to the log file for Chrome DevTools Protocol messages"
+                    "description": "%node.launch.logging.cdp%"
                   },
                   "dap": {
                     "type": "string",
-                    "description": "Path to the log file for Debug Adapter Protocol messages"
+                    "description": "%node.launch.logging.dap%"
+                  }
+                },
+                "description": "Logging configuration"
+              }
+            }
+          },
+          "attach": {
+            "properties": {
+              "cwd": {
+                "type": "string",
+                "description": "%node.launch.cwd.description%",
+                "default": "${workspaceFolder}"
+              },
+              "processId": {
+                "type": "string",
+                "description": "%node.attach.processId.description%",
+                "default": "${command:PickProcess}"
+              },
+              "port": {
+                "type": "number",
+                "description": "%node.port.description%",
+                "default": 9229
+              },
+              "address": {
+                "type": "string",
+                "description": "%node.address.description%",
+                "default": "localhost"
+              },
+              "timeout": {
+                "type": "number",
+                "description": "%node.timeout.description%",
+                "default": 10000
+              },
+              "restart": {
+                "type": "boolean",
+                "description": "%node.restart.description%",
+                "default": true
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%node.sourceMaps.description%",
+                "default": true
+              },
+              "outFiles": {
+                "type": "array",
+                "markdownDescription": "%outFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "%node.stopOnEntry.description%",
+                "default": true
+              },
+              "localRoot": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "%node.localRoot.description%",
+                "default": null
+              },
+              "remoteRoot": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "%node.remoteRoot.description%",
+                "default": null
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "markdownDescription": "%skipFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%node.showAsyncStacks.description%",
+                "default": true
+              },
+              "trace": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "%trace.description%",
+                "default": true
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%node.sourceMapPathOverrides.description%",
+                "default": {
+                  "webpack:///./~/*": "${workspaceRoot}/node_modules/*",
+                  "webpack:///./*": "${workspaceRoot}/*",
+                  "webpack:///*": "*"
+                }
+              },
+              "disableOptimisticBPs": {
+                "type": "boolean",
+                "description": "%node.disableOptimisticBPs.description%",
+                "default": true
+              },
+              "logging": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cdp": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "default": null,
+                    "description": "%node.launch.logging.cdp%"
+                  },
+                  "dap": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "default": null,
+                    "description": "%node.launch.logging.dap%"
+                  }
+                },
+                "description": "%node.launch.logging%"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "NAMESPACE(chrome)",
+        "label": "%node.label%",
+        "configurationSnippets": [
+          {
+            "label": "Chrome: Launch",
+            "description": "Launch Chrome to debug a URL",
+            "body": {
+              "type": "chrome",
+              "request": "launch",
+              "name": "Launch Chrome",
+              "url": "http://localhost:8080",
+              "webRoot": "^\"${2:\\${workspaceFolder\\}}\""
+            }
+          },
+          {
+            "label": "Chrome: Attach",
+            "description": "Attach to an instance of Chrome already in debug mode",
+            "body": {
+              "type": "chrome",
+              "request": "attach",
+              "name": "Attach to Chrome",
+              "port": 9222,
+              "webRoot": "^\"${2:\\${workspaceFolder\\}}\""
+            }
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "%chrome.port.description%",
+                "default": 9222
+              },
+              "address": {
+                "type": "string",
+                "description": "%chrome.address.description%",
+                "default": "127.0.0.1"
+              },
+              "file": {
+                "type": "string",
+                "description": "%chrome.file.description%",
+                "default": "${workspaceFolder}/index.html"
+              },
+              "url": {
+                "type": "string",
+                "description": "%chrome.url.description%",
+                "default": "http://localhost:8080"
+              },
+              "webRoot": {
+                "type": "string",
+                "description": "%chrome.webRoot.description%",
+                "default": "${workspaceFolder}"
+              },
+              "pathMapping": {
+                "type": "object",
+                "description": "%chrome.pathMapping.description%",
+                "default": {
+                  "/": "${workspaceFolder}"
+                }
+              },
+              "runtimeExecutable": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "%chrome.runtimeExecutable.description%",
+                "default": null
+              },
+              "runtimeArgs": {
+                "type": "array",
+                "description": "%chrome.runtimeArgs.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "env": {
+                "type": "object",
+                "description": "%chrome.env.description%",
+                "default": {}
+              },
+              "cwd": {
+                "type": "string",
+                "description": "%chrome.cwd.description%",
+                "default": null
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%chrome.sourceMaps.description%",
+                "default": true
+              },
+              "logging": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cdp": {
+                    "type": "string",
+                    "description": "%node.launch.logging.cdp%"
+                  },
+                  "dap": {
+                    "type": "string",
+                    "description": "%node.launch.logging.dap%"
+                  }
+                },
+                "description": "Logging configuration"
+              },
+              "userDataDir": {
+                "type": [
+                  "string",
+                  "boolean"
+                ],
+                "description": "%chrome.userDataDir.description%",
+                "default": true
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%chrome.sourceMapPathOverrides.description%",
+                "default": {
+                  "webpack:///./*": "${webRoot}/*",
+                  "webpack:///src/*": "${webRoot}/*",
+                  "webpack:///*": "*",
+                  "webpack:///./~/*": "${webRoot}/node_modules/*",
+                  "meteor://💻app/*": "${webRoot}/*"
+                }
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%chrome.smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "description": "%chrome.skipFiles.description%",
+                "default": []
+              },
+              "timeout": {
+                "type": "number",
+                "description": "%chrome.timeout.description%",
+                "default": 10000
+              },
+              "disableNetworkCache": {
+                "type": "boolean",
+                "description": "%chrome.disableNetworkCache.description%",
+                "default": true
+              },
+              "urlFilter": {
+                "type": "string",
+                "description": "%chrome.urlFilter.description%",
+                "default": ""
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%chrome.showAsyncStacks.description%",
+                "default": true
+              },
+              "breakOnLoad": {
+                "type": "boolean",
+                "description": "%chrome.breakOnLoad.description%",
+                "default": true
+              },
+              "breakOnLoadStrategy": {
+                "type": "string",
+                "enum": [
+                  "instrument",
+                  "regex"
+                ],
+                "enumDescriptions": [
+                  "%chrome.breakOnLoadStrategy.instrument.description%",
+                  "%chrome.breakOnLoadStrategy.regex.description%"
+                ],
+                "description": "%chrome.breakOnLoadStrategy.description%",
+                "default": "instrument"
+              },
+              "targetTypes": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "description": "%chrome.targetTypes.description%",
+                "default": [
+                  "page"
+                ]
+              },
+              "server": {
+                "properties": {
+                  "program": {
+                    "type": "string",
+                    "description": "%node.launch.program.description%"
+                  },
+                  "stopOnEntry": {
+                    "type": "boolean",
+                    "description": "%node.stopOnEntry.description%",
+                    "default": true
+                  },
+                  "console": {
+                    "type": "string",
+                    "enum": [
+                      "internalConsole",
+                      "integratedTerminal",
+                      "externalTerminal"
+                    ],
+                    "enumDescriptions": [
+                      "%node.launch.console.internalConsole.description%",
+                      "%node.launch.console.integratedTerminal.description%",
+                      "%node.launch.console.externalTerminal.description%"
+                    ],
+                    "description": "%node.launch.console.description%",
+                    "default": "internalConsole"
+                  },
+                  "args": {
+                    "type": "array",
+                    "description": "%launch.args.description%",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "cwd": {
+                    "type": "string",
+                    "description": "%node.launch.cwd.description%",
+                    "default": "${workspaceFolder}"
+                  },
+                  "runtimeExecutable": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "markdownDescription": "%node.launch.runtimeExecutable.description%",
+                    "default": "node"
+                  },
+                  "runtimeVersion": {
+                    "type": "string",
+                    "markdownDescription": "%node.launch.runtimeVersion.description%",
+                    "default": "default"
+                  },
+                  "runtimeArgs": {
+                    "type": "array",
+                    "description": "%node.launch.runtimeArgs.description%",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "env": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "markdownDescription": "%node.launch.env.description%",
+                    "default": {}
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "%node.launch.envFile.description%",
+                    "default": "${workspaceFolder}/.env"
+                  },
+                  "sourceMaps": {
+                    "type": "boolean",
+                    "description": "%node.sourceMaps.description%",
+                    "default": true
+                  },
+                  "outFiles": {
+                    "type": "array",
+                    "markdownDescription": "%outFiles.description%",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "port": {
+                    "type": "number",
+                    "description": "%node.port.description%",
+                    "default": 9229
+                  },
+                  "address": {
+                    "type": "string",
+                    "description": "%node.address.description%",
+                    "default": "localhost"
+                  },
+                  "timeout": {
+                    "type": "number",
+                    "description": "%node.timeout.description%",
+                    "default": 10000
+                  },
+                  "restart": {
+                    "type": "boolean",
+                    "description": "%node.restart.description%",
+                    "default": true
+                  },
+                  "localRoot": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "%node.localRoot.description%",
+                    "default": null
+                  },
+                  "remoteRoot": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "%node.remoteRoot.description%",
+                    "default": null
+                  },
+                  "smartStep": {
+                    "type": "boolean",
+                    "description": "%smartStep.description%",
+                    "default": true
+                  },
+                  "skipFiles": {
+                    "type": "array",
+                    "markdownDescription": "%skipFiles.description%",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "showAsyncStacks": {
+                    "type": "boolean",
+                    "description": "%node.showAsyncStacks.description%",
+                    "default": true
+                  },
+                  "trace": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "%trace.description%",
+                    "default": true
+                  },
+                  "outputCapture": {
+                    "enum": [
+                      "console",
+                      "std"
+                    ],
+                    "description": "%node.launch.outputCapture.description%",
+                    "default": "console"
+                  },
+                  "sourceMapPathOverrides": {
+                    "type": "object",
+                    "description": "%node.sourceMapPathOverrides.description%",
+                    "default": {
+                      "webpack:///./~/*": "${workspaceRoot}/node_modules/*",
+                      "webpack:///./*": "${workspaceRoot}/*",
+                      "webpack:///*": "*"
+                    }
+                  },
+                  "autoAttachChildProcesses": {
+                    "type": "boolean",
+                    "description": "%node.launch.autoAttachChildProcesses.description%",
+                    "default": true
+                  },
+                  "disableOptimisticBPs": {
+                    "type": "boolean",
+                    "description": "%node.disableOptimisticBPs.description%",
+                    "default": true
+                  },
+                  "logging": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cdp": {
+                        "type": "string",
+                        "description": "%node.launch.logging.cdp%"
+                      },
+                      "dap": {
+                        "type": "string",
+                        "description": "%node.launch.logging.dap%"
+                      }
+                    },
+                    "description": "Logging configuration"
+                  }
+                }
+              }
+            }
+          },
+
+          "attach": {
+            "required": [
+              "port"
+            ],
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "%chrome.port.description%",
+                "default": 9222
+              },
+              "address": {
+                "type": "string",
+                "description": "%chrome.address.description%",
+                "default": "127.0.0.1"
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%chrome.sourceMaps.description%",
+                "default": true
+              },
+              "url": {
+                "type": "string",
+                "description": "%chrome.url.description%",
+                "default": "http://localhost:8080"
+              },
+              "webRoot": {
+                "type": "string",
+                "description": "%chrome.webRoot.description%",
+                "default": "${workspaceFolder}"
+              },
+              "pathMapping": {
+                "type": "object",
+                "description": "%chrome.pathMapping.description%",
+                "default": {}
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%chrome.sourceMapPathOverrides.description%",
+                "default": {}
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%chrome.smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "description": "%chrome.skipFiles.description%",
+                "default": []
+              },
+              "timeout": {
+                "type": "number",
+                "description": "%chrome.timeout.description%",
+                "default": 10000
+              },
+              "disableNetworkCache": {
+                "type": "boolean",
+                "description": "%chrome.disableNetworkCache.description%",
+                "default": true
+              },
+              "urlFilter": {
+                "type": "string",
+                "description": "%chrome.urlFilter.description%",
+                "default": ""
+              },
+              "targetTypes": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "description": "%chrome.targetTypes.description%",
+                "default": [
+                  "page"
+                ]
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%chrome.showAsyncStacks.description%",
+                "default": true
+              },
+              "logging": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cdp": {
+                    "type": "string",
+                    "description": "%node.launch.logging.cdp%"
+                  },
+                  "dap": {
+                    "type": "string",
+                    "description": "%node.launch.logging.dap%"
                   }
                 },
                 "description": "Logging configuration"
               }
             }
           }
-        },
-        "initialConfigurations": [
-          {
-            "type": "pwa",
-            "request": "launch",
-            "name": "PWA: launch browser",
-            "url": "http://localhost:3000",
-            "command": "npm start"
-          }
-        ],
-        "configurationSnippets": [
-          {
-            "label": "PWA: launch browser",
-            "description": "A new configuration for running browser with CDP",
-            "body": {
-              "type": "pwa",
-              "request": "launch",
-              "name": "PWA: launch browser",
-              "url": "http://localhost:${1:3000}"
-            }
-          },
-          {
-            "label": "PWA: launch program",
-            "description": "A new configuration for running Node program with CDP",
-            "body": {
-              "type": "pwa",
-              "request": "launch",
-              "name": "PWA: launch program",
-              "command": "${1:npm start}"
-            }
-          }
-        ]
+        }
       }
     ]
   }

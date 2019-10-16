@@ -7,7 +7,7 @@
     "noUnusedLocals": true,
     "noImplicitThis": true,
     "sourceMap": true,
-    "outDir": "../out",
+    "outDir": "../out/out",
     "strict": true,
     "esModuleInterop": true
   }
