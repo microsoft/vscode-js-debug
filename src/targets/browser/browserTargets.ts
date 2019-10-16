@@ -291,7 +291,7 @@ export class BrowserTarget implements Target {
     return undefined;
   }
 
-  blackboxPattern(): string | undefined {
+  skipFiles(): string | undefined {
     return undefined;
   }
 

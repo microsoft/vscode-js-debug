@@ -53,7 +53,7 @@ export interface ThreadDelegate {
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
-  blackboxPattern(): string | undefined;
+  skipFiles(): string | undefined;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -401,7 +401,7 @@ export class Thread implements VariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    const blackboxPattern = this._delegate.blackboxPattern();
+    const blackboxPattern = this._delegate.skipFiles();
     if (blackboxPattern) {
       // Note: here we assume that source container does only have a single thread.
       this._sourceContainer.setBlackboxRegex(new RegExp(blackboxPattern));

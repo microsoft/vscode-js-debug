@@ -13,6 +13,7 @@ import { Launcher, Target, LaunchResult } from '../../targets/targets';
 import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
 import { CommonLaunchParams } from '../../common/commonLaunchParams';
+import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 export interface LaunchParams extends CommonLaunchParams {
   command: string;
@@ -20,6 +21,7 @@ export interface LaunchParams extends CommonLaunchParams {
   env?: Object;
   nodeFilter?: string;
   args?: string[];
+  skipFiles?: string[];
 }
 
 export interface ProgramLauncher extends Disposable {
@@ -34,6 +36,7 @@ export class NodeLauncher implements Launcher {
   private _server: net.Server | undefined;
   private _programLauncher: ProgramLauncher;
   private _connections: Connection[] = [];
+  //_scriptSkipper: ScriptSkipper;
   _launchParams: LaunchParams | undefined;
   private _pipe: string | undefined;
   private _isRestarting = false;
@@ -69,6 +72,9 @@ export class NodeLauncher implements Launcher {
   _launchProgram() {
     this._programLauncher.stopProgram();
     const launchParams = this._launchParams!;
+    if (launchParams.skipFiles) {
+      //this._scriptSkipper = new ScriptSkipper(launchParams.skipFiles);
+    }
     const args = (launchParams.args || []).map(arg => `"${arg}"`);
     const commandLine = [launchParams.command, ...args].join(' ');
     this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || launchParams.rootPath, this._buildEnv(), commandLine);
@@ -218,7 +224,7 @@ class NodeTarget implements Target {
     return { lineOffset: 0, columnOffset: 62 };
   }
 
-  blackboxPattern(): string | undefined {
+  skipFiles(): string | undefined {
     return kNodeBlackboxPattern;
   }
 
