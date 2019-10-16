@@ -13,7 +13,7 @@ export async function fetch(url: string): Promise<string> {
       throw new Error(`Malformed data url prefix '${prefix}'`);
     const params = new Set<string>(match.slice(1));
     const data = url.substring(prefix.length + 1);
-    const result = new Buffer(data, params.has(';base64') ? 'base64' : undefined).toString();
+    const result = Buffer.from(data, params.has(';base64') ? 'base64' : undefined).toString();
     return result;
   }
 

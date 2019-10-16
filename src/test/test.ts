@@ -15,6 +15,7 @@ import { Logger } from './logger';
 import { Binder } from '../binder';
 import { Target } from '../targets/targets';
 import { EventEmitter } from '../common/events';
+import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -191,7 +192,7 @@ export class TestRoot {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
+    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     this._root = new Session();
@@ -266,22 +267,23 @@ export class TestRoot {
     await this.initialize;
     this._launchUrl = url;
     this._root.dap.launch({
+      ...chromeLaunchConfigDefaults,
       url,
-      browserArgs: this._args,
+      runtimeArgs: this._args,
       webRoot: this._webRoot,
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true
-    } as Dap.LaunchParams);
+    } as IChromeLaunchConfiguration);
     return new Promise(f => this._launchCallback = f);
   }
 
   async launch(content: string): Promise<TestP> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     return this._launch(url);
   }
 
   async launchAndLoad(content: string): Promise<TestP> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     const p = await this._launch(url);
     await p.load();
     return p;

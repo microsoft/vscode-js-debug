@@ -6,8 +6,7 @@ import Dap from '../../dap/api';
 import { Logger } from '../logger';
 
 export function addTests(testRunner) {
-  // @ts-ignore unused xit/fit variables.
-  const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
+  const { it, describe } = testRunner;
 
   describe('basic', () => {
     it('basic object', async ({ r }: { r: TestRoot }) => {

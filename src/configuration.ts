@@ -1,4 +1,11 @@
-interface IMandatedConfiguration {
+import Dap from "./dap/api";
+import { Contributions } from "./common/contributionUtils";
+
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+ interface IMandatedConfiguration {
   /**
    * The type of the debug session.
    */
@@ -15,7 +22,7 @@ interface IMandatedConfiguration {
   request: string;
 }
 
-interface IBaseConfiguration extends IMandatedConfiguration {
+interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
    * Default is 'localhost'.
@@ -77,12 +84,7 @@ interface IBaseConfiguration extends IMandatedConfiguration {
  * Common configuration for the Node debugger.
  */
 export interface INodeBaseConfiguration extends IBaseConfiguration {
-  type: 'node';
-
-  /**
-   * @internal
-   */
-  noDebug?: boolean;
+  type: Contributions.NodeDebugType;
 
   /**
    * @internal
@@ -195,7 +197,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
 }
 
 interface IChromeBaseConfiguration extends IBaseConfiguration {
-  type: 'chrome';
+  type: Contributions.ChromeDebugType;
 
   /**
    * Controls whether to skip the network cache for each request.
@@ -224,6 +226,11 @@ interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Can have * wildcards.
    */
   urlFilter: string;
+
+  /**
+   * todo: difference between this and webRoot?
+   */
+  rootPath?: string;
 }
 
 /**
@@ -290,7 +297,7 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
   /**
    * Launch options to boot a server.
    */
-  server?: INodeLaunchConfiguration;
+  server: INodeLaunchConfiguration | null;
 }
 
 /**
@@ -333,7 +340,7 @@ const baseDefaults: IBaseConfiguration = {
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
   ...baseDefaults,
-  type: 'node',
+  type: Contributions.NodeDebugType,
   cwd: '${workspaceFolder}',
   sourceMaps: true,
   outFiles: [],
@@ -363,7 +370,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   ...baseDefaults,
-  type: 'chrome',
+  type: Contributions.ChromeDebugType,
   request: 'attach',
   disableNetworkCache: true,
   pathMapping: {},
@@ -374,7 +381,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
 
 export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   ...chromeAttachConfigDefaults,
-  type: 'chrome',
+  type: Contributions.ChromeDebugType,
   request: 'launch',
   breakOnLoad: true,
   breakOnLoadStrategy: 'instrument',
@@ -384,6 +391,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeArgs: null,
   runtimeExecutable: 'stable',
   userDataDir: true,
+  server: null,
 };
 
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {

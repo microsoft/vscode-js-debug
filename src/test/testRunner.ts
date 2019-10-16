@@ -32,7 +32,7 @@ export async function run(): Promise<void> {
   });
 
   beforeEach(async (state, t) => {
-    state.goldenText = new GoldenText(t.fullName, path.join(__dirname, '..', '..', 'testWorkspace'));
+    state.goldenText = new GoldenText(t.fullName, path.join(__dirname, '..', '..', '..', 'testWorkspace'));
   });
 
   afterEach(async (state: {goldenText: GoldenText}, t) => {

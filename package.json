@@ -30,7 +30,7 @@
     "watch": "gulp watch",
     "package": "gulp package",
     "publish": "gulp publish",
-    "test": "gulp --drop-in && node ./out/test/runTest.js"
+    "test": "gulp --drop-in && node ./out/out/test/runTest.js"
   },
   "dependencies": {
     "color": "^3.1.2",
@@ -88,9 +88,9 @@
     "onCommand:extension.NAMESPACE(node-debug).startWithStopOnEntry",
 
     "onDebugResolve:NAMESPACE(chrome)",
-    "onCommand:extension.NAMESPACE(chrome).addCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome).removeCustomBreakpoint"
+    "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint"
   ],
   "contributes": {
     "viewsContainers": {
@@ -126,7 +126,7 @@
         "category": "Debug"
       },
       {
-        "command": "extension.NAMESPACE(chrome).addCustomBreakpoints",
+        "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
         "title": "%add.browser.breakpoint%",
         "icon": {
           "light": "resources/light/add.svg",
@@ -134,7 +134,7 @@
         }
       },
       {
-        "command": "extension.NAMESPACE(chrome).removeCustomBreakpoint",
+        "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
         "title": "%remove.browser.breakpoint%",
         "icon": {
           "light": "resources/light/remove.svg",
@@ -142,7 +142,7 @@
         }
       },
       {
-        "command": "extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
+        "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
         "title": "%remove.browser.breakpoint.all%",
         "icon": {
           "light": "resources/light/remove-all.svg",
@@ -172,20 +172,20 @@
       ],
       "view/item/context": [
         {
-          "command": "pwa.removeCustomBreakpoint",
+          "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
           "when": "view == pwa.breakpoints",
           "group": "inline"
         },
         {
-          "command": "pwa.addCustomBreakpoints",
+          "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
           "when": "view == pwa.breakpoints"
         },
         {
-          "command": "pwa.removeCustomBreakpoint",
+          "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
           "when": "view == pwa.breakpoints"
         },
         {
-          "command": "pwa.removeAllCustomBreakpoints",
+          "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
         }
       ]
@@ -405,7 +405,7 @@
               },
               "args": {
                 "type": "array",
-                "description": "%launch.args.description%",
+                "description": "%node.launch.args.description%",
                 "items": {
                   "type": "string"
                 },
@@ -518,14 +518,6 @@
               "showAsyncStacks": {
                 "type": "boolean",
                 "description": "%node.showAsyncStacks.description%",
-                "default": true
-              },
-              "trace": {
-                "type": [
-                  "boolean",
-                  "string"
-                ],
-                "description": "%trace.description%",
                 "default": true
               },
               "outputCapture": {
@@ -654,14 +646,6 @@
               "showAsyncStacks": {
                 "type": "boolean",
                 "description": "%node.showAsyncStacks.description%",
-                "default": true
-              },
-              "trace": {
-                "type": [
-                  "boolean",
-                  "string"
-                ],
-                "description": "%trace.description%",
                 "default": true
               },
               "sourceMapPathOverrides": {
@@ -880,17 +864,10 @@
                 "description": "%chrome.breakOnLoadStrategy.description%",
                 "default": "instrument"
               },
-              "targetTypes": {
-                "type": [
-                  "array",
-                  "null"
-                ],
-                "description": "%chrome.targetTypes.description%",
-                "default": [
-                  "page"
-                ]
-              },
               "server": {
+                "type": "object",
+                "description": "%chrome.server.description%",
+                "additionalProperties": false,
                 "properties": {
                   "program": {
                     "type": "string",
@@ -918,7 +895,7 @@
                   },
                   "args": {
                     "type": "array",
-                    "description": "%launch.args.description%",
+                    "description": "%node.launch.args.description%",
                     "items": {
                       "type": "string"
                     },
@@ -1033,14 +1010,6 @@
                     "description": "%node.showAsyncStacks.description%",
                     "default": true
                   },
-                  "trace": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
-                    "description": "%trace.description%",
-                    "default": true
-                  },
                   "outputCapture": {
                     "enum": [
                       "console",
@@ -1152,16 +1121,6 @@
                 "type": "string",
                 "description": "%chrome.urlFilter.description%",
                 "default": ""
-              },
-              "targetTypes": {
-                "type": [
-                  "array",
-                  "null"
-                ],
-                "description": "%chrome.targetTypes.description%",
-                "default": [
-                  "page"
-                ]
               },
               "showAsyncStacks": {
                 "type": "boolean",

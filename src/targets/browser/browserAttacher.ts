@@ -7,14 +7,15 @@ import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import { Target, Launcher, LaunchResult } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
-import { baseURL, LaunchParams } from './browserLaunchParams';
-import { CommonLaunchParams } from '../../common/commonLaunchParams';
+import { baseURL } from './browserLaunchParams';
+import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
+import { Contributions } from '../../common/contributionUtils';
 
 export class BrowserAttacher implements Launcher {
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
-  private _launchParams: LaunchParams | undefined;
+  private _launchParams: IChromeAttachConfiguration | undefined;
   private _targetOrigin: any;
   private _disposables: Disposable[] = [];
   private _onTerminatedEmitter = new EventEmitter<void>();
@@ -36,8 +37,8 @@ export class BrowserAttacher implements Launcher {
       this._targetManager.dispose();
   }
 
-  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
-    if (!('remoteDebuggingPort' in params) && !('port' in params))
+  async launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult> {
+    if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach')
       return { blockSessionTermination: false };
 
     this._launchParams = params;
@@ -57,7 +58,7 @@ export class BrowserAttacher implements Launcher {
     const params = this._launchParams!;
     let connection: CdpConnection | undefined;
     try {
-      connection = await launcher.attach({ browserURL: `http://localhost:${params.remoteDebuggingPort || params.port}` });
+      connection = await launcher.attach({ browserURL: `http://localhost:${params.port}` });
     } catch (e) {
     }
     if (!connection) {
@@ -65,8 +66,8 @@ export class BrowserAttacher implements Launcher {
       return;
     }
 
-    if (params.logging)
-      connection.setLogConfig(params.remoteDebuggingPort || params.port || '', params.logging.cdp);
+    if (params.logging && params.logging.cdp)
+      connection.setLogConfig(String(params.port || ''), params.logging.cdp);
     this._connection = connection;
     connection.onDisconnected(() => {
       this._connection = undefined;

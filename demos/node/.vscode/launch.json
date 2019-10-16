@@ -11,19 +11,17 @@
             "program": "${workspaceFolder}/main.js"
         },
         {
-            "type": "pwa",
+            "type": "pwa-node",
             "request": "launch",
             "name": "PWA: launch program",
-            "command": "node main.js",
-            "nodeFilter": "main.js"
+            "program": "${workspaceFolder}/main.js"
         },
         {
-          "type": "pwa",
+          "type": "pwa-node",
           "request": "launch",
           "name": "PWA debug server",
           "debugServer": 4711,
-          "command": "node main.js",
-          "nodeFilter": "main.js"
+          "program": "${workspaceFolder}/main.js"
         }
   ]
 }

@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
+import { Contributions } from '../common/contributionUtils';
 
 class Breakpoint {
   id: CustomBreakpointId;
@@ -85,7 +86,7 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext, de
   const provider = new BreakpointsDataProvider(debugSessionTracker);
 
   vscode.window.createTreeView('pwa.breakpoints', { treeDataProvider: provider });
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.addCustomBreakpoints', e => {
+  context.subscriptions.push(vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, e => {
     const quickPick = vscode.window.createQuickPick();
     const items = provider.breakpoints.filter(b => !b.enabled);
     quickPick.items = items;
@@ -96,11 +97,14 @@ export function registerCustomBreakpointsUI(context: vscode.ExtensionContext, de
     quickPick.show();
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.removeAllCustomBreakpoints', e => {
+  context.subscriptions.push(vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, e => {
     provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.removeCustomBreakpoint', (treeItem: vscode.TreeItem) => {
-    provider.removeBreakpoints([treeItem.id as string]);
-  }));
+  context.subscriptions.push(vscode.commands.registerCommand(
+    Contributions.RemoveCustomBreakpointCommand,
+    (treeItem: vscode.TreeItem) => {
+      provider.removeBreakpoints([treeItem.id as string]);
+    },
+  ));
 }

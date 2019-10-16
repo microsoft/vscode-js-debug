@@ -26,7 +26,7 @@ const DEFAULT_ARGS = [
 ];
 
 interface LaunchOptions {
-  args?: string[];
+  args?: ReadonlyArray<string>;
   dumpio?: boolean;
   env?: Object;
   ignoreDefaultArgs?: boolean;
