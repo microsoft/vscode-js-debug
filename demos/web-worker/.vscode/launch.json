@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   // Use IntelliSense to learn about possible attributes.
   // Hover to view descriptions of existing attributes.
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
@@ -14,5 +15,19 @@
         "args": ["-p", "5002"]
       }
     }
+=======
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "type": "pwa",
+          "request": "launch",
+          "name": "Web page 2",
+          "command": "${workspaceFolder}/node_modules/.bin/serve -p 5002",
+          "url": "http://localhost:5002",
+        }
+>>>>>>> origin/master
   ]
 }
