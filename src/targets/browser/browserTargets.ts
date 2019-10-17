@@ -118,22 +118,32 @@ export class BrowserTargetManager implements Disposable {
     return target;
   }
 
-  _detachedFromTarget(targetId: string) {
+  async _detachedFromTarget(targetId: string) {
     const target = this._targets.get(targetId);
     if (!target)
       return;
 
-    for (const childTargetId of target._children.keys())
-      this._detachedFromTarget(childTargetId);
-    target._detached();
+    await Promise.all([...target._children.keys()].map(k => this._detachedFromTarget(k)));
+
+    try {
+      await target._detached();
+    } catch {
+      // ignored -- any network error when we want to detach anyway is fine
+    }
 
     this._targets.delete(targetId);
     if (target.parentTarget)
       target.parentTarget._children.delete(targetId);
 
     this._onTargetRemovedEmitter.fire(target);
-    if (!this._targets.size)
-      this._browser.Browser.close({});
+
+    if (!this._targets.size) {
+      try {
+        await this._browser.Browser.close({});
+      } catch {
+        // ignored -- any network error when we want to detach anyway is fine
+      }
+    }
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
@@ -326,8 +336,8 @@ export class BrowserTarget implements Target {
     return threadName;
   }
 
-  _detached() {
-    this._manager.serviceWorkerModel.detached(this._cdp);
+  async _detached() {
+    await this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
   }
 }

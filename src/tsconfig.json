@@ -9,6 +9,7 @@
     "sourceMap": true,
     "outDir": "../out/out",
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "types": ["node", "chai-subset", "mocha"],
   }
 }

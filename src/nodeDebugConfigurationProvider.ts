@@ -18,6 +18,12 @@ import { Contributions } from './common/contributionUtils';
 
 const localize = nls.loadMessageBundle();
 
+const breakpointLanguages: ReadonlyArray<
+  string
+> = require('../../package.json').contributes.breakpoints.map(
+  (b: { language: string }) => b.language,
+);
+
 /**
  * Configuration provider for node debugging. In order to allow for a
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
@@ -27,15 +33,16 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
   /**
    * Try to add all missing attributes to the debug configuration being launched.
    */
-  public resolveDebugConfiguration(
+  public async resolveDebugConfiguration(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
-  ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration).catch(
-      err => {
-        return vscode.window.showErrorMessage(err.message, { modal: true }).then(_ => undefined); // abort launch
-      },
-    );
+  ): Promise<vscode.DebugConfiguration | undefined> {
+    try {
+      return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration);
+    } catch (err) {
+      await vscode.window.showErrorMessage(err.message, { modal: true });
+      return;
+    }
   }
 
   private async resolveDebugConfigurationAsync(
@@ -148,6 +155,14 @@ function createLaunchConfigFromContext(
   let program: string | undefined;
   let useSourceMaps = false;
 
+  if (pkg && pkg.name === 'mern-starter') {
+		if (resolve) {
+			writeToConsole(localize({ key: 'mern.starter.explanation', comment: ['argument contains product name without translation'] }, "Launch configuration for '{0}' project created.", 'Mern Starter'));
+		}
+    configureMern(config);
+    return config;
+	}
+
   if (pkg) {
     // try to find a value for 'program' by analysing package.json
     program = guessProgramFromPackage(folder, pkg, resolve);
@@ -164,18 +179,14 @@ function createLaunchConfigFromContext(
   if (!program) {
     // try to use file open in editor
     const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      const languageId = editor.document.languageId;
-      if (languageId === 'javascript' || isTranspiledLanguage(languageId)) {
-        const wf = vscode.workspace.getWorkspaceFolder(editor.document.uri);
-        if (wf && wf === folder) {
-          program = path.relative(wf.uri.fsPath || '/', editor.document.uri.fsPath || '/');
-          if (program && !path.isAbsolute(program)) {
-            program = path.join('${workspaceFolder}', program);
-          }
-        }
-      }
-      useSourceMaps = isTranspiledLanguage(languageId);
+    if (editor && breakpointLanguages.includes(editor.document.languageId)) {
+      useSourceMaps = editor.document.languageId !== 'javascript';
+      program = folder
+        ? path.join(
+            '${workspaceFolder}',
+            path.relative(folder.uri.fsPath, editor.document.uri.fsPath),
+          )
+        : editor.document.uri.fsPath;
     }
   }
 
@@ -221,6 +232,19 @@ function createLaunchConfigFromContext(
   }
 
   return config;
+}
+
+function configureMern(config: ResolvingNodeConfiguration) {
+  if (config.request !== 'launch') {
+    return;
+  }
+
+	config.runtimeExecutable = 'nodemon';
+	config.program = '${workspaceFolder}/index.js';
+	config.restart = true;
+	config.env = { BABEL_DISABLE_CACHE: '1', NODE_ENV: 'development' };
+	config.console = 'integratedTerminal';
+	config.internalConsoleOptions = 'neverOpen';
 }
 
 function isTranspiledLanguage(languagId: string): boolean {

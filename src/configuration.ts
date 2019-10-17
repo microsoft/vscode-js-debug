@@ -1,11 +1,11 @@
-import Dap from "./dap/api";
-import { Contributions } from "./common/contributionUtils";
-
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
- interface IMandatedConfiguration {
+import Dap from "./dap/api";
+import { Contributions } from "./common/contributionUtils";
+
+interface IMandatedConfiguration {
   /**
    * The type of the debug session.
    */

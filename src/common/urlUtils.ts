@@ -23,7 +23,7 @@ export async function fetch(url: string): Promise<string> {
       throw new Error(`Can't fetch from '${url}'`);
 
     return new Promise<string>((fulfill, reject) => {
-      fs.readFile(path!, (err: NodeJS.ErrnoException, data: Buffer) => {
+      fs.readFile(path!, (err, data) => {
         if (err)
           reject(err);
         else

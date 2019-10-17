@@ -3,6 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { expect } from 'chai';
 import * as urlUtils from '../common/urlUtils';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
@@ -59,7 +60,7 @@ export class GoldenText {
       throw new Error('GoldenText failed to get filename!');
     this._hasNonAssertedLogs = false;
     const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
-    const actualFilePath = testFilePath.substring(0, testFilePath.lastIndexOf('.')) + '-' + fileFriendlyName + '.txt';
+    const actualFilePath = path.join(path.dirname(testFilePath), fileFriendlyName + '.txt');
     const index = actualFilePath.lastIndexOf(path.join('out', 'out', 'test'));
     const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'out', 'test').length);
     fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});
@@ -70,11 +71,7 @@ export class GoldenText {
       fs.writeFileSync(goldenFilePath, output, {encoding: 'utf-8'});
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
-      if (output !== expectations) {
-        console.log(`expected: ${JSON.stringify(expectations)}`);
-        console.log(`actual: ${JSON.stringify(output)}`);
-        throw new Error('FAILED: wrong test expectations!');
-      }
+      expect(output).to.equal(expectations);
     }
   }
 

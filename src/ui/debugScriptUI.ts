@@ -12,7 +12,7 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext) {
       if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length) return;
       const file = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'package.json');
       const data = await new Promise<Buffer>(f =>
-        fs.readFile(file, (err: NodeJS.ErrnoException, buf: Buffer) => f(buf)),
+        fs.readFile(file, (_err, buf) => f(buf)),
       );
       let json: any = undefined;
       try {

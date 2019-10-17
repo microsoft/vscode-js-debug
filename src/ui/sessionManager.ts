@@ -47,7 +47,7 @@ export class Session implements Disposable {
   }
 
   descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    return new vscode.DebugAdapterServer(this._server.address().port);
+    return new vscode.DebugAdapterServer((this._server.address() as net.AddressInfo).port);
   }
 
   dispose() {
