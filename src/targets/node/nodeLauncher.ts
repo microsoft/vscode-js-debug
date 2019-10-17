@@ -12,19 +12,25 @@ import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathR
 import { Launcher, Target, LaunchResult } from '../../targets/targets';
 import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
-import { CommonLaunchParams } from '../../common/commonLaunchParams';
+import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import { Contributions } from '../../common/contributionUtils';
 
-export interface LaunchParams extends CommonLaunchParams {
-  command: string;
-  cwd?: string;
-  env?: Object;
-  nodeFilter?: string;
-  args?: string[];
-}
+/**
+ * Interface that handles booting a program to debug.
+ */
+export interface IProgramLauncher extends Disposable {
+  /**
+   * Executs the program.
+   */
+  launchProgram(args: INodeLaunchConfiguration): void;
 
-export interface ProgramLauncher extends Disposable {
-  launchProgram(name: string, cwd: string | undefined, env: { [key: string]: string | null }, command: string): void;
+  /**
+   * Stops any executing program.
+   */
   stopProgram(): void;
+  /**
+   * Event that fires when the program stops.
+   */
   onProgramStopped: Event<void>;
 }
 
@@ -32,9 +38,8 @@ let counter = 0;
 
 export class NodeLauncher implements Launcher {
   private _server: net.Server | undefined;
-  private _programLauncher: ProgramLauncher;
   private _connections: Connection[] = [];
-  _launchParams: LaunchParams | undefined;
+  private _launchParams?: INodeLaunchConfiguration;
   private _pipe: string | undefined;
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
@@ -45,8 +50,7 @@ export class NodeLauncher implements Launcher {
   _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(programLauncher: ProgramLauncher) {
-    this._programLauncher = programLauncher;
+  constructor(private readonly _programLauncher: IProgramLauncher) {
     this._programLauncher.onProgramStopped(() => {
       if (!this._isRestarting) {
         this._stopServer();
@@ -55,54 +59,81 @@ export class NodeLauncher implements Launcher {
     });
   }
 
-  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
-    if (!('command' in params))
+  public async launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult> {
+    if (params.type === Contributions.ChromeDebugType && params.request === 'launch' && params.server) {
+      params = params.server;
+    } else if (params.type !== Contributions.NodeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
-    this._launchParams = params as LaunchParams;
-    this._pathResolver = new NodeSourcePathResolver(this._launchParams.rootPath);
+    }
+
+    this._launchParams = params;
+    this._pathResolver = new NodeSourcePathResolver(this._launchParams.cwd);
     this._targetOrigin = targetOrigin;
-    await this._startServer();
-    this._launchProgram();
+    await this._startServer(this._launchParams);
+    this.launchProgram();
     return { blockSessionTermination: true };
   }
 
-  _launchProgram() {
-    this._programLauncher.stopProgram();
-    const launchParams = this._launchParams!;
-    const args = (launchParams.args || []).map(arg => `"${arg}"`);
-    const commandLine = [launchParams.command, ...args].join(' ');
-    this._programLauncher.launchProgram(launchParams.command, launchParams.cwd || launchParams.rootPath, this._buildEnv(), commandLine);
-  }
-
-  async terminate(): Promise<void> {
+  public async terminate(): Promise<void> {
     this._programLauncher.stopProgram();
     await this._stopServer();
   }
 
-  async disconnect(): Promise<void> {
+  public async disconnect(): Promise<void> {
     this._programLauncher.stopProgram();
     await this._stopServer();
   }
 
-  async restart(): Promise<void> {
+  public async restart(): Promise<void> {
+    if (!this._launchParams) {
+      return;
+    }
+
     // Dispose all the connections - Node would not exit child processes otherwise.
     this._isRestarting = true;
-    this._programLauncher.stopProgram();
     this._stopServer();
-    await this._startServer();
-    this._launchProgram();
+    await this._startServer(this._launchParams);
+    this.launchProgram();
     this._isRestarting = false;
   }
 
-  _startServer() {
+  private launchProgram() {
+    this._programLauncher.stopProgram();
+
+    if (!this._launchParams) {
+      return;
+    }
+
+    const bootloaderJS = path.join(__dirname, 'bootloader.js');
+    this._programLauncher.launchProgram({
+      ...this._launchParams,
+      env: {
+        ...this._launchParams.env,
+        NODE_INSPECTOR_IPC: this._pipe || null,
+        NODE_INSPECTOR_PPID: '',
+        // todo: look at reimplementing the filter
+        // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
+        NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',
+        // Require our bootloader first, to run it before any other bootloader
+        // we could have injected in the parent process.
+        NODE_OPTIONS: `--require ${bootloaderJS} ${process.env.NODE_OPTIONS|| ''}`,
+        // Supply some node executable for running top-level watchdog in Electron
+        // environments. Bootloader will replace this with actual node executable used if any.
+        NODE_INSPECTOR_EXEC_PATH: findNode() || '',
+        ELECTRON_RUN_AS_NODE: null,
+      }
+    });
+  }
+
+  private _startServer(args: INodeLaunchConfiguration) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     this._pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     this._server = net.createServer(socket => {
-      this._startSession(socket);
+      this._startSession(socket, args);
     }).listen(this._pipe);
   }
 
-  _stopServer() {
+  private _stopServer() {
     if (this._server)
       this._server.close();
     this._server = undefined;
@@ -110,40 +141,21 @@ export class NodeLauncher implements Launcher {
     this._connections = [];
   }
 
-  async _startSession(socket: net.Socket) {
+  private async _startSession(socket: net.Socket, args: INodeLaunchConfiguration) {
     const connection = new Connection(new PipeTransport(socket));
     this._connections.push(connection);
     const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
-    new NodeTarget(this, connection, cdp, targetInfo);
+    new NodeTarget(this, connection, cdp, targetInfo, args);
     this._onTargetListChangedEmitter.fire();
   }
 
-  targetList(): Target[] {
+  public targetList(): Target[] {
     return Array.from(this._targets.values());
   }
 
-  dispose() {
+  public dispose() {
     this._stopServer();
-  }
-
-  _buildEnv(): { [key: string]: string | null } {
-    const bootloaderJS = path.join(__dirname, 'bootloader.js');
-    let result: any = {
-      ...process.env,
-      ...this._launchParams!.env || {},
-      NODE_INSPECTOR_IPC: this._pipe,
-      NODE_INSPECTOR_PPID: '',
-      NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
-      // Require our bootloader first, to run it before any other bootloader
-      // we could have injected in the parent process.
-      NODE_OPTIONS: `--require ${bootloaderJS} ${process.env.NODE_OPTIONS|| ''}`,
-      // Supply some node executable for running top-level watchdog in Electron
-      // environments. Bootloader will replace this with actual node executable used if any.
-      NODE_INSPECTOR_EXEC_PATH: findNode() || ''
-    };
-    delete result['ELECTRON_RUN_AS_NODE'];
-    return result;
   }
 }
 
@@ -162,7 +174,7 @@ class NodeTarget implements Target {
   private _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
-  constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo) {
+  constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo, args: INodeLaunchConfiguration) {
     this._launcher = launcher;
     this._connection = connection;
     this._cdp = cdp;
@@ -173,8 +185,8 @@ class NodeTarget implements Target {
       this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else
       this._targetName = `[${targetInfo.targetId}]`;
-    if (this._launcher._launchParams && this._launcher._launchParams.logging)
-      connection.setLogConfig(this._targetName, this._launcher._launchParams.logging.cdp);
+    if (args.logging && args.logging.cdp)
+      connection.setLogConfig(this._targetName, args.logging.cdp);
 
     this._setParent(launcher._targets.get(targetInfo.openerId!));
     launcher._targets.set(targetInfo.targetId, this);

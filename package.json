@@ -30,7 +30,7 @@
     "watch": "gulp watch",
     "package": "gulp package",
     "publish": "gulp publish",
-    "test": "gulp --drop-in && node ./out/test/runTest.js"
+    "test": "gulp --drop-in && node ./out/out/test/runTest.js"
   },
   "dependencies": {
     "color": "^3.1.2",
@@ -49,12 +49,20 @@
   },
   "devDependencies": {
     "@pptr/testrunner": "^0.7.0",
+    "@types/chai": "^4.2.3",
+    "@types/chai-subset": "^1.3.3",
     "@types/color": "^3.0.0",
     "@types/debug": "^4.1.4",
+    "@types/del": "^4.0.0",
     "@types/express": "^4.17.0",
     "@types/js-beautify": "^1.8.1",
-    "@types/node": "^8.9.3",
+    "@types/minimist": "^1.2.0",
+    "@types/mkdirp": "^0.5.2",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.11.1",
     "@types/ws": "^6.0.1",
+    "chai": "^4.2.0",
+    "chai-subset": "^1.6.0",
     "del": "^5.1.0",
     "event-stream": "^4.0.1",
     "express": "^4.17.1",
@@ -66,6 +74,8 @@
     "gulp-typescript": "^5.0.1",
     "gulp-util": "^3.0.8",
     "minimist": "^1.2.0",
+    "mkdirp": "^0.5.1",
+    "mocha": "^6.2.1",
     "npm-run-all": "^4.1.5",
     "parcel-bundler": "^1.12.3",
     "tslint": "5.11.0",
@@ -77,7 +87,6 @@
   "enableProposedApi": true,
   "activationEvents": [
     "onDebugInitialConfigurations",
-
     "onDebugResolve:NAMESPACE(node)",
     "onCommand:extension.pickNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
@@ -86,11 +95,10 @@
     "onCommand:extension.NAMESPACE(node-debug).attachNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).startAutoAttach",
     "onCommand:extension.NAMESPACE(node-debug).startWithStopOnEntry",
-
     "onDebugResolve:NAMESPACE(chrome)",
-    "onCommand:extension.NAMESPACE(chrome).addCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome).removeCustomBreakpoint"
+    "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
+    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint"
   ],
   "contributes": {
     "viewsContainers": {
@@ -126,7 +134,7 @@
         "category": "Debug"
       },
       {
-        "command": "extension.NAMESPACE(chrome).addCustomBreakpoints",
+        "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
         "title": "%add.browser.breakpoint%",
         "icon": {
           "light": "resources/light/add.svg",
@@ -134,7 +142,7 @@
         }
       },
       {
-        "command": "extension.NAMESPACE(chrome).removeCustomBreakpoint",
+        "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
         "title": "%remove.browser.breakpoint%",
         "icon": {
           "light": "resources/light/remove.svg",
@@ -142,7 +150,7 @@
         }
       },
       {
-        "command": "extension.NAMESPACE(chrome).removeAllCustomBreakpoints",
+        "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
         "title": "%remove.browser.breakpoint.all%",
         "icon": {
           "light": "resources/light/remove-all.svg",
@@ -172,20 +180,20 @@
       ],
       "view/item/context": [
         {
-          "command": "pwa.removeCustomBreakpoint",
+          "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
           "when": "view == pwa.breakpoints",
           "group": "inline"
         },
         {
-          "command": "pwa.addCustomBreakpoints",
+          "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
           "when": "view == pwa.breakpoints"
         },
         {
-          "command": "pwa.removeCustomBreakpoint",
+          "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
           "when": "view == pwa.breakpoints"
         },
         {
-          "command": "pwa.removeAllCustomBreakpoints",
+          "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
           "when": "view == pwa.breakpoints"
         }
       ]
@@ -405,7 +413,7 @@
               },
               "args": {
                 "type": "array",
-                "description": "%launch.args.description%",
+                "description": "%node.launch.args.description%",
                 "items": {
                   "type": "string"
                 },
@@ -518,14 +526,6 @@
               "showAsyncStacks": {
                 "type": "boolean",
                 "description": "%node.showAsyncStacks.description%",
-                "default": true
-              },
-              "trace": {
-                "type": [
-                  "boolean",
-                  "string"
-                ],
-                "description": "%trace.description%",
                 "default": true
               },
               "outputCapture": {
@@ -654,14 +654,6 @@
               "showAsyncStacks": {
                 "type": "boolean",
                 "description": "%node.showAsyncStacks.description%",
-                "default": true
-              },
-              "trace": {
-                "type": [
-                  "boolean",
-                  "string"
-                ],
-                "description": "%trace.description%",
                 "default": true
               },
               "sourceMapPathOverrides": {
@@ -880,17 +872,10 @@
                 "description": "%chrome.breakOnLoadStrategy.description%",
                 "default": "instrument"
               },
-              "targetTypes": {
-                "type": [
-                  "array",
-                  "null"
-                ],
-                "description": "%chrome.targetTypes.description%",
-                "default": [
-                  "page"
-                ]
-              },
               "server": {
+                "type": "object",
+                "description": "%chrome.server.description%",
+                "additionalProperties": false,
                 "properties": {
                   "program": {
                     "type": "string",
@@ -918,7 +903,7 @@
                   },
                   "args": {
                     "type": "array",
-                    "description": "%launch.args.description%",
+                    "description": "%node.launch.args.description%",
                     "items": {
                       "type": "string"
                     },
@@ -1033,14 +1018,6 @@
                     "description": "%node.showAsyncStacks.description%",
                     "default": true
                   },
-                  "trace": {
-                    "type": [
-                      "boolean",
-                      "string"
-                    ],
-                    "description": "%trace.description%",
-                    "default": true
-                  },
                   "outputCapture": {
                     "enum": [
                       "console",
@@ -1087,7 +1064,6 @@
               }
             }
           },
-
           "attach": {
             "required": [
               "port"
@@ -1152,16 +1128,6 @@
                 "type": "string",
                 "description": "%chrome.urlFilter.description%",
                 "default": ""
-              },
-              "targetTypes": {
-                "type": [
-                  "array",
-                  "null"
-                ],
-                "description": "%chrome.targetTypes.description%",
-                "default": [
-                  "page"
-                ]
               },
               "showAsyncStacks": {
                 "type": "boolean",

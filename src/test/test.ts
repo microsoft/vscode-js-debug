@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 import * as path from 'path';
+import * as fs from 'fs';
 import * as stream from 'stream';
+import * as mkdirp from 'mkdirp';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import Cdp from '../cdp/api';
@@ -15,8 +17,14 @@ import { Logger } from './logger';
 import { Binder } from '../binder';
 import { Target } from '../targets/targets';
 import { EventEmitter } from '../common/events';
+import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
+import { tmpdir } from 'os';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
+
+export const testWorkspace = path.join(__dirname, '..', '..', '..', 'testWorkspace');
+export const testSources = path.join(__dirname, '..', '..', '..', 'src');
+export const testFixturesDir = path.join(tmpdir(), 'vscode-pwa-test');
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
@@ -191,7 +199,7 @@ export class TestRoot {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', 'testWorkspace'));
+    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', '..', 'testWorkspace'));
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     this._root = new Session();
@@ -266,22 +274,23 @@ export class TestRoot {
     await this.initialize;
     this._launchUrl = url;
     this._root.dap.launch({
+      ...chromeLaunchConfigDefaults,
       url,
-      browserArgs: this._args,
+      runtimeArgs: this._args,
       webRoot: this._webRoot,
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true
-    } as Dap.LaunchParams);
+    } as IChromeLaunchConfiguration);
     return new Promise(f => this._launchCallback = f);
   }
 
   async launch(content: string): Promise<TestP> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     return this._launch(url);
   }
 
   async launchAndLoad(content: string): Promise<TestP> {
-    const url = 'data:text/html;base64,' + new Buffer(content).toString('base64');
+    const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     const p = await this._launch(url);
     await p.load();
     return p;
@@ -322,5 +331,32 @@ export class TestRoot {
 
   workspacePath(relative: string): string {
     return path.join(this._workspaceRoot, relative);
+  }
+}
+
+/**
+ * Recursive structure that lists folders/files and describes their contents.
+ */
+export interface IFileTree {
+  [directoryOrFile: string]: string | Buffer | IFileTree;
+}
+
+/**
+ * Creates a file tree at the given location. Primarily useful for creating
+ * fixtures in unit tests.
+ */
+export function createFileTree(rootDir: string, tree: IFileTree) {
+  mkdirp.sync(rootDir);
+
+  for (const key of Object.keys(tree)) {
+    const value = tree[key];
+    const targetPath = path.join(rootDir, key);
+    if (typeof value !== 'string' && !(value instanceof Buffer)) {
+      createFileTree(targetPath, value);
+      continue;
+    }
+
+    mkdirp.sync(path.dirname(targetPath));
+    fs.writeFileSync(targetPath, value);
   }
 }

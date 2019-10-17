@@ -4,19 +4,17 @@
 import { TestRoot } from '../test';
 import Dap from '../../dap/api';
 import { Logger } from '../logger';
+import { itIntegrates } from '../testIntegrationUtils';
 
-export function addTests(testRunner) {
-  // @ts-ignore unused xit/fit variables.
-  const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
-
+describe('variables', () => {
   describe('basic', () => {
-    it('basic object', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('basic object', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('({a: 1})');
       p.assertLog();
     });
 
-    it('simple log', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('simple log', async ({ r }: { r: TestRoot }) => {
       const p = await r.launch(`
         <script>
           console.log('Hello world');
@@ -26,9 +24,9 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('clear console', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('clear console', async ({ r }: { r: TestRoot }) => {
       let complete: () => void;
-      const result = new Promise(f => complete = f);
+      const result = new Promise(f => (complete = f));
       let chain = Promise.resolve();
       const p = await r.launch(`
         <script>
@@ -43,10 +41,8 @@ export function addTests(testRunner) {
       p.load();
       p.dap.on('output', async params => {
         chain = chain.then(async () => {
-          if (params.category === 'stderr')
-            complete();
-          else
-            await p.logger.logOutput(params);
+          if (params.category === 'stderr') complete();
+          else await p.logger.logOutput(params);
         });
       });
 
@@ -56,19 +52,21 @@ export function addTests(testRunner) {
   });
 
   describe('object', () => {
-    it('simple array', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('simple array', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
-      await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true});
+      await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true });
       p.assertLog();
     });
 
-    it('large array', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('large array', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
-      await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', { logInternalInfo: true });
+      await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', {
+        logInternalInfo: true,
+      });
       p.assertLog();
     });
 
-    it('get set', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('get set', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         const a = {};
@@ -79,7 +77,7 @@ export function addTests(testRunner) {
       p.assertLog();
     });
 
-    it('deep accessor', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('deep accessor', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         class Foo { get getter() {} }
@@ -90,7 +88,7 @@ export function addTests(testRunner) {
   });
 
   describe('web', () => {
-    it('tags', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('tags', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
@@ -101,51 +99,67 @@ export function addTests(testRunner) {
   });
 
   describe('multiple threads', () => {
-    it('worker', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('worker', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchUrlAndLoad('worker.html');
-      const outputs: {output: Dap.OutputEventParams, logger: Logger}[] = [];
-      outputs.push({output: await p.dap.once('output'), logger: p.logger});
+      const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
+      outputs.push({ output: await p.dap.once('output'), logger: p.logger });
       const worker = await r.worker();
-      outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
-      outputs.push({output: await worker.dap.once('output'), logger: worker.logger});
+      outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
+      outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
       outputs.sort((a, b) => a.output.source!.name!.localeCompare(b.output.source!.name!));
-      for (const {output, logger} of outputs)
-        await logger.logOutput(output);
+      for (const { output, logger } of outputs) await logger.logOutput(output);
       p.assertLog();
     });
   });
 
   describe('setVariable', () => {
-    it('basic', async({r} : {r: TestRoot}) => {
+    itIntegrates('basic', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
       p.log(`\nSetting "foo" to "{bar: 17}"`);
-      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'foo', value: '{bar: 17}'});
+      const response = await p.dap.setVariable({
+        variablesReference: v.variablesReference,
+        name: 'foo',
+        value: '{bar: 17}',
+      });
 
-      const v2: Dap.Variable = {...response, variablesReference: response.variablesReference || 0, name: '<result>'};
+      const v2: Dap.Variable = {
+        ...response,
+        variablesReference: response.variablesReference || 0,
+        name: '<result>',
+      };
       await p.logger.logVariable(v2);
 
       p.log(`\nOriginal`);
       await p.logger.logVariable(v);
 
-      p.log(await p.dap.setVariable({variablesReference: v.variablesReference, name: 'foo', value: 'baz'}), '\nsetVariable failure: ');
+      p.log(
+        await p.dap.setVariable({
+          variablesReference: v.variablesReference,
+          name: 'foo',
+          value: 'baz',
+        }),
+        '\nsetVariable failure: ',
+      );
       p.assertLog();
     });
 
-    it('scope', async({r} : {r: TestRoot}) => {
+    itIntegrates('scope', async ({ r }: { r: TestRoot }) => {
       const p = await r.launchAndLoad('blank');
-      p.cdp.Runtime.evaluate({expression: `
+      p.cdp.Runtime.evaluate({
+        expression: `
         (function foo() {
           let y = 'value of y';
           let z = 'value of z';
           debugger;
         })()
-      `});
+      `,
+      });
 
       const paused = p.log(await p.dap.once('stopped'), 'stopped: ');
-      const stack = await p.dap.stackTrace({threadId: paused.threadId});
-      const scopes = await p.dap.scopes({frameId: stack.stackFrames[0].id});
+      const stack = await p.dap.stackTrace({ threadId: paused.threadId });
+      const scopes = await p.dap.scopes({ frameId: stack.stackFrames[0].id });
       const scope = scopes.scopes[0];
       const v: Dap.Variable = {
         name: 'scope',
@@ -158,9 +172,17 @@ export function addTests(testRunner) {
       await p.logger.logVariable(v);
 
       p.log(`\nSetting "y" to "z"`);
-      const response = await p.dap.setVariable({variablesReference: v.variablesReference, name: 'y', value: `z`});
+      const response = await p.dap.setVariable({
+        variablesReference: v.variablesReference,
+        name: 'y',
+        value: `z`,
+      });
 
-      const v2: Dap.Variable = {...response, variablesReference: response.variablesReference || 0, name: '<result>'};
+      const v2: Dap.Variable = {
+        ...response,
+        variablesReference: response.variablesReference || 0,
+        name: '<result>',
+      };
       await p.logger.logVariable(v2);
 
       p.log(`\nOriginal`);
@@ -169,4 +191,4 @@ export function addTests(testRunner) {
       p.assertLog();
     });
   });
-}
+});

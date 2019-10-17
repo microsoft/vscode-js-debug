@@ -4,8 +4,13 @@
 import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
-import { CommonLaunchParams } from '../common/commonLaunchParams';
+import { AnyLaunchConfiguration } from '../configuration';
 
+/**
+ * A generic running process that can be debugged. We may have a target before
+ * we start debugging, until we call `attach()` to
+ * actually get a debug adapter API.
+ */
 export interface Target {
   id(): string;
   name(): string;
@@ -40,7 +45,7 @@ export interface LaunchResult {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult>;
+  launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

@@ -31,3 +31,9 @@ export function createUserError(text: string): Dap.Error {
     }
   };
 };
+
+export class ProtocolError extends Error {
+  constructor(public cause: Dap.Message) {
+    super(cause.format);
+  }
+}

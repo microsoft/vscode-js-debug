@@ -2,36 +2,33 @@
 // Licensed under the MIT license.
 
 import { TestRoot } from '../test';
+import { itIntegrates } from '../testIntegrationUtils';
 
-export function addTests(testRunner) {
-  // @ts-ignore unused xit/fit variables.
-  const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
-
-  describe('format', () => {
-    it('format string', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+describe('console format', () => {
+  itIntegrates('string', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;
           array.foo = {};
           array[4] = "test4";
         </script>`);
-      await p.logger.evaluateAndLog([
-        `console.log(array)`,
-        `console.log("%o", array)`,
-        `console.log("%O", array)`,
-        `console.log("Test for zero \\"%f\\" in formatter", 0)`,
-        `console.log("%% self-escape1", "dummy")`,
-        `console.log("%%s self-escape2", "dummy")`,
-        `console.log("%%ss self-escape3", "dummy")`,
-        `console.log("%%s%s%%s self-escape4", "dummy")`,
-        `console.log("%%%%% self-escape5", "dummy")`,
-        `console.log("%%%s self-escape6", "dummy");`
-      ]);
-      p.assertLog();
-    });
+    await p.logger.evaluateAndLog([
+      `console.log(array)`,
+      `console.log("%o", array)`,
+      `console.log("%O", array)`,
+      `console.log("Test for zero \\"%f\\" in formatter", 0)`,
+      `console.log("%% self-escape1", "dummy")`,
+      `console.log("%%s self-escape2", "dummy")`,
+      `console.log("%%ss self-escape3", "dummy")`,
+      `console.log("%%s%s%%s self-escape4", "dummy")`,
+      `console.log("%%%%% self-escape5", "dummy")`,
+      `console.log("%%%s self-escape6", "dummy");`,
+    ]);
+    p.assertLog();
+  });
 
-    it('popular types', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('popular types', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <p id="p"></p>
         <script>
           // Populate Globals
@@ -91,21 +88,52 @@ export function addTests(testRunner) {
           }
           //# sourceURL=console-format
         </script>`);
-      const variables = [
-        'regex1', 'regex2', 'str', 'str2', 'error', 'errorWithMessage', 'errorWithMultilineMessage', 'func', 'multilinefunc', 'num',
-        'null', 'undefined', 'NaN', 'Number.POSITIVE_INFINITY', 'Number.NEGATIVE_INFINITY', '{}', '[function() {}]',
-        'objectWithNonEnumerables', 'negZero', 'Object.create(null)', 'Object', 'Object.prototype',
-        'new Number(42)', 'new String("abc")', 'arrayLikeFunction', 'new Uint16Array(["1", "2", "3"])',
-        'tinyTypedArray', 'smallTypedArray', 'bigTypedArray', 'throwingLengthGetter', 'domException()', 'bigArray',
-        'boxedNumberWithProps', 'boxedStringWithProps', 'false', 'true', 'new Boolean(true)'
-      ];
-      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
-      p.assertLog();
-    });
+    const variables = [
+      'regex1',
+      'regex2',
+      'str',
+      'str2',
+      'error',
+      'errorWithMessage',
+      'errorWithMultilineMessage',
+      'func',
+      'multilinefunc',
+      'num',
+      'null',
+      'undefined',
+      'NaN',
+      'Number.POSITIVE_INFINITY',
+      'Number.NEGATIVE_INFINITY',
+      '{}',
+      '[function() {}]',
+      'objectWithNonEnumerables',
+      'negZero',
+      'Object.create(null)',
+      'Object',
+      'Object.prototype',
+      'new Number(42)',
+      'new String("abc")',
+      'arrayLikeFunction',
+      'new Uint16Array(["1", "2", "3"])',
+      'tinyTypedArray',
+      'smallTypedArray',
+      'bigTypedArray',
+      'throwingLengthGetter',
+      'domException()',
+      'bigArray',
+      'boxedNumberWithProps',
+      'boxedStringWithProps',
+      'false',
+      'true',
+      'new Boolean(true)',
+    ];
+    const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+    await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
+    p.assertLog();
+  });
 
-    it('collections', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('collections', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <div style="display:none" class="c1 c2 c3">
           <form id="f">
               <select id="sel" name="sel">
@@ -152,18 +180,25 @@ export function addTests(testRunner) {
           });
         </script>`);
 
-      const variables = [
-        'nodelist', 'htmlcollection', 'options', 'all',
-        'formControls', 'radioNodeList', 'arrayX', 'nonArray',
-        'generateArguments(1, "2")', 'div.classList'
-      ];
-      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
-      p.assertLog();
-    });
+    const variables = [
+      'nodelist',
+      'htmlcollection',
+      'options',
+      'all',
+      'formControls',
+      'radioNodeList',
+      'arrayX',
+      'nonArray',
+      'generateArguments(1, "2")',
+      'div.classList',
+    ];
+    const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+    await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
+    p.assertLog();
+  });
 
-    it('es6', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('es6', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <script>
           var p = Promise.reject(-0);
           p.catch(function() {});
@@ -214,17 +249,31 @@ export function addTests(testRunner) {
           var generator = genFunction();
         </script>`);
 
-      const variables = [
-        'p' , 'p2', 'p3', 'smb1', 'smb2', 'obj', 'map', 'weakMap', 'set', 'weakSet',
-        'mapMap0', 'mapMap', 'setSet0', 'setSet', 'bigmap', 'generator'
-      ];
-      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
-      p.assertLog();
-    });
+    const variables = [
+      'p',
+      'p2',
+      'p3',
+      'smb1',
+      'smb2',
+      'obj',
+      'map',
+      'weakMap',
+      'set',
+      'weakSet',
+      'mapMap0',
+      'mapMap',
+      'setSet0',
+      'setSet',
+      'bigmap',
+      'generator',
+    ];
+    const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+    await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
+    p.assertLog();
+  });
 
-    it('es6-2', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('es6-2', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <script>
           var map2 = new Map();
           map2.set(41, 42);
@@ -241,18 +290,23 @@ export function addTests(testRunner) {
           iter2.next();
         </script>`);
 
-      const variables = [
-        'map2.keys()', 'map2.values()', 'map2.entries()',
-        'set2.keys()', 'set2.values()', 'set2.entries()',
-        'iter1', 'iter2',
-      ];
-      const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
-      await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
-      p.assertLog();
-    });
+    const variables = [
+      'map2.keys()',
+      'map2.values()',
+      'map2.entries()',
+      'set2.keys()',
+      'set2.values()',
+      'set2.entries()',
+      'iter1',
+      'iter2',
+    ];
+    const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
+    await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
+    p.assertLog();
+  });
 
-    it('array', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('array', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
           var a1 = []; a1.length = 1;
@@ -277,13 +331,13 @@ export function addTests(testRunner) {
           a10 = Object.create([1,2]);
         </script>`);
 
-      const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await p.logger.evaluateAndLog(expressions, { depth: 0 });
-      p.assertLog();
-    });
+    const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
+    await p.logger.evaluateAndLog(expressions, { depth: 0 });
+    p.assertLog();
+  });
 
-    it('class', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`
+  itIntegrates('class', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
           var a1 = []; a1.length = 1;
@@ -308,15 +362,16 @@ export function addTests(testRunner) {
           a10 = Object.create([1,2]);
         </script>`);
 
-      const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
-      await p.logger.evaluateAndLog(expressions, { depth: 0 });
-      p.assertLog();
-    });
+    const expressions = new Array(11).fill(0).map((a, b) => `console.log(a${b})`);
+    await p.logger.evaluateAndLog(expressions, { depth: 0 });
+    p.assertLog();
+  });
 
-    it('colors', async ({ r }: { r: TestRoot }) => {
-      const p = await r.launchAndLoad(`blank`);
+  itIntegrates('colors', async ({ r }: { r: TestRoot }) => {
+    const p = await r.launchAndLoad(`blank`);
 
-      await p.logger.evaluateAndLog([
+    await p.logger.evaluateAndLog(
+      [
         `console.log('%cColors are awesome.', 'color: blue;')`,
         `console.log('%cColors are awesome.', 'background-color: red;')`,
         `console.log('%cColors are awesome.', 'background-color: red;', 'Do not apply to trailing params')`,
@@ -324,8 +379,9 @@ export function addTests(testRunner) {
         `console.log('%cBold text.', 'font-weight: bold')`,
         `console.log('%cItalic text.', 'font-style: italic')`,
         `console.log('%cUnderline text.', 'text-decoration: underline')`,
-      ], { depth: 0 });
-      p.assertLog();
-    });
+      ],
+      { depth: 0 },
+    );
+    p.assertLog();
   });
-}
+});

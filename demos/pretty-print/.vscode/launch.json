@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa",
+      "type": "pwa-chrome",
       "request": "launch",
       "name": "Open in browser",
       "url": "http://www.theverge.com"
