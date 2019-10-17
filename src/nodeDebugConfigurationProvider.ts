@@ -27,15 +27,16 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
   /**
    * Try to add all missing attributes to the debug configuration being launched.
    */
-  public resolveDebugConfiguration(
+  public async resolveDebugConfiguration(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
-  ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration).catch(
-      err => {
-        return vscode.window.showErrorMessage(err.message, { modal: true }).then(_ => undefined); // abort launch
-      },
-    );
+  ): Promise<vscode.DebugConfiguration | undefined> {
+    try {
+      return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration);
+    } catch (err) {
+      await vscode.window.showErrorMessage(err.message, { modal: true });
+      return;
+    }
   }
 
   private async resolveDebugConfigurationAsync(

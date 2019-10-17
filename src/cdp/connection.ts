@@ -231,8 +231,6 @@ class CDPSession {
         callback.resolve(object.result!);
       }
     } else {
-      if (object.id)
-        throw new Error();
       const listeners = this._listeners.get(object.method!);
       for (const listener of listeners || [])
         listener(object.params);

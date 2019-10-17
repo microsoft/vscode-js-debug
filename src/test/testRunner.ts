@@ -1,76 +1,37 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestRoot} from './test';
-import {GoldenText} from './goldenText';
-import * as child_process from 'child_process';
-import * as path from 'path';
+import Mocha from 'mocha';
+import { use } from 'chai';
+import { join } from 'path';
 
-import {TestRunner, Reporter} from '@pptr/testrunner';
+use(require('chai-subset'));
 
 export async function run(): Promise<void> {
-  const testRunner = new TestRunner({
-    timeout: 300000,
-    // Somehow "inspector" is always enabled in this electron context.
-    disableTimeoutWhenInspectorIsEnabled: false,
-  });
-  const {beforeEach, afterEach, beforeAll, afterAll, describe} = testRunner;
-
-  beforeAll(async (state: {servers: child_process.ChildProcess[]}) => {
-    state.servers = [
-      child_process.fork(path.join(__dirname, 'testServer.js'), ['8001']),
-      child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'])
-    ];
-    await Promise.all(state.servers.map(server => {
-      return new Promise(callback => server.once('message', callback));
-    }));
+  const runner = new Mocha({
+    timeout: 20000,
+    ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 
-  afterAll(async (state: {servers: child_process.ChildProcess[]}) => {
-    state.servers.forEach(server => server.kill());
-    delete state.servers;
-  });
+  runner.useColors(true);
 
-  beforeEach(async (state, t) => {
-    state.goldenText = new GoldenText(t.fullName, path.join(__dirname, '..', '..', '..', 'testWorkspace'));
-  });
+  // todo: retry failing tests https://github.com/microsoft/vscode-pwa/issues/28
+  runner.retries(2);
 
-  afterEach(async (state: {goldenText: GoldenText}, t) => {
-    if (t.result === 'ok' && state.goldenText.hasNonAssertedLogs())
-      throw new Error(`Whoa, test "${t.fullName}" has some logs that it did not assert!`);
-    delete state.goldenText;
-  });
+  runner.addFile(join(__dirname, 'testIntegrationUtils'));
+  runner.addFile(join(__dirname, 'infra/infra'));
+  runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
+  runner.addFile(join(__dirname, 'browser/framesTest'));
+  runner.addFile(join(__dirname, 'evaluate/evaluate'));
+  runner.addFile(join(__dirname, 'sources/sourcesTest'));
+  runner.addFile(join(__dirname, 'stacks/stacksTest'));
+  runner.addFile(join(__dirname, 'threads/threadsTest'));
+  runner.addFile(join(__dirname, 'variables/variablesTest'));
+  runner.addFile(join(__dirname, 'console/consoleFormatTest'));
+  runner.addFile(join(__dirname, 'console/consoleAPITest'));
+  runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
 
-  await describe('tests', async () => {
-    beforeEach(async (state: {goldenText: GoldenText, r: TestRoot}) => {
-      state.r = new TestRoot(state.goldenText);
-      await state.r.initialize;
-    });
-
-    afterEach(async (state: {r: TestRoot}) => {
-      await state.r.disconnect();
-      delete state.r;
-    });
-
-    (await import('./infra/infra')).addTests(testRunner);
-    (await import('./breakpoints/breakpointsTest')).addTests(testRunner);
-    (await import('./browser/framesTest')).addTests(testRunner);
-    (await import('./evaluate/evaluate')).addTests(testRunner);
-    (await import('./sources/sourcesTest')).addTests(testRunner);
-    (await import('./stacks/stacksTest')).addTests(testRunner);
-    (await import('./threads/threadsTest')).addTests(testRunner);
-    (await import('./variables/variablesTest')).addTests(testRunner);
-    (await import('./console/consoleFormatTest')).addTests(testRunner);
-    (await import('./console/consoleAPITest')).addTests(testRunner);
-  });
-
-  new Reporter(testRunner, {
-    verbose: true,
-    summary: false,
-    showSlowTests: 0,
-    projectFolder: __dirname,
-  });
-  await testRunner.run();
-  if (process.exitCode && process.exitCode !== 0)
-    throw new Error('Tests Failed');
+  return new Promise((resolve, reject) =>
+    runner.run(failures => (failures ? reject(new Error(`${failures} tests failed`)) : resolve())),
+  );
 }

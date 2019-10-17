@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as childProcess from 'child_process';
+import { removeNulls } from './objUtils';
 
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
@@ -20,7 +21,7 @@ export function findInPath(
   try {
     if (fs.existsSync(locator)) {
       const lines = childProcess
-        .execSync(`${locator} ${program}`, { env: env })
+        .execSync(`${locator} ${program}`, { env: removeNulls(env) })
         .toString()
         .split(/\r?\n/);
 

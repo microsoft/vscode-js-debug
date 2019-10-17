@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 import * as path from 'path';
+import * as fs from 'fs';
 import * as stream from 'stream';
+import * as mkdirp from 'mkdirp';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import Cdp from '../cdp/api';
@@ -16,8 +18,13 @@ import { Binder } from '../binder';
 import { Target } from '../targets/targets';
 import { EventEmitter } from '../common/events';
 import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
+import { tmpdir } from 'os';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
+
+export const testWorkspace = path.join(__dirname, '..', '..', '..', 'testWorkspace');
+export const testSources = path.join(__dirname, '..', '..', '..', 'src');
+export const testFixturesDir = path.join(tmpdir(), 'vscode-pwa-test');
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
@@ -324,5 +331,32 @@ export class TestRoot {
 
   workspacePath(relative: string): string {
     return path.join(this._workspaceRoot, relative);
+  }
+}
+
+/**
+ * Recursive structure that lists folders/files and describes their contents.
+ */
+export interface IFileTree {
+  [directoryOrFile: string]: string | Buffer | IFileTree;
+}
+
+/**
+ * Creates a file tree at the given location. Primarily useful for creating
+ * fixtures in unit tests.
+ */
+export function createFileTree(rootDir: string, tree: IFileTree) {
+  mkdirp.sync(rootDir);
+
+  for (const key of Object.keys(tree)) {
+    const value = tree[key];
+    const targetPath = path.join(rootDir, key);
+    if (typeof value !== 'string' && !(value instanceof Buffer)) {
+      createFileTree(targetPath, value);
+      continue;
+    }
+
+    mkdirp.sync(path.dirname(targetPath));
+    fs.writeFileSync(targetPath, value);
   }
 }

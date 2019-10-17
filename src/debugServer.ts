@@ -17,6 +17,7 @@ import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
 import { TerminalProgramLauncher } from './ui/terminalProgramLauncher';
 import { INodeLaunchConfiguration } from './configuration';
+import { removeNulls } from './common/objUtils';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -39,7 +40,7 @@ class ChildProcessProgramLauncher extends TerminalProgramLauncher {
         // process group, making it possible to kill child process tree with `.kill(-pid)` command.
         // @see https://nodejs.org/api/child_process.html#child_process_options_detached
         detached: !isWindows,
-        env: args.env
+        env: removeNulls(args.env),
       }
     );
 
@@ -163,4 +164,4 @@ const server = net.createServer(async socket => {
 
   connection.init(socket, socket);
 }).listen(process.argv.length >= 3 ? +process.argv[2] : 0);
-console.log(`Listening at ${server.address().port}`);
+console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);

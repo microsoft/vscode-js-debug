@@ -28,7 +28,7 @@ const DEFAULT_ARGS = [
 interface LaunchOptions {
   args?: ReadonlyArray<string>;
   dumpio?: boolean;
-  env?: Object;
+  env?: NodeJS.ProcessEnv;
   ignoreDefaultArgs?: boolean;
   pipe?: boolean;
   timeout?: number;
@@ -57,7 +57,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
     browserArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
 
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
-  let stdio: string[] = ['pipe', 'pipe', 'pipe'];
+  let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
   if (usePipe) {
     if (dumpio)
       stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
@@ -84,8 +84,8 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   }
 
   if (dumpio) {
-    browserProcess.stderr.on('data', data => console.warn(data.toString()));
-    browserProcess.stdout.on('data', data => console.warn(data.toString()));
+    browserProcess.stderr!.on('data', data => console.warn(data.toString()));
+    browserProcess.stdout!.on('data', data => console.warn(data.toString()));
   }
 
   process.on('exit', killBrowser);
@@ -159,7 +159,7 @@ export async function attach(options: AttachOptions): Promise<CdpConnection> {
 
 function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const rl = readline.createInterface({ input: browserProcess.stderr });
+    const rl = readline.createInterface({ input: browserProcess.stderr! });
     let stderr = '';
     const onClose = () => onDone();
     const onExit = () => onDone();

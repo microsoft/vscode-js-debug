@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import {runTests} from 'vscode-test';
+import minimist from 'minimist';
 import * as path from 'path';
 
 async function main() {
@@ -13,6 +14,8 @@ async function main() {
     // The path to the extension test script
     // Passed to --extensionTestsPath
     const extensionTestsPath = path.resolve(__dirname, '.' + path.sep + 'testRunner');
+
+    process.env.PWA_TEST_OPTIONS = JSON.stringify(minimist(process.argv.slice(2)));
 
     // Download VS Code, unzip it and run the integration test
     await runTests({extensionDevelopmentPath, extensionTestsPath, launchArgs: ['--disable-extensions']});
