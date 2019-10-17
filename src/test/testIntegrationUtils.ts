@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import del from 'del';
 import { testWorkspace, testFixturesDir, TestRoot } from './test';
@@ -52,5 +55,5 @@ export const itIntegrates = (test: string, fn: (s: IIntegrationState) => Promise
   });
 
 afterEach(async () => {
-  await del([testFixturesDir], { force: true /* delete outside cwd */ });
+  await del([`${testFixturesDir}/**`], { force: true /* delete outside cwd */ });
 });

@@ -1,3 +1,7 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import * as path from 'path';
 import * as fs from 'fs';
 import * as childProcess from 'child_process';
