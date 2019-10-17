@@ -2,58 +2,21 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as nls from 'vscode-nls';
-import { IProgramLauncher } from '../targets/node/nodeLauncher';
-import { EventEmitter } from '../common/events';
 import { INodeLaunchConfiguration } from '../configuration';
-import { ProtocolError } from '../dap/errors';
-import { findInPath, findExecutable } from '../common/pathUtils';
-
-const localize = nls.loadMessageBundle();
+import { ProcessLauncher } from '../targets/node/processLauncher';
 
 /**
  * Launcher that boots a subprocess.
  */
-export class TerminalProgramLauncher implements IProgramLauncher {
+export class TerminalProgramLauncher extends ProcessLauncher {
   private _terminal: vscode.Terminal | undefined;
-  private _onProgramStoppedEmitter = new EventEmitter<void>();
   private _disposable: vscode.Disposable;
 
-  public onProgramStopped = this._onProgramStoppedEmitter.event;
-
   constructor() {
+    super();
     this._disposable = vscode.window.onDidCloseTerminal(terminal => {
       if (terminal === this._terminal) this._onProgramStoppedEmitter.fire();
     });
-  }
-
-  public launchProgram(args: INodeLaunchConfiguration): void {
-    const env = {
-      ...process.env as ({ [key: string]: string }),
-      ...args.env,
-    };
-
-    let requestedRuntime = args.runtimeExecutable || 'node';
-    const resolvedRuntime = findExecutable(
-      path.isAbsolute(requestedRuntime) ? requestedRuntime : findInPath(requestedRuntime, env),
-      env,
-    );
-
-    if (!resolvedRuntime) {
-      throw new ProtocolError({
-        id: 2001,
-        format: localize(
-          'VSND2001',
-          "Cannot find runtime '{0}' on PATH. Make sure to have '{0}' installed.",
-          requestedRuntime,
-        ),
-        showUser: true,
-        variables: { _runtime: requestedRuntime },
-      });
-    }
-
-    this.launch({ ...args, env, runtimeExecutable: resolvedRuntime });
   }
 
   public stopProgram(): void {
@@ -66,7 +29,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
   }
 
   public dispose() {
-    this.stopProgram();
+    super.dispose();
     this._disposable.dispose();
   }
 

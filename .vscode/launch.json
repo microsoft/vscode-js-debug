@@ -17,7 +17,7 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server",
-      "program": "${workspaceFolder}/shared/out/debugServer.js",
+      "program": "${workspaceFolder}/out/out/debugServer.js",
       "args": ["4711"],
       // "preLaunchTask": "npm: watch"
     },

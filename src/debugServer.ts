@@ -15,13 +15,13 @@ import { Target } from './targets/targets';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
-import { TerminalProgramLauncher } from './ui/terminalProgramLauncher';
 import { INodeLaunchConfiguration } from './configuration';
 import { removeNulls } from './common/objUtils';
+import { ProcessLauncher } from './targets/node/processLauncher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
-class ChildProcessProgramLauncher extends TerminalProgramLauncher {
+class ChildProcessProgramLauncher extends ProcessLauncher {
   private _process?: childProcess.ChildProcess;
   private _stop = this.stopProgram.bind(this);
 
@@ -68,10 +68,6 @@ class ChildProcessProgramLauncher extends TerminalProgramLauncher {
       }
     }
     this._process = undefined;
-  }
-
-  dispose() {
-    this.stopProgram();
   }
 }
 
