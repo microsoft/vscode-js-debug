@@ -17,9 +17,9 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server",
-      "program": "${workspaceFolder}/out/debugServer.js",
+      "program": "${workspaceFolder}/out/out/debugServer.js",
       "args": ["4711"],
-      "preLaunchTask": "npm: watch"
+      // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Extension",
@@ -28,19 +28,19 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=msjsdiag.pwa-debugger",
-        "--extensionDevelopmentPath=${workspaceFolder}"
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js"
       ],
-      "preLaunchTask": "npm: watch"
+      // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Dogfood",
       "type": "pwa",
       "request": "launch",
-      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/",
-      "preLaunchTask": "npm: watch"
+      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/out",
+      // "preLaunchTask": "npm: watch"
     },
 		{
 			"name": "Run Tests",
@@ -49,10 +49,10 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
 			],
-			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			// "preLaunchTask": "npm: watch"
     },
 		{
 			"name": "Reset Results",
@@ -61,13 +61,13 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
       ],
       "env": {
         "RESET_RESULTS": "true"
       },
-			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			// "preLaunchTask": "npm: watch"
     }
   ]
 }

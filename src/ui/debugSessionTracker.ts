@@ -3,6 +3,7 @@
 
 import * as vscode from 'vscode';
 import Dap from '../dap/api';
+import { Contributions } from '../common/contributionUtils';
 
 export class DebugSessionTracker implements vscode.Disposable {
   private _onSessionAddedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
@@ -11,9 +12,9 @@ export class DebugSessionTracker implements vscode.Disposable {
   public sessions = new Map<string, vscode.DebugSession>();
   public onSessionAdded = this._onSessionAddedEmitter.event;
 
-  constructor() {
+  public attach() {
     vscode.debug.onDidStartDebugSession(session => {
-      if (session.type === 'pwa' && session.configuration.request === 'attach') {
+      if (session.type === Contributions.ChromeDebugType && session.configuration.request === 'attach') {
         this.sessions.set(session.id, session);
         this._onSessionAddedEmitter.fire(session);
       }
@@ -24,8 +25,9 @@ export class DebugSessionTracker implements vscode.Disposable {
     }, undefined, this._disposables);
 
     vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
-      if (event.session.type !== 'pwa')
+      if (event.session.type !== Contributions.ChromeDebugType && event.session.type !== Contributions.NodeDebugType) {
         return;
+      }
 
       if (event.event === 'revealLocationRequested') {
         const params = event.body as Dap.RevealLocationRequestedEventParams;

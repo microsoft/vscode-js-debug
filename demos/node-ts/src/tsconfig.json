@@ -8,6 +8,8 @@
     "noImplicitThis": true,
     "sourceMap": true,
     "outDir": "../out",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"],
     "strict": true,
     "esModuleInterop": true
   }

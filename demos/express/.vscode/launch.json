@@ -5,11 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa",
+      "type": "pwa-chrome",
       "request": "launch",
       "name": "Express",
       "url": "http://localhost:3000",
-      "command": "node ./bin/www"
+      "server": {
+        "program": "bin/www"
+      }
     }
   ]
 }

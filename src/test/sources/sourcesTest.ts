@@ -1,28 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {TestRoot, TestP} from '../test';
+import { TestRoot, TestP } from '../test';
 import Dap from '../../dap/api';
 import { calculateHash } from '../../common/hash';
+import { itIntegrates } from '../testIntegrationUtils';
 
-export function addTests(testRunner) {
-  // @ts-ignore unused variables xit/fit.
-  const {it, xit, fit} = testRunner;
-
+describe('sources', () => {
   async function dumpSource(p: TestP, event: Dap.LoadedSourceEventParams, name: string) {
     p.log('\nSource event for ' + name);
     p.log(event);
-    const content = await p.dap.source({sourceReference: event.source.sourceReference!, source: {
-      path: event.source.path,
-      sourceReference: event.source.sourceReference,
-    }});
+    const content = await p.dap.source({
+      sourceReference: event.source.sourceReference!,
+      source: {
+        path: event.source.path,
+        sourceReference: event.source.sourceReference,
+      },
+    });
     p.log(`${content.mimeType}`);
     p.log('---------');
     p.log(content.content);
     p.log('---------');
   }
 
-  it('basic sources', async({r}: {r: TestRoot}) => {
+  itIntegrates('basic sources', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrl('inlinescript.html');
     p.load();
     await dumpSource(p, await p.waitForSource('inline'), 'inline');
@@ -38,17 +39,17 @@ export function addTests(testRunner) {
     p.assertLog();
   });
 
-  it('updated content', async({r}: {r: TestRoot}) => {
+  itIntegrates('updated content', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
-    p.cdp.Runtime.evaluate({expression: 'content1//# sourceURL=test.js'});
+    p.cdp.Runtime.evaluate({ expression: 'content1//# sourceURL=test.js' });
     await dumpSource(p, await p.waitForSource('test'), 'test.js');
-    p.cdp.Runtime.evaluate({expression: 'content2//# sourceURL=test.js'});
+    p.cdp.Runtime.evaluate({ expression: 'content2//# sourceURL=test.js' });
     await dumpSource(p, await p.waitForSource('test'), 'test.js updated');
     p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
     p.assertLog();
   });
 
-  it('basic source map', async({r}: {r: TestRoot}) => {
+  itIntegrates('basic source map', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/bundle.js');
     const sources = await Promise.all([
@@ -56,20 +57,19 @@ export function addTests(testRunner) {
       p.waitForSource('module1.ts'),
       p.waitForSource('module2.ts'),
     ]);
-    for (const source of sources)
-      await dumpSource(p, source, '');
+    for (const source of sources) await dumpSource(p, source, '');
     p.assertLog();
   });
 
-  it('waiting for source map', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('waiting for source map', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
     await p.addScriptTag('browserify/bundle.js');
-    p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
+    p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });
     await p.logger.logOutput(await p.dap.once('output'));
     p.assertLog();
   });
 
-  it('waiting for source map failure', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('waiting for source map failure', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.adapter.sourceContainer.setSourceMapTimeouts({
       load: 2000,
@@ -78,24 +78,24 @@ export function addTests(testRunner) {
       scriptPaused: 0,
     });
     await p.addScriptTag('browserify/bundle.js');
-    p.dap.evaluate({expression: `setTimeout(() => { window.throwError('error2')}, 0)`});
+    p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });
     await p.logger.logOutput(await p.dap.once('output'));
     p.assertLog();
   });
 
-  it('url and hash', async({r}: {r: TestRoot}) => {
+  itIntegrates('url and hash', async ({ r }: { r: TestRoot }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
-    p.cdp.Runtime.evaluate({expression: 'a\n//# sourceURL=foo.js'});
+    p.cdp.Runtime.evaluate({ expression: 'a\n//# sourceURL=foo.js' });
     await dumpSource(p, await p.waitForSource('foo.js'), 'foo.js');
 
     // Same url, different content => different source.
-    p.cdp.Runtime.evaluate({expression: 'b\n//# sourceURL=foo.js'});
+    p.cdp.Runtime.evaluate({ expression: 'b\n//# sourceURL=foo.js' });
     await dumpSource(p, await p.waitForSource('foo.js'), 'foo.js');
 
     // Same url, same content => same sources.
-    await p.cdp.Runtime.evaluate({expression: 'a\n//# sourceURL=foo.js'});
-    await p.cdp.Runtime.evaluate({expression: 'b\n//# sourceURL=foo.js'});
+    await p.cdp.Runtime.evaluate({ expression: 'a\n//# sourceURL=foo.js' });
+    await p.cdp.Runtime.evaluate({ expression: 'b\n//# sourceURL=foo.js' });
 
     // Content matches => maps to file.
     p.addScriptTag('empty.js');
@@ -114,16 +114,19 @@ export function addTests(testRunner) {
   /**
    *  different encodings for the same string: "\"1111111111111111111111111111111111111111111\""
    */
+  // prettier-ignore
   const utf8_noBOM = Buffer.from([0x22, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x22 ]);
+  // prettier-ignore
   const utf8_BOM = Buffer.from([
     0xEF, 0xBB, 0xBF, 0x22, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x22 ]);
+  // prettier-ignore
   const utf16_BE_BOM = Buffer.from([
     0xFE, 0xFF, 0x00, 0x22, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
@@ -133,6 +136,7 @@ export function addTests(testRunner) {
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22]);
+  // prettier-ignore
   const utf16_LE_BOM = Buffer.from([
     0xFF, 0xFE, 0x22, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
@@ -143,7 +147,7 @@ export function addTests(testRunner) {
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22, 0x00]);
 
-  it('hash bom', async({r}: {r: TestRoot}) => {
+  itIntegrates('hash bom', async ({ r }: { r: TestRoot }) => {
     r.log(calculateHash(utf8_noBOM));
     r.log(calculateHash(utf8_BOM));
     r.log(calculateHash(utf16_BE_BOM));
@@ -154,20 +158,21 @@ export function addTests(testRunner) {
   /**
    * Simple script with some emojis in a comment to test hashing of multi-byte code points
    */
+  // prettier-ignore
   const multiByteCodePoints = Buffer.from([
-	0xEF, 0xBB, 0xBF, 0x66, 0x75, 0x6E, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20,
-	0x62, 0x6C, 0x75, 0x62, 0x28, 0x29, 0x20, 0x7B, 0x0D, 0x0A, 0x09, 0x2F,
-	0x2F, 0x20, 0x67, 0x72, 0x65, 0x61, 0x74, 0x20, 0x73, 0x74, 0x75, 0x66,
-	0x66, 0x20, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
-	0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F,
-	0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F,
-	0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F,
-	0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
-	0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0x0D, 0x0A, 0x09, 0x72, 0x65, 0x74,
-	0x75, 0x72, 0x6E, 0x20, 0x32, 0x35, 0x3B, 0x0D, 0x0A, 0x7D]);
+  0xEF, 0xBB, 0xBF, 0x66, 0x75, 0x6E, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20,
+  0x62, 0x6C, 0x75, 0x62, 0x28, 0x29, 0x20, 0x7B, 0x0D, 0x0A, 0x09, 0x2F,
+  0x2F, 0x20, 0x67, 0x72, 0x65, 0x61, 0x74, 0x20, 0x73, 0x74, 0x75, 0x66,
+  0x66, 0x20, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
+  0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F,
+  0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F,
+  0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F,
+  0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
+  0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0x0D, 0x0A, 0x09, 0x72, 0x65, 0x74,
+  0x75, 0x72, 0x6E, 0x20, 0x32, 0x35, 0x3B, 0x0D, 0x0A, 0x7D]);
 
-  it('hash code points', async({r}: {r: TestRoot}) => {
+  itIntegrates('hash code points', async ({ r }: { r: TestRoot }) => {
     r.log(calculateHash(multiByteCodePoints));
     r.assertLog();
   });
-}
+});

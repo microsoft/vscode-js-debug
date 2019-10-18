@@ -7,61 +7,54 @@ import * as path from 'path';
 import * as os from 'os';
 import { Binder, BinderDelegate } from './binder';
 import DapConnection from './dap/connection';
-import { NodeLauncher, ProgramLauncher } from './targets/node/nodeLauncher';
+import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { EventEmitter } from './common/events';
 import * as childProcess from 'child_process';
 import { Target } from './targets/targets';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
+import { INodeLaunchConfiguration } from './configuration';
+import { removeNulls } from './common/objUtils';
+import { ProcessLauncher } from './targets/node/processLauncher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
-class ChildProcessProgramLauncher implements ProgramLauncher {
-  private _onProgramStoppedEmitter = new EventEmitter<void>();
-  public onProgramStopped = this._onProgramStoppedEmitter.event;
+class ChildProcessProgramLauncher extends ProcessLauncher {
   private _process?: childProcess.ChildProcess;
-  private _stop: () => void;
+  private _stop = this.stopProgram.bind(this);
 
-  constructor() {
-    this._stop = this.stopProgram.bind(this);
-  }
-
-  launchProgram(name: string, cwd: string | undefined, env: { [key: string]: string | null }, command: string): void {
+  protected launch(args: INodeLaunchConfiguration): void {
     // TODO: implement this for Windows.
     const isWindows = process.platform === 'win32';
     if (process.platform !== 'linux' && process.platform !== 'darwin')
       return;
 
-    let bash = '';
-    try {
-      bash = childProcess.execFileSync('which', ['bash'], { stdio: 'pipe' }).toString().split(/\r?\n/)[0];
-    } catch (e) {
-      return;
-    }
-
     this._process = childProcess.spawn(
-      bash,
-      ["-c", command],
+      args.runtimeExecutable!,
+      [...args.runtimeArgs, args.program, ...args.args],
       {
-        cwd,
+        cwd: args.cwd,
         // On non-windows platforms, `detached: false` makes child process a leader of a new
         // process group, making it possible to kill child process tree with `.kill(-pid)` command.
         // @see https://nodejs.org/api/child_process.html#child_process_options_detached
         detached: !isWindows,
-        env
+        env: removeNulls(args.env),
       }
     );
+
     process.on('exit', this._stop);
-    if (this._process.pid === undefined)
+
+    if (this._process.pid === undefined) {
       this.stopProgram();
+    }
   }
 
-  stopProgram() {
+  public stopProgram() {
     if (!this._process)
       return;
+
     process.removeListener('exit', this._stop);
     if (this._process.pid && !this._process.killed) {
       // Force kill browser.
@@ -75,10 +68,6 @@ class ChildProcessProgramLauncher implements ProgramLauncher {
       }
     }
     this._process = undefined;
-  }
-
-  dispose() {
-    this.stopProgram();
   }
 }
 
@@ -171,4 +160,4 @@ const server = net.createServer(async socket => {
 
   connection.init(socket, socket);
 }).listen(process.argv.length >= 3 ? +process.argv[2] : 0);
-console.log(`Listening at ${server.address().port}`);
+console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
