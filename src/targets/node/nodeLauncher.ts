@@ -9,11 +9,12 @@ import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
 import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
-import { Launcher, Target, LaunchResult } from '../../targets/targets';
+import { Launcher, Target, LaunchResult, ILaunchContext } from '../../targets/targets';
 import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 /**
  * Interface that handles booting a program to debug.
@@ -22,7 +23,7 @@ export interface IProgramLauncher extends Disposable {
   /**
    * Executs the program.
    */
-  launchProgram(args: INodeLaunchConfiguration): void;
+  launchProgram(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<void>;
 
   /**
    * Stops any executing program.
@@ -44,7 +45,7 @@ export class NodeLauncher implements Launcher {
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
   _pathResolver?: NodeSourcePathResolver;
-  _targetOrigin: any;
+  public context?: ILaunchContext;
   private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -59,8 +60,12 @@ export class NodeLauncher implements Launcher {
     });
   }
 
-  public async launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult> {
-    if (params.type === Contributions.ChromeDebugType && params.request === 'launch' && params.server) {
+  public async launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult> {
+    if (
+      params.type === Contributions.ChromeDebugType &&
+      params.request === 'launch' &&
+      params.server
+    ) {
       params = params.server;
     } else if (params.type !== Contributions.NodeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
@@ -68,7 +73,7 @@ export class NodeLauncher implements Launcher {
 
     this._launchParams = params;
     this._pathResolver = new NodeSourcePathResolver(this._launchParams.cwd);
-    this._targetOrigin = targetOrigin;
+    this.context = context;
     await this._startServer(this._launchParams);
     this.launchProgram();
     return { blockSessionTermination: true };
@@ -105,10 +110,11 @@ export class NodeLauncher implements Launcher {
     }
 
     const bootloaderJS = path.join(__dirname, 'bootloader.js');
+    const env = EnvironmentVars.merge(process.env, this._launchParams.env);
+
     this._programLauncher.launchProgram({
       ...this._launchParams,
-      env: {
-        ...this._launchParams.env,
+      env: env.merge({
         NODE_INSPECTOR_IPC: this._pipe || null,
         NODE_INSPECTOR_PPID: '',
         // todo: look at reimplementing the filter
@@ -116,26 +122,27 @@ export class NodeLauncher implements Launcher {
         NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',
         // Require our bootloader first, to run it before any other bootloader
         // we could have injected in the parent process.
-        NODE_OPTIONS: `--require ${bootloaderJS} ${process.env.NODE_OPTIONS|| ''}`,
+        NODE_OPTIONS: `--require ${bootloaderJS} ${env.lookup('NODE_OPTIONS') || ''}`,
         // Supply some node executable for running top-level watchdog in Electron
         // environments. Bootloader will replace this with actual node executable used if any.
         NODE_INSPECTOR_EXEC_PATH: findNode() || '',
         ELECTRON_RUN_AS_NODE: null,
-      }
-    });
+      }).value,
+    }, this.context!);
   }
 
   private _startServer(args: INodeLaunchConfiguration) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     this._pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
-    this._server = net.createServer(socket => {
-      this._startSession(socket, args);
-    }).listen(this._pipe);
+    this._server = net
+      .createServer(socket => {
+        this._startSession(socket, args);
+      })
+      .listen(this._pipe);
   }
 
   private _stopServer() {
-    if (this._server)
-      this._server.close();
+    if (this._server) this._server.close();
     this._server = undefined;
     this._connections.forEach(c => c.close());
     this._connections = [];
@@ -145,7 +152,9 @@ export class NodeLauncher implements Launcher {
     const connection = new Connection(new PipeTransport(socket));
     this._connections.push(connection);
     const cdp = connection.rootSession();
-    const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f => cdp.Target.on('targetCreated', f));
+    const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f =>
+      cdp.Target.on('targetCreated', f),
+    );
     new NodeTarget(this, connection, cdp, targetInfo, args);
     this._onTargetListChangedEmitter.fire();
   }
@@ -161,7 +170,6 @@ export class NodeLauncher implements Launcher {
 
 class NodeTarget implements Target {
   private _launcher: NodeLauncher;
-  private _connection: Connection;
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
   private _children: NodeTarget[] = [];
@@ -174,23 +182,28 @@ class NodeTarget implements Target {
   private _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
-  constructor(launcher: NodeLauncher, connection: Connection, cdp: Cdp.Api, targetInfo: Cdp.Target.TargetInfo, args: INodeLaunchConfiguration) {
+  constructor(
+    launcher: NodeLauncher,
+    public readonly connection: Connection,
+    cdp: Cdp.Api,
+    targetInfo: Cdp.Target.TargetInfo,
+    args: INodeLaunchConfiguration,
+  ) {
     this._launcher = launcher;
-    this._connection = connection;
+    this.connection = connection;
     this._cdp = cdp;
     this._targetId = targetInfo.targetId;
     this._scriptName = targetInfo.title;
     this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
     if (targetInfo.title)
       this._targetName = `${path.basename(targetInfo.title)} [${targetInfo.targetId}]`;
-    else
-      this._targetName = `[${targetInfo.targetId}]`;
+    else this._targetName = `[${targetInfo.targetId}]`;
     if (args.logging && args.logging.cdp)
       connection.setLogConfig(this._targetName, args.logging.cdp);
 
     this._setParent(launcher._targets.get(targetInfo.openerId!));
     launcher._targets.set(targetInfo.targetId, this);
-    cdp.Target.on('targetDestroyed', () => this._connection.close());
+    cdp.Target.on('targetDestroyed', () => this.connection.close());
     connection.onDisconnected(_ => this._disconnected());
   }
 
@@ -211,7 +224,7 @@ class NodeTarget implements Target {
   }
 
   targetOrigin(): any {
-    return this._launcher._targetOrigin;
+    return this._launcher.context!.targetOrigin;
   }
 
   parent(): Target | undefined {
@@ -235,8 +248,9 @@ class NodeTarget implements Target {
   }
 
   scriptUrlToUrl(url: string): string {
-    const isPath = url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
-    return isPath ? (urlUtils.absolutePathToFileUrl(url) || url) : url;
+    const isPath =
+      url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
+    return isPath ? urlUtils.absolutePathToFileUrl(url) || url : url;
   }
 
   sourcePathResolver(): SourcePathResolver {
@@ -261,11 +275,9 @@ class NodeTarget implements Target {
   }
 
   _setParent(parent?: NodeTarget) {
-    if (this._parent)
-      this._parent._children.splice(this._parent._children.indexOf(this), 1);
+    if (this._parent) this._parent._children.splice(this._parent._children.indexOf(this), 1);
     this._parent = parent;
-    if (this._parent)
-      this._parent._children.push(this);
+    if (this._parent) this._parent._children.push(this);
   }
 
   async _disconnected() {
@@ -282,8 +294,7 @@ class NodeTarget implements Target {
 
   async attach(): Promise<Cdp.Api | undefined> {
     this._serialize = this._serialize.then(async () => {
-      if (this._attached)
-        return;
+      if (this._attached) return;
       return this._doAttach();
     });
     return this._serialize;
@@ -299,8 +310,7 @@ class NodeTarget implements Target {
         defaultCountextId = event.context.id;
     });
     this._cdp.Runtime.on('executionContextDestroyed', event => {
-      if (event.executionContextId === defaultCountextId)
-        this._connection.close();
+      if (event.executionContextId === defaultCountextId) this.connection.close();
     });
     return this._cdp;
   }
@@ -311,8 +321,7 @@ class NodeTarget implements Target {
 
   async detach(): Promise<void> {
     this._serialize = this._serialize.then(async () => {
-      if (!this._attached)
-        return undefined;
+      if (!this._attached) return undefined;
       this._doDetach();
     });
   }
@@ -326,7 +335,7 @@ class NodeTarget implements Target {
     return false;
   }
 
-  restart() { }
+  restart() {}
 
   canStop(): boolean {
     return true;
@@ -335,9 +344,8 @@ class NodeTarget implements Target {
   stop() {
     try {
       process.kill(+this._targetId);
-    } catch (e) {
-    }
-    this._connection.close();
+    } catch (e) {}
+    this.connection.close();
   }
 }
 
@@ -350,11 +358,9 @@ export class NodeSourcePathResolver implements SourcePathResolver {
 
   urlToAbsolutePath(url: string): string {
     const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
-    if (absolutePath)
-      return absolutePath;
+    if (absolutePath) return absolutePath;
 
-    if (!this._basePath)
-      return '';
+    if (!this._basePath) return '';
 
     const webpackPath = urlUtils.webpackUrlToPath(url, this._basePath);
     return webpackPath || '';
@@ -367,21 +373,69 @@ export class NodeSourcePathResolver implements SourcePathResolver {
 
 function findNode(): string | undefined {
   // TODO: implement this for Windows.
-  if (process.platform !== 'linux' && process.platform !== 'darwin')
-    return;
+  if (process.platform !== 'linux' && process.platform !== 'darwin') return;
   try {
-    return execFileSync('which', ['node'], { stdio: 'pipe' }).toString().split(/\r?\n/)[0];
-  } catch (e) {
-  }
+    return execFileSync('which', ['node'], { stdio: 'pipe' })
+      .toString()
+      .split(/\r?\n/)[0];
+  } catch (e) {}
 }
 
-const kNodeScripts = ['_http_agent.js', '_http_client.js', '_http_common.js', '_http_incoming.js',
-    '_http_outgoing.js', '_http_server.js', '_stream_duplex.js', '_stream_passthrough.js', '_stream_readable.js',
-    '_stream_transform.js', '_stream_wrap.js', '_stream_writable.js', '_tls_common.js', '_tls_wrap.js',
-    'assert.js', 'async_hooks.js', 'buffer.js', 'child_process.js', 'cluster.js', 'console.js', 'constants.js',
-    'crypto.js', 'dgram.js', 'dns.js', 'domain.js', 'events.js', 'fs.js', 'http.js', 'http2.js', 'https.js',
-    'inspector.js', 'module.js', 'net.js', 'os.js', 'path.js', 'perf_hooks.js', 'process.js', 'punycode.js',
-    'querystring.js', 'readline.js', 'repl.js', 'stream.js', 'string_decoder.js', 'sys.js', 'timers.js', 'tls.js',
-    'trace_events.js', 'tty.js', 'url.js', 'util.js', 'v8.js', 'vm.js', 'worker_threads.js', 'zlib.js'];
+const kNodeScripts = [
+  '_http_agent.js',
+  '_http_client.js',
+  '_http_common.js',
+  '_http_incoming.js',
+  '_http_outgoing.js',
+  '_http_server.js',
+  '_stream_duplex.js',
+  '_stream_passthrough.js',
+  '_stream_readable.js',
+  '_stream_transform.js',
+  '_stream_wrap.js',
+  '_stream_writable.js',
+  '_tls_common.js',
+  '_tls_wrap.js',
+  'assert.js',
+  'async_hooks.js',
+  'buffer.js',
+  'child_process.js',
+  'cluster.js',
+  'console.js',
+  'constants.js',
+  'crypto.js',
+  'dgram.js',
+  'dns.js',
+  'domain.js',
+  'events.js',
+  'fs.js',
+  'http.js',
+  'http2.js',
+  'https.js',
+  'inspector.js',
+  'module.js',
+  'net.js',
+  'os.js',
+  'path.js',
+  'perf_hooks.js',
+  'process.js',
+  'punycode.js',
+  'querystring.js',
+  'readline.js',
+  'repl.js',
+  'stream.js',
+  'string_decoder.js',
+  'sys.js',
+  'timers.js',
+  'tls.js',
+  'trace_events.js',
+  'tty.js',
+  'url.js',
+  'util.js',
+  'v8.js',
+  'vm.js',
+  'worker_threads.js',
+  'zlib.js',
+];
 const kNodeBlackboxPattern =
-    '^internal/.+\.js|' + kNodeScripts.map(script => script.replace('.', '\.')).join('|') + '$';
+  '^internal/.+.js|' + kNodeScripts.map(script => script.replace('.', '.')).join('|') + '$';

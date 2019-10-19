@@ -60,27 +60,30 @@ export function findInPath(
 /*
  * Ensures the program exists, adding its executable as necessary on Windows.
  */
-export function findExecutable(program: string | undefined, env: { [key: string]: string | null }): string | undefined {
+export function findExecutable(
+  program: string | undefined,
+  env: { [key: string]: string | null },
+): string | undefined {
   if (!program) {
     return undefined;
   }
 
-	if (process.platform === 'win32' && !path.extname(program)) {
-		const pathExtension = env['PATHEXT'];
-		if (pathExtension) {
-			const executableExtensions = pathExtension.split(';');
-			for (const extension of executableExtensions) {
-				const path = program + extension;
-				if (fs.existsSync(path)) {
-					return path;
-				}
-			}
-		}
-	}
-
-	if (fs.existsSync(program)) {
-		return program;
+  if (process.platform === 'win32' && !path.extname(program)) {
+    const pathExtension = env['PATHEXT'];
+    if (pathExtension) {
+      const executableExtensions = pathExtension.split(';');
+      for (const extension of executableExtensions) {
+        const path = program + extension;
+        if (fs.existsSync(path)) {
+          return path;
+        }
+      }
+    }
   }
 
-	return undefined;
+  if (fs.existsSync(program)) {
+    return program;
+  }
+
+  return undefined;
 }

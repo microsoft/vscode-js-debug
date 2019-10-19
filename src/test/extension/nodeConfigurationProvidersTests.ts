@@ -3,18 +3,32 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { stub, SinonStub } from 'sinon';
 import { join } from 'path';
 import { expect } from 'chai';
 import { NodeDebugConfigurationProvider } from '../../nodeDebugConfigurationProvider';
 import { createFileTree, testFixturesDir } from '../test';
+import { Contributions } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 describe('NodeDebugConfigurationProvider', () => {
-  const provider = new NodeDebugConfigurationProvider();
+  let provider: NodeDebugConfigurationProvider;
+  let nvmResolver: { resolveNvmVersionPath: SinonStub };
   const folder: vscode.WorkspaceFolder = {
     uri: vscode.Uri.file(testFixturesDir),
     name: 'test-dir',
     index: 0,
   };
+
+  beforeEach(() => {
+    nvmResolver = { resolveNvmVersionPath: stub() };
+    provider = new NodeDebugConfigurationProvider(nvmResolver);
+    EnvironmentVars.platform = 'linux';
+  });
+
+  afterEach(() => {
+    EnvironmentVars.platform = process.platform;
+  });
 
   describe('launch config from context', () => {
     const emptyRequest = {
@@ -108,6 +122,30 @@ describe('NodeDebugConfigurationProvider', () => {
       } finally {
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
       }
+    });
+  });
+
+  it('attempts to resolve nvm', async () => {
+    createFileTree(testFixturesDir, {
+      'my.env': 'A=bar\nB="quoted"\n"C"="more quoted"\n\nD=overridden\n',
+      'hello.js': '',
+    });
+
+    nvmResolver.resolveNvmVersionPath.resolves('/my/node/location');
+    const result = await provider.resolveDebugConfiguration(folder, {
+      type: Contributions.NodeDebugType,
+      name: '',
+      request: 'launch',
+      program: 'hello.js',
+      runtimeVersion: '3.1.4',
+      env: { hello: 'world', PATH: '/usr/bin' },
+    });
+
+    expect(result).to.containSubset({
+      env: {
+        hello: 'world',
+        PATH: '/usr/bin:/my/node/location',
+      },
     });
   });
 });
