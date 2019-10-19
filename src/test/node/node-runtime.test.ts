@@ -9,7 +9,7 @@ describe('node runtime', () => {
   }
 
   itIntegrates('simple script', async ({ r }: { r: TestRoot }) => {
-    createFileTree(testFixturesDir, { 'test.ts': 'require("fs").writeFileSync("/Users/copeet/Github/vscode-pwa/greet.txt", "hi"); console.log("hello world"); debugger;'});
+    createFileTree(testFixturesDir, { 'test.ts': 'require("fs").writeFileSync("/tmp/greet.txt", "hi"); console.log("hello world"); debugger;'});
     const handle = await r.runScript('test.ts');
     handle.load();
     await waitForPause(handle);

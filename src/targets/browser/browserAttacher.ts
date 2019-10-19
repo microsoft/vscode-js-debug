@@ -5,7 +5,7 @@ import { Disposable, EventEmitter } from '../../common/events';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult } from '../targets';
+import { Target, Launcher, LaunchResult, ILaunchContext } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
@@ -37,7 +37,7 @@ export class BrowserAttacher implements Launcher {
       this._targetManager.dispose();
   }
 
-  async launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult> {
+  async launch(params: AnyLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<LaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach')
       return { blockSessionTermination: false };
 

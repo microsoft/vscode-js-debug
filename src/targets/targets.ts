@@ -5,6 +5,7 @@ import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
+import Dap from '../dap/api';
 
 /**
  * A generic running process that can be debugged. We may have a target before
@@ -39,13 +40,18 @@ export interface Target {
   blackboxPattern(): string | undefined;
 }
 
+export interface ILaunchContext {
+  dap: Dap.Api;
+  targetOrigin: any;
+}
+
 export interface LaunchResult {
   error?: string;
   blockSessionTermination?: boolean;
 }
 
 export interface Launcher extends Disposable {
-  launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult>;
+  launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

@@ -9,7 +9,7 @@ import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult } from '../../targets/targets';
+import { Target, Launcher, LaunchResult, ILaunchContext } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
@@ -74,7 +74,7 @@ export class BrowserLauncher implements Launcher {
       });
   }
 
-  async prepareLaunch(params: IChromeLaunchConfiguration, targetOrigin: any): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
       connection = await this._launchBrowser(params.runtimeArgs || [], params.runtimeExecutable);

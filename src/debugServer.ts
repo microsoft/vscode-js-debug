@@ -25,11 +25,11 @@ class ChildProcessProgramLauncher extends ProcessLauncher {
   private _process?: childProcess.ChildProcess;
   private _stop = this.stopProgram.bind(this);
 
-  protected launch(args: INodeLaunchConfiguration): void {
+  protected async launch(args: INodeLaunchConfiguration) {
     // TODO: implement this for Windows.
     const isWindows = process.platform === 'win32';
     if (process.platform !== 'linux' && process.platform !== 'darwin')
-      return;
+      throw new Error('Windows is not supported');
 
     this._process = childProcess.spawn(
       args.runtimeExecutable!,
@@ -49,6 +49,8 @@ class ChildProcessProgramLauncher extends ProcessLauncher {
     if (this._process.pid === undefined) {
       this.stopProgram();
     }
+
+    return this._process.pid;
   }
 
   public stopProgram() {

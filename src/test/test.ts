@@ -341,7 +341,7 @@ export class TestRoot {
   async initAdapter(adapter: DebugAdapter, target: Target): Promise<boolean> {
     const p = this._targetToP.get(target);
     if (!p) {
-      return false;
+      return true;
     }
 
     const boot = await p._init(adapter);

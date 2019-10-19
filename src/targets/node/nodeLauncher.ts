@@ -9,7 +9,7 @@ import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
 import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
-import { Launcher, Target, LaunchResult } from '../../targets/targets';
+import { Launcher, Target, LaunchResult, ILaunchContext } from '../../targets/targets';
 import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
@@ -23,7 +23,7 @@ export interface IProgramLauncher extends Disposable {
   /**
    * Executs the program.
    */
-  launchProgram(args: INodeLaunchConfiguration): void;
+  launchProgram(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<void>;
 
   /**
    * Stops any executing program.
@@ -45,7 +45,7 @@ export class NodeLauncher implements Launcher {
   private _isRestarting = false;
   _targets = new Map<string, NodeTarget>();
   _pathResolver?: NodeSourcePathResolver;
-  _targetOrigin: any;
+  public context?: ILaunchContext;
   private _onTerminatedEmitter = new EventEmitter<void>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -60,7 +60,7 @@ export class NodeLauncher implements Launcher {
     });
   }
 
-  public async launch(params: AnyLaunchConfiguration, targetOrigin: any): Promise<LaunchResult> {
+  public async launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult> {
     if (
       params.type === Contributions.ChromeDebugType &&
       params.request === 'launch' &&
@@ -73,7 +73,7 @@ export class NodeLauncher implements Launcher {
 
     this._launchParams = params;
     this._pathResolver = new NodeSourcePathResolver(this._launchParams.cwd);
-    this._targetOrigin = targetOrigin;
+    this.context = context;
     await this._startServer(this._launchParams);
     this.launchProgram();
     return { blockSessionTermination: true };
@@ -128,7 +128,7 @@ export class NodeLauncher implements Launcher {
         NODE_INSPECTOR_EXEC_PATH: findNode() || '',
         ELECTRON_RUN_AS_NODE: null,
       }).value,
-    });
+    }, this.context!);
   }
 
   private _startServer(args: INodeLaunchConfiguration) {
@@ -224,7 +224,7 @@ class NodeTarget implements Target {
   }
 
   targetOrigin(): any {
-    return this._launcher._targetOrigin;
+    return this._launcher.context!.targetOrigin;
   }
 
   parent(): Target | undefined {

@@ -89,7 +89,7 @@ export class Binder implements Disposable {
   }
 
   async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, this._targetOrigin);
+    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap });
     if (result.error)
       return result.error;
     if (!result.blockSessionTermination)

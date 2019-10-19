@@ -10,6 +10,7 @@ import { INodeLaunchConfiguration } from '../../configuration';
 import { ProtocolError, createUserError } from '../../dap/errors';
 import { findInPath, findExecutable } from '../../common/pathUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { ILaunchContext } from '../targets';
 
 const localize = nls.loadMessageBundle();
 
@@ -20,7 +21,7 @@ export abstract class ProcessLauncher implements IProgramLauncher {
   protected _onProgramStoppedEmitter = new EventEmitter<void>();
   public onProgramStopped = this._onProgramStoppedEmitter.event;
 
-  public launchProgram(args: INodeLaunchConfiguration): void {
+  public async launchProgram(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<void> {
     const env = this.resolveEnvironment(args);
     let requestedRuntime = args.runtimeExecutable || 'node';
     const resolvedRuntime = findExecutable(
@@ -40,7 +41,7 @@ export abstract class ProcessLauncher implements IProgramLauncher {
       });
     }
 
-    this.launch({ ...args, env, runtimeExecutable: resolvedRuntime });
+    await this.launch({ ...args, env, runtimeExecutable: resolvedRuntime }, context);
   }
 
   private resolveEnvironment(args: INodeLaunchConfiguration) {
@@ -68,7 +69,7 @@ export abstract class ProcessLauncher implements IProgramLauncher {
     this.stopProgram();
   }
 
-  protected abstract launch(args: INodeLaunchConfiguration): void;
+  protected abstract launch(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<number>;
 }
 
 function readEnvFile(file: string): { [key: string]: string } {
