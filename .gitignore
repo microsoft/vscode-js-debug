@@ -7,3 +7,5 @@
 /node_modules/
 out/
 /*.vsix
+/coverage
+/.nyc_output

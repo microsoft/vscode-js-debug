@@ -187,6 +187,7 @@ class CDPSession {
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
+    console.log('send', `${method}(${JSON.stringify(params)})`);
     return this._sendOrDie(method, params).catch(e => undefined);
   }
 

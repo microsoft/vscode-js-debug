@@ -196,6 +196,7 @@ export default class Connection {
     }
     if (msg.type === 'event') {
       const listeners = this._eventListeners.get(msg.event!) || new Set();
+      console.log('receive', `${msg.event}(${JSON.stringify(msg.body)}`);
       for (const listener of listeners)
         listener(msg.body);
     }

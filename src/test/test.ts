@@ -17,8 +17,10 @@ import { Logger } from './logger';
 import { Binder } from '../binder';
 import { Target } from '../targets/targets';
 import { EventEmitter } from '../common/events';
-import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
+import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../configuration';
 import { tmpdir } from 'os';
+import { NodeLauncher } from '../targets/node/nodeLauncher';
+import { TerminalProgramLauncher } from '../ui/terminalProgramLauncher';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -71,7 +73,21 @@ class Session {
   }
 }
 
-export class TestP {
+/**
+ * Test handle for a Chrome or Node debug sessions/
+ */
+export interface ITestHandle {
+  readonly cdp: Cdp.Api;
+  readonly adapter: DebugAdapter;
+  readonly logger: Logger;
+  readonly dap: Dap.TestApi;
+  readonly log: Log;
+
+  assertLog(): void;
+  _init(adapter: DebugAdapter): Promise<boolean>;
+}
+
+export class TestP implements ITestHandle {
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
   readonly log: Log;
@@ -149,7 +165,16 @@ export class TestP {
     return this._root.workspacePath(relative);
   }
 
-  async _init() {
+  async _init(adapter: DebugAdapter) {
+    adapter.breakpointManager.setPredictorDisabledForTest(true);
+    adapter.sourceContainer.setSourceMapTimeouts({
+      load: 0,
+      resolveLocation: 2000,
+      scriptPaused: 1000,
+      output: 3000,
+    });
+    this._adapter = adapter;
+
     this._connection = this._root._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
@@ -160,6 +185,8 @@ export class TestP {
       this.dap.configurationDone({});
       this.dap.attach({});
     }
+
+    return false;
   }
 
   async load() {
@@ -172,12 +199,88 @@ export class TestP {
   }
 }
 
+export class NodeTestHandle implements ITestHandle {
+  readonly dap: Dap.TestApi;
+  readonly logger: Logger;
+  readonly log: Log;
+  readonly assertLog: () => void;
+
+  _session: Session;
+  _adapter?: DebugAdapter;
+  private _root: TestRoot;
+  private _evaluateCounter = 0;
+  private _cdp: Cdp.Api | undefined;
+  private _target: Target;
+
+  constructor(root: TestRoot, target: Target) {
+    this._root = root;
+    this._target = target;
+    this.log = root.log;
+    this.assertLog = root.assertLog;
+    this._session = new Session();
+    this.dap = this._session.dap;
+    this.logger = new Logger(this.dap, this.log);
+  }
+
+  get cdp(): Cdp.Api {
+    return this._cdp!;
+  }
+
+  get adapter(): DebugAdapter {
+    return this._adapter!;
+  }
+
+  async evaluate(expression: string): Promise<Cdp.Runtime.EvaluateResult> {
+    ++this._evaluateCounter;
+    this.log(`Evaluating#${this._evaluateCounter}: ${expression}`);
+    const sourceUrl = `//# sourceURL=eval${this._evaluateCounter}.js`;
+    return this._cdp!.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(result => {
+      if (!result) {
+        this.log(expression, 'Error evaluating');
+        debugger;
+        throw new Error('Error evaluating "' + expression + '"');
+      } else if (result.exceptionDetails) {
+        this.log(result.exceptionDetails, 'Error evaluating');
+        debugger;
+        throw new Error('Error evaluating "' + expression + '"');
+      }
+      return result;
+    });
+  }
+
+  waitForSource(filter?: string): Promise<Dap.LoadedSourceEventParams> {
+    return this.dap.once('loadedSource', event => {
+      return filter === undefined || (event.source.path || '').indexOf(filter) !== -1;
+    });
+  }
+
+  workspacePath(relative: string): string {
+    return this._root.workspacePath(relative);
+  }
+
+  async _init(adapter: DebugAdapter) {
+    this._adapter = adapter;
+    await this._session._init();
+    if (this._target.parent()) {
+      this.dap.configurationDone({});
+      this.dap.attach({});
+    }
+
+    return true;
+  }
+
+  async load() {
+    await this.dap.configurationDone({});
+    await this.dap.attach({});
+  }
+}
+
 export class TestRoot {
   readonly initialize: Promise<Dap.InitializeResult>;
   readonly log: Log;
   readonly assertLog: () => void;
 
-  private _targetToP = new Map<Target, TestP>();
+  private _targetToP = new Map<Target, ITestHandle>();
   private _root: Session;
   private _workspaceRoot: string;
   private _webRoot: string | undefined;
@@ -185,14 +288,15 @@ export class TestRoot {
   private _args: string[];
   private _blackboxPattern?: string;
 
-  private _worker: Promise<TestP>;
-  private _workerCallback: (session: TestP) => void;
-  private _launchCallback: (session: TestP) => void;
+  private _worker: Promise<ITestHandle>;
+  private _workerCallback: (session: ITestHandle) => void;
+  private _launchCallback: (session: ITestHandle) => void;
 
   _browserLauncher: BrowserLauncher;
+  _nodeLauncher: NodeLauncher;
   readonly binder: Binder;
 
-  private _onSessionCreatedEmitter = new EventEmitter<TestP>();
+  private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
   readonly onSessionCreated = this._onSessionCreatedEmitter.event;
 
   constructor(goldenText: GoldenText) {
@@ -215,7 +319,8 @@ export class TestRoot {
 
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath);
-    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher], '0');
+    this._nodeLauncher = new NodeLauncher(new TerminalProgramLauncher());
+    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher, this._nodeLauncher], '0');
 
     this.initialize = this._root._init();
 
@@ -224,34 +329,28 @@ export class TestRoot {
     this._worker = new Promise(f => this._workerCallback = f);
   }
 
-  async acquireDap(target: Target): Promise<DapConnection> {
+  public async acquireDap(target: Target): Promise<DapConnection> {
     if (this._blackboxPattern)
       target.blackboxPattern = () => this._blackboxPattern;
 
-    const p = new TestP(this, target);
+    const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
     this._targetToP.set(target, p);
     return p._session.adapterConnection;
   }
 
   async initAdapter(adapter: DebugAdapter, target: Target): Promise<boolean> {
     const p = this._targetToP.get(target);
-    if (p) {
-      adapter.breakpointManager.setPredictorDisabledForTest(true);
-      adapter.sourceContainer.setSourceMapTimeouts({
-        load: 0,
-        resolveLocation: 2000,
-        scriptPaused: 1000,
-        output: 3000,
-      });
-      p._adapter = adapter;
-      await p._init();
-      if (target.parent())
-        this._workerCallback(p);
-      else
-        this._launchCallback(p);
-      this._onSessionCreatedEmitter.fire(p);
+    if (!p) {
+      return false;
     }
-    return false;
+
+    const boot = await p._init(adapter);
+    if (target.parent())
+      this._workerCallback(p);
+    else
+      this._launchCallback(p);
+    this._onSessionCreatedEmitter.fire(p);
+    return boot;
   }
 
   releaseDap(target: Target) {
@@ -266,7 +365,7 @@ export class TestRoot {
     this._blackboxPattern = blackboxPattern;
   }
 
-  worker(): Promise<TestP> {
+  worker(): Promise<ITestHandle> {
     return this._worker;
   }
 
@@ -281,7 +380,22 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true
     } as IChromeLaunchConfiguration);
-    return new Promise(f => this._launchCallback = f);
+
+    const result = await new Promise(f => this._launchCallback = f);
+    return result as TestP;
+  }
+
+  async runScript(filename: string): Promise<NodeTestHandle> {
+    await this.initialize;
+    this._launchUrl = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
+    this._root.dap.launch({
+      ...nodeLaunchConfigDefaults,
+      cwd: path.dirname(testFixturesDir),
+      program: this._launchUrl,
+      rootPath: this._workspaceRoot,
+    } as INodeLaunchConfiguration);
+    const result = await new Promise(f => this._launchCallback = f);
+    return result as NodeTestHandle;
   }
 
   async launch(content: string): Promise<TestP> {

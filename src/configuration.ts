@@ -179,7 +179,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
    * Environment variables passed to the program. The value `null` removes the
    * variable from the environment.
    */
-  env: { [key: string]: string | null };
+  env: Readonly<{ [key: string]: string | null }>;
 
   /**
    * Absolute path to a file containing environment variable definitions.

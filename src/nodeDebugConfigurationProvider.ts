@@ -8,13 +8,14 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { writeToConsole } from './common/console';
 import {
-  INodeLaunchConfiguration,
   ResolvingNodeConfiguration,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
   AnyNodeConfiguration,
 } from './configuration';
 import { Contributions } from './common/contributionUtils';
+import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
+import { EnvironmentVars } from './common/environmentVars';
 
 const localize = nls.loadMessageBundle();
 
@@ -30,6 +31,8 @@ const breakpointLanguages: ReadonlyArray<
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
 export class NodeDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+  constructor(private readonly nvmResolver: INvmResolver = new NvmResolver()) {}
+
   /**
    * Try to add all missing attributes to the debug configuration being launched.
    */
@@ -74,23 +77,14 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
     if (config.request === 'launch') {
       // nvm support
       if (typeof config.runtimeVersion === 'string' && config.runtimeVersion !== 'default') {
-        await resolveNvmVersion(config);
+        config.env = new EnvironmentVars(config.env)
+          .addToPath(await this.nvmResolver.resolveNvmVersionPath(config.runtimeVersion))
+          .value;
       }
+
       // when using "integratedTerminal" ensure that debug console doesn't get activated; see https://github.com/Microsoft/vscode/issues/43164
       if (config.console === 'integratedTerminal' && !config.internalConsoleOptions) {
         config.internalConsoleOptions = 'neverOpen';
-      }
-
-      // read environment variables from any specified file
-      if (config.envFile) {
-        try {
-          config.env = { ...readEnvFile(config.envFile), ...config.env };
-        } catch (e) {
-          vscode.window.showErrorMessage(
-            localize('VSND2029', "Can't load environment variables from file ({0}).", e.message),
-            { modal: true },
-          );
-        }
       }
     }
 
@@ -156,12 +150,21 @@ function createLaunchConfigFromContext(
   let useSourceMaps = false;
 
   if (pkg && pkg.name === 'mern-starter') {
-		if (resolve) {
-			writeToConsole(localize({ key: 'mern.starter.explanation', comment: ['argument contains product name without translation'] }, "Launch configuration for '{0}' project created.", 'Mern Starter'));
-		}
+    if (resolve) {
+      writeToConsole(
+        localize(
+          {
+            key: 'mern.starter.explanation',
+            comment: ['argument contains product name without translation'],
+          },
+          "Launch configuration for '{0}' project created.",
+          'Mern Starter',
+        ),
+      );
+    }
     configureMern(config);
     return config;
-	}
+  }
 
   if (pkg) {
     // try to find a value for 'program' by analysing package.json
@@ -239,12 +242,12 @@ function configureMern(config: ResolvingNodeConfiguration) {
     return;
   }
 
-	config.runtimeExecutable = 'nodemon';
-	config.program = '${workspaceFolder}/index.js';
-	config.restart = true;
-	config.env = { BABEL_DISABLE_CACHE: '1', NODE_ENV: 'development' };
-	config.console = 'integratedTerminal';
-	config.internalConsoleOptions = 'neverOpen';
+  config.runtimeExecutable = 'nodemon';
+  config.program = '${workspaceFolder}/index.js';
+  config.restart = true;
+  config.env = { BABEL_DISABLE_CACHE: '1', NODE_ENV: 'development' };
+  config.console = 'integratedTerminal';
+  config.internalConsoleOptions = 'neverOpen';
 }
 
 function isTranspiledLanguage(languagId: string): boolean {
@@ -302,169 +305,4 @@ function guessProgramFromPackage(
   }
 
   return program;
-}
-
-async function resolveNvmVersion(config: Partial<INodeLaunchConfiguration>): Promise<void> {
-  let bin: string | undefined = undefined;
-  let versionManagerName: string | undefined = undefined;
-
-  // first try the Node Version Switcher 'nvs'
-  let nvsHome = process.env['NVS_HOME'];
-  if (!nvsHome) {
-    // NVS_HOME is not always set. Probe for 'nvs' directory instead
-    const nvsDir =
-      process.platform === 'win32'
-        ? path.join(process.env['LOCALAPPDATA'] || '', 'nvs')
-        : path.join(process.env['HOME'] || '', '.nvs');
-    if (fs.existsSync(nvsDir)) {
-      nvsHome = nvsDir;
-    }
-  }
-
-  const { nvsFormat, remoteName, semanticVersion, arch } = parseVersionString(
-    config.runtimeVersion,
-  );
-
-  if (nvsFormat || nvsHome) {
-    if (nvsHome) {
-      bin = path.join(nvsHome, remoteName, semanticVersion, arch);
-      if (process.platform !== 'win32') {
-        bin = path.join(bin, 'bin');
-      }
-      versionManagerName = 'nvs';
-    } else {
-      throw new Error(
-        localize(
-          'NVS_HOME.not.found.message',
-          "Attribute 'runtimeVersion' requires Node.js version manager 'nvs'.",
-        ),
-      );
-    }
-  }
-
-  if (!bin) {
-    // now try the Node Version Manager 'nvm'
-    if (process.platform === 'win32') {
-      const nvmHome = process.env['NVM_HOME'];
-      if (!nvmHome) {
-        throw new Error(
-          localize(
-            'NVM_HOME.not.found.message',
-            "Attribute 'runtimeVersion' requires Node.js version manager 'nvm-windows' or 'nvs'.",
-          ),
-        );
-      }
-      bin = path.join(nvmHome, `v${config.runtimeVersion}`);
-      versionManagerName = 'nvm-windows';
-    } else {
-      // macOS and linux
-      let nvmHome = process.env['NVM_DIR'];
-      if (!nvmHome) {
-        // if NVM_DIR is not set. Probe for '.nvm' directory instead
-        const nvmDir = path.join(process.env['HOME'] || '', '.nvm');
-        if (fs.existsSync(nvmDir)) {
-          nvmHome = nvmDir;
-        }
-      }
-      if (!nvmHome) {
-        throw new Error(
-          localize(
-            'NVM_DIR.not.found.message',
-            "Attribute 'runtimeVersion' requires Node.js version manager 'nvm' or 'nvs'.",
-          ),
-        );
-      }
-      bin = path.join(nvmHome, 'versions', 'node', `v${config.runtimeVersion}`, 'bin');
-      versionManagerName = 'nvm';
-    }
-  }
-
-  if (fs.existsSync(bin)) {
-    if (!config.env) {
-      config.env = {};
-    }
-    if (process.platform === 'win32') {
-      config.env['Path'] = `${bin};${process.env['Path']}`;
-    } else {
-      config.env['PATH'] = `${bin}:${process.env['PATH']}`;
-    }
-  } else {
-    throw new Error(
-      localize(
-        'runtime.version.not.found.message',
-        "Node.js version '{0}' not installed for '{1}'.",
-        config.runtimeVersion,
-        versionManagerName,
-      ),
-    );
-  }
-}
-
-function nvsStandardArchName(arch) {
-  switch (arch) {
-    case '32':
-    case 'x86':
-    case 'ia32':
-      return 'x86';
-    case '64':
-    case 'x64':
-    case 'amd64':
-      return 'x64';
-    case 'arm':
-      const arm_version = (process.config.variables as any).arm_version;
-      return arm_version ? 'armv' + arm_version + 'l' : 'arm';
-    default:
-      return arch;
-  }
-}
-
-/**
- * Parses a node version string into remote name, semantic version, and architecture
- * components. Infers some unspecified components based on configuration.
- */
-function parseVersionString(versionString) {
-  const versionRegex = /^(([\w-]+)\/)?(v?(\d+(\.\d+(\.\d+)?)?))(\/((x86)|(32)|((x)?64)|(arm\w*)|(ppc\w*)))?$/i;
-
-  const match = versionRegex.exec(versionString);
-  if (!match) {
-    throw new Error('Invalid version string: ' + versionString);
-  }
-
-  const nvsFormat = !!(match[2] || match[8]);
-  const remoteName = match[2] || 'node';
-  const semanticVersion = match[4] || '';
-  const arch = nvsStandardArchName(match[8] || process.arch);
-
-  return { nvsFormat, remoteName, semanticVersion, arch };
-}
-
-function readEnvFile(file: string): { [key: string]: string } {
-  if (!fs.existsSync(file)) {
-    return {};
-  }
-
-  const buffer = stripBOM(fs.readFileSync(file, 'utf8'));
-  const env = {};
-  for (const line of buffer.split('\n')) {
-    const r = line.match(/^\s*([\w\.\-]+)\s*=\s*(.*)?\s*$/);
-    if (!r) {
-      continue;
-    }
-
-    let [, key, value = ''] = r;
-    // .env variables never overwrite existing variables (see #21169)
-    if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
-      value = value.replace(/\\n/gm, '\n');
-    }
-    env[key] = value.replace(/(^['"]|['"]$)/g, '');
-  }
-
-  return env;
-}
-
-function stripBOM(s: string): string {
-  if (s && s[0] === '\uFEFF') {
-    s = s.substr(1);
-  }
-  return s;
 }
