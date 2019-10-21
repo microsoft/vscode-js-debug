@@ -13,6 +13,7 @@ import { VariableStore } from './variables';
 import { BreakpointManager, generateBreakpointIds } from './breakpoints';
 import { Cdp } from '../cdp/api';
 import { SourcePathResolver } from '../common/sourcePathResolver';
+import { AnyLaunchConfiguration } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -27,7 +28,7 @@ export class DebugAdapter {
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver, private readonly launchConfig: AnyLaunchConfiguration) {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -193,7 +194,7 @@ export class DebugAdapter {
   }
 
   createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate);
+    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this.launchConfig);
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);

@@ -3,8 +3,15 @@
  *--------------------------------------------------------*/
 
 import { itIntegrates } from '../testIntegrationUtils';
-import { createFileTree, testFixturesDir, ITestHandle, NodeTestHandle } from '../test';
+import {
+  createFileTree,
+  testFixturesDir,
+  ITestHandle,
+  NodeTestHandle,
+  testWorkspace,
+} from '../test';
 import { join } from 'path';
+import { expect } from 'chai';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -34,34 +41,68 @@ describe('node runtime', () => {
     handle.assertLog({ substring: true });
   });
 
-  itIntegrates('debugs child processes', async ({ r }) => {
-    createFileTree(testFixturesDir, {
-      'test.js': `
+  describe('child processes', () => {
+    beforeEach(() =>
+      createFileTree(testFixturesDir, {
+        'test.js': `
         const cp = require('child_process');
         const path = require('path');
         cp.fork(path.join(__dirname, 'child.js'));
       `,
-      'child.js': `
+        'child.js': `
         const foo = 'It works!';
         debugger;
       `,
+      }),
+    );
+
+    itIntegrates('debugs', async ({ r }) => {
+      const handle = await r.runScript('test.js');
+      handle.load();
+
+      const worker = await r.worker();
+      worker.load();
+
+      const { threadId } = worker.log(await worker.dap.once('stopped'));
+      const stack = await worker.dap.stackTrace({ threadId });
+      await worker.logger.evaluateAndLog('foo', {
+        params: {
+          frameId: stack.stackFrames[0].id,
+        },
+      });
+
+      worker.assertLog();
     });
 
-    const handle = await r.runScript('test.js');
-    handle.load();
+    itIntegrates('does not debug if auto attach off', async ({ r }) => {
+      const handle = await r.runScript('test.js', { autoAttachChildProcesses: false });
+      handle.load();
 
-    const worker = await r.worker();
-    worker.load();
+      const result = await Promise.race([
+        r.worker(),
+        new Promise(r => setTimeout(() => r('ok'), 1000)),
+      ]);
 
-    const { threadId } = worker.log(await worker.dap.once('stopped'));
-    const stack = await worker.dap.stackTrace({ threadId });
-    await worker.logger.evaluateAndLog('foo', {
-      params: {
-        frameId: stack.stackFrames[0].id,
-      },
+      expect(result).to.equal('ok');
+    });
+  });
+
+  itIntegrates('sets arguments', async ({ r }) => {
+    createFileTree(testFixturesDir, { 'test.js': 'debugger' });
+    const handle = await r.runScript('test.js', {
+      args: ['--some', 'very fancy', '--arguments'],
     });
 
-    worker.assertLog();
+    await evaluate(handle, 'process.argv.slice(2)');
+  });
+
+  itIntegrates('sets the cwd', async ({ r }) => {
+    createFileTree(testFixturesDir, { 'test.js': 'debugger' });
+    const handle = await r.runScript('test.js', {
+      cwd: testWorkspace,
+    });
+
+    await evaluate(handle, 'process.cwd()');
   });
 
   itIntegrates('sets environment variables', async ({ r }) => {

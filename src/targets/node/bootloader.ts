@@ -21,6 +21,13 @@ function debugLog(text: string) {
     return;
   } catch (e) {
   }
+
+  // If we wanted to only debug the entrypoint, unset environment variables
+  // so that nested processes do not inherit them.
+  if (process.env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
+    process.env.NODE_OPTIONS = undefined;
+  }
+
   // Do not run watchdog using electron executable, stick with the cli's one.
   if (process.execPath.endsWith('node'))
     process.env.NODE_INSPECTOR_EXEC_PATH = process.execPath;

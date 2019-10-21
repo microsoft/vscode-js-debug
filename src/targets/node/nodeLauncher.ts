@@ -126,6 +126,7 @@ export class NodeLauncher implements Launcher {
         // Supply some node executable for running top-level watchdog in Electron
         // environments. Bootloader will replace this with actual node executable used if any.
         NODE_INSPECTOR_EXEC_PATH: findNode() || '',
+        VSCODE_DEBUGGER_ONLY_ENTRYPOINT: this._launchParams.autoAttachChildProcesses ? 'false' : 'true',
         ELECTRON_RUN_AS_NODE: null,
       }).value,
     }, this.context!);

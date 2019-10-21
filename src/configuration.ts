@@ -78,6 +78,11 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
      */
     dap: string | null;
   };
+
+  /**
+   * todo: difference between this and webRoot?
+   */
+  rootPath?: string;
 }
 
 /**
@@ -226,11 +231,6 @@ interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Can have * wildcards.
    */
   urlFilter: string;
-
-  /**
-   * todo: difference between this and webRoot?
-   */
-  rootPath?: string;
 }
 
 /**

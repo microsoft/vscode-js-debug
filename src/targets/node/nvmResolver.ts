@@ -62,7 +62,7 @@ export class NvmResolver {
         if (!nvmHome) {
           throw nvmHomeNotFound();
         }
-        bin = path.join(nvmHome, `v${version}`);
+        bin = this.findBinFolderForVersion(nvmHome, `v${version}`);
         versionManagerName = 'nvm-windows';
       } else {
         // macOS and linux
@@ -77,16 +77,38 @@ export class NvmResolver {
         if (!nvmHome) {
           throw nvmNotFound();
         }
-        bin = path.join(nvmHome, 'versions', 'node', `v${version}`, 'bin');
         versionManagerName = 'nvm';
+        bin = this.findBinFolderForVersion(path.join(nvmHome, 'versions', 'node'), `v${version}`);
+        if (bin) {
+          bin = path.join(bin, 'bin');
+        }
       }
     }
 
-    if (!fs.existsSync(bin)) {
+    if (!bin || !fs.existsSync(bin)) {
       throw nvmVersionNotFound(version, versionManagerName || 'nvm');
     }
 
     return bin;
+  }
+
+  private findBinFolderForVersion(dir: string, version: string): string | undefined {
+    if (!fs.existsSync(dir)) {
+      return undefined;
+    }
+
+    const available = fs.readdirSync(dir);
+    if (available.includes(version)) {
+      return path.join(dir, version);
+    }
+
+    for (const candidate of available) {
+      if (candidate.startsWith(`${version}.`)) {
+        return path.join(dir, candidate);
+      }
+    }
+
+    return undefined;
   }
 
   /**

@@ -15,6 +15,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
+import { AnyLaunchConfiguration } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -88,7 +89,7 @@ export class Thread implements VariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
+  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, private readonly launchConfig: AnyLaunchConfiguration) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
@@ -799,7 +800,7 @@ export class Thread implements VariableStoreDelegate {
         ? { lineOffset: event.startLine, columnOffset: event.startColumn }
         : undefined;
       let resolvedSourceMapUrl: string | undefined;
-      if (event.sourceMapURL) {
+      if (event.sourceMapURL && this.launchConfig.sourceMaps) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
         resolvedSourceMapUrl = event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
