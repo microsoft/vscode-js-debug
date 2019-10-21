@@ -157,7 +157,7 @@ export class Source {
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    this._container._addSourceMapSources(this, map, sourceMapUrl);
+    await this._container._addSourceMapSources(this, map, sourceMapUrl);
     return true;
   }
 
@@ -412,7 +412,7 @@ export class SourceContainer {
       if (sourceMap.map) {
         // If source map has been already loaded, we add sources here.
         // Otheriwse, we'll add sources for all compiled after loading the map.
-        this._addSourceMapSources(source, sourceMap.map, sourceMapUrl);
+        await this._addSourceMapSources(source, sourceMap.map, sourceMapUrl);
       }
       return;
     }
@@ -436,8 +436,9 @@ export class SourceContainer {
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return callback!();
 
-    for (const anyCompiled of sourceMap.compiled)
-      this._addSourceMapSources(anyCompiled, sourceMap.map!, sourceMapUrl);
+    await Promise.all(
+      [...sourceMap.compiled].map(c => this._addSourceMapSources(c, sourceMap!.map!, sourceMapUrl))
+    );
     callback!();
   }
 
@@ -467,8 +468,10 @@ export class SourceContainer {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
+  async _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
+
+    const todo: Promise<void>[] = [];
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
       // webpack emits absolute paths in some situations instead of a relative url. We check
@@ -491,8 +494,10 @@ export class SourceContainer {
       source._compiledToSourceUrl!.set(compiled, url);
       compiled._sourceMapSourceByUrl.set(url, source);
       if (isNew)
-        this._addSource(source);
+        todo.push(this._addSource(source));
     }
+
+    await Promise.all(todo);
   }
 
   _removeSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer) {
