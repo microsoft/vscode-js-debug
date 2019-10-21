@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('console format', () => {
-  itIntegrates('string', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('string', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;
@@ -27,7 +26,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('popular types', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('popular types', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <p id="p"></p>
         <script>
@@ -132,7 +131,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('collections', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('collections', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <div style="display:none" class="c1 c2 c3">
           <form id="f">
@@ -197,7 +196,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('es6', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('es6', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var p = Promise.reject(-0);
@@ -272,7 +271,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('es6-2', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('es6-2', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var map2 = new Map();
@@ -305,7 +304,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('array', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('array', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
@@ -336,7 +335,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('class', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('class', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var a0 = [];
@@ -367,7 +366,7 @@ describe('console format', () => {
     p.assertLog();
   });
 
-  itIntegrates('colors', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('colors', async ({ r }) => {
     const p = await r.launchAndLoad(`blank`);
 
     await p.logger.evaluateAndLog(

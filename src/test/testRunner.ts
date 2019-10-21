@@ -27,14 +27,13 @@ function setupCoverage() {
   return nyc;
 }
 
-const debug = true;
+const debug = false;
 
 export async function run(root: string): Promise<void> {
   const nyc = debug ? null : setupCoverage();
 
   const runner = new Mocha({
     timeout: 2000000,
-    grep: 'node runtime',
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 

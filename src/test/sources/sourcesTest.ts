@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot, TestP } from '../test';
+import { TestP } from '../test';
 import Dap from '../../dap/api';
 import { calculateHash } from '../../common/hash';
 import { itIntegrates } from '../testIntegrationUtils';
@@ -23,7 +23,7 @@ describe('sources', () => {
     p.log('---------');
   }
 
-  itIntegrates('basic sources', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('basic sources', async ({ r }) => {
     const p = await r.launchUrl('inlinescript.html');
     p.load();
     await dumpSource(p, await p.waitForSource('inline'), 'inline');
@@ -39,7 +39,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('updated content', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('updated content', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.cdp.Runtime.evaluate({ expression: 'content1//# sourceURL=test.js' });
     await dumpSource(p, await p.waitForSource('test'), 'test.js');
@@ -49,7 +49,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('basic source map', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('basic source map', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/bundle.js');
     const sources = await Promise.all([
@@ -61,7 +61,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('waiting for source map', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('waiting for source map', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     await p.addScriptTag('browserify/bundle.js');
     p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });
@@ -69,7 +69,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('waiting for source map failure', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('waiting for source map failure', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.adapter.sourceContainer.setSourceMapTimeouts({
       load: 2000,
@@ -83,7 +83,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('url and hash', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('url and hash', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     p.cdp.Runtime.evaluate({ expression: 'a\n//# sourceURL=foo.js' });
@@ -147,7 +147,7 @@ describe('sources', () => {
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22, 0x00]);
 
-  itIntegrates('hash bom', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('hash bom', async ({ r }) => {
     r.log(calculateHash(utf8_noBOM));
     r.log(calculateHash(utf8_BOM));
     r.log(calculateHash(utf16_BE_BOM));
@@ -171,7 +171,7 @@ describe('sources', () => {
   0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0x0D, 0x0A, 0x09, 0x72, 0x65, 0x74,
   0x75, 0x72, 0x6E, 0x20, 0x32, 0x35, 0x3B, 0x0D, 0x0A, 0x7D]);
 
-  itIntegrates('hash code points', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('hash code points', async ({ r }) => {
     r.log(calculateHash(multiByteCodePoints));
     r.assertLog();
   });

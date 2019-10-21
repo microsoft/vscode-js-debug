@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot, TestP } from '../test';
+import { TestP } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('stacks', () => {
@@ -11,21 +11,21 @@ describe('stacks', () => {
     await p.dap.continue({ threadId: event.threadId! });
   }
 
-  itIntegrates('eval in anonymous', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('eval in anonymous', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({ expression: '\n\ndebugger;\n//# sourceURL=eval.js' });
     await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 
-  itIntegrates('anonymous initial script', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('anonymous initial script', async ({ r }) => {
     const p = await r.launch('<script>debugger;</script>');
     p.load();
     await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 
-  itIntegrates('anonymous scopes', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('anonymous scopes', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({
       expression: `
@@ -48,7 +48,7 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('async', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('async', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({
       expression: `
@@ -72,21 +72,21 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('cross target', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('cross target', async ({ r }) => {
     const p = await r.launchUrlAndLoad('worker.html');
     p.cdp.Runtime.evaluate({ expression: `window.w.postMessage('pause')` });
     await dumpStackAndContinue(p, true);
     p.assertLog();
   });
 
-  itIntegrates('source map', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('source map', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/pause.js');
     await dumpStackAndContinue(p, true);
     p.assertLog();
   });
 
-  itIntegrates('blackboxed', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('blackboxed', async ({ r }) => {
     r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/pause.js');
@@ -94,7 +94,7 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('return value', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('return value', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({
       expression: `

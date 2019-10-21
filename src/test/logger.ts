@@ -6,6 +6,7 @@ import Dap from '../dap/api';
 
 interface LogOptions {
   depth?: number,
+  params?: Partial<Dap.EvaluateParams>,
   logInternalInfo?: boolean
 }
 
@@ -143,9 +144,9 @@ export class Logger {
 
   evaluateAndLog(expression: string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable>;
   evaluateAndLog(expressions: string[], options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<void>;
-  async evaluateAndLog(expressions: string[] | string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable | void> {
+  async evaluateAndLog(expressions: string[] | string, options: LogOptions = {}, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable | void> {
     if (typeof expressions === 'string') {
-      const result = await this._dap.evaluate({ expression: expressions, context });
+      const result = await this._dap.evaluate({ expression: expressions, context, ...options.params });
       if (typeof result === 'string') {
         this._log(`<error>: ${result}`);
         return { name: 'result', value: result, variablesReference: 0 };

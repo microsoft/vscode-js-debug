@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot, TestP } from '../test';
+import { TestP } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('threads', () => {
-  itIntegrates('paused', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('paused', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.cdp.Runtime.evaluate({ expression: 'debugger;' });
     await p.dap.once('stopped');
@@ -13,14 +13,14 @@ describe('threads', () => {
     p.assertLog();
   });
 
-  itIntegrates('not paused', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('not paused', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.log(await p.dap.threads({}));
     p.assertLog();
   });
 
   describe('stepping', () => {
-    itIntegrates('basic', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       p.evaluate(`
         function bar() {
@@ -62,7 +62,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cross thread', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
 
       p.cdp.Runtime.evaluate({
@@ -89,7 +89,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread constructor', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cross thread constructor', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({
@@ -118,7 +118,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread skip over tasks', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cross thread skip over tasks', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({
@@ -153,7 +153,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread constructor source map', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cross thread constructor source map', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({
@@ -180,7 +180,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread source map', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cross thread source map', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({
@@ -218,7 +218,7 @@ describe('threads', () => {
       p.log(await p.dap.continue({ threadId: event.threadId }));
     }
 
-    itIntegrates('cases', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('cases', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
 
       p.log('Not pausing on exceptions');
@@ -241,7 +241,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('configuration', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('configuration', async ({ r }) => {
       const p = await r.launch(`
         <script>
           try {

@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
 import { Target } from '../../targets/targets';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('frames', () => {
-  itIntegrates('hierarchy', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('hierarchy', async ({ r }) => {
     r.setArgs(['--site-per-process']);
     const p = await r.launchUrl('frames.html');
     p.load();

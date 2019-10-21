@@ -42,6 +42,8 @@ class Stream extends stream.Duplex {
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
 
+export type AssertLog = GoldenText['assertLog'];
+
 class Session {
   readonly dap: Dap.TestApi;
   readonly adapterConnection: DapConnection;
@@ -82,16 +84,17 @@ export interface ITestHandle {
   readonly logger: Logger;
   readonly dap: Dap.TestApi;
   readonly log: Log;
+  readonly assertLog: AssertLog;
 
-  assertLog(): void;
-  _init(adapter: DebugAdapter): Promise<boolean>;
+  load(): Promise<void>;
+  _init(adapter: DebugAdapter, target: Target): Promise<boolean>;
 }
 
 export class TestP implements ITestHandle {
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
   readonly log: Log;
-  readonly assertLog: () => void;
+  readonly assertLog: AssertLog;
 
   _session: Session;
   _adapter?: DebugAdapter;
@@ -203,12 +206,11 @@ export class NodeTestHandle implements ITestHandle {
   readonly dap: Dap.TestApi;
   readonly logger: Logger;
   readonly log: Log;
-  readonly assertLog: () => void;
+  readonly assertLog: AssertLog;
 
   _session: Session;
   _adapter?: DebugAdapter;
   private _root: TestRoot;
-  private _evaluateCounter = 0;
   private _cdp: Cdp.Api | undefined;
   private _target: Target;
 
@@ -230,24 +232,6 @@ export class NodeTestHandle implements ITestHandle {
     return this._adapter!;
   }
 
-  async evaluate(expression: string): Promise<Cdp.Runtime.EvaluateResult> {
-    ++this._evaluateCounter;
-    this.log(`Evaluating#${this._evaluateCounter}: ${expression}`);
-    const sourceUrl = `//# sourceURL=eval${this._evaluateCounter}.js`;
-    return this._cdp!.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(result => {
-      if (!result) {
-        this.log(expression, 'Error evaluating');
-        debugger;
-        throw new Error('Error evaluating "' + expression + '"');
-      } else if (result.exceptionDetails) {
-        this.log(result.exceptionDetails, 'Error evaluating');
-        debugger;
-        throw new Error('Error evaluating "' + expression + '"');
-      }
-      return result;
-    });
-  }
-
   waitForSource(filter?: string): Promise<Dap.LoadedSourceEventParams> {
     return this.dap.once('loadedSource', event => {
       return filter === undefined || (event.source.path || '').indexOf(filter) !== -1;
@@ -258,7 +242,7 @@ export class NodeTestHandle implements ITestHandle {
     return this._root.workspacePath(relative);
   }
 
-  async _init(adapter: DebugAdapter) {
+  async _init(adapter: DebugAdapter, target: Target) {
     this._adapter = adapter;
     await this._session._init();
     if (this._target.parent()) {
@@ -278,7 +262,7 @@ export class NodeTestHandle implements ITestHandle {
 export class TestRoot {
   readonly initialize: Promise<Dap.InitializeResult>;
   readonly log: Log;
-  readonly assertLog: () => void;
+  readonly assertLog: AssertLog;
 
   private _targetToP = new Map<Target, ITestHandle>();
   private _root: Session;
@@ -344,7 +328,7 @@ export class TestRoot {
       return true;
     }
 
-    const boot = await p._init(adapter);
+    const boot = await p._init(adapter, target);
     if (target.parent())
       this._workerCallback(p);
     else
@@ -385,7 +369,7 @@ export class TestRoot {
     return result as TestP;
   }
 
-  async runScript(filename: string): Promise<NodeTestHandle> {
+  async runScript(filename: string, options: Partial<INodeLaunchConfiguration> = {}): Promise<NodeTestHandle> {
     await this.initialize;
     this._launchUrl = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
     this._root.dap.launch({
@@ -393,6 +377,7 @@ export class TestRoot {
       cwd: path.dirname(testFixturesDir),
       program: this._launchUrl,
       rootPath: this._workspaceRoot,
+      ...options,
     } as INodeLaunchConfiguration);
     const result = await new Promise(f => this._launchCallback = f);
     return result as NodeTestHandle;
@@ -452,7 +437,7 @@ export class TestRoot {
  * Recursive structure that lists folders/files and describes their contents.
  */
 export interface IFileTree {
-  [directoryOrFile: string]: string | Buffer | IFileTree;
+  [directoryOrFile: string]: string | string[] | Buffer | IFileTree;
 }
 
 /**
@@ -465,12 +450,20 @@ export function createFileTree(rootDir: string, tree: IFileTree) {
   for (const key of Object.keys(tree)) {
     const value = tree[key];
     const targetPath = path.join(rootDir, key);
-    if (typeof value !== 'string' && !(value instanceof Buffer)) {
+
+    let write: Buffer;
+    if (typeof value === 'string') {
+      write = Buffer.from(value);
+    } else if (value instanceof Buffer) {
+      write = value;
+    } else if (value instanceof Array) {
+      write = Buffer.from(value.join('\n'));
+    } else {
       createFileTree(targetPath, value);
       continue;
     }
 
     mkdirp.sync(path.dirname(targetPath));
-    fs.writeFileSync(targetPath, value);
+    fs.writeFileSync(targetPath, write);
   }
 }

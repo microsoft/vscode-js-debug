@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
 import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('evaluate', () => {
-  itIntegrates('default', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('default', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     await p.logger.evaluateAndLog(`42`);
@@ -57,7 +56,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('repl', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     p.dap.evaluate({ expression: `42`, context: 'repl' });
@@ -135,7 +134,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('copy', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('copy', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.dap.evaluate({ expression: 'var x = "hello"; copy(x)' });
     p.log(await p.dap.once('copyRequested'));
@@ -148,14 +147,14 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('inspect', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('inspect', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.dap.evaluate({ expression: 'function foo() {}; inspect(foo)\n//# sourceURL=test.js' });
     p.log(await p.dap.once('revealLocationRequested'));
     p.assertLog();
   });
 
-  itIntegrates('queryObjects', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('queryObjects', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     await p.dap.evaluate({
       expression: `
@@ -173,7 +172,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('rewriteTopLevelAwait', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('rewriteTopLevelAwait', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const tests = [
       '0',
@@ -215,7 +214,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('topLevelAwait', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('topLevelAwait', async ({ r }) => {
     const p = await r.launchAndLoad(`
       <script>
         function foo(x) {
@@ -277,7 +276,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('output slots', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('output slots', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({
       expression: 'let i = 0; console.log(++i); ++i',
@@ -291,7 +290,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('output slots 2', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('output slots 2', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({
       expression: `
@@ -314,7 +313,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('selected context', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('selected context', async ({ r }) => {
     const p = await r.launchUrlAndLoad('worker.html');
     p.log('--- Evaluating in page');
     p.log('Pausing...');
@@ -351,7 +350,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('cd', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('cd', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     async function logCompletions(params: Dap.CompletionsParams) {

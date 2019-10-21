@@ -1,20 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
 import Dap from '../../dap/api';
 import { Logger } from '../logger';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('variables', () => {
   describe('basic', () => {
-    itIntegrates('basic object', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('basic object', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('({a: 1})');
       p.assertLog();
     });
 
-    itIntegrates('simple log', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('simple log', async ({ r }) => {
       const p = await r.launch(`
         <script>
           console.log('Hello world');
@@ -24,7 +23,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('clear console', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('clear console', async ({ r }) => {
       let complete: () => void;
       const result = new Promise(f => (complete = f));
       let chain = Promise.resolve();
@@ -52,13 +51,13 @@ describe('variables', () => {
   });
 
   describe('object', () => {
-    itIntegrates('simple array', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('simple array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true });
       p.assertLog();
     });
 
-    itIntegrates('large array', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('large array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', {
         logInternalInfo: true,
@@ -66,7 +65,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('get set', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('get set', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         const a = {};
@@ -77,7 +76,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('deep accessor', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('deep accessor', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`
         class Foo { get getter() {} }
@@ -88,7 +87,7 @@ describe('variables', () => {
   });
 
   describe('web', () => {
-    itIntegrates('tags', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('tags', async ({ r }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
@@ -99,7 +98,7 @@ describe('variables', () => {
   });
 
   describe('multiple threads', () => {
-    itIntegrates('worker', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('worker', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
       const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
       outputs.push({ output: await p.dap.once('output'), logger: p.logger });
@@ -113,7 +112,7 @@ describe('variables', () => {
   });
 
   describe('setVariable', () => {
-    itIntegrates('basic', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
@@ -145,7 +144,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('scope', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('scope', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       p.cdp.Runtime.evaluate({
         expression: `

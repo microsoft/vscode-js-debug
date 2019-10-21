@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('console api', () => {
   describe('format', () => {
-    itIntegrates('format string', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('format string', async ({ r }) => {
       const p = await r.launchAndLoad(`blank`);
       await p.logger.evaluateAndLog([
         `console.log('Log')`,
@@ -23,7 +22,7 @@ describe('console api', () => {
     });
   });
 
-  itIntegrates('format string', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('format string', async ({ r }) => {
     const p = await r.launchAndLoad(`<script>
     var peopleObject = {
       one: ["John", "Smith"],

@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { expect } from 'chai';
 import * as urlUtils from '../common/urlUtils';
+import { testFixturesDir } from './test';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -53,7 +54,7 @@ export class GoldenText {
     return this._hasNonAssertedLogs;
   }
 
-  assertLog() {
+  assertLog(options: { substring?: boolean } = {}) {
     const output = this._results.join('\n') + '\n';
     const testFilePath = this._getLocation();
     if (!testFilePath)
@@ -71,7 +72,11 @@ export class GoldenText {
       fs.writeFileSync(goldenFilePath, output, {encoding: 'utf-8'});
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
-      expect(output).to.equal(expectations);
+      if (options.substring) {
+        expect(output).to.contain(expectations);
+      } else {
+        expect(output).to.equal(expectations);
+      }
     }
   }
 
@@ -82,6 +87,14 @@ export class GoldenText {
         .replace(this._workspaceFolder, '${workspaceFolder}')
         .replace(/\\/g, '/');
     }
+
+    if (value.includes(testFixturesDir)) {
+      value = value
+        .replace(testFixturesDir, '${fixturesDir}')
+        .replace('/private${fixturesDir}', '${fixturesDir}') // for osx
+        .replace(/\\/g, '/');
+    }
+
     return value
         .replace(/VM\d+/g, 'VM<xx>')
         .replace(/\r\n/g, '\n')

@@ -168,7 +168,7 @@ export class NodeLauncher implements Launcher {
   }
 }
 
-class NodeTarget implements Target {
+export class NodeTarget implements Target {
   private _launcher: NodeLauncher;
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;

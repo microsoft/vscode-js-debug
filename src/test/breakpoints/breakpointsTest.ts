@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot, TestP } from '../test';
+import { TestP } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 
@@ -14,7 +14,7 @@ describe('breakpoints', () => {
   }
 
   describe('configure', () => {
-    itIntegrates('inline', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('inline', async ({ r }) => {
       // Breakpoint in inline script set before launch.
       const p = await r.launchUrl('inlinescript.html');
       const source: Dap.Source = {
@@ -26,7 +26,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('script', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('script', async ({ r }) => {
       // Breakpoint in separate script set before launch.
       const p = await r.launchUrl('script.html');
       const source: Dap.Source = {
@@ -39,7 +39,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('remove', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('remove', async ({ r }) => {
       // Breakpoint in separate script set before launch, but then removed.
       const p = await r.launchUrl('script.html');
       const source: Dap.Source = {
@@ -56,7 +56,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set before launch.
       // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
       // on 'pause before executing script with source map' functionality in CDP.
@@ -71,7 +71,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map predicted', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map predicted', async ({ r }) => {
       // Breakpoint in source mapped script set before launch use breakpoints predictor.
       const p = await r.launchUrl('browserify/pause.html');
       p.adapter.breakpointManager.setSourceMapPauseDisabledForTest(true);
@@ -88,7 +88,7 @@ describe('breakpoints', () => {
   });
 
   describe('launched', () => {
-    itIntegrates('inline', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('inline', async ({ r }) => {
       // Breakpoint in inline script set after launch.
       const p = await r.launchUrl('inlinescriptpause.html');
       p.load();
@@ -102,7 +102,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('script', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('script', async ({ r }) => {
       // Breakpoint in separate script set after launch.
       const p = await r.launchUrl('script.html');
       p.load();
@@ -116,7 +116,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('ref', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('ref', async ({ r }) => {
       // Breakpoint in eval script set after launch using source reference.
       const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({
@@ -134,7 +134,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('remove', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('remove', async ({ r }) => {
       // Breakpoint in eval script set after launch and immediately removed.
       const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({
@@ -153,7 +153,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('overwrite', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('overwrite', async ({ r }) => {
       // Breakpoint in eval script set after launch and immediately overwritten.
       const p = await r.launchUrlAndLoad('index.html');
       p.cdp.Runtime.evaluate({
@@ -174,7 +174,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set after launch.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
@@ -190,7 +190,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map remove', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map remove', async ({ r }) => {
       // Breakpoint in source mapped script set after launch and immediately removed.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
@@ -205,7 +205,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map set compiled', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map set compiled', async ({ r }) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
@@ -230,7 +230,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('source map set compiled 2', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('source map set compiled 2', async ({ r }) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
@@ -253,7 +253,7 @@ describe('breakpoints', () => {
   });
 
   describe('logpoints', () => {
-    itIntegrates('basic', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchUrl('logging.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js'),
@@ -284,7 +284,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates('no double log', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('no double log', async ({ r }) => {
       const p = await r.launchUrlAndLoad('logging.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js'),
@@ -312,7 +312,7 @@ describe('breakpoints', () => {
   });
 
   describe('custom', () => {
-    itIntegrates('inner html', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('inner html', async ({ r }) => {
       // Custom breakpoint for innerHtml.
       const p = await r.launchAndLoad('<div>text</div>');
 

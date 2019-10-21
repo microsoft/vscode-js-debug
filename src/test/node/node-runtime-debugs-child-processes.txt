@@ -4,4 +4,4 @@
     reason : step
     threadId : <number>
 }
-<anonymous> @ ${fixturesDir}/test.js:2:1
+result: 'It works!'
