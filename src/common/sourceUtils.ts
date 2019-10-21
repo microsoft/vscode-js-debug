@@ -237,7 +237,7 @@ export function parseSourceMappingUrl(content: string): string | undefined {
     sourceMapUrl = sourceMapUrl.substring(0, newLine);
   sourceMapUrl = sourceMapUrl.trim();
   for (let i = 0; i < sourceMapUrl.length; ++i) {
-    if (sourceMapUrl[i] == '"' || sourceMapUrl[i] == '\'' || sourceMapUrl[i] == ' ' || sourceMapUrl[i] == '\t')
+    if (sourceMapUrl[i] === '"' || sourceMapUrl[i] === '\'' || sourceMapUrl[i] === ' ' || sourceMapUrl[i] === '\t')
       return;
   }
   return sourceMapUrl;
@@ -290,7 +290,7 @@ export async function checkContentHash(absolutePath: string, contentHash?: strin
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content = (contentOverride != null) ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
+  const content = (typeof contentOverride === 'string') ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
 
   const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;

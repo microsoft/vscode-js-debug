@@ -130,14 +130,14 @@ export class GoldenText {
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '{');
 
-      var propertyNames = Object.keys(object);
+      const propertyNames = Object.keys(object);
       propertyNames.sort();
-      for (var i = 0; i < propertyNames.length; ++i) {
-        var name = propertyNames[i];
+      for (let i = 0; i < propertyNames.length; ++i) {
+        const name = propertyNames[i];
         if (!object.hasOwnProperty(name))
           continue;
-        var prefixWithName = '    ' + prefix + name + ' : ';
-        var value = object[name];
+        const prefixWithName = '    ' + prefix + name + ' : ';
+        let value = object[name];
         if (stabilizeNames && stabilizeNames.includes(name))
           value = `<${typeof value}>`;
         dumpValue(value, '    ' + prefix, prefixWithName);
@@ -149,7 +149,7 @@ export class GoldenText {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '[');
-      for (var i = 0; i < object.length; ++i)
+      for (let i = 0; i < object.length; ++i)
         dumpValue(object[i], '    ' + prefix, '    ' + prefix + '[' + i + '] : ');
       lines.push(prefix + ']');
     }
