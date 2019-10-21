@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { INodeLaunchConfiguration } from '../configuration';
-import { ProcessLauncher } from '../targets/node/processLauncher';
-import { ILaunchContext } from '../targets/targets';
-import { spawn, ChildProcess } from 'child_process';
-import { removeNulls } from '../common/objUtils';
+import { INodeLaunchConfiguration } from '../../configuration';
+import { ProcessLauncher } from './processLauncher';
+import { ILaunchContext } from '../targets';
+import { spawn, ChildProcess, spawnSync, execSync } from 'child_process';
+import { removeNulls } from '../../common/objUtils';
+import { join } from 'path';
 
 /**
  * Launcher that boots a subprocess.
@@ -15,28 +16,32 @@ export class TerminalProgramLauncher extends ProcessLauncher {
 
   public stopProgram(): void {
     if (this.process) {
-      this.process.kill();
+      killTree(this.process.pid);
       this.process = undefined;
     }
   }
 
   protected async launch(config: INodeLaunchConfiguration, context: ILaunchContext) {
-    const { executable, args, shell } = formatArguments(config.runtimeExecutable || 'node', [...config.runtimeArgs, config.program, ...config.args]);
+    const { executable, args, shell } = formatArguments(config.runtimeExecutable || 'node', [
+      ...config.runtimeArgs,
+      config.program,
+      ...config.args,
+    ]);
 
     // Send an appoximation of the command we're running to
     // the terminal, for cosmetic purposes.
     context.dap.output({
       category: 'console',
       output: [executable, ...args].join(' '),
-    })
+    });
 
     // todo: WSL support
 
-    const process = this.process = spawn(executable, args, {
+    const process = (this.process = spawn(executable, args, {
       shell,
       cwd: config.cwd,
       env: removeNulls(config.env),
-    });
+    }));
 
     process.stdout.addListener('data', data =>
       context.dap.output({
@@ -58,23 +63,29 @@ export class TerminalProgramLauncher extends ProcessLauncher {
         output: err.stack || err.message,
       });
 
-      this.emitProgramStop(null, context);
+      this.emitProgramStop(process, null, context);
     });
 
-    process.on('exit', code => this.emitProgramStop(code, context));
+    process.on('exit', code => this.emitProgramStop(process, code, context));
 
     return process.pid;
   }
 
-  private emitProgramStop(code: number | null, context: ILaunchContext) {
+  private emitProgramStop(process: ChildProcess, code: number | null, context: ILaunchContext) {
     if (code !== null && code !== 0) {
       context.dap.output({
         category: 'stderr',
-        output: `Process exited with code ${code}`,
+        output:
+          process === this.process
+            ? `Process exited with code ${code}`
+            : `Process exited with code ${code} after being killed`,
       });
     }
 
-    this.process = undefined;
+    if (this.process === process) {
+      this.process = undefined;
+    }
+
     this._onProgramStoppedEmitter.fire();
   }
 }
@@ -86,7 +97,6 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
   if (process.platform !== 'win32') {
     return { executable, args, shell: false };
   }
-
 
   let foundArgWithSpace = false;
 
@@ -106,4 +116,28 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
   }
 
   return { executable, args, shell: false };
+};
+
+function killTree(processId: number): void {
+  if (process.platform === 'win32') {
+    const windir = process.env['WINDIR'] || 'C:\\Windows';
+    const TASK_KILL = join(windir, 'System32', 'taskkill.exe');
+
+    // when killing a process in Windows its child processes are *not* killed but become root processes.
+    // Therefore we use TASKKILL.EXE
+    try {
+      execSync(`${TASK_KILL} /F /T /PID ${processId}`);
+    } catch (err) {
+      // ignored
+    }
+  } else {
+    // on linux and OS X we kill all direct and indirect child processes as well
+    try {
+      const cmd = join(__dirname, './terminateProcess.sh');
+      spawnSync(cmd, [processId.toString()]);
+    } catch (err) {
+      console.log(err);
+      // ignored
+    }
+  }
 }

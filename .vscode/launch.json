@@ -22,6 +22,14 @@
       // "preLaunchTask": "npm: watch"
     },
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Server (Flat Session)",
+      "program": "${workspaceFolder}/out/out/flatSessionLauncher.js",
+      "args": ["4712"],
+      // "preLaunchTask": "npm: watch"
+    },
+    {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",

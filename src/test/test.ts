@@ -20,7 +20,7 @@ import { EventEmitter } from '../common/events';
 import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../configuration';
 import { tmpdir } from 'os';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
-import { TerminalProgramLauncher } from '../ui/terminalProgramLauncher';
+import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 

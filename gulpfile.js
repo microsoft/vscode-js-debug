@@ -43,29 +43,38 @@ gulp.task('clean', () =>
   del(['out/**', 'dist/**', 'src/*/package.nls.*.json', 'packages/**', '*.vsix']),
 );
 
+gulp.task('compile:ts', () =>
+  tsProject
+    .src()
+    .pipe(sourcemaps.init())
+    .pipe(replaceNamespace())
+    .pipe(tsProject())
+    .js.pipe(
+      sourcemaps.write('../out', {
+        includeContent: false,
+        sourceRoot: '.',
+      }),
+    )
+    .pipe(gulp.dest('out/out')),
+);
+
 gulp.task(
-  'compile',
+  'compile:static',
   gulp.parallel(
-    () =>
-      tsProject
-        .src()
-        .pipe(sourcemaps.init())
-        .pipe(replaceNamespace())
-        .pipe(tsProject())
-        .js.pipe(
-          sourcemaps.write('../out', {
-            includeContent: false,
-            sourceRoot: '.',
-          }),
-        )
-        .pipe(gulp.dest('out/out')),
     () =>
       gulp
         .src('*.json')
         .pipe(replaceNamespace())
         .pipe(gulp.dest('out')),
+    () =>
+      gulp
+        .src('src/**/*.sh')
+        .pipe(replaceNamespace())
+        .pipe(gulp.dest('out/out')),
   ),
 );
+
+gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 
 gulp.task('package', () =>
   gulp.series('clean', 'compile', () =>
@@ -116,11 +125,7 @@ gulp.task(
   'translations-export',
   gulp.series('clean', 'compile', 'nls-bundle-create', () =>
     gulp
-      .src([
-        'out/package.json',
-        'out/nls.metadata.header.json',
-        'out/nls.metadata.json',
-      ])
+      .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
       .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
       .pipe(gulp.dest(path.join('..', 'vscode-translations-export'))),
   ),

@@ -10,68 +10,13 @@ import DapConnection from './dap/connection';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
-import * as childProcess from 'child_process';
 import { Target } from './targets/targets';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
-import { INodeLaunchConfiguration } from './configuration';
-import { removeNulls } from './common/objUtils';
-import { ProcessLauncher } from './targets/node/processLauncher';
+import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
-
-class ChildProcessProgramLauncher extends ProcessLauncher {
-  private _process?: childProcess.ChildProcess;
-  private _stop = this.stopProgram.bind(this);
-
-  protected async launch(args: INodeLaunchConfiguration) {
-    // TODO: implement this for Windows.
-    const isWindows = process.platform === 'win32';
-    if (process.platform !== 'linux' && process.platform !== 'darwin')
-      throw new Error('Windows is not supported');
-
-    this._process = childProcess.spawn(
-      args.runtimeExecutable!,
-      [...args.runtimeArgs, args.program, ...args.args],
-      {
-        cwd: args.cwd,
-        // On non-windows platforms, `detached: false` makes child process a leader of a new
-        // process group, making it possible to kill child process tree with `.kill(-pid)` command.
-        // @see https://nodejs.org/api/child_process.html#child_process_options_detached
-        detached: !isWindows,
-        env: removeNulls(args.env),
-      }
-    );
-
-    process.on('exit', this._stop);
-
-    if (this._process.pid === undefined) {
-      this.stopProgram();
-    }
-
-    return this._process.pid;
-  }
-
-  public stopProgram() {
-    if (!this._process)
-      return;
-
-    process.removeListener('exit', this._stop);
-    if (this._process.pid && !this._process.killed) {
-      // Force kill browser.
-      try {
-        if (process.platform === 'win32')
-          childProcess.execSync(`taskkill /pid ${this._process.pid} /T /F`);
-        else
-          process.kill(-this._process.pid, 'SIGKILL');
-      } catch (e) {
-        // the process might have already stopped
-      }
-    }
-    this._process = undefined;
-  }
-}
 
 class Configurator {
   private _setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
@@ -133,7 +78,7 @@ class Configurator {
 
 const server = net.createServer(async socket => {
   const launchers = [
-    new NodeLauncher(new ChildProcessProgramLauncher()),
+    new NodeLauncher(new TerminalProgramLauncher()),
     new BrowserLauncher(storagePath),
     new BrowserAttacher(),
   ];

@@ -11,7 +11,7 @@ import { BrowserAttacher } from '../targets/browser/browserAttacher';
 import { Target } from '../targets/targets';
 import { Disposable } from '../common/events';
 import { checkVersion } from './version';
-import { TerminalProgramLauncher } from './terminalProgramLauncher';
+import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Contributions } from '../common/contributionUtils';
 

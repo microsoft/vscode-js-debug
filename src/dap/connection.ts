@@ -3,7 +3,8 @@
 
 import Dap from './api';
 
-interface Message {
+export interface Message {
+  sessionId?: string;
   seq: number;
   type: string;
   command?: string;
@@ -28,7 +29,7 @@ export default class Connection {
   private _eventListeners = new Map<string, Set<(params: any) => any>>();
   private _dap: Promise<Dap.Api>;
 
-  private _ready: (dap: Dap.Api) => void;
+  protected _ready: (dap: Dap.Api) => void;
   private _logPath?: string;
   private _logPrefix = '';
 

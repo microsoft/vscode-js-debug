@@ -14,7 +14,7 @@
           "type": "pwa-node",
           "request": "launch",
           "name": "PWA debug server",
-          "debugServer": 4711,
+          "debugServer": 4712,
           "program": "${workspaceFolder}/main.js"
         }
   ]
