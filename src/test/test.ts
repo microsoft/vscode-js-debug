@@ -353,7 +353,7 @@ export class TestRoot {
     return this._worker;
   }
 
-  async _launch(url: string): Promise<TestP> {
+  async _launch(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     await this.initialize;
     this._launchUrl = url;
     this._root.dap.launch({
@@ -362,7 +362,8 @@ export class TestRoot {
       runtimeArgs: this._args,
       webRoot: this._webRoot,
       rootPath: this._workspaceRoot,
-      skipNavigateForTest: true
+      skipNavigateForTest: true,
+      ...options,
     } as IChromeLaunchConfiguration);
 
     const result = await new Promise(f => this._launchCallback = f);
@@ -383,26 +384,26 @@ export class TestRoot {
     return result as NodeTestHandle;
   }
 
-  async launch(content: string): Promise<TestP> {
+  async launch(content: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
-    return this._launch(url);
+    return this._launch(url, options);
   }
 
-  async launchAndLoad(content: string): Promise<TestP> {
+  async launchAndLoad(content: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
-    const p = await this._launch(url);
+    const p = await this._launch(url, options);
     await p.load();
     return p;
   }
 
-  async launchUrl(url: string): Promise<TestP> {
+  async launchUrl(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
-    return await this._launch(url);
+    return await this._launch(url, options);
   }
 
-  async launchUrlAndLoad(url: string): Promise<TestP> {
+  async launchUrlAndLoad(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
-    const p = await this._launch(url);
+    const p = await this._launch(url, options);
     await p.load();
     return p;
   }

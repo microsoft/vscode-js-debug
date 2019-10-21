@@ -179,7 +179,9 @@ export class Thread implements VariableStoreDelegate {
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
     const response = await this._cdp.Debugger.restartFrame({ callFrameId });
     if (response && this._pausedDetails)
-      this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
+      this._pausedDetails.stackTrace = this.launchConfig.showAsyncStacks
+      ? StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId)
+      : StackTrace.fromDebugger(this, response.callFrames);
     return {};
   }
 
@@ -583,7 +585,9 @@ export class Thread implements VariableStoreDelegate {
         this._sourceContainer.disableSourceMapForSource(sourceToDisable);
     }
 
-    const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
+    const stackTrace =  this.launchConfig.showAsyncStacks
+      ? StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId)
+      : StackTrace.fromDebugger(this, event.callFrames);
     switch (event.reason) {
       case 'assert': return {
         thread: this,

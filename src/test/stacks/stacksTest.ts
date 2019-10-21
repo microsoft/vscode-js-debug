@@ -72,6 +72,30 @@ describe('stacks', () => {
     p.assertLog();
   });
 
+  itIntegrates('async disables', async ({ r }) => {
+    const p = await r.launchAndLoad('blank', { showAsyncStacks: false });
+    p.cdp.Runtime.evaluate({
+      expression: `
+      function foo(n) {
+        if (!n) {
+          debugger;
+          return;
+        }
+        setTimeout(() => {
+          bar(n - 1);
+        }, 0);
+      }
+      async function bar(n) {
+        await Promise.resolve(15);
+        await foo(n);
+      }
+      bar(1);
+    `,
+    });
+    await dumpStackAndContinue(p, true);
+    p.assertLog();
+  });
+
   itIntegrates('cross target', async ({ r }) => {
     const p = await r.launchUrlAndLoad('worker.html');
     p.cdp.Runtime.evaluate({ expression: `window.w.postMessage('pause')` });
