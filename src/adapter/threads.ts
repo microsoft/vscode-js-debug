@@ -68,9 +68,11 @@ export type RawLocation = {
 };
 
 export class Thread implements VariableStoreDelegate {
+  private static _lastThreadId = 0;
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _name: string;
+  private _id: number;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
@@ -95,6 +97,7 @@ export class Thread implements VariableStoreDelegate {
     this._cdp = cdp;
     this._dap = dap;
     this._name = threadName;
+    this._id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
     this._initialize();
@@ -414,7 +417,7 @@ export class Thread implements VariableStoreDelegate {
 
     this._dap.thread({
       reason: 'started',
-      threadId: 0
+      threadId: this._id
     });
   }
 
@@ -509,7 +512,7 @@ export class Thread implements VariableStoreDelegate {
     }
     this._dap.thread({
       reason: 'exited',
-      threadId: 0
+      threadId: this._id
     });
 
     this._executionContextsCleared();
@@ -936,7 +939,7 @@ export class Thread implements VariableStoreDelegate {
     this._dap.stopped({
       reason: details.reason,
       description: details.description,
-      threadId: 0,
+      threadId: this._id,
       text: details.text,
       allThreadsStopped: false
     });
@@ -944,7 +947,7 @@ export class Thread implements VariableStoreDelegate {
 
   _onThreadResumed() {
     this._dap.continued({
-      threadId: 0,
+      threadId: this._id,
       allThreadsContinued: false
     });
   }
