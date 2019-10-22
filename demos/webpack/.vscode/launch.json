@@ -5,10 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[Webpack]: In Node",
+      "program": "${workspaceFolder}/out/node.js",
+      "preLaunchTask": "npm: compile-node"
+    },
+    {
       "type": "pwa-chrome",
       "request": "launch",
-      "name": "Web page 2",
+      "name": "[Webpack]: In Browser",
       "url": "http://localhost:5002",
+      "preLaunchTask": "npm: compile-web",
       "server": {
         "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
         "args": ["-p", "5002"]

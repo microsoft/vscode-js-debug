@@ -1,48 +1,54 @@
-
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
 import * as path from 'path';
-import { SourcePathResolver } from "../../common/sourcePathResolver";
 import * as utils from '../../common/urlUtils';
+import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
-export class BrowserSourcePathResolver implements SourcePathResolver {
-  // We map all urls under |_baseUrl| to files under |_basePath|.
-  private _basePath?: string;
-  private _baseUrl?: string;
+interface IOptions extends ISourcePathResolverOptions {
+  baseUrl?: string;
+  webRoot?: string;
+}
 
-  constructor(baseUrl: string | undefined, webRoot: string | undefined) {
-    this._basePath = utils.platformPathToPreferredCase(webRoot ? path.normalize(webRoot) : undefined);
-    this._baseUrl = baseUrl;
+export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
+  constructor(options: IOptions) {
+    super({
+      ...options,
+      webRoot: utils.platformPathToPreferredCase(
+        options.webRoot ? path.normalize(options.webRoot) : undefined,
+      ),
+    });
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {
+    const { baseUrl, webRoot } = this.options;
+
     absolutePath = path.normalize(absolutePath);
     // Note: we do not check that absolutePath belongs to basePath to
     // allow source map sources reference outside of web root.
-    if (!this._baseUrl || !this._basePath)
-      return utils.absolutePathToFileUrl(absolutePath);
-    const relative = path.relative(this._basePath, absolutePath);
-    return utils.completeUrlEscapingRoot(this._baseUrl, utils.platformPathToUrlPath(relative));
+    if (!baseUrl || !webRoot) return utils.absolutePathToFileUrl(absolutePath);
+    const relative = path.relative(webRoot, absolutePath);
+    return utils.completeUrlEscapingRoot(baseUrl, utils.platformPathToUrlPath(relative));
   }
 
   urlToAbsolutePath(url: string): string {
+    const { baseUrl, webRoot } = this.options;
+
     const absolutePath = utils.fileUrlToAbsolutePath(url);
-    if (absolutePath)
-      return absolutePath;
+    if (absolutePath) return absolutePath;
 
-    if (!this._basePath)
+    if (!webRoot) {
       return '';
+    }
 
-    const webpackPath = utils.webpackUrlToPath(url, this._basePath);
-    if (webpackPath)
-      return webpackPath;
+    const unmappedPath = this.applyPathOverrides(url);
+    if (unmappedPath !== url) {
+      return path.resolve(webRoot, unmappedPath);
+    }
 
-    if (!this._baseUrl || !url.startsWith(this._baseUrl))
-      return '';
-    url = utils.urlPathToPlatformPath(url.substring(this._baseUrl.length));
-    if (url === '' || url === '/')
-      url = 'index.html';
-    return path.join(this._basePath, url);
+    if (!baseUrl || !url.startsWith(baseUrl)) return '';
+    url = utils.urlPathToPlatformPath(url.substring(baseUrl.length));
+    if (url === '' || url === '/') url = 'index.html';
+    return path.join(webRoot, url);
   }
 }

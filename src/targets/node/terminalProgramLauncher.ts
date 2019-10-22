@@ -43,19 +43,19 @@ export class TerminalProgramLauncher extends ProcessLauncher {
       env: removeNulls(config.env),
     }));
 
-    process.stdout.addListener('data', data =>
+    process.stdout.addListener('data', data => {
       context.dap.output({
         category: 'stdout',
         output: data,
-      }),
-    );
+      });
+    });
 
-    process.stderr.addListener('data', data =>
+    process.stderr.addListener('data', data => {
       context.dap.output({
         category: 'stderr',
         output: data,
-      }),
-    );
+      });
+    });
 
     process.on('error', err => {
       context.dap.output({

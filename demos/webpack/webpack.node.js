@@ -5,7 +5,7 @@ module.exports = {
   entry: './src/index.js',
   output: {
     path: path.join(__dirname, 'out'),
-    filename: 'index.js',
+    filename: 'node.js',
   },
   target: 'node',
   mode: 'development',

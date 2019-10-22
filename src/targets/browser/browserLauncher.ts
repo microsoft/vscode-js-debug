@@ -90,7 +90,11 @@ export class BrowserLauncher implements Launcher {
     this._connectionForTest = connection;
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || params.rootPath);
+    const pathResolver = new BrowserSourcePathResolver({
+      baseUrl: baseURL(params),
+      webRoot: params.webRoot || params.rootPath,
+      sourceMapOverrides: params.sourceMapPathOverrides,
+    });
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');

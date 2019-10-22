@@ -80,7 +80,11 @@ export class BrowserAttacher implements Launcher {
         this._scheduleAttach();
     }, undefined, this._disposables);
 
-    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || params.rootPath);
+    const pathResolver = new BrowserSourcePathResolver({
+      baseUrl: baseURL(params),
+      webRoot: params.webRoot || params.rootPath,
+      sourceMapOverrides: params.sourceMapPathOverrides,
+    });
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, this._targetOrigin);
     if (!this._targetManager)
       return;

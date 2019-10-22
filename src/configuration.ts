@@ -330,11 +330,9 @@ const baseDefaults: IBaseConfiguration = {
   smartStep: true,
   sourceMaps: true,
   sourceMapPathOverrides: {
-    'webpack:///./*': '${webRoot}/*',
-    'webpack:///src/*': '${webRoot}/*',
     'webpack:///*': '*',
-    'webpack:///./~/*': '${webRoot}/node_modules/*',
-    'meteor://💻app/*': '${webRoot}/*',
+    'webpack:///./~/*': '${workspaceRoot}/node_modules/*',
+    'meteor://💻app/*': '${workspaceRoot}/*',
   },
 };
 

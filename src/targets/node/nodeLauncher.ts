@@ -8,14 +8,13 @@ import { EventEmitter, Event, Disposable } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { SourcePathResolver } from '../../common/sourcePathResolver';
 import { Launcher, Target, LaunchResult, ILaunchContext } from '../../targets/targets';
-import * as urlUtils from '../../common/urlUtils';
 import { execFileSync } from 'child_process';
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { NodeTarget } from './nodeTarget';
+import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 
 /**
  * Interface that handles booting a program to debug.
@@ -73,7 +72,10 @@ export class NodeLauncher implements Launcher {
     }
 
     this._launchParams = params;
-    this._pathResolver = new NodeSourcePathResolver(this._launchParams.cwd);
+    this._pathResolver = new NodeSourcePathResolver({
+      basePath: this._launchParams.cwd,
+      sourceMapOverrides: this._launchParams.sourceMapPathOverrides,
+    });
     this.context = context;
     await this._startServer(this._launchParams);
     this.launchProgram();
@@ -170,28 +172,6 @@ export class NodeLauncher implements Launcher {
   }
 }
 
-
-export class NodeSourcePathResolver implements SourcePathResolver {
-  private _basePath: string | undefined;
-
-  constructor(basePath: string | undefined) {
-    this._basePath = basePath;
-  }
-
-  urlToAbsolutePath(url: string): string {
-    const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
-    if (absolutePath) return absolutePath;
-
-    if (!this._basePath) return '';
-
-    const webpackPath = urlUtils.webpackUrlToPath(url, this._basePath);
-    return webpackPath || '';
-  }
-
-  absolutePathToUrl(absolutePath: string): string | undefined {
-    return urlUtils.absolutePathToFileUrl(path.normalize(absolutePath));
-  }
-}
 
 function findNode(): string | undefined {
   // TODO: implement this for Windows.
