@@ -38,6 +38,7 @@
   "node.address.description": "TCP/IP address of process to be debugged. Default is 'localhost'.",
   "node.attach.config.name": "Attach",
   "node.attach.processId.description": "ID of process to attach to.",
+  "node.console.title": "Node Debug Console",
   "node.disableOptimisticBPs.description": "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
   "node.label": "Node.js",
   "node.launch.autoAttachChildProcesses.description": "Attach debugger to new child processes automatically.",

@@ -3,31 +3,50 @@
 
 import * as path from 'path';
 import * as nls from 'vscode-nls';
-import * as fs from 'fs';
-import { IProgramLauncher } from './nodeLauncher';
-import { EventEmitter } from '../../common/events';
 import { INodeLaunchConfiguration } from '../../configuration';
-import { ProtocolError, createUserError } from '../../dap/errors';
+import { ProtocolError } from '../../dap/errors';
 import { findInPath, findExecutable } from '../../common/pathUtils';
-import { EnvironmentVars } from '../../common/environmentVars';
 import { ILaunchContext } from '../targets';
+import { IProgram } from './program';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 const localize = nls.loadMessageBundle();
+/**
+ * Interface that handles booting a program to debug.
+ */
+export interface IProgramLauncher {
+  /**
+   * Returns whether this launcher is appropriate for the given set of options.
+   */
+  canLaunch(args: INodeLaunchConfiguration): boolean;
+
+  /**
+   * Executs the program.
+   */
+  launchProgram(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<IProgram>;
+}
 
 /**
  * Launcher that boots a subprocess.
  */
 export abstract class ProcessLauncher implements IProgramLauncher {
-  protected _onProgramStoppedEmitter = new EventEmitter<void>();
-  public onProgramStopped = this._onProgramStoppedEmitter.event;
+  public canLaunch(_args: INodeLaunchConfiguration): boolean {
+    return true;
+  }
 
-  public async launchProgram(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<void> {
-    const env = this.resolveEnvironment(args);
+  public abstract launchProgram(
+    args: INodeLaunchConfiguration,
+    context: ILaunchContext,
+  ): Promise<IProgram>;
+
+  protected getRuntime(args: INodeLaunchConfiguration) {
     let requestedRuntime = args.runtimeExecutable || 'node';
+    const env = EnvironmentVars.merge(process.env, args.env).value;
     const resolvedRuntime = findExecutable(
       path.isAbsolute(requestedRuntime) ? requestedRuntime : findInPath(requestedRuntime, env),
       env,
     );
+
     if (!resolvedRuntime) {
       throw new ProtocolError({
         id: 2001,
@@ -41,64 +60,6 @@ export abstract class ProcessLauncher implements IProgramLauncher {
       });
     }
 
-    await this.launch({ ...args, env, runtimeExecutable: resolvedRuntime }, context);
+    return resolvedRuntime;
   }
-
-  private resolveEnvironment(args: INodeLaunchConfiguration) {
-    let env = new EnvironmentVars(process.env);
-
-    // read environment variables from any specified file
-    if (args.envFile) {
-      try {
-        env = env.merge(readEnvFile(args.envFile));
-      } catch (e) {
-        throw new ProtocolError(
-          createUserError(
-            localize('VSND2029', "Can't load environment variables from file ({0}).", e.message),
-          ),
-        );
-      }
-    }
-
-    return env.merge(args.env).value;
-  }
-
-  public abstract stopProgram(): void;
-
-  public dispose() {
-    this.stopProgram();
-  }
-
-  protected abstract launch(args: INodeLaunchConfiguration, context: ILaunchContext): Promise<number>;
-}
-
-function readEnvFile(file: string): { [key: string]: string } {
-  if (!fs.existsSync(file)) {
-    return {};
-  }
-
-  const buffer = stripBOM(fs.readFileSync(file, 'utf8'));
-  const env = {};
-  for (const line of buffer.split('\n')) {
-    const r = line.match(/^\s*([\w\.\-]+)\s*=\s*(.*)?\s*$/);
-    if (!r) {
-      continue;
-    }
-
-    let [, key, value = ''] = r;
-    // .env variables never overwrite existing variables (see #21169)
-    if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
-      value = value.replace(/\\n/gm, '\n');
-    }
-    env[key] = value.replace(/(^['"]|['"]$)/g, '');
-  }
-
-  return env;
-}
-
-function stripBOM(s: string): string {
-  if (s && s[0] === '\uFEFF') {
-    s = s.substr(1);
-  }
-  return s;
 }

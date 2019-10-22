@@ -129,7 +129,7 @@ async function generate() {
       result.push(`    ${desc.properties.event.enum[0]}(params: ${name}Params): void;`);
       stubs.push({type: 'event', name: `${name}Params`, value: desc.properties.body || {properties: {}}});
     }
-    if (ref['$ref'] === '#/definitions/Request' && desc.title !== 'Reverse Requests') {
+    if (ref['$ref'] === '#/definitions/Request') {
       const short = desc.properties.command.enum[0];
       const title = toTitleCase(short);
       apiSeparator();
@@ -138,6 +138,9 @@ async function generate() {
       const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
       stubs.push({type: 'params', name: `${title}Params`, value: defs[definition(args)] || {properties: {}}});
       stubs.push({type: 'result', name: `${title}Result`, value: defs[`${name.substring(0, name.length - 'Request'.length)}Response`]});
+
+      appendText(desc.description, '    ');
+      result.push(`    ${short}Request(params: ${title}Params): Promise<${title}Result>;`);
     }
   }
   result.push(`  }`);
@@ -162,7 +165,7 @@ async function generate() {
         result.push(`    off(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void): void;`);
         result.push(`    once(request: '${desc.properties.event.enum[0]}', filter?: (event: ${name}Params) => boolean): Promise<${name}Params>;`);
       }
-      if (ref['$ref'] === '#/definitions/Request' && desc.title !== 'Reverse Requests') {
+      if (ref['$ref'] === '#/definitions/Request') {
         const short = desc.properties.command.enum[0];
         const title = toTitleCase(short);
         apiSeparator();
