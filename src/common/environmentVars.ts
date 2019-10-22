@@ -1,4 +1,4 @@
-import { getCaseInsensitiveProperty, caseInsensitiveMerge, removeUndefined } from './objUtils';
+import { getCaseInsensitiveProperty, caseInsensitiveMerge, removeUndefined, removeNulls } from './objUtils';
 import * as path from 'path';
 
 /**
@@ -12,12 +12,24 @@ export class EnvironmentVars {
   public static platform = process.platform;
 
   /**
+   * An empty set of environment variables.
+   */
+  public static readonly empty = new EnvironmentVars({});
+
+  /**
    * Current environment variables.
    */
   public readonly value: Readonly<{ [key: string]: string | null }>;
 
   constructor(vars?: { [key: string]: string | null | undefined }) {
     this.value = vars ? removeUndefined(vars) : {};
+  }
+
+  /**
+   * Returns a map of defined environment variables.
+   */
+  public defined() {
+    return removeNulls(this.value);
   }
 
   /**

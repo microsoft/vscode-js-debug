@@ -32,6 +32,7 @@ export async function run(root: string): Promise<void> {
 
   const runner = new Mocha({
     timeout: 2000000,
+    grep: 'browser launch runtime',
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 

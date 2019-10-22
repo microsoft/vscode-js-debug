@@ -9,6 +9,7 @@ import * as readline from 'readline';
 import CdpConnection from '../../cdp/connection';
 import { PipeTransport, WebSocketTransport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -28,7 +29,8 @@ const DEFAULT_ARGS = [
 interface LaunchOptions {
   args?: ReadonlyArray<string>;
   dumpio?: boolean;
-  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+  env?: EnvironmentVars;
   ignoreDefaultArgs?: boolean;
   pipe?: boolean;
   timeout?: number;
@@ -39,7 +41,8 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   const {
     args = [],
     dumpio = false,
-    env = process.env,
+    cwd = process.cwd(),
+    env = EnvironmentVars.empty,
     ignoreDefaultArgs = false,
     pipe = false,
     timeout = 30000,
@@ -72,7 +75,8 @@ export async function launch(executablePath: string, options: LaunchOptions | un
       // process group, making it possible to kill child process tree with `.kill(-pid)` command.
       // @see https://nodejs.org/api/child_process.html#child_process_options_detached
       detached: process.platform !== 'win32',
-      env,
+      env: env.defined(),
+      cwd,
       stdio
     }
   );
@@ -129,9 +133,9 @@ function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
   const browserArguments = [...DEFAULT_ARGS];
   if (userDataDir)
     browserArguments.push(`--user-data-dir=${userDataDir}`);
+  browserArguments.push(...args);
   if (args.every(arg => arg.startsWith('-')))
     browserArguments.push('about:blank');
-  browserArguments.push(...args);
   return browserArguments;
 }
 

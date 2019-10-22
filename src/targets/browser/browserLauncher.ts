@@ -14,6 +14,7 @@ import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 const localize = nls.loadMessageBundle();
 
@@ -43,7 +44,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser(args: ReadonlyArray<string>, executable: string | undefined): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -59,6 +60,14 @@ export class BrowserLauncher implements Launcher {
           executablePath = installations[0].path;
       }
     }
+
+    let resolvedDataDir: string | undefined;
+    if (userDataDir === true) {
+        resolvedDataDir = path.join(this._storagePath, runtimeArgs && runtimeArgs.includes('--headless') ? '.headless-profile' : '.profile');
+    } else if (typeof userDataDir === 'string') {
+      resolvedDataDir = userDataDir;
+    }
+
     if (!executablePath)
       throw new Error('Unable to find browser');
 
@@ -66,10 +75,14 @@ export class BrowserLauncher implements Launcher {
       fs.mkdirSync(this._storagePath);
     } catch (e) {
     }
+
     return await launcher.launch(
       executablePath, {
-        args,
-        userDataDir: path.join(this._storagePath, args.indexOf('--headless') !== -1 ? '.headless-profile' : '.profile'),
+        timeout,
+        cwd: cwd || undefined,
+        env: EnvironmentVars.merge(process.env, env),
+        args: runtimeArgs || [],
+        userDataDir: resolvedDataDir,
         pipe: true,
       });
   }
@@ -77,7 +90,7 @@ export class BrowserLauncher implements Launcher {
   async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params.runtimeArgs || [], params.runtimeExecutable);
+      connection = await this._launchBrowser(params);
     } catch (e) {
       return localize('error.executableNotFound', 'Unable to find browser executable "{0}"', params.runtimeExecutable);
     }
