@@ -7,6 +7,7 @@ import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
+import { delay } from './promiseUtil';
 
 export type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
 
@@ -193,7 +194,7 @@ export function wrapObjectLiteral(code: string): string {
 
 export async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
   if (slowDown)
-    await new Promise(f => setTimeout(f, slowDown));
+    await delay(slowDown);
   let content = await urlUtils.fetch(url);
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));

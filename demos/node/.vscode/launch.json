@@ -13,6 +13,13 @@
     {
       "type": "pwa-node",
       "request": "launch",
+      "name": "[Node] Launch crashing program",
+      "restart": true,
+      "program": "${workspaceFolder}/crasher.js"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
       "name": "[Node] Launch with Debug Server",
       "debugServer": 4711,
       "program": "${workspaceFolder}/main.js"

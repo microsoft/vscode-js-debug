@@ -46,6 +46,8 @@ export class CallbackFile<T> implements Disposable {
           resolve(JSON.parse(readFileSync(this.path, 'utf-8')));
         } catch (e) {
           reject(e);
+        } finally {
+          this.dispose();
         }
 
         clearInterval(interval);
@@ -59,6 +61,10 @@ export class CallbackFile<T> implements Disposable {
    * Diposes of the callback file.
    */
   public dispose() {
+    if (this.disposed) {
+      return;
+    }
+
     this.disposed = true;
     try {
       unlinkSync(this.path);

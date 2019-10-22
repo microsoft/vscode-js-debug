@@ -9,7 +9,7 @@ import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult, ILaunchContext } from '../../targets/targets';
+import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
@@ -25,7 +25,7 @@ export class BrowserLauncher implements Launcher {
   private _launchParams: IChromeLaunchConfiguration | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: Disposable[] = [];
-  private _onTerminatedEmitter = new EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
@@ -98,7 +98,7 @@ export class BrowserLauncher implements Launcher {
     if (params.logging && params.logging.cdp)
       connection.setLogConfig(params.url || '', params.logging.cdp);
     connection.onDisconnected(() => {
-      this._onTerminatedEmitter.fire();
+      this._onTerminatedEmitter.fire({ code: 0, killed: true });
     }, undefined, this._disposables);
     this._connectionForTest = connection;
     this._launchParams = params;
@@ -130,7 +130,7 @@ export class BrowserLauncher implements Launcher {
       return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
-        this._onTerminatedEmitter.fire();
+        this._onTerminatedEmitter.fire({ code: 0, killed: true });
     });
     return this._mainTarget;
   }
