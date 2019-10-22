@@ -155,6 +155,10 @@ export function absolutePathToFileUrl(absolutePath: string): string | undefined 
   }
 }
 
+export function isFileUrl(candidate: string): boolean {
+  return candidate.startsWith('file:///');
+}
+
 export function maybeAbsolutePathToFileUrl(rootPath: string | undefined, sourceUrl: string): string {
   if (rootPath && platformPathToPreferredCase(sourceUrl).startsWith(rootPath) && !isValidUrl(sourceUrl))
     return absolutePathToFileUrl(sourceUrl) || sourceUrl;

@@ -4,7 +4,7 @@
 // Mapping between urls (operated in cdp) and paths (operated in dap) is
 // specific to the actual product being debugged.
 export interface SourcePathResolver {
-  urlToAbsolutePath(url: string): string;
+  urlToAbsolutePath(url: string): string | undefined;
   absolutePathToUrl(absolutePath: string): string | undefined;
 }
 

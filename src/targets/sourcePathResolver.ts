@@ -2,29 +2,78 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
- import { SourcePathResolver } from '../common/sourcePathResolver';
+import { SourcePathResolver } from '../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
-import { properJoin } from '../common/pathUtils';
+import { properJoin, fixDriveLetter, fixDriveLetterAndSlashes } from '../common/pathUtils';
+import * as path from 'path';
+import { isFileUrl } from '../common/urlUtils';
 
 export interface ISourcePathResolverOptions {
   sourceMapOverrides: { [key: string]: string };
+  localRoot: string | null;
+  remoteRoot: string | null;
 }
 
-export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions> implements SourcePathResolver {
+export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions>
+  implements SourcePathResolver {
   constructor(protected readonly options: T) {}
 
-  public abstract urlToAbsolutePath(url: string): string;
+  public abstract urlToAbsolutePath(url: string): string | undefined;
 
   public abstract absolutePathToUrl(absolutePath: string): string | undefined;
 
+  /**
+   * Rebases a remote path to a local one using the remote and local roots.
+   * The path should should given as a filesystem path, not a URI.
+   */
+  protected rebaseRemoteToLocal(remotePath: string) {
+    if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(remotePath)) {
+      return remotePath;
+    }
+
+    const relativePath = path.relative(this.options.remoteRoot, remotePath);
+    if (relativePath.startsWith('../')) {
+      return '';
+    }
+
+    let localPath = path.join(this.options.localRoot, relativePath);
+
+    localPath = fixDriveLetter(localPath);
+    // todo: #34
+    // logger.log(`Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
+    return localPath;
+  }
+
+  /**
+   * Rebases a local path to a remote one using the remote and local roots.
+   * The path should should given as a filesystem path, not a URI.
+   */
+  protected rebaseLocalToRemote(localPath: string) {
+    if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(localPath)) {
+      return localPath;
+    }
+
+    const relPath = path.relative(this.options.localRoot, localPath);
+    if (relPath.startsWith('../')) return '';
+
+    let remotePath = path.join(this.options.remoteRoot, relPath);
+
+    remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
+    // todo: #34
+    // logger.log(`Mapped localToRemote: ${localPath} -> ${remotePath}`);
+    return remotePath;
+  }
+
+  /**
+   * Applies soruce map overrides to the path. The path should should given
+   * as a filesystem path, not a URI.
+   */
   protected applyPathOverrides(sourcePath: string) {
     const { sourceMapOverrides } = this.options;
     const forwardSlashSourcePath = sourcePath.replace(/\\/g, '/');
 
     // Sort the overrides by length, large to small
-    const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort(
-      (a, b) => b.length - a.length,
-    );
+    const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort((a, b) => b.length - a.length);
 
     // Iterate the key/vals, only apply the first one that matches.
     for (let leftPattern of sortedOverrideKeys) {
@@ -63,5 +112,11 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     }
 
     return sourcePath;
+  }
+
+  private canMapPath(candidate: string) {
+    return (
+      path.posix.isAbsolute(candidate) || path.win32.isAbsolute(candidate) || isFileUrl(candidate)
+    );
   }
 }

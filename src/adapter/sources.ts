@@ -111,7 +111,7 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._blackboxed = blackboxed;
-    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url);
+    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url) || '';
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset)

@@ -90,6 +90,8 @@ export class NodeLauncher implements Launcher {
     this._pathResolver = new NodeSourcePathResolver({
       basePath: this._launchParams.cwd,
       sourceMapOverrides: this._launchParams.sourceMapPathOverrides,
+      remoteRoot: this._launchParams.remoteRoot,
+      localRoot: this._launchParams.localRoot,
     });
     this.context = context;
     this._startServer(this._launchParams);
