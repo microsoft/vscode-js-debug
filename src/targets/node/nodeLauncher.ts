@@ -9,7 +9,7 @@ import { EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { Launcher, Target, LaunchResult, ILaunchContext } from '../../targets/targets';
+import { Launcher, Target, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
 import { execFileSync } from 'child_process';
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
@@ -20,6 +20,8 @@ import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { IProgramLauncher } from './processLauncher';
 import { CallbackFile } from './callback-file';
+import { RestartPolicyFactory } from './restartPolicy';
+import { delay } from '../../common/promiseUtil';
 
 /**
  * Telemetry received from the nested process.
@@ -51,15 +53,25 @@ export class NodeLauncher implements Launcher {
   _targets = new Map<string, NodeTarget>();
   _pathResolver?: NodeSourcePathResolver;
   public context?: ILaunchContext;
-  private _onTerminatedEmitter = new EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
+  /**
+   * The currently running program. Set to undefined if there's no process
+   * running.
+   */
   private program?: IProgram;
 
-  constructor(private readonly launchers: ReadonlyArray<IProgramLauncher>) {}
+  constructor(
+    private readonly launchers: ReadonlyArray<IProgramLauncher>,
+    private readonly restarters = new RestartPolicyFactory(),
+  ) {}
 
+  /**
+   * @inheritdoc
+   */
   public async launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
@@ -81,70 +93,91 @@ export class NodeLauncher implements Launcher {
     });
     this.context = context;
     this._startServer(this._launchParams);
-    await this.launchProgram();
+    await this.launchProgram(this._launchParams);
     return { blockSessionTermination: true };
   }
 
+  /**
+   * @inheritdoc
+   */
   public async terminate(): Promise<void> {
     if (this.program) {
-      await this.program.stop(); // will stop the server when it's done
+      await this.program.stop(); // will stop the server when it's done, in launchProgram
     } else {
       this._stopServer();
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   public async disconnect(): Promise<void> {
     this.terminate();
   }
 
+  /**
+   * Restarts the ongoing program.
+   */
   public async restart(): Promise<void> {
     if (!this._launchParams) {
       return;
     }
 
-    this._stopServer();
+    // connections must be closed, or the process will wait forever:
+    this.closeAllConnections();
 
-    const program = this.program;
-    if (program) {
-      this.program = undefined;
-      await program.stop();
-    }
-
-    this._startServer(this._launchParams);
-    await this.launchProgram();
+    // relaunch the program:
+    await this.launchProgram(this._launchParams);
   }
 
-  private async launchProgram(): Promise<void> {
-    if (!this._launchParams) {
-      return;
-    }
-
+  /**
+   * Launches the program.
+   */
+  private async launchProgram(
+    params: INodeLaunchConfiguration,
+    restartPolicy = this.restarters.create(params),
+  ): Promise<void> {
+    // Close any existing program. We intentionally don't wait for stop() to
+    // finish, since doing so will shut down the server.
     if (this.program) {
       this.program.stop(); // intentionally not awaited on
     }
 
     const callbackFile = new CallbackFile<IProcessTelemetry>();
-    const options = {
-      ...this._launchParams,
-      env: this.resolveEnvironment(this._launchParams, callbackFile).value,
-    };
-
+    const options = { ...params, env: this.resolveEnvironment(params, callbackFile).value };
     const launcher = this.launchers.find(l => l.canLaunch(options));
     if (!launcher) {
       throw new Error('Cannot find an appropriate launcher for the given set of options');
     }
 
     const program = (this.program = await launcher.launchProgram(options, this.context!));
-    program.stopped.then(() => {
+
+    // Once the program stops, dispose of the file. If we started a new program
+    // in the meantime, don't do anything. Otherwise, restart if we need to,
+    // and if we don't then shut down the server and indicate that we terminated.
+    program.stopped.then(async result => {
       callbackFile.dispose();
 
-      if (this.program === program) {
+      if (this.program !== program) {
+        return;
+      }
+
+      const nextRestart = restartPolicy.next(result);
+      if (!nextRestart) {
+        this._onTerminatedEmitter.fire(result);
         this._stopServer();
         this.program = undefined;
-        this._onTerminatedEmitter.fire();
+        return;
+      }
+
+      await delay(nextRestart.delay);
+      if (this.program === program) {
+        this.launchProgram(params, nextRestart);
       }
     });
 
+    // Read the callback file, and signal the running program when we read
+    // data. read() retur
     callbackFile.read().then(data => {
       if (data) {
         program.gotTelemetery(data);
@@ -202,6 +235,10 @@ export class NodeLauncher implements Launcher {
     }
 
     this._server = undefined;
+    this.closeAllConnections();
+  }
+
+  private closeAllConnections() {
     this._connections.forEach(c => c.close());
     this._connections = [];
   }

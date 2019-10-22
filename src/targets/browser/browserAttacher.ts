@@ -5,7 +5,7 @@ import { Disposable, EventEmitter } from '../../common/events';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult, ILaunchContext } from '../targets';
+import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
@@ -18,7 +18,7 @@ export class BrowserAttacher implements Launcher {
   private _launchParams: IChromeAttachConfiguration | undefined;
   private _targetOrigin: any;
   private _disposables: Disposable[] = [];
-  private _onTerminatedEmitter = new EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;

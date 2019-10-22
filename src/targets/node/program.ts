@@ -6,9 +6,10 @@ import { IProcessTelemetry } from './nodeLauncher';
 import { ChildProcess } from 'child_process';
 import { killTree } from './killTree';
 import Dap from '../../dap/api';
+import { IStopMetadata } from '../targets';
 
 export interface IProgram {
-  readonly stopped: Promise<void>;
+  readonly stopped: Promise<IStopMetadata>;
 
   /**
    * Callback given to the program after telemetry is queried.
@@ -18,19 +19,20 @@ export interface IProgram {
   /**
    * Forcefully stops the program.
    */
-  stop(): Promise<void>;
+  stop(): Promise<IStopMetadata>;
 }
 
 /**
  * Program created from a subprocess.
  */
 export class SubprocessProgram implements IProgram {
-  public readonly stopped: Promise<void>;
+  public readonly stopped: Promise<IStopMetadata>;
+  private killed = false;
 
   constructor(private child: ChildProcess) {
     this.stopped = new Promise((resolve, reject) => {
-      child.once('exit', resolve);
-      child.once('error', reject);
+      child.once('exit', code => resolve({ killed: this.killed, code: code || 0 }));
+      child.once('error', error => reject({ killed: this.killed, code: 1, error }));
     });
   }
 
@@ -38,7 +40,8 @@ export class SubprocessProgram implements IProgram {
     // no-op
   }
 
-  public stop(): Promise<void> {
+  public stop(): Promise<IStopMetadata> {
+    this.killed = true;
     killTree(this.child.pid);
     return this.stopped;
   }
@@ -54,12 +57,12 @@ export class TerminalProcess implements IProgram {
   private static readonly terminationPollInterval = 1000;
 
   private didStop = false;
-  private onStopped!: () => void;
-  public readonly stopped = new Promise<void>(
+  private onStopped!: (killed: boolean) => void;
+  public readonly stopped = new Promise<IStopMetadata>(
     resolve =>
-      (this.onStopped = () => {
+      (this.onStopped = killed => {
         this.didStop = true;
-        resolve();
+        resolve({ code: 0, killed });
       }),
   );
   private loop?: { timer: NodeJS.Timer; processId: number };
@@ -74,15 +77,15 @@ export class TerminalProcess implements IProgram {
     this.startPollLoop(processId);
   }
 
-  public stop(): Promise<void> {
-    this.onStopped();
+  public stop(): Promise<IStopMetadata> {
+    this.onStopped(false);
 
     if (!this.loop) {
       if (this.terminalResult.shellProcessId) {
         killTree(this.terminalResult.shellProcessId);
       }
 
-      return Promise.resolve();
+      return Promise.resolve({ code: 0, killed: true });
     }
 
     killTree(this.loop.processId);
@@ -108,7 +111,7 @@ export class TerminalProcess implements IProgram {
           process.kill(processId, 0);
         } catch {
           clearInterval(loop.timer);
-          this.onStopped();
+          this.onStopped(true);
         }
       }, TerminalProcess.terminationPollInterval),
     };
