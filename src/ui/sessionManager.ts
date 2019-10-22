@@ -11,9 +11,10 @@ import { BrowserAttacher } from '../targets/browser/browserAttacher';
 import { Target } from '../targets/targets';
 import { Disposable } from '../common/events';
 import { checkVersion } from './version';
-import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
+import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Contributions } from '../common/contributionUtils';
+import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 
 export class Session implements Disposable {
   public readonly debugSession: vscode.DebugSession;
@@ -39,7 +40,7 @@ export class Session implements Disposable {
 
   createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
     const launchers = [
-      new NodeLauncher(new TerminalProgramLauncher()),
+      new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
       new BrowserLauncher(context.storagePath || context.extensionPath),
       new BrowserAttacher(),
     ];

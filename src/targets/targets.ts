@@ -50,12 +50,30 @@ export interface LaunchResult {
   blockSessionTermination?: boolean;
 }
 
+/**
+ * Data emitted in the 'stopped' promise.
+ */
+export interface IStopMetadata {
+  /**
+   * Numeric close code, non-zero exits are treated as errors.
+   */
+  code: number;
+  /**
+   * True if the launcher was intentionally closed by a user.
+   */
+  killed: boolean;
+  /**
+   * Any error that occurred.
+   */
+  error?: Error;
+}
+
 export interface Launcher extends Disposable {
   launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;
   onTargetListChanged: Event<void>;
-  onTerminated: Event<void>;
+  onTerminated: Event<IStopMetadata>;
   targetList(): Target[];
 }

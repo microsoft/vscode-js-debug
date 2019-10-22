@@ -21,8 +21,9 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import * as crypto from 'crypto';
 import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
 import { Disposable } from './common/events';
-import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
+import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { Contributions } from './common/contributionUtils';
+import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -47,7 +48,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
 
   const _childSessionsForTarget = new Map<Target, ChildSession>();
   const launchers = [
-    new NodeLauncher(new TerminalProgramLauncher()),
+    new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
     new BrowserLauncher(storagePath),
     new BrowserAttacher(),
   ];

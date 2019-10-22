@@ -11,6 +11,8 @@ export const enum ErrorCodes {
   UserError,
   NvmNotFound,
   NvmHomeNotFound,
+  CannotLaunchInTerminal,
+  CannotLoadEnvironmentVariables
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -69,6 +71,18 @@ export const nvmVersionNotFound = (version: string, versionManager: string) =>
       versionManager,
     ),
     ErrorCodes.NvmHomeNotFound,
+  );
+
+export const cannotLaunchInTerminal = (errorMessage: string) =>
+  createUserError(
+    localize('VSND2011', 'Cannot launch debug target in terminal ({0}).', errorMessage),
+    ErrorCodes.CannotLaunchInTerminal,
+  );
+
+export const cannotLoadEnvironmentVars = (errorMessage: string) =>
+  createUserError(
+    localize('VSND2029', "Can't load environment variables from file ({0}).", errorMessage),
+    ErrorCodes.CannotLoadEnvironmentVariables,
   );
 
 export class ProtocolError extends Error {

@@ -27,12 +27,11 @@ function setupCoverage() {
   return nyc;
 }
 
-export async function run(root: string): Promise<void> {
+export async function run(): Promise<void> {
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
   const runner = new Mocha({
     timeout: 2000000,
-    grep: 'browser launch runtime',
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 

@@ -10,6 +10,7 @@ import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
+import { delay } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -296,7 +297,7 @@ export class SourceContainer {
       const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
-        new Promise(f => setTimeout(f, this._sourceMapTimeouts.resolveLocation)),
+        delay(this._sourceMapTimeouts.resolveLocation),
       ]);
       if (!sourceMap.map)
         return uiLocation;
