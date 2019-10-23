@@ -1,21 +1,41 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "pwa-node",
-            "request": "launch",
-            "name": "PWA: launch program",
-            "program": "${workspaceFolder}/main.js"
-        },
-        {
-          "type": "pwa-node",
-          "request": "launch",
-          "name": "PWA debug server",
-          "debugServer": 4711,
-          "program": "${workspaceFolder}/main.js"
-        }
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[Node] Launch program",
+      "program": "${workspaceFolder}/main.js"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[Node] Launch crashing program",
+      "restart": true,
+      "program": "${workspaceFolder}/crasher.js"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[Node] Launch with Debug Server",
+      "debugServer": 4711,
+      "program": "${workspaceFolder}/main.js"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[Node] Invalid Launch Program",
+      "program": "missing-file.js",
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "[Node] Launch Legacy Debug",
+      "console": "externalTerminal",
+      "program": "${workspaceFolder}/main.js"
+    }
   ]
 }

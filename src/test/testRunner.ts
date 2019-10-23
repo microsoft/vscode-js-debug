@@ -27,7 +27,7 @@ function setupCoverage() {
   return nyc;
 }
 
-export async function run(root: string): Promise<void> {
+export async function run(): Promise<void> {
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
   const runner = new Mocha({

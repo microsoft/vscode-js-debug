@@ -15,7 +15,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
-import { AnyLaunchConfiguration } from '../configuration';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -68,9 +68,11 @@ export type RawLocation = {
 };
 
 export class Thread implements VariableStoreDelegate {
+  private static _lastThreadId = 0;
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _name: string;
+  private _id: number;
   private _pausedDetails?: PausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
@@ -95,6 +97,7 @@ export class Thread implements VariableStoreDelegate {
     this._cdp = cdp;
     this._dap = dap;
     this._name = threadName;
+    this._id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
     this._initialize();
@@ -350,10 +353,12 @@ export class Thread implements VariableStoreDelegate {
       const slot = this._claimOutputSlot();
       slot(this._clearDebuggerConsole());
     });
-    this._cdp.Runtime.on('consoleAPICalled', async event => {
-      const slot = this._claimOutputSlot();
-      slot(await this._onConsoleMessage(event));
-    });
+    if (this.launchConfig.outputCapture === OutputSource.Console)  {
+      this._cdp.Runtime.on('consoleAPICalled', async event => {
+        const slot = this._claimOutputSlot();
+        slot(await this._onConsoleMessage(event));
+      });
+    }
     this._cdp.Runtime.on('exceptionThrown', async event => {
       const slot = this._claimOutputSlot();
       slot(await this._formatException(event.exceptionDetails));
@@ -414,7 +419,7 @@ export class Thread implements VariableStoreDelegate {
 
     this._dap.thread({
       reason: 'started',
-      threadId: 0
+      threadId: this._id
     });
   }
 
@@ -509,7 +514,7 @@ export class Thread implements VariableStoreDelegate {
     }
     this._dap.thread({
       reason: 'exited',
-      threadId: 0
+      threadId: this._id
     });
 
     this._executionContextsCleared();
@@ -936,7 +941,7 @@ export class Thread implements VariableStoreDelegate {
     this._dap.stopped({
       reason: details.reason,
       description: details.description,
-      threadId: 0,
+      threadId: this._id,
       text: details.text,
       allThreadsStopped: false
     });
@@ -944,7 +949,7 @@ export class Thread implements VariableStoreDelegate {
 
   _onThreadResumed() {
     this._dap.continued({
-      threadId: 0,
+      threadId: this._id,
       allThreadsContinued: false
     });
   }

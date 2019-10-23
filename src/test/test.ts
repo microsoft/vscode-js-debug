@@ -20,6 +20,7 @@ import { EventEmitter } from '../common/events';
 import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../configuration';
 import { tmpdir } from 'os';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
+import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
@@ -303,7 +304,7 @@ export class TestRoot {
 
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath);
-    this._nodeLauncher = new NodeLauncher(new TerminalProgramLauncher());
+    this._nodeLauncher = new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]);
     this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher, this._nodeLauncher], '0');
 
     this.initialize = this._root._init();

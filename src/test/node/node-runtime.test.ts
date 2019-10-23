@@ -12,6 +12,10 @@ import {
 } from '../test';
 import { join } from 'path';
 import { expect } from 'chai';
+import { stub } from 'sinon';
+import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
+import { spawn } from 'child_process';
+import Dap from '../../dap/api';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -39,6 +43,49 @@ describe('node runtime', () => {
     handle.load();
     await waitForPause(handle);
     handle.assertLog({ substring: true });
+  });
+
+  itIntegrates('exits with child process launcher', async ({ r }) => {
+    createFileTree(testFixturesDir, { 'test.js': '' });
+    const handle = await r.runScript('test.js', { console: 'internalConsole' });
+    handle.load();
+    await handle.dap.once('terminated');
+  });
+
+  itIntegrates('exits with integrated terminal launcher', async ({ r }) => {
+    // We don't actually attach the DAP fully through vscode, so stub about
+    // the launch request. We just want to test that the lifecycle of a detached
+    // process is handled correctly.
+    const launch = stub(TerminalProgramLauncher.prototype, 'sendLaunchRequest');
+    let receivedRequest: Dap.RunInTerminalParams | undefined;
+    launch.callsFake((request: Dap.RunInTerminalParams) => {
+      receivedRequest = request;
+      spawn(request.args[0], request.args.slice(1), {
+        cwd: request.cwd,
+        env: { ...process.env, ...request.env },
+      });
+
+      return Promise.resolve({});
+    });
+
+    try {
+      createFileTree(testFixturesDir, { 'test.js': '' });
+      const handle = await r.runScript('test.js', {
+        console: 'integratedTerminal',
+        cwd: testFixturesDir,
+        env: { myEnv: 'foo' },
+      });
+      handle.load();
+      await handle.dap.once('terminated');
+      expect(receivedRequest).to.containSubset({
+        title: 'Node Debug Console',
+        kind: 'integrated',
+        cwd: testFixturesDir,
+        env: { myEnv: 'foo' },
+      });
+    } finally {
+      launch.restore();
+    }
   });
 
   describe('child processes', () => {

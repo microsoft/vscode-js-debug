@@ -94,10 +94,52 @@ export function findExecutable(
  */
 export function properJoin(...segments: string[]): string {
   if (path.posix.isAbsolute(segments[0])) {
-      return path.posix.join(...segments);
+    return path.posix.join(...segments);
   } else if (path.win32.isAbsolute(segments[0])) {
-      return path.win32.join(...segments);
+    return path.win32.join(...segments);
   } else {
-      return path.join(...segments);
+    return path.join(...segments);
   }
+}
+
+export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): string {
+  if (!aPath) return aPath;
+
+  if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
+    const prefixLen = 'file:///'.length;
+    aPath = 'file:///' + aPath[prefixLen].toLowerCase() + aPath.substr(prefixLen + 1);
+  } else if (aPath.match(/^[A-Za-z]:/)) {
+    // If the path starts with a drive letter, ensure lowercase. VS Code uses a lowercase drive letter
+    const driveLetter = uppercaseDriveLetter ? aPath[0].toUpperCase() : aPath[0].toLowerCase();
+    aPath = driveLetter + aPath.substr(1);
+  }
+
+  return aPath;
+}
+
+/**
+ * Ensure lower case drive letter and \ on Windows
+ */
+export function fixDriveLetterAndSlashes(aPath: string, uppercaseDriveLetter = false): string {
+  if (!aPath) return aPath;
+
+  aPath = fixDriveLetter(aPath, uppercaseDriveLetter);
+  if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
+    const prefixLen = 'file:///'.length;
+    aPath = aPath.substr(0, prefixLen + 1) + aPath.substr(prefixLen + 1).replace(/\//g, '\\');
+  } else if (aPath.match(/^[A-Za-z]:/)) {
+    aPath = aPath.replace(/\//g, '\\');
+  }
+
+  return aPath;
+}
+
+/**
+ * Replace any backslashes with forward slashes
+ * blah\something => blah/something
+ */
+export function forceForwardSlashes(aUrl: string): string {
+  return aUrl
+    .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
+    .replace(/\\/g, '/');
 }

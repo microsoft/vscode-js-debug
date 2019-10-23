@@ -9,11 +9,12 @@ import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult, ILaunchContext } from '../../targets/targets';
+import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
 
 const localize = nls.loadMessageBundle();
 
@@ -24,7 +25,7 @@ export class BrowserLauncher implements Launcher {
   private _launchParams: IChromeLaunchConfiguration | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: Disposable[] = [];
-  private _onTerminatedEmitter = new EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
@@ -43,7 +44,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser(args: ReadonlyArray<string>, executable: string | undefined): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -59,6 +60,14 @@ export class BrowserLauncher implements Launcher {
           executablePath = installations[0].path;
       }
     }
+
+    let resolvedDataDir: string | undefined;
+    if (userDataDir === true) {
+        resolvedDataDir = path.join(this._storagePath, runtimeArgs && runtimeArgs.includes('--headless') ? '.headless-profile' : '.profile');
+    } else if (typeof userDataDir === 'string') {
+      resolvedDataDir = userDataDir;
+    }
+
     if (!executablePath)
       throw new Error('Unable to find browser');
 
@@ -66,10 +75,14 @@ export class BrowserLauncher implements Launcher {
       fs.mkdirSync(this._storagePath);
     } catch (e) {
     }
+
     return await launcher.launch(
       executablePath, {
-        args,
-        userDataDir: path.join(this._storagePath, args.indexOf('--headless') !== -1 ? '.headless-profile' : '.profile'),
+        timeout,
+        cwd: cwd || undefined,
+        env: EnvironmentVars.merge(process.env, env),
+        args: runtimeArgs || [],
+        userDataDir: resolvedDataDir,
         pipe: true,
       });
   }
@@ -77,7 +90,7 @@ export class BrowserLauncher implements Launcher {
   async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params.runtimeArgs || [], params.runtimeExecutable);
+      connection = await this._launchBrowser(params);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
@@ -85,13 +98,15 @@ export class BrowserLauncher implements Launcher {
     if (params.logging && params.logging.cdp)
       connection.setLogConfig(params.url || '', params.logging.cdp);
     connection.onDisconnected(() => {
-      this._onTerminatedEmitter.fire();
+      this._onTerminatedEmitter.fire({ code: 0, killed: true });
     }, undefined, this._disposables);
     this._connectionForTest = connection;
     this._launchParams = params;
 
     const pathResolver = new BrowserSourcePathResolver({
       baseUrl: baseURL(params),
+      localRoot: null,
+      remoteRoot: null,
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
     });
@@ -117,7 +132,7 @@ export class BrowserLauncher implements Launcher {
       return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
-        this._onTerminatedEmitter.fire();
+        this._onTerminatedEmitter.fire({ code: 0, killed: true });
     });
     return this._mainTarget;
   }

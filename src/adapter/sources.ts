@@ -4,12 +4,13 @@
 import * as nls from 'vscode-nls';
 import * as path from 'path';
 import { URL } from 'url';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
+import { delay } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -110,7 +111,7 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._blackboxed = blackboxed;
-    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url);
+    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url) || '';
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset)
@@ -240,12 +241,12 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   readonly rootPath: string | undefined;
-  readonly sourcePathResolver: SourcePathResolver;
+  readonly sourcePathResolver: ISourcePathResolver;
   private _disabledSourceMaps = new Set<Source>();
   private _blackboxRegex?: RegExp;
   private _isBlackboxedUrlMap = new Map<string, boolean>();
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver) {
     this._dap = dap;
     this.rootPath = rootPath;
     this.sourcePathResolver = sourcePathResolver;
@@ -296,7 +297,7 @@ export class SourceContainer {
       const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
-        new Promise(f => setTimeout(f, this._sourceMapTimeouts.resolveLocation)),
+        delay(this._sourceMapTimeouts.resolveLocation),
       ]);
       if (!sourceMap.map)
         return uiLocation;
