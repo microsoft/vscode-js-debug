@@ -92,7 +92,7 @@ export class BrowserLauncher implements Launcher {
     try {
       connection = await this._launchBrowser(params);
     } catch (e) {
-      return localize('error.executableNotFound', 'Unable to find browser executable "{0}"', params.runtimeExecutable);
+      return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
     if (params.logging && params.logging.cdp)

@@ -264,7 +264,7 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
   /**
    * The strategy to use for breakOnLoad.
    */
-  breakOnLoadStrategy: 'instrument' | 'regex';
+  breakOnLoadStrategy: 'instrument' | 'regex' | 'off';
 
   /**
    * Optional working directory for the runtime executable.

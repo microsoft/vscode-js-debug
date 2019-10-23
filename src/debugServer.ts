@@ -16,6 +16,7 @@ import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
+import { IDisposable } from './common/disposable';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -77,35 +78,45 @@ class Configurator {
   }
 }
 
-const server = net.createServer(async socket => {
-  const launchers = [
-    new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-    new BrowserLauncher(storagePath),
-    new BrowserAttacher(),
-  ];
+export function startDebugServer(port: number): Promise<IDisposable> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer(async socket => {
+      const launchers = [
+        new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+        new BrowserLauncher(storagePath),
+        new BrowserAttacher(),
+      ];
 
-  const binderDelegate: BinderDelegate = {
-    async acquireDap(target: Target): Promise<DapConnection> {
-      // Note: we can make multi-session work through custom dap message:
-      // - spin up a separate server for this session;
-      // - ask ui part to create a session for us and connect to the port;
-      // - marshall target name changes across.
-      return connection;
-    },
+      const binderDelegate: BinderDelegate = {
+        async acquireDap(target: Target): Promise<DapConnection> {
+          // Note: we can make multi-session work through custom dap message:
+          // - spin up a separate server for this session;
+          // - ask ui part to create a session for us and connect to the port;
+          // - marshall target name changes across.
+          return connection;
+        },
 
-    async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
-      await configurator.configure(debugAdapter);
-      return true;
-    },
+        async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+          await configurator.configure(debugAdapter);
+          return true;
+        },
 
-    releaseDap(target: Target): void {
-    }
-  };
+        releaseDap(target: Target): void {
+        }
+      };
 
-  const connection = new DapConnection();
-  new Binder(binderDelegate, connection, launchers, 'targetOrigin');
-  const configurator = new Configurator(connection.dap());
+      const connection = new DapConnection();
+      new Binder(binderDelegate, connection, launchers, 'targetOrigin');
+      const configurator = new Configurator(connection.dap());
 
-  connection.init(socket, socket);
-}).listen(process.argv.length >= 3 ? +process.argv[2] : 0);
-console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
+      connection.init(socket, socket);
+    }).listen(port, () => {
+      console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
+      resolve({
+        dispose: () => {
+          server.close();
+        }
+      });
+    });
+  });
+}
