@@ -130,7 +130,7 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
-    if (this._launchParams && this._launchParams.logging.dap)
+    if (this._launchParams && this._launchParams.logging && this._launchParams.logging.dap)
       connection.setLogConfig(target.name(), this._launchParams.logging.dap);
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver(), this._launchParams!);
