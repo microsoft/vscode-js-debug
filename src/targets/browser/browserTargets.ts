@@ -10,7 +10,7 @@ import CdpConnection from '../../cdp/connection';
 import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
-import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -20,7 +20,7 @@ export class BrowserTargetManager implements Disposable {
   private _browser: Cdp.Api;
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
-  _sourcePathResolver: SourcePathResolver;
+  _sourcePathResolver: ISourcePathResolver;
   _targetOrigin: any;
 
   private _onTargetAddedEmitter = new EventEmitter<BrowserTarget>();
@@ -28,7 +28,7 @@ export class BrowserTargetManager implements Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  static async connect(connection: CdpConnection, sourcePathResolver: SourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
+  static async connect(connection: CdpConnection, sourcePathResolver: ISourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
     if (!result)
@@ -37,7 +37,7 @@ export class BrowserTargetManager implements Disposable {
     return new BrowserTargetManager(connection, browserSession, sourcePathResolver, targetOrigin);
   }
 
-  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver, targetOrigin: any) {
+  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: ISourcePathResolver, targetOrigin: any) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
@@ -293,7 +293,7 @@ export class BrowserTarget implements Target {
     return urlUtils.completeUrl(this._targetInfo.url, url) || url;
   }
 
-  sourcePathResolver(): SourcePathResolver {
+  sourcePathResolver(): ISourcePathResolver {
     return this._manager._sourcePathResolver;
   }
 

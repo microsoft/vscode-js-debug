@@ -3,7 +3,7 @@
 
 import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 
@@ -35,7 +35,7 @@ export interface Target {
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
-  sourcePathResolver(): SourcePathResolver;
+  sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
   blackboxPattern(): string | undefined;
 }

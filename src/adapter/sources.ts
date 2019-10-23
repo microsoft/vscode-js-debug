@@ -4,7 +4,7 @@
 import * as nls from 'vscode-nls';
 import * as path from 'path';
 import { URL } from 'url';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
@@ -241,12 +241,12 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   readonly rootPath: string | undefined;
-  readonly sourcePathResolver: SourcePathResolver;
+  readonly sourcePathResolver: ISourcePathResolver;
   private _disabledSourceMaps = new Set<Source>();
   private _blackboxRegex?: RegExp;
   private _isBlackboxedUrlMap = new Map<string, boolean>();
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver) {
     this._dap = dap;
     this.rootPath = rootPath;
     this.sourcePathResolver = sourcePathResolver;

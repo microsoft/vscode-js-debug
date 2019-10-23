@@ -7,7 +7,7 @@ import { NodeLauncher } from './nodeLauncher';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { INodeLaunchConfiguration } from '../../configuration';
-import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { EventEmitter } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { basename } from 'path';
@@ -97,7 +97,7 @@ export class NodeTarget implements Target {
     return isPath ? absolutePathToFileUrl(url) || url : url;
   }
 
-  sourcePathResolver(): SourcePathResolver {
+  sourcePathResolver(): ISourcePathResolver {
     return this._launcher._pathResolver!;
   }
 

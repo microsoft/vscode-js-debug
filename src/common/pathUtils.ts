@@ -133,3 +133,13 @@ export function fixDriveLetterAndSlashes(aPath: string, uppercaseDriveLetter = f
 
   return aPath;
 }
+
+/**
+ * Replace any backslashes with forward slashes
+ * blah\something => blah/something
+ */
+export function forceForwardSlashes(aUrl: string): string {
+  return aUrl
+    .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
+    .replace(/\\/g, '/');
+}

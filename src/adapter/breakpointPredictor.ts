@@ -6,7 +6,7 @@ import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
 import * as sourceUtils from '../common/sourceUtils';
 import * as fsUtils from '../common/fsUtils';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
@@ -28,9 +28,9 @@ export class BreakpointsPredictor {
   private _nodeModules: Promise<string | undefined>;
   private _directoryScanners = new Map<string, DirectoryScanner>();
   _predictedLocations: PredictedLocation[] = [];
-  _sourcePathResolver?: SourcePathResolver;
+  _sourcePathResolver?: ISourcePathResolver;
 
-  constructor(rootPath: string, sourcePathResolver: SourcePathResolver | undefined) {
+  constructor(rootPath: string, sourcePathResolver: ISourcePathResolver | undefined) {
     this._rootPath = rootPath;
     this._sourcePathResolver = sourcePathResolver;
 

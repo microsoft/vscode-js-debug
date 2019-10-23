@@ -2,9 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
-import { properJoin, fixDriveLetter, fixDriveLetterAndSlashes } from '../common/pathUtils';
+import {
+  properJoin,
+  fixDriveLetter,
+  fixDriveLetterAndSlashes,
+  forceForwardSlashes,
+} from '../common/pathUtils';
 import * as path from 'path';
 import { isFileUrl } from '../common/urlUtils';
 
@@ -15,7 +20,7 @@ export interface ISourcePathResolverOptions {
 }
 
 export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions>
-  implements SourcePathResolver {
+  implements ISourcePathResolver {
   constructor(protected readonly options: T) {}
 
   public abstract urlToAbsolutePath(url: string): string | undefined;
@@ -31,12 +36,12 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return remotePath;
     }
 
-    const relativePath = path.relative(this.options.remoteRoot, remotePath);
+    const relativePath = relative(this.options.remoteRoot, remotePath);
     if (relativePath.startsWith('../')) {
       return '';
     }
 
-    let localPath = path.join(this.options.localRoot, relativePath);
+    let localPath = join(this.options.localRoot, relativePath);
 
     localPath = fixDriveLetter(localPath);
     // todo: #34
@@ -53,10 +58,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return localPath;
     }
 
-    const relPath = path.relative(this.options.localRoot, localPath);
+    const relPath = relative(this.options.localRoot, localPath);
     if (relPath.startsWith('../')) return '';
 
-    let remotePath = path.join(this.options.remoteRoot, relPath);
+    let remotePath = join(this.options.remoteRoot, relPath);
 
     remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
     // todo: #34
@@ -119,4 +124,18 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       path.posix.isAbsolute(candidate) || path.win32.isAbsolute(candidate) || isFileUrl(candidate)
     );
   }
+}
+
+/**
+ * Cross-platform path.relative
+ */
+function relative(a: string, b: string): string {
+  return a.match(/^[A-Za-z]:/) ? path.win32.relative(a, b) : path.posix.relative(a, b);
+}
+
+/**
+ * Cross-platform path.join
+ */
+function join(a: string, b: string): string {
+  return a.match(/^[A-Za-z]:/) ? path.win32.join(a, b) : forceForwardSlashes(path.posix.join(a, b));
 }
