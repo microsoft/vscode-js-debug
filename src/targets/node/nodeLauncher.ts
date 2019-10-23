@@ -146,7 +146,19 @@ export class NodeLauncher implements Launcher {
     }
 
     const callbackFile = new CallbackFile<IProcessTelemetry>();
-    const options = { ...params, env: this.resolveEnvironment(params, callbackFile).value };
+    const options: INodeLaunchConfiguration = {
+      ...params,
+      runtimeArgs: [
+        // Require our bootloader first, to run it before any other bootloader
+        // we could have injected in the parent process. We need to do this in
+        // the runtime args rather than NODE_OPTIONS, since Node does not
+        // support paths with spaces in them <13 (nodejs/node#12971).
+        '--require',
+        path.join(__dirname, 'bootloader.js'),
+        ...params.runtimeArgs
+      ],
+      env: this.resolveEnvironment(params, callbackFile).value,
+    };
     const launcher = this.launchers.find(l => l.canLaunch(options));
     if (!launcher) {
       throw new Error('Cannot find an appropriate launcher for the given set of options');
@@ -207,11 +219,6 @@ export class NodeLauncher implements Launcher {
       // todo: look at reimplementing the filter
       // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
       NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',
-      // Require our bootloader first, to run it before any other bootloader
-      // we could have injected in the parent process.
-      NODE_OPTIONS: `--require ${path.join(__dirname, 'bootloader.js')} ${baseEnv.lookup(
-        'NODE_OPTIONS',
-      ) || ''}`,
       // Supply some node executable for running top-level watchdog in Electron
       // environments. Bootloader will replace this with actual node executable used if any.
       NODE_INSPECTOR_EXEC_PATH: findNode() || '',

@@ -7,6 +7,7 @@ import { ILaunchContext } from '../targets';
 import { spawn } from 'child_process';
 import { SubprocessProgram } from './program';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { relative } from 'path';
 
 /**
  * Launcher that boots a subprocess.
@@ -19,7 +20,7 @@ export class SubprocessProgramLauncher extends ProcessLauncher {
   public async launchProgram(config: INodeLaunchConfiguration, context: ILaunchContext) {
     const { executable, args, shell } = formatArguments(this.getRuntime(config), [
       ...config.runtimeArgs,
-      config.program,
+      relative(config.cwd, config.program),
       ...config.args,
     ]);
 
@@ -74,7 +75,7 @@ export class SubprocessProgramLauncher extends ProcessLauncher {
 // which still seems to be a thing according to the issue tracker.
 // From: https://github.com/microsoft/vscode-node-debug/blob/47747454bc6e8c9e48d8091eddbb7ffb54a19bbe/src/node/nodeDebug.ts#L1120
 const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
-  if (process.platform !== 'win32') {
+  if (process.platform !== 'win32' || !executable.includes(' ')) {
     return { executable, args, shell: false };
   }
 
@@ -92,7 +93,7 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
   }
 
   if (foundArgWithSpace) {
-    return { executable, args: output, shell: true };
+    return { executable: `"${executable}"`, args: output, shell: true };
   }
 
   return { executable, args, shell: false };
