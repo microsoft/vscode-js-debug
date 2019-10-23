@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { INodeLaunchConfiguration } from '../../configuration';
+import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import { ProcessLauncher } from './processLauncher';
 import { ILaunchContext } from '../targets';
-import { spawn } from 'child_process';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { SubprocessProgram } from './program';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { relative } from 'path';
+import Dap from '../../dap/api';
 
 /**
  * Launcher that boots a subprocess.
@@ -31,43 +32,118 @@ export class SubprocessProgramLauncher extends ProcessLauncher {
       output: [executable, ...args].join(' '),
     });
 
-    // todo: WSL support
-
     const child = spawn(executable, args, {
       shell,
       cwd: config.cwd,
       env: EnvironmentVars.merge(process.env, config.env).defined(),
     });
 
-    child.stdout.addListener('data', data => {
-      context.dap.output({
-        category: 'stdout',
-        output: data.toString(),
+    this.setupStdio(config, context.dap, child);
+
+    return new SubprocessProgram(child);
+  }
+
+  private setupStdio(
+    config: INodeLaunchConfiguration,
+    dap: Dap.Api,
+    child: ChildProcessWithoutNullStreams,
+  ) {
+    const captureOutput = config.outputCapture === OutputSource.Stdio;
+    const filter = captureOutput ? null : new SubprocessMessageFilter();
+    const dumpFilter = () =>
+      filter &&
+      dap.output({
+        category: 'stderr',
+        output: filter.dump(),
       });
-    });
+
+    if (captureOutput) {
+      child.stdout.addListener('data', data => {
+        dap.output({
+          category: 'stdout',
+          output: data.toString(),
+        });
+      });
+    }
 
     child.stderr.addListener('data', data => {
-      context.dap.output({
-        category: 'stderr',
-        output: data.toString(),
-      });
+      if (!filter || filter.test(data)) {
+        dap.output({
+          category: 'stderr',
+          output: data.toString(),
+        });
+      }
     });
 
     child.on('error', err => {
-      context.dap.output({
+      dumpFilter();
+      dap.output({
         category: 'stderr',
         output: err.stack || err.message,
       });
     });
 
-    child.on('exit', code =>
-      context.dap.output({
+    child.on('exit', code => {
+      dumpFilter();
+      dap.output({
         category: 'stderr',
         output: `Process exited with code ${code}`,
-      }),
-    );
+      });
+    });
+  }
+}
 
-    return new SubprocessProgram(child);
+/**
+ * Small utility to filder stderr messages when output is set to 'console'.
+ * We want to display the initial "debugger" messages, and we also keep a small
+ * ring buffer in here so that we can dump stderr if the process exits with
+ * an unexpected clode.
+ */
+export class SubprocessMessageFilter {
+  private messages: string[] = [];
+  private messageIndex = 0;
+  private finishedReading = false;
+
+  constructor(bufferSize = 15) {
+    while (this.messages.length < bufferSize) {
+      this.messages.push('');
+    }
+  }
+
+  public test(message: string) {
+    if (message.includes('Debugger attached')) {
+      this.finishedReading = true;
+      return true;
+    }
+
+    if (!this.finishedReading) {
+      return true;
+    }
+
+    this.messages[this.messageIndex++ % this.messages.length] = message;
+    return false;
+  }
+
+  public dump(): string {
+    const result: string[] = [];
+
+    for (let i = 0; ; i++) {
+      if (i === this.messages.length) {
+        result.push(
+          `--- Truncated to last ${this.messages.length} messages, set outputCapture to 'all' to see more ---\r\n`,
+        );
+        break;
+      }
+
+      const index = (this.messageIndex - 1 - i) % this.messages.length;
+      if (index < 0) {
+        break;
+      }
+
+      result.push(this.messages[index]);
+    }
+
+    return result.reverse().join('');
   }
 }
 

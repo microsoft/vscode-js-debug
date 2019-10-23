@@ -5,6 +5,7 @@ import { spawn } from 'child_process';
 import * as inspector from 'inspector';
 import * as path from 'path';
 import { writeFileSync } from 'fs';
+import { IProcessTelemetry } from './nodeLauncher';
 
 function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
@@ -28,14 +29,13 @@ function debugLog(text: string) {
   }
 
   if (process.env.VSCODE_DEBUGGER_FILE_CALLBACK) {
-    writeFileSync(
-      process.env.VSCODE_DEBUGGER_FILE_CALLBACK,
-      JSON.stringify({
-        processId: process.pid,
-        nodeVersion: process.version,
-        architecture: process.arch,
-      }),
-    );
+    const data: IProcessTelemetry = {
+      processId: process.pid,
+      nodeVersion: process.version,
+      architecture: process.arch,
+    };
+
+    writeFileSync(process.env.VSCODE_DEBUGGER_FILE_CALLBACK, JSON.stringify(data));
     delete process.env.VSCODE_DEBUGGER_FILE_CALLBACK;
   }
 

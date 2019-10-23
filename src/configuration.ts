@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from "./dap/api";
-import { Contributions } from "./common/contributionUtils";
+import Dap from './dap/api';
+import { Contributions } from './common/contributionUtils';
 
 interface IMandatedConfiguration {
   /**
@@ -20,6 +20,11 @@ interface IMandatedConfiguration {
    * The request type of the debug session.
    */
   request: string;
+}
+
+export const enum OutputSource {
+  Console = 'console',
+  Stdio = 'std',
 }
 
 interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
@@ -83,6 +88,11 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
    * todo: difference between this and webRoot?
    */
   rootPath?: string;
+
+  /**
+   * From where to capture output messages: The debug API, or stdout/stderr streams.
+   */
+  outputCapture: OutputSource;
 }
 
 /**
@@ -190,10 +200,6 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
    * Absolute path to a file containing environment variable definitions.
    */
   envFile: string;
-  /**
-   * From where to capture output messages: The debug API, or stdout/stderr streams.
-   */
-  outputCapture: 'console' | 'std';
 
   /**
    * Attach debugger to new child processes automatically.
@@ -323,6 +329,7 @@ const baseDefaults: IBaseConfiguration = {
     dap: null,
   },
   address: 'localhost',
+  outputCapture: OutputSource.Console,
   port: 9229,
   timeout: 10000,
   showAsyncStacks: true,
@@ -362,7 +369,6 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeArgs: [],
   env: {},
   envFile: '${workspaceFolder}/.env',
-  outputCapture: 'console',
   autoAttachChildProcesses: true,
 };
 

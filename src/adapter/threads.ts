@@ -15,7 +15,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
-import { AnyLaunchConfiguration } from '../configuration';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -350,10 +350,12 @@ export class Thread implements VariableStoreDelegate {
       const slot = this._claimOutputSlot();
       slot(this._clearDebuggerConsole());
     });
-    this._cdp.Runtime.on('consoleAPICalled', async event => {
-      const slot = this._claimOutputSlot();
-      slot(await this._onConsoleMessage(event));
-    });
+    if (this.launchConfig.outputCapture === OutputSource.Console)  {
+      this._cdp.Runtime.on('consoleAPICalled', async event => {
+        const slot = this._claimOutputSlot();
+        slot(await this._onConsoleMessage(event));
+      });
+    }
     this._cdp.Runtime.on('exceptionThrown', async event => {
       const slot = this._claimOutputSlot();
       slot(await this._formatException(event.exceptionDetails));
