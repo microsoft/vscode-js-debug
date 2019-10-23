@@ -10,7 +10,8 @@ import { PromiseOrNot } from '../testUtils';
 function testUsingFunction<T extends IFixture>(
   expectation: string,
   fixtureProvider: (context: ITestCallbackContext) => PromiseOrNot<T>,
-  testFunction: (fixtures: T) => Promise<void>): void {
+  testFunction: (fixtures: T) => Promise<void>,
+): void {
   suite(expectation, function() {
     let fixture: T | undefined;
     test(expectation, async function() {

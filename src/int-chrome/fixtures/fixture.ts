@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { PromiseOrNot } from "../testUtils";
+import { PromiseOrNot } from '../testUtils';
 
 /**
  * See https://en.wikipedia.org/wiki/Test_fixture for more context
@@ -15,13 +15,13 @@ import { PromiseOrNot } from "../testUtils";
  * and it'll "clean up" those changes with the cleanUp method
  */
 export interface IFixture {
-    /** Clean-up the context, or changes made by the fixture */
-    cleanUp(): PromiseOrNot<void>;
+  /** Clean-up the context, or changes made by the fixture */
+  cleanUp(): PromiseOrNot<void>;
 }
 
 /**
  * A fixture representing that no setup is needed
  */
 export class NullFixture implements IFixture {
-    public cleanUp(): void { }
+  public cleanUp(): void {}
 }

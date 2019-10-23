@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
- // Improve the default typing of Object.keys(o: T) to be keyof T (without the symbols)
+// Improve the default typing of Object.keys(o: T) to be keyof T (without the symbols)
 interface ObjectConstructor {
-    keys<T>(o: T): WithoutSymbols<(keyof T)>[];
+  keys<T>(o: T): WithoutSymbols<keyof T>[];
 }
 declare var Object: ObjectConstructor;
 

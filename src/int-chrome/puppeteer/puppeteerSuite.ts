@@ -7,7 +7,11 @@ import * as puppeteer from 'puppeteer';
 import { loadProjectLabels } from '../labels';
 import { ISuiteCallbackContext, ISuite } from 'mocha';
 import { setTestLogName } from '../utils/logging';
-import { FrameworkTestContext, ReassignableFrameworkTestContext, TestProjectSpec } from '../framework/frameworkTestSupport';
+import {
+  FrameworkTestContext,
+  ReassignableFrameworkTestContext,
+  TestProjectSpec,
+} from '../framework/frameworkTestSupport';
 import { LaunchProject } from '../fixtures/launchProject';
 import { PromiseOrNot } from '../testUtils';
 import { NullFixture } from '../fixtures/fixture';
@@ -65,9 +69,9 @@ function puppeteerTestFunction(
   description: string,
   context: PuppeteerTestContext,
   testFunction: (context: PuppeteerTestContext, page: puppeteer.Page) => PromiseOrNot<void>,
-  functionToDeclareTest: Mocha.TestFunction | Mocha.ExclusiveTestFunction = test
+  functionToDeclareTest: Mocha.TestFunction | Mocha.ExclusiveTestFunction = test,
 ): void {
-  functionToDeclareTest(description, function () {
+  functionToDeclareTest(description, function() {
     return testFunction(context, context.page!);
   });
 }
@@ -75,13 +79,16 @@ function puppeteerTestFunction(
 puppeteerTestFunction.skip = (
   description: string,
   _context: PuppeteerTestContext,
-  _testFunction: (context: IPuppeteerTestContext, page: puppeteer.Page) => Promise<any>
-) => test.skip(description, () => { throw new Error(`We don't expect this to be called`); });
+  _testFunction: (context: IPuppeteerTestContext, page: puppeteer.Page) => Promise<any>,
+) =>
+  test.skip(description, () => {
+    throw new Error(`We don't expect this to be called`);
+  });
 
 puppeteerTestFunction.only = (
   description: string,
   context: PuppeteerTestContext,
-  testFunction: (context: IPuppeteerTestContext, page: puppeteer.Page) => Promise<any>
+  testFunction: (context: IPuppeteerTestContext, page: puppeteer.Page) => Promise<any>,
 ) => puppeteerTestFunction(description, context, testFunction, test.only);
 
 export const puppeteerTest = puppeteerTestFunction;
@@ -102,19 +109,27 @@ function puppeteerSuiteFunction(
   description: string,
   testSpec: TestProjectSpec,
   callback: (suiteContext: PuppeteerTestContext) => void,
-  suiteFunctionToUse: Mocha.SuiteFunction | Mocha.ExclusiveSuiteFunction | Mocha.PendingSuiteFunction = suite
+  suiteFunctionToUse:
+    | Mocha.SuiteFunction
+    | Mocha.ExclusiveSuiteFunction
+    | Mocha.PendingSuiteFunction = suite,
 ): Mocha.ISuite | void {
   return suiteFunctionToUse(description, () => {
     let testContext = new PuppeteerTestContext();
     let fixture: LaunchProject | NullFixture = new NullFixture(); // This variable is shared across all test of this suite
 
-    setup(async function () {
+    setup(async function() {
       setTestLogName(this.currentTest!.fullTitle());
       const breakpointLabels = await loadProjectLabels(testSpec.props.webRoot);
-      const launchProject = fixture = await LaunchProject.launch(this, testSpec);
+      const launchProject = (fixture = await LaunchProject.launch(this, testSpec));
 
       testContext.reassignTo({
-        testSpec, debugClient: launchProject.debugClient, breakpointLabels, browser: launchProject.browser, page: launchProject.page, launchProject
+        testSpec,
+        debugClient: launchProject.debugClient,
+        breakpointLabels,
+        browser: launchProject.browser,
+        page: launchProject.page,
+        launchProject,
       });
     });
 
@@ -131,7 +146,7 @@ function puppeteerSuiteFunction(
 puppeteerSuiteFunction.skip = (
   description: string,
   testSpec: TestProjectSpec,
-  callback: (suiteContext: PuppeteerTestContext) => any
+  callback: (suiteContext: PuppeteerTestContext) => any,
 ) => puppeteerSuiteFunction(description, testSpec, callback, suite.skip);
 
 puppeteerSuiteFunction.only = (

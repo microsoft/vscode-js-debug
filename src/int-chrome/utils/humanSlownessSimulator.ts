@@ -10,51 +10,56 @@ import * as utils from '../testUtils';
  * will be taken at a lower speed, and it'll be easier to see and understand what is happening
  */
 export class HumanSlownessSimulator {
-    public constructor(private readonly _slownessInMillisecondsValueGenerator: () => number = () => 500) { }
+  public constructor(
+    private readonly _slownessInMillisecondsValueGenerator: () => number = () => 500,
+  ) {}
 
-    public simulateSlowness(): Promise<void> {
-        return utils.promiseTimeout(undefined, this._slownessInMillisecondsValueGenerator());
-    }
+  public simulateSlowness(): Promise<void> {
+    return utils.promiseTimeout(undefined, this._slownessInMillisecondsValueGenerator());
+  }
 
-    public wrap<T extends object>(object: T): T {
-        return new HumanSpeedProxy(this, object).wrapped();
-    }
+  public wrap<T extends object>(object: T): T {
+    return new HumanSpeedProxy(this, object).wrapped();
+  }
 }
 
 export class HumanSpeedProxy<T extends object> {
-    constructor(
-        private readonly _humanSlownessSimulator: HumanSlownessSimulator,
-        private readonly _objectToWrap: T) {
-    }
+  constructor(
+    private readonly _humanSlownessSimulator: HumanSlownessSimulator,
+    private readonly _objectToWrap: T,
+  ) {}
 
-    public wrapped(): T {
-        const handler = {
-            get: <K extends keyof T>(target: T, propertyKey: K, _receiver: any) => {
-                this._humanSlownessSimulator.simulateSlowness();
-                const originalPropertyValue = target[propertyKey];
-                if (typeof originalPropertyValue === 'function') {
-                    return (...args: any) => {
-                        const result = originalPropertyValue.apply(target, args);
-                        if (result && result.then) {
-                            // Currently we only slow down async operations
-                            return result.then(async (promiseResult: object) => {
-                                await this._humanSlownessSimulator.simulateSlowness();
-                                return typeof promiseResult === 'object'
-                                    ? this._humanSlownessSimulator.wrap(promiseResult)
-                                    : promiseResult;
-                            }, (rejection: unknown) => {
-                                return rejection;
-                            });
-                        }
-                    };
-                } else {
-                    return originalPropertyValue;
-                }
+  public wrapped(): T {
+    const handler = {
+      get: <K extends keyof T>(target: T, propertyKey: K, _receiver: any) => {
+        this._humanSlownessSimulator.simulateSlowness();
+        const originalPropertyValue = target[propertyKey];
+        if (typeof originalPropertyValue === 'function') {
+          return (...args: any) => {
+            const result = originalPropertyValue.apply(target, args);
+            if (result && result.then) {
+              // Currently we only slow down async operations
+              return result.then(
+                async (promiseResult: object) => {
+                  await this._humanSlownessSimulator.simulateSlowness();
+                  return typeof promiseResult === 'object'
+                    ? this._humanSlownessSimulator.wrap(promiseResult)
+                    : promiseResult;
+                },
+                (rejection: unknown) => {
+                  return rejection;
+                },
+              );
             }
-        };
+          };
+        } else {
+          return originalPropertyValue;
+        }
+      },
+    };
 
-        return new Proxy<T>(this._objectToWrap, handler);
-    }
+    return new Proxy<T>(this._objectToWrap, handler);
+  }
 }
 
 const humanSlownessSimulator = new HumanSlownessSimulator();
@@ -62,7 +67,5 @@ const humanSlownessSimulator = new HumanSlownessSimulator();
 const humanSlownessEnabeld = process.env.RUN_TESTS_SLOWLY === 'true';
 
 export function slowToHumanLevel<T extends object>(object: T): T {
-    return humanSlownessEnabeld
-        ? humanSlownessSimulator.wrap(object)
-        : object;
+  return humanSlownessEnabeld ? humanSlownessSimulator.wrap(object) : object;
 }

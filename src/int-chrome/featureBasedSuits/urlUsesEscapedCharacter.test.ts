@@ -15,13 +15,18 @@ const appPath = testSpec.src('../index.html');
 const appPathUrl = pathToFileURL(appPath).replace(/file:\/\/\/([a-z]):\//, 'file:///$1%3A/');
 
 suite('Unusual launch.json', () => {
-    testUsing('Hit breakpoint when using an escape character in the url', context => LaunchProject.launch(context, testSpec.usingStaticUrl(appPathUrl)),
-        async (launchProject) => {
-            // Wait for the page to load
-            await launchProject.page.waitForSelector('#helloWorld');
+  testUsing(
+    'Hit breakpoint when using an escape character in the url',
+    context => LaunchProject.launch(context, testSpec.usingStaticUrl(appPathUrl)),
+    async launchProject => {
+      // Wait for the page to load
+      await launchProject.page.waitForSelector('#helloWorld');
 
-            // Set a breakpoint, and reload to hit the breakpoint
-            const breakpoint = await launchProject.breakpoints.at('../app.js').breakpoint({ text: `console.log('Very simple webpage');` });
-            await breakpoint.assertIsHitThenResumeWhen(() => launchProject.page.reload());
-        });
+      // Set a breakpoint, and reload to hit the breakpoint
+      const breakpoint = await launchProject.breakpoints
+        .at('../app.js')
+        .breakpoint({ text: `console.log('Very simple webpage');` });
+      await breakpoint.assertIsHitThenResumeWhen(() => launchProject.page.reload());
+    },
+  );
 });
