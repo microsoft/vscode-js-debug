@@ -1,6 +1,5 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 
 import { testUsing } from '../fixtures/testUsing';
 import { TestProjectSpec } from '../framework/frameworkTestSupport';

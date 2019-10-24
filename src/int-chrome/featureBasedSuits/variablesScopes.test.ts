@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { TestProjectSpec } from '../framework/frameworkTestSupport';
 import { VariablesWizard } from '../wizards/variables/variablesWizard';
 import { LaunchProject } from '../fixtures/launchProject';

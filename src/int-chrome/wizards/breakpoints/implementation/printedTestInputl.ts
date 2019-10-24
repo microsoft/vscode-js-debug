@@ -1,6 +1,5 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 
  /** Remove the whitespaces from the start of each line and any comments we find at the end */
 export function trimWhitespaceAndComments(printedTestInput: string): string {

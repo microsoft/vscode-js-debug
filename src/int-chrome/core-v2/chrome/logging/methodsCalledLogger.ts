@@ -1,6 +1,5 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 import * as _ from 'lodash';
 import * as path from 'path';
 import { printTopLevelObjectDescription } from './printObjectDescription';

@@ -1,6 +1,5 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 
 import * as Validation from '../../../validation';
 import { ColumnNumber, LineNumber, createLineNumber, createColumnNumber } from './subtypes';
