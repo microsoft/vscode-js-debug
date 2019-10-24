@@ -74,7 +74,6 @@ export default class Connection {
     if (sessionId)
       message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    // console.log(`SEND ► ${messageString}`);
     if (this._logPath)
       require('fs').appendFileSync(this._logPath, `SEND ► [${this._logPrefix}] ${messageString}\n`);
     this._transport.send(messageString);
@@ -271,7 +270,6 @@ class CDPSession {
         callback.resolve(object.result!);
       }
     } else {
-      // console.log(`◀ RECV EV ${JSON.stringify(object)}`);
       const listeners = this._listeners.get(object.method!);
       for (const listener of listeners || [])
         listener(object.params);
