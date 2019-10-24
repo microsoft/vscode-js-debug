@@ -9,7 +9,13 @@ import { EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
-import { Launcher, Target, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
+import {
+  Launcher,
+  Target,
+  LaunchResult,
+  ILaunchContext,
+  IStopMetadata,
+} from '../../targets/targets';
 import { execFileSync } from 'child_process';
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
@@ -146,18 +152,10 @@ export class NodeLauncher implements Launcher {
     }
 
     const callbackFile = new CallbackFile<IProcessTelemetry>();
+    const bootloader = this.getBootloaderFile(params.cwd);
     const options: INodeLaunchConfiguration = {
       ...params,
-      runtimeArgs: [
-        // Require our bootloader first, to run it before any other bootloader
-        // we could have injected in the parent process. We need to do this in
-        // the runtime args rather than NODE_OPTIONS, since Node does not
-        // support paths with spaces in them <13 (nodejs/node#12971).
-        '--require',
-        path.join(__dirname, 'bootloader.js'),
-        ...params.runtimeArgs
-      ],
-      env: this.resolveEnvironment(params, callbackFile).value,
+      env: this.resolveEnvironment(params, bootloader.path, callbackFile).value,
     };
     const launcher = this.launchers.find(l => l.canLaunch(options));
     if (!launcher) {
@@ -171,6 +169,7 @@ export class NodeLauncher implements Launcher {
     // and if we don't then shut down the server and indicate that we terminated.
     program.stopped.then(async result => {
       callbackFile.dispose();
+      bootloader.dispose();
 
       if (this.program !== program) {
         return;
@@ -199,7 +198,39 @@ export class NodeLauncher implements Launcher {
     });
   }
 
-  private resolveEnvironment(args: INodeLaunchConfiguration, callbackFile: CallbackFile<any>) {
+  /**
+   * Returns the file from which to load our bootloader. We need to do this in
+   * since Node does not support paths with spaces in them < 13 (nodejs/node#12971),
+   * so if our installation path has spaces, we need to fall back somewhere.
+   */
+  private getBootloaderFile(cwd: string) {
+    const targetPath = path.join(__dirname, 'bootloader.js');
+
+    // 1. If we aren't on windows or the path doesn't have a space, we're OK to use it.
+    if (process.platform !== 'win32' || !targetPath.includes(' ')) {
+      return { path: targetPath, dispose: () => undefined };
+    }
+
+    // 2. Try the tmpdir, if it's space-free.
+    const contents = `require(${JSON.stringify(targetPath)})`;
+    if (!os.tmpdir().includes(' ')) {
+      const tmpPath = path.join(os.tmpdir(), 'vscode-pwa-bootloader.js');
+      fs.writeFileSync(tmpPath, contents);
+      return { path: tmpPath, dispose: () => fs.unlinkSync(tmpPath) };
+    }
+
+    // 3. Worst case, write into the cwd. This is messy, but we have few options.
+    const nearFilename = '.vscode-pwa-bootloader.js';
+    const nearPath = path.join(cwd, nearFilename);
+    fs.writeFileSync(nearPath, contents);
+    return { path: `./${nearFilename}`, dispose: () => fs.unlinkSync(nearPath) };
+  }
+
+  private resolveEnvironment(
+    args: INodeLaunchConfiguration,
+    bootloader: string,
+    callbackFile: CallbackFile<any>,
+  ) {
     let base: { [key: string]: string } = {};
 
     // read environment variables from any specified file
@@ -219,6 +250,9 @@ export class NodeLauncher implements Launcher {
       // todo: look at reimplementing the filter
       // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
       NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',
+      // Require our bootloader first, to run it before any other bootloader
+      // we could have injected in the parent process.
+      NODE_OPTIONS: `--require ${bootloader} ${baseEnv.lookup('NODE_OPTIONS') || ''}`,
       // Supply some node executable for running top-level watchdog in Electron
       // environments. Bootloader will replace this with actual node executable used if any.
       NODE_INSPECTOR_EXEC_PATH: findNode() || '',

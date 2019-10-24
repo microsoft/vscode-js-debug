@@ -21,7 +21,7 @@ export class SubprocessProgramLauncher extends ProcessLauncher {
   public async launchProgram(config: INodeLaunchConfiguration, context: ILaunchContext) {
     const { executable, args, shell } = formatArguments(this.getRuntime(config), [
       ...config.runtimeArgs,
-      relative(config.cwd, config.program),
+      config.program,
       ...config.args,
     ]);
 
