@@ -8,7 +8,7 @@ import { IWatchdogInfo } from './watchdogSpawn';
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 
 function debugLog(text: string) {
-  require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `WATCHDOG [${info.pid}] ${text} (${info.scriptName})\n`);
+  // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `WATCHDOG [${info.pid}] ${text} (${info.scriptName})\n`);
 }
 
 process.on('exit', () => {

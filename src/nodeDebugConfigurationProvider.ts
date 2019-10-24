@@ -78,9 +78,9 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
     if (config.request === 'launch') {
       // nvm support
       if (typeof config.runtimeVersion === 'string' && config.runtimeVersion !== 'default') {
-        config.env = new EnvironmentVars(config.env)
-          .addToPath(await this.nvmResolver.resolveNvmVersionPath(config.runtimeVersion))
-          .value;
+        config.env = new EnvironmentVars(config.env).addToPath(
+          await this.nvmResolver.resolveNvmVersionPath(config.runtimeVersion),
+        ).value;
       }
 
       // when using "integratedTerminal" ensure that debug console doesn't get activated; see https://github.com/Microsoft/vscode/issues/43164
@@ -91,8 +91,8 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
 
     // "attach to process via picker" support
     if (config.request === 'attach' && typeof config.processId === 'string') {
-			if (!(await resolveProcessId(config))) {
-				return undefined;	// abort launch
+      if (!(await resolveProcessId(config))) {
+        return undefined; // abort launch
       }
     }
 

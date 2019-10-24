@@ -249,11 +249,6 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    * ID of process to attach to.
    */
   processId?: string;
-
-  /**
-   * Process ID after resolution.
-   */
-  _resolvedProcessId?: number;
 }
 
 export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
