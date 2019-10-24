@@ -146,6 +146,11 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
    * loaded for that file.
    */
   disableOptimisticBPs: boolean;
+
+  /**
+   * Attach debugger to new child processes automatically.
+   */
+  autoAttachChildProcesses: boolean;
 }
 
 /**
@@ -199,12 +204,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
   /**
    * Absolute path to a file containing environment variable definitions.
    */
-  envFile: string;
-
-  /**
-   * Attach debugger to new child processes automatically.
-   */
-  autoAttachChildProcesses: boolean;
+  envFile: string | null;
 }
 
 interface IChromeBaseConfiguration extends IBaseConfiguration {
@@ -248,7 +248,12 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   /**
    * ID of process to attach to.
    */
-  processId: string;
+  processId?: string;
+
+  /**
+   * Process ID after resolution.
+   */
+  _resolvedProcessId?: number;
 }
 
 export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
@@ -317,7 +322,9 @@ export type AnyNodeConfiguration = INodeAttachConfiguration | INodeLaunchConfigu
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
-export type ResolvingNodeConfiguration = IMandatedConfiguration & Partial<AnyNodeConfiguration>;
+export type ResolvingNodeAttachConfiguration = IMandatedConfiguration & Partial<INodeAttachConfiguration>;
+export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration & Partial<INodeLaunchConfiguration>;
+export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
 
 const baseDefaults: IBaseConfiguration = {
@@ -338,8 +345,8 @@ const baseDefaults: IBaseConfiguration = {
   sourceMaps: true,
   sourceMapPathOverrides: {
     'webpack:///*': '*',
-    'webpack:///./~/*': '${workspaceRoot}/node_modules/*',
-    'meteor://💻app/*': '${workspaceRoot}/*',
+    'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
+    'meteor://💻app/*': '${workspaceFolder}/*',
   },
 };
 
@@ -354,6 +361,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   remoteRoot: null,
   trace: true,
   disableOptimisticBPs: true,
+  autoAttachChildProcesses: true,
 };
 
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
@@ -363,13 +371,11 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   stopOnEntry: true,
   console: 'internalConsole',
   args: [],
-  cwd: '${workspaceFolder}',
   runtimeExecutable: 'node',
   runtimeVersion: 'default',
   runtimeArgs: [],
   env: {},
-  envFile: '${workspaceFolder}/.env',
-  autoAttachChildProcesses: true,
+  envFile: null,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

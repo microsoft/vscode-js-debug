@@ -37,7 +37,10 @@ interface LaunchOptions {
   userDataDir?: string;
 }
 
-export async function launch(executablePath: string, options: LaunchOptions | undefined = {}): Promise<CdpConnection> {
+export async function launch(
+  executablePath: string,
+  options: LaunchOptions | undefined = {},
+): Promise<CdpConnection> {
   const {
     args = [],
     dumpio = false,
@@ -49,12 +52,12 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   } = options;
 
   const browserArguments: string[] = [];
-  if (!ignoreDefaultArgs)
-    browserArguments.push(...defaultArgs(options));
+  if (!ignoreDefaultArgs) browserArguments.push(...defaultArgs(options));
   else if (Array.isArray(ignoreDefaultArgs))
-    browserArguments.push(...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1));
-  else
-    browserArguments.push(...args);
+    browserArguments.push(
+      ...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1),
+    );
+  else browserArguments.push(...args);
 
   if (!browserArguments.some(argument => argument.startsWith('--remote-debugging-')))
     browserArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
@@ -62,24 +65,18 @@ export async function launch(executablePath: string, options: LaunchOptions | un
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
   if (usePipe) {
-    if (dumpio)
-      stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
-    else
-      stdio = ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'];
+    if (dumpio) stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
+    else stdio = ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'];
   }
-  const browserProcess = childProcess.spawn(
-    executablePath,
-    browserArguments,
-    {
-      // On non-windows platforms, `detached: false` makes child process a leader of a new
-      // process group, making it possible to kill child process tree with `.kill(-pid)` command.
-      // @see https://nodejs.org/api/child_process.html#child_process_options_detached
-      detached: process.platform !== 'win32',
-      env: env.defined(),
-      cwd,
-      stdio
-    }
-  );
+  const browserProcess = childProcess.spawn(executablePath, browserArguments, {
+    // On non-windows platforms, `detached: false` makes child process a leader of a new
+    // process group, making it possible to kill child process tree with `.kill(-pid)` command.
+    // @see https://nodejs.org/api/child_process.html#child_process_options_detached
+    detached: process.platform !== 'win32',
+    env: env.defined(),
+    cwd,
+    stdio,
+  });
   let browserClosed = false;
 
   if (browserProcess.pid === undefined) {
@@ -99,7 +96,13 @@ export async function launch(executablePath: string, options: LaunchOptions | un
       const transport = await WebSocketTransport.create(browserWSEndpoint);
       return new CdpConnection(transport);
     } else {
-      const stdio = browserProcess.stdio as unknown as [Writable, Readable, Readable, Writable, Readable];
+      const stdio = (browserProcess.stdio as unknown) as [
+        Writable,
+        Readable,
+        Readable,
+        Writable,
+        Readable,
+      ];
       const transport = new PipeTransport(stdio[3], stdio[4]);
       return new CdpConnection(transport);
     }
@@ -116,8 +119,7 @@ export async function launch(executablePath: string, options: LaunchOptions | un
       try {
         if (process.platform === 'win32')
           childProcess.execSync(`taskkill /pid ${browserProcess.pid} /T /F`);
-        else
-          process.kill(-browserProcess.pid, 'SIGKILL');
+        else process.kill(-browserProcess.pid, 'SIGKILL');
       } catch (e) {
         // the process might have already stopped
       }
@@ -126,16 +128,11 @@ export async function launch(executablePath: string, options: LaunchOptions | un
 }
 
 function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
-  const {
-    args = [],
-    userDataDir = null
-  } = options;
+  const { args = [], userDataDir = null } = options;
   const browserArguments = [...DEFAULT_ARGS];
-  if (userDataDir)
-    browserArguments.push(`--user-data-dir=${userDataDir}`);
+  if (userDataDir) browserArguments.push(`--user-data-dir=${userDataDir}`);
   browserArguments.push(...args);
-  if (args.every(arg => arg.startsWith('-')))
-    browserArguments.push('about:blank');
+  if (args.every(arg => arg.startsWith('-'))) browserArguments.push('about:blank');
   return browserArguments;
 }
 
@@ -145,10 +142,7 @@ interface AttachOptions {
 }
 
 export async function attach(options: AttachOptions): Promise<CdpConnection> {
-  const {
-    browserWSEndpoint,
-    browserURL,
-  } = options;
+  const { browserWSEndpoint, browserURL } = options;
 
   if (browserWSEndpoint) {
     const connectionTransport = await WebSocketTransport.create(browserWSEndpoint);
@@ -161,7 +155,10 @@ export async function attach(options: AttachOptions): Promise<CdpConnection> {
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }
 
-function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: number): Promise<string> {
+function waitForWSEndpoint(
+  browserProcess: childProcess.ChildProcess,
+  timeout: number,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const rl = readline.createInterface({ input: browserProcess.stderr! });
     let stderr = '';
@@ -178,13 +175,17 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
 
     function onDone(error?: Error) {
       cleanup();
-      reject(new Error([
-        'Failed to launch browser!' + (error ? ' ' + error.message : ''),
-        stderr,
-        '',
-        'TROUBLESHOOTING: https://github.com/GoogleChrome/puppeteer/blob/master/docs/troubleshooting.md',
-        '',
-      ].join('\n')));
+      reject(
+        new Error(
+          [
+            'Failed to launch browser!' + (error ? ' ' + error.message : ''),
+            stderr,
+            '',
+            'TROUBLESHOOTING: https://github.com/GoogleChrome/puppeteer/blob/master/docs/troubleshooting.md',
+            '',
+          ].join('\n'),
+        ),
+      );
     }
 
     function onTimeout() {
@@ -195,15 +196,13 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
     function onLine(line: string) {
       stderr += line + '\n';
       const match = line.match(/^DevTools listening on (ws:\/\/.*)$/);
-      if (!match)
-        return;
+      if (!match) return;
       cleanup();
       resolve(match[1]);
     }
 
     function cleanup() {
-      if (timeoutId)
-        clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       rl.removeListener('line', onLine);
       rl.removeListener('close', onClose);
       browserProcess.removeListener('exit', onExit);
@@ -212,32 +211,43 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
   });
 }
 
-function getWSEndpoint(browserURL: string): Promise<string> {
-  let resolve: (o: string) => void;
-  let reject: (e: Error) => void;
-  const promise: Promise<string> = new Promise((res, rej) => { resolve = res; reject = rej; });
+export async function getWSEndpoint(browserURL: string): Promise<string> {
+  const jsonVersion = await fetchJson<{ webSocketDebuggerUrl?: string }>(URL.resolve(browserURL, '/json/version'));
+  if (jsonVersion.webSocketDebuggerUrl) {
+    return jsonVersion.webSocketDebuggerUrl;
+  }
 
-  const endpointURL = URL.resolve(browserURL, '/json/version');
-  const protocolRequest = endpointURL.startsWith('https') ? https.request.bind(https) : http.request.bind(http);
-  const requestOptions = Object.assign(URL.parse(endpointURL), { method: 'GET' });
-  const request = protocolRequest(requestOptions, res => {
-    let data = '';
-    if (res.statusCode !== 200) {
-      // Consume response data to free up memory.
-      res.resume();
-      reject(new Error('HTTP ' + res.statusCode));
-      return;
-    }
-    res.setEncoding('utf8');
-    res.on('data', chunk => data += chunk);
-    res.on('end', () => resolve(JSON.parse(data).webSocketDebuggerUrl));
-  });
+  // Chrome its top-level debugg on /json/version, while Node does not.
+  // Request both and return whichever one got us a string.
+  const jsonList = await fetchJson<{ webSocketDebuggerUrl: string }[]>(URL.resolve(browserURL, '/json/list'));
+  if (jsonList.length) {
+    return jsonList[0].webSocketDebuggerUrl;
+  }
 
-  request.on('error', reject!);
-  request.end();
+  throw new Error('Could not find any debuggable target');
+}
 
-  return promise.catch(e => {
-    e.message = `Failed to fetch browser webSocket url from ${endpointURL}: ` + e.message;
-    throw e;
+async function fetchJson<T>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const protocolRequest = url.startsWith('https')
+      ? https.request.bind(https)
+      : http.request.bind(http);
+    const requestOptions = Object.assign(URL.parse(url), { method: 'GET' });
+    const request = protocolRequest(requestOptions, (res: http.IncomingMessage) => {
+      let data = '';
+      if (res.statusCode !== 200) {
+        // Consume response data to free up memory.
+        res.resume();
+        reject(new Error('HTTP ' + res.statusCode));
+        return;
+      }
+
+      res.setEncoding('utf8');
+      res.on('data', chunk => (data += chunk));
+      res.on('end', () => resolve(JSON.parse(data)));
+    });
+
+    request.on('error', reject!);
+    request.end();
   });
 }

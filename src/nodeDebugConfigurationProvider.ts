@@ -16,6 +16,7 @@ import {
 import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
 import { EnvironmentVars } from './common/environmentVars';
+import { resolveProcessId } from './ui/processPicker';
 
 const localize = nls.loadMessageBundle();
 
@@ -90,7 +91,9 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
 
     // "attach to process via picker" support
     if (config.request === 'attach' && typeof config.processId === 'string') {
-      throw new Error('Resolving process IDs not yet supported'); // todo
+			if (!(await resolveProcessId(config))) {
+				return undefined;	// abort launch
+      }
     }
 
     return config.request === 'attach'
@@ -99,7 +102,7 @@ export class NodeDebugConfigurationProvider implements vscode.DebugConfiguration
   }
 }
 
-function guessWorkingDirectory(
+export function guessWorkingDirectory(
   config: ResolvingNodeConfiguration,
   folder?: vscode.WorkspaceFolder,
 ): string {

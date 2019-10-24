@@ -1,12 +1,11 @@
 {
-  "attach.node.process": "Attach to Node Process",
+  "attach.node.process": "Attach to Node Process (PWA)",
   "extension.description": "Node.js debugging support (versions < 8.0)",
   "start.with.stop.on.entry": "Start Debugging and Stop on Entry",
   "toggle.skipping.this.file": "Toggle Skipping this File",
   "add.browser.breakpoint": "Add Browser Breakpoint",
   "remove.browser.breakpoint": "Remove Browser Breakpoint",
   "remove.browser.breakpoint.all": "Remove All Browser Breakpoints",
-
 
 	"chrome.address.description": "TCP/IP address of debug port",
 	"chrome.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",

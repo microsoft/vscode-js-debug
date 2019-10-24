@@ -12,7 +12,7 @@ import { removeNulls } from './objUtils';
  */
 export function findInPath(
   program: string,
-  env: { [key: string]: string | null },
+  env: { [key: string]: string | null | undefined },
 ): string | undefined {
   let locator: string;
   if (process.platform === 'win32') {

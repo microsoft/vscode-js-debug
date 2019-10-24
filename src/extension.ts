@@ -11,8 +11,14 @@ import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider';
 import { ChromeDebugConfigurationProvider } from './chromeDebugConfigurationProvider';
 import { Contributions } from './common/contributionUtils';
+import { pickProcess, attachProcess } from './ui/processPicker';
 
 export function activate(context: vscode.ExtensionContext) {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
+    vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
+  );
+
   const nodeConfigProvider = new NodeDebugConfigurationProvider();
   const chromeConfigProvider = new ChromeDebugConfigurationProvider(nodeConfigProvider);
 
