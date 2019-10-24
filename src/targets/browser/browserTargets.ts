@@ -11,6 +11,7 @@ import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
+import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -291,7 +292,7 @@ export class BrowserTarget implements Target {
     return undefined;
   }
 
-  skipFiles(): string | undefined {
+  skipFiles(): ScriptSkipper | undefined {
     return undefined;
   }
 

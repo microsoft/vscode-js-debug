@@ -5,6 +5,7 @@ import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
 import { CommonLaunchParams } from '../common/commonLaunchParams';
+import { ScriptSkipper } from '../adapter/scriptSkipper';
 
 export interface Target {
   id(): string;
@@ -31,7 +32,7 @@ export interface Target {
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): SourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
-  skipFiles(): string | undefined;
+  skipFiles(): ScriptSkipper | undefined;
 }
 
 export interface LaunchResult {

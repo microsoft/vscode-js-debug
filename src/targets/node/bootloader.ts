@@ -11,6 +11,9 @@ function debugLog(text: string) {
 
 (function() {
   debugLog('args: ' + process.argv.join(' '));
+
+  global['BUILT_IN_MODULES'] = require('module').builtinModules;
+
   if (!process.env.NODE_INSPECTOR_IPC)
     return;
 
