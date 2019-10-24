@@ -779,7 +779,7 @@ export class Thread implements VariableStoreDelegate {
     }
   }
 
-  async _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+  _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     if (event.url)
       event.url = this._delegate.scriptUrlToUrl(event.url);
 

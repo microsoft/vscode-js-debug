@@ -248,9 +248,6 @@ export class SourceContainer {
   readonly sourcePathResolver: SourcePathResolver;
   private _disabledSourceMaps = new Set<Source>();
   private _scriptSkipper? : ScriptSkipper;
-  // private _blackboxRegex?: RegExp;
-  // private _skipFilesRegex?: RegExp;
-  // private _isBlackboxedUrlMap = new Map<string, boolean>();
 
   constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
     this._dap = dap;
@@ -273,24 +270,13 @@ export class SourceContainer {
       this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  // setSkipFilesRegex(skipFilesRegex?: RegExp) {
-  //   console.assert(!this._sourceByReference.size);
-  //   this._skipFilesRegex = skipFilesRegex;
-  // }
-
   initializeScriptSkipper(scriptSkipper: ScriptSkipper) {
     this._scriptSkipper = scriptSkipper;
-    //this._blackboxRegex = this._scriptSkipper.getBlackBoxRegex();
   }
 
   get scriptSkipper(): ScriptSkipper | undefined {
     return this._scriptSkipper;
-  }
-
-  // setBlackboxRegex(blackboxRegex?: RegExp) {
-  //   console.assert(!this._sourceByReference.size);
-  //   this._blackboxRegex = blackboxRegex;
-  // }
+  }bl
 
   async loadedSources(): Promise<Dap.Source[]> {
     const promises: Promise<Dap.Source>[] = [];
