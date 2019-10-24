@@ -141,7 +141,7 @@ export class DebugAdapter {
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
     if (this._thread)
-      threads.push({ id: 0, name: this._thread.name() });
+      threads.push({ id: this._thread.id, name: this._thread.name() });
     return { threads };
   }
 
