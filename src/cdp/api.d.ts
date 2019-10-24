@@ -12,6 +12,14 @@ export namespace Cdp {
    * Protocol API.
    */
   export interface Api {
+    /**
+     * Pauses events being sent through the aPI.
+     */
+    pause(): void;
+    /**
+     * Resumes previously-paused events
+     */
+    resume(): void;
     Accessibility: AccessibilityApi;
     Animation: AnimationApi;
     ApplicationCache: ApplicationCacheApi;
@@ -2980,6 +2988,16 @@ export namespace Cdp {
        * Size of the content (in characters).
        */
       length: number;
+
+      /**
+       * Line offset of the end of the stylesheet within the resource (zero based).
+       */
+      endLine: number;
+
+      /**
+       * Column offset of the end of the stylesheet within the resource (zero based).
+       */
+      endColumn: number;
     }
 
     /**
@@ -3554,6 +3572,11 @@ export namespace Cdp {
     getScriptSource(params: Debugger.GetScriptSourceParams): Promise<Debugger.GetScriptSourceResult | undefined>;
 
     /**
+     * Returns bytecode for the WebAssembly script with given id.
+     */
+    getWasmBytecode(params: Debugger.GetWasmBytecodeParams): Promise<Debugger.GetWasmBytecodeResult | undefined>;
+
+    /**
      * Returns stack trace with given `stackTraceId`.
      */
     getStackTrace(params: Debugger.GetStackTraceParams): Promise<Debugger.GetStackTraceResult | undefined>;
@@ -3876,6 +3899,26 @@ export namespace Cdp {
        * Script source.
        */
       scriptSource: string;
+    }
+
+    /**
+     * Parameters of the 'Debugger.getWasmBytecode' method.
+     */
+    export interface GetWasmBytecodeParams {
+      /**
+       * Id of the Wasm script to get source for.
+       */
+      scriptId: Runtime.ScriptId;
+    }
+
+    /**
+     * Return value of the 'Debugger.getWasmBytecode' method.
+     */
+    export interface GetWasmBytecodeResult {
+      /**
+       * Script source.
+       */
+      bytecode: string;
     }
 
     /**
@@ -4342,7 +4385,7 @@ export namespace Cdp {
      */
     export interface StepIntoParams {
       /**
-       * Debugger will issue additional Debugger.paused notification if any async task is scheduled
+       * Debugger will pause on the execution of the first async task which was scheduled
        * before next pause.
        */
       breakOnAsyncCall?: boolean;
@@ -4428,8 +4471,7 @@ export namespace Cdp {
       asyncStackTraceId?: Runtime.StackTraceId;
 
       /**
-       * Just scheduled async call will have this stack trace as parent stack during async execution.
-       * This field is available only after `Debugger.stepInto` call with `breakOnAsynCall` flag.
+       * Never present, will be removed.
        */
       asyncCallStackTraceId?: Runtime.StackTraceId;
     }
@@ -5426,6 +5468,11 @@ export namespace Cdp {
        * False to skip to the nearest non-UA shadow root ancestor (default: false).
        */
       includeUserAgentShadowDOM?: boolean;
+
+      /**
+       * Whether to ignore pointer-events: none on elements and hit test them.
+       */
+      ignorePointerEventsNone?: boolean;
     }
 
     /**
@@ -5436,6 +5483,11 @@ export namespace Cdp {
        * Resulting node.
        */
       backendNodeId: BackendNodeId;
+
+      /**
+       * Frame this node belongs to.
+       */
+      frameId: Page.FrameId;
 
       /**
        * Id of the node at given coordinates, only when enabled and requested document.
@@ -7331,6 +7383,11 @@ export namespace Cdp {
       documentURL: StringIndex;
 
       /**
+       * Document title.
+       */
+      title: StringIndex;
+
+      /**
        * Base URL that `Document` or `FrameOwner` node uses for URL completion.
        */
       baseURL: StringIndex;
@@ -7384,6 +7441,16 @@ export namespace Cdp {
        * Vertical scroll offset.
        */
       scrollOffsetY?: number;
+
+      /**
+       * Document content width.
+       */
+      contentWidth?: number;
+
+      /**
+       * Document content height.
+       */
+      contentHeight?: number;
     }
 
     /**
@@ -7782,7 +7849,7 @@ export namespace Cdp {
     setEmitTouchEventsForMouse(params: Emulation.SetEmitTouchEventsForMouseParams): Promise<Emulation.SetEmitTouchEventsForMouseResult | undefined>;
 
     /**
-     * Emulates the given media for CSS media queries.
+     * Emulates the given media type or media feature for CSS media queries.
      */
     setEmulatedMedia(params: Emulation.SetEmulatedMediaParams): Promise<Emulation.SetEmulatedMediaResult | undefined>;
 
@@ -8079,7 +8146,12 @@ export namespace Cdp {
       /**
        * Media type to emulate. Empty string disables the override.
        */
-      media: string;
+      media?: string;
+
+      /**
+       * Media features to emulate.
+       */
+      features?: MediaFeature[];
     }
 
     /**
@@ -8308,6 +8380,12 @@ export namespace Cdp {
       angle: integer;
     }
 
+    export interface MediaFeature {
+      name: string;
+
+      value: string;
+    }
+
     /**
      * advance: If the scheduler runs out of immediate work, the virtual time base may fast forward to
      * allow the next delayed task (if any) to run; pause: The virtual time base may not advance;
@@ -8471,7 +8549,15 @@ export namespace Cdp {
       /**
        * Response headers.
        */
-      responseHeaders: HeaderEntry[];
+      responseHeaders?: HeaderEntry[];
+
+      /**
+       * Alternative way of specifying response headers as a \0-separated
+       * series of name: value pairs. Prefer the above method unless you
+       * need to represent some non-UTF8 values that can't be transmitted
+       * over the protocol as text.
+       */
+      binaryResponseHeaders?: string;
 
       /**
        * A response body.
@@ -8480,7 +8566,7 @@ export namespace Cdp {
 
       /**
        * A textual representation of responseCode.
-       * If absent, a standard phrase mathcing responseCode is used.
+       * If absent, a standard phrase matching responseCode is used.
        */
       responsePhrase?: string;
     }
@@ -8778,6 +8864,8 @@ export namespace Cdp {
 
     /**
      * Issued when the target starts or stops needing BeginFrames.
+     * Deprecated. Issue beginFrame unconditionally instead and use result from
+     * beginFrame to detect whether the frames were suppressed.
      */
     on(event: 'needsBeginFramesChanged', listener: (event: HeadlessExperimental.NeedsBeginFramesChangedEvent) => void): void;
   }
@@ -13423,9 +13511,9 @@ export namespace Cdp {
      */
     export interface BlockedSetCookieWithReason {
       /**
-       * The reason this cookie was blocked.
+       * The reason(s) this cookie was blocked.
        */
-      blockedReason: SetCookieBlockedReason;
+      blockedReasons: SetCookieBlockedReason[];
 
       /**
        * The string representing this individual cookie as it would appear in the header.
@@ -13446,9 +13534,9 @@ export namespace Cdp {
      */
     export interface BlockedCookieWithReason {
       /**
-       * The reason the cookie was blocked.
+       * The reason(s) the cookie was blocked.
        */
-      blockedReason: CookieBlockedReason;
+      blockedReasons: CookieBlockedReason[];
 
       /**
        * The cookie object representing the cookie which was not sent.
@@ -17570,6 +17658,7 @@ export namespace Cdp {
 
       /**
        * Whether to throw an exception if side effect cannot be ruled out during evaluation.
+       * This implies `disableBreaks` below.
        */
       throwOnSideEffect?: boolean;
 
@@ -17577,6 +17666,16 @@ export namespace Cdp {
        * Terminate execution after timing out (number of milliseconds).
        */
       timeout?: TimeDelta;
+
+      /**
+       * Disable breakpoints during execution.
+       */
+      disableBreaks?: boolean;
+
+      /**
+       * Reserved flag for future REPL mode support. Setting this flag has currently no effect.
+       */
+      replMode?: boolean;
     }
 
     /**
@@ -18544,6 +18643,11 @@ export namespace Cdp {
     /**
      * The security state of the page changed.
      */
+    on(event: 'visibleSecurityStateChanged', listener: (event: Security.VisibleSecurityStateChangedEvent) => void): void;
+
+    /**
+     * The security state of the page changed.
+     */
     on(event: 'securityStateChanged', listener: (event: Security.SecurityStateChangedEvent) => void): void;
   }
 
@@ -18649,6 +18753,16 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Security.visibleSecurityStateChanged' event.
+     */
+    export interface VisibleSecurityStateChangedEvent {
+      /**
+       * Security state information about the page.
+       */
+      visibleSecurityState: VisibleSecurityState;
+    }
+
+    /**
      * Parameters of the 'Security.securityStateChanged' event.
      */
     export interface SecurityStateChangedEvent {
@@ -18694,6 +18808,111 @@ export namespace Cdp {
      * The security level of a page or resource.
      */
     export type SecurityState = 'unknown' | 'neutral' | 'insecure' | 'secure' | 'info';
+
+    /**
+     * Details about the security state of the page certificate.
+     */
+    export interface CertificateSecurityState {
+      /**
+       * Protocol name (e.g. "TLS 1.2" or "QUIC").
+       */
+      protocol: string;
+
+      /**
+       * Key Exchange used by the connection, or the empty string if not applicable.
+       */
+      keyExchange: string;
+
+      /**
+       * (EC)DH group used by the connection, if applicable.
+       */
+      keyExchangeGroup?: string;
+
+      /**
+       * Cipher name.
+       */
+      cipher: string;
+
+      /**
+       * TLS MAC. Note that AEAD ciphers do not have separate MACs.
+       */
+      mac?: string;
+
+      /**
+       * Page certificate.
+       */
+      certificate: string[];
+
+      /**
+       * Certificate subject name.
+       */
+      subjectName: string;
+
+      /**
+       * Name of the issuing CA.
+       */
+      issuer: string;
+
+      /**
+       * Certificate valid from date.
+       */
+      validFrom: Network.TimeSinceEpoch;
+
+      /**
+       * Certificate valid to (expiration) date
+       */
+      validTo: Network.TimeSinceEpoch;
+
+      /**
+       * True if the certificate uses a weak signature aglorithm.
+       */
+      certifcateHasWeakSignature: boolean;
+
+      /**
+       * True if modern SSL
+       */
+      modernSSL: boolean;
+
+      /**
+       * True if the connection is using an obsolete SSL protocol.
+       */
+      obsoleteSslProtocol: boolean;
+
+      /**
+       * True if the connection is using an obsolete SSL key exchange.
+       */
+      obsoleteSslKeyExchange: boolean;
+
+      /**
+       * True if the connection is using an obsolete SSL cipher.
+       */
+      obsoleteSslCipher: boolean;
+
+      /**
+       * True if the connection is using an obsolete SSL signature.
+       */
+      obsoleteSslSignature: boolean;
+    }
+
+    /**
+     * Security state information about the page.
+     */
+    export interface VisibleSecurityState {
+      /**
+       * The security level of the page.
+       */
+      securityState: SecurityState;
+
+      /**
+       * Security state details about the page certificate.
+       */
+      certificateSecurityState?: CertificateSecurityState;
+
+      /**
+       * Array of security state issues ids.
+       */
+      securityStateIssueIds: string[];
+    }
 
     /**
      * An explanation of an factor contributing to the security state.
@@ -19423,6 +19642,16 @@ export namespace Cdp {
       deviceId: number;
 
       /**
+       * Sub sys ID of the GPU, only available on Windows.
+       */
+      subSysId?: number;
+
+      /**
+       * Revision of the GPU, only available on Windows.
+       */
+      revision?: number;
+
+      /**
        * String description of the GPU vendor, if the PCI ID is not available.
        */
       vendorString: string;
@@ -19677,6 +19906,8 @@ export namespace Cdp {
 
     /**
      * Sends protocol message over session with given id.
+     * Consider using flat mode instead; see commands attachToTarget, setAutoAttach,
+     * and crbug.com/991325.
      */
     sendMessageToTarget(params: Target.SendMessageToTargetParams): Promise<Target.SendMessageToTargetResult | undefined>;
 
@@ -19763,6 +19994,8 @@ export namespace Cdp {
 
       /**
        * Enables "flat" access to the session via specifying sessionId attribute in the commands.
+       * We plan to make this the default, deprecate non-flattened mode,
+       * and eventually retire it. See crbug.com/991325.
        */
       flatten?: boolean;
     }
@@ -20013,8 +20246,15 @@ export namespace Cdp {
 
       /**
        * Enables "flat" access to the session via specifying sessionId attribute in the commands.
+       * We plan to make this the default, deprecate non-flattened mode,
+       * and eventually retire it. See crbug.com/991325.
        */
       flatten?: boolean;
+
+      /**
+       * Auto-attach to the targets created via window.open from current target.
+       */
+      windowOpen?: boolean;
     }
 
     /**
@@ -20345,6 +20585,10 @@ export namespace Cdp {
      * Parameters of the 'Tracing.requestMemoryDump' method.
      */
     export interface RequestMemoryDumpParams {
+      /**
+       * Enables more deterministic results by forcing garbage collection
+       */
+      deterministic?: boolean;
     }
 
     /**
@@ -20967,6 +21211,11 @@ export namespace Cdp {
     getCredentials(params: WebAuthn.GetCredentialsParams): Promise<WebAuthn.GetCredentialsResult | undefined>;
 
     /**
+     * Removes a credential from the authenticator.
+     */
+    removeCredential(params: WebAuthn.RemoveCredentialParams): Promise<WebAuthn.RemoveCredentialResult | undefined>;
+
+    /**
      * Clears all the credentials from the specified device.
      */
     clearCredentials(params: WebAuthn.ClearCredentialsParams): Promise<WebAuthn.ClearCredentialsResult | undefined>;
@@ -21079,6 +21328,21 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'WebAuthn.removeCredential' method.
+     */
+    export interface RemoveCredentialParams {
+      authenticatorId: AuthenticatorId;
+
+      credentialId: string;
+    }
+
+    /**
+     * Return value of the 'WebAuthn.removeCredential' method.
+     */
+    export interface RemoveCredentialResult {
+    }
+
+    /**
      * Parameters of the 'WebAuthn.clearCredentials' method.
      */
     export interface ClearCredentialsParams {
@@ -21117,15 +21381,27 @@ export namespace Cdp {
 
       transport: AuthenticatorTransport;
 
-      hasResidentKey: boolean;
+      /**
+       * Defaults to false.
+       */
+      hasResidentKey?: boolean;
 
-      hasUserVerification: boolean;
+      /**
+       * Defaults to false.
+       */
+      hasUserVerification?: boolean;
 
       /**
        * If set to true, tests of user presence will succeed immediately.
        * Otherwise, they will not be resolved. Defaults to true.
        */
       automaticPresenceSimulation?: boolean;
+
+      /**
+       * Sets whether User Verification succeeds or fails for an authenticator.
+       * Defaults to false.
+       */
+      isUserVerified?: boolean;
     }
 
     export interface Credential {

@@ -40,6 +40,11 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
       dynamicAttach: true,
     });
 
-    this.program = new SubprocessProgram(wd);
+    const program = (this.program = new SubprocessProgram(wd));
+    this.program.stopped.then(result => {
+      if (program === this.program) {
+        this.onProgramTerminated(result);
+      }
+    });
   }
 }

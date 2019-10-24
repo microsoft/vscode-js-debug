@@ -135,10 +135,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   public async terminate(): Promise<void> {
     if (this.program) {
-      await this.program.stop(); // will stop the server when it's done, in onProgramTerminated
-    } else {
-      this._stopServer();
+      this.program.stop();
     }
+
+    this.onProgramTerminated({ code: 0, killed: true });
   }
 
   /**

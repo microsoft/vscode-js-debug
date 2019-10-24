@@ -172,6 +172,8 @@ export class BrowserTarget implements Target {
 
   constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, waitingForDebugger: boolean, ondispose: (t: BrowserTarget) => void) {
     this._cdp = cdp;
+    cdp.pause();
+
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     this._waitingForDebugger = waitingForDebugger;
@@ -202,6 +204,11 @@ export class BrowserTarget implements Target {
 
   type(): string {
     return this._targetInfo.type;
+  }
+
+  afterBind() {
+    this._cdp.resume();
+    return Promise.resolve();
   }
 
   parent(): Target | undefined {

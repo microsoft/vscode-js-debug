@@ -171,6 +171,8 @@ export class Binder implements Disposable {
         return {};
       });
     }
+
+    cdp.resume();
   }
 
   async detach(target: Target) {

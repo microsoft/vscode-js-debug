@@ -29,6 +29,11 @@ export interface Target {
   canDetach(): boolean;
   detach(): Promise<void>;
   targetOrigin(): any;
+  /**
+   * Lifecycle callback invoked after attaching and the target's events are
+   * wired into the debug adapter.
+   */
+  afterBind(): Promise<void>;
 
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;

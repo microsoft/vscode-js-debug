@@ -37,6 +37,7 @@ export class NodeTarget implements Target {
   ) {
     this.connection = connection;
     this._cdp = cdp;
+    cdp.pause();
     this._targetId = targetInfo.targetId;
     this._scriptName = targetInfo.title;
     this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
@@ -161,6 +162,10 @@ export class NodeTarget implements Target {
     return this._cdp;
   }
 
+  public async afterBind() {
+    this._cdp.resume();
+  }
+
   canDetach(): boolean {
     return this._attached;
   }
@@ -188,9 +193,15 @@ export class NodeTarget implements Target {
   }
 
   stop() {
-    try {
-      process.kill(+this._targetId);
-    } catch (e) {}
+    const processId = Number(this._targetId);
+    if (processId > 0) {
+      try {
+        process.kill(+this._targetId);
+      } catch (e) {
+        // ignored
+      }
+    }
+
     this.connection.close();
   }
 }
