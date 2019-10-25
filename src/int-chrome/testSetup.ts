@@ -57,7 +57,7 @@ function formLaunchArgs(
 
   const argsWithDefaults = { ...chromeLaunchConfigDefaults, ...launchArgs };
   for (let k in argsWithDefaults) {
-    launchArgs[k] = argsWithDefaults[k];
+    launchArgs[k] = (argsWithDefaults as any)[k]; // TODO@rob
   }
 }
 

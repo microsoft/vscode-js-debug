@@ -5,15 +5,16 @@ import { testUsing } from '../fixtures/testUsing';
 import { TestProjectSpec } from '../framework/frameworkTestSupport';
 import { LaunchProject } from '../fixtures/launchProject';
 import { onUnhandledException, onHandledError } from '../utils/onUnhandledException';
-import { promiseDefer, promiseTimeout } from '../testUtils';
+import { promiseTimeout, getDeferred, IDeferred } from '../testUtils';
 import { IChromeLaunchConfiguration } from '../../configuration';
 
-const waitForTestResult = promiseDefer();
+let waitForTestResult: IDeferred<void>;
 
 testUsing(
   'No unhandled exceptions when we parse invalid JavaScript code. We get a handled error',
-  context =>
-    LaunchProject.launch(
+  async context => {
+    waitForTestResult = await getDeferred<void>();
+    return LaunchProject.launch(
       context,
       TestProjectSpec.fromTestPath('featuresTests/invalidJavaScriptCode'),
       {} as IChromeLaunchConfiguration,
@@ -21,7 +22,7 @@ testUsing(
         registerListeners: client => {
           // We fail the test if we get an unhandled exception
           onUnhandledException(client, exceptionMessage =>
-            waitForTestResult.reject(exceptionMessage),
+            waitForTestResult.reject(new Error(exceptionMessage)),
           );
           // We expect to get a handled error instead
           onHandledError(client, async errorMessage => {
@@ -34,7 +35,8 @@ testUsing(
           });
         },
       },
-    ),
+    );
+  },
   async _launchProject => {
     await waitForTestResult.promise;
   },

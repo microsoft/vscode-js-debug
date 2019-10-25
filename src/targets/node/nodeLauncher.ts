@@ -323,7 +323,7 @@ function readEnvFile(file: string): { [key: string]: string } {
   }
 
   const buffer = stripBOM(fs.readFileSync(file, 'utf8'));
-  const env = {};
+  const env: any = {};
   for (const line of buffer.split('\n')) {
     const r = line.match(/^\s*([\w\.\-]+)\s*=\s*(.*)?\s*$/);
     if (!r) {

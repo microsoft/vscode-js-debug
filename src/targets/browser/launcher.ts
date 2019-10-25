@@ -167,7 +167,7 @@ function waitForWSEndpoint(browserProcess: childProcess.ChildProcess, timeout: n
     let stderr = '';
     const onClose = () => onDone();
     const onExit = () => onDone();
-    const onError = error => onDone(error);
+    const onError = (error: Error) => onDone(error);
 
     rl.on('line', onLine);
     rl.on('close', onClose);
