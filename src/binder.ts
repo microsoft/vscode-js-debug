@@ -172,7 +172,7 @@ export class Binder implements Disposable {
       });
     }
 
-    cdp.resume();
+    await target.afterBind();
   }
 
   async detach(target: Target) {
