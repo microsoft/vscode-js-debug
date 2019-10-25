@@ -18,7 +18,7 @@ import {
 } from '../../targets/targets';
 import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
+import { NodeTarget } from './nodeTarget';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
@@ -236,13 +236,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     });
   }
 
-  /**
-   * Logic run when a thread is created.
-   */
-  protected createLifecycle(_cdp: Cdp.Api, _run: IRunData<T>, _target: Cdp.Target.TargetInfo): INodeTargetLifecycleHooks {
-    return {};
-  }
-
   protected _startServer() {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
@@ -281,7 +274,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       cdp,
       targetInfo,
       this.run.params,
-      this.createLifecycle(cdp, this.run, targetInfo),
     );
 
     target.setParent(targetInfo.openerId ? this.targets.get(targetInfo.openerId) : undefined);

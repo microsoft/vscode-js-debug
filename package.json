@@ -893,7 +893,7 @@
                   "stopOnEntry": {
                     "type": "boolean",
                     "description": "%node.stopOnEntry.description%",
-                    "default": false
+                    "default": true
                   },
                   "console": {
                     "type": "string",

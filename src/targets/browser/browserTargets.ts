@@ -211,14 +211,6 @@ export class BrowserTarget implements Target {
     return Promise.resolve();
   }
 
-  initialize() {
-    return Promise.resolve();
-  }
-
-  onPaused() {
-    return Promise.resolve(false);
-  }
-
   parent(): Target | undefined {
     if (this.parentTarget && !jsTypes.has(this.parentTarget.type()))
       return this.parentTarget.parentTarget;

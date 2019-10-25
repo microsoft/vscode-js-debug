@@ -8,10 +8,6 @@ import { CallbackFile } from './callback-file';
 import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
-import { NodeTarget, INodeTargetLifecycleHooks } from './nodeTarget';
-import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { resolve } from 'path';
-import Cdp from '../../cdp/api';
 
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
@@ -95,38 +91,5 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     };
 
     doLaunch(this.restarters.create(runData.params));
-  }
-
-  /**
-   * @inheritdoc
-   */
-  protected createLifecycle(
-    cdp: Cdp.Api,
-    run: IRunData<INodeLaunchConfiguration>,
-    { targetId }: Cdp.Target.TargetInfo,
-  ): INodeTargetLifecycleHooks {
-    return {
-      initialized: async () => {
-        if (run.params.stopOnEntry) {
-          const params = {
-            url: absolutePathToFileUrl(resolve(run.params.cwd, run.params.program)),
-            lineNumber: 0,
-            columnNumber: 0,
-          };
-
-          await cdp.Debugger.setBreakpointByUrl(params);
-        }
-      },
-      close: () => {
-        const processId = Number(targetId);
-        if (processId > 0) {
-          try {
-            process.kill(processId);
-          } catch (e) {
-            // ignored
-          }
-        }
-      },
-    };
   }
 }
