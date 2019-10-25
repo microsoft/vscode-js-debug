@@ -49,8 +49,11 @@ export class Binder implements Disposable {
 
     this._dap.then(dap => {
       dap.on('initialize', async () => {
-        dap.initialized({});
-        return DebugAdapter.capabilities();
+        const capabilities = DebugAdapter.capabilities();
+        setTimeout(() => {
+          dap.initialized({});
+        }, 0);
+        return capabilities;
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
