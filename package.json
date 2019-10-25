@@ -873,24 +873,6 @@
                 "description": "%chrome.showAsyncStacks.description%",
                 "default": true
               },
-              "breakOnLoad": {
-                "type": "boolean",
-                "description": "%chrome.breakOnLoad.description%",
-                "default": true
-              },
-              "breakOnLoadStrategy": {
-                "type": "string",
-                "enum": [
-                  "instrument",
-                  "regex"
-                ],
-                "enumDescriptions": [
-                  "%chrome.breakOnLoadStrategy.instrument.description%",
-                  "%chrome.breakOnLoadStrategy.regex.description%"
-                ],
-                "description": "%chrome.breakOnLoadStrategy.description%",
-                "default": "instrument"
-              },
               "server": {
                 "type": "object",
                 "description": "%chrome.server.description%",

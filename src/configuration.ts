@@ -254,18 +254,6 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
   request: 'launch';
 
   /**
-   * If true, the debug adapter will attempt to set breakpoints in scripts
-   * before they are loaded, so it can hit breakpoints at the
-   * beginnings of those scripts. Has a perf impact.
-   */
-  breakOnLoad: boolean;
-
-  /**
-   * The strategy to use for breakOnLoad.
-   */
-  breakOnLoadStrategy: 'instrument' | 'regex' | 'off';
-
-  /**
    * Optional working directory for the runtime executable.
    */
   cwd: string | null;
@@ -386,8 +374,6 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   ...chromeAttachConfigDefaults,
   type: Contributions.ChromeDebugType,
   request: 'launch',
-  breakOnLoad: true,
-  breakOnLoadStrategy: 'instrument',
   cwd: null,
   file: null,
   env: {},

@@ -239,6 +239,8 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
+      const todo: Promise<void>[] = [];
+
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
       // particular script.
@@ -246,11 +248,13 @@ export class BreakpointManager {
         const path = source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
-          breakpoint.updateForSourceMap(this._thread!, script);
+          todo.push(breakpoint.updateForSourceMap(this._thread!, script));
         const byRef = this._byRef.get(source.sourceReference());
         for (const breakpoint of byRef || [])
-          breakpoint.updateForSourceMap(this._thread!, script);
+          todo.push(breakpoint.updateForSourceMap(this._thread!, script));
       }
+
+      await Promise.all(todo);
     };
     if (sourceContainer.rootPath)
       this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
@@ -299,7 +303,7 @@ export class BreakpointManager {
       return;
     // TODO: disable pausing before source map with a setting or unconditionally.
     const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
-    await this._thread.setScriptSourceMapHandler(enableSourceMapHandler ? this._scriptSourceMapHandler : undefined);
+    await this._thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
   }
 
   async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult | Dap.Error> {

@@ -7,17 +7,18 @@ import { createServer } from 'http-server';
 import * as testSetup from './testSetup';
 import { HttpOrHttpsServer } from './types/server';
 import { ExtendedDebugClient } from './testSupport/debugClient';
-import { IChromeLaunchConfiguration } from '../configuration';
+import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
+import { delay } from '../common/promiseUtil';
 
-type BreakOnLoadStrategy = IChromeLaunchConfiguration['breakOnLoadStrategy'];
-
-function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
+suite('BreakOnLoad', () => {
   const DATA_ROOT = testSetup.DATA_ROOT;
 
   let dc: ExtendedDebugClient;
   setup(function() {
     return testSetup
-      .setup(this, { breakOnLoadStrategy: breakOnLoadStrategy })
+      .setup(this, {
+        sourceMapPathOverrides: chromeLaunchConfigDefaults.sourceMapPathOverrides,
+      })
       .then(_dc => (dc = _dc));
   });
 
@@ -43,10 +44,10 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
     lineNum: number,
     colNum: number,
   ): Promise<any> {
-    const waitForInitialized = dc.waitForEvent('initialized');
     return Promise.all([
       dc.launch({ url: url, webRoot: projectRoot }),
-      waitForInitialized
+      dc
+        .waitForEvent('initialized')
         .then(_event => {
           return dc.setBreakpointsRequest({
             lines: [lineNum],
@@ -71,7 +72,7 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const url = 'http://localhost:7890/index.html';
 
       const bpLine = 3;
-      const bpCol = 12;
+      const bpCol = 11;
 
       await dc.hitBreakpointUnverified(
         { url, webRoot: testProjectRoot },
@@ -89,7 +90,7 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const url = 'http://localhost:7890/index.html';
 
       const bp1Line = 3;
-      const bp1Col = 12;
+      const bp1Col = 11;
       const bp2Line = 6;
 
       await dc.hitBreakpointUnverified(
@@ -115,19 +116,12 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const bpLine = 1;
       const bpCol = 1;
 
-      if (breakOnLoadStrategy === 'instrument') {
-        await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
-        await dc.assertStoppedLocation('breakpoint', {
-          path: scriptPath,
-          line: bpLine,
-          column: bpCol,
-        });
-      } else {
-        await dc.hitBreakpointUnverified(
-          { url, webRoot: testProjectRoot },
-          { path: scriptPath, line: bpLine, column: bpCol },
-        );
-      }
+      await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
+      await dc.assertStoppedLocation('breakpoint', {
+        path: scriptPath,
+        line: bpLine,
+        column: bpCol,
+      });
     });
 
     test('Hits a breakpoint in the first line in a file on load', async () => {
@@ -140,7 +134,7 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const url = 'http://localhost:7890/index.html';
 
       const bpLine = 1;
-      const bpCol = 35;
+      const bpCol = 34;
 
       await dc.hitBreakpointUnverified(
         { url, webRoot: testProjectRoot },
@@ -204,19 +198,12 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const bpLine = 1;
       const bpCol = 1;
 
-      if (breakOnLoadStrategy === 'instrument') {
-        await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
-        await dc.assertStoppedLocation('breakpoint', {
-          path: scriptPath,
-          line: bpLine,
-          column: bpCol,
-        });
-      } else {
-        await dc.hitBreakpointUnverified(
-          { url, webRoot: testProjectRoot },
-          { path: scriptPath, line: bpLine, column: bpCol },
-        );
-      }
+      await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
+      await dc.assertStoppedLocation('breakpoint', {
+        path: scriptPath,
+        line: bpLine,
+        column: bpCol,
+      });
     });
 
     test('Hits a breakpoint in the first line in a file on load', async () => {
@@ -250,72 +237,27 @@ function runCommonTests(breakOnLoadStrategy: BreakOnLoadStrategy) {
       const bpLine = 1;
       const bpCol = 1;
 
-      if (breakOnLoadStrategy === 'instrument') {
-        await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
-        await dc.assertStoppedLocation('breakpoint', {
-          path: scriptPath,
-          line: bpLine,
-          column: bpCol,
-        });
-        await dc.setBreakpointsRequest({
-          lines: [bpLine],
-          breakpoints: [{ line: bpLine, column: bpCol }],
-          source: { path: script2Path },
-        });
-        await dc.continueRequest();
-        await dc.assertStoppedLocation('breakpoint', {
-          path: script2Path,
-          line: bpLine,
-          column: bpCol,
-        });
-      } else {
-        await dc.hitBreakpointUnverified(
-          { url, webRoot: testProjectRoot },
-          { path: scriptPath, line: bpLine, column: bpCol },
-        );
-        await dc.setBreakpointsRequest({
-          lines: [bpLine],
-          breakpoints: [{ line: bpLine, column: bpCol }],
-          source: { path: script2Path },
-        });
-        await dc.continueRequest();
-        await dc.assertStoppedLocation('breakpoint', {
-          path: script2Path,
-          line: bpLine,
-          column: bpCol,
-        });
-      }
+      await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
+      await dc.assertStoppedLocation('breakpoint', {
+        path: scriptPath,
+        line: bpLine,
+        column: bpCol,
+      });
+      await dc.setBreakpointsRequest({
+        lines: [bpLine],
+        breakpoints: [{ line: bpLine, column: bpCol }],
+        source: { path: script2Path },
+      });
+      await dc.continueRequest();
+      await dc.assertStoppedLocation('breakpoint', {
+        path: script2Path,
+        line: bpLine,
+        column: bpCol,
+      });
     });
-  });
-}
-
-suite.skip('BreakOnLoad', () => {
-  const DATA_ROOT = testSetup.DATA_ROOT;
-
-  suite('Regex Common Tests', () => {
-    runCommonTests('regex');
-  });
-
-  suite('Instrument Common Tests', () => {
-    runCommonTests('instrument');
   });
 
   suite('Instrument Webpack Project', () => {
-    let dc: ExtendedDebugClient;
-    setup(function() {
-      return testSetup.setup(this, { breakOnLoadStrategy: 'instrument' }).then(_dc => (dc = _dc));
-    });
-
-    let server: any;
-    teardown(() => {
-      if (server) {
-        server.close();
-        server = null;
-      }
-
-      return testSetup.teardown();
-    });
-
     test('Hits a single breakpoint in a file on load', async () => {
       const testProjectRoot = path.join(DATA_ROOT, 'breakOnLoad_webpack');
       const scriptPath = path.join(testProjectRoot, 'src/script.js');
@@ -376,61 +318,6 @@ suite.skip('BreakOnLoad', () => {
         { url, webRoot: testProjectRoot },
         { path: scriptPath, line: bpLine, column: bpCol },
       );
-    });
-  });
-
-  suite('BreakOnLoad Disabled (strategy: off)', () => {
-    let dc: ExtendedDebugClient;
-    setup(function() {
-      return testSetup.setup(this, { breakOnLoadStrategy: 'off' }).then(_dc => (dc = _dc));
-    });
-
-    let server: any;
-    teardown(() => {
-      if (server) {
-        server.close();
-        server = null;
-      }
-
-      return testSetup.teardown();
-    });
-
-    test('Does not hit a breakpoint in a file on load', async () => {
-      const testProjectRoot = path.join(DATA_ROOT, 'breakOnLoad_sourceMaps');
-      const scriptPath = path.join(testProjectRoot, 'src/script.ts');
-
-      server = createServer({ root: testProjectRoot });
-      server.listen(7890);
-
-      // We try to put a breakpoint at (1,1). If this doesn't get hit, the console.log statement in the script should be executed
-      const bpLine = 1;
-      const bpCol = 1;
-
-      return new Promise((resolve, _reject) => {
-        // Add an event listener for the output event to capture the console.log statement
-        dc.addListener('output', function(event) {
-          // If console.log event statement is executed, pass the test
-          if (event.body.category === 'stdout' && event.body.output === 'Hi\n') {
-            resolve();
-          }
-        }),
-          Promise.all([
-            dc
-              .waitForEvent('initialized')
-              .then(_event => {
-                return dc.setBreakpointsRequest({
-                  lines: [bpLine],
-                  breakpoints: [{ line: bpLine, column: bpCol }],
-                  source: { path: scriptPath },
-                });
-              })
-              .then(_response => {
-                return dc.configurationDoneRequest();
-              }),
-
-            dc.launch({ url: 'http://localhost:7890/index.html', webRoot: testProjectRoot }),
-          ]);
-      });
     });
   });
 });
