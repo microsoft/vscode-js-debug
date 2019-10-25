@@ -13,8 +13,9 @@ import { join } from 'path';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
+import { delay } from '../../common/promiseUtil';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -85,6 +86,49 @@ describe('node runtime', () => {
     } finally {
       launch.restore();
     }
+  });
+
+  describe('attaching', () => {
+    let child: ChildProcess | undefined;
+
+    afterEach(() => {
+      if (child) {
+        child.kill();
+      }
+    })
+
+    itIntegrates('attaches to existing processes', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 500)'],
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      await delay(500); // give it a moment to boot
+      const handle = await r.attachNode(child.pid);
+      await waitForPause(handle);
+      handle.assertLog();
+    });
+
+    itIntegrates('attaches children of child processes', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': `
+          const { spawn } = require('child_process');
+          setInterval(() => spawn('node', ['child'], { cwd: __dirname }), 500);
+        `,
+        'child.js': '(function foo() { debugger; })();'
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      await delay(500); // give it a moment to boot
+      const handle = await r.attachNode(child.pid);
+      handle.load();
+
+      const worker = await r.worker();
+      worker.load();
+
+      await waitForPause(worker);
+      worker.assertLog();
+    });
   });
 
   describe('child processes', () => {

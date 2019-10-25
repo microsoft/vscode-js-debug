@@ -11,7 +11,7 @@ export const removeUndefined = <V>(obj: { [key: string]: V | undefined }) =>
  * Filters the object by value.
  */
 export function filterValues<V, F extends V>(
-  obj: { [key: string]: V },
+  obj: Readonly<{ [key: string]: V }>,
   predicate: (value: V, key: string) => value is F,
 ): { [key: string]: F } {
   const next: { [key: string]: F } = {};
@@ -20,6 +20,22 @@ export function filterValues<V, F extends V>(
     if (predicate(value, key)) {
       next[key] = value;
     }
+  }
+
+  return next;
+}
+
+/**
+ * Maps the object values.
+ */
+export function mapValues<T, R>(
+  obj: Readonly<{ [key: string]: T }>,
+  generator: (value: T, key: string) => R,
+): { [key: string]: R } {
+  const next: { [key: string]: R } = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    next[key] = generator(value, key);
   }
 
   return next;

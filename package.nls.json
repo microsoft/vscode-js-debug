@@ -1,12 +1,11 @@
 {
-  "attach.node.process": "Attach to Node Process",
+  "attach.node.process": "Attach to Node Process (PWA)",
   "extension.description": "Node.js debugging support (versions < 8.0)",
   "start.with.stop.on.entry": "Start Debugging and Stop on Entry",
   "toggle.skipping.this.file": "Toggle Skipping this File",
   "add.browser.breakpoint": "Add Browser Breakpoint",
   "remove.browser.breakpoint": "Remove Browser Breakpoint",
   "remove.browser.breakpoint.all": "Remove All Browser Breakpoints",
-
 
 	"chrome.address.description": "TCP/IP address of debug port",
 	"chrome.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",
@@ -34,6 +33,8 @@
   "node.address.description": "TCP/IP address of process to be debugged. Default is 'localhost'.",
   "node.attach.config.name": "Attach",
   "node.attach.processId.description": "ID of process to attach to.",
+  "node.attach.attachSpawnedProcesses.description": "Whether to set environment variables in the attached process to track spawned children.",
+  "node.attach.attachExistingChildren.description": "Whether to attempt to attach to already-spawned child processes.",
   "node.console.title": "Node Debug Console",
   "node.disableOptimisticBPs.description": "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
   "node.label": "Node.js",

@@ -17,6 +17,7 @@ import { generateBreakpointIds } from './adapter/breakpoints';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 import { IDisposable } from './common/disposable';
+import { NodeAttacher } from './targets/node/nodeAttacher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -82,6 +83,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net.createServer(async socket => {
       const launchers = [
+        new NodeAttacher(),
         new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
         new BrowserLauncher(storagePath),
         new BrowserAttacher(),

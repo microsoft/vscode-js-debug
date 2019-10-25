@@ -2,17 +2,34 @@
 // Licensed under the MIT license.
 
 import { Target } from '../targets';
-import { NodeLauncher } from './nodeLauncher';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
-import { INodeLaunchConfiguration } from '../../configuration';
+import { AnyNodeConfiguration } from '../../configuration';
 import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { EventEmitter } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { basename } from 'path';
 
+export interface INodeTargetLifecycleHooks {
+  /**
+   * Invoked when the adapter thread is first initialized.
+   */
+
+  initialized?(target: NodeTarget): Promise<void>;
+
+  /**
+   * Invoked when the thread is paused. Return true if the pause event
+   * is handled internally and should not be returned to the UI.
+   */
+  paused?(target: NodeTarget, notification: Cdp.Debugger.PausedEvent): Promise<boolean>;
+
+  /**
+   * Invoked when the target is stopped.
+   */
+  close?(target: NodeTarget): void;
+}
+
 export class NodeTarget implements Target {
-  private _launcher: NodeLauncher;
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
   private _children: NodeTarget[] = [];
@@ -23,18 +40,23 @@ export class NodeTarget implements Target {
   private _attached = false;
   private _waitingForDebugger: boolean;
   private _onNameChangedEmitter = new EventEmitter<void>();
-  readonly onNameChanged = this._onNameChangedEmitter.event;
+  private _onDisconnectEmitter = new EventEmitter<void>();
+
+  public readonly onDisconnect = this._onDisconnectEmitter.event;
+  public readonly onNameChanged = this._onNameChangedEmitter.event;
 
   constructor(
-    launcher: NodeLauncher,
+    private readonly pathResolver: ISourcePathResolver,
+    private readonly targetOriginValue: string,
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
-    args: INodeLaunchConfiguration,
+    args: AnyNodeConfiguration,
+    private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
-    this._launcher = launcher;
     this.connection = connection;
     this._cdp = cdp;
+    cdp.pause();
     this._targetId = targetInfo.targetId;
     this._scriptName = targetInfo.title;
     this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
@@ -44,8 +66,6 @@ export class NodeTarget implements Target {
     if (args.logging && args.logging.cdp)
       connection.setLogConfig(this._targetName, args.logging.cdp);
 
-    this._setParent(launcher._targets.get(targetInfo.openerId!));
-    launcher._targets.set(targetInfo.targetId, this);
     cdp.Target.on('targetDestroyed', () => this.connection.close());
     connection.onDisconnected(_ => this._disconnected());
   }
@@ -67,7 +87,7 @@ export class NodeTarget implements Target {
   }
 
   targetOrigin(): any {
-    return this._launcher.context!.targetOrigin;
+    return this.targetOriginValue;
   }
 
   parent(): Target | undefined {
@@ -76,6 +96,16 @@ export class NodeTarget implements Target {
 
   children(): Target[] {
     return Array.from(this._children.values());
+  }
+
+  public async initialize() {
+    if (this.lifecycle.initialized) {
+      this.lifecycle.initialized(this);
+    }
+  }
+
+  public async onPaused(event: Cdp.Debugger.PausedEvent) {
+    return !!this.lifecycle.paused && (await this.lifecycle.paused(this, event));
   }
 
   waitingForDebugger(): boolean {
@@ -97,7 +127,7 @@ export class NodeTarget implements Target {
   }
 
   sourcePathResolver(): ISourcePathResolver {
-    return this._launcher._pathResolver!;
+    return this.pathResolver;
   }
 
   supportsCustomBreakpoints(): boolean {
@@ -117,18 +147,16 @@ export class NodeTarget implements Target {
     return !!this._parent;
   }
 
-  _setParent(parent?: NodeTarget) {
+  public setParent(parent?: NodeTarget) {
     if (this._parent) this._parent._children.splice(this._parent._children.indexOf(this), 1);
     this._parent = parent;
     if (this._parent) this._parent._children.push(this);
   }
 
   async _disconnected() {
-    this._children.forEach(child => child._setParent(this._parent));
-    this._setParent(undefined);
-    this._launcher._targets.delete(this._targetId);
-    // await this.detach();
-    this._launcher._onTargetListChangedEmitter.fire();
+    this._children.forEach(child => child.setParent(this._parent));
+    this.setParent(undefined);
+    this._onDisconnectEmitter.fire();
   }
 
   canAttach(): boolean {
@@ -146,7 +174,12 @@ export class NodeTarget implements Target {
   async _doAttach(): Promise<Cdp.Api> {
     this._waitingForDebugger = false;
     this._attached = true;
-    await this._cdp.Target.attachToTarget({ targetId: this._targetId });
+    const result = await this._cdp.Target.attachToTarget({ targetId: this._targetId });
+    if (result && '__dynamicAttach' in result) {
+      await this._cdp.Debugger.enable({});
+      await this._cdp.Runtime.enable({});
+    }
+
     let defaultCountextId: number;
     this._cdp.Runtime.on('executionContextCreated', event => {
       if (event.context.auxData && event.context.auxData['isDefault'])
@@ -156,6 +189,10 @@ export class NodeTarget implements Target {
       if (event.executionContextId === defaultCountextId) this.connection.close();
     });
     return this._cdp;
+  }
+
+  public async afterBind() {
+    this._cdp.resume();
   }
 
   canDetach(): boolean {
@@ -186,9 +223,12 @@ export class NodeTarget implements Target {
 
   stop() {
     try {
-      process.kill(+this._targetId);
-    } catch (e) {}
-    this.connection.close();
+      if (this.lifecycle.close) {
+        this.lifecycle.close(this);
+      }
+    } finally {
+      this.connection.close();
+    }
   }
 }
 

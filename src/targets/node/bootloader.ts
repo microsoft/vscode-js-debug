@@ -1,19 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { spawn } from 'child_process';
 import * as inspector from 'inspector';
-import * as path from 'path';
 import { writeFileSync } from 'fs';
-import { IProcessTelemetry } from './nodeLauncher';
+import { spawnWatchdog } from './watchdogSpawn';
+import { IProcessTelemetry } from './nodeLauncherBase';
+import { LeaseFile } from './lease-file';
 
-function debugLog(text: string) {
+function debugLog() {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
 }
 
 (function() {
-  debugLog('args: ' + process.argv.join(' '));
+  debugLog();
   if (!process.env.NODE_INSPECTOR_IPC) return;
+
+  const leaseFile = process.env.NODE_INSPECTOR_REQUIRE_LEASE;
+  if (leaseFile && !LeaseFile.isValid(leaseFile)) {
+    process.env.NODE_INSPECTOR_IPC = undefined; // save work for any children
+    return;
+  }
 
   // Electron support
   // Do not enable for Electron and other hybrid environments.
@@ -56,11 +62,6 @@ function debugLog(text: string) {
 
   if (!waitForDebugger) return;
 
-  const kBootloader = path.sep + 'bootloader.js';
-  const kWatchdog = path.sep + 'watchdog.js';
-  if (!__filename.endsWith(kBootloader)) return;
-  const fileName = __filename.substring(0, __filename.length - kBootloader.length) + kWatchdog;
-
   const ppid = process.env.NODE_INSPECTOR_PPID || '';
   if (ppid === '' + process.pid) {
     // When we have two of our bootloaders in NODE_OPTIONS,
@@ -69,35 +70,27 @@ function debugLog(text: string) {
   }
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
-  debugLog('Opening inspector for scriptName: ' + scriptName);
+  debugLog();
   inspector.open(0, undefined, false);
 
   const info = {
+    ipcAddress: process.env.NODE_INSPECTOR_IPC,
     pid: String(process.pid),
     scriptName,
-    inspectorURL: inspector.url(),
+    inspectorURL: inspector.url()!,
     waitForDebugger,
     ppid,
   };
 
-  debugLog('Info: ' + JSON.stringify(info));
+  debugLog();
   const execPath = process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath;
-  debugLog('Spawning: ' + execPath + ' ' + fileName);
+  debugLog();
 
-  const p = spawn(execPath, [fileName], {
-    env: {
-      NODE_INSPECTOR_INFO: JSON.stringify(info),
-      NODE_INSPECTOR_IPC: process.env.NODE_INSPECTOR_IPC,
-    },
-    stdio: 'ignore',
-    detached: true,
-  });
-  p.unref();
-  process.on('exit', () => p.kill());
+  spawnWatchdog(execPath, info);
 
   if (waitForDebugger) {
-    debugLog('Will wait for debugger');
+    debugLog();
     inspector.open(0, undefined, true);
-    debugLog('Got debugger');
+    debugLog();
   }
 })();

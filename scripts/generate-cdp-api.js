@@ -147,9 +147,21 @@ async function generate() {
     result.push(`  }`);
   }
 
+  function appendPauseResume() {
+    result.push(`    /**`);
+    result.push(`     * Pauses events being sent through the aPI.`);
+    result.push(`     */`);
+    result.push(`    pause(): void;`);
+    result.push(`    /**`);
+    result.push(`     * Resumes previously-paused events`);
+    result.push(`     */`);
+    result.push(`    resume(): void;`);
+  }
+
   interfaceSeparator();
   appendText('Protocol API.', '  ');
   result.push(`  export interface Api {`);
+  appendPauseResume();
   domains.forEach(d => {
     result.push(`    ${d.domain}: ${d.domain}Api;`)
   });

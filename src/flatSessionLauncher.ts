@@ -24,6 +24,7 @@ import { Disposable } from './common/events';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { Contributions } from './common/contributionUtils';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
+import { NodeAttacher } from './targets/node/nodeAttacher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -49,6 +50,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
   const _childSessionsForTarget = new Map<Target, ChildSession>();
   const launchers = [
     new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+    new NodeAttacher(),
     new BrowserLauncher(storagePath),
     new BrowserAttacher(),
   ];
