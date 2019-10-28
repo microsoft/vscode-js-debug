@@ -398,7 +398,7 @@ export class Thread implements VariableStoreDelegate {
       }
 
       this._pausedDetails = this._createPausedDetails(event);
-      this._pausedDetails[kPausedEventSymbol] = event;
+      (this._pausedDetails as any)[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
       scheduledPauseOnAsyncCall = undefined;
       this._onThreadPaused();
@@ -425,7 +425,7 @@ export class Thread implements VariableStoreDelegate {
 
   refreshStackTrace() {
     if (this._pausedDetails)
-      this._pausedDetails = this._createPausedDetails(this._pausedDetails[kPausedEventSymbol]);
+      this._pausedDetails = this._createPausedDetails((this._pausedDetails as any)[kPausedEventSymbol]);
     this._onThreadResumed();
     this._onThreadPaused();
   }
@@ -771,7 +771,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   scriptsFromSource(source: Source): Set<Script> {
-    return source[kScriptsSymbol] || new Set();
+    return (source as any)[kScriptsSymbol] || new Set();
   }
 
   _removeAllScripts() {
@@ -779,7 +779,7 @@ export class Thread implements VariableStoreDelegate {
     this._scripts.clear();
     this._scriptSources.clear();
     for (const script of scripts) {
-      const set = script.source[kScriptsSymbol];
+      const set = (script.source as any)[kScriptsSymbol];
       set.delete(script);
       if (!set.size)
         this._sourceContainer.removeSource(script.source);
@@ -824,9 +824,9 @@ export class Thread implements VariableStoreDelegate {
 
     const script = { url: event.url, scriptId: event.scriptId, source, hash: event.hash };
     this._scripts.set(event.scriptId, script);
-    if (!source[kScriptsSymbol])
-      source[kScriptsSymbol] = new Set();
-    source[kScriptsSymbol].add(script);
+    if (!(source as any)[kScriptsSymbol])
+      (source as any)[kScriptsSymbol] = new Set();
+    (source as any)[kScriptsSymbol].add(script);
 
     if (!this._pauseOnSourceMapBreakpointId && event.sourceMapURL) {
       // If we won't pause before executing this script, try to load source map

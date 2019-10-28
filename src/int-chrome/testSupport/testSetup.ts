@@ -26,7 +26,7 @@ const checkLogTest = (
 
   function runTest(): Promise<any> {
     return new Promise((resolve, reject) => {
-      const optionalCallback = e => {
+      const optionalCallback = (e: Error) => {
         if (e) reject(e);
         else resolve();
       };
@@ -76,7 +76,7 @@ export type PatchLaunchArgsCb = (launchArgs: any) => Promise<void> | void;
 
 let dc: ExtendedDebugClient;
 function patchLaunchFn(patchLaunchArgsCb: PatchLaunchArgsCb): void {
-  function patchLaunchArgs(launchArgs): Promise<void> {
+  function patchLaunchArgs(launchArgs: any): Promise<void> {
     launchArgs.request = 'launch';
     launchArgs.trace = 'verbose';
     const patchReturnVal = patchLaunchArgsCb(launchArgs);

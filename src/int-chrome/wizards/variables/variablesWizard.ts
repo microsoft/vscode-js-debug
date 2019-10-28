@@ -72,14 +72,15 @@ export class VariablesWizard {
     public async assertStackFrameVariablesAre(stackFrame: StackFrameWizard, verifications: IExpectedVariables) {
         const scopesWithModifiers = Object.keys(verifications);
         const scopesWithoutModifiers = scopesWithModifiers.map(s => this.splitIntoScopeNameAndModifier(s)[0]);
-        const withoutModifiersToWith = new ValidatedMap(_.zip(scopesWithoutModifiers, scopesWithModifiers)) as any; // TODO@rob
+        const zippedScopes = _.zip(scopesWithoutModifiers, scopesWithModifiers) as [keyof IExpectedVariables, keyof IExpectedVariables][];
+        const withoutModifiersToWith = new ValidatedMap<keyof IExpectedVariables, keyof IExpectedVariables>(zippedScopes);
         const manyScopes = await (stackFrame).variablesOfScopes(scopesWithoutModifiers);
         for (const scope of manyScopes) {
             const scopeNameWithModifier = withoutModifiersToWith.get(scope.scopeName)!;
             const [, modifier] = this.splitIntoScopeNameAndModifier(scopeNameWithModifier);
             switch (modifier) {
                 case '':
-                    this.verificator.assertVariablesAre(scope.variables, verifications[scopeNameWithModifier]!);
+                    this.verificator.assertVariablesAre(scope.variables, verifications[scopeNameWithModifier] as IScopeExpectedVariables);
                     break;
                 case 'contains':
                     this.verificator.assertVariablesValuesContain(scope.variables, <ManyVariablesValues>verifications[scopeNameWithModifier]!);

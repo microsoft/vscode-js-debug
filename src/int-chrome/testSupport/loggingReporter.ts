@@ -20,12 +20,12 @@ class LoggingReporter extends mocha.reporters.Spec {
       }
     });
 
-    runner.on('test', test => {
+    runner.on('test', () => {
       this.inTest = true;
       this.testLogs = [];
     });
 
-    runner.on('pass', test => {
+    runner.on('pass', () => {
       this.inTest = false;
 
       if (LoggingReporter.alwaysDumpLogs) {
@@ -33,7 +33,7 @@ class LoggingReporter extends mocha.reporters.Spec {
       }
     });
 
-    runner.on('fail', test => {
+    runner.on('fail', () => {
       this.inTest = false;
       this.dumpLogs();
 

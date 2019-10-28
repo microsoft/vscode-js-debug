@@ -51,7 +51,7 @@ export function caseInsensitiveMerge<V>(
     return {};
   }
 
-  const out = {};
+  const out: any = {};
   const caseMapping: { [key: string]: string } = Object.create(null); // prototype-free object
   for (const obj of objs) {
     if (!obj) {

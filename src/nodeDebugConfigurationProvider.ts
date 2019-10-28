@@ -231,7 +231,7 @@ function createLaunchConfigFromContext(
           dir += '/';
         }
       }
-      config['preLaunchTask'] = 'tsc: build - tsconfig.json';
+      (config as any)['preLaunchTask'] = 'tsc: build - tsconfig.json';
     }
     config['outFiles'] = ['${workspaceFolder}/' + dir + '**/*.js'];
   }
