@@ -49,8 +49,11 @@ export class Binder implements Disposable {
 
     this._dap.then(dap => {
       dap.on('initialize', async () => {
-        dap.initialized({});
-        return DebugAdapter.capabilities();
+        const capabilities = DebugAdapter.capabilities();
+        setTimeout(() => {
+          dap.initialized({});
+        }, 0);
+        return capabilities;
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
@@ -59,15 +62,12 @@ export class Binder implements Disposable {
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('launch', async rawParams => {
-        const params = rawParams as AnyLaunchConfiguration;
-        if (params.rootPath)
-          params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
-        this._launchParams = params;
-        let results = await Promise.all(launchers.map(l => this._launch(l, params)));
-        results = results.filter(result => !!result);
-        if (results.length)
-          return errors.createUserError(results.join('\n'));
+      dap.on('attach', async params => {
+        await this._boot(params as AnyLaunchConfiguration);
+        return {};
+      });
+      dap.on('launch', async params => {
+        await this._boot(params as AnyLaunchConfiguration);
         return {};
       });
       dap.on('terminate', async () => {
@@ -83,6 +83,17 @@ export class Binder implements Disposable {
         return {};
       });
     });
+  }
+
+  private async _boot(params: AnyLaunchConfiguration) {
+    if (params.rootPath)
+      params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
+    this._launchParams = params;
+    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params)));
+    results = results.filter(result => !!result);
+    if (results.length)
+      return errors.createUserError(results.join('\n'));
+    return {};
   }
 
   async _restart() {
@@ -163,6 +174,8 @@ export class Binder implements Disposable {
         return {};
       });
     }
+
+    await target.afterBind();
   }
 
   async detach(target: Target) {

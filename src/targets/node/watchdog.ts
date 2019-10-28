@@ -3,9 +3,9 @@
 
 import * as net from 'net';
 import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
+import { IWatchdogInfo } from './watchdogSpawn';
 
-const info = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
-
+const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 
 function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `WATCHDOG [${info.pid}] ${text} (${info.scriptName})\n`);
@@ -13,22 +13,24 @@ function debugLog(text: string) {
 
 process.on('exit', () => {
   debugLog('KILL');
-  process.kill(+info.pid);
+  if (info.pid) {
+    process.kill(Number(info.pid));
+  }
 });
 
-(async() => {
+(async () => {
   debugLog('CONNECTED TO TARGET');
   let server: PipeTransport;
   let pipe: any;
-  await new Promise(f => pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f));
+  await new Promise(f => (pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f)));
   server = new PipeTransport(pipe);
 
   const targetInfo = {
-    targetId: info.pid,
+    targetId: info.pid || '0',
     type: info.waitForDebugger ? 'waitingForDebugger' : '',
     title: info.scriptName,
     url: 'file://' + info.scriptName,
-    openerId: info.ppid
+    openerId: info.ppid,
   };
 
   server.send(JSON.stringify({ method: 'Target.targetCreated', params: { targetInfo } }));
@@ -42,7 +44,7 @@ process.on('exit', () => {
       return;
     }
 
-    let result = {};
+    let result: any = {};
     const object = JSON.parse(data);
 
     if (object.method === 'Target.attachToTarget') {
@@ -54,10 +56,19 @@ process.on('exit', () => {
       target = await WebSocketTransport.create(info.inspectorURL);
       target.onmessage = data => server.send(data);
       target.onclose = () => {
-        if (target)  // Could be due us closing.
-          server.send(JSON.stringify({ method: 'Target.targetDestroyed', params: { targetId: info.pid, sessionId: info.pid } }));
+        if (target)
+          // Could be due us closing.
+          server.send(
+            JSON.stringify({
+              method: 'Target.targetDestroyed',
+              params: { targetId: targetInfo.targetId, sessionId: targetInfo.targetId },
+            }),
+          );
       };
-      result = { sessionId: info.pid };
+      result = { sessionId: targetInfo.targetId };
+      if (info.dynamicAttach) {
+        result.__dynamicAttach = true;
+      }
     } else if (object.method === 'Target.detachFromTarget') {
       debugLog('DETACH FROM TARGET');
       if (target) {
@@ -78,7 +89,6 @@ process.on('exit', () => {
 
   server.onclose = () => {
     debugLog('SERVER CLOSED');
-    if (target)
-      target.close();
-  }
+    if (target) target.close();
+  };
 })();

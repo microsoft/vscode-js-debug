@@ -128,25 +128,40 @@ export default class Connection {
   }
 }
 
+// Node versions before 12 do not guarantee relative order of tasks and microstasks.
+// We artificially queue protocol messages to achieve this.
+const needsReordering = +process.version.substring(1).split('.')[0] <= 12;
+
 class CDPSession {
   private _connection?: Connection;
   private _callbacks: Map<number, ProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
-  private _queue?: ProtocolResponse[];
+  private _queue: ProtocolResponse[] = [];
   private _listeners = new Map<string, Set<(params: any) => void>>();
+  private paused = false;
 
   constructor(connection: Connection, sessionId: string) {
     this._callbacks = new Map();
     this._connection = connection;
     this._sessionId = sessionId;
     this._cdp = this._createApi();
+  }
 
-    const nodeVersion = +process.version.substring(1).split('.')[0];
-    if (nodeVersion <= 12) {
-      // Node versions before 12 do not guarantee relative order of tasks and microstasks.
-      // We artificially queue protocol messages to achieve this.
-      this._queue = [];
+  public pause() {
+    this.paused = true;
+  }
+
+  public resume() {
+    if (!this.paused) {
+      return;
+    }
+
+    this.paused = false;
+    const toSend = this._queue;
+    this._queue = [];
+    for (const item of toSend) {
+      this._processResponse(item);
     }
   }
 
@@ -160,17 +175,24 @@ class CDPSession {
 
   _createApi(): Cdp.Api {
     return new Proxy({}, {
-      get: (target, agentName: string, receiver) => new Proxy({}, {
-        get: (target, methodName: string, receiver) => {
-          if (methodName === 'then')
-            return;
-          if (methodName === 'on')
-            return (eventName: string, listener: (params: any) => void) => this._on(`${agentName}.${eventName}`, listener);
-          if (methodName === 'off')
-            return (eventName: string, listener: (params: any) => void) => this._off(`${agentName}.${eventName}`, listener);
-          return (params: object | undefined) => this._send(`${agentName}.${methodName}`, params);
-        }
-      })
+      get: (_target, agentName: string, _receiver) => {
+        if (agentName === 'pause')
+          return () => this.pause();
+        if (agentName === 'resume')
+          return () => this.resume();
+
+        return new Proxy({}, {
+          get: (_target, methodName: string, _receiver) => {
+            if (methodName === 'then')
+              return;
+            if (methodName === 'on')
+              return (eventName: string, listener: (params: any) => void) => this._on(`${agentName}.${eventName}`, listener);
+            if (methodName === 'off')
+              return (eventName: string, listener: (params: any) => void) => this._off(`${agentName}.${eventName}`, listener);
+            return (params: object | undefined) => this._send(`${agentName}.${methodName}`, params);
+          }
+        });
+      },
     }) as Cdp.Api;
   }
 
@@ -200,21 +222,38 @@ class CDPSession {
   }
 
   _onMessage(object: ProtocolResponse) {
-    if (!this._queue) {
+    if (object.id) {
+      this._processResponse(object);
+    }
+
+    // If we're paused, queue events but still process responses to avoid hanging.
+    if (this.paused) {
+      this._queue.push(object);
+      return;
+    }
+
+    if (!needsReordering) {
       this._processResponse(object);
       return;
     }
+
     this._queue.push(object);
-    if (this._queue.length === 1)
+    if (this._queue.length === 1) {
       this._processQueue();
+    }
   }
 
   _processQueue() {
     setTimeout(() => {
-      const object = this._queue!.shift()!;
+      if (this.paused || this._queue.length === 0) {
+        return;
+      }
+
+      const object = this._queue.shift()!;
       this._processResponse(object);
-      if (this._queue!.length)
+      if (this._queue.length) {
         this._processQueue();
+      }
     }, 0);
   }
 

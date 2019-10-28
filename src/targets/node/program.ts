@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { IProcessTelemetry } from './nodeLauncher';
 import { ChildProcess } from 'child_process';
 import { killTree } from './killTree';
 import Dap from '../../dap/api';
 import { IStopMetadata } from '../targets';
+import { IProcessTelemetry } from './nodeLauncherBase';
 
 export interface IProgram {
   readonly stopped: Promise<IStopMetadata>;

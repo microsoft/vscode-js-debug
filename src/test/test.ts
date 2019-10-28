@@ -17,11 +17,12 @@ import { Logger } from './logger';
 import { Binder } from '../binder';
 import { Target } from '../targets/targets';
 import { EventEmitter } from '../common/events';
-import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../configuration';
+import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration, INodeAttachConfiguration, nodeAttachConfigDefaults } from '../configuration';
 import { tmpdir } from 'os';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
+import { NodeAttacher } from '../targets/node/nodeAttacher';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -278,7 +279,6 @@ export class TestRoot {
   private _launchCallback: (session: ITestHandle) => void;
 
   _browserLauncher: BrowserLauncher;
-  _nodeLauncher: NodeLauncher;
   readonly binder: Binder;
 
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
@@ -304,8 +304,11 @@ export class TestRoot {
 
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath);
-    this._nodeLauncher = new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]);
-    this.binder = new Binder(this, this._root.adapterConnection, [this._browserLauncher, this._nodeLauncher], '0');
+    this.binder = new Binder(this, this._root.adapterConnection, [
+      this._browserLauncher,
+      new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+      new NodeAttacher()
+    ], '0');
 
     this.initialize = this._root._init();
 
@@ -381,6 +384,18 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       ...options,
     } as INodeLaunchConfiguration);
+    const result = await new Promise(f => this._launchCallback = f);
+    return result as NodeTestHandle;
+  }
+
+  async attachNode(processId: number, options: Partial<INodeAttachConfiguration> = {}): Promise<NodeTestHandle> {
+    await this.initialize;
+    this._launchUrl = `process${processId}`;
+    this._root.dap.launch({
+      ...nodeAttachConfigDefaults,
+      processId: `inspector${processId}`,
+      ...options,
+    } as INodeAttachConfiguration);
     const result = await new Promise(f => this._launchCallback = f);
     return result as NodeTestHandle;
   }

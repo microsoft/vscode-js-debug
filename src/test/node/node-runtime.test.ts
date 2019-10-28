@@ -13,8 +13,9 @@ import { join } from 'path';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
+import { delay } from '../../common/promiseUtil';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -85,6 +86,29 @@ describe('node runtime', () => {
     } finally {
       launch.restore();
     }
+  });
+
+  describe('attaching', () => {
+    let child: ChildProcess | undefined;
+    beforeEach(() => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 500)'],
+      });
+    });
+
+    afterEach(() => {
+      if (child) {
+        child.kill();
+      }
+    });
+
+    itIntegrates('attaches to existing processes', async ({ r }) => {
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      await delay(500); // give it a moment to boot
+      const handle = await r.attachNode(child.pid);
+      await waitForPause(handle);
+      handle.assertLog();
+    });
   });
 
   describe('child processes', () => {

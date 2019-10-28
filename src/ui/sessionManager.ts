@@ -15,6 +15,7 @@ import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLaun
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Contributions } from '../common/contributionUtils';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
+import { NodeAttacher } from '../targets/node/nodeAttacher';
 
 export class Session implements Disposable {
   public readonly debugSession: vscode.DebugSession;
@@ -41,6 +42,7 @@ export class Session implements Disposable {
   createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
     const launchers = [
       new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+      new NodeAttacher(),
       new BrowserLauncher(context.storagePath || context.extensionPath),
       new BrowserAttacher(),
     ];

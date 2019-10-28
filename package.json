@@ -109,7 +109,7 @@
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:NAMESPACE(node)",
-    "onCommand:extension.pickNodeProcess",
+    "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
     "onCommand:extension.NAMESPACE(node-debug).pickLoadedScript",
     "onCommand:extension.NAMESPACE(node-debug).toggleSkippingFile",
@@ -177,6 +177,11 @@
           "light": "resources/light/remove-all.svg",
           "dark": "resources/dark/remove-all.svg"
         }
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).attachNodeProcess",
+        "title": "%attach.node.process%",
+        "category": "Debug"
       }
     ],
     "menus": {
@@ -243,6 +248,9 @@
       {
         "type": "NAMESPACE(node)",
         "label": "%node.label%",
+        "variables": {
+          "PickProcess": "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess"
+        },
         "configurationSnippets": [
           {
             "label": "%node.snippet.launch.label%",
@@ -874,24 +882,6 @@
                 "type": "boolean",
                 "description": "%chrome.showAsyncStacks.description%",
                 "default": true
-              },
-              "breakOnLoad": {
-                "type": "boolean",
-                "description": "%chrome.breakOnLoad.description%",
-                "default": true
-              },
-              "breakOnLoadStrategy": {
-                "type": "string",
-                "enum": [
-                  "instrument",
-                  "regex"
-                ],
-                "enumDescriptions": [
-                  "%chrome.breakOnLoadStrategy.instrument.description%",
-                  "%chrome.breakOnLoadStrategy.regex.description%"
-                ],
-                "description": "%chrome.breakOnLoadStrategy.description%",
-                "default": "instrument"
               },
               "server": {
                 "type": "object",
