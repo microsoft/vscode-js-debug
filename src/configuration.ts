@@ -309,7 +309,7 @@ export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration & Partial<
 export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
 
-const baseDefaults: IBaseConfiguration = {
+export const baseDefaults: IBaseConfiguration = {
   type: '',
   name: '',
   request: '',
@@ -325,6 +325,7 @@ const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
     'webpack:///*': '*',
     'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
