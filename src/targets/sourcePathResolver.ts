@@ -11,6 +11,7 @@ import {
 } from '../common/pathUtils';
 import * as path from 'path';
 import { isFileUrl } from '../common/urlUtils';
+import { baseDefaults } from '../configuration';
 
 export interface ISourcePathResolverOptions {
   sourceMapOverrides: { [key: string]: string };
@@ -73,7 +74,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * as a filesystem path, not a URI.
    */
   protected applyPathOverrides(sourcePath: string) {
-    const { sourceMapOverrides } = this.options;
+    const { sourceMapOverrides = baseDefaults.sourceMapPathOverrides } = this.options;
     const forwardSlashSourcePath = sourcePath.replace(/\\/g, '/');
 
     // Sort the overrides by length, large to small
