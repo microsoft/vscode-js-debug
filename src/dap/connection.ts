@@ -4,7 +4,8 @@
 import Dap from './api';
 
 import { HighResolutionTime } from '../utils/performance';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { TelemetryReporter, RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
 
 export interface Message {
   sessionId?: string;
@@ -19,6 +20,8 @@ export interface Message {
   message?: string;
   __receivedTime?: HighResolutionTime;
 }
+
+let isFirstDapConnectionEver = true;
 
 export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
@@ -62,6 +65,10 @@ export default class Connection {
     const dap = this._createApi();
     this._ready(dap);
     this._telemetryReporter = TelemetryReporter.dap(dap);
+    if (isFirstDapConnectionEver) {
+      installUnhandledErrorReporter(new RawTelemetryReporterToDap(dap));
+      isFirstDapConnectionEver = false;
+    }
   }
 
   public dap(): Promise<Dap.Api> {

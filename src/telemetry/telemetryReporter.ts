@@ -112,7 +112,7 @@ interface ErrorTelemetryProperties {
   stack: string | undefined;
 }
 
-function extractErrorDetails(e: any): { error: ErrorTelemetryProperties } {
+export function extractErrorDetails(e: any): { error: ErrorTelemetryProperties } {
   const message = ("" + e.message) || e.toString();
   const name = "" + e.name;
 
