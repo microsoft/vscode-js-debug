@@ -11,6 +11,9 @@ function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `WATCHDOG [${info.pid}] ${text} (${info.scriptName})\n`);
 }
 
+process.on('uncaughtException', e => debugLog(`Uncaught exception: ${e.stack || e}`));
+process.on('unhandledRejection', e => debugLog(`Unhandled rejection: ${e}`));
+
 process.on('exit', () => {
   debugLog('KILL');
   if (info.pid) {

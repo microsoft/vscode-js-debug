@@ -12,6 +12,7 @@ export const enum Contributions {
   RemoveCustomBreakpointCommand = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
   RemoveAllCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
 
+  ExtensionHostDebugType = 'NAMESPACE(extensionHost)',
   NodeDebugType = 'NAMESPACE(node)',
   ChromeDebugType = 'NAMESPACE(chrome)',
 }

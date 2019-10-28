@@ -11,6 +11,7 @@ import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider
 import { ChromeDebugConfigurationProvider } from './chromeDebugConfigurationProvider';
 import { Contributions } from './common/contributionUtils';
 import { pickProcess, attachProcess } from './ui/processPicker';
+import { ExtensionHostConfigurationProvider } from './extensionHostConfigurationProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -20,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const nodeConfigProvider = new NodeDebugConfigurationProvider();
   const chromeConfigProvider = new ChromeDebugConfigurationProvider(nodeConfigProvider);
+  const extensionConfigProvider = new ExtensionHostConfigurationProvider();
 
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider(
@@ -30,11 +32,19 @@ export function activate(context: vscode.ExtensionContext) {
       Contributions.ChromeDebugType,
       chromeConfigProvider,
     ),
+    vscode.debug.registerDebugConfigurationProvider(
+      Contributions.ExtensionHostDebugType,
+      extensionConfigProvider,
+    ),
   );
 
   const sessionManager = new SessionManager(context);
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.NodeDebugType, sessionManager),
+    vscode.debug.registerDebugAdapterDescriptorFactory(
+      Contributions.ExtensionHostDebugType,
+      sessionManager,
+    ),
     vscode.debug.registerDebugAdapterDescriptorFactory(
       Contributions.ChromeDebugType,
       sessionManager,

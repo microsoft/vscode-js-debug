@@ -117,7 +117,8 @@
     "onDebugResolve:NAMESPACE(chrome)",
     "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint"
+    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
+    "onDebugResolve:NAMESPACE(extensionHost)"
   ],
   "contributes": {
     "viewsContainers": {
@@ -243,6 +244,141 @@
       }
     ],
     "debuggers": [
+      {
+        "type": "NAMESPACE(extensionHost)",
+        "label": "VS Code Extension Development",
+        "program": "./out/src/nodeDebug.js",
+        "runtime": "node",
+        "configurationSnippets": [
+          {
+            "label": "%extensionHost.snippet.launch.label%",
+            "description": "%extensionHost.snippet.launch.description%",
+            "body": {
+              "type": "extensionHost",
+              "request": "launch",
+              "name": "%extensionHost.launch.config.name%",
+              "runtimeExecutable": "^\"\\${execPath}\"",
+              "args": [
+                "^\"--extensionDevelopmentPath=\\${workspaceFolder}\""
+              ],
+              "outFiles": [
+                "^\"\\${workspaceFolder}/out/**/*.js\""
+              ],
+              "preLaunchTask": "npm"
+            }
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "args"
+            ],
+            "properties": {
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "%extensionHost.launch.stopOnEntry.description%",
+                "default": true
+              },
+              "args": {
+                "type": "array",
+                "description": "%node.launch.args.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": [
+                  "--extensionDevelopmentPath=${workspaceFolder}"
+                ]
+              },
+              "runtimeExecutable": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "markdownDescription": "%extensionHost.launch.runtimeExecutable.description%",
+                "default": "${execPath}"
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "markdownDescription": "%extensionHost.launch.env.description%",
+                "default": {}
+              },
+              "envFile": {
+                "type": "string",
+                "description": "%node.launch.envFile.description%",
+                "default": "${workspaceFolder}/.env"
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%node.sourceMaps.description%",
+                "default": true
+              },
+              "outFiles": {
+                "type": "array",
+                "markdownDescription": "%outFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": [
+                  "${workspaceFolder}/out/**/*.js"
+                ]
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "markdownDescription": "%skipFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%node.showAsyncStacks.description%",
+                "default": true
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%node.sourceMapPathOverrides.description%",
+                "default": {
+                  "webpack:///./~/*": "${workspaceRoot}/node_modules/*",
+                  "webpack:///./*": "${workspaceRoot}/*",
+                  "webpack:///*": "*"
+                }
+              },
+              "disableOptimisticBPs": {
+                "type": "boolean",
+                "description": "%node.disableOptimisticBPs.description%",
+                "default": true
+              },
+              "logging": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cdp": {
+                    "type": "string",
+                    "description": "%node.launch.logging.cdp%"
+                  },
+                  "dap": {
+                    "type": "string",
+                    "description": "%node.launch.logging.dap%"
+                  }
+                },
+                "description": "Logging configuration"
+              }
+            }
+          }
+        }
+      },
       {
         "type": "NAMESPACE(node)",
         "label": "%node.label%",
