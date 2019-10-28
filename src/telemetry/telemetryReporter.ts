@@ -34,7 +34,7 @@ export class TelemetryReporter {
     this.reportOutcome(receivedTime, dapCommand, extractErrorDetails(error), RequestOutcome.Failed);
   }
 
-  reportSucces(dapCommand: string, receivedTime: HighResolutionTime) {
+  reportSuccess(dapCommand: string, receivedTime: HighResolutionTime) {
     this.reportOutcome(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
   }
 

@@ -195,7 +195,7 @@ export default class Connection {
           }
           this._send(response);
         }
-        this._telemetryReporter!.reportSucces(msg.command!, receivedTime);
+        this._telemetryReporter!.reportSuccess(msg.command!, receivedTime);
       } catch (e) {
         console.error(e);
         response.success = false;

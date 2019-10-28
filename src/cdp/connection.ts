@@ -95,7 +95,7 @@ export default class Connection {
       try {
         session._onMessage(object);
         if (eventName)
-          this._telemetryReporter.reportSucces(eventName, receivedTime);
+          this._telemetryReporter.reportSuccess(eventName, receivedTime);
       } catch (error) {
         if (eventName)
           this._telemetryReporter.reportError(eventName, receivedTime, error);
