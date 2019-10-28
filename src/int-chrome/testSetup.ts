@@ -56,9 +56,7 @@ function formLaunchArgs(
   }
 
   const argsWithDefaults = { ...chromeLaunchConfigDefaults, ...launchArgs };
-  for (let k in argsWithDefaults) {
-    launchArgs[k] = (argsWithDefaults as any)[k]; // TODO@rob
-  }
+  Object.assign(launchArgs, argsWithDefaults);
 }
 
 let storedLaunchArgs: Partial<IChromeLaunchConfiguration> = {};
