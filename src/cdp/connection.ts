@@ -4,7 +4,7 @@
 import { Transport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
-import { CdpTelemetryReporter, RawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { RawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
 import { HighResolutionTime } from '../utils/performance';
 
 interface ProtocolCommand {
@@ -45,7 +45,7 @@ export default class Connection {
   private _logPrefix = '';
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
-  private readonly _telemetryReporter: CdpTelemetryReporter;
+  private readonly _telemetryReporter: TelemetryReporter;
 
   constructor(transport: Transport, rawTelemetryReporter: RawTelemetryReporter) {
     this._lastId = 0;
@@ -56,7 +56,7 @@ export default class Connection {
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
     this._sessions.set('', this._rootSession);
-    this._telemetryReporter = new CdpTelemetryReporter(rawTelemetryReporter);
+    this._telemetryReporter = TelemetryReporter.cdp(rawTelemetryReporter);
   }
 
   setLogConfig(prefix: string, path?: string) {
@@ -95,10 +95,10 @@ export default class Connection {
       try {
         session._onMessage(object);
         if (eventName)
-          this._telemetryReporter.reportSuccesfullyHandledEvent(eventName, receivedTime);
+          this._telemetryReporter.reportSucces(eventName, receivedTime);
       } catch (error) {
         if (eventName)
-          this._telemetryReporter.reportErrorWhileHandlingEvent(eventName, receivedTime, error);
+          this._telemetryReporter.reportError(eventName, receivedTime, error);
       }
     } else {
       throw new Error(`Unknown session id: ${object.sessionId}`)

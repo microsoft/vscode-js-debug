@@ -4,7 +4,7 @@
 import Dap from './api';
 
 import { HighResolutionTime } from '../utils/performance';
-import { DapRequestTelemetryReporter } from '../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 
 export interface Message {
   sessionId?: string;
@@ -36,7 +36,7 @@ export default class Connection {
   protected _ready: (dap: Dap.Api) => void;
   private _logPath?: string;
   private _logPrefix = '';
-  private _telemetryReporter: DapRequestTelemetryReporter | undefined;
+  private _telemetryReporter: TelemetryReporter | undefined;
 
   constructor() {
     this._sequence = 1;
@@ -61,7 +61,7 @@ export default class Connection {
     inStream.resume();
     const dap = this._createApi();
     this._ready(dap);
-    this._telemetryReporter = new DapRequestTelemetryReporter(dap);
+    this._telemetryReporter = TelemetryReporter.dap(dap);
   }
 
   public dap(): Promise<Dap.Api> {
@@ -195,7 +195,7 @@ export default class Connection {
           }
           this._send(response);
         }
-        this._telemetryReporter!.reportSuccesfullyHandledDapMessage(msg.command!, receivedTime);
+        this._telemetryReporter!.reportSucces(msg.command!, receivedTime);
       } catch (e) {
         console.error(e);
         response.success = false;
@@ -208,7 +208,7 @@ export default class Connection {
           }
         };
         this._send(response);
-        this._telemetryReporter!.reportErrorWhileHandlingDapMessage(msg.command!, receivedTime, e);
+        this._telemetryReporter!.reportError(msg.command!, receivedTime, e);
       }
     }
     if (msg.type === 'event') {

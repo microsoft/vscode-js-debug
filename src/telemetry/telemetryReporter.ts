@@ -3,7 +3,7 @@
 
 import Dap from '../dap/api';
 import { HighResolutionTime, calculateElapsedTime } from '../utils/performance';
-import { OpsReportBatcher, UnbatchedOpReport } from './opsReportBatch';
+import { OpsReportBatcher, UnbatchedOpReport, TelemetryOperationProperties } from './opsReportBatch';
 import { EventEmitter } from '../common/events';
 
 export type TelemetryEntityProperties = object;
@@ -14,28 +14,53 @@ enum RequestOutcome {
   Failed
 }
 
-export class DapRequestTelemetryReporter {
+export interface TelemetryReporterStrategy {
+  eventsPrefix: string;
+  adjustElapsedTime(elapsedTime: number): number;
+  report(eventName: string, entityProperties: TelemetryEntityProperties);
+}
+
+export class TelemetryReporter {
+  private constructor(private readonly _strategy: TelemetryReporterStrategy) {}
+
+  public static dap(dap: Dap.Api): TelemetryReporter {
+    return new TelemetryReporter(new DapRequestTelemetryReporter(dap));
+  }
+  public static cdp(rawTelemetryReporter: RawTelemetryReporter): TelemetryReporter {
+    return new TelemetryReporter(new CdpTelemetryReporter(rawTelemetryReporter));
+  }
+
+  reportError(dapCommand: string, receivedTime: HighResolutionTime, error: unknown) {
+    this.reportOutcome(receivedTime, dapCommand, extractErrorDetails(error), RequestOutcome.Failed);
+  }
+
+  reportSucces(dapCommand: string, receivedTime: HighResolutionTime) {
+    this.reportOutcome(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
+  }
+
+  private reportOutcome(receivedTime: [number, number], dapCommand: string, properties: TelemetryEntityProperties, outcome: RequestOutcome) {
+    const elapsedTime = calculateElapsedTime(receivedTime);
+    const entityProperties = { ...properties, time: this._strategy.adjustElapsedTime(elapsedTime), succesful: outcome === RequestOutcome.Succesful };
+    this._strategy.report(`${this._strategy.eventsPrefix}/` + dapCommand, entityProperties);
+  }
+}
+
+class DapRequestTelemetryReporter {
   private readonly _rawTelemetryReporter: RawTelemetryReporterToDap;
+
+  public readonly eventsPrefix = 'dap';
+  public readonly adjustElapsedTime = x => x;
 
   public constructor(dap: Dap.Api) {
     this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
   }
 
-  reportErrorWhileHandlingDapMessage(dapCommand: string, receivedTime: HighResolutionTime, error: unknown) {
-    this.reportWithElapsedTime(receivedTime, dapCommand, extractErrorDetails(error), RequestOutcome.Failed);
-  }
-
-  reportSuccesfullyHandledDapMessage(dapCommand: string, receivedTime: HighResolutionTime) {
-    this.reportWithElapsedTime(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
-  }
-
-  private reportWithElapsedTime(receivedTime: [number, number], dapCommand: string, properties: TelemetryEntityProperties, outcome: RequestOutcome) {
-    const elapsedTime = calculateElapsedTime(receivedTime);
-    this._rawTelemetryReporter.report('dap/' + dapCommand, { ...properties, time: elapsedTime, succesful: outcome === RequestOutcome.Succesful });
+  public report(eventName: string, entityProperties: TelemetryEntityProperties) {
+    this._rawTelemetryReporter.report(eventName, entityProperties);
   }
 }
 
-export class CdpTelemetryReporter {
+class CdpTelemetryReporter {
   private readonly _batcher = new OpsReportBatcher();
 
   public constructor(private readonly _rawTelemetryReporter: RawTelemetryReporter) {
@@ -44,35 +69,20 @@ export class CdpTelemetryReporter {
     });
   }
 
-  reportErrorWhileHandlingEvent(cdpEventName: string, receivedTime: HighResolutionTime, error: unknown) {
-    this.reportWithElapsedTime(receivedTime, cdpEventName, extractErrorDetails(error), RequestOutcome.Failed);
-  }
+  // Floating point numbers use too much space and we don't need that much precision, we use integers to use less space when batching timings
+  public readonly adjustElapsedTime = Math.ceil;
 
-  reportSuccesfullyHandledEvent(cdpEventName: string, receivedTime: HighResolutionTime) {
-    this.reportWithElapsedTime(receivedTime, cdpEventName, {}, RequestOutcome.Succesful);
-  }
+  public readonly eventsPrefix = 'cdp';
 
-  private reportWithElapsedTime(receivedTime: HighResolutionTime, cdpEventName: string, properties: TelemetryEntityProperties, outcome: RequestOutcome) {
-    // Floating point numbers use too much space and we don't need that much precision, we use integers to use less space when batching timings
-    const elapsedTime = Math.ceil(calculateElapsedTime(receivedTime));
-
+  public report(eventName: string, entityProperties: TelemetryOperationProperties) {
     // CDP generates a lot of operations, so instead of reporting them one by one, we batch them all together
-    this._batcher.add(new UnbatchedOpReport('cdp/' + cdpEventName, { ...properties, time: elapsedTime, succesful: outcome === RequestOutcome.Succesful }));
+    this._batcher.add(new UnbatchedOpReport(eventName, entityProperties));
   }
-}
-
-export function isRawTelemetryReporter(unknownObject: unknown): unknownObject is RawTelemetryReporter {
-  return !!(unknownObject as RawTelemetryReporter).report;
 }
 
 export interface RawTelemetryReporter {
   flush: EventEmitter<void>;
   report(entityName: string, entityProperties: TelemetryEntityProperties);
-}
-
-export class NullRawTelemetryReporter implements RawTelemetryReporter {
-  public readonly flush = new EventEmitter<void>();
-  report(entityName: string, entityProperties: object) {}
 }
 
 export class RawTelemetryReporterToDap implements RawTelemetryReporter {
