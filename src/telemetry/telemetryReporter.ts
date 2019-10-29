@@ -103,7 +103,7 @@ export class RawTelemetryReporterToDap implements RawTelemetryReporter {
 // Next line is a sample path aligned with the regexp parts that recognize it/match it. () is for the capture group
 //                                C  :     \  foo      \  (in.js:)
 //                                C  :     \  foo\ble  \  (fi.ts:)
-const extractFileNamePattern = /[A-z]:(?:[\\/][^:]*)+[\\/]([^:]*:)/g;
+const extractFileNamePattern = /(?:[A-z]:)?(?:[\\/][^:]*)+[\\/]([^:]*:)/g;
 
 
 interface ErrorTelemetryProperties {
