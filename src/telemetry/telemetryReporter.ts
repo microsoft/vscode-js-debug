@@ -17,7 +17,7 @@ enum RequestOutcome {
 export interface TelemetryReporterStrategy {
   eventsPrefix: string;
   adjustElapsedTime(elapsedTime: number): number;
-  report(eventName: string, entityProperties: TelemetryEntityProperties);
+  report(eventName: string, entityProperties: TelemetryEntityProperties): void;
 }
 
 export class TelemetryReporter {
@@ -49,13 +49,13 @@ class DapRequestTelemetryReporter {
   private readonly _rawTelemetryReporter: RawTelemetryReporterToDap;
 
   public readonly eventsPrefix = 'dap';
-  public readonly adjustElapsedTime = x => x;
+  public readonly adjustElapsedTime = (x: number) => x;
 
   public constructor(dap: Dap.Api) {
     this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
   }
 
-  public report(eventName: string, entityProperties: TelemetryEntityProperties) {
+  public report(eventName: string, entityProperties: TelemetryEntityProperties): void {
     this._rawTelemetryReporter.report(eventName, entityProperties);
   }
 }

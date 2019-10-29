@@ -81,7 +81,7 @@ function aggregateIntoSingleObject(objectsToAggregate: object[]): { [propertyNam
   const manyPropertyNames = extractAllPropertyNames(objectsToAggregate);
   const aggregatedObject = <{ [propertyName: string]: unknown[] }> <unknown>
     _.fromPairs(manyPropertyNames.map((propertyName: string) => {
-      return [propertyName, objectsToAggregate.map(objectToAggregate => objectToAggregate[propertyName])];
+      return [propertyName, objectsToAggregate.map((objectToAggregate: object) => objectToAggregate[propertyName])];
     }));
 
   return aggregatedObject;
