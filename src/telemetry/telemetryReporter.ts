@@ -82,7 +82,7 @@ class CdpTelemetryReporter {
 
 export interface RawTelemetryReporter {
   flush: EventEmitter<void>;
-  report(entityName: string, entityProperties: TelemetryEntityProperties);
+  report(entityName: string, entityProperties: TelemetryEntityProperties): void;
 }
 
 export class RawTelemetryReporterToDap implements RawTelemetryReporter {
