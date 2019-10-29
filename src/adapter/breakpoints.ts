@@ -13,6 +13,7 @@ import { rewriteLogPoint } from '../common/sourceUtils';
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
 export class Breakpoint {
+  public readonly attachedLocations: Cdp.Debugger.Location[] = [];
   private _manager: BreakpointManager;
   private _dapId: number;
   _source: Dap.Source;
@@ -183,10 +184,18 @@ export class Breakpoint {
     const urlLocation = this._urlLocation(script.url, lineColumn);
     if (script.url && this._setUrlLocations.has(urlLocation))
       return;
+
+    lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
+    const location = {
+      scriptId: script.scriptId,
+      lineNumber: lineColumn.lineNumber - 1,
+      columnNumber: lineColumn.columnNumber - 1
+    };
+    this.attachedLocations.push(location);
+
     const activeSetter = (async () => {
-      lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
       const result = await thread.cdp().Debugger.setBreakpoint({
-        location: { scriptId: script.scriptId, lineNumber: lineColumn.lineNumber - 1, columnNumber: lineColumn.columnNumber - 1 },
+        location,
         condition: this._condition,
       });
       if (result)
@@ -335,6 +344,16 @@ export class BreakpointManager {
       breakpoints.forEach(b => b.set(this._thread!));
     this._updateSourceMapHandler();
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
+  }
+
+  public getBreakpointsAtLocation(location: Partial<Cdp.Debugger.Location>) {
+    return [...this._resolvedBreakpoints.values()].filter(v =>
+      v.attachedLocations.some(l =>
+        (location.columnNumber === undefined || location.columnNumber === l.columnNumber)
+          && (location.lineNumber === undefined || location.lineNumber === l.lineNumber)
+          && (location.scriptId === undefined || location.scriptId === l.scriptId)
+      ),
+    );
   }
 }
 

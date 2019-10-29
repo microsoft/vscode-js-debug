@@ -17,6 +17,7 @@ import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 import { ScriptSkipper } from './scriptSkipper';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 
@@ -92,7 +93,15 @@ export class Thread implements VariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, private readonly launchConfig: AnyLaunchConfiguration) {
+  constructor(
+    sourceContainer: SourceContainer,
+    threadName: string,
+    cdp: Cdp.Api,
+    dap: Dap.Api,
+    delegate: ThreadDelegate,
+    private readonly breakpoints: BreakpointManager,
+    private readonly launchConfig: AnyLaunchConfiguration,
+  ) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
@@ -383,6 +392,11 @@ export class Thread implements VariableStoreDelegate {
             scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
           // Paused on the script which is run as a task for scheduled async call.
           // We are waiting for this pause, no need to resume.
+        } else if (
+          event.callFrames.length
+          && this.breakpoints.getBreakpointsAtLocation(event.callFrames[0].location).length
+        ) {
+          // A user intentionally set a breakpoint on the first line
         } else {
           await this._pauseOnScheduledAsyncCall();
           this.resume();
