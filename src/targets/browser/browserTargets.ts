@@ -23,6 +23,7 @@ export class BrowserTargetManager implements Disposable {
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: SourcePathResolver;
   _targetOrigin: any;
+  _scriptSkipper?: ScriptSkipper;
 
   private _onTargetAddedEmitter = new EventEmitter<BrowserTarget>();
   private _onTargetRemovedEmitter = new EventEmitter<BrowserTarget>();
@@ -36,6 +37,10 @@ export class BrowserTargetManager implements Disposable {
       return;
     const browserSession = connection.createSession(result.sessionId);
     return new BrowserTargetManager(connection, browserSession, sourcePathResolver, targetOrigin);
+  }
+
+  setSkipFiles(scriptSkipper: ScriptSkipper) {
+    this._scriptSkipper = scriptSkipper;
   }
 
   constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver, targetOrigin: any) {

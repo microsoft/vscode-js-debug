@@ -405,8 +405,6 @@ export class Thread implements VariableStoreDelegate {
     let scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
-      // this._sourceContainer.setBlackboxRegex(new RegExp(blackboxPattern));
-      // this._cdp.Debugger.setBlackboxPatterns({patterns: [blackboxPattern]});
       this._sourceContainer.initializeScriptSkipper(scriptSkipper);
       scriptSkipper.setBlackboxSender(this._cdp.Debugger);
     }

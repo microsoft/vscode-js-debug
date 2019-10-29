@@ -1,4 +1,8 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import cdp from '../cdp/api';
+import * as utils from '../common/sourceUtils';
 
 export class ScriptSkipper {
   private _userSkipPatterns: string[];
@@ -20,20 +24,31 @@ export class ScriptSkipper {
   }
 
   private _preprocessNodeInternals(): void {
-    let nodeInternalRegex = new RegExp("^<node_internals>\/(.*)$");
-    let nodeInternalPatterns = this._userSkipPatterns!.filter(pattern => pattern.includes("<node_internals>")).map( nodeInternal => {
-      return nodeInternalRegex.exec(nodeInternal)![1];
-    });
-    if (nodeInternalPatterns.length > 0) { // set variables to use to filter node internals when in module
-      if (nodeInternalPatterns.includes("**/*.js"))
-        this.skipAllNodeInternals = true; // this value is checked later at a later processing point
-      else
-        this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
+    const nodeInternalRegex = new RegExp("^<node_internals>[\/|\\\\](.*)$");
+    const skipAllNodeInternalsRegex = new RegExp("^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js");
+
+    const nodeInternalPatterns = this._userSkipPatterns!
+      .filter(pattern => pattern.includes("<node_internals>"))
+      .map(nodeInternal => {
+        nodeInternal = nodeInternal.trim();
+        if (skipAllNodeInternalsRegex.test(nodeInternal)) { // check if all node internals are skipped
+          this.skipAllNodeInternals = true;
+        }
+        return utils.pathGlobToBlackboxedRegex(nodeInternalRegex.exec(nodeInternal)![1]);
+      });
+
+    if (!this.skipAllNodeInternals && nodeInternalPatterns.length > 0) {
+      this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
     }
   }
 
   private _setRegexForNonNodeInternals(): void {
-    var nonNodeInternalGlobs = this._userSkipPatterns.filter(pattern => !pattern.includes("<node_internals>"));
+    var nonNodeInternalGlobs = this._userSkipPatterns
+      .filter(pattern => !pattern.includes("<node_internals>"))
+      .map(glob => {
+        return utils.pathGlobToBlackboxedRegex(glob);
+      });
+
     this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
   }
 

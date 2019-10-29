@@ -304,3 +304,28 @@ export function positionToOffset(text: string, line: number, column: number): nu
   offset += column - 1;
   return offset;
 }
+
+export function pathGlobToBlackboxedRegex(glob: string): string {
+  return escapeRegexSpecialChars(glob, '*')
+      .replace(/([^*]|^)\*([^*]|$)/g, '$1.*$2') // * -> .*
+      .replace(/\*\*(\\\/|\\\\)?/g, '(.*\\\/)?') // **/ -> (.*\/)?
+
+      // Just to simplify
+      .replace(/\.\*\\\/\.\*/g, '.*') // .*\/.* -> .*
+      .replace(/\.\*\.\*/g, '.*') // .*.* -> .*
+
+      // Match either slash direction
+      .replace(/\\\/|\\\\/g, '[\/\\\\]'); // / -> [/|\], \ -> [/|\]
+}
+
+const regexChars = '/\\.?*()^${}|[]+';
+export function escapeRegexSpecialChars(str: string, except?: string): string {
+  const useRegexChars = regexChars
+      .split('')
+      .filter(c => !except || except.indexOf(c) < 0)
+      .join('')
+      .replace(/[\\\]]/g, '\\$&');
+
+  const r = new RegExp(`[${useRegexChars}]`, 'g');
+  return str.replace(r, '\\$&');
+}

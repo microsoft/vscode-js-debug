@@ -14,6 +14,7 @@ export interface LaunchParams extends CommonLaunchParams {
   runtimeArgs?: string[];
   baseURL?: string;
   webRoot?: string;
+  skipFiles?: string[];
 }
 
 export function baseURL(params: LaunchParams): string | undefined {

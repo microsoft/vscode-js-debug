@@ -13,6 +13,7 @@ import { Target, Launcher, LaunchResult } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { LaunchParams, baseURL } from './browserLaunchParams';
 import { CommonLaunchParams } from '../../common/commonLaunchParams';
+import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 const localize = nls.loadMessageBundle();
 
@@ -106,6 +107,10 @@ export class BrowserLauncher implements Launcher {
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       this._onTargetListChangedEmitter.fire();
     });
+
+    if (params.skipFiles) {
+      this._targetManager.setSkipFiles(new ScriptSkipper(params.skipFiles));
+    }
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
