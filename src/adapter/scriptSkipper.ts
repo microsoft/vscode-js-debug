@@ -24,8 +24,8 @@ export class ScriptSkipper {
   }
 
   private _preprocessNodeInternals(): void {
-    const nodeInternalRegex = new RegExp('^<node_internals>[\/|\\\\](.*)$');
-    const skipAllNodeInternalsRegex = new RegExp('^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js');
+    const nodeInternalRegex = /^<node_internals>[\/|\\\\](.*)$/;
+    const skipAllNodeInternalsRegex = /^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js/;
 
     const nodeInternalPatterns = this._userSkipPatterns!
       .filter(pattern => pattern.includes('<node_internals>'))
@@ -54,7 +54,7 @@ export class ScriptSkipper {
   }
 
   private _testRegex(regexPattern: string, strToTest: string): boolean {
-    let regExp = new RegExp(regexPattern);
+    const regExp = new RegExp(regexPattern);
     return regExp.test(strToTest);
   }
 
