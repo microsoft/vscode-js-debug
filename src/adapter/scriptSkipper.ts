@@ -6,10 +6,10 @@ import * as utils from '../common/sourceUtils';
 
 export class ScriptSkipper {
   private _userSkipPatterns: string[];
-  private _nonNodeInternalRegex: string = "";
+  private _nonNodeInternalRegex: string = '';
 
   // filtering node internals
-  private _nodeInternalsRegex: string = "";
+  private _nodeInternalsRegex: string = '';
   skipAllNodeInternals: boolean = false;
 
   private _isUrlSkippedMap = new Map<string, boolean>();
@@ -24,17 +24,17 @@ export class ScriptSkipper {
   }
 
   private _preprocessNodeInternals(): void {
-    const nodeInternalRegex = new RegExp("^<node_internals>[\/|\\\\](.*)$");
-    const skipAllNodeInternalsRegex = new RegExp("^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js");
+    const nodeInternalRegex = new RegExp('^<node_internals>[\/|\\\\](.*)$');
+    const skipAllNodeInternalsRegex = new RegExp('^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js');
 
     const nodeInternalPatterns = this._userSkipPatterns!
-      .filter(pattern => pattern.includes("<node_internals>"))
+      .filter(pattern => pattern.includes('<node_internals>'))
       .map(nodeInternal => {
         nodeInternal = nodeInternal.trim();
         if (skipAllNodeInternalsRegex.test(nodeInternal)) { // check if all node internals are skipped
           this.skipAllNodeInternals = true;
         }
-        return utils.pathGlobToBlackboxedRegex(nodeInternalRegex.exec(nodeInternal)![1]);
+        return nodeInternalRegex.exec(nodeInternal)![1];
       });
 
     if (!this.skipAllNodeInternals && nodeInternalPatterns.length > 0) {
@@ -43,19 +43,14 @@ export class ScriptSkipper {
   }
 
   private _setRegexForNonNodeInternals(): void {
-    var nonNodeInternalGlobs = this._userSkipPatterns
-      .filter(pattern => !pattern.includes("<node_internals>"))
-      .map(glob => {
-        return utils.pathGlobToBlackboxedRegex(glob);
-      });
-
+    var nonNodeInternalGlobs = this._userSkipPatterns.filter(pattern => !pattern.includes('<node_internals>'));
     this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
   }
 
   private _createRegexString(patterns: string[]): string {
     if (patterns.length == 0)
-      return ".^";
-    return patterns.map(pattern => pattern.replace('.', '\.')).join('|');
+      return '.^';
+    return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
 
   private _testRegex(regexPattern: string, strToTest: string): boolean {
@@ -66,7 +61,7 @@ export class ScriptSkipper {
   private _updateBlackboxedUrls(url: string) {
     if (this._isUrlSkippedMap.get(url) && this.blackboxSender) {
       this._blackboxedUrls.push(url);
-      let blackboxPattern = "^" + this._blackboxedUrls.join("|") + "$";
+      let blackboxPattern = '^' + this._blackboxedUrls.join('|') + '$';
       this.blackboxSender({patterns: [blackboxPattern]});
     }
   }
@@ -93,7 +88,7 @@ export class ScriptSkipper {
   }
 
   public setAllNodeInternalsToSkip(nodeInternalsNames: string[]): void {
-    let fullLibNames = nodeInternalsNames.map(name => name + ".js");
+    let fullLibNames = nodeInternalsNames.map(name => name + '.js');
     fullLibNames.push('^internal/.+\.js|');
     this._nodeInternalsRegex = this._createRegexString(fullLibNames);
   }

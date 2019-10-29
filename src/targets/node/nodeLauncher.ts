@@ -272,7 +272,7 @@ class NodeTarget implements Target {
 
   async _setSkippingNodeInternals() {
     if (this._launcher._scriptSkipper && this._launcher._scriptSkipper.skipAllNodeInternals) {
-      const evalResult = await this._cdp.Runtime.evaluate({expression: "require('module').builtinModules", returnByValue: true, includeCommandLineAPI: true});
+      const evalResult = await this._cdp.Runtime.evaluate({expression: 'require("module").builtinModules', returnByValue: true, includeCommandLineAPI: true});
       if (evalResult && !evalResult.exceptionDetails) {
         this._launcher._scriptSkipper.setAllNodeInternalsToSkip(evalResult.result.value);
       }
