@@ -43,12 +43,12 @@ export class ScriptSkipper {
   }
 
   private _setRegexForNonNodeInternals(): void {
-    var nonNodeInternalGlobs = this._userSkipPatterns.filter(pattern => !pattern.includes('<node_internals>'));
+    const nonNodeInternalGlobs = this._userSkipPatterns.filter(pattern => !pattern.includes('<node_internals>'));
     this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
   }
 
   private _createRegexString(patterns: string[]): string {
-    if (patterns.length == 0)
+    if (patterns.length === 0)
       return '.^';
     return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
