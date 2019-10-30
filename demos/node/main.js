@@ -5,7 +5,8 @@ async function bar() {
 
 async function foo() {
   const result = await bar();
-  console.log(result + 1);
+  const result2 = await bar();
+  console.log(result + result);
 }
 
 function throwIt() {

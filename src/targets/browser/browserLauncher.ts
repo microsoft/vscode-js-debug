@@ -9,10 +9,12 @@ import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult } from '../../targets/targets';
+import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
-import { LaunchParams, baseURL } from './browserLaunchParams';
-import { CommonLaunchParams } from '../../common/commonLaunchParams';
+import { baseURL } from './browserLaunchParams';
+import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
+import { Contributions } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 const localize = nls.loadMessageBundle();
@@ -21,10 +23,10 @@ export class BrowserLauncher implements Launcher {
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
   private _targetManager: BrowserTargetManager | undefined;
-  private _launchParams: LaunchParams | undefined;
+  private _launchParams: IChromeLaunchConfiguration | undefined;
   private _mainTarget?: BrowserTarget;
   private _disposables: Disposable[] = [];
-  private _onTerminatedEmitter = new EventEmitter<void>();
+  private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
@@ -43,7 +45,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser(args: string[], executable: string | undefined): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -59,6 +61,14 @@ export class BrowserLauncher implements Launcher {
           executablePath = installations[0].path;
       }
     }
+
+    let resolvedDataDir: string | undefined;
+    if (userDataDir === true) {
+        resolvedDataDir = path.join(this._storagePath, runtimeArgs && runtimeArgs.includes('--headless') ? '.headless-profile' : '.profile');
+    } else if (typeof userDataDir === 'string') {
+      resolvedDataDir = userDataDir;
+    }
+
     if (!executablePath)
       throw new Error('Unable to find browser');
 
@@ -66,33 +76,41 @@ export class BrowserLauncher implements Launcher {
       fs.mkdirSync(this._storagePath);
     } catch (e) {
     }
+
     return await launcher.launch(
       executablePath, {
-        args,
-        userDataDir: path.join(this._storagePath, args.indexOf('--headless') !== -1 ? '.headless-profile' : '.profile'),
+        timeout,
+        cwd: cwd || undefined,
+        env: EnvironmentVars.merge(process.env, env),
+        args: runtimeArgs || [],
+        userDataDir: resolvedDataDir,
         pipe: true,
       });
   }
 
-  async prepareLaunch(params: LaunchParams, targetOrigin: any): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params.browserArgs || params.runtimeArgs || [], params.browserExecutable || params.runtimeExecutable);
+      connection = await this._launchBrowser(params);
     } catch (e) {
-      if (params.browserExecutable || params.runtimeExecutable)
-        return localize('error.executableNotFoundParam', 'Unable to find browser "{0}"', params.browserExecutable || params.runtimeExecutable);
-      return localize('error.executableNotFound', 'Unable to find browser executable');
+      return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    if (params.logging)
+    if (params.logging && params.logging.cdp)
       connection.setLogConfig(params.url || '', params.logging.cdp);
     connection.onDisconnected(() => {
-      this._onTerminatedEmitter.fire();
+      this._onTerminatedEmitter.fire({ code: 0, killed: true });
     }, undefined, this._disposables);
     this._connectionForTest = connection;
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(baseURL(params), params.webRoot || params.rootPath);
+    const pathResolver = new BrowserSourcePathResolver({
+      baseUrl: baseURL(params),
+      localRoot: null,
+      remoteRoot: null,
+      webRoot: params.webRoot || params.rootPath,
+      sourceMapOverrides: params.sourceMapPathOverrides,
+    });
     this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
@@ -119,20 +137,22 @@ export class BrowserLauncher implements Launcher {
       return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget)
-        this._onTerminatedEmitter.fire();
+        this._onTerminatedEmitter.fire({ code: 0, killed: true });
     });
     return this._mainTarget;
   }
 
   async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    if (this._launchParams!.url && !this._launchParams!['skipNavigateForTest'])
+    if (this._launchParams!.url && !(this._launchParams as any)['skipNavigateForTest'])
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult> {
-    if (!('url' in params))
+  async launch(params: AnyChromeConfiguration, targetOrigin: any): Promise<LaunchResult> {
+    if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
-    const targetOrError = await this.prepareLaunch(params as LaunchParams, targetOrigin);
+    }
+
+    const targetOrError = await this.prepareLaunch(params, targetOrigin);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
     await this.finishLaunch(targetOrError);

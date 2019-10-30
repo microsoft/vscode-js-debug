@@ -11,12 +11,15 @@ import { BrowserAttacher } from '../targets/browser/browserAttacher';
 import { Target } from '../targets/targets';
 import { Disposable } from '../common/events';
 import { checkVersion } from './version';
-import { TerminalProgramLauncher } from './terminalProgramLauncher';
+import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { DebugAdapter } from '../adapter/debugAdapter';
+import { Contributions } from '../common/contributionUtils';
+import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
+import { NodeAttacher } from '../targets/node/nodeAttacher';
 
 export class Session implements Disposable {
-  readonly debugSession: vscode.DebugSession;
-  readonly connection: DapConnection;
+  public readonly debugSession: vscode.DebugSession;
+  public readonly connection: DapConnection;
   private _server: net.Server;
   private _binder?: Binder;
   private _onTargetNameChanged?: Disposable;
@@ -31,12 +34,15 @@ export class Session implements Disposable {
 
   listenToTarget(target: Target) {
     if (checkVersion('1.39.0'))
-      this._onTargetNameChanged = target.onNameChanged(() => this.debugSession.name = target.name());
+      this._onTargetNameChanged = target.onNameChanged(() => {
+        this.debugSession.name = target.name()
+      });
   }
 
   createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
     const launchers = [
-      new NodeLauncher(new TerminalProgramLauncher()),
+      new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+      new NodeAttacher(),
       new BrowserLauncher(context.storagePath || context.extensionPath),
       new BrowserAttacher(),
     ];
@@ -44,7 +50,7 @@ export class Session implements Disposable {
   }
 
   descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    return new vscode.DebugAdapterServer(this._server.address().port);
+    return new vscode.DebugAdapterServer((this._server.address() as net.AddressInfo).port);
   }
 
   dispose() {
@@ -57,7 +63,6 @@ export class Session implements Disposable {
 }
 
 export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Disposable, BinderDelegate {
-  private _context: vscode.ExtensionContext;
   private _disposables: Disposable[] = [];
   private _sessions = new Map<string, Session>();
 
@@ -65,17 +70,13 @@ export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Dis
   private _sessionForTarget = new Map<Target, Promise<Session>>();
   private _sessionForTargetCallbacks = new Map<Target, { fulfill: (session: Session) => void, reject: (error: Error) => void}>();
 
-  constructor(context: vscode.ExtensionContext) {
-    this._context = context;
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('pwa', this));
-    context.subscriptions.push(this);
+  constructor(private readonly _context: vscode.ExtensionContext) {}
 
-    vscode.debug.onDidTerminateDebugSession(debugSession => {
-      const session = this._sessions.get(debugSession.id);
-      this._sessions.delete(debugSession.id);
-      if (session)
-        session.dispose();
-    }, undefined, this._disposables);
+  public terminate(debugSession: vscode.DebugSession) {
+    const session = this._sessions.get(debugSession.id);
+    this._sessions.delete(debugSession.id);
+    if (session)
+      session.dispose();
   }
 
   createDebugAdapterDescriptor(debugSession: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
@@ -117,7 +118,7 @@ export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Dis
         }
 
         const config = {
-          type: 'pwa',
+          type: Contributions.ChromeDebugType,
           name: target.name(),
           request: 'attach',
           __pendingTargetId: target.id()

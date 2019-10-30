@@ -17,9 +17,17 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server",
-      "program": "${workspaceFolder}/out/debugServer.js",
+      "program": "${workspaceFolder}/out/out/debugServerMain.js",
       "args": ["4711"],
-      "preLaunchTask": "npm: watch"
+      // "preLaunchTask": "npm: watch"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Server (Flat Session)",
+      "program": "${workspaceFolder}/out/out/flatSessionLauncher.js",
+      "args": ["4712"],
+      // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Extension",
@@ -28,19 +36,19 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=msjsdiag.pwa-debugger",
-        "--extensionDevelopmentPath=${workspaceFolder}"
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js"
       ],
-      "preLaunchTask": "npm: watch"
+      // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Dogfood",
       "type": "pwa",
       "request": "launch",
-      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/",
-      "preLaunchTask": "npm: watch"
+      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/out",
+      // "preLaunchTask": "npm: watch"
     },
 		{
 			"name": "Run Tests",
@@ -49,10 +57,24 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
 			],
-			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			// "preLaunchTask": "npm: watch"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run int tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "args": ["--timeout", "10000", "-u", "tdd", "--colors", "--reporter", "out/out/int-chrome/testSupport/loggingReporter.js", "./out/out/int-chrome/**/*.test.js",
+        // "--grep", "Variables scopes"
+      ],
+      "outFiles": ["${workspaceFolder}/out/out/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "env": {
+        "DISPLAY": ":1.0"
+      }
     },
 		{
 			"name": "Reset Results",
@@ -61,13 +83,13 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
       ],
       "env": {
         "RESET_RESULTS": "true"
       },
-			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			// "preLaunchTask": "npm: watch"
     }
   ]
 }

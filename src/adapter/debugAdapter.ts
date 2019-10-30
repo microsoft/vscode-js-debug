@@ -12,7 +12,8 @@ import { Thread, ThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager, generateBreakpointIds } from './breakpoints';
 import { Cdp } from '../cdp/api';
-import { SourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver } from '../common/sourcePathResolver';
+import { AnyLaunchConfiguration } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -27,7 +28,7 @@ export class DebugAdapter {
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver, private readonly launchConfig: AnyLaunchConfiguration) {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -60,8 +61,9 @@ export class DebugAdapter {
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
-    this.dap.initialized({});
-    return DebugAdapter.capabilities();
+    const capabilities = DebugAdapter.capabilities();
+    setTimeout(() => this.dap.initialized({}), 0);
+    return capabilities;
   }
 
   static capabilities(): Dap.Capabilities {
@@ -140,7 +142,7 @@ export class DebugAdapter {
   async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
     if (this._thread)
-      threads.push({ id: 0, name: this._thread.name() });
+      threads.push({ id: this._thread.id, name: this._thread.name() });
     return { threads };
   }
 
@@ -193,7 +195,7 @@ export class DebugAdapter {
   }
 
   createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate);
+    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this.launchConfig);
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);

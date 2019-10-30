@@ -2,38 +2,56 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { CancellationToken, DebugConfiguration, ProviderResult, WorkspaceFolder } from 'vscode';
-import * as nls from 'vscode-nls';
-import { SessionManager } from './ui/sessionManager';
-import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
+
 import { registerDebugScriptActions } from './ui/debugScriptUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
+import { SessionManager } from './ui/sessionManager';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
-
-const localize = nls.config(JSON.parse(process.env.VSCODE_NLS_CONFIG || '{}'))();
+import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider';
+import { ChromeDebugConfigurationProvider } from './chromeDebugConfigurationProvider';
+import { Contributions } from './common/contributionUtils';
+import { pickProcess, attachProcess } from './ui/processPicker';
 
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('pwa', new DebugConfigurationProvider()));
-  new SessionManager(context);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
+    vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
+  );
+
+  const nodeConfigProvider = new NodeDebugConfigurationProvider();
+  const chromeConfigProvider = new ChromeDebugConfigurationProvider(nodeConfigProvider);
+
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider(
+      Contributions.NodeDebugType,
+      nodeConfigProvider,
+    ),
+    vscode.debug.registerDebugConfigurationProvider(
+      Contributions.ChromeDebugType,
+      chromeConfigProvider,
+    ),
+  );
+
+  const sessionManager = new SessionManager(context);
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.NodeDebugType, sessionManager),
+    vscode.debug.registerDebugAdapterDescriptorFactory(
+      Contributions.ChromeDebugType,
+      sessionManager,
+    ),
+  );
+  context.subscriptions.push(
+    vscode.debug.onDidTerminateDebugSession(s => sessionManager.terminate(s)),
+  );
+  context.subscriptions.push(sessionManager);
+
   const debugSessionTracker = new DebugSessionTracker();
-  registerCustomBreakpointsUI(context, debugSessionTracker);
+  debugSessionTracker.attach();
+
   registerPrettyPrintActions(context, debugSessionTracker);
   registerDebugScriptActions(context);
 }
 
 export function deactivate() {
-  // nothing to do
-}
-
-class DebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-  resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
-    if (folder && (folder.uri.scheme === 'file:' || folder.uri.scheme === 'file'))
-      config.rootPath = folder.uri.fsPath;
-    if (!config.type && !config.request && !config.name) {
-      config.type = 'pwa';
-      config.name = localize('debugConfig.launch.name', 'Launch browser with PWA');
-      config.request = 'launch';
-    }
-    return config;
-  }
+  // nothing to do, yet...
 }

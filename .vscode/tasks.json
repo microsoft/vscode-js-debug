@@ -4,11 +4,19 @@
 		{
 			"type": "npm",
 			"script": "watch",
-			"problemMatcher": "$tsc-watch",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never"
+			"problemMatcher": {
+        "base": "$gulp-tsc",
+				"applyTo": "closedDocuments",
+				"background": {
+					"beginsPattern": "Starting",
+					"endsPattern": "Finished"
+				}
 			},
+      "isBackground": true,
+      // https://github.com/microsoft/vscode/issues/83016
+			// "presentation": {
+			// 	"reveal": "never"
+			// },
 			"group": {
 				"kind": "build",
 				"isDefault": true

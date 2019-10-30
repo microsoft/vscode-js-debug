@@ -1,0 +1,12 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+> result: (3) ['--some', 'very fancy', '--arguments']
+    0: '--some'
+    1: 'very fancy'
+    2: '--arguments'
+    length: 3
+    > __proto__: Array(0)

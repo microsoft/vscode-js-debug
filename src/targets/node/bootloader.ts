@@ -1,51 +1,59 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { spawn } from 'child_process';
 import * as inspector from 'inspector';
-import * as path from 'path';
+import { writeFileSync } from 'fs';
+import { spawnWatchdog } from './watchdogSpawn';
+import { IProcessTelemetry } from './nodeLauncherBase';
 
-function debugLog(text: string) {
+function debugLog() {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
 }
 
 (function() {
-  debugLog('args: ' + process.argv.join(' '));
-
-  if (!process.env.NODE_INSPECTOR_IPC)
-    return;
+  debugLog();
+  if (!process.env.NODE_INSPECTOR_IPC) return;
 
   // Electron support
   // Do not enable for Electron and other hybrid environments.
   try {
     eval('window');
     return;
-  } catch (e) {
+  } catch (e) {}
+
+  // If we wanted to only debug the entrypoint, unset environment variables
+  // so that nested processes do not inherit them.
+  if (process.env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
+    process.env.NODE_OPTIONS = undefined;
   }
+
+  if (process.env.VSCODE_DEBUGGER_FILE_CALLBACK) {
+    const data: IProcessTelemetry = {
+      processId: process.pid,
+      nodeVersion: process.version,
+      architecture: process.arch,
+    };
+
+    writeFileSync(process.env.VSCODE_DEBUGGER_FILE_CALLBACK, JSON.stringify(data));
+    delete process.env.VSCODE_DEBUGGER_FILE_CALLBACK;
+  }
+
   // Do not run watchdog using electron executable, stick with the cli's one.
-  if (process.execPath.endsWith('node'))
-    process.env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
+  if (process.execPath.endsWith('node')) process.env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
 
   let scriptName = '';
   try {
     scriptName = require.resolve(process.argv[1]);
-  } catch (e) {
-  }
+  } catch (e) {}
 
   let waitForDebugger = true;
   try {
-    waitForDebugger = new RegExp(process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER || '').test(scriptName);
-  } catch (e) {
-  }
+    waitForDebugger = new RegExp(process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER || '').test(
+      scriptName,
+    );
+  } catch (e) {}
 
-  if (!waitForDebugger)
-    return;
-
-  const kBootloader = path.sep + 'bootloader.js';
-  const kWatchdog = path.sep + 'watchdog.js';
-  if (!__filename.endsWith(kBootloader))
-    return;
-  const fileName = __filename.substring(0, __filename.length - kBootloader.length) + kWatchdog;
+  if (!waitForDebugger) return;
 
   const ppid = process.env.NODE_INSPECTOR_PPID || '';
   if (ppid === '' + process.pid) {
@@ -55,35 +63,27 @@ function debugLog(text: string) {
   }
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
-  debugLog('Opening inspector for scriptName: ' + scriptName);
+  debugLog();
   inspector.open(0, undefined, false);
 
   const info = {
+    ipcAddress: process.env.NODE_INSPECTOR_IPC,
     pid: String(process.pid),
     scriptName,
-    inspectorURL: inspector.url(),
+    inspectorURL: inspector.url()!,
     waitForDebugger,
-    ppid
+    ppid,
   };
 
-  debugLog('Info: ' + JSON.stringify(info));
+  debugLog();
   const execPath = process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath;
-  debugLog('Spawning: ' + execPath + ' ' + fileName);
+  debugLog();
 
-  const p = spawn(execPath, [fileName], {
-    env: {
-      NODE_INSPECTOR_INFO: JSON.stringify(info),
-      NODE_INSPECTOR_IPC: process.env.NODE_INSPECTOR_IPC
-    },
-    stdio: 'ignore',
-    detached: true
-  });
-  p.unref();
-  process.on('exit', () => p.kill());
+  spawnWatchdog(execPath, info);
 
   if (waitForDebugger) {
-    debugLog('Will wait for debugger');
+    debugLog();
     inspector.open(0, undefined, true);
-    debugLog('Got debugger');
+    debugLog();
   }
 })();

@@ -16,6 +16,7 @@ import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 import { ScriptSkipper } from './scriptSkipper';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -68,6 +69,8 @@ export type RawLocation = {
 };
 
 export class Thread implements VariableStoreDelegate {
+  private static _lastThreadId = 0;
+  public readonly id: number;
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _name: string;
@@ -89,12 +92,13 @@ export class Thread implements VariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
 
-  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate) {
+  constructor(sourceContainer: SourceContainer, threadName: string, cdp: Cdp.Api, dap: Dap.Api, delegate: ThreadDelegate, private readonly launchConfig: AnyLaunchConfiguration) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this._dap = dap;
     this._name = threadName;
+    this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
     this._initialize();
@@ -179,7 +183,9 @@ export class Thread implements VariableStoreDelegate {
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
     const response = await this._cdp.Debugger.restartFrame({ callFrameId });
     if (response && this._pausedDetails)
-      this._pausedDetails.stackTrace = StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId);
+      this._pausedDetails.stackTrace = this.launchConfig.showAsyncStacks
+      ? StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId)
+      : StackTrace.fromDebugger(this, response.callFrames);
     return {};
   }
 
@@ -348,10 +354,12 @@ export class Thread implements VariableStoreDelegate {
       const slot = this._claimOutputSlot();
       slot(this._clearDebuggerConsole());
     });
-    this._cdp.Runtime.on('consoleAPICalled', async event => {
-      const slot = this._claimOutputSlot();
-      slot(await this._onConsoleMessage(event));
-    });
+    if (this.launchConfig.outputCapture === OutputSource.Console)  {
+      this._cdp.Runtime.on('consoleAPICalled', async event => {
+        const slot = this._claimOutputSlot();
+        slot(await this._onConsoleMessage(event));
+      });
+    }
     this._cdp.Runtime.on('exceptionThrown', async event => {
       const slot = this._claimOutputSlot();
       slot(await this._formatException(event.exceptionDetails));
@@ -391,7 +399,7 @@ export class Thread implements VariableStoreDelegate {
       }
 
       this._pausedDetails = this._createPausedDetails(event);
-      this._pausedDetails[kPausedEventSymbol] = event;
+      (this._pausedDetails as any)[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
       scheduledPauseOnAsyncCall = undefined;
       this._onThreadPaused();
@@ -412,13 +420,13 @@ export class Thread implements VariableStoreDelegate {
 
     this._dap.thread({
       reason: 'started',
-      threadId: 0
+      threadId: this.id
     });
   }
 
   refreshStackTrace() {
     if (this._pausedDetails)
-      this._pausedDetails = this._createPausedDetails(this._pausedDetails[kPausedEventSymbol]);
+      this._pausedDetails = this._createPausedDetails((this._pausedDetails as any)[kPausedEventSymbol]);
     this._onThreadResumed();
     this._onThreadPaused();
   }
@@ -507,7 +515,7 @@ export class Thread implements VariableStoreDelegate {
     }
     this._dap.thread({
       reason: 'exited',
-      threadId: 0
+      threadId: this.id
     });
 
     this._executionContextsCleared();
@@ -583,7 +591,9 @@ export class Thread implements VariableStoreDelegate {
         this._sourceContainer.disableSourceMapForSource(sourceToDisable);
     }
 
-    const stackTrace = StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId);
+    const stackTrace =  this.launchConfig.showAsyncStacks
+      ? StackTrace.fromDebugger(this, event.callFrames, event.asyncStackTrace, event.asyncStackTraceId)
+      : StackTrace.fromDebugger(this, event.callFrames);
     switch (event.reason) {
       case 'assert': return {
         thread: this,
@@ -762,7 +772,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   scriptsFromSource(source: Source): Set<Script> {
-    return source[kScriptsSymbol] || new Set();
+    return (source as any)[kScriptsSymbol] || new Set();
   }
 
   _removeAllScripts() {
@@ -770,7 +780,7 @@ export class Thread implements VariableStoreDelegate {
     this._scripts.clear();
     this._scriptSources.clear();
     for (const script of scripts) {
-      const set = script.source[kScriptsSymbol];
+      const set = (script.source as any)[kScriptsSymbol];
       set.delete(script);
       if (!set.size)
         this._sourceContainer.removeSource(script.source);
@@ -800,7 +810,7 @@ export class Thread implements VariableStoreDelegate {
         ? { lineOffset: event.startLine, columnOffset: event.startColumn }
         : undefined;
       let resolvedSourceMapUrl: string | undefined;
-      if (event.sourceMapURL) {
+      if (event.sourceMapURL && this.launchConfig.sourceMaps) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
         resolvedSourceMapUrl = event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
@@ -815,9 +825,9 @@ export class Thread implements VariableStoreDelegate {
 
     const script = { url: event.url, scriptId: event.scriptId, source, hash: event.hash };
     this._scripts.set(event.scriptId, script);
-    if (!source[kScriptsSymbol])
-      source[kScriptsSymbol] = new Set();
-    source[kScriptsSymbol].add(script);
+    if (!(source as any)[kScriptsSymbol])
+      (source as any)[kScriptsSymbol] = new Set();
+    (source as any)[kScriptsSymbol].add(script);
 
     if (!this._pauseOnSourceMapBreakpointId && event.sourceMapURL) {
       // If we won't pause before executing this script, try to load source map
@@ -932,7 +942,7 @@ export class Thread implements VariableStoreDelegate {
     this._dap.stopped({
       reason: details.reason,
       description: details.description,
-      threadId: 0,
+      threadId: this.id,
       text: details.text,
       allThreadsStopped: false
     });
@@ -940,7 +950,7 @@ export class Thread implements VariableStoreDelegate {
 
   _onThreadResumed() {
     this._dap.continued({
-      threadId: 0,
+      threadId: this.id,
       allThreadsContinued: false
     });
   }

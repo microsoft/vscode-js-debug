@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "express"
+		},
+		{
+			"path": "node"
+		},
+		{
+			"path": "node-ts"
+		},
+		{
+			"path": "oopif"
+		},
+		{
+			"path": "pretty-print"
+		},
+		{
+			"path": "web-worker"
+		},
+		{
+			"path": "web-worker-ts"
+		},
+		{
+			"path": "webpack"
+		}
+	]
+}

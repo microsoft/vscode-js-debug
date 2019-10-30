@@ -4,13 +4,14 @@
 import * as nls from 'vscode-nls';
 import * as path from 'path';
 import { URL } from 'url';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
 import { ScriptSkipper } from './scriptSkipper';
+import { delay } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -110,7 +111,7 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url);
+    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url) || '';
 
     if (container.scriptSkipper) {
       container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
@@ -162,7 +163,7 @@ export class Source {
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    this._container._addSourceMapSources(this, map, sourceMapUrl);
+    await this._container._addSourceMapSources(this, map, sourceMapUrl);
     return true;
   }
 
@@ -245,11 +246,11 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   readonly rootPath: string | undefined;
-  readonly sourcePathResolver: SourcePathResolver;
+  readonly sourcePathResolver: ISourcePathResolver;
   private _disabledSourceMaps = new Set<Source>();
   private _scriptSkipper? : ScriptSkipper;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: SourcePathResolver) {
+  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver) {
     this._dap = dap;
     this.rootPath = rootPath;
     this.sourcePathResolver = sourcePathResolver;
@@ -276,7 +277,7 @@ export class SourceContainer {
 
   get scriptSkipper(): ScriptSkipper | undefined {
     return this._scriptSkipper;
-  }bl
+  }
 
   async loadedSources(): Promise<Dap.Source[]> {
     const promises: Promise<Dap.Source>[] = [];
@@ -303,7 +304,7 @@ export class SourceContainer {
       const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
-        new Promise(f => setTimeout(f, this._sourceMapTimeouts.resolveLocation)),
+        delay(this._sourceMapTimeouts.resolveLocation),
       ]);
       if (!sourceMap.map)
         return uiLocation;
@@ -411,7 +412,7 @@ export class SourceContainer {
       if (sourceMap.map) {
         // If source map has been already loaded, we add sources here.
         // Otheriwse, we'll add sources for all compiled after loading the map.
-        this._addSourceMapSources(source, sourceMap.map, sourceMapUrl);
+        await this._addSourceMapSources(source, sourceMap.map, sourceMapUrl);
       }
       return;
     }
@@ -435,8 +436,9 @@ export class SourceContainer {
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap)
       return callback!();
 
-    for (const anyCompiled of sourceMap.compiled)
-      this._addSourceMapSources(anyCompiled, sourceMap.map!, sourceMapUrl);
+    await Promise.all(
+      [...sourceMap.compiled].map(c => this._addSourceMapSources(c, sourceMap!.map!, sourceMapUrl))
+    );
     callback!();
   }
 
@@ -466,8 +468,10 @@ export class SourceContainer {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
+  async _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
+
+    const todo: Promise<void>[] = [];
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
       // webpack emits absolute paths in some situations instead of a relative url. We check
@@ -489,8 +493,10 @@ export class SourceContainer {
       source._compiledToSourceUrl!.set(compiled, url);
       compiled._sourceMapSourceByUrl.set(url, source);
       if (isNew)
-        this._addSource(source);
+        todo.push(this._addSource(source));
     }
+
+    await Promise.all(todo);
   }
 
   _removeSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer) {

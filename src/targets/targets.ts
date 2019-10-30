@@ -3,10 +3,15 @@
 
 import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
-import { InlineScriptOffset, SourcePathResolver } from '../common/sourcePathResolver';
-import { CommonLaunchParams } from '../common/commonLaunchParams';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
+import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
-
+import Dap from '../dap/api';
+/**
+ * A generic running process that can be debugged. We may have a target before
+ * we start debugging, until we call `attach()` to
+ * actually get a debug adapter API.
+ */
 export interface Target {
   id(): string;
   name(): string;
@@ -24,15 +29,25 @@ export interface Target {
   canDetach(): boolean;
   detach(): Promise<void>;
   targetOrigin(): any;
+  /**
+   * Lifecycle callback invoked after attaching and the target's events are
+   * wired into the debug adapter.
+   */
+  afterBind(): Promise<void>;
 
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
-  sourcePathResolver(): SourcePathResolver;
+  sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
   skipFiles(): ScriptSkipper | undefined;
+}
+
+export interface ILaunchContext {
+  dap: Dap.Api;
+  targetOrigin: any;
 }
 
 export interface LaunchResult {
@@ -40,12 +55,30 @@ export interface LaunchResult {
   blockSessionTermination?: boolean;
 }
 
+/**
+ * Data emitted in the 'stopped' promise.
+ */
+export interface IStopMetadata {
+  /**
+   * Numeric close code, non-zero exits are treated as errors.
+   */
+  code: number;
+  /**
+   * True if the launcher was intentionally closed by a user.
+   */
+  killed: boolean;
+  /**
+   * Any error that occurred.
+   */
+  error?: Error;
+}
+
 export interface Launcher extends Disposable {
-  launch(params: CommonLaunchParams, targetOrigin: any): Promise<LaunchResult>;
+  launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;
   onTargetListChanged: Event<void>;
-  onTerminated: Event<void>;
+  onTerminated: Event<IStopMetadata>;
   targetList(): Target[];
 }

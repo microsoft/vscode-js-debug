@@ -3,7 +3,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { expect } from 'chai';
 import * as urlUtils from '../common/urlUtils';
+import { testFixturesDir } from './test';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -13,7 +15,7 @@ export class GoldenText {
   _hasNonAssertedLogs: boolean;
   _workspaceFolder: string;
 
-  constructor(testName, workspaceFolder) {
+  constructor(testName: String, workspaceFolder: string) {
     this._results = [];
     this._testName = testName;
     this._hasNonAssertedLogs = false;
@@ -52,16 +54,16 @@ export class GoldenText {
     return this._hasNonAssertedLogs;
   }
 
-  assertLog() {
+  assertLog(options: { substring?: boolean } = {}) {
     const output = this._results.join('\n') + '\n';
     const testFilePath = this._getLocation();
     if (!testFilePath)
       throw new Error('GoldenText failed to get filename!');
     this._hasNonAssertedLogs = false;
     const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
-    const actualFilePath = testFilePath.substring(0, testFilePath.lastIndexOf('.')) + '-' + fileFriendlyName + '.txt';
-    const index = actualFilePath.lastIndexOf(path.join('out', 'test'));
-    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'test').length);
+    const actualFilePath = path.join(path.dirname(testFilePath), fileFriendlyName + '.txt');
+    const index = actualFilePath.lastIndexOf(path.join('out', 'out', 'test'));
+    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'out', 'test').length);
     fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);
@@ -70,8 +72,11 @@ export class GoldenText {
       fs.writeFileSync(goldenFilePath, output, {encoding: 'utf-8'});
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
-      if (output !== expectations)
-        throw new Error('FAILED: wrong test expectations!');
+      if (options.substring) {
+        expect(output).to.contain(expectations);
+      } else {
+        expect(output).to.equal(expectations);
+      }
     }
   }
 
@@ -82,6 +87,14 @@ export class GoldenText {
         .replace(this._workspaceFolder, '${workspaceFolder}')
         .replace(/\\/g, '/');
     }
+
+    if (value.includes(testFixturesDir)) {
+      value = value
+        .replace(testFixturesDir, '${fixturesDir}')
+        .replace('/private${fixturesDir}', '${fixturesDir}') // for osx
+        .replace(/\\/g, '/');
+    }
+
     return value
         .replace(/VM\d+/g, 'VM<xx>')
         .replace(/\r\n/g, '\n')
@@ -101,7 +114,7 @@ export class GoldenText {
     stabilizeNames = stabilizeNames || kStabilizeNames;
     const lines: string[] = [];
 
-    const dumpValue = (value, prefix, prefixWithName) => {
+    const dumpValue = (value: any, prefix: string, prefixWithName: string) => {
       if (typeof value === 'object' && value !== null) {
         if (value instanceof Array)
           dumpItems(value, prefix, prefixWithName);
@@ -112,19 +125,19 @@ export class GoldenText {
       }
     };
 
-    function dumpProperties(object, prefix, firstLinePrefix) {
+    function dumpProperties(object: any, prefix: string, firstLinePrefix: string) {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '{');
 
-      var propertyNames = Object.keys(object);
+      const propertyNames = Object.keys(object);
       propertyNames.sort();
-      for (var i = 0; i < propertyNames.length; ++i) {
-        var name = propertyNames[i];
+      for (let i = 0; i < propertyNames.length; ++i) {
+        const name = propertyNames[i];
         if (!object.hasOwnProperty(name))
           continue;
-        var prefixWithName = '    ' + prefix + name + ' : ';
-        var value = object[name];
+        const prefixWithName = '    ' + prefix + name + ' : ';
+        let value = object[name];
         if (stabilizeNames && stabilizeNames.includes(name))
           value = `<${typeof value}>`;
         dumpValue(value, '    ' + prefix, prefixWithName);
@@ -132,11 +145,11 @@ export class GoldenText {
       lines.push(prefix + '}');
     }
 
-    function dumpItems(object, prefix, firstLinePrefix) {
+    function dumpItems(object: any, prefix: string, firstLinePrefix: string) {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '[');
-      for (var i = 0; i < object.length; ++i)
+      for (let i = 0; i < object.length; ++i)
         dumpValue(object[i], '    ' + prefix, '    ' + prefix + '[' + i + '] : ');
       lines.push(prefix + ']');
     }

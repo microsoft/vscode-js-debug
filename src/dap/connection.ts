@@ -3,7 +3,8 @@
 
 import Dap from './api';
 
-interface Message {
+export interface Message {
+  sessionId?: string;
   seq: number;
   type: string;
   command?: string;
@@ -28,7 +29,7 @@ export default class Connection {
   private _eventListeners = new Map<string, Set<(params: any) => any>>();
   private _dap: Promise<Dap.Api>;
 
-  private _ready: (dap: Dap.Api) => void;
+  protected _ready: (dap: Dap.Api) => void;
   private _logPath?: string;
   private _logPrefix = '';
 
@@ -66,6 +67,8 @@ export default class Connection {
   }
 
   _createApi(): Dap.Api {
+    const requestSuffix = 'Request';
+
     return new Proxy({}, {
       get: (target, methodName: string, receiver) => {
         if (methodName === 'then')
@@ -79,8 +82,11 @@ export default class Connection {
         if (methodName === 'off')
           return (requestName: string, handler: () => void) => this._requestHandlers.delete(requestName);
         return (params?: object) => {
-          const e = { seq: 0, type: 'event', event: methodName, body: params };
-          this._send(e);
+          if (methodName.endsWith(requestSuffix)) {
+            return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
+          }
+
+          this._send({ seq: 0, type: 'event', event: methodName, body: params });
         };
       }
     }) as Dap.Api;
@@ -112,24 +118,26 @@ export default class Connection {
       });
     };
     return new Proxy({}, {
-      get: (target, methodName: string, receiver) => {
+      get: (_target, methodName: string, _receiver) => {
         if (methodName === 'on')
           return on;
         if (methodName === 'off')
           return off;
         if (methodName === 'once')
           return once;
-        return (params?: object) => {
-          return new Promise(cb => {
-            const request: Message = { seq: 0, type: 'request', command: methodName };
-            if (params && Object.keys(params).length > 0)
-              request.arguments = params;
-            this._pendingRequests.set(this._sequence, cb);
-            this._send(request);
-          });
-        };
+        return (params?: object) => this.enqueueRequest(methodName, params);
       }
     }) as Dap.TestApi;
+  }
+
+  private enqueueRequest(command: string, params?: object) {
+    return new Promise(cb => {
+      const request: Message = { seq: 0, type: 'request', command };
+      if (params && Object.keys(params).length > 0)
+        request.arguments = params;
+      this._pendingRequests.set(this._sequence, cb);
+      this._send(request);
+    });
   }
 
   public stop(): void {

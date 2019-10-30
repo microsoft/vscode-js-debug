@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import * as queryString from 'querystring';
 import Dap from '../dap/api';
 import { DebugSessionTracker } from './debugSessionTracker';
+import { Contributions } from '../common/contributionUtils';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
@@ -60,10 +61,10 @@ export function registerPrettyPrintActions(context: vscode.ExtensionContext, deb
     }
 
     if (response === 'Yes')
-      vscode.commands.executeCommand('pwa.prettyPrint');
+      vscode.commands.executeCommand(Contributions.PrettyPrintCommand);
   }));
 
-  context.subscriptions.push(vscode.commands.registerCommand('pwa.prettyPrint', async e => {
+  context.subscriptions.push(vscode.commands.registerCommand(Contributions.PrettyPrintCommand, async e => {
     const editor = vscode.window.activeTextEditor;
     if (!editor)
       return;

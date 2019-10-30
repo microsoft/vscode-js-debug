@@ -9,8 +9,8 @@ import * as errors from './dap/errors';
 import * as urlUtils from './common/urlUtils';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
-import { CommonLaunchParams } from './common/commonLaunchParams';
 import { generateBreakpointIds } from './adapter/breakpoints';
+import { AnyLaunchConfiguration } from './configuration';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -29,7 +29,7 @@ export class Binder implements Disposable {
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
-  private _launchParams?: CommonLaunchParams;
+  private _launchParams?: AnyLaunchConfiguration;
 
   constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
@@ -49,8 +49,11 @@ export class Binder implements Disposable {
 
     this._dap.then(dap => {
       dap.on('initialize', async () => {
-        dap.initialized({});
-        return DebugAdapter.capabilities();
+        const capabilities = DebugAdapter.capabilities();
+        setTimeout(() => {
+          dap.initialized({});
+        }, 0);
+        return capabilities;
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
@@ -59,14 +62,12 @@ export class Binder implements Disposable {
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('launch', async (params: CommonLaunchParams) => {
-        if (params.rootPath)
-          params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
-        this._launchParams = params;
-        let results = await Promise.all(launchers.map(l => this._launch(l, params)));
-        results = results.filter(result => !!result);
-        if (results.length)
-          return errors.createUserError(results.join('\n'));
+      dap.on('attach', async params => {
+        await this._boot(params as AnyLaunchConfiguration);
+        return {};
+      });
+      dap.on('launch', async params => {
+        await this._boot(params as AnyLaunchConfiguration);
         return {};
       });
       dap.on('terminate', async () => {
@@ -84,12 +85,23 @@ export class Binder implements Disposable {
     });
   }
 
+  private async _boot(params: AnyLaunchConfiguration) {
+    if (params.rootPath)
+      params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
+    this._launchParams = params;
+    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params)));
+    results = results.filter(result => !!result);
+    if (results.length)
+      return errors.createUserError(results.join('\n'));
+    return {};
+  }
+
   async _restart() {
     await Promise.all([...this._launchers].map(l => l.restart()));
   }
 
   async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, this._targetOrigin);
+    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap });
     if (result.error)
       return result.error;
     if (!result.blockSessionTermination)
@@ -129,10 +141,10 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
-    if (this._launchParams && this._launchParams.logging)
+    if (this._launchParams && this._launchParams.logging && this._launchParams.logging.dap)
       connection.setLogConfig(target.name(), this._launchParams.logging.dap);
     const dap = await connection.dap();
-    const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver());
+    const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver(), this._launchParams!);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     const startThread = async () => {
@@ -162,6 +174,8 @@ export class Binder implements Disposable {
         return {};
       });
     }
+
+    await target.afterBind();
   }
 
   async detach(target: Target) {

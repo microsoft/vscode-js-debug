@@ -5,7 +5,7 @@ import cdp from '../cdp/api';
 import * as utils from '../common/sourceUtils';
 
 export class ScriptSkipper {
-  private _userSkipPatterns: string[];
+  private _userSkipPatterns: ReadonlyArray<string>;
   private _nonNodeInternalRegex: string = '';
 
   // filtering node internals
@@ -17,7 +17,7 @@ export class ScriptSkipper {
   private _blackboxedUrls: string[] = [];
   private blackboxSender?: (params: cdp.Debugger.SetBlackboxPatternsParams) => Promise<cdp.Debugger.SetBlackboxPatternsResult | undefined>;
 
-  constructor(skipPatterns: string[]) {
+  constructor(skipPatterns: ReadonlyArray<string>) {
     this._userSkipPatterns = skipPatterns;
     this._preprocessNodeInternals();
     this._setRegexForNonNodeInternals();
@@ -70,7 +70,7 @@ export class ScriptSkipper {
     this.blackboxSender = debuggerAPI.setBlackboxPatterns.bind(debuggerAPI);
   }
 
-  public updateSkippingForScript(localpath, url): void {
+  public updateSkippingForScript(localpath: string, url: string): void {
     if (!this._isUrlSkippedMap.has(url)) {
       if (localpath) {
         this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, localpath));

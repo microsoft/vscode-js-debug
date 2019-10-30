@@ -7,6 +7,7 @@ import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
+import { delay } from './promiseUtil';
 
 export type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
 
@@ -193,7 +194,7 @@ export function wrapObjectLiteral(code: string): string {
 
 export async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
   if (slowDown)
-    await new Promise(f => setTimeout(f, slowDown));
+    await delay(slowDown);
   let content = await urlUtils.fetch(url);
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));
@@ -237,7 +238,7 @@ export function parseSourceMappingUrl(content: string): string | undefined {
     sourceMapUrl = sourceMapUrl.substring(0, newLine);
   sourceMapUrl = sourceMapUrl.trim();
   for (let i = 0; i < sourceMapUrl.length; ++i) {
-    if (sourceMapUrl[i] == '"' || sourceMapUrl[i] == '\'' || sourceMapUrl[i] == ' ' || sourceMapUrl[i] == '\t')
+    if (sourceMapUrl[i] === '"' || sourceMapUrl[i] === '\'' || sourceMapUrl[i] === ' ' || sourceMapUrl[i] === '\t')
       return;
   }
   return sourceMapUrl;
@@ -290,7 +291,7 @@ export async function checkContentHash(absolutePath: string, contentHash?: strin
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content = (contentOverride != null) ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
+  const content = (typeof contentOverride === 'string') ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
 
   const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;

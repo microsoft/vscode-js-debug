@@ -5,17 +5,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": "pwa-node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "[node-ts] Launch Program",
       "program": "${workspaceFolder}/out/index.js",
       "preLaunchTask": "npm: compile"
     },
     {
-      "type": "pwa",
+      "type": "pwa-node",
       "request": "launch",
-      "name": "PWA: launch program",
-      "command": "npm run execute",
+      "name": "[node-ts] Launch Root Tests Program",
+      "program": "${workspaceFolder}/out/in/another/location/out/index.js",
+      "remoteRoot": "${workspaceFolder}/out/in/another/location",
+      "localRoot": "${workspaceFolder}",
       "preLaunchTask": "npm: compile"
     }
   ]

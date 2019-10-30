@@ -10,7 +10,7 @@ import CdpConnection from '../../cdp/connection';
 import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
-import { InlineScriptOffset, SourcePathResolver } from '../../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
@@ -21,7 +21,7 @@ export class BrowserTargetManager implements Disposable {
   private _browser: Cdp.Api;
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
-  _sourcePathResolver: SourcePathResolver;
+  _sourcePathResolver: ISourcePathResolver;
   _targetOrigin: any;
   _scriptSkipper?: ScriptSkipper;
 
@@ -30,7 +30,7 @@ export class BrowserTargetManager implements Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  static async connect(connection: CdpConnection, sourcePathResolver: SourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
+  static async connect(connection: CdpConnection, sourcePathResolver: ISourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
     if (!result)
@@ -43,7 +43,7 @@ export class BrowserTargetManager implements Disposable {
     this._scriptSkipper = scriptSkipper;
   }
 
-  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: SourcePathResolver, targetOrigin: any) {
+  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: ISourcePathResolver, targetOrigin: any) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
@@ -124,22 +124,32 @@ export class BrowserTargetManager implements Disposable {
     return target;
   }
 
-  _detachedFromTarget(targetId: string) {
+  async _detachedFromTarget(targetId: string) {
     const target = this._targets.get(targetId);
     if (!target)
       return;
 
-    for (const childTargetId of target._children.keys())
-      this._detachedFromTarget(childTargetId);
-    target._detached();
+    await Promise.all([...target._children.keys()].map(k => this._detachedFromTarget(k)));
+
+    try {
+      await target._detached();
+    } catch {
+      // ignored -- any network error when we want to detach anyway is fine
+    }
 
     this._targets.delete(targetId);
     if (target.parentTarget)
       target.parentTarget._children.delete(targetId);
 
     this._onTargetRemovedEmitter.fire(target);
-    if (!this._targets.size)
-      this._browser.Browser.close({});
+
+    if (!this._targets.size) {
+      try {
+        await this._browser.Browser.close({});
+      } catch {
+        // ignored -- any network error when we want to detach anyway is fine
+      }
+    }
   }
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
@@ -168,6 +178,8 @@ export class BrowserTarget implements Target {
 
   constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, waitingForDebugger: boolean, ondispose: (t: BrowserTarget) => void) {
     this._cdp = cdp;
+    cdp.pause();
+
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     this._waitingForDebugger = waitingForDebugger;
@@ -198,6 +210,11 @@ export class BrowserTarget implements Target {
 
   type(): string {
     return this._targetInfo.type;
+  }
+
+  afterBind() {
+    this._cdp.resume();
+    return Promise.resolve();
   }
 
   parent(): Target | undefined {
@@ -289,7 +306,7 @@ export class BrowserTarget implements Target {
     return urlUtils.completeUrl(this._targetInfo.url, url) || url;
   }
 
-  sourcePathResolver(): SourcePathResolver {
+  sourcePathResolver(): ISourcePathResolver {
     return this._manager._sourcePathResolver;
   }
 
@@ -332,8 +349,8 @@ export class BrowserTarget implements Target {
     return threadName;
   }
 
-  _detached() {
-    this._manager.serviceWorkerModel.detached(this._cdp);
+  async _detached() {
+    await this._manager.serviceWorkerModel.detached(this._cdp);
     this._ondispose(this);
   }
 }

@@ -1,14 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { TestRoot } from '../test';
+import { itIntegrates } from '../testIntegrationUtils';
 
-export function addTests(testRunner) {
-  // @ts-ignore unused xit/fit variables.
-  const { it, fit, xit, describe, fdescribe, xdescribe } = testRunner;
-
+describe('console api', () => {
   describe('format', () => {
-    it('format string', async ({ r }: { r: TestRoot }) => {
+    itIntegrates('format string', async ({ r }) => {
       const p = await r.launchAndLoad(`blank`);
       await p.logger.evaluateAndLog([
         `console.log('Log')`,
@@ -25,7 +22,7 @@ export function addTests(testRunner) {
     });
   });
 
-  it('format string', async ({ r }: { r: TestRoot }) => {
+  itIntegrates('format string', async ({ r }) => {
     const p = await r.launchAndLoad(`<script>
     var peopleObject = {
       one: ["John", "Smith"],
@@ -63,15 +60,18 @@ export function addTests(testRunner) {
       new Array(1000).fill(1)
     ];
     </script>`);
-    await p.logger.evaluateAndLog([
-      `console.table(peopleObject)`,
-      `console.table(peopleObject2)`,
-      `console.table(peopleLongHeader)`,
-      `console.table(peopleArray)`,
-      `console.table(trimEmptyColumn)`,
-      `console.table(cellOverflow)`,
-      `console.table(longTableOverflow)`,
-    ], { depth: 0 });
+    await p.logger.evaluateAndLog(
+      [
+        `console.table(peopleObject)`,
+        `console.table(peopleObject2)`,
+        `console.table(peopleLongHeader)`,
+        `console.table(peopleArray)`,
+        `console.table(trimEmptyColumn)`,
+        `console.table(cellOverflow)`,
+        `console.table(longTableOverflow)`,
+      ],
+      { depth: 0 },
+    );
     p.assertLog();
   });
-}
+});
