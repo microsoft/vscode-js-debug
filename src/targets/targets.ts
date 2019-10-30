@@ -5,6 +5,7 @@ import Cdp from '../cdp/api';
 import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
+import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
 import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
 
@@ -43,7 +44,7 @@ export interface Target {
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
-  blackboxPattern(): string | undefined;
+  skipFiles(): ScriptSkipper | undefined;
 }
 
 export interface ILaunchContext {

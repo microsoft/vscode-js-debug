@@ -15,6 +15,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
+import { ScriptSkipper } from './scriptSkipper';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 
 const localize = nls.loadMessageBundle();
@@ -54,7 +55,7 @@ export interface ThreadDelegate {
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
-  blackboxPattern(): string | undefined;
+  skipFiles(): ScriptSkipper | undefined;
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -409,11 +410,11 @@ export class Thread implements VariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    const blackboxPattern = this._delegate.blackboxPattern();
-    if (blackboxPattern) {
+    let scriptSkipper = this._delegate.skipFiles();
+    if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
-      this._sourceContainer.setBlackboxRegex(new RegExp(blackboxPattern));
-      this._cdp.Debugger.setBlackboxPatterns({patterns: [blackboxPattern]});
+      this._sourceContainer.initializeScriptSkipper(scriptSkipper);
+      scriptSkipper.setBlackboxSender(this._cdp.Debugger);
     }
     this._pauseOnScheduledAsyncCall();
 

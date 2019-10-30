@@ -15,6 +15,7 @@ import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 
 const localize = nls.loadMessageBundle();
@@ -125,6 +126,10 @@ export class BrowserLauncher implements Launcher {
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       this._onTargetListChangedEmitter.fire();
     });
+
+    if (params.skipFiles) {
+      this._targetManager.setSkipFiles(new ScriptSkipper(params.skipFiles));
+    }
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.

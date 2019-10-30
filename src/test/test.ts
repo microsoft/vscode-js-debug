@@ -23,6 +23,7 @@ import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 import { NodeAttacher } from '../targets/node/nodeAttacher';
+import { ScriptSkipper } from '../adapter/scriptSkipper';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -272,7 +273,7 @@ export class TestRoot {
   private _webRoot: string | undefined;
   _launchUrl: string | undefined;
   private _args: string[];
-  private _blackboxPattern?: string;
+  private _skipFiles?: ScriptSkipper;
 
   private _worker: Promise<ITestHandle>;
   private _workerCallback: (session: ITestHandle) => void;
@@ -318,8 +319,8 @@ export class TestRoot {
   }
 
   public async acquireDap(target: Target): Promise<DapConnection> {
-    if (this._blackboxPattern)
-      target.blackboxPattern = () => this._blackboxPattern;
+    if (this._skipFiles)
+      target.skipFiles = () => this._skipFiles;
 
     const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
     this._targetToP.set(target, p);
@@ -347,10 +348,6 @@ export class TestRoot {
 
   setArgs(args: string[]) {
     this._args = args;
-  }
-
-  setBlackboxPattern(blackboxPattern?: string) {
-    this._blackboxPattern = blackboxPattern;
   }
 
   worker(): Promise<ITestHandle> {
