@@ -24,6 +24,7 @@ import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
+import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 
 /**
  * Telemetry received from the nested process.
@@ -105,13 +106,14 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   public async launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
+    rawTelemetryReporter: RawTelemetryReporter,
   ): Promise<LaunchResult> {
     const resolved = this.resolveParams(params);
     if (!resolved) {
       return { blockSessionTermination: false };
     }
 
-    const { server, pipe } = this._startServer();
+    const { server, pipe } = this._startServer(rawTelemetryReporter);
     const run = (this.run = {
       server,
       serverAddress: pipe,
@@ -236,10 +238,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     });
   }
 
-  protected _startServer() {
+  protected _startServer(rawTelemetryReporter: RawTelemetryReporter) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
-    const server = net.createServer(socket => this._startSession(socket)).listen(pipe);
+    const server = net.createServer(socket => this._startSession(socket, rawTelemetryReporter)).listen(pipe);
 
     return { pipe, server };
   }
@@ -259,8 +261,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     this.serverConnections = [];
   }
 
-  protected async _startSession(socket: net.Socket) {
-    const { connection, cdp, targetInfo } = await this.acquireTarget(socket);
+  protected async _startSession(socket: net.Socket, rawTelemetryReporter: RawTelemetryReporter) {
+    const { connection, cdp, targetInfo } = await this.acquireTarget(socket, rawTelemetryReporter);
     if (!this.run) {
       // if we aren't running a session, discard the socket.
       socket.destroy();
@@ -285,8 +287,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Acquires the CDP session and target info from the connecting socket.
    */
 
-  protected async acquireTarget(socket: net.Socket) {
-    const connection = new Connection(new PipeTransport(socket));
+  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: RawTelemetryReporter) {
+    const connection = new Connection(new PipeTransport(socket), rawTelemetryReporter);
     this.serverConnections.push(connection);
     const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f =>

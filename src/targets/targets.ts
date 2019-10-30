@@ -6,6 +6,7 @@ import { Disposable, Event } from '../common/events';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
+import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
 
 /**
  * A generic running process that can be debugged. We may have a target before
@@ -74,10 +75,10 @@ export interface IStopMetadata {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult>;
+  launch(params: AnyLaunchConfiguration, context: ILaunchContext, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
-  restart(): Promise<void>;
+  restart(rawTelemetryReporter: RawTelemetryReporterToDap): Promise<void>;
   onTargetListChanged: Event<void>;
   onTerminated: Event<IStopMetadata>;
   targetList(): Target[];

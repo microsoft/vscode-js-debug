@@ -3,6 +3,7 @@
 
 import DapConnection, { Message } from './connection';
 import { EventEmitter, Disposable } from '../common/events';
+import { HighResolutionTime } from '../utils/performance';
 
 /**
  * An extension of the DAP connection class which publishes all messages which are received
@@ -11,7 +12,8 @@ export class MessageEmitterConnection extends DapConnection {
 
   private readonly _messageEventEmitter = new EventEmitter<Message>();
   public readonly onMessage = this._messageEventEmitter.event;
-  async _onMessage(msg: Message) {
+  async _onMessage(msg: Message, receivedTime: HighResolutionTime) {
+    msg.__receivedTime = receivedTime;
     this._messageEventEmitter.fire(msg);
   }
 }
@@ -26,9 +28,9 @@ export class ChildConnection extends DapConnection {
 
   constructor(private readonly parentConnection: MessageEmitterConnection, private readonly sessionId: string|undefined) {
     super();
-    this._messageSubscription = parentConnection.onMessage(msg => {
+    this._messageSubscription = parentConnection.onMessage((msg) => {
       if(msg.sessionId === this.sessionId) {
-        super._onMessage(msg);
+        super._onMessage(msg, msg.__receivedTime || [0, 0]);
       }
     });
 

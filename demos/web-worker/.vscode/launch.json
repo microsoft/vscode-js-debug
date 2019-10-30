@@ -12,7 +12,7 @@
       "server": {
         "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
         "args": ["-p", "5002"]
-      }
+      },
     }
   ]
 }
