@@ -16,6 +16,7 @@ import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../config
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
+import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 
 const localize = nls.loadMessageBundle();
 
@@ -45,7 +46,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -78,7 +79,7 @@ export class BrowserLauncher implements Launcher {
     }
 
     return await launcher.launch(
-      executablePath, {
+      executablePath, rawTelemetryReporter, {
         timeout,
         cwd: cwd || undefined,
         env: EnvironmentVars.merge(process.env, env),
@@ -88,10 +89,10 @@ export class BrowserLauncher implements Launcher {
       });
   }
 
-  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params);
+      connection = await this._launchBrowser(params, rawTelemetryReporter);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
@@ -147,12 +148,12 @@ export class BrowserLauncher implements Launcher {
       await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
   }
 
-  async launch(params: AnyChromeConfiguration, targetOrigin: any): Promise<LaunchResult> {
+  async launch(params: AnyChromeConfiguration, targetOrigin: any, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(params, targetOrigin);
+    const targetOrError = await this.prepareLaunch(params, targetOrigin, telemetryReporter);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
     await this.finishLaunch(targetOrError);

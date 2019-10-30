@@ -7,6 +7,8 @@ import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathRes
 import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
+import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+
 /**
  * A generic running process that can be debugged. We may have a target before
  * we start debugging, until we call `attach()` to
@@ -74,10 +76,10 @@ export interface IStopMetadata {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<LaunchResult>;
+  launch(params: AnyLaunchConfiguration, context: ILaunchContext, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
-  restart(): Promise<void>;
+  restart(rawTelemetryReporter: RawTelemetryReporterToDap): Promise<void>;
   onTargetListChanged: Event<void>;
   onTerminated: Event<IStopMetadata>;
   targetList(): Target[];
