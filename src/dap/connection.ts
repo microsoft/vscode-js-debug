@@ -36,7 +36,7 @@ export default class Connection {
   protected _ready: (dap: Dap.Api) => void;
   private _logPath?: string;
   private _logPrefix = '';
-  private _telemetryReporter: TelemetryReporter | undefined;
+  protected _telemetryReporter: TelemetryReporter | undefined;
 
   constructor() {
     this._sequence = 1;
