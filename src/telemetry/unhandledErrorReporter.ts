@@ -52,7 +52,7 @@ function shouldReportThisError(error: any): boolean {
   // In VS Code, this debug adapter runs inside the extension host process, so we could capture
   // errors from other pieces of software here. We check to make sure this is our error before reporting it
   return !shouldFilterErrorsReportedToTelemetry
-    || (error && typeof error.stack === 'string' && error.stack.indexOf(debugAdapterFolder) !== -1);
+    || (error && typeof error.stack === 'string' && error.stack.includes(debugAdapterFolder));
 }
 
 let shouldFilterErrorsReportedToTelemetry = false;
