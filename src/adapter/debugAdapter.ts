@@ -106,9 +106,6 @@ export class DebugAdapter {
 
   async _onSetBreakpoints(params: Dap.SetBreakpointsParams): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     const ids = generateBreakpointIds(params);
-    setTimeout(() => {
-       throw new Error('aweffeaw');
-    }, 10000);
     return this.breakpointManager.setBreakpoints(params, ids);
   }
 

@@ -12,6 +12,7 @@ import DapConnection from './dap/connection';
 import { generateBreakpointIds } from './adapter/breakpoints';
 import { AnyLaunchConfiguration } from './configuration';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
+import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -51,8 +52,12 @@ export class Binder implements Disposable {
 
     this._dap.then(dap => {
       this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
-      dap.on('initialize', async () => {
+      dap.on('initialize', async clientCapabilities => {
         const capabilities = DebugAdapter.capabilities();
+        if (clientCapabilities.clientID === 'vscode') {
+          filterErrorsReportedToTelemetry();
+        }
+
         setTimeout(() => {
           dap.initialized({});
         }, 0);

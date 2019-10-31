@@ -1,23 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as path from 'path';
 import { extractErrorDetails, RawTelemetryReporter } from './telemetryReporter';
 
 type ExceptionType = 'uncaughtException' | 'unhandledRejection';
 
 export function installUnhandledErrorReporter(telemetryReporter: RawTelemetryReporter): void {
   process.addListener('uncaughtException', (exception: unknown) => {
-    reportErrorTelemetry(telemetryReporter, exception, 'uncaughtException');
+    if (shouldReportThisError(exception)) {
+      reportErrorTelemetry(telemetryReporter, exception, 'uncaughtException');
 
-    // TODO: Print this to the log
-    console.error(`******** Unhandled error in debug adapter: ${safeGetErrDetails(exception)}`);
+      // TODO: Print this to the log
+      console.error(`******** Unhandled error in debug adapter: ${safeGetErrDetails(exception)}`);
+      }
   });
 
   process.addListener('unhandledRejection', (rejection: unknown) => {
-    reportErrorTelemetry(telemetryReporter, rejection, 'unhandledRejection');
+    if (shouldReportThisError(rejection)) {
+      reportErrorTelemetry(telemetryReporter, rejection, 'unhandledRejection');
 
-    // TODO: Print this to the log
-    console.error(`******** Unhandled error in debug adapter - Unhandled promise rejection: ${safeGetErrDetails(rejection)}`);
+      // TODO: Print this to the log
+      console.error(`******** Unhandled error in debug adapter - Unhandled promise rejection: ${safeGetErrDetails(rejection)}`);
+    }
   });
 
 }
@@ -39,4 +44,18 @@ function safeGetErrDetails(err: unknown): string {
   }
 
   return errMsg;
+}
+
+const debugAdapterFolder = path.dirname(path.dirname(path.dirname(__dirname)));
+
+function shouldReportThisError(error: any): boolean {
+  // In VS Code, this debug adapter runs inside the extension host process, so we could capture
+  // errors from other pieces of software here. We check to make sure this is our error before reporting it
+  return !shouldFilterErrorsReportedToTelemetry
+    || (error && typeof error.stack === 'string' && error.stack.indexOf(debugAdapterFolder) !== -1);
+}
+
+let shouldFilterErrorsReportedToTelemetry = false;
+export function filterErrorsReportedToTelemetry(): void {
+  shouldFilterErrorsReportedToTelemetry = true;
 }
