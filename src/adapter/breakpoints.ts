@@ -48,7 +48,7 @@ export class Breakpoint {
   async _notifyResolved(): Promise<void> {
     if (!this._resolvedUiLocation)
       return;
-    await this._manager.notifyBreakpointResolved(this._dapId, await this._resolvedUiLocation);
+    await this._manager.notifyBreakpointResolved(this._dapId, this._resolvedUiLocation);
   }
 
   async set(thread: Thread): Promise<void> {
