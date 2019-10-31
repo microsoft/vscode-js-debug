@@ -9,3 +9,5 @@ out/
 /*.vsix
 /coverage
 /.nyc_output
+demos/web-worker/vscode-pwa-dap.log
+demos/web-worker/vscode-pwa-cdp.log
