@@ -59,7 +59,8 @@ export interface ThreadDelegate {
   skipFiles(): ScriptSkipper | undefined;
 }
 
-export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
+export type ScriptWithSourceMapHandler =
+  (script: Script, sources: Source[]) => Promise<{ continue: boolean }>;
 export type SourceMapDisabler = (hitBreakpoints: string[]) => Source[];
 
 export type RawLocation = {
@@ -385,18 +386,18 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.on('paused', async event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-        await this._handleSourceMapPause(event.data['scriptId'] as string);
+        const shouldContinue = await this._handleSourceMapPause(event.data['scriptId'] as string);
 
         if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
             scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
             scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
           // Paused on the script which is run as a task for scheduled async call.
           // We are waiting for this pause, no need to resume.
-        } else if (
-          event.callFrames.length
-          && this.breakpoints.getBreakpointsAtLocation(event.callFrames[0].location).length
-        ) {
-          // A user intentionally set a breakpoint on the first line
+        } else if (shouldContinue) {
+          // If we shouldn't continue, that means the user set a breakpoint on
+          // the first line (which we are already on!), so pretend it's
+          // a breakpoint and let it bubble up.
+          event.data.__rewriteAsBreakpoint = true;
         } else {
           await this._pauseOnScheduledAsyncCall();
           this.resume();
@@ -643,6 +644,14 @@ export class Thread implements VariableStoreDelegate {
         exception: event.data as (Cdp.Runtime.RemoteObject | undefined)
       };
       case 'instrumentation':
+        if (event.data && event.data.__rewriteAsBreakpoint) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: 'breakpoint',
+            description: localize('pause.breakpoint', 'Paused on breakpoint')
+          };
+        }
         if (event.data && event.data['scriptId']) {
           return {
             thread: this,
@@ -855,9 +864,11 @@ export class Thread implements VariableStoreDelegate {
   }
 
   // Wait for source map to load and set all breakpoints in this particular script.
-  async _handleSourceMapPause(scriptId: string) {
+  async _handleSourceMapPause(scriptId: string): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
+
+    let shouldContinue = false;
     if (script) {
       const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
@@ -865,11 +876,14 @@ export class Thread implements VariableStoreDelegate {
         // Make typescript happy by resolving with empty array.
         new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
       ]);
-      if (sources && this._scriptWithSourceMapHandler)
-        await this._scriptWithSourceMapHandler(script, sources);
+      if (sources && this._scriptWithSourceMapHandler) {
+        shouldContinue = (await this._scriptWithSourceMapHandler(script, sources)).continue;
+      }
     }
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
+
+    return shouldContinue;
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {

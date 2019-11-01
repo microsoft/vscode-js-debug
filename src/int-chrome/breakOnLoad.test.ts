@@ -117,7 +117,7 @@ suite('BreakOnLoad', () => {
       const bpCol = 1;
 
       await launchWithUrlAndSetBreakpoints(url, testProjectRoot, scriptPath, bpLine, bpCol);
-      await dc.assertStoppedLocation('step', {
+      await dc.assertStoppedLocation('breakpoint', {
         path: scriptPath,
         line: bpLine,
         column: bpCol,
