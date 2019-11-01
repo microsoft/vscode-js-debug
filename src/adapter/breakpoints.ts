@@ -290,7 +290,7 @@ export class BreakpointManager {
       await Promise.all(todo);
 
       return {
-        continue:
+        remainPaused:
           this.hasBreakpointsAtLocation({
             scriptId: script.scriptId,
             lineNumber: 0,

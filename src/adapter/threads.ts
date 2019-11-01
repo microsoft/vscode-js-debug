@@ -60,7 +60,7 @@ export interface ThreadDelegate {
 }
 
 export type ScriptWithSourceMapHandler =
-  (script: Script, sources: Source[]) => Promise<{ continue: boolean }>;
+  (script: Script, sources: Source[]) => Promise<{ remainPaused: boolean }>;
 export type SourceMapDisabler = (hitBreakpoints: string[]) => Source[];
 
 export type RawLocation = {
@@ -386,15 +386,15 @@ export class Thread implements VariableStoreDelegate {
 
     this._cdp.Debugger.on('paused', async event => {
       if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-        const shouldContinue = await this._handleSourceMapPause(event.data['scriptId'] as string);
+        const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
 
         if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
             scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
             scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
           // Paused on the script which is run as a task for scheduled async call.
           // We are waiting for this pause, no need to resume.
-        } else if (shouldContinue) {
-          // If we shouldn't continue, that means the user set a breakpoint on
+        } else if (remainPaused) {
+          // If should stay paused, that means the user set a breakpoint on
           // the first line (which we are already on!), so pretend it's
           // a breakpoint and let it bubble up.
           event.data.__rewriteAsBreakpoint = true;
@@ -868,7 +868,7 @@ export class Thread implements VariableStoreDelegate {
     this._pausedForSourceMapScriptId = scriptId;
     const script = this._scripts.get(scriptId);
 
-    let shouldContinue = false;
+    let remainPaused = false;
     if (script) {
       const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
@@ -877,13 +877,13 @@ export class Thread implements VariableStoreDelegate {
         new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
       ]);
       if (sources && this._scriptWithSourceMapHandler) {
-        shouldContinue = (await this._scriptWithSourceMapHandler(script, sources)).continue;
+        remainPaused = (await this._scriptWithSourceMapHandler(script, sources)).remainPaused;
       }
     }
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
-    return shouldContinue;
+    return remainPaused;
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {
