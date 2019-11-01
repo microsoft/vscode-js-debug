@@ -100,7 +100,6 @@ export class Thread implements VariableStoreDelegate {
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: ThreadDelegate,
-    private readonly breakpoints: BreakpointManager,
     private readonly launchConfig: AnyLaunchConfiguration,
   ) {
     this._delegate = delegate;

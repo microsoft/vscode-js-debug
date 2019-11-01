@@ -195,7 +195,7 @@ export class DebugAdapter {
   }
 
   createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
-    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this.breakpointManager, this.launchConfig);
+    this._thread = new Thread(this.sourceContainer, threadName, cdp, this.dap, delegate, this.launchConfig);
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
