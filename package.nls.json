@@ -6,6 +6,12 @@
   "add.browser.breakpoint": "Add Browser Breakpoint",
   "remove.browser.breakpoint": "Remove Browser Breakpoint",
   "remove.browser.breakpoint.all": "Remove All Browser Breakpoints",
+  "trace.description": "Configures what diagnostic output is produced.",
+  "trace.boolean.description": "Trace may be set to 'true' to write diagnostic logs to the disk.",
+  "trace.tags.description": "Configures what types of logs are recorded.",
+  "trace.logFile.description": "Configures where on disk logs are written.",
+  "trace.level.description": "Configures the level of logs recorded.",
+  "trace.console.description": "Configures whether logs are also returned to the debug console.",
 
 	"chrome.address.description": "TCP/IP address of debug port",
 	"chrome.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",

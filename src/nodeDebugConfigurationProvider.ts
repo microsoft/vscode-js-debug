@@ -16,6 +16,7 @@ import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
 import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -30,25 +31,17 @@ const breakpointLanguages: ReadonlyArray<
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class NodeDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-  constructor(private readonly nvmResolver: INvmResolver = new NvmResolver()) {}
-
-  /**
-   * Try to add all missing attributes to the debug configuration being launched.
-   */
-  public async resolveDebugConfiguration(
-    folder: vscode.WorkspaceFolder | undefined,
-    config: vscode.DebugConfiguration,
-  ): Promise<vscode.DebugConfiguration | undefined> {
-    try {
-      return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration);
-    } catch (err) {
-      await vscode.window.showErrorMessage(err.message, { modal: true });
-      return;
-    }
+export class NodeDebugConfigurationProvider
+  extends BaseConfigurationProvider<ResolvingNodeConfiguration>
+  implements vscode.DebugConfigurationProvider {
+  constructor(
+    context: vscode.ExtensionContext,
+    private readonly nvmResolver: INvmResolver = new NvmResolver(),
+  ) {
+    super(context);
   }
 
-  private async resolveDebugConfigurationAsync(
+  protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
   ): Promise<AnyNodeConfiguration | undefined> {

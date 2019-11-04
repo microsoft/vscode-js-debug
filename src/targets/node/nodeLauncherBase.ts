@@ -275,7 +275,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       connection,
       cdp,
       targetInfo,
-      this.run.params,
     );
 
     target.setParent(targetInfo.openerId ? this.targets.get(targetInfo.openerId) : undefined);

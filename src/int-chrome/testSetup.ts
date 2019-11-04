@@ -31,7 +31,7 @@ function formLaunchArgs(
   launchArgs.type = 'pwa-chrome' as any; // TODO@rob
   launchArgs.logging = { dap: '/tmp/dap.log', cdp: '/tmp/cdp.log' };
   launchArgs.sourceMapPathOverrides = {};
-  launchArgs.trace = 'verbose';
+  launchArgs.trace = true;
   launchArgs.logTimestamps = true;
   launchArgs.disableNetworkCache = true;
   launchArgs.logFilePath = getDebugAdapterLogFilePath(testTitle);
