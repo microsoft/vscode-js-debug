@@ -13,7 +13,6 @@ import { rewriteLogPoint } from '../common/sourceUtils';
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
 export class Breakpoint {
-  public readonly attachedLocations: AttachedLocation[] = [];
   private _manager: BreakpointManager;
   private _dapId: number;
   _source: Dap.Source;
@@ -105,7 +104,7 @@ export class Breakpoint {
   async updateForSourceMap(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
-      return;
+      return [];
     // Find all locations for this breakpoint in the new script.
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
       lineNumber: this._lineColumn.lineNumber,
@@ -116,6 +115,8 @@ export class Breakpoint {
     for (const uiLocation of uiLocations)
       promises.push(this._setByScriptId(thread, script, uiLocation));
     await Promise.all(promises);
+
+    return uiLocations;
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
@@ -172,7 +173,6 @@ export class Breakpoint {
       columnNumber: lineColumn.columnNumber - 1,
       condition: this._condition,
     };
-    this.attachedLocations.push(location);
 
     const activeSetter = (async () => {
       // TODO: add a test for this - breakpoint in node on the first line.
@@ -195,7 +195,6 @@ export class Breakpoint {
       lineNumber: lineColumn.lineNumber - 1,
       columnNumber: lineColumn.columnNumber - 1
     };
-    this.attachedLocations.push(location);
 
     const activeSetter = (async () => {
       const result = await thread.cdp().Debugger.setBreakpoint({
@@ -272,7 +271,7 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<void>[] = [];
+      const todo: Promise<UiLocation[]>[] = [];
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -287,20 +286,10 @@ export class BreakpointManager {
           todo.push(breakpoint.updateForSourceMap(this._thread!, script));
       }
 
-      await Promise.all(todo);
+      const result = await Promise.all(todo);
 
       return {
-        remainPaused:
-          this.hasBreakpointsAtLocation({
-            scriptId: script.scriptId,
-            lineNumber: 0,
-            columnNumber: 0,
-          }) ||
-          this.hasBreakpointsAtLocation({
-            url: script.url,
-            lineNumber: 0,
-            columnNumber: 0,
-          }),
+        remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1))
       };
     };
     if (sourceContainer.rootPath)
@@ -382,16 +371,6 @@ export class BreakpointManager {
       breakpoints.forEach(b => b.set(this._thread!));
     this._updateSourceMapHandler();
     return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
-  }
-
-  public hasBreakpointsAtLocation(location: AttachedLocation) {
-    return this.getBreakpointsAtLocation(location).length > 0;
-  }
-
-  public getBreakpointsAtLocation(location: AttachedLocation) {
-    return [...this._resolvedBreakpoints.values()].filter(v =>
-      v.attachedLocations.some(l => locationsEqual(l, location))
-    );
   }
 }
 
