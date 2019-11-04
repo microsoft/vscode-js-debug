@@ -248,6 +248,17 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    * ID of process to attach to.
    */
   processId?: string;
+
+  /**
+   * Whether to set environment variables in the attached process to track
+   * spawned children.
+   */
+  attachSpawnedProcesses: boolean;
+
+  /**
+   * Whether to attempt to attach to already-spawned child processes.
+   */
+  attachExistingChildren: boolean;
 }
 
 export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
@@ -351,7 +362,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   ...nodeBaseDefaults,
   request: 'launch',
   program: '',
-  stopOnEntry: true,
+  stopOnEntry: false,
   console: 'internalConsole',
   args: [],
   runtimeExecutable: 'node',
@@ -387,6 +398,8 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
 
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   ...nodeBaseDefaults,
+  attachSpawnedProcesses: true,
+  attachExistingChildren: true,
   request: 'attach',
   processId: '',
 };
