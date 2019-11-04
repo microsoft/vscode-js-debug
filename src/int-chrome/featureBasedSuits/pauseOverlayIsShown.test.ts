@@ -4,10 +4,9 @@
 import { testUsing } from '../fixtures/testUsing';
 import { TestProjectSpec } from '../framework/frameworkTestSupport';
 import { LaunchProject } from '../fixtures/launchProject';
-import { launchArgs } from '../testSetup';
 import { expect } from 'chai';
 import * as _ from 'lodash';
-import { promiseTimeout, readFileP } from '../testUtils';
+import { promiseTimeout } from '../testUtils';
 
 // There is no way to validate whether we are showing the paused overlay with puppeteer, so we look into the debug-adapter
 // log and see if we sent the proper Overlay.setPausedInDebuggerMessage message

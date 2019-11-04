@@ -8,6 +8,7 @@
     "sourceMap": true,
     "outDir": "../out/out",
     "strict": true,
+    "noUnusedLocals": true,
     "alwaysStrict": true,
     "esModuleInterop": true,
     "types": ["node", "chai-subset", "mocha"],

@@ -7,8 +7,7 @@ import { createServer } from 'http-server';
 import * as testSetup from './testSetup';
 import { HttpOrHttpsServer } from './types/server';
 import { ExtendedDebugClient } from './testSupport/debugClient';
-import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults } from '../configuration';
-import { delay } from '../common/promiseUtil';
+import { chromeLaunchConfigDefaults } from '../configuration';
 
 suite('BreakOnLoad', () => {
   const DATA_ROOT = testSetup.DATA_ROOT;

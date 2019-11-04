@@ -6,7 +6,7 @@ import * as path from 'path';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { Disposable } from '../../common/events';
-import { unlinkSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { unlinkSync, readFileSync, writeFileSync } from 'fs';
 
 /**
  * File that stores a lease on the filesystem. Can be validated to ensure
