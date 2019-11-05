@@ -30,8 +30,8 @@
     "watch": "gulp watch",
     "package": "gulp package",
     "publish": "gulp publish",
-    "test": "gulp --drop-in && node ./out/out/test/runTest.js",
-    "intTest": "mocha --exit --timeout 20000 -s 3500 -u tdd --colors --reporter out/out/int-chrome/testSupport/loggingReporter.js ./out/out/int-chrome/**/*.test.js"
+    "test": "gulp --drop-in && node ./out/src/test/runTest.js",
+    "intTest": "mocha --exit --timeout 20000 -s 3500 -u tdd --colors --reporter out/src/int-chrome/testSupport/loggingReporter.js ./out/src/int-chrome/**/*.test.js"
   },
   "dependencies": {
     "color": "^3.1.2",
@@ -104,7 +104,7 @@
     "vscode-nls-dev": "^3.3.1",
     "vscode-test": "^1.0.0"
   },
-  "main": "./out/extension.js",
+  "main": "./src/extension.js",
   "enableProposedApi": true,
   "activationEvents": [
     "onDebugInitialConfigurations",

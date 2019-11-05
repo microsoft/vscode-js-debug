@@ -13,17 +13,22 @@ const ts = require('gulp-typescript');
 const tslint = require('gulp-tslint');
 const typescript = require('typescript');
 const vsce = require('vsce');
-const fs = require('fs');
-const cp = require('child_process');
+const execSync = require('child_process').execSync;
 
 const dirname = 'vscode-node-debug3';
-const extensionId = 'node-debug3';
+const extensionId = 'vscode-pwa';
 const translationProjectName = 'vscode-extensions';
 const translationExtensionName = 'vscode-node-debug';
 
 const sources = ['src/**/*.ts'];
 const tslintFilter = ['**', '!**/*.d.ts'];
 const allPackages = [];
+
+const buildDir = 'out';
+const buildSrcDir = path.join(buildDir, 'src');
+const distDir = 'dist';
+const distSrcDir = path.join(distDir, 'src');
+const nodeTargetsDir = path.join('targets', 'node');
 
 /**
  * If --drop-in is set, commands and debug types will be set to 'chrome' and
@@ -33,7 +38,7 @@ const allPackages = [];
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
-const tsProject = ts.createProject('./src/tsconfig.json', { typescript });
+const tsProject = ts.createProject('./tsconfig.json', { typescript });
 const tslintOptions = {
   formatter: 'prose',
   rulesDirectory: 'node_modules/tslint-microsoft-contrib',
@@ -55,7 +60,7 @@ gulp.task('compile:ts', () =>
         sourceRoot: '.',
       }),
     )
-    .pipe(gulp.dest('out/out')),
+    .pipe(gulp.dest('out')),
 );
 
 gulp.task(
@@ -63,51 +68,75 @@ gulp.task(
   gulp.parallel(
     () =>
       gulp
-        .src(['*.json', 'resources/**/*'], { base: '.' })
+        .src('*.json')
         .pipe(replaceNamespace())
         .pipe(gulp.dest('out')),
     () =>
       gulp
         .src('src/**/*.sh')
         .pipe(replaceNamespace())
-        .pipe(gulp.dest('out/out')),
+        .pipe(gulp.dest('out/src')),
   ),
 );
 
 gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 
-gulp.task('package:copy-modules', () => {
-  // vsce wants to run `npm ls` to verify modules in the target package. For
-  // this, they need to exist. Copy our production dependencies into the out
-  // directory so this works and they can be bundled. We need to walk the
-  // dependency list recursively to get any hoisted/deduped modules.
-
-  const prodModules = [];
-  function walk(tree) {
-    for (const key of Object.keys(tree.dependencies || {})) {
-      prodModules.push(key);
-      walk(tree.dependencies[key]);
-    }
-  }
-
-  walk(JSON.parse(cp.execSync('npm ls --prod --json')));
-
-  return gulp
-    .src(`node_modules/{${prodModules.join(',')}}/**/*`)
-    .pipe(gulp.dest('out/node_modules'));
+/** Run parcel to bundle the extension output files */
+gulp.task('bundle', () => {
+  const parcelPath = path.join('node_modules', '.bin', 'parcel');
+  const extensionPath = path.join(buildSrcDir, 'extension.js');
+  const bootloaderPath = path.join(buildSrcDir, nodeTargetsDir, 'bootloader.js');
+  const watchdogPath = path.join(buildSrcDir, nodeTargetsDir, 'watchdog.js');
+  return runCommand(`${parcelPath} build ${extensionPath} ${bootloaderPath} ${watchdogPath} --target node -d ${distSrcDir} --no-source-maps --bundle-node-modules`, { stdio: 'inherit' })
 });
 
-gulp.task('package:vsix', () =>
-  vsce.createVSIX({
-    ...minimist(process.argv.slice(2)),
-    cwd: 'out',
-    packagePath: path.join(__dirname, 'out', `${extensionId}.vsix`),
-  }),
+// TODO: check the output location of watchdog/bootloader make sure it will work in out/src
+/** Flatten the bundle files so that extension, bootloader, and watchdog are all at the root */
+gulp.task('flatten-bundle-files',
+  () => {
+    const source = path.join(distSrcDir, nodeTargetsDir, '*.js');
+    const base = path.join(distSrcDir, nodeTargetsDir);
+    const dest = distSrcDir;
+    return gulp.src(source, { base })
+        .pipe(gulp.dest(dest));
+  }
 );
 
-gulp.task(
-  'package',
-  gulp.series('clean', gulp.parallel('compile', 'package:copy-modules'), 'package:vsix'),
+/** Copy the built package.json files */
+gulp.task('copy-extension-files', () => {
+  return gulp.src([
+    path.join(buildDir, 'package.json'),
+    path.join(buildDir, 'package.nls.json'),
+  ], { base: buildDir }).pipe(
+    gulp.dest(distDir)
+  );
+});
+
+/** Copy resources and any other files from outside of the `out` directory */
+gulp.task('copy-resources', () =>
+  gulp.src([path.join('resources', '**', '*'), 'LICENSE'])
+      .pipe(gulp.dest(distDir))
+);
+
+/** Clean up the node targets dir in dist */
+gulp.task('bundle-cleanup', () => del(path.join(distSrcDir, nodeTargetsDir)));
+
+/** Create a VSIX package using the vsce command line tool */
+gulp.task('createVSIX', () => {
+  return runCommand(`${ path.join('..', 'node_modules', '.bin', 'vsce')} package --yarn -o ${extensionId}.vsix`, { stdio: 'inherit', cwd: distDir });
+});
+
+/** Clean, compile, bundle, and create vsix for the extension */
+gulp.task('package',
+  gulp.series(
+    'clean',
+    'compile',
+    'bundle',
+    'copy-extension-files',
+    'copy-resources',
+    'flatten-bundle-files',
+    'bundle-cleanup',
+    'createVSIX')
 );
 
 gulp.task(
@@ -171,3 +200,20 @@ gulp.task('lint', () =>
     .pipe(tslint(tslintOptions))
     .pipe(tslint.report()),
 );
+
+/**
+ * Run a command in the terminal using exec, and wrap it in a promise
+ * @param {string} cmd The command line command + args to execute
+ * @param {ExecOptions} options, see here for options: https://nodejs.org/docs/latest-v10.x/api/child_process.html#child_process_child_process_exec_command_options_callback
+ */
+function runCommand(cmd, options) {
+  return new Promise((resolve, reject) => {
+    let execError = undefined;
+    try {
+      execSync(cmd, { stdio: 'inherit', ...options });
+    } catch(err) {
+      reject(err);
+    }
+    resolve();
+  });
+}

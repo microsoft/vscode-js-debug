@@ -6,11 +6,18 @@
 		"noImplicitAny": true,
     "noImplicitThis": true,
     "sourceMap": true,
-    "outDir": "../out/out",
+    "rootDir": "./",
+    "outDir": "./out/out",
     "strict": true,
     "noUnusedLocals": true,
     "alwaysStrict": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "types": ["node", "chai-subset", "mocha"],
-  }
+  },
+  "exclude": [
+    "demos",
+    "testdata",
+    "testWorkspace"
+  ]
 }

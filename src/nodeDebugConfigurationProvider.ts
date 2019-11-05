@@ -19,11 +19,11 @@ import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
+import config from '../package.json';
+
 const localize = nls.loadMessageBundle();
 
-const breakpointLanguages: ReadonlyArray<
-  string
-> = require('../../package.json').contributes.breakpoints.map(
+const breakpointLanguages: ReadonlyArray<string> = config.contributes.breakpoints.map(
   (b: { language: string }) => b.language,
 );
 
