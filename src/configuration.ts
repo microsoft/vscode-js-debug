@@ -26,6 +26,33 @@ export const enum OutputSource {
   Stdio = 'std',
 }
 
+export interface ILoggingConfiguration {
+  /**
+   * Configures whether logs are also returned to the debug console.
+   * Defaults to false.
+   */
+  console: boolean;
+
+  /**
+   * Configures the level of logs recorded. Defaults to "Verbose".
+   */
+  level: string;
+
+  /**
+   * Configures where on disk logs are written. If this is null, no logs
+   * will be written, otherwise the extension log directory (in VS Code) or
+   * OS tmpdir (in VS) will be used.
+   */
+  logFile: string | null;
+
+  /**
+   * Configures what types of logs recorded. For instance, `cdp` will log all
+   * CDP protocol messages. If this is empty or not provided, tags will not
+   * be filtered.
+   */
+  tags: ReadonlyArray<string>;
+}
+
 interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
@@ -72,16 +99,7 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * Logging configuration
    */
-  logging: {
-    /**
-     * Path to the log file for Chrome DevTools Protocol messages.
-     */
-    cdp: string | null;
-    /**
-     * Path to the log file for Debug Adapter Protocol messages.
-     */
-    dap: string | null;
-  };
+  trace: boolean | Partial<ILoggingConfiguration>;
 
   /**
    * todo: difference between this and webRoot?
@@ -132,13 +150,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
    * Path to the remote directory containing the program.
    */
   remoteRoot: string | null;
-
-  /**
-   * Produce diagnostic output. Instead of setting this to true you can
-   * list one or more selectors separated with commas. The 'verbose' selector
-   * enables very detailed output.
-   */
-  trace: boolean | string;
 
   /**
    * Don't set breakpoints in any file until a sourcemap has been
@@ -315,19 +326,34 @@ export type AnyNodeConfiguration = INodeAttachConfiguration | INodeLaunchConfigu
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
-export type ResolvingNodeAttachConfiguration = IMandatedConfiguration & Partial<INodeAttachConfiguration>;
-export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration & Partial<INodeLaunchConfiguration>;
-export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
+export type ResolvingNodeAttachConfiguration = IMandatedConfiguration &
+  Partial<INodeAttachConfiguration>;
+export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration &
+  Partial<INodeLaunchConfiguration>;
+export type ResolvingNodeConfiguration =
+  | ResolvingNodeAttachConfiguration
+  | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
+export type AnyResolvingConfiguration = ResolvingChromeConfiguration | ResolvingNodeConfiguration;
+
+/**
+ * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
+ */
+export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
+  ? INodeAttachConfiguration
+  : T extends ResolvingNodeLaunchConfiguration
+  ? INodeLaunchConfiguration
+  : T extends ResolvingNodeConfiguration
+  ? AnyNodeConfiguration
+  : T extends ResolvingChromeConfiguration
+  ? AnyChromeConfiguration
+  : never;
 
 export const baseDefaults: IBaseConfiguration = {
   type: '',
   name: '',
   request: '',
-  logging: {
-    cdp: null,
-    dap: null,
-  },
+  trace: false,
   address: 'localhost',
   outputCapture: OutputSource.Console,
   port: 9229,

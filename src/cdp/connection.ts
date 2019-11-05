@@ -6,6 +6,8 @@ import { EventEmitter } from '../common/events';
 import Cdp from './api';
 import { RawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
 import { HighResolutionTime } from '../utils/performance';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 interface ProtocolCommand {
   id: number;
@@ -41,8 +43,6 @@ export default class Connection {
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _rootSession: CDPSession;
-  private _logPath?: string;
-  private _logPrefix = '';
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
   private readonly _telemetryReporter: TelemetryReporter;
@@ -59,11 +59,6 @@ export default class Connection {
     this._telemetryReporter = TelemetryReporter.cdp(rawTelemetryReporter);
   }
 
-  setLogConfig(prefix: string, path?: string) {
-    this._logPrefix = prefix;
-    this._logPath = path;
-  }
-
   rootSession(): Cdp.Api {
     return this._rootSession.cdp();
   }
@@ -78,16 +73,14 @@ export default class Connection {
     if (sessionId)
       message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    if (this._logPath)
-      require('fs').appendFileSync(this._logPath, `SEND ► [${this._logPrefix}] ${messageString}\n`);
+    logger.verbose(LogTag.CdpSend, undefined, { message });
     this._transport.send(messageString);
     return id;
   }
 
   async _onMessage(message: string, receivedTime: HighResolutionTime) {
-    if (this._logPath)
-      require('fs').appendFileSync(this._logPath, `◀ RECV [${this._logPrefix}] ${message}\n`);
     const object = JSON.parse(message);
+    logger.verbose(LogTag.CdpReceive, undefined, { message: object });
 
     const session = this._sessions.get(object.sessionId || '');
     if (session) {

@@ -54,7 +54,6 @@ export class NodeTarget implements Target {
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
-    args: AnyNodeConfiguration,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
     this.connection = connection;
@@ -66,8 +65,6 @@ export class NodeTarget implements Target {
     if (targetInfo.title)
       this._targetName = `${basename(targetInfo.title)} [${targetInfo.targetId}]`;
     else this._targetName = `[${targetInfo.targetId}]`;
-    if (args.logging && args.logging.cdp)
-      connection.setLogConfig(this._targetName, args.logging.cdp);
 
     cdp.Target.on('targetDestroyed', () => this.connection.close());
     connection.onDisconnected(_ => this._disconnected());
