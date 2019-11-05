@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { Disposable } from '../events';
+import * as os from 'os';
 import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
 
 const packageJson = require('../../../package.json');
@@ -134,13 +135,16 @@ export class Logger implements ILogger, Disposable {
 
     await Promise.all(options.sinks.map(s => s.setup()));
 
+    if (options.showWelcome !== false) {
+      const message = createWelcomeMessage();
+      for (const sink of options.sinks) {
+        sink.write(message);
+      }
+    }
+
     if ('sinks' in this.logTarget) {
       this.logTarget.sinks.push(...options.sinks);
       return;
-    }
-
-    if (options.showWelcome !== false) {
-      this.verbose(LogTag.Runtime, `${packageJson.name} v${packageJson.version} started`);
     }
 
     const prevTarget = this.logTarget;
@@ -156,3 +160,15 @@ export class Logger implements ILogger, Disposable {
  * Global logger instance.
  */
 export const logger = new Logger();
+
+const createWelcomeMessage = (): ILogItem<any> => ({
+  timestamp: Date.now(),
+  tag: LogTag.RuntimeWelcome,
+  level: LogLevel.Info,
+  message: `${packageJson.name} v${packageJson.version} started`,
+  metadata: {
+    os: `${os.platform()} ${os.arch()}`,
+    nodeVersion: process.version,
+    adapterVersion: packageJson.version,
+  },
+});

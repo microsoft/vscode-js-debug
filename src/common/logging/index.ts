@@ -22,8 +22,9 @@ export const enum LogLevel {
   Never,
 }
 
-export const enum LogTag {
+export enum LogTag {
   Runtime = 'runtime',
+  RuntimeWelcome = 'runtime.welcome',
   RuntimeException = 'runtime.exception',
   RuntimeSourceMap = 'runtime.sourcemap',
   CdpSend = 'cdp.send',
@@ -33,23 +34,9 @@ export const enum LogTag {
 }
 
 /**
- * Map of log tags, done this way so we have a compile-time check that we
- * don't miss any tags.
- */
-const allTagMap: { [K in LogTag]: null } = {
-  [LogTag.Runtime]: null,
-  [LogTag.RuntimeException]: null,
-  [LogTag.RuntimeSourceMap]: null,
-  [LogTag.CdpSend]: null,
-  [LogTag.CdpReceive]: null,
-  [LogTag.DapSend]: null,
-  [LogTag.DapReceive]: null,
-};
-
-/**
  * List of all log tags.
  */
-export const allLogTags = Object.keys(allTagMap) as ReadonlyArray<LogTag>;
+export const allLogTags = Object.keys(LogTag) as ReadonlyArray<keyof typeof LogTag>;
 
 export interface ILogItem<T> {
   timestamp: number;

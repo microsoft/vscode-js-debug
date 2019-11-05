@@ -64,6 +64,8 @@ function getLogLevel(level: LogLevel): string {
       return 'ERROR';
     case LogLevel.Warn:
       return 'WARN';
+    case LogLevel.Info:
+      return 'INFO';
     case LogLevel.Verbose:
       return 'VERB';
     default:
