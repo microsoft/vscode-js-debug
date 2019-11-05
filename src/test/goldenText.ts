@@ -15,7 +15,7 @@ export class GoldenText {
   _hasNonAssertedLogs: boolean;
   _workspaceFolder: string;
 
-  constructor(testName, workspaceFolder) {
+  constructor(testName: String, workspaceFolder: string) {
     this._results = [];
     this._testName = testName;
     this._hasNonAssertedLogs = false;
@@ -114,7 +114,7 @@ export class GoldenText {
     stabilizeNames = stabilizeNames || kStabilizeNames;
     const lines: string[] = [];
 
-    const dumpValue = (value, prefix, prefixWithName) => {
+    const dumpValue = (value: any, prefix: string, prefixWithName: string) => {
       if (typeof value === 'object' && value !== null) {
         if (value instanceof Array)
           dumpItems(value, prefix, prefixWithName);
@@ -125,7 +125,7 @@ export class GoldenText {
       }
     };
 
-    function dumpProperties(object, prefix, firstLinePrefix) {
+    function dumpProperties(object: any, prefix: string, firstLinePrefix: string) {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '{');
@@ -145,7 +145,7 @@ export class GoldenText {
       lines.push(prefix + '}');
     }
 
-    function dumpItems(object, prefix, firstLinePrefix) {
+    function dumpItems(object: any, prefix: string, firstLinePrefix: string) {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '[');

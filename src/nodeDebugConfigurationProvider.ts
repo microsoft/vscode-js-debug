@@ -7,15 +7,17 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { writeToConsole } from './common/console';
 import {
-  ResolvingNodeConfiguration,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
-  AnyNodeConfiguration,
+  ResolvingNodeAttachConfiguration,
+  ResolvingNodeLaunchConfiguration,
+  ResolvedConfiguration,
 } from './configuration';
 import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
 import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -25,33 +27,29 @@ const breakpointLanguages: ReadonlyArray<
   (b: { language: string }) => b.language,
 );
 
+type ResolvingNodeConfiguration =
+  | ResolvingNodeAttachConfiguration
+  | ResolvingNodeLaunchConfiguration;
+
 /**
  * Configuration provider for node debugging. In order to allow for a
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class NodeDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-  constructor(private readonly nvmResolver: INvmResolver = new NvmResolver()) {}
-
-  /**
-   * Try to add all missing attributes to the debug configuration being launched.
-   */
-  public async resolveDebugConfiguration(
-    folder: vscode.WorkspaceFolder | undefined,
-    config: vscode.DebugConfiguration,
-  ): Promise<vscode.DebugConfiguration | undefined> {
-    try {
-      return this.resolveDebugConfigurationAsync(folder, config as ResolvingNodeConfiguration);
-    } catch (err) {
-      await vscode.window.showErrorMessage(err.message, { modal: true });
-      return;
-    }
+export class NodeDebugConfigurationProvider
+  extends BaseConfigurationProvider<ResolvingNodeConfiguration>
+  implements vscode.DebugConfigurationProvider {
+  constructor(
+    context: vscode.ExtensionContext,
+    private readonly nvmResolver: INvmResolver = new NvmResolver(),
+  ) {
+    super(context);
   }
 
-  private async resolveDebugConfigurationAsync(
+  protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
-  ): Promise<AnyNodeConfiguration | undefined> {
+  ): Promise<ResolvedConfiguration<ResolvingNodeConfiguration> | undefined> {
     if (!config.name && !config.type && !config.request) {
       config = createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {
@@ -231,7 +229,7 @@ function createLaunchConfigFromContext(
           dir += '/';
         }
       }
-      config['preLaunchTask'] = 'tsc: build - tsconfig.json';
+      (config as any)['preLaunchTask'] = 'tsc: build - tsconfig.json';
     }
     config['outFiles'] = ['${workspaceFolder}/' + dir + '**/*.js'];
   }

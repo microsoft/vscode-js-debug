@@ -73,21 +73,24 @@ export const writeFileP = util.promisify(fs.writeFile);
 
 export type PromiseOrNot<T> = T | Promise<T>;
 
-export interface PromiseDefer<T> {
-  promise: Promise<void>;
-  resolve: (value?: T | PromiseLike<T>) => void;
-  reject: (reason?: any) => void;
+export interface IDeferred<T> {
+  resolve: (result: T) => void;
+  reject: (err: Error) => void;
+  promise: Promise<T>;
 }
 
-export function promiseDefer<T>(): PromiseDefer<T> {
-  let resolveCallback;
-  let rejectCallback;
-  const promise = new Promise<void>((resolve, reject) => {
-    resolveCallback = resolve;
-    rejectCallback = reject;
-  });
+export function getDeferred<T>(): Promise<IDeferred<T>> {
+  return new Promise(r => {
+      // Promise callback is called synchronously
+      let resolve: IDeferred<T>['resolve'] = () => { throw new Error('Deferred was resolved before intialization'); };
+      let reject: IDeferred<T>['reject'] = () => { throw new Error('Deferred was rejected before initialization'); };
+      let promise = new Promise<T>((_resolve, _reject) => {
+          resolve = _resolve;
+          reject = _reject;
+      });
 
-  return { promise, resolve: resolveCallback, reject: rejectCallback };
+      r({ resolve, reject, promise });
+  });
 }
 
 export function sleep(ms: number): Promise<void> {

@@ -7,7 +7,6 @@ import { ILaunchContext } from '../targets';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { SubprocessProgram } from './program';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { relative } from 'path';
 import Dap from '../../dap/api';
 
 /**

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 import * as _ from 'lodash';
-import * as path from 'path';
-import { printTopLevelObjectDescription } from './printObjectDescription';
 
 enum Synchronicity {
     Sync,
@@ -108,71 +106,71 @@ export class MethodsCalledLogger<T extends object> {
         return MethodsCalledLogger._nextCallId++;
     }
 
-    private printMethodCall(propertyKey: PropertyKey, methodCallArguments: any[]): string {
-        return `${this._objectToWrapName}.${String(propertyKey)}(${this.printArguments(methodCallArguments)})`;
-    }
+    // private printMethodCall(propertyKey: PropertyKey, methodCallArguments: any[]): string {
+    //     return `${this._objectToWrapName}.${String(propertyKey)}(${this.printArguments(methodCallArguments)})`;
+    // }
 
-    private printMethodResponse(outcome: Outcome, resultOrException: unknown): string {
-        return `${outcome === Outcome.Succesful ? '->' : 'threw'} ${this.printObject(resultOrException)}`;
-    }
+    // private printMethodResponse(outcome: Outcome, resultOrException: unknown): string {
+    //     return `${outcome === Outcome.Succesful ? '->' : 'threw'} ${this.printObject(resultOrException)}`;
+    // }
 
-    private printMethodSynchronicity(synchronicity: Synchronicity): string {
-        return `${synchronicity === Synchronicity.Sync ? '' : ' async'}`;
-    }
+    // private printMethodSynchronicity(synchronicity: Synchronicity): string {
+    //     return `${synchronicity === Synchronicity.Sync ? '' : ' async'}`;
+    // }
 
     /** Returns the test file and line that the code is currently executing e.g.:
      *                                           <                                       >
      * [22:23:28.468 UTC] START            10026: hitCountBreakpointTests.test.ts:34:2 | #incrementBtn.click()
      */
     // TODO: Figure out how to integrate this with V2. We don't want to do this for production logging because new Error().stack is slow
-    private getTestFileAndLine(): string {
-        const stack = new Error().stack;
-        if (stack) {
-            const stackLines = stack.split('\n');
-            const testCaseLine = stackLines.find(line => line.indexOf('test.ts') >= 0);
-            if (testCaseLine) {
-                const filenameAndLine = testCaseLine.lastIndexOf(path.sep);
-                if (filenameAndLine >= 0) {
-                    const fileNameAndLineNumber = testCaseLine.substring(filenameAndLine + 1, testCaseLine.length - 2);
-                    return `${fileNameAndLineNumber} | `;
-                }
-            }
-        }
+    // private getTestFileAndLine(): string {
+    //     const stack = new Error().stack;
+    //     if (stack) {
+    //         const stackLines = stack.split('\n');
+    //         const testCaseLine = stackLines.find(line => line.indexOf('test.ts') >= 0);
+    //         if (testCaseLine) {
+    //             const filenameAndLine = testCaseLine.lastIndexOf(path.sep);
+    //             if (filenameAndLine >= 0) {
+    //                 const fileNameAndLineNumber = testCaseLine.substring(filenameAndLine + 1, testCaseLine.length - 2);
+    //                 return `${fileNameAndLineNumber} | `;
+    //             }
+    //         }
+    //     }
 
-        return '';
-    }
+    //     return '';
+    // }
 
-    private logCallStart(propertyKey: PropertyKey, methodCallArguments: any[], callId: number): void {
+    private logCallStart(_propertyKey: PropertyKey, _methodCallArguments: any[], _callId: number): void {
         // const getTestFileAndLine = this.getTestFileAndLine();
         // const message = `START            ${callId}: ${getTestFileAndLine}${this.printMethodCall(propertyKey, methodCallArguments)}`;
         // logger.verbose(message);
     }
 
-    private logSyncPartFinished(propertyKey: PropertyKey, methodCallArguments: any[], callId: number): void {
+    private logSyncPartFinished(_propertyKey: PropertyKey, _methodCallArguments: any[], _callId: number): void {
         // const getTestFileAndLine = this.getTestFileAndLine();
         // const message = `PROMISE-RETURNED ${callId}: ${getTestFileAndLine}${this.printMethodCall(propertyKey, methodCallArguments)}`;
         // logger.verbose(message);
     }
 
-    private logCall(propertyKey: PropertyKey, synchronicity: Synchronicity, methodCallArguments: any[], outcome: Outcome, resultOrException: unknown, callId: number): void {
+    private logCall(_propertyKey: PropertyKey, _synchronicity: Synchronicity, _methodCallArguments: any[], _outcome: Outcome, _resultOrException: unknown, _callId: number): void {
         // const endPrefix = callId ? `END              ${callId}: ` : '';
         // const message = `${endPrefix}${this.printMethodCall(propertyKey, methodCallArguments)} ${this.printMethodSynchronicity(synchronicity)}  ${this.printMethodResponse(outcome, resultOrException)}`;
         // logger.verbose(message);
     }
 
-    private printArguments(methodCallArguments: any[]): string {
-        return methodCallArguments.map(methodCallArgument => this.printObject(methodCallArgument)).join(', ');
-    }
+    // private printArguments(methodCallArguments: any[]): string {
+    //     return methodCallArguments.map(methodCallArgument => this.printObject(methodCallArgument)).join(', ');
+    // }
 
-    private printObject(objectToPrint: unknown): string {
-        const description = printTopLevelObjectDescription(objectToPrint);
-        const printedReduced = _.reduce(Array.from(this._configuration.replacements),
-            (text, replacement) =>
-                text.replace(replacement.pattern, replacement.replacement),
-            description);
+    // private printObject(objectToPrint: unknown): string {
+    //     const description = printTopLevelObjectDescription(objectToPrint);
+    //     const printedReduced = _.reduce(Array.from(this._configuration.replacements),
+    //         (text, replacement) =>
+    //             text.replace(replacement.pattern, replacement.replacement),
+    //         description);
 
-        return printedReduced;
-    }
+    //     return printedReduced;
+    // }
 }
 
 export function wrapWithMethodLogger<T extends object>(objectToWrap: T, objectToWrapName = `${objectToWrap}`): T {

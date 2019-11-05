@@ -4,11 +4,12 @@
 import * as net from 'net';
 import WebSocket from 'ws';
 import * as events from 'events';
+import { HighResolutionTime } from '../utils/performance';
 
 export interface Transport {
   send(message: string): void;
   close(): void;
-  onmessage?: (message: string) => void;
+  onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
   onclose?: () => void;
 }
 
@@ -17,7 +18,7 @@ export class PipeTransport implements Transport {
   private _socket: net.Socket | undefined;
   private _pendingBuffers: Buffer[];
   private _eventListeners: any[];
-  onmessage?: (message: string) => void;
+  onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
   onclose?: () => void;
 
   constructor(socket: net.Socket);
@@ -27,6 +28,7 @@ export class PipeTransport implements Transport {
     this._pipeWrite = pipeWrite as NodeJS.WritableStream;
     if (!pipeRead)
       this._socket = pipeWrite as net.Socket;
+
     this._pendingBuffers = [];
     this._eventListeners = [
       addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
@@ -46,6 +48,7 @@ export class PipeTransport implements Transport {
   }
 
   _dispatch(buffer: Buffer) {
+    const receivedTime = process.hrtime();
     let end = buffer.indexOf('\0');
     if (end === -1) {
       this._pendingBuffers.push(buffer);
@@ -54,13 +57,13 @@ export class PipeTransport implements Transport {
     this._pendingBuffers.push(buffer.slice(0, end));
     const message = Buffer.concat(this._pendingBuffers).toString();
     if (this.onmessage)
-      this.onmessage.call(null, message);
+      this.onmessage.call(null, message, receivedTime);
 
     let start = end + 1;
     end = buffer.indexOf('\0', start);
     while (end !== -1) {
       if (this.onmessage)
-        this.onmessage.call(null, buffer.toString(undefined, start, end));
+        this.onmessage.call(null, buffer.toString(undefined, start, end), receivedTime);
       start = end + 1;
       end = buffer.indexOf('\0', start);
     }

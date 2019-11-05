@@ -31,7 +31,7 @@ function formLaunchArgs(
   launchArgs.type = 'pwa-chrome' as any; // TODO@rob
   launchArgs.logging = { dap: '/tmp/dap.log', cdp: '/tmp/cdp.log' };
   launchArgs.sourceMapPathOverrides = {};
-  launchArgs.trace = 'verbose';
+  launchArgs.trace = true;
   launchArgs.logTimestamps = true;
   launchArgs.disableNetworkCache = true;
   launchArgs.logFilePath = getDebugAdapterLogFilePath(testTitle);
@@ -56,9 +56,7 @@ function formLaunchArgs(
   }
 
   const argsWithDefaults = { ...chromeLaunchConfigDefaults, ...launchArgs };
-  for (let k in argsWithDefaults) {
-    launchArgs[k] = argsWithDefaults[k];
-  }
+  Object.assign(launchArgs, argsWithDefaults);
 }
 
 let storedLaunchArgs: Partial<IChromeLaunchConfiguration> = {};

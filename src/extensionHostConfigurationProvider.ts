@@ -7,26 +7,16 @@ import {
   IExtensionHostConfiguration,
   ResolvingExtensionHostConfiguration,
 } from './configuration';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
 /**
  * Configuration provider for Extension host debugging.
  */
-export class ExtensionHostConfigurationProvider implements vscode.DebugConfigurationProvider {
-  constructor() {}
+export class ExtensionHostConfigurationProvider
+  extends BaseConfigurationProvider<ResolvingExtensionHostConfiguration>
+  implements vscode.DebugConfigurationProvider {
 
-  public resolveDebugConfiguration(
-    folder: vscode.WorkspaceFolder | undefined,
-    config: vscode.DebugConfiguration,
-  ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    return this.resolveDebugConfigurationAsync(
-      folder,
-      config as ResolvingExtensionHostConfiguration,
-    ).catch(err => {
-      return vscode.window.showErrorMessage(err.message, { modal: true }).then(_ => undefined); // abort launch
-    });
-  }
-
-  private resolveDebugConfigurationAsync(
+  protected async resolveDebugConfigurationAsync(
     _folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingExtensionHostConfiguration,
   ): Promise<IExtensionHostConfiguration | undefined> {

@@ -10,6 +10,7 @@ import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
+import { ScriptSkipper } from './scriptSkipper';
 import { delay } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
@@ -74,7 +75,7 @@ export class Source {
   _sourceReference: number;
   _url: string;
   _name: string;
-  _blackboxed?: boolean;
+  _blackboxed: boolean = false;
   _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
@@ -101,7 +102,7 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, blackboxed?: boolean) {
+  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
     this._contentGetter = contentGetter;
@@ -110,8 +111,12 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._blackboxed = blackboxed;
     this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url) || '';
+
+    if (container.scriptSkipper) {
+      container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
+      this._blackboxed = container.scriptSkipper.isScriptSkipped(url);
+    }
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset)
@@ -243,8 +248,7 @@ export class SourceContainer {
   readonly rootPath: string | undefined;
   readonly sourcePathResolver: ISourcePathResolver;
   private _disabledSourceMaps = new Set<Source>();
-  private _blackboxRegex?: RegExp;
-  private _isBlackboxedUrlMap = new Map<string, boolean>();
+  private _scriptSkipper? : ScriptSkipper;
 
   constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver) {
     this._dap = dap;
@@ -267,9 +271,12 @@ export class SourceContainer {
       this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  setBlackboxRegex(blackboxRegex?: RegExp) {
-    console.assert(!this._sourceByReference.size);
-    this._blackboxRegex = blackboxRegex;
+  initializeScriptSkipper(scriptSkipper: ScriptSkipper) {
+    this._scriptSkipper = scriptSkipper;
+  }
+
+  get scriptSkipper(): ScriptSkipper | undefined {
+    return this._scriptSkipper;
   }
 
   async loadedSources(): Promise<Dap.Source[]> {
@@ -380,18 +387,10 @@ export class SourceContainer {
     }
   }
 
-  _isBlackboxedUrl(url: string): boolean {
-    if (!this._blackboxRegex)
-      return false;
-    if (!this._isBlackboxedUrlMap.has(url))
-      this._isBlackboxedUrlMap.set(url, this._blackboxRegex.test(url));
-    return this._isBlackboxedUrlMap.get(url)!;
-  }
-
   addSource(url: string, contentGetter: ContentGetter,
       sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
     const source = new Source(this, url, contentGetter, sourceMapUrl,
-        inlineSourceRange, contentHash, this._isBlackboxedUrl(url));
+          inlineSourceRange, contentHash);
     this._addSource(source);
     return source;
   }
@@ -486,10 +485,9 @@ export class SourceContainer {
       const isNew = !source;
       if (!source) {
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
-        const blackboxed = compiled._blackboxed || this._isBlackboxedUrl(resolvedUrl);
         source = new Source(this, resolvedUrl,
             content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
-            undefined, undefined, undefined, blackboxed);
+            undefined, undefined, undefined);
         source._compiledToSourceUrl = new Map();
       }
       source._compiledToSourceUrl!.set(compiled, url);

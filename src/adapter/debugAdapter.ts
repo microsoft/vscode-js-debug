@@ -61,8 +61,9 @@ export class DebugAdapter {
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
-    this.dap.initialized({});
-    return DebugAdapter.capabilities();
+    const capabilities = DebugAdapter.capabilities();
+    setTimeout(() => this.dap.initialized({}), 0);
+    return capabilities;
   }
 
   static capabilities(): Dap.Capabilities {

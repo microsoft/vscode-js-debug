@@ -19,9 +19,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
   );
 
-  const nodeConfigProvider = new NodeDebugConfigurationProvider();
-  const chromeConfigProvider = new ChromeDebugConfigurationProvider(nodeConfigProvider);
-  const extensionConfigProvider = new ExtensionHostConfigurationProvider();
+  const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);
+  const nodeConfigProvider = new NodeDebugConfigurationProvider(context);
+  const chromeConfigProvider = new ChromeDebugConfigurationProvider(context, nodeConfigProvider);
 
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider(

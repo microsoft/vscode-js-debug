@@ -61,6 +61,7 @@
     "@types/http-server": "^0.10.0",
     "@types/js-beautify": "^1.8.1",
     "@types/lodash": "^4.14.144",
+    "@types/long": "^4.0.0",
     "@types/minimist": "^1.2.0",
     "@types/mkdirp": "^0.5.2",
     "@types/mocha": "^5.2.7",
@@ -68,6 +69,7 @@
     "@types/puppeteer": "^1.20.2",
     "@types/request-promise-native": "^1.0.17",
     "@types/sinon": "^7.5.0",
+    "@types/tmp": "^0.1.0",
     "@types/ws": "^6.0.1",
     "chai": "^4.2.0",
     "chai-string": "^1.5.0",
@@ -360,20 +362,40 @@
                 "description": "%node.disableOptimisticBPs.description%",
                 "default": true
               },
-              "logging": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "cdp": {
-                    "type": "string",
-                    "description": "%node.launch.logging.cdp%"
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
                   },
-                  "dap": {
-                    "type": "string",
-                    "description": "%node.launch.logging.dap%"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": ["string", "null"],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": ["cdp", "dap", "runtime"]
+                        }
+                      }
+                    }
                   }
-                },
-                "description": "Logging configuration"
+                ]
               }
             }
           }
@@ -718,20 +740,40 @@
                 "description": "%node.disableOptimisticBPs.description%",
                 "default": true
               },
-              "logging": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "cdp": {
-                    "type": "string",
-                    "description": "%node.launch.logging.cdp%"
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
                   },
-                  "dap": {
-                    "type": "string",
-                    "description": "%node.launch.logging.dap%"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": ["string", "null"],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": ["cdp", "dap", "runtime"]
+                        }
+                      }
+                    }
                   }
-                },
-                "description": "Logging configuration"
+                ]
               }
             }
           },
@@ -833,28 +875,40 @@
                 "description": "%node.disableOptimisticBPs.description%",
                 "default": true
               },
-              "logging": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "cdp": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "default": null,
-                    "description": "%node.launch.logging.cdp%"
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
                   },
-                  "dap": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "default": null,
-                    "description": "%node.launch.logging.dap%"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": ["string", "null"],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": ["cdp", "dap", "runtime"]
+                        }
+                      }
+                    }
                   }
-                },
-                "description": "%node.launch.logging%"
+                ]
               }
             }
           }
@@ -953,20 +1007,40 @@
                 "description": "%chrome.sourceMaps.description%",
                 "default": true
               },
-              "logging": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "cdp": {
-                    "type": "string",
-                    "description": "%node.launch.logging.cdp%"
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
                   },
-                  "dap": {
-                    "type": "string",
-                    "description": "%node.launch.logging.dap%"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": ["string", "null"],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": ["cdp", "dap", "runtime"]
+                        }
+                      }
+                    }
                   }
-                },
-                "description": "Logging configuration"
+                ]
               },
               "userDataDir": {
                 "type": [
@@ -1190,20 +1264,40 @@
                     "description": "%node.disableOptimisticBPs.description%",
                     "default": true
                   },
-                  "logging": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "cdp": {
-                        "type": "string",
-                        "description": "%node.launch.logging.cdp%"
+                  "trace": {
+                    "description": "%trace.description%",
+                    "default": true,
+                    "oneOf": [
+                      {
+                        "type": "boolean",
+                        "description": "%trace.boolean.description%"
                       },
-                      "dap": {
-                        "type": "string",
-                        "description": "%node.launch.logging.dap%"
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "console": {
+                            "type": "boolean",
+                            "description": "%trace.console.description%"
+                          },
+                          "level": {
+                            "enum": ["fatal", "error", "warn", "info", "verbose"],
+                            "description": "%trace.level.description%"
+                          },
+                          "logFile": {
+                            "type": ["string", "null"],
+                            "description": "%trace.logFile.description%"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "description": "%trace.tags.description%",
+                            "items": {
+                              "enum": ["cdp", "dap", "runtime"]
+                            }
+                          }
+                        }
                       }
-                    },
-                    "description": "Logging configuration"
+                    ]
                   }
                 }
               }
@@ -1279,20 +1373,40 @@
                 "description": "%chrome.showAsyncStacks.description%",
                 "default": true
               },
-              "logging": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "cdp": {
-                    "type": "string",
-                    "description": "%node.launch.logging.cdp%"
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
                   },
-                  "dap": {
-                    "type": "string",
-                    "description": "%node.launch.logging.dap%"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": ["string", "null"],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": ["cdp", "dap", "runtime"]
+                        }
+                      }
+                    }
                   }
-                },
-                "description": "Logging configuration"
+                ]
               }
             }
           }

@@ -110,13 +110,14 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('blackboxed', async ({ r }) => {
-    r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
-    const p = await r.launchUrlAndLoad('index.html');
-    p.addScriptTag('browserify/pause.js');
-    await dumpStackAndContinue(p, false);
-    p.assertLog();
-  });
+  // TODO: Shennie -- fix integration for blackboxing to use skipfiles
+  // itIntegrates('blackboxed', async ({ r }) => {
+  //   r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
+  //   const p = await r.launchUrlAndLoad('index.html');
+  //   p.addScriptTag('browserify/pause.js');
+  //   await dumpStackAndContinue(p, false);
+  //   p.assertLog();
+  // });
 
   itIntegrates('return value', async ({ r }) => {
     const p = await r.launchAndLoad('blank');

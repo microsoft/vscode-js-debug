@@ -4,6 +4,10 @@
 import { Transport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
+import { RawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
+import { HighResolutionTime } from '../utils/performance';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 interface ProtocolCommand {
   id: number;
@@ -39,12 +43,11 @@ export default class Connection {
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _rootSession: CDPSession;
-  private _logPath?: string;
-  private _logPrefix = '';
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
+  private readonly _telemetryReporter: TelemetryReporter;
 
-  constructor(transport: Transport) {
+  constructor(transport: Transport, rawTelemetryReporter: RawTelemetryReporter) {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -53,11 +56,7 @@ export default class Connection {
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
     this._sessions.set('', this._rootSession);
-  }
-
-  setLogConfig(prefix: string, path?: string) {
-    this._logPrefix = prefix;
-    this._logPath = path;
+    this._telemetryReporter = TelemetryReporter.cdp(rawTelemetryReporter);
   }
 
   rootSession(): Cdp.Api {
@@ -74,22 +73,29 @@ export default class Connection {
     if (sessionId)
       message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    if (this._logPath)
-      require('fs').appendFileSync(this._logPath, `SEND ► [${this._logPrefix}] ${messageString}\n`);
+    logger.verbose(LogTag.CdpSend, undefined, { message });
     this._transport.send(messageString);
     return id;
   }
 
-  async _onMessage(message: string) {
-    if (this._logPath)
-      require('fs').appendFileSync(this._logPath, `◀ RECV [${this._logPrefix}] ${message}\n`);
+  async _onMessage(message: string, receivedTime: HighResolutionTime) {
     const object = JSON.parse(message);
+    logger.verbose(LogTag.CdpReceive, undefined, { message: object });
 
     const session = this._sessions.get(object.sessionId || '');
-    if (session)
-      session._onMessage(object);
-    else
+    if (session) {
+      const eventName = object.method;
+      try {
+        session._onMessage(object);
+        if (eventName)
+          this._telemetryReporter.reportSuccess(eventName, receivedTime);
+      } catch (error) {
+        if (eventName)
+          this._telemetryReporter.reportError(eventName, receivedTime, error);
+      }
+    } else {
       throw new Error(`Unknown session id: ${object.sessionId}`)
+    }
   }
 
   _onTransportClose() {

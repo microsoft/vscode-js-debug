@@ -11,6 +11,10 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { generateBreakpointIds } from './adapter/breakpoints';
 import { AnyLaunchConfiguration } from './configuration';
+import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
+import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
+import { logger } from './common/logging/logger';
+import { resolveLoggerOptions } from './common/logging';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -30,6 +34,7 @@ export class Binder implements Disposable {
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: any;
   private _launchParams?: AnyLaunchConfiguration;
+  private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
 
   constructor(delegate: BinderDelegate, connection: DapConnection, launchers: Launcher[], targetOrigin: any) {
     this._delegate = delegate;
@@ -48,9 +53,17 @@ export class Binder implements Disposable {
     }
 
     this._dap.then(dap => {
-      dap.on('initialize', async () => {
-        dap.initialized({});
-        return DebugAdapter.capabilities();
+      this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
+      dap.on('initialize', async clientCapabilities => {
+        const capabilities = DebugAdapter.capabilities();
+        if (clientCapabilities.clientID === 'vscode') {
+          filterErrorsReportedToTelemetry();
+        }
+
+        setTimeout(() => {
+          dap.initialized({});
+        }, 0);
+        return capabilities;
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
@@ -60,11 +73,11 @@ export class Binder implements Disposable {
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
       dap.on('attach', async params => {
-        await this._boot(params as AnyLaunchConfiguration);
+        await this._boot(params as AnyLaunchConfiguration, dap);
         return {};
       });
       dap.on('launch', async params => {
-        await this._boot(params as AnyLaunchConfiguration);
+        await this._boot(params as AnyLaunchConfiguration, dap);
         return {};
       });
       dap.on('terminate', async () => {
@@ -76,13 +89,15 @@ export class Binder implements Disposable {
         return {};
       });
       dap.on('restart', async () => {
-        await this._restart();
+        await this._restart(this._rawTelemetryReporter!);
         return {};
       });
     });
   }
 
-  private async _boot(params: AnyLaunchConfiguration) {
+  private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
+    logger.setup(resolveLoggerOptions(dap, params.trace));
+
     if (params.rootPath)
       params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
@@ -93,12 +108,12 @@ export class Binder implements Disposable {
     return {};
   }
 
-  async _restart() {
-    await Promise.all([...this._launchers].map(l => l.restart()));
+  async _restart(rawTelemetryReporter: RawTelemetryReporterToDap) {
+    await Promise.all([...this._launchers].map(l => l.restart(rawTelemetryReporter)));
   }
 
   async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap });
+    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap }, this._rawTelemetryReporter!);
     if (result.error)
       return result.error;
     if (!result.blockSessionTermination)
@@ -138,8 +153,6 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
-    if (this._launchParams && this._launchParams.logging && this._launchParams.logging.dap)
-      connection.setLogConfig(target.name(), this._launchParams.logging.dap);
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver(), this._launchParams!);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
@@ -154,6 +167,7 @@ export class Binder implements Disposable {
     } else {
       dap.on('attach', startThread);
       dap.on('disconnect', async () => {
+        this._rawTelemetryReporter!.flush.fire();
         if (target.canStop())
           target.stop();
         return {};
@@ -167,7 +181,7 @@ export class Binder implements Disposable {
         if (target.canRestart())
           target.restart();
         else
-          await this._restart();
+          await this._restart(this._rawTelemetryReporter!);
         return {};
       });
     }

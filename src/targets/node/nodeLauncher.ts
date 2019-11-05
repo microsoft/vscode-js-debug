@@ -8,7 +8,7 @@ import { CallbackFile } from './callback-file';
 import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
-import { NodeTarget, INodeTargetLifecycleHooks } from './nodeTarget';
+import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { resolve } from 'path';
 import Cdp from '../../cdp/api';
