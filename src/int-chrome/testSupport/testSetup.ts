@@ -4,7 +4,6 @@
 import { DebugProtocol } from 'vscode-debugprotocol';
 
 import { ExtendedDebugClient } from './debugClient';
-import { promiseTimeout, sleep } from '../testUtils';
 
 // ES6 default export...
 // tslint:disable-next-line:no-var-requires

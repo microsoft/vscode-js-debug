@@ -90,24 +90,44 @@ describe('node runtime', () => {
 
   describe('attaching', () => {
     let child: ChildProcess | undefined;
-    beforeEach(() => {
-      createFileTree(testFixturesDir, {
-        'test.js': ['setInterval(() => { debugger; }, 500)'],
-      });
-    });
 
     afterEach(() => {
       if (child) {
         child.kill();
       }
-    });
+    })
 
     itIntegrates('attaches to existing processes', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 500)'],
+      });
+
       child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
       const handle = await r.attachNode(child.pid);
       await waitForPause(handle);
       handle.assertLog();
+    });
+
+    itIntegrates('attaches children of child processes', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': `
+          const { spawn } = require('child_process');
+          setInterval(() => spawn('node', ['child'], { cwd: __dirname }), 500);
+        `,
+        'child.js': '(function foo() { debugger; })();'
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      await delay(500); // give it a moment to boot
+      const handle = await r.attachNode(child.pid);
+      handle.load();
+
+      const worker = await r.worker();
+      worker.load();
+
+      await waitForPause(worker);
+      worker.assertLog();
     });
   });
 

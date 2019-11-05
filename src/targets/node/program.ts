@@ -28,7 +28,7 @@ export class SubprocessProgram implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
   private killed = false;
 
-  constructor(private child: ChildProcess) {
+  constructor(private readonly child: ChildProcess) {
     this.stopped = new Promise((resolve, reject) => {
       child.once('exit', code => resolve({ killed: this.killed, code: code || 0 }));
       child.once('error', error => reject({ killed: this.killed, code: 1, error }));

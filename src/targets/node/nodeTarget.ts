@@ -11,6 +11,25 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { basename } from 'path';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
+export interface INodeTargetLifecycleHooks {
+  /**
+   * Invoked when the adapter thread is first initialized.
+   */
+
+  initialized?(target: NodeTarget): Promise<void>;
+
+  /**
+   * Invoked when the thread is paused. Return true if the pause event
+   * is handled internally and should not be returned to the UI.
+   */
+  paused?(target: NodeTarget, notification: Cdp.Debugger.PausedEvent): Promise<boolean>;
+
+  /**
+   * Invoked when the target is stopped.
+   */
+  close?(target: NodeTarget): void;
+}
+
 export class NodeTarget implements Target {
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
@@ -35,6 +54,7 @@ export class NodeTarget implements Target {
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
+    private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
     this.connection = connection;
     this._cdp = cdp;
@@ -76,6 +96,16 @@ export class NodeTarget implements Target {
 
   children(): Target[] {
     return Array.from(this._children.values());
+  }
+
+  public async initialize() {
+    if (this.lifecycle.initialized) {
+      this.lifecycle.initialized(this);
+    }
+  }
+
+  public async onPaused(event: Cdp.Debugger.PausedEvent) {
+    return !!this.lifecycle.paused && (await this.lifecycle.paused(this, event));
   }
 
   waitingForDebugger(): boolean {
@@ -192,15 +222,12 @@ export class NodeTarget implements Target {
   }
 
   stop() {
-    const processId = Number(this._targetId);
-    if (processId > 0) {
-      try {
-        process.kill(+this._targetId);
-      } catch (e) {
-        // ignored
+    try {
+      if (this.lifecycle.close) {
+        this.lifecycle.close(this);
       }
+    } finally {
+      this.connection.close();
     }
-
-    this.connection.close();
   }
 }

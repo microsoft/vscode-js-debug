@@ -50,12 +50,18 @@ export class ExecutionContext {
 export type Script = { url: string, scriptId: string, hash: string, source: Source };
 
 export interface ThreadDelegate {
+  /**
+   * Handler triggered on a breakpoint. If this returns true, the UI will be
+   * continued and no breakpoint will be shown to the user.
+   */
+  onPaused(details: Cdp.Debugger.PausedEvent): Promise<boolean>;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   skipFiles(): ScriptSkipper | undefined;
+  initialize(): Promise<void>
 }
 
 export type ScriptWithSourceMapHandler = (script: Script, sources: Source[]) => Promise<void>;
@@ -398,6 +404,10 @@ export class Thread implements VariableStoreDelegate {
         return;
       }
 
+      if (await this._delegate.onPaused(event)) {
+        return;
+      }
+
       this._pausedDetails = this._createPausedDetails(event);
       (this._pausedDetails as any)[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
@@ -405,10 +415,10 @@ export class Thread implements VariableStoreDelegate {
       this._onThreadPaused();
     });
     this._cdp.Debugger.on('resumed', () => this._onResumed());
-
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
+    this._delegate.initialize();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     let scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
