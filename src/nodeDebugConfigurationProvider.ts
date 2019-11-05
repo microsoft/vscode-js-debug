@@ -7,10 +7,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { writeToConsole } from './common/console';
 import {
-  ResolvingNodeConfiguration,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
-  AnyNodeConfiguration,
+  ResolvingNodeAttachConfiguration,
+  ResolvingNodeLaunchConfiguration,
+  ResolvedConfiguration,
 } from './configuration';
 import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
@@ -25,6 +26,10 @@ const breakpointLanguages: ReadonlyArray<
 > = require('../../package.json').contributes.breakpoints.map(
   (b: { language: string }) => b.language,
 );
+
+type ResolvingNodeConfiguration =
+  | ResolvingNodeAttachConfiguration
+  | ResolvingNodeLaunchConfiguration;
 
 /**
  * Configuration provider for node debugging. In order to allow for a
@@ -44,7 +49,7 @@ export class NodeDebugConfigurationProvider
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
-  ): Promise<AnyNodeConfiguration | undefined> {
+  ): Promise<ResolvedConfiguration<ResolvingNodeConfiguration> | undefined> {
     if (!config.name && !config.type && !config.request) {
       config = createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {

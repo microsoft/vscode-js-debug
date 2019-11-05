@@ -13,6 +13,8 @@ const ts = require('gulp-typescript');
 const tslint = require('gulp-tslint');
 const typescript = require('typescript');
 const vsce = require('vsce');
+const fs = require('fs');
+const cp = require('child_process');
 
 const dirname = 'vscode-node-debug3';
 const extensionId = 'node-debug3';
@@ -61,7 +63,7 @@ gulp.task(
   gulp.parallel(
     () =>
       gulp
-        .src('*.json')
+        .src(['*.json', 'resources/**/*'], { base: '.' })
         .pipe(replaceNamespace())
         .pipe(gulp.dest('out')),
     () =>
@@ -74,14 +76,38 @@ gulp.task(
 
 gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 
-gulp.task('package', () =>
-  gulp.series('clean', 'compile', () =>
-    vsce.createVSIX({
-      ...minimist(process.argv.slice(2)),
-      cwd: 'out',
-      packagePath: path.join(__dirname, 'out', `${extensionId}.vsix`),
-    }),
-  ),
+gulp.task('package:copy-modules', () => {
+  // vsce wants to run `npm ls` to verify modules in the target package. For
+  // this, they need to exist. Copy our production dependencies into the out
+  // directory so this works and they can be bundled. We need to walk the
+  // dependency list recursively to get any hoisted/deduped modules.
+
+  const prodModules = [];
+  function walk(tree) {
+    for (const key of Object.keys(tree.dependencies || {})) {
+      prodModules.push(key);
+      walk(tree.dependencies[key]);
+    }
+  }
+
+  walk(JSON.parse(cp.execSync('npm ls --prod --json')));
+
+  return gulp
+    .src(`node_modules/{${prodModules.join(',')}}/**/*`)
+    .pipe(gulp.dest('out/node_modules'));
+});
+
+gulp.task('package:vsix', () =>
+  vsce.createVSIX({
+    ...minimist(process.argv.slice(2)),
+    cwd: 'out',
+    packagePath: path.join(__dirname, 'out', `${extensionId}.vsix`),
+  }),
+);
+
+gulp.task(
+  'package',
+  gulp.series('clean', gulp.parallel('compile', 'package:copy-modules'), 'package:vsix'),
 );
 
 gulp.task(

@@ -47,6 +47,28 @@ export class SubprocessProgram implements IProgram {
 }
 
 /**
+ * A no-op program that never stops until stop() is called. Currently, we use
+ * this for VS Code launches as we have no way to forcefully close those sssions.
+ */
+export class StubProgram implements IProgram {
+  public readonly stopped: Promise<IStopMetadata>;
+  private stopDefer!: (data: IStopMetadata) => void;
+
+  constructor() {
+    this.stopped = new Promise(resolve => this.stopDefer = resolve);
+  }
+
+  public gotTelemetery() {
+    // no-op
+  }
+
+  public stop() {
+    this.stopDefer({ code: 0, killed: true });
+    return this.stopped;
+  }
+}
+
+/**
  * Program created from a subprocess.
  */
 export class TerminalProcess implements IProgram {
