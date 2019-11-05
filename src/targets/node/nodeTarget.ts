@@ -4,7 +4,6 @@
 import { Target } from '../targets';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
-import { AnyNodeConfiguration } from '../../configuration';
 import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { EventEmitter } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';

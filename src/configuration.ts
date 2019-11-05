@@ -379,7 +379,6 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   restart: true,
   localRoot: null,
   remoteRoot: null,
-  trace: true,
   disableOptimisticBPs: true,
   autoAttachChildProcesses: true,
 };

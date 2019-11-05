@@ -2,10 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as fs from 'fs';
 import * as path from 'path';
-import * as mkdirp from 'mkdirp';
-import { Disposable } from '../events';
 import { IDisposable } from '../disposable';
 import { ILoggingConfiguration } from '../../configuration';
 import Dap from '../../dap/api';

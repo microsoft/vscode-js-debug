@@ -14,7 +14,7 @@ import { AnyLaunchConfiguration } from './configuration';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 import { logger } from './common/logging/logger';
-import { fulfillLoggerOptions, resolveLoggerOptions } from './common/logging';
+import { resolveLoggerOptions } from './common/logging';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
