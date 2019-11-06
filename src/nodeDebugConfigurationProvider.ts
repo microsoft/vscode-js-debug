@@ -63,7 +63,10 @@ export class NodeDebugConfigurationProvider
 
     // make sure that config has a 'cwd' attribute set
     if (!config.cwd) {
-      config.cwd = guessWorkingDirectory(config, folder);
+      config.cwd = guessWorkingDirectory(
+        config.request === 'launch' ? config.program : undefined,
+        folder,
+      );
     }
 
     // if a 'remoteRoot' is specified without a corresponding 'localRoot', set 'localRoot' to the workspace folder.
@@ -99,10 +102,7 @@ export class NodeDebugConfigurationProvider
   }
 }
 
-export function guessWorkingDirectory(
-  config: ResolvingNodeConfiguration,
-  folder?: vscode.WorkspaceFolder,
-): string {
+export function guessWorkingDirectory(program?: string, folder?: vscode.WorkspaceFolder): string {
   if (folder) {
     return folder.uri.fsPath;
   }
@@ -113,15 +113,15 @@ export function guessWorkingDirectory(
   }
 
   // no folder case
-  if (config.request === 'launch') {
-    if (config.program === '${file}') {
+  if (program) {
+    if (program === '${file}') {
       return '${fileDirname}';
     }
 
     // program is some absolute path
-    if (config.program && path.isAbsolute(config.program)) {
+    if (path.isAbsolute(program)) {
       // derive 'cwd' from 'program'
-      return path.dirname(config.program);
+      return path.dirname(program);
     }
   }
 

@@ -288,6 +288,19 @@ interface IChromeBaseConfiguration extends IBaseConfiguration {
 }
 
 /**
+ * Opens a debugger-enabled terminal.
+ */
+export interface INodeTerminalConfiguration extends INodeBaseConfiguration {
+  type: Contributions.TerminalDebugType;
+  request: 'launch';
+
+  /**
+   * Command to run.
+   */
+  command?: string;
+}
+
+/**
  * Configuration for an attach request.
  */
 export interface INodeAttachConfiguration extends INodeBaseConfiguration {
@@ -364,12 +377,15 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
+  | INodeTerminalConfiguration
   | IExtensionHostConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
 export type ResolvingExtensionHostConfiguration = IMandatedConfiguration &
   Partial<IExtensionHostConfiguration>;
+export type ResolvingTerminalConfiguration = IMandatedConfiguration &
+  Partial<INodeTerminalConfiguration>;
 export type ResolvingNodeAttachConfiguration = IMandatedConfiguration &
   Partial<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration &
@@ -380,7 +396,7 @@ export type AnyResolvingConfiguration =
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
-  | ResolvingExtensionHostConfiguration;
+  | ResolvingTerminalConfiguration;
 
 /**
  * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
@@ -393,6 +409,8 @@ export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguratio
   ? INodeLaunchConfiguration
   : T extends ResolvingChromeConfiguration
   ? AnyChromeConfiguration
+  : T extends ResolvingTerminalConfiguration
+  ? INodeTerminalConfiguration
   : never;
 
 export const baseDefaults: IBaseConfiguration = {
@@ -427,6 +445,13 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   disableOptimisticBPs: true,
   autoAttachChildProcesses: true,
 };
+
+export const terminalBaseDefaults: INodeTerminalConfiguration = {
+  ...nodeBaseDefaults,
+  type: Contributions.TerminalDebugType,
+  request: 'launch',
+  name: 'Debugger Terminal',
+}
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   ...nodeBaseDefaults,

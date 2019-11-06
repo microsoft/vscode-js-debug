@@ -174,7 +174,7 @@ export class StackFrame {
 
     const scopes: Dap.Scope[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
-      const scope = this._scope.chain[scopeNumber];
+      const scope: Cdp.Debugger.Scope = this._scope.chain[scopeNumber];
 
       let name: string = '';
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
