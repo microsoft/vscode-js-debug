@@ -110,7 +110,7 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  // TODO: Shennie -- fix integration for blackboxing to use skipfiles
+  // TODO@Shennie -- fix integration for blackboxing to use skipfiles
   // itIntegrates('blackboxed', async ({ r }) => {
   //   r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
   //   const p = await r.launchUrlAndLoad('index.html');

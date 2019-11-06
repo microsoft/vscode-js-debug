@@ -55,6 +55,7 @@ export interface IExpectedStopLocation {
 }
 
 export class ExtendedDebugClient extends DebugClient {
+  // TODO@Shennie
   async toggleSkipFileStatus(aPath: string): Promise<DebugProtocol.Response> {
     const results = await Promise.all([
       this.send('toggleSkipFileStatus', { path: aPath }),

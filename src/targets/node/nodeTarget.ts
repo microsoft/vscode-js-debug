@@ -48,7 +48,8 @@ export class NodeTarget implements Target {
     else this._targetName = `[${targetInfo.targetId}]`;
     if (args.logging && args.logging.cdp)
       connection.setLogConfig(this._targetName, args.logging.cdp);
-
+    if (args.skipFiles.length)
+      this._scriptSkipper = new ScriptSkipper(args.skipFiles)
     cdp.Target.on('targetDestroyed', () => this.connection.close());
     connection.onDisconnected(_ => this._disconnected());
   }
@@ -161,7 +162,17 @@ export class NodeTarget implements Target {
     this._cdp.Runtime.on('executionContextDestroyed', event => {
       if (event.executionContextId === defaultCountextId) this.connection.close();
     });
+    await this._setAllNodeInternals();
     return this._cdp;
+  }
+
+  async _setAllNodeInternals() {
+    if (this._scriptSkipper) {
+      const evalResult = await this._cdp.Runtime.evaluate({expression: "require('module').builtinModules", returnByValue: true, includeCommandLineAPI: true});
+      if (evalResult && !evalResult.exceptionDetails) {
+        this._scriptSkipper.setAllNodeInternals(evalResult.result.value);
+      }
+    }
   }
 
   public async afterBind() {

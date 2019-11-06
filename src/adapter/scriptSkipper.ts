@@ -10,7 +10,7 @@ export class ScriptSkipper {
 
   // filtering node internals
   private _nodeInternalsRegex: string = '';
-  skipAllNodeInternals: boolean = false;
+  private _allNodeInternals?: string[]; // for use with Node -- not set by Chrome
 
   private _isUrlSkippedMap = new Map<string, boolean>();
 
@@ -24,27 +24,23 @@ export class ScriptSkipper {
   }
 
   private _preprocessNodeInternals(): void {
-    const nodeInternalRegex = /^<node_internals>[\/|\\\\](.*)$/;
-    const skipAllNodeInternalsRegex = /^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js/;
+    const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
 
     const nodeInternalPatterns = this._userSkipPatterns!
       .filter(pattern => pattern.includes('<node_internals>'))
       .map(nodeInternal => {
         nodeInternal = nodeInternal.trim();
-        if (skipAllNodeInternalsRegex.test(nodeInternal)) { // check if all node internals are skipped
-          this.skipAllNodeInternals = true;
-        }
         return nodeInternalRegex.exec(nodeInternal)![1];
       });
 
-    if (!this.skipAllNodeInternals && nodeInternalPatterns.length > 0) {
+    if (nodeInternalPatterns.length > 0) {
       this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
     }
   }
 
   private _setRegexForNonNodeInternals(): void {
     const nonNodeInternalGlobs = this._userSkipPatterns.filter(pattern => !pattern.includes('<node_internals>'));
-    this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
+    this._nonNodeInternalRegex = this._createRegexString(nonNodeInternalGlobs);
   }
 
   private _createRegexString(patterns: string[]): string {
@@ -72,11 +68,23 @@ export class ScriptSkipper {
 
   public updateSkippingForScript(localpath: string, url: string): void {
     if (!this._isUrlSkippedMap.has(url)) {
-      if (localpath) {
+      if (localpath) { // file maps to file on disk
         this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, localpath));
       }
       else {
-        this._isUrlSkippedMap.set(url, this._testRegex(this._nodeInternalsRegex, url));
+        if (this._allNodeInternals) { // only for Node targets
+          if (this._allNodeInternals.includes(url)) {
+            this._isUrlSkippedMap.set(url, this._testRegex(this._nodeInternalsRegex, url));
+          }
+          else {
+            this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, url));
+          }
+        }
+        else {
+          // TODO@Shennie combined regex test?
+
+        }
+
       }
 
       this._updateBlackboxedUrls(url);
@@ -87,10 +95,9 @@ export class ScriptSkipper {
     return this._isUrlSkippedMap.get(url)!;
   }
 
-  public setAllNodeInternalsToSkip(nodeInternalsNames: string[]): void {
-    let fullLibNames = nodeInternalsNames.map(name => name + '.js');
-    fullLibNames.push('^internal/.+\.js|');
-    this._nodeInternalsRegex = this._createRegexString(fullLibNames);
+  public setAllNodeInternals(nodeInternalsNames: string[]): void {
+    this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
+    this._allNodeInternals.push('^internal/.+\.js|');
   }
 
 }
