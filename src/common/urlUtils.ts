@@ -5,6 +5,9 @@ import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fixDriveLetterAndSlashes } from './pathUtils';
+import Cdp from '../cdp/api';
+import { escapeRegexSpecialChars } from './sourceUtils';
+import { AnyChromeConfiguration } from '../configuration';
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
@@ -200,4 +203,52 @@ export const isLoopback = (address: string) => {
   } catch {
     return loopbacks.has(address);
   }
+};
+
+/**
+ * Creates a target filter function for the given Chrome configuration.
+ */
+export const createTargetFilterForConfig = (
+  config: AnyChromeConfiguration,
+): ((t: Cdp.Target.TargetInfo) => boolean) => {
+  const filter = config.urlFilter || config.url;
+  if (!filter) {
+    return () => true;
+  }
+
+  const tester = createTargetFilter(filter);
+  return t => tester(t.url);
+};
+
+/**
+ * Creates a function to filter a target URL.
+ */
+export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boolean) => {
+  const standardizeMatch = (aUrl: string) => {
+    aUrl = aUrl.toLowerCase();
+
+    const fileUrl = fileUrlToAbsolutePath(aUrl);
+    if (fileUrl) {
+        // Strip file:///, if present
+        aUrl = fileUrl;
+    } else if (isValidUrl(aUrl) && aUrl.includes('://')) {
+        // Strip the protocol, if present
+        aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
+    }
+
+    // Remove optional trailing /
+    if (aUrl.endsWith('/')) {
+      aUrl = aUrl.substr(0, aUrl.length - 1);
+    }
+
+    return aUrl;
+};
+
+  targetUrl = escapeRegexSpecialChars(standardizeMatch(targetUrl), '/*').replace(/\*/g, '.*');
+  const targetUrlRegex = new RegExp('^' + targetUrl + '$', 'g');
+
+  return testUrl => {
+    targetUrlRegex.lastIndex = 0;
+    return targetUrlRegex.test(standardizeMatch(testUrl));
+  };
 };

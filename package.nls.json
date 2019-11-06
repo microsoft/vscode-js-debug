@@ -13,6 +13,7 @@
   "trace.level.description": "Configures the level of logs recorded.",
   "trace.console.description": "Configures whether logs are also returned to the debug console.",
 
+  "chrome.attach.noMatchingTarget": "Can't find a valid target that matches {0} within {1}ms",
 	"chrome.address.description": "TCP/IP address of debug port",
 	"chrome.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",
 	"chrome.cwd.description": "Optional working directory for the runtime executable.",
