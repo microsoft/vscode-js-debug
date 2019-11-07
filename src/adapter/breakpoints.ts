@@ -243,7 +243,6 @@ export class BreakpointManager {
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
   _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
-  private _sourceMapPauseDisabledForTest = false;
   private _predictorDisabledForTest = false;
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
@@ -307,7 +306,7 @@ export class BreakpointManager {
   }
 
   setSourceMapPauseDisabledForTest(disabled: boolean) {
-    this._sourceMapPauseDisabledForTest = disabled;
+    // this._sourceMapPauseDisabledForTest = disabled;
   }
 
   setPredictorDisabledForTest(disabled: boolean) {
@@ -318,7 +317,7 @@ export class BreakpointManager {
     if (!this._thread)
       return;
     // TODO: disable pausing before source map with a setting or unconditionally.
-    const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
+    // const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
     await this._thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
   }
 

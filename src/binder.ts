@@ -13,6 +13,8 @@ import { generateBreakpointIds } from './adapter/breakpoints';
 import { AnyLaunchConfiguration } from './configuration';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
+import { logger } from './common/logging/logger';
+import { resolveLoggerOptions } from './common/logging';
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -71,11 +73,11 @@ export class Binder implements Disposable {
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
       dap.on('attach', async params => {
-        await this._boot(params as AnyLaunchConfiguration);
+        await this._boot(params as AnyLaunchConfiguration, dap);
         return {};
       });
       dap.on('launch', async params => {
-        await this._boot(params as AnyLaunchConfiguration);
+        await this._boot(params as AnyLaunchConfiguration, dap);
         return {};
       });
       dap.on('terminate', async () => {
@@ -93,7 +95,9 @@ export class Binder implements Disposable {
     });
   }
 
-  private async _boot(params: AnyLaunchConfiguration) {
+  private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
+    logger.setup(resolveLoggerOptions(dap, params.trace));
+
     if (params.rootPath)
       params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
@@ -149,8 +153,6 @@ export class Binder implements Disposable {
     if (!cdp)
       return;
     const connection = await this._delegate.acquireDap(target);
-    if (this._launchParams && this._launchParams.logging && this._launchParams.logging.dap)
-      connection.setLogConfig(target.name(), this._launchParams.logging.dap);
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver(), this._launchParams!);
     const thread = debugAdapter.createThread(target.name(), cdp, target);

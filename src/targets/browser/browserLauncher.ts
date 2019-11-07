@@ -97,8 +97,6 @@ export class BrowserLauncher implements Launcher {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    if (params.logging && params.logging.cdp)
-      connection.setLogConfig(params.url || '', params.logging.cdp);
     connection.onDisconnected(() => {
       this._onTerminatedEmitter.fire({ code: 0, killed: true });
     }, undefined, this._disposables);

@@ -6,6 +6,8 @@ import Dap from './api';
 import { HighResolutionTime } from '../utils/performance';
 import { TelemetryReporter, RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
 import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 export interface Message {
   sessionId?: string;
@@ -25,6 +27,7 @@ let isFirstDapConnectionEver = true;
 
 export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
+  private static readonly logOmittedCalls = new WeakSet<object>();
 
   private _writableStream?: NodeJS.WritableStream;
   private _rawData: Buffer;
@@ -37,15 +40,23 @@ export default class Connection {
   private _dap: Promise<Dap.Api>;
 
   protected _ready: (dap: Dap.Api) => void;
-  private _logPath?: string;
-  private _logPrefix = '';
-  private _telemetryReporter: TelemetryReporter | undefined;
+  protected _telemetryReporter: TelemetryReporter | undefined;
 
   constructor() {
     this._sequence = 1;
     this._rawData = new Buffer(0);
     this._ready = () => {};
     this._dap = new Promise<Dap.Api>(f => this._ready = f);
+  }
+
+  /**
+   * Omits logging a call when the given object is used as parameters for
+   * a method call. This is, at the moment, solely used to prevent logging
+   * log output and getting into an feedback loop with the ConsoleLogSink.
+   */
+  public static omitLoggingFor<T extends object>(obj: T): T {
+    Connection.logOmittedCalls.add(obj);
+    return obj;
   }
 
   public init(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
@@ -73,11 +84,6 @@ export default class Connection {
 
   public dap(): Promise<Dap.Api> {
     return this._dap;
-  }
-
-  public setLogConfig(prefix: string, path?: string) {
-    this._logPrefix = prefix;
-    this._logPath = path;
   }
 
   _createApi(): Dap.Api {
@@ -164,8 +170,11 @@ export default class Connection {
   _send(message: Message) {
     message.seq = this._sequence++;
     const json = JSON.stringify(message);
-    if (this._logPath)
-      require('fs').appendFileSync(this._logPath, `◀ SEND [${this._logPrefix}] ${json}\n`);
+
+    if (!Connection.logOmittedCalls.has(message.body)) {
+      logger.verbose(LogTag.DapSend, undefined, { message });
+    }
+
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
     if (!this._writableStream) {
       console.error('Writing to a closed connection');
@@ -246,9 +255,8 @@ export default class Connection {
           this._contentLength = -1;
           if (message.length > 0) {
             try {
-              if (this._logPath)
-                require('fs').appendFileSync(this._logPath, `RECV ► [${this._logPrefix}] ${message}\n`);
               let msg: Message = JSON.parse(message);
+              logger.verbose(LogTag.DapReceive, undefined, { message: msg });
               this._onMessage(msg, receivedTime);
             }
             catch (e) {

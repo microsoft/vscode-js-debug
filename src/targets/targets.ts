@@ -37,6 +37,13 @@ export interface Target {
    */
   afterBind(): Promise<void>;
 
+  /**
+   * Handler triggered on a breakpoint. If this returns true, the UI will be
+   * continued and no breakpoint will be shown to the user.
+   */
+  onPaused(event: Cdp.Debugger.PausedEvent): Promise<boolean>;
+
+  initialize(): Promise<void>;
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;

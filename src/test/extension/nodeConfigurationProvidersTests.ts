@@ -21,12 +21,66 @@ describe('NodeDebugConfigurationProvider', () => {
 
   beforeEach(() => {
     nvmResolver = { resolveNvmVersionPath: stub() };
-    provider = new NodeDebugConfigurationProvider(nvmResolver);
+    provider = new NodeDebugConfigurationProvider({ logPath: testFixturesDir } as any, nvmResolver);
     EnvironmentVars.platform = 'linux';
   });
 
   afterEach(() => {
     EnvironmentVars.platform = process.platform;
+  });
+
+  describe('logging resolution', () => {
+    const emptyRequest = {
+      type: '',
+      name: '',
+      request: '',
+    };
+
+    beforeEach(() => {
+      createFileTree(testFixturesDir, {
+        'hello.js': '',
+        'package.json': JSON.stringify({ main: 'hello.js' }),
+      });
+    });
+
+    it('does not log by default', async () => {
+      const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
+      expect((result as any).logging).to.deep.equal({
+        console: false,
+        level: 'fatal',
+        logFile: null,
+        tags: [],
+      });
+    });
+
+    it('applies defaults with trace=true', async () => {
+      const result = await provider.resolveDebugConfiguration(folder, {
+        ...emptyRequest,
+        trace: true,
+      });
+      expect((result as any).logging).to.deep.equal({
+        console: false,
+        level: 'verbose',
+        logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
+        tags: [],
+      });
+    });
+
+    it('applies overrides', async () => {
+      const result = await provider.resolveDebugConfiguration(folder, {
+        ...emptyRequest,
+        trace: {
+          level: 'warn',
+          tags: ['cdp'],
+        },
+      });
+      expect((result as any).logging).to.deep.equal({
+        console: false,
+        level: 'warn',
+        logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
+        tags: ['cdp'],
+      });
+    });
   });
 
   describe('launch config from context', () => {

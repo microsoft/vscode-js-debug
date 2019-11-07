@@ -6,7 +6,6 @@ const puppeteer = require('puppeteer');
 import { BreakpointLocation } from '../intTestSupport';
 import { IValidatedMap } from '../core-v2/chrome/collections/validatedMap';
 import { DATA_ROOT } from '../testSetup';
-import { IChromeLaunchConfiguration } from '../../configuration';
 import { IChromeTestLaunchConfiguration } from '../testUtils';
 import { ExtendedDebugClient } from '../testSupport/debugClient';
 

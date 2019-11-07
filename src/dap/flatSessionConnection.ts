@@ -4,6 +4,7 @@
 import DapConnection, { Message } from './connection';
 import { EventEmitter, Disposable } from '../common/events';
 import { HighResolutionTime } from '../utils/performance';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 
 /**
  * An extension of the DAP connection class which publishes all messages which are received
@@ -12,9 +13,20 @@ export class MessageEmitterConnection extends DapConnection {
 
   private readonly _messageEventEmitter = new EventEmitter<Message>();
   public readonly onMessage = this._messageEventEmitter.event;
+  public readonly initialized = new EventEmitter<TelemetryReporter>();
+
+  public get telemetryReporter(): TelemetryReporter | undefined {
+    return this._telemetryReporter;
+  }
+
   async _onMessage(msg: Message, receivedTime: HighResolutionTime) {
     msg.__receivedTime = receivedTime;
     this._messageEventEmitter.fire(msg);
+  }
+
+  public init(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
+    super.init(inStream, outStream);
+    this.initialized.fire(this._telemetryReporter!);
   }
 }
 
@@ -28,6 +40,12 @@ export class ChildConnection extends DapConnection {
 
   constructor(private readonly parentConnection: MessageEmitterConnection, private readonly sessionId: string|undefined) {
     super();
+    this._telemetryReporter = parentConnection.telemetryReporter;
+
+    parentConnection.initialized.event(telemetryReporter => {
+      this._telemetryReporter = telemetryReporter;
+    });
+
     this._messageSubscription = parentConnection.onMessage((msg) => {
       if(msg.sessionId === this.sessionId) {
         super._onMessage(msg, msg.__receivedTime || [0, 0]);

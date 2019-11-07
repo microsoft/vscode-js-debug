@@ -67,8 +67,6 @@ export class BrowserAttacher implements Launcher {
       return;
     }
 
-    if (params.logging && params.logging.cdp)
-      connection.setLogConfig(String(params.port || ''), params.logging.cdp);
     this._connection = connection;
     connection.onDisconnected(() => {
       this._connection = undefined;

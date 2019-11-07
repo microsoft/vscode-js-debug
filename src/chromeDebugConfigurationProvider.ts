@@ -11,27 +11,22 @@ import {
 } from './configuration';
 import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider';
 import { Contributions } from './common/contributionUtils';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
 /**
  * Configuration provider for Chrome debugging.
  */
-export class ChromeDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-  constructor(private readonly nodeProvider: NodeDebugConfigurationProvider) {}
-
-  public resolveDebugConfiguration(
-    folder: vscode.WorkspaceFolder | undefined,
-    config: vscode.DebugConfiguration,
-    token?: vscode.CancellationToken,
-  ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    return this.resolveDebugConfigurationAsync(
-      folder,
-      config as ResolvingChromeConfiguration,
-    ).catch(err => {
-      return vscode.window.showErrorMessage(err.message, { modal: true }).then(_ => undefined); // abort launch
-    });
+export class ChromeDebugConfigurationProvider
+  extends BaseConfigurationProvider<ResolvingChromeConfiguration>
+  implements vscode.DebugConfigurationProvider {
+  constructor(
+    context: vscode.ExtensionContext,
+    private readonly nodeProvider: NodeDebugConfigurationProvider,
+  ) {
+    super(context);
   }
 
-  private async resolveDebugConfigurationAsync(
+  protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingChromeConfiguration,
   ): Promise<AnyChromeConfiguration | undefined> {

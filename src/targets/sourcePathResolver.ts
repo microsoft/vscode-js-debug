@@ -12,6 +12,8 @@ import {
 import * as path from 'path';
 import { isFileUrl } from '../common/urlUtils';
 import { baseDefaults } from '../configuration';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 export interface ISourcePathResolverOptions {
   sourceMapOverrides: { [key: string]: string };
@@ -33,7 +35,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    */
   protected rebaseRemoteToLocal(remotePath: string) {
     if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(remotePath)) {
-      return remotePath;
+      return path.resolve(remotePath);
     }
 
     const relativePath = relative(this.options.remoteRoot, remotePath);
@@ -44,9 +46,8 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     let localPath = join(this.options.localRoot, relativePath);
 
     localPath = fixDriveLetter(localPath);
-    // todo: #34
-    // logger.log(`Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
-    return localPath;
+    logger.verbose(LogTag.RuntimeSourceMap, `Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
+    return path.resolve(localPath);
   }
 
   /**
@@ -64,8 +65,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     let remotePath = join(this.options.remoteRoot, relPath);
 
     remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
-    // todo: #34
-    // logger.log(`Mapped localToRemote: ${localPath} -> ${remotePath}`);
+    logger.verbose(LogTag.RuntimeSourceMap, `Mapped localToRemote: ${localPath} -> ${remotePath}`);
     return remotePath;
   }
 
@@ -83,19 +83,23 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     // Iterate the key/vals, only apply the first one that matches.
     for (let leftPattern of sortedOverrideKeys) {
       const rightPattern = sourceMapOverrides[leftPattern];
-      // const entryStr = `"${leftPattern}": "${rightPattern}"`;
+      const entryStr = `"${leftPattern}": "${rightPattern}"`;
 
       const asterisks = leftPattern.match(/\*/g) || [];
       if (asterisks.length > 1) {
-        // todo: #34
-        // logger.log(`Warning: only one asterisk allowed in a sourceMapPathOverrides entry - ${entryStr}`);
+        logger.warn(
+          LogTag.RuntimeSourceMap,
+          `Warning: only one asterisk allowed in a sourceMapPathOverrides entry - ${entryStr}`,
+        );
         continue;
       }
 
       const replacePatternAsterisks = rightPattern.match(/\*/g) || [];
       if (replacePatternAsterisks.length > asterisks.length) {
-        // todo: #34
-        // logger.log(`Warning: the right side of a sourceMapPathOverrides entry must have 0 or 1 asterisks - ${entryStr}}`);
+        logger.warn(
+          LogTag.RuntimeSourceMap,
+          `The right side of a sourceMapPathOverrides entry must have 0 or 1 asterisks - ${entryStr}}`,
+        );
         continue;
       }
 
@@ -111,8 +115,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       const wildcardValue = overridePatternMatches[1];
       let mappedPath = rightPattern.replace(/\*/g, wildcardValue);
 
-      // todo: #34
-      // logger.log(`SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${entryStr}`);
+      logger.verbose(
+        LogTag.RuntimeSourceMap,
+        `SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${entryStr}`,
+      );
       return properJoin(mappedPath);
     }
 
