@@ -379,18 +379,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -757,18 +770,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -892,18 +918,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -1024,18 +1063,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -1281,18 +1333,31 @@
                             "description": "%trace.console.description%"
                           },
                           "level": {
-                            "enum": ["fatal", "error", "warn", "info", "verbose"],
+                            "enum": [
+                              "fatal",
+                              "error",
+                              "warn",
+                              "info",
+                              "verbose"
+                            ],
                             "description": "%trace.level.description%"
                           },
                           "logFile": {
-                            "type": ["string", "null"],
+                            "type": [
+                              "string",
+                              "null"
+                            ],
                             "description": "%trace.logFile.description%"
                           },
                           "tags": {
                             "type": "array",
                             "description": "%trace.tags.description%",
                             "items": {
-                              "enum": ["cdp", "dap", "runtime"]
+                              "enum": [
+                                "cdp",
+                                "dap",
+                                "runtime"
+                              ]
                             }
                           }
                         }
@@ -1390,18 +1455,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }

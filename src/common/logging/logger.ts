@@ -32,6 +32,19 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
+  public info(tag: LogTag, msg?: string, metadata?: any): void {
+    this.log({
+      tag,
+      timestamp: Date.now(),
+      message: msg,
+      metadata,
+      level: LogLevel.Info,
+    });
+  }
+
+  /**
+   * @inheritdoc
+   */
   public verbose(tag: LogTag, msg?: string, metadata?: any): void {
     this.log({
       tag,

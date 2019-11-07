@@ -12,7 +12,7 @@
   "trace.logFile.description": "Configures where on disk logs are written.",
   "trace.level.description": "Configures the level of logs recorded.",
   "trace.console.description": "Configures whether logs are also returned to the debug console.",
-
+  "chrome.attach.noMatchingTarget": "Can't find a valid target that matches {0} within {1}ms",
 	"extensionHost.label": "VS Code Extension Development",
 	"extensionHost.launch.config.name": "Launch Extension",
 	"extensionHost.launch.env.description": "Environment variables passed to the extension host.",
