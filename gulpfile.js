@@ -13,6 +13,7 @@ const ts = require('gulp-typescript');
 const tslint = require('gulp-tslint');
 const typescript = require('typescript');
 const vsce = require('vsce');
+const webpack = require('webpack');
 const execSync = require('child_process').execSync;
 
 const dirname = 'vscode-node-debug3';
@@ -81,14 +82,45 @@ gulp.task(
 
 gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 
-/** Run parcel to bundle the extension output files */
-gulp.task('bundle', () => {
-  const parcelPath = path.join('node_modules', '.bin', 'parcel');
-  const extensionPath = path.join(buildSrcDir, 'extension.js');
-  const bootloaderPath = path.join(buildSrcDir, nodeTargetsDir, 'bootloader.js');
-  const watchdogPath = path.join(buildSrcDir, nodeTargetsDir, 'watchdog.js');
-  return runCommand(`${parcelPath} build ${extensionPath} ${bootloaderPath} ${watchdogPath} --target node -d ${distSrcDir} --no-source-maps --bundle-node-modules`, { stdio: 'inherit' })
+/** Run webpack to bundle the extension output files */
+gulp.task('bundle', async () => {
+  const packages = [
+    { entry: path.join(buildSrcDir, 'extension.js'), library: true },
+    { entry: path.join(buildSrcDir, nodeTargetsDir, 'bootloader.js'), library: false },
+    { entry: path.join(buildSrcDir, nodeTargetsDir, 'watchdog.js'), library: false },
+  ];
+
+  for (const { entry, library } of packages) {
+    const config = {
+      mode: 'production',
+      target: 'node',
+      entry: path.resolve(entry),
+      output: {
+        path: path.resolve(distSrcDir),
+        filename: path.basename(entry),
+        devtoolModuleFilenameTemplate: '../[resource-path]',
+      },
+      externals: {
+        vscode: 'commonjs vscode',
+      },
+    };
+
+    if (library) {
+      config.output.libraryTarget = 'commonjs2';
+    }
+
+    await new Promise((resolve, reject) => webpack(config, (err, stats) => {
+      if (err) {
+        reject(err);
+      } else if (stats.hasErrors()) {
+        reject(stats);
+      } else {
+        resolve();
+      }
+    }));
+  }
 });
+
 
 // TODO: check the output location of watchdog/bootloader make sure it will work in out/src
 /** Flatten the bundle files so that extension, bootloader, and watchdog are all at the root */
