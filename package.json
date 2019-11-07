@@ -119,7 +119,8 @@
     "onDebugResolve:NAMESPACE(chrome)",
     "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint"
+    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
+    "onDebugResolve:NAMESPACE(extensionHost)"
   ],
   "contributes": {
     "viewsContainers": {
@@ -245,6 +246,174 @@
       }
     ],
     "debuggers": [
+      {
+        "type": "NAMESPACE(extensionHost)",
+        "label": "VS Code Extension Development",
+        "program": "./out/src/nodeDebug.js",
+        "runtime": "node",
+        "configurationSnippets": [
+          {
+            "label": "%extensionHost.snippet.launch.label%",
+            "description": "%extensionHost.snippet.launch.description%",
+            "body": {
+              "type": "extensionHost",
+              "request": "launch",
+              "name": "%extensionHost.launch.config.name%",
+              "runtimeExecutable": "^\"\\${execPath}\"",
+              "args": [
+                "^\"--extensionDevelopmentPath=\\${workspaceFolder}\""
+              ],
+              "outFiles": [
+                "^\"\\${workspaceFolder}/out/**/*.js\""
+              ],
+              "preLaunchTask": "npm"
+            }
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "args"
+            ],
+            "properties": {
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "%extensionHost.launch.stopOnEntry.description%",
+                "default": true
+              },
+              "args": {
+                "type": "array",
+                "description": "%node.launch.args.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": [
+                  "--extensionDevelopmentPath=${workspaceFolder}"
+                ]
+              },
+              "runtimeExecutable": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "markdownDescription": "%extensionHost.launch.runtimeExecutable.description%",
+                "default": "${execPath}"
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "markdownDescription": "%extensionHost.launch.env.description%",
+                "default": {}
+              },
+              "envFile": {
+                "type": "string",
+                "description": "%node.launch.envFile.description%",
+                "default": "${workspaceFolder}/.env"
+              },
+              "sourceMaps": {
+                "type": "boolean",
+                "description": "%node.sourceMaps.description%",
+                "default": true
+              },
+              "outFiles": {
+                "type": "array",
+                "markdownDescription": "%outFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": [
+                  "${workspaceFolder}/out/**/*.js"
+                ]
+              },
+              "smartStep": {
+                "type": "boolean",
+                "description": "%smartStep.description%",
+                "default": true
+              },
+              "skipFiles": {
+                "type": "array",
+                "markdownDescription": "%skipFiles.description%",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "showAsyncStacks": {
+                "type": "boolean",
+                "description": "%node.showAsyncStacks.description%",
+                "default": true
+              },
+              "sourceMapPathOverrides": {
+                "type": "object",
+                "description": "%node.sourceMapPathOverrides.description%",
+                "default": {
+                  "webpack:///./~/*": "${workspaceRoot}/node_modules/*",
+                  "webpack:///./*": "${workspaceRoot}/*",
+                  "webpack:///*": "*"
+                }
+              },
+              "disableOptimisticBPs": {
+                "type": "boolean",
+                "description": "%node.disableOptimisticBPs.description%",
+                "default": true
+              },
+              "trace": {
+                "description": "%trace.description%",
+                "default": true,
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "%trace.boolean.description%"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "console": {
+                        "type": "boolean",
+                        "description": "%trace.console.description%"
+                      },
+                      "level": {
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
+                        "description": "%trace.level.description%"
+                      },
+                      "logFile": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "%trace.logFile.description%"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "description": "%trace.tags.description%",
+                        "items": {
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
       {
         "type": "NAMESPACE(node)",
         "label": "%node.label%",
@@ -601,18 +770,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -736,18 +918,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -868,18 +1063,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }
@@ -1125,18 +1333,31 @@
                             "description": "%trace.console.description%"
                           },
                           "level": {
-                            "enum": ["fatal", "error", "warn", "info", "verbose"],
+                            "enum": [
+                              "fatal",
+                              "error",
+                              "warn",
+                              "info",
+                              "verbose"
+                            ],
                             "description": "%trace.level.description%"
                           },
                           "logFile": {
-                            "type": ["string", "null"],
+                            "type": [
+                              "string",
+                              "null"
+                            ],
                             "description": "%trace.logFile.description%"
                           },
                           "tags": {
                             "type": "array",
                             "description": "%trace.tags.description%",
                             "items": {
-                              "enum": ["cdp", "dap", "runtime"]
+                              "enum": [
+                                "cdp",
+                                "dap",
+                                "runtime"
+                              ]
                             }
                           }
                         }
@@ -1234,18 +1455,31 @@
                         "description": "%trace.console.description%"
                       },
                       "level": {
-                        "enum": ["fatal", "error", "warn", "info", "verbose"],
+                        "enum": [
+                          "fatal",
+                          "error",
+                          "warn",
+                          "info",
+                          "verbose"
+                        ],
                         "description": "%trace.level.description%"
                       },
                       "logFile": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "description": "%trace.logFile.description%"
                       },
                       "tags": {
                         "type": "array",
                         "description": "%trace.tags.description%",
                         "items": {
-                          "enum": ["cdp", "dap", "runtime"]
+                          "enum": [
+                            "cdp",
+                            "dap",
+                            "runtime"
+                          ]
                         }
                       }
                     }

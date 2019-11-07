@@ -18,6 +18,8 @@ import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLaunc
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 import { IDisposable } from './common/disposable';
 import { NodeAttacher } from './targets/node/nodeAttacher';
+import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
+import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
 
@@ -83,6 +85,8 @@ export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net.createServer(async socket => {
       const launchers = [
+        new ExtensionHostAttacher(),
+        new ExtensionHostLauncher(),
         new NodeAttacher(),
         new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
         new BrowserLauncher(storagePath),

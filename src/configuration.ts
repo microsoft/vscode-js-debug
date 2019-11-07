@@ -112,12 +112,49 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   outputCapture: OutputSource;
 }
 
+export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
+  type: Contributions.ExtensionHostDebugType;
+  request: 'attach' | 'launch';
+
+  /**
+   * Command line arguments passed to the program.
+   */
+  args: ReadonlyArray<string>;
+
+  /**
+   * Environment variables passed to the program. The value `null` removes the
+   * variable from the environment.
+   */
+  env: Readonly<{ [key: string]: string | null }>;
+
+  /**
+   * Absolute path to a file containing environment variable definitions.
+   */
+  envFile: string | null;
+
+  /**
+   * If source maps are enabled, these glob patterns specify the generated
+   * JavaScript files. If a pattern starts with `!` the files are excluded.
+   * If not specified, the generated code is expected in the same directory
+   * as its source.
+   */
+  outFiles: ReadonlyArray<string>;
+
+  /**
+   * Path to the VS Code binary.
+   */
+  runtimeExecutable: string | null;
+
+  /**
+   * Extension host session ID.
+   */
+  __sessionId?: string;
+}
+
 /**
  * Common configuration for the Node debugger.
  */
 export interface INodeBaseConfiguration extends IBaseConfiguration {
-  type: Contributions.NodeDebugType;
-
   /**
    * @internal
    */
@@ -167,6 +204,7 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
  * Configuration for a launch request.
  */
 export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
+  type: Contributions.NodeDebugType;
   request: 'launch';
 
   /**
@@ -253,6 +291,7 @@ interface IChromeBaseConfiguration extends IBaseConfiguration {
  * Configuration for an attach request.
  */
 export interface INodeAttachConfiguration extends INodeBaseConfiguration {
+  type: Contributions.NodeDebugType;
   request: 'attach';
 
   /**
@@ -322,29 +361,36 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
   request: 'attach';
 }
 
-export type AnyNodeConfiguration = INodeAttachConfiguration | INodeLaunchConfiguration;
+export type AnyNodeConfiguration =
+  | INodeAttachConfiguration
+  | INodeLaunchConfiguration
+  | IExtensionHostConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
+export type ResolvingExtensionHostConfiguration = IMandatedConfiguration &
+  Partial<IExtensionHostConfiguration>;
 export type ResolvingNodeAttachConfiguration = IMandatedConfiguration &
   Partial<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration &
   Partial<INodeLaunchConfiguration>;
-export type ResolvingNodeConfiguration =
-  | ResolvingNodeAttachConfiguration
-  | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
-export type AnyResolvingConfiguration = ResolvingChromeConfiguration | ResolvingNodeConfiguration;
+export type AnyResolvingConfiguration =
+  | ResolvingExtensionHostConfiguration
+  | ResolvingChromeConfiguration
+  | ResolvingNodeAttachConfiguration
+  | ResolvingNodeLaunchConfiguration
+  | ResolvingExtensionHostConfiguration;
 
 /**
  * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
  */
 export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
   ? INodeAttachConfiguration
+  : T extends ResolvingExtensionHostConfiguration
+  ? IExtensionHostConfiguration
   : T extends ResolvingNodeLaunchConfiguration
   ? INodeLaunchConfiguration
-  : T extends ResolvingNodeConfiguration
-  ? AnyNodeConfiguration
   : T extends ResolvingChromeConfiguration
   ? AnyChromeConfiguration
   : never;
@@ -372,7 +418,6 @@ export const baseDefaults: IBaseConfiguration = {
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
   ...baseDefaults,
-  type: Contributions.NodeDebugType,
   cwd: '${workspaceFolder}',
   sourceMaps: true,
   outFiles: [],
@@ -383,8 +428,22 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   autoAttachChildProcesses: true,
 };
 
+export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
+  ...nodeBaseDefaults,
+  type: Contributions.ExtensionHostDebugType,
+  name: 'Debug Extension',
+  request: 'launch',
+  args: ['--extensionDevelopmentPath=${workspaceFolder}'],
+  runtimeExecutable: '${execPath}',
+  env: {},
+  envFile: null,
+  port: 0,
+  outFiles: ['${workspaceFolder}/out/**/*.js'],
+};
+
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   ...nodeBaseDefaults,
+  type: Contributions.NodeDebugType,
   request: 'launch',
   program: '',
   stopOnEntry: false,
@@ -423,6 +482,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
 
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   ...nodeBaseDefaults,
+  type: Contributions.NodeDebugType,
   attachSpawnedProcesses: true,
   attachExistingChildren: true,
   request: 'attach',

@@ -113,7 +113,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       return { blockSessionTermination: false };
     }
 
-    const { server, pipe } = this._startServer(rawTelemetryReporter);
+    const { server, pipe } = await this._startServer(rawTelemetryReporter);
     const run = (this.run = {
       server,
       serverAddress: pipe,
@@ -198,12 +198,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   /**
-   * Gets the environment variables for the session.
+   * Returns the user-configured portion of the environment variables.
    */
-  protected resolveEnvironment(
-    { params, serverAddress, bootloader }: IRunData<T>,
-    callbackFile?: string,
-  ) {
+  protected getConfiguredEnvironment(params: T) {
     const anyParams = params as any;
     let baseEnv = EnvironmentVars.empty;
 
@@ -220,6 +217,17 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       baseEnv = baseEnv.merge(anyParams.env);
     }
 
+    return baseEnv;
+  }
+
+  /**
+   * Gets the environment variables for the session.
+   */
+  protected resolveEnvironment(
+    { params, serverAddress, bootloader }: IRunData<T>,
+    callbackFile?: string,
+  ) {
+    const baseEnv = this.getConfiguredEnvironment(params);
     return baseEnv.merge({
       NODE_INSPECTOR_IPC: serverAddress,
       NODE_INSPECTOR_PPID: '',
@@ -249,12 +257,15 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     return {};
   }
 
-  protected _startServer(rawTelemetryReporter: RawTelemetryReporter) {
+  protected async _startServer(rawTelemetryReporter: RawTelemetryReporter) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
-    const server = net
+    const server = await new Promise<net.Server>((resolve, reject) => {
+      const s = net
       .createServer(socket => this._startSession(socket, rawTelemetryReporter))
-      .listen(pipe);
+        .on('error', reject)
+        .listen(pipe, () => resolve(s));
+    });
 
     return { pipe, server };
   }

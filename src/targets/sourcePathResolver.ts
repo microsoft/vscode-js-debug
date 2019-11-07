@@ -35,7 +35,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    */
   protected rebaseRemoteToLocal(remotePath: string) {
     if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(remotePath)) {
-      return remotePath;
+      return path.resolve(remotePath);
     }
 
     const relativePath = relative(this.options.remoteRoot, remotePath);
@@ -47,7 +47,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     localPath = fixDriveLetter(localPath);
     logger.verbose(LogTag.RuntimeSourceMap, `Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
-    return localPath;
+    return path.resolve(localPath);
   }
 
   /**
