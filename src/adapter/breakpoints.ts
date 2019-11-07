@@ -230,26 +230,6 @@ export class Breakpoint {
   }
 };
 
-/**
- * Used in getBreakpointsAtLocation to return breakpoints at positions in a file.
- */
-export type AttachedLocation =
-  & { lineNumber: number; columnNumber?: number; }
-  & ({ url: string } | { scriptId: string });
-
-const locationsEqual = (a: AttachedLocation, b: AttachedLocation) => {
-  if (a.lineNumber !== b.lineNumber || a.columnNumber !== b.columnNumber) {
-    return false;
-  }
-
-  if ('url' in a) {
-    return 'url' in b && b.url === a.url;
-  }
-
-  // else: scriptId is in a
-  return 'scriptId' in b && b.scriptId === a.scriptId;
-}
-
 export class BreakpointManager {
   private _byPath: Map<string, Breakpoint[]> = new Map();
   private _byRef: Map<number, Breakpoint[]> = new Map();
