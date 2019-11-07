@@ -144,11 +144,11 @@ export class BrowserTargetManager implements Disposable {
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
-    // For the 'top-level' page, gather telemetry and set the cache state.
-    if (!parentTarget) {
-      cdp.Network.setCacheDisabled({ cacheDisabled: this.launchParams.disableNetworkCache })
-        .catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
+    cdp.Network.setCacheDisabled({ cacheDisabled: this.launchParams.disableNetworkCache })
+      .catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
 
+    // For the 'top-level' page, gather telemetry.
+    if (!parentTarget) {
       this.retrieveBrowserTelemetry(cdp);
     }
 

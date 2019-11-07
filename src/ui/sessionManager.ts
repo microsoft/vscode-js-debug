@@ -87,11 +87,7 @@ export class SessionManager implements vscode.DebugAdapterDescriptorFactory, Dis
     const session = new Session(debugSession);
     if (debugSession.configuration['__pendingTargetId']) {
       const pendingTargetId = debugSession.configuration['__pendingTargetId'] as string;
-      const target = this._pendingTarget.get(pendingTargetId);
-      if (!target) {
-        return; // can happen due to various races when navigating
-      }
-
+      const target = this._pendingTarget.get(pendingTargetId)!;
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target); 
       const callbacks = this._sessionForTargetCallbacks.get(target);
