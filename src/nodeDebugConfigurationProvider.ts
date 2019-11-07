@@ -36,16 +36,20 @@ type ResolvingNodeConfiguration =
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class NodeDebugConfigurationProvider
-  extends BaseConfigurationProvider<AnyNodeConfiguration>
+export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration>
   implements vscode.DebugConfigurationProvider {
   constructor(
     context: vscode.ExtensionContext,
     private readonly nvmResolver: INvmResolver = new NvmResolver(),
   ) {
     super(context);
+
+    this.setProvideDefaultConfiguration(folder => createLaunchConfigFromContext(folder, true));
   }
 
+  /**
+   * @override
+   */
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
