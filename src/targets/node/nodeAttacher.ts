@@ -13,6 +13,8 @@ import Cdp from '../../cdp/api';
 import { isLoopback } from '../../common/urlUtils';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { LeaseFile } from './lease-file';
+import { logger } from '../../common/logging/logger';
+import { LogTag } from '../../common/logging';
 
 /**
  * Attaches to ongoing Node processes. This works pretty similar to the
@@ -27,7 +29,7 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
    * process. This is used to avoid instrumenting unecessarily into subsequent
    * children.
    */
-  private capturedBreaker = false;
+  private capturedEntry = false;
 
   /**
    * @inheritdoc
@@ -57,7 +59,7 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
       }
     });
 
-    this.capturedBreaker = false;
+    this.capturedEntry = false;
   }
 
   /**
@@ -67,7 +69,7 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
     cdp: Cdp.Api,
     run: IRunData<INodeAttachConfiguration>,
   ): INodeTargetLifecycleHooks {
-    if (this.capturedBreaker) {
+    if (this.capturedEntry) {
       return {};
     }
 
@@ -77,26 +79,14 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
     // close, but this isn't reliable as it's always possible
     const leaseFile = new LeaseFile();
 
-    let hitFirstBreakpoint = false;
-    this.capturedBreaker = true;
+    this.capturedEntry = true;
 
     return {
       initialized: async () => {
-        await cdp.Debugger.pause({});
-      },
-      paused: async (_target, ev) => {
-        if (hitFirstBreakpoint) {
-          return false;
-        }
-
-        hitFirstBreakpoint = true;
         await Promise.all([
           this.gatherTelemetry(cdp),
           this.setEnvironmentVariables(cdp, run, leaseFile.path),
         ]);
-        await cdp.Debugger.resume({});
-
-        return true;
       },
       close: async () => {
         leaseFile.dispose();
@@ -129,8 +119,18 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
       expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
     });
 
-    if (!result || result.exceptionDetails) {
-      // todo: log error assigning vars
+    if (!result) {
+      logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
+      return;
+    }
+
+    if (result.exceptionDetails) {
+      logger.error(
+        LogTag.RuntimeTarget,
+        'Error setting child environment vars',
+        result.exceptionDetails,
+      );
+      return;
     }
   }
 
@@ -145,8 +145,13 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
       return; // shut down
     }
 
-    if (!telemetry || telemetry.exceptionDetails) {
-      // todo: log error getting telemetry
+    if (!telemetry) {
+      logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
+      return;
+    }
+
+    if (telemetry.exceptionDetails) {
+      logger.error(LogTag.RuntimeTarget, 'Error getting telemetry', telemetry.exceptionDetails);
       return;
     }
 

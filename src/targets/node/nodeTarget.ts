@@ -14,14 +14,7 @@ export interface INodeTargetLifecycleHooks {
   /**
    * Invoked when the adapter thread is first initialized.
    */
-
   initialized?(target: NodeTarget): Promise<void>;
-
-  /**
-   * Invoked when the thread is paused. Return true if the pause event
-   * is handled internally and should not be returned to the UI.
-   */
-  paused?(target: NodeTarget, notification: Cdp.Debugger.PausedEvent): Promise<boolean>;
 
   /**
    * Invoked when the target is stopped.
@@ -101,10 +94,6 @@ export class NodeTarget implements Target {
     if (this.lifecycle.initialized) {
       this.lifecycle.initialized(this);
     }
-  }
-
-  public async onPaused(event: Cdp.Debugger.PausedEvent) {
-    return !!this.lifecycle.paused && (await this.lifecycle.paused(this, event));
   }
 
   waitingForDebugger(): boolean {

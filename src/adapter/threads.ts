@@ -50,11 +50,6 @@ export class ExecutionContext {
 export type Script = { url: string, scriptId: string, hash: string, source: Source };
 
 export interface ThreadDelegate {
-  /**
-   * Handler triggered on a breakpoint. If this returns true, the UI will be
-   * continued and no breakpoint will be shown to the user.
-   */
-  onPaused(details: Cdp.Debugger.PausedEvent): Promise<boolean>;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
@@ -414,10 +409,6 @@ export class Thread implements VariableStoreDelegate {
         const threads = Array.from(Thread._allThreadsByDebuggerId.values());
         await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
         this.resume();
-        return;
-      }
-
-      if (await this._delegate.onPaused(event)) {
         return;
       }
 
