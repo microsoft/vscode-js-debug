@@ -26,10 +26,10 @@ const tslintFilter = ['**', '!**/*.d.ts'];
 const allPackages = [];
 
 const buildDir = 'out';
-const buildSrcDir = path.join(buildDir, 'src');
+const buildSrcDir = `${buildDir}/src`;
 const distDir = 'dist';
-const distSrcDir = path.join(distDir, 'src');
-const nodeTargetsDir = path.join('targets', 'node');
+const distSrcDir = `${distDir}/src`;
+const nodeTargetsDir = `targets/node`;
 
 /**
  * If --drop-in is set, commands and debug types will be set to 'chrome' and
@@ -85,9 +85,9 @@ gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 /** Run webpack to bundle the extension output files */
 gulp.task('bundle', async () => {
   const packages = [
-    { entry: path.join(buildSrcDir, 'extension.js'), library: true },
-    { entry: path.join(buildSrcDir, nodeTargetsDir, 'bootloader.js'), library: false },
-    { entry: path.join(buildSrcDir, nodeTargetsDir, 'watchdog.js'), library: false },
+    { entry: `${buildSrcDir}/extension.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
   ];
 
   for (const { entry, library } of packages) {
@@ -126,8 +126,8 @@ gulp.task('bundle', async () => {
 /** Flatten the bundle files so that extension, bootloader, and watchdog are all at the root */
 gulp.task('flatten-bundle-files',
   () => {
-    const source = path.join(distSrcDir, nodeTargetsDir, '*.js');
-    const base = path.join(distSrcDir, nodeTargetsDir);
+    const source = `${distSrcDir}/${nodeTargetsDir}/*.js`;
+    const base = `${distSrcDir}/${nodeTargetsDir}`;
     const dest = distSrcDir;
     return gulp.src(source, { base })
         .pipe(gulp.dest(dest));
@@ -137,8 +137,8 @@ gulp.task('flatten-bundle-files',
 /** Copy the built package.json files */
 gulp.task('copy-extension-files', () => {
   return gulp.src([
-    path.join(buildDir, 'package.json'),
-    path.join(buildDir, 'package.nls.json'),
+    `${buildDir}/package.json`,
+    `${buildDir}/package.nls.json`,
   ], { base: buildDir }).pipe(
     gulp.dest(distDir)
   );
@@ -146,12 +146,12 @@ gulp.task('copy-extension-files', () => {
 
 /** Copy resources and any other files from outside of the `out` directory */
 gulp.task('copy-resources', () =>
-  gulp.src([path.join('resources', '**', '*'), 'LICENSE'])
+  gulp.src([`resources`, `resources/**/*`, 'LICENSE'], { base: '.' })
       .pipe(gulp.dest(distDir))
 );
 
 /** Clean up the node targets dir in dist */
-gulp.task('bundle-cleanup', () => del(path.join(distSrcDir, nodeTargetsDir)));
+gulp.task('bundle-cleanup', () => del(`${distSrcDir}/${nodeTargetsDir}`));
 
 /** Create a VSIX package using the vsce command line tool */
 gulp.task('createVSIX', () => {
@@ -212,7 +212,7 @@ gulp.task(
     gulp
       .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
       .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
-      .pipe(gulp.dest(path.join('..', 'vscode-translations-export'))),
+      .pipe(gulp.dest(`../vscode-translations-export`)),
   ),
 );
 
