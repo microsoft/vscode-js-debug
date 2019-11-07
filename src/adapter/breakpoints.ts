@@ -104,7 +104,7 @@ export class Breakpoint {
   async updateForSourceMap(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
-      return;
+      return [];
     // Find all locations for this breakpoint in the new script.
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
       lineNumber: this._lineColumn.lineNumber,
@@ -115,6 +115,8 @@ export class Breakpoint {
     for (const uiLocation of uiLocations)
       promises.push(this._setByScriptId(thread, script, uiLocation));
     await Promise.all(promises);
+
+    return uiLocations;
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
@@ -163,15 +165,18 @@ export class Breakpoint {
     if (this._setUrlLocations.has(urlLocation))
       return;
     this._setUrlLocations.add(urlLocation);
+
+    lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
+    const location = {
+      url,
+      lineNumber: lineColumn.lineNumber - 1,
+      columnNumber: lineColumn.columnNumber - 1,
+      condition: this._condition,
+    };
+
     const activeSetter = (async () => {
       // TODO: add a test for this - breakpoint in node on the first line.
-      lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
-      const result = await thread.cdp().Debugger.setBreakpointByUrl({
-        url,
-        lineNumber: lineColumn.lineNumber - 1,
-        columnNumber: lineColumn.columnNumber - 1,
-        condition: this._condition,
-      });
+      const result = await thread.cdp().Debugger.setBreakpointByUrl(location);
       if (result)
         this.breakpointResolved(thread, result.breakpointId, result.locations);
     })();
@@ -183,10 +188,17 @@ export class Breakpoint {
     const urlLocation = this._urlLocation(script.url, lineColumn);
     if (script.url && this._setUrlLocations.has(urlLocation))
       return;
+
+    lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
+    const location = {
+      scriptId: script.scriptId,
+      lineNumber: lineColumn.lineNumber - 1,
+      columnNumber: lineColumn.columnNumber - 1
+    };
+
     const activeSetter = (async () => {
-      lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
       const result = await thread.cdp().Debugger.setBreakpoint({
-        location: { scriptId: script.scriptId, lineNumber: lineColumn.lineNumber - 1, columnNumber: lineColumn.columnNumber - 1 },
+        location,
         condition: this._condition,
       });
       if (result)
@@ -238,7 +250,7 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<void>[] = [];
+      const todo: Promise<UiLocation[]>[] = [];
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -253,7 +265,11 @@ export class BreakpointManager {
           todo.push(breakpoint.updateForSourceMap(this._thread!, script));
       }
 
-      await Promise.all(todo);
+      const result = await Promise.all(todo);
+
+      return {
+        remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1))
+      };
     };
     if (sourceContainer.rootPath)
       this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
