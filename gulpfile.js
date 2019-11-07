@@ -15,6 +15,7 @@ const typescript = require('typescript');
 const vsce = require('vsce');
 const fs = require('fs');
 const cp = require('child_process');
+const util = require('util');
 
 const dirname = 'vscode-node-debug3';
 const extensionId = 'node-debug3';
@@ -31,6 +32,46 @@ const allPackages = [];
  * to only set this to true to publish, and develop as namespaced extensions.
  */
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
+
+async function runBuildScript(name) {
+  return new Promise((resolve, reject) =>
+    cp.execFile(
+      process.execPath,
+      [path.join(__dirname, 'out', 'out', 'build', name)],
+      (err, stdout, stderr) => {
+        process.stderr.write(stderr);
+        if (err) {
+          return reject(err);
+        }
+
+        const outstr = stdout.toString('utf-8');
+        try {
+          resolve(JSON.parse(outstr));
+        } catch {
+          resolve(outstr);
+        }
+      },
+    ),
+  );
+}
+
+async function readJson(file) {
+  return new Promise((resolve, reject) =>
+    fs.readFile(path.join(__dirname, file), 'utf-8', (err, data) => {
+      if (err) {
+        return reject(err);
+      }
+
+      try {
+        resolve(JSON.parse(data));
+      } catch (err) {
+        reject(err);
+      }
+    }),
+  );
+}
+
+const writeFile = util.promisify(fs.writeFile);
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
 const tsProject = ts.createProject('./src/tsconfig.json', { typescript });
@@ -58,12 +99,27 @@ gulp.task('compile:ts', () =>
     .pipe(gulp.dest('out/out')),
 );
 
+gulp.task('compile:dynamic', async () => {
+  const [contributions, strings] = await Promise.all([
+    runBuildScript('generate-contributions'),
+    runBuildScript('strings'),
+  ]);
+
+  const packageJson = await readJson('out/package.json');
+  Object.assign(packageJson.contributes, contributions);
+
+  return Promise.all([
+    writeFile('out/package.json', JSON.stringify(packageJson, null, 2)),
+    writeFile('out/package.nls.json', JSON.stringify(strings, null, 2)),
+  ]);
+});
+
 gulp.task(
   'compile:static',
   gulp.parallel(
     () =>
       gulp
-        .src(['*.json', 'resources/**/*'], { base: '.' })
+        .src(['package.json', 'resources/**/*'], { base: '.' })
         .pipe(replaceNamespace())
         .pipe(gulp.dest('out')),
     () =>
@@ -74,7 +130,7 @@ gulp.task(
   ),
 );
 
-gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
+gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
 gulp.task('package:copy-modules', () => {
   // vsce wants to run `npm ls` to verify modules in the target package. For

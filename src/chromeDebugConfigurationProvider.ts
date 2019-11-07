@@ -17,7 +17,7 @@ import { BaseConfigurationProvider } from './baseConfigurationProvider';
  * Configuration provider for Chrome debugging.
  */
 export class ChromeDebugConfigurationProvider
-  extends BaseConfigurationProvider<ResolvingChromeConfiguration>
+  extends BaseConfigurationProvider<AnyChromeConfiguration>
   implements vscode.DebugConfigurationProvider {
   constructor(
     context: vscode.ExtensionContext,
