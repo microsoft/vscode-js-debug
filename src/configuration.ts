@@ -460,6 +460,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   ...baseDefaults,
   type: Contributions.ChromeDebugType,
   request: 'attach',
+  port: 0,
   disableNetworkCache: true,
   pathMapping: {},
   url: 'http://localhost:8080',

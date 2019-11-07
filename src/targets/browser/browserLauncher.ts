@@ -47,7 +47,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -86,7 +86,7 @@ export class BrowserLauncher implements Launcher {
         env: EnvironmentVars.merge(process.env, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
-        pipe: true,
+        connection: port || 'pipe',
       });
   }
 
