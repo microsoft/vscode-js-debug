@@ -15,12 +15,12 @@ const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 
 export interface WorkspaceLocation {
   absolutePath: string;
   lineNumber: number; // 1-based
-  columnNumber: number;  // 1-based
+  columnNumber: number; // 1-based
 }
 
 type PredictedLocation = {
-  source: WorkspaceLocation,
-  compiled: WorkspaceLocation
+  source: WorkspaceLocation;
+  compiled: WorkspaceLocation;
 };
 
 export class BreakpointsPredictor {
@@ -35,12 +35,13 @@ export class BreakpointsPredictor {
     this._sourcePathResolver = sourcePathResolver;
 
     const nodeModules = path.join(this._rootPath, 'node_modules');
-    this._nodeModules = fsUtils.exists(nodeModules).then(exists => exists ? nodeModules : undefined);
+    this._nodeModules = fsUtils
+      .exists(nodeModules)
+      .then(exists => (exists ? nodeModules : undefined));
   }
 
-  async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    if (!params.source.path)
-      return;
+  public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+    if (!params.source.path) return;
     const nodeModules = await this._nodeModules;
     let root: string;
     if (nodeModules && params.source.path.startsWith(nodeModules)) {
@@ -55,15 +56,18 @@ export class BreakpointsPredictor {
   predictedResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
     const result: WorkspaceLocation[] = [];
     for (const p of this._predictedLocations) {
-      if (p.source.absolutePath === location.absolutePath && p.source.lineNumber === location.lineNumber &&
-          p.source.columnNumber === location.columnNumber) {
+      if (
+        p.source.absolutePath === location.absolutePath &&
+        p.source.lineNumber === location.lineNumber &&
+        p.source.columnNumber === location.columnNumber
+      ) {
         result.push(p.compiled);
       }
     }
     return result;
   }
 
-  _directoryScanner(root: string): DirectoryScanner {
+  private _directoryScanner(root: string): DirectoryScanner {
     let result = this._directoryScanners.get(root);
     if (!result) {
       result = new DirectoryScanner(this, root);
@@ -77,7 +81,10 @@ class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
   private _done: Promise<void>;
   private _sourceMapUrls = new Map<string, string>();
-  private _sourcePathToCompiled = new Map<string, Set<{compiledPath: string, sourceUrl: string}>>();
+  private _sourcePathToCompiled = new Map<
+    string,
+    Set<{ compiledPath: string; sourceUrl: string }>
+  >();
 
   constructor(predictor: BreakpointsPredictor, root: string) {
     this._predictor = predictor;
@@ -96,36 +103,29 @@ class DirectoryScanner {
   }
 
   async _handleFile(absolutePath: string): Promise<void> {
-    if (path.extname(absolutePath) !== '.js')
-      return;
+    if (path.extname(absolutePath) !== '.js') return;
     const content = await fsUtils.readfile(absolutePath);
     let sourceMapUrl = sourceUtils.parseSourceMappingUrl(content);
-    if (!sourceMapUrl)
-      return;
+    if (!sourceMapUrl) return;
     const fileUrl = urlUtils.absolutePathToFileUrl(absolutePath);
     sourceMapUrl = urlUtils.completeUrl(fileUrl, sourceMapUrl);
-    if (!sourceMapUrl)
-      return;
-    if (!sourceMapUrl.startsWith('data:') && !sourceMapUrl.startsWith('file://'))
-      return;
+    if (!sourceMapUrl) return;
+    if (!sourceMapUrl.startsWith('data:') && !sourceMapUrl.startsWith('file://')) return;
     try {
       const map = await sourceUtils.loadSourceMap(sourceMapUrl, 0);
-      if (!map)
-        return;
+      if (!map) return;
       this._sourceMapUrls.set(absolutePath, sourceMapUrl);
       for (const url of map.sources) {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
         const baseUrl = sourceMapUrl.startsWith('data:') ? fileUrl : sourceMapUrl;
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = this._predictor._sourcePathResolver
-            ? this._predictor._sourcePathResolver.urlToAbsolutePath(resolvedUrl)
-            : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
-        if (resolvedPath)
-          this._addMapping(absolutePath, resolvedPath, url);
+          ? this._predictor._sourcePathResolver.urlToAbsolutePath(resolvedUrl)
+          : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+        if (resolvedPath) this._addMapping(absolutePath, resolvedPath, url);
       }
       map.destroy();
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   _addMapping(compiledPath: string, sourcePath: string, sourceUrl: string) {
@@ -134,28 +134,31 @@ class DirectoryScanner {
       set = new Set();
       this._sourcePathToCompiled.set(sourcePath, set);
     }
-    set.add({compiledPath, sourceUrl});
+    set.add({ compiledPath, sourceUrl });
   }
 
   async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
     await this._done;
     const absolutePath = params.source.path!;
     const set = this._sourcePathToCompiled.get(absolutePath);
-    if (!set)
-      return;
-    for (const {compiledPath, sourceUrl} of set) {
+    if (!set) return;
+    for (const { compiledPath, sourceUrl } of set) {
       const sourceMapUrl = this._sourceMapUrls.get(compiledPath);
-      if (!sourceMapUrl)
-        continue;
+      if (!sourceMapUrl) continue;
       try {
         const map = await sourceUtils.loadSourceMap(sourceMapUrl, 0);
-        if (!map)
-          continue;
+        if (!map) continue;
         for (const b of params.breakpoints || []) {
-          const entry = map.generatedPositionFor({source: sourceUrl, line: b.line, column: b.column || 1});
-          if (entry.line === null)
-            continue;
-          const {lineNumber, columnNumber} = uiToRawOffset({lineNumber: entry.line || 1, columnNumber: entry.column || 1}, kNodeScriptOffset);
+          const entry = map.generatedPositionFor({
+            source: sourceUrl,
+            line: b.line,
+            column: b.column || 1,
+          });
+          if (entry.line === null) continue;
+          const { lineNumber, columnNumber } = uiToRawOffset(
+            { lineNumber: entry.line || 1, columnNumber: entry.column || 1 },
+            kNodeScriptOffset,
+          );
           const predicted: PredictedLocation = {
             source: {
               absolutePath,
@@ -165,14 +168,13 @@ class DirectoryScanner {
             compiled: {
               absolutePath: compiledPath,
               lineNumber,
-              columnNumber
-            }
+              columnNumber,
+            },
           };
           this._predictor._predictedLocations.push(predicted);
         }
         map.destroy();
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   }
 }

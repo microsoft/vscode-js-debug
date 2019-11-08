@@ -104,7 +104,7 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * todo: difference between this and webRoot?
    */
-  rootPath?: string;
+  rootPath: string;
 
   /**
    * From where to capture output messages: The debug API, or stdout/stderr streams.
@@ -408,6 +408,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
     'webpack:///*': '*',

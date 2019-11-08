@@ -33,6 +33,7 @@
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=msjsdiag.pwa-debugger",
@@ -47,6 +48,7 @@
       "name": "Extension (packaged)",
       "type": "extensionHost",
       "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=msjsdiag.pwa-debugger",
@@ -68,7 +70,8 @@
 			"name": "Run Tests",
 			"type": "extensionHost",
 			"request": "launch",
-			"runtimeExecutable": "${execPath}",
+      "runtimeExecutable": "${execPath}",
+      "skipFiles": ["<node_internals>/**"],
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"

@@ -8,10 +8,13 @@ import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
 import { delay } from './promiseUtil';
+import { createHash } from 'crypto';
 
-export type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
+export type SourceMapConsumer =
+  & (sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer)
+  & { hash: string };
 
-export function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
+export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
   const to = generatePositions(minified);
@@ -30,7 +33,9 @@ export function prettyPrintAsSourceMap(fileName: string, minified: string): Prom
       generated: { line: to[i], column: to[i + 1] }
     });
   }
-  return sourceMap.SourceMapConsumer.fromSourceMap(generator);
+  const result = await sourceMap.SourceMapConsumer.fromSourceMap(generator) as SourceMapConsumer;
+  result.hash = '';
+  return result;
 }
 
 function generatePositions(text: string) {
@@ -196,9 +201,13 @@ export async function loadSourceMap(url: string, slowDown: number): Promise<Sour
   if (slowDown)
     await delay(slowDown);
   let content = await urlUtils.fetch(url);
+  const hash = createHash('md5').update(content).digest('hex');
   if (content.slice(0, 3) === ')]}')
     content = content.substring(content.indexOf('\n'));
-  return await new sourceMap.SourceMapConsumer(content);
+
+  const result = await new sourceMap.SourceMapConsumer(content) as SourceMapConsumer;
+  result.hash = hash;
+  return result;
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

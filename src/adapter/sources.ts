@@ -485,9 +485,14 @@ export class SourceContainer {
       const isNew = !source;
       if (!source) {
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
-        source = new Source(this, resolvedUrl,
-            content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
-            undefined, undefined, undefined);
+        source = new Source(
+          this,
+          resolvedUrl,
+          content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
+          undefined,
+          undefined,
+          undefined,
+        );
         source._compiledToSourceUrl = new Map();
       }
       source._compiledToSourceUrl!.set(compiled, url);
