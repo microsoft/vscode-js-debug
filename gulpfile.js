@@ -58,12 +58,12 @@ gulp.task('compile:ts', () =>
     .pipe(replaceNamespace())
     .pipe(tsProject())
     .js.pipe(
-      sourcemaps.write('../out', {
+      sourcemaps.write('.', {
         includeContent: false,
         sourceRoot: '.',
       }),
     )
-    .pipe(gulp.dest('out')),
+    .pipe(gulp.dest('out/src')),
 );
 
 gulp.task(

@@ -3,21 +3,16 @@
     "module": "commonjs",
     "target": "es2017",
     "lib": ["es2017"],
-		"noImplicitAny": true,
+    "noImplicitAny": true,
     "noImplicitThis": true,
     "sourceMap": true,
-    "rootDir": "./",
-    "outDir": "./out/out",
+    "outDir": "./out/src",
     "strict": true,
     "noUnusedLocals": true,
     "alwaysStrict": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "types": ["node", "chai-subset", "mocha"],
+    "types": ["node", "chai-subset", "mocha"]
   },
-  "exclude": [
-    "demos",
-    "testdata",
-    "testWorkspace"
-  ]
+  "include": ["src"]
 }

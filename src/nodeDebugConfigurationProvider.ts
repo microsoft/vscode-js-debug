@@ -19,7 +19,7 @@ import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
-import config from '../package.json';
+const config = require('../package.json');
 
 const localize = nls.loadMessageBundle();
 
