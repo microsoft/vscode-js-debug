@@ -17,6 +17,9 @@ const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
 const execSync = require('child_process').execSync;
+const fs = require('fs');
+const cp = require('child_process');
+const util = require('util');
 
 const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
@@ -40,12 +43,46 @@ const nodeTargetsDir = `targets/node`;
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 
 /**
+ * Whether we're running a nightly build.
+ */
+const isNightly = process.argv.includes('--nightly');
+
+/**
  * Extension ID to build. Appended with '-nightly' as necessary.
  */
-const extensionId = process.argv.includes('--nightly') ? 'js-debug-nightly' : 'js-debug';
+const extensionId = isNightly ? 'js-debug-nightly' : 'js-debug';
+
+function runBuildScript(name) {
+  return new Promise((resolve, reject) =>
+    cp.execFile(
+      process.execPath,
+      [path.join(__dirname, 'out', 'src', 'build', name)],
+      (err, stdout, stderr) => {
+        process.stderr.write(stderr);
+        if (err) {
+          return reject(err);
+        }
+
+        const outstr = stdout.toString('utf-8');
+        try {
+          resolve(JSON.parse(outstr));
+        } catch {
+          resolve(outstr);
+        }
+      },
+    ),
+  );
+}
+
+const writeFile = util.promisify(fs.writeFile);
+const readFile = util.promisify(fs.readFile);
+
+async function readJson(file) {
+  const contents = await readFile(path.join(__dirname, file), 'utf-8');
+  return JSON.parse(contents);
+}
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
-const replaceNightly = () => replace('js-debug', extensionId);
 const tsProject = ts.createProject('./tsconfig.json', { typescript });
 const tslintOptions = {
   formatter: 'prose',
@@ -68,17 +105,40 @@ gulp.task('compile:ts', () =>
         sourceRoot: '.',
       }),
     )
-    .pipe(gulp.dest('out/src')),
+    .pipe(gulp.dest(buildSrcDir)),
 );
+
+gulp.task('compile:dynamic', async () => {
+  const [contributions, strings] = await Promise.all([
+    runBuildScript('generate-contributions'),
+    runBuildScript('strings'),
+  ]);
+
+  const packageJson = await readJson(`${buildDir}/package.json`);
+  packageJson.name = extensionId;
+  if (isNightly) {
+    const date = new Date();
+    const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
+    packageJson.displayName += ' Nightly';
+    packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
+  }
+
+  Object.assign(packageJson.contributes, contributions);
+
+  return Promise.all([
+    writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson, null, 2)),
+    writeFile(`${buildDir}/package.nls.json`, JSON.stringify(strings, null, 2)),
+  ]);
+});
 
 gulp.task('compile:static', () =>
-  merge(gulp.src('*.json'), gulp.src('src/**/*.sh', { base: '.' }))
-    .pipe(replaceNamespace())
-    .pipe(replaceNightly())
-    .pipe(gulp.dest('out')),
+  merge(
+    gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
+    gulp.src('resources/**/*', { base: '.' }),
+  ).pipe(gulp.dest(buildDir)),
 );
 
-gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
+gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
@@ -128,9 +188,10 @@ gulp.task('package:webpack-bundle', async () => {
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([`${buildDir}/package.json`, `${buildDir}/package.nls.json`, 'LICENSE']),
-    gulp.src('resources/**/*', { base: '.' }),
-    gulp.src(`src/**/*.sh`).pipe(rename({ dirname: 'src' })),
+    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`], {
+      base: buildDir,
+    }),
+    gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );
 
@@ -159,6 +220,7 @@ gulp.task(
 gulp.task('publish:vsce', () =>
   vsce.publish({
     pat: process.env.MARKETPLACE_TOKEN,
+    useYarn: true,
     cwd: distDir,
   }),
 );

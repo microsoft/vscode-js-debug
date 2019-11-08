@@ -11,7 +11,7 @@ import {
   nodeLaunchConfigDefaults,
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
-  ResolvedConfiguration,
+  AnyNodeConfiguration,
 } from './configuration';
 import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
@@ -37,7 +37,7 @@ type ResolvingNodeConfiguration =
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
 export class NodeDebugConfigurationProvider
-  extends BaseConfigurationProvider<ResolvingNodeConfiguration>
+  extends BaseConfigurationProvider<AnyNodeConfiguration>
   implements vscode.DebugConfigurationProvider {
   constructor(
     context: vscode.ExtensionContext,
@@ -49,7 +49,7 @@ export class NodeDebugConfigurationProvider
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
-  ): Promise<ResolvedConfiguration<ResolvingNodeConfiguration> | undefined> {
+  ): Promise<AnyNodeConfiguration | undefined> {
     if (!config.name && !config.type && !config.request) {
       config = createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {
