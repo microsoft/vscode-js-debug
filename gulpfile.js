@@ -10,6 +10,8 @@ const path = require('path');
 const replace = require('gulp-replace');
 const sourcemaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
+const rename = require('gulp-rename');
+const merge = require('merge2');
 const tslint = require('gulp-tslint');
 const typescript = require('typescript');
 const vsce = require('vsce');
@@ -83,7 +85,7 @@ gulp.task(
 gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
 
 /** Run webpack to bundle the extension output files */
-gulp.task('bundle', async () => {
+gulp.task('package:webpack-bundle', async () => {
   const packages = [
     { entry: `${buildSrcDir}/extension.js`, library: true },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
@@ -100,6 +102,10 @@ gulp.task('bundle', async () => {
         filename: path.basename(entry),
         devtoolModuleFilenameTemplate: '../[resource-path]',
       },
+      node: {
+        __dirname: false,
+        __filename: false,
+      },
       externals: {
         vscode: 'commonjs vscode',
       },
@@ -109,66 +115,51 @@ gulp.task('bundle', async () => {
       config.output.libraryTarget = 'commonjs2';
     }
 
-    await new Promise((resolve, reject) => webpack(config, (err, stats) => {
-      if (err) {
-        reject(err);
-      } else if (stats.hasErrors()) {
-        reject(stats);
-      } else {
-        resolve();
-      }
-    }));
+    await new Promise((resolve, reject) =>
+      webpack(config, (err, stats) => {
+        if (err) {
+          reject(err);
+        } else if (stats.hasErrors()) {
+          reject(stats);
+        } else {
+          resolve();
+        }
+      }),
+    );
   }
 });
 
-
-// TODO: check the output location of watchdog/bootloader make sure it will work in out/src
-/** Flatten the bundle files so that extension, bootloader, and watchdog are all at the root */
-gulp.task('flatten-bundle-files',
-  () => {
-    const source = `${distSrcDir}/${nodeTargetsDir}/*.js`;
-    const base = `${distSrcDir}/${nodeTargetsDir}`;
-    const dest = distSrcDir;
-    return gulp.src(source, { base })
-        .pipe(gulp.dest(dest));
-  }
+/** Copy the extension static files */
+gulp.task('package:copy-extension-files', () =>
+  merge(
+    gulp.src([
+      `${buildDir}/package.json`,
+      `${buildDir}/package.nls.json`,
+      'LICENSE',
+    ]),
+    gulp.src('resources/**/*', { base: '.' }),
+    gulp.src(`src/**/*.sh`).pipe(rename({ dirname: 'src' })),
+  ).pipe(gulp.dest(distDir)),
 );
-
-/** Copy the built package.json files */
-gulp.task('copy-extension-files', () => {
-  return gulp.src([
-    `${buildDir}/package.json`,
-    `${buildDir}/package.nls.json`,
-  ], { base: buildDir }).pipe(
-    gulp.dest(distDir)
-  );
-});
-
-/** Copy resources and any other files from outside of the `out` directory */
-gulp.task('copy-resources', () =>
-  gulp.src([`resources`, `resources/**/*`, 'LICENSE'], { base: '.' })
-      .pipe(gulp.dest(distDir))
-);
-
-/** Clean up the node targets dir in dist */
-gulp.task('bundle-cleanup', () => del(`${distSrcDir}/${nodeTargetsDir}`));
 
 /** Create a VSIX package using the vsce command line tool */
-gulp.task('createVSIX', () => {
-  return runCommand(`${ path.join('..', 'node_modules', '.bin', 'vsce')} package --yarn -o ${extensionId}.vsix`, { stdio: 'inherit', cwd: distDir });
-});
+gulp.task('package:createVSIX', () =>
+  runCommand(
+    `${path.join('..', 'node_modules', '.bin', 'vsce')} package --yarn -o ${extensionId}.vsix`,
+    { stdio: 'inherit', cwd: distDir },
+  ),
+);
 
 /** Clean, compile, bundle, and create vsix for the extension */
-gulp.task('package',
+gulp.task(
+  'package',
   gulp.series(
     'clean',
     'compile',
-    'bundle',
-    'copy-extension-files',
-    'copy-resources',
-    'flatten-bundle-files',
-    'bundle-cleanup',
-    'createVSIX')
+    'package:webpack-bundle',
+    'package:copy-extension-files',
+    'package:createVSIX',
+  ),
 );
 
 gulp.task(
@@ -243,7 +234,7 @@ function runCommand(cmd, options) {
     let execError = undefined;
     try {
       execSync(cmd, { stdio: 'inherit', ...options });
-    } catch(err) {
+    } catch (err) {
       reject(err);
     }
     resolve();
