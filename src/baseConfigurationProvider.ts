@@ -3,14 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { AnyResolvingConfiguration, ResolvedConfiguration } from './configuration';
+import { ResolvingConfiguration, AnyLaunchConfiguration } from './configuration';
 import { fulfillLoggerOptions } from './common/logging';
 
 /**
  * Base configuration provider that handles some resolution around common
  * options and handles errors.
  */
-export abstract class BaseConfigurationProvider<T extends AnyResolvingConfiguration>
+export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration>
   implements vscode.DebugConfigurationProvider {
   constructor(protected readonly extensionContext: vscode.ExtensionContext) {}
 
@@ -26,7 +26,11 @@ export abstract class BaseConfigurationProvider<T extends AnyResolvingConfigurat
     // return a Promise rather than a ProviderResult.
     return (async () => {
       try {
-        const resolved = await this.resolveDebugConfigurationAsync(folder, config as T, token);
+        const resolved = await this.resolveDebugConfigurationAsync(
+          folder,
+          config as ResolvingConfiguration<T>,
+          token,
+        );
         return resolved && (await this.commonResolution(resolved));
       } catch (err) {
         vscode.window.showErrorMessage(err.message, { modal: true });
@@ -39,14 +43,14 @@ export abstract class BaseConfigurationProvider<T extends AnyResolvingConfigurat
    */
   protected abstract async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
-    config: T,
+    config: ResolvingConfiguration<T>,
     token?: vscode.CancellationToken,
-  ): Promise<ResolvedConfiguration<T> | undefined>;
+  ): Promise<T | undefined>;
 
   /**
    * Fulfills resolution common between all resolver configs.
    */
-  protected commonResolution(config: ResolvedConfiguration<T>): ResolvedConfiguration<T> {
+  protected commonResolution(config: T): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     return config;
   }

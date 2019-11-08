@@ -53,7 +53,7 @@ export interface ILoggingConfiguration {
   tags: ReadonlyArray<string>;
 }
 
-interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
+export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
    * Default is 'localhost'.
@@ -102,7 +102,7 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   trace: boolean | Partial<ILoggingConfiguration>;
 
   /**
-   * todo: difference between this and webRoot?
+   * Location where sources can be found.
    */
   rootPath: string;
 
@@ -189,12 +189,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
   remoteRoot: string | null;
 
   /**
-   * Don't set breakpoints in any file until a sourcemap has been
-   * loaded for that file.
-   */
-  disableOptimisticBPs: boolean;
-
-  /**
    * Attach debugger to new child processes automatically.
    */
   autoAttachChildProcesses: boolean;
@@ -255,7 +249,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
   envFile: string | null;
 }
 
-interface IChromeBaseConfiguration extends IBaseConfiguration {
+export interface IChromeBaseConfiguration extends IBaseConfiguration {
   type: Contributions.ChromeDebugType;
 
   /**
@@ -339,7 +333,7 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * Custom means a custom wrapper, custom build or CHROME_PATH
    * environment variable.
    */
-  runtimeExecutable: string;
+  runtimeExecutable: string | null;
 
   /**
    * By default, Chrome is launched with a separate user profile in a temp
@@ -368,32 +362,20 @@ export type AnyNodeConfiguration =
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
-export type ResolvingExtensionHostConfiguration = IMandatedConfiguration &
-  Partial<IExtensionHostConfiguration>;
-export type ResolvingNodeAttachConfiguration = IMandatedConfiguration &
-  Partial<INodeAttachConfiguration>;
-export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration &
-  Partial<INodeLaunchConfiguration>;
-export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
+/**
+ * Where T subtypes AnyLaunchConfiguration, gets the resolving version of T.
+ */
+export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
+
+export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<IExtensionHostConfiguration>;
+export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
+export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
+export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
-  | ResolvingNodeLaunchConfiguration
-  | ResolvingExtensionHostConfiguration;
-
-/**
- * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
- */
-export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
-  ? INodeAttachConfiguration
-  : T extends ResolvingExtensionHostConfiguration
-  ? IExtensionHostConfiguration
-  : T extends ResolvingNodeLaunchConfiguration
-  ? INodeLaunchConfiguration
-  : T extends ResolvingChromeConfiguration
-  ? AnyChromeConfiguration
-  : never;
+  | ResolvingNodeLaunchConfiguration;
 
 export const baseDefaults: IBaseConfiguration = {
   type: '',
@@ -425,7 +407,6 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   restart: true,
   localRoot: null,
   remoteRoot: null,
-  disableOptimisticBPs: true,
   autoAttachChildProcesses: true,
 };
 

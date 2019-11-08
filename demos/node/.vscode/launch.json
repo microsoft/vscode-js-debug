@@ -7,6 +7,7 @@
     {
       "type": "pwa-node",
       "request": "launch",
+      "trace": true,
       "name": "[Node] Launch program",
       "program": "${workspaceFolder}/main.js"
     },

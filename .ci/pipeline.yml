@@ -1,15 +1,18 @@
 jobs:
-- template: job.yml
-  parameters:
-    name: macOS
+- job: macOS
+  pool:
     vmImage: 'macOS-10.13'
+  steps:
+  - template: common-validation.yml
 
-- template: job.yml
-  parameters:
-    name: Linux
+- job: Linux
+  pool:
     vmImage: 'ubuntu-16.04'
+  steps:
+  - template: common-validation.yml
 
-- template: job.yml
-  parameters:
-    name: Windows
+- job: Windows
+  pool:
     vmImage: 'vs2017-win2016'
+  steps:
+  - template: common-validation.yml

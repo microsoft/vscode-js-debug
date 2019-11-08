@@ -17,11 +17,13 @@ const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
 const execSync = require('child_process').execSync;
+const fs = require('fs');
+const cp = require('child_process');
+const util = require('util');
 
-const dirname = 'vscode-node-debug3';
-const extensionId = 'vscode-pwa';
+const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
-const translationExtensionName = 'vscode-node-debug';
+const translationExtensionName = 'js-debug';
 
 const sources = ['src/**/*.ts'];
 const tslintFilter = ['**', '!**/*.d.ts'];
@@ -39,6 +41,46 @@ const nodeTargetsDir = `targets/node`;
  * to only set this to true to publish, and develop as namespaced extensions.
  */
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
+
+/**
+ * Whether we're running a nightly build.
+ */
+const isNightly = process.argv.includes('--nightly');
+
+/**
+ * Extension ID to build. Appended with '-nightly' as necessary.
+ */
+const extensionId = isNightly ? 'js-debug-nightly' : 'js-debug';
+
+function runBuildScript(name) {
+  return new Promise((resolve, reject) =>
+    cp.execFile(
+      process.execPath,
+      [path.join(__dirname, 'out', 'src', 'build', name)],
+      (err, stdout, stderr) => {
+        process.stderr.write(stderr);
+        if (err) {
+          return reject(err);
+        }
+
+        const outstr = stdout.toString('utf-8');
+        try {
+          resolve(JSON.parse(outstr));
+        } catch {
+          resolve(outstr);
+        }
+      },
+    ),
+  );
+}
+
+const writeFile = util.promisify(fs.writeFile);
+const readFile = util.promisify(fs.readFile);
+
+async function readJson(file) {
+  const contents = await readFile(path.join(__dirname, file), 'utf-8');
+  return JSON.parse(contents);
+}
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
 const tsProject = ts.createProject('./tsconfig.json', { typescript });
@@ -63,26 +105,40 @@ gulp.task('compile:ts', () =>
         sourceRoot: '.',
       }),
     )
-    .pipe(gulp.dest('out/src')),
+    .pipe(gulp.dest(buildSrcDir)),
 );
 
-gulp.task(
-  'compile:static',
-  gulp.parallel(
-    () =>
-      gulp
-        .src('*.json')
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out')),
-    () =>
-      gulp
-        .src('src/**/*.sh')
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out/src')),
-  ),
+gulp.task('compile:dynamic', async () => {
+  const [contributions, strings] = await Promise.all([
+    runBuildScript('generate-contributions'),
+    runBuildScript('strings'),
+  ]);
+
+  const packageJson = await readJson(`${buildDir}/package.json`);
+  packageJson.name = extensionId;
+  if (isNightly) {
+    const date = new Date();
+    const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
+    packageJson.displayName += ' Nightly';
+    packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
+  }
+
+  Object.assign(packageJson.contributes, contributions);
+
+  return Promise.all([
+    writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson, null, 2)),
+    writeFile(`${buildDir}/package.nls.json`, JSON.stringify(strings, null, 2)),
+  ]);
+});
+
+gulp.task('compile:static', () =>
+  merge(
+    gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
+    gulp.src('resources/**/*', { base: '.' }),
+  ).pipe(gulp.dest(buildDir)),
 );
 
-gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
+gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
@@ -132,22 +188,20 @@ gulp.task('package:webpack-bundle', async () => {
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([
-      `${buildDir}/package.json`,
-      `${buildDir}/package.nls.json`,
-      'LICENSE',
-    ]),
-    gulp.src('resources/**/*', { base: '.' }),
-    gulp.src(`src/**/*.sh`).pipe(rename({ dirname: 'src' })),
+    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`], {
+      base: buildDir,
+    }),
+    gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );
 
 /** Create a VSIX package using the vsce command line tool */
 gulp.task('package:createVSIX', () =>
-  runCommand(
-    `${path.join('..', 'node_modules', '.bin', 'vsce')} package --yarn -o ${extensionId}.vsix`,
-    { stdio: 'inherit', cwd: distDir },
-  ),
+  vsce.createVSIX({
+    cwd: distDir,
+    useYarn: true,
+    packagePath: path.join(distDir, `${extensionId}.vsix`),
+  }),
 );
 
 /** Clean, compile, bundle, and create vsix for the extension */
@@ -162,16 +216,16 @@ gulp.task(
   ),
 );
 
-gulp.task(
-  'publish',
-  gulp.series('package', () =>
-    vsce.publish({
-      ...minimist(process.argv.slice(2)),
-      cwd: 'out',
-    }),
-  ),
+/** Publishes the build extension to the marketplace */
+gulp.task('publish:vsce', () =>
+  vsce.publish({
+    pat: process.env.MARKETPLACE_TOKEN,
+    useYarn: true,
+    cwd: distDir,
+  }),
 );
 
+gulp.task('publish', gulp.series('package', 'publish:vsce'));
 gulp.task('default', gulp.series('compile'));
 
 gulp.task(
