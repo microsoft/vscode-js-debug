@@ -44,6 +44,20 @@
       // "preLaunchTask": "npm: watch"
     },
     {
+      "name": "Extension (packaged)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--enable-proposed-api=msjsdiag.pwa-debugger",
+        "--extensionDevelopmentPath=${workspaceFolder}/dist"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ],
+      // "preLaunchTask": "npm: watch"
+    },
+    {
       "name": "Dogfood",
       "type": "pwa",
       "request": "launch",
@@ -90,6 +104,13 @@
       },
 			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
 			// "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Debug Gulp",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/gulp/bin/gulp.js",
+      "args": ["move-bundle-files"]
     }
   ]
 }
