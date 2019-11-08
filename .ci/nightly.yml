@@ -1,0 +1,42 @@
+# Run on a schedule
+trigger: none
+pr: none
+
+jobs:
+- job: nightly_release
+  displayName: Nightly Release
+  pool:
+    vmImage: 'ubuntu-16.04'
+  steps:
+  - template: common-validation.yml
+
+  - task: Gulp@0
+    displayName: gulp package
+    inputs:
+      targets: package
+      arguments: --nightly
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: dist/js-debug-nightly.vsix
+      artifactName: Extension (Prefixed)
+
+  - task: Gulp@0
+    displayName: gulp publish --drop-in
+    inputs:
+      targets: package
+      arguments: --nightly --drop-in
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: dist/js-debug-nightly.vsix
+      artifactName: Extension (Drop-In)
+
+  - task: Gulp@0
+    displayName: Publish to Marketplace
+    inputs:
+      targets: publish:vsce
+      arguments: --nightly --drop-in
+    env:
+      MARKETPLACE_TOKEN: $(vsce.token)
+    condition: and(succeeded(), eq(variables['dryrun'], 'false'))

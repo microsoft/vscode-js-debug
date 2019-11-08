@@ -35,7 +35,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--enable-proposed-api=msjsdiag.pwa-debugger",
+        "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
       "outFiles": [
@@ -49,7 +49,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--enable-proposed-api=msjsdiag.pwa-debugger",
+        "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
       "outFiles": [
@@ -61,7 +61,7 @@
       "name": "Dogfood",
       "type": "pwa",
       "request": "launch",
-      "command": "code-insiders --disable-extensions --enable-proposed-api=msjsdiag.pwa-debugger --extensionDevelopmentPath=${workspaceFolder}/out",
+      "command": "code-insiders --disable-extensions --enable-proposed-api=ms-vscode.js-debug --extensionDevelopmentPath=${workspaceFolder}/out",
       // "preLaunchTask": "npm: watch"
     },
 		{

@@ -1,12 +1,12 @@
 {
-  "name": "pwa-debugger",
-  "displayName": "PWA Debugger",
+  "name": "js-debug",
+  "displayName": "VSCode JavaScript Debugger",
   "version": "0.9.0",
-  "publisher": "msjsdiag",
+  "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
   },
-  "description": "PWA debugger extension.",
+  "description": "An extension for debugger Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
     "vscode": "^1.30.0-insider",

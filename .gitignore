@@ -7,6 +7,5 @@
 node_modules/
 out/
 dist
-/*.vsix
 /coverage
 /.nyc_output

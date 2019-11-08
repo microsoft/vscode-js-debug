@@ -18,10 +18,9 @@ const vsce = require('vsce');
 const webpack = require('webpack');
 const execSync = require('child_process').execSync;
 
-const dirname = 'vscode-node-debug3';
-const extensionId = 'vscode-pwa';
+const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
-const translationExtensionName = 'vscode-node-debug';
+const translationExtensionName = 'js-debug';
 
 const sources = ['src/**/*.ts'];
 const tslintFilter = ['**', '!**/*.d.ts'];
@@ -40,7 +39,13 @@ const nodeTargetsDir = `targets/node`;
  */
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 
+/**
+ * Extension ID to build. Appended with '-nightly' as necessary.
+ */
+const extensionId = process.argv.includes('--nightly') ? 'js-debug-nightly' : 'js-debug';
+
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
+const replaceNightly = () => replace('js-debug', extensionId);
 const tsProject = ts.createProject('./tsconfig.json', { typescript });
 const tslintOptions = {
   formatter: 'prose',
@@ -66,20 +71,11 @@ gulp.task('compile:ts', () =>
     .pipe(gulp.dest('out/src')),
 );
 
-gulp.task(
-  'compile:static',
-  gulp.parallel(
-    () =>
-      gulp
-        .src('*.json')
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out')),
-    () =>
-      gulp
-        .src('src/**/*.sh')
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out/src')),
-  ),
+gulp.task('compile:static', () =>
+  merge(gulp.src('*.json'), gulp.src('src/**/*.sh', { base: '.' }))
+    .pipe(replaceNamespace())
+    .pipe(replaceNightly())
+    .pipe(gulp.dest('out')),
 );
 
 gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
@@ -132,11 +128,7 @@ gulp.task('package:webpack-bundle', async () => {
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([
-      `${buildDir}/package.json`,
-      `${buildDir}/package.nls.json`,
-      'LICENSE',
-    ]),
+    gulp.src([`${buildDir}/package.json`, `${buildDir}/package.nls.json`, 'LICENSE']),
     gulp.src('resources/**/*', { base: '.' }),
     gulp.src(`src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
@@ -144,10 +136,11 @@ gulp.task('package:copy-extension-files', () =>
 
 /** Create a VSIX package using the vsce command line tool */
 gulp.task('package:createVSIX', () =>
-  runCommand(
-    `${path.join('..', 'node_modules', '.bin', 'vsce')} package --yarn -o ${extensionId}.vsix`,
-    { stdio: 'inherit', cwd: distDir },
-  ),
+  vsce.createVSIX({
+    cwd: distDir,
+    useYarn: true,
+    packagePath: path.join(distDir, `${extensionId}.vsix`),
+  }),
 );
 
 /** Clean, compile, bundle, and create vsix for the extension */
@@ -162,16 +155,15 @@ gulp.task(
   ),
 );
 
-gulp.task(
-  'publish',
-  gulp.series('package', () =>
-    vsce.publish({
-      ...minimist(process.argv.slice(2)),
-      cwd: 'out',
-    }),
-  ),
+/** Publishes the build extension to the marketplace */
+gulp.task('publish:vsce', () =>
+  vsce.publish({
+    pat: process.env.MARKETPLACE_TOKEN,
+    cwd: distDir,
+  }),
 );
 
+gulp.task('publish', gulp.series('package', 'publish:vsce'));
 gulp.task('default', gulp.series('compile'));
 
 gulp.task(
