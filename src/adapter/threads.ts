@@ -18,6 +18,7 @@ import { InlineScriptOffset } from '../common/sourcePathResolver';
 import { ScriptSkipper } from './scriptSkipper';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 import { delay } from '../common/promiseUtil';
+import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 
@@ -102,6 +103,7 @@ export class Thread implements VariableStoreDelegate {
     dap: Dap.Api,
     delegate: ThreadDelegate,
     private readonly launchConfig: AnyLaunchConfiguration,
+    private readonly _breakpointManager: BreakpointManager
   ) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
@@ -414,6 +416,10 @@ export class Thread implements VariableStoreDelegate {
       }
 
       this._pausedDetails = this._createPausedDetails(event);
+      if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
+        this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
+      }
+
       (this._pausedDetails as any)[kPausedEventSymbol] = event;
       this._pausedVariables = new VariableStore(this._cdp, this);
       scheduledPauseOnAsyncCall = undefined;

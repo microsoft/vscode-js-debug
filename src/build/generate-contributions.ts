@@ -616,7 +616,12 @@ function buildDebuggers() {
     let entry = output.find(o => o.type === d.type);
     if (!entry) {
       const { request, configurationAttributes, required, ...rest } = d;
-      entry = { ...rest, configurationAttributes: {}, configurationSnippets: [] };
+      entry = {
+        ...rest,
+        languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
+        configurationAttributes: {},
+        configurationSnippets: [],
+      };
       output.push(entry);
     }
 

@@ -18,6 +18,7 @@ import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { delay } from '../../common/promiseUtil';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -146,9 +147,18 @@ export class BrowserLauncher implements Launcher {
     return this._mainTarget;
   }
 
-  async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    if (this._launchParams!.url && !(this._launchParams as any)['skipNavigateForTest'])
-      await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
+  private async finishLaunch(mainTarget: BrowserTarget, params: AnyChromeConfiguration): Promise<void> {
+    if ('skipNavigateForTest' in params) {
+      return;
+    }
+
+    const url = 'file' in params && params.file
+      ? absolutePathToFileUrl(path.resolve(params.webRoot || params.rootPath || '', params.file))
+      : params.url;
+
+    if (url) {
+      await mainTarget.cdp().Page.navigate({ url });
+    }
   }
 
   async launch(params: AnyChromeConfiguration, targetOrigin: any, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
@@ -159,7 +169,7 @@ export class BrowserLauncher implements Launcher {
     const targetOrError = await this.prepareLaunch(params, targetOrigin, telemetryReporter);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
-    await this.finishLaunch(targetOrError);
+    await this.finishLaunch(targetOrError, params);
     return { blockSessionTermination: true };
   }
 
