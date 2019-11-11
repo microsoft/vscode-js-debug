@@ -17,6 +17,16 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   /**
    * @inheritdoc
    */
+  public provideDebugConfigurations:
+    | undefined
+    | ((
+        folder: vscode.WorkspaceFolder | undefined,
+        token?: vscode.CancellationToken,
+      ) => vscode.ProviderResult<vscode.DebugConfiguration[]>) = undefined;
+
+  /**
+   * @inheritdoc
+   */
   public resolveDebugConfiguration(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
@@ -39,7 +49,41 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   }
 
   /**
-   * Override me!
+   * Provides the default configuration when the user presses F5. May
+   * be overridden.
+   */
+  /**
+   * Sets the function to [rovide the default configuration when the user
+   * presses F5.
+   *
+   * We need this roundabout assignment, because VS Code uses the presence of
+   * the provideDebugConfigurations method to determine whether or not to
+   * show the configuration provider in the F5 list, so it can't be a simple
+   * undefined-returning abstract method.
+   */
+  protected setProvideDefaultConfiguration(
+    fn: (
+      folder: vscode.WorkspaceFolder | undefined,
+      token?: vscode.CancellationToken,
+    ) => undefined | ResolvingConfiguration<T> | Promise<ResolvingConfiguration<T> | undefined>,
+  ): void {
+    this.provideDebugConfigurations = async (folder, token) => {
+      try {
+        const r = await fn.call(this, folder, token);
+        if (!r) {
+          return [];
+        }
+
+        return r instanceof Array ? r : [r];
+      } catch (err) {
+        vscode.window.showErrorMessage(err.message, { modal: true });
+        return [];
+      }
+    };
+  }
+
+  /**
+   * Resolves the configuration for the debug adapter.
    */
   protected abstract async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,

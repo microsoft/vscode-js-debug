@@ -58,7 +58,7 @@ const strings = {
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
   'chrome.userDataDir.description':
     'By default, Chrome is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
-  'chrome.label': 'Debug your JavaScript code in the Chrome browser, or any other target that supports the Chrome Debugger protocol.',
+  'chrome.label': 'NAMESPACE(Chrome)',
   'chrome.launch.label': 'Chrome: Launch',
   'chrome.launch.description': 'Launch Chrome to debug a URL',
   'chrome.attach.label': 'Chrome: Attach',
@@ -74,7 +74,7 @@ const strings = {
   'node.console.title': 'Node Debug Console',
   'node.disableOptimisticBPs.description':
     "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
-  'node.label': 'Node.js',
+  'node.label': 'NAMESPACE(Node.js)',
   'node.launch.autoAttachChildProcesses.description':
     'Attach debugger to new child processes automatically.',
   'node.launch.config.name': 'Launch',
