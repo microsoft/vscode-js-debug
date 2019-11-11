@@ -7,9 +7,11 @@ import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
-import { delay } from './promiseUtil';
 import { createHash, randomBytes } from 'crypto';
 import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
+import { createReadStream } from 'fs';
+import { logger } from './logging/logger';
+import { LogTag } from './logging';
 
 export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMap | undefined> {
   const source = beautify(minified);
@@ -30,7 +32,10 @@ export async function prettyPrintAsSourceMap(fileName: string, minified: string)
       generated: { line: to[i], column: to[i + 1] }
     });
   }
-  return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), randomBytes(8));
+  return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), {
+    hash: randomBytes(8),
+    sourceMapUrl: '',
+  });
 }
 
 function generatePositions(text: string) {
@@ -192,15 +197,62 @@ export function wrapObjectLiteral(code: string): string {
   }
 }
 
-export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
-  let content = await urlUtils.fetch(options.sourceMapUrl);
-  const hash = createHash('md5').update(content).digest();
-  if (content.slice(0, 3) === ')]}') content = content.substring(content.indexOf('\n'));
+const sourceMapHash = 'md5';
 
-  return new SourceMap(
-    await new sourceMap.SourceMapConsumer(content),
-    { hash, ...options },
-  );
+/**
+ * Returns the hash of a sourceMap read from a file.
+ */
+export async function getSourceMapFileHash(filename: string) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const hash = createHash(sourceMapHash);
+    const stream = createReadStream(filename);
+    stream.on('error', reject);
+    stream.on('data', chunk => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest()));
+  });
+}
+
+/**
+ * Returns the hash of a soureMap from its string contents.
+ */
+export function getSourceMapStringHash(contents: string | Buffer) {
+  return createHash('md5').update(contents).digest();
+}
+
+/**
+ * Returns the hash of a soureMap from its url.
+ */
+export async function getSourceMapUrlHash(sourceMapUrl: string): Promise<Buffer | undefined> {
+  try {
+    return getSourceMapStringHash(await urlUtils.fetch(sourceMapUrl));
+  } catch (err) {
+    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
+    return;
+  }
+}
+
+export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
+  let content: string;
+  try {
+    content = await urlUtils.fetch(options.sourceMapUrl);
+  } catch (err) {
+    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
+    return;
+  }
+
+  const hash = getSourceMapStringHash(content);
+  if (content.slice(0, 3) === ')]}') {
+    content = content.substring(content.indexOf('\n'));
+  }
+
+  try {
+    return new SourceMap(
+      await new sourceMap.SourceMapConsumer(content),
+      { hash, ...options },
+    );
+  } catch (err) {
+    logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);
+  }
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

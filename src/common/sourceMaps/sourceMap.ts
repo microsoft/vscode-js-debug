@@ -15,7 +15,7 @@ import {
 export interface ISourceMapMetadata {
   hash: Buffer;
   sourceMapUrl: string;
-  compiledPath: string;
+  compiledPath?: string;
 }
 
 /**

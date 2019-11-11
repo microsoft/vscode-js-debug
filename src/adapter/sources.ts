@@ -9,7 +9,6 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
-import * as errors from '../dap/errors';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -104,7 +103,7 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
+  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, pathPrefix?: string) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
     this._contentGetter = contentGetter;
@@ -113,7 +112,16 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(url) || '';
+
+    let absolutePathUrl = url;
+    if (pathPrefix) {
+      try {
+        let swappedUrl = new URL(url);
+        swappedUrl.pathname = `${pathPrefix}/${swappedUrl.pathname}`;
+        absolutePathUrl = swappedUrl.href;
+      } catch (e) {}
+    }
+    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(absolutePathUrl) || '';
 
     if (container.scriptSkipper) {
       container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
@@ -234,8 +242,6 @@ export class Source {
 
 export class SourceContainer {
   private _dap: Dap.Api;
-  _brokenSourceMapReported = false;
-
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
   private _sourceByAbsolutePath: Map<string, Source> = new Map();
@@ -425,13 +431,11 @@ export class SourceContainer {
     sourceMap = { compiled: new Set([source]), loaded: promise };
     this._sourceMaps.set(sourceMapUrl, sourceMap);
 
-    try {
-      sourceMap.map = await sourceUtils.loadSourceMap(sourceMapUrl, this._sourceMapTimeouts.load);
-    } catch (e) {
-      if (!this._brokenSourceMapReported) {
-        errors.reportToConsole(this._dap, `Could not load source map from ${sourceMapUrl}: ${e}`);
-        this._brokenSourceMapReported = true;
-      }
+    // will log any errors internally:
+    const loaded = await sourceUtils.loadSourceMap({ sourceMapUrl });
+    if (loaded) {
+      sourceMap.map = loaded;
+    } else {
       return callback!();
     }
 
@@ -475,6 +479,10 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
 
     const todo: Promise<void>[] = [];
+    const pathPrefix = !this.localSourceMaps.findByHash(map.metadata.hash)
+      ? map.metadata.hash.toString('hex')
+      : undefined;
+
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
       // webpack emits absolute paths in some situations instead of a relative url. We check
@@ -495,6 +503,7 @@ export class SourceContainer {
           undefined,
           undefined,
           undefined,
+          pathPrefix,
         );
         source._compiledToSourceUrl = new Map();
       }
@@ -520,7 +529,7 @@ export class SourceContainer {
   }
 
   // Waits for source map to be loaded (if any), and sources to be created from it.
-  async waitForSourceMapSources(source: Source): Promise<Source[]> {
+  public async waitForSourceMapSources(source: Source): Promise<Source[]> {
     if (!source._sourceMapUrl)
       return [];
     const sourceMap = this._sourceMaps.get(source._sourceMapUrl)!;

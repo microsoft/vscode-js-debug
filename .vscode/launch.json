@@ -17,7 +17,7 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server",
-      "program": "${workspaceFolder}/out/out/debugServerMain.js",
+      "program": "${workspaceFolder}/out/src/debugServerMain.js",
       "args": ["4711"],
       // "preLaunchTask": "npm: watch"
     },
@@ -25,7 +25,7 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server (Flat Session)",
-      "program": "${workspaceFolder}/out/out/flatSessionLauncher.js",
+      "program": "${workspaceFolder}/out/src/flatSessionLauncher.js",
       "args": ["4712"],
       // "preLaunchTask": "npm: watch"
     },
@@ -74,9 +74,9 @@
       "skipFiles": ["<node_internals>/**"],
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
 			],
-			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],
 			// "preLaunchTask": "npm: watch"
     },
     {
@@ -84,10 +84,10 @@
       "request": "launch",
       "name": "Run int tests",
       "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "args": ["--timeout", "10000", "-u", "tdd", "--colors", "--reporter", "out/out/int-chrome/testSupport/loggingReporter.js", "./out/out/int-chrome/**/*.test.js",
+      "args": ["--timeout", "10000", "-u", "tdd", "--colors", "--reporter", "out/src/int-chrome/testSupport/loggingReporter.js", "./out/src/int-chrome/**/*.test.js",
         // "--grep", "Variables scopes"
       ],
-      "outFiles": ["${workspaceFolder}/out/out/**/*.js"],
+      "outFiles": ["${workspaceFolder}/out/src/**/*.js"],
       "skipFiles": ["<node_internals>/**"],
       "env": {
         "DISPLAY": ":1.0"
@@ -100,12 +100,12 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/out/test/testRunner"
+				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
       ],
       "env": {
         "RESET_RESULTS": "true"
       },
-			"outFiles": ["${workspaceFolder}/out/out/test/**/*.js"],
+			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],
 			// "preLaunchTask": "npm: watch"
     },
     {

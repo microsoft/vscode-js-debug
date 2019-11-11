@@ -9,7 +9,7 @@ import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
 import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
-import { SourceMap, ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -83,10 +83,7 @@ export class BreakpointsPredictor {
   }
 }
 
-type MetadataMap = Map<
-string,
-Set<ISourceMapMetadata & { sourceUrl: string }>
->;
+type MetadataMap = Map<string, Set<ISourceMapMetadata & { sourceUrl: string }>>;
 
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
@@ -103,10 +100,16 @@ class DirectoryScanner {
 
   private async _createInitialMapping(absolutePath: string) {
     const sourcePathToCompiled: MetadataMap = new Map();
-    for (const [, map] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
-      const baseUrl = map.metadata.sourceMapUrl.startsWith('data:')
-        ? sourceUtils.parseSourceMappingUrl(await fsUtils.readfile(map.metadata.compiledPath))
-        : map.metadata.sourceMapUrl;
+    for (const [, metadata] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
+      const baseUrl = metadata.sourceMapUrl.startsWith('data:')
+        ? sourceUtils.parseSourceMappingUrl(await fsUtils.readfile(metadata.compiledPath!))
+        : metadata.sourceMapUrl;
+
+      const map = await sourceUtils.loadSourceMap(metadata);
+      if (!map) {
+        continue;
+      }
+
       for (const url of map.sources) {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
@@ -122,7 +125,7 @@ class DirectoryScanner {
           set = new Set();
           sourcePathToCompiled.set(resolvedPath, set);
         }
-        set.add({...map.metadata, sourceUrl: url });
+        set.add({ ...metadata, sourceUrl: url });
       }
     }
 
@@ -136,37 +139,43 @@ class DirectoryScanner {
 
     if (!set) return;
     for (const metadata of set) {
-      try {
-        const map = await sourceUtils.loadSourceMap(metadata);
-        if (!map)
-          continue;
+      if (!metadata.compiledPath) {
+        return;
+      }
 
-        for (const b of params.breakpoints || []) {
-          const entry = map.generatedPositionFor({
-            source: metadata.sourceUrl,
-            line: b.line,
-            column: b.column || 1,
-          });
-          if (entry.line === null) continue;
-          const { lineNumber, columnNumber } = uiToRawOffset(
-            { lineNumber: entry.line || 1, columnNumber: entry.column || 1 },
-            kNodeScriptOffset,
-          );
-          const predicted: PredictedLocation = {
-            source: {
-              absolutePath,
-              lineNumber: b.line,
-              columnNumber: b.column || 1,
-            },
-            compiled: {
-              absolutePath: metadata.compiledPath,
-              lineNumber,
-              columnNumber,
-            },
-          };
-          this._predictor._predictedLocations.push(predicted);
+      const map = await sourceUtils.loadSourceMap(metadata);
+      if (!map) {
+        continue;
+      }
+
+      for (const b of params.breakpoints || []) {
+        const entry = map.generatedPositionFor({
+          source: metadata.sourceUrl,
+          line: b.line,
+          column: b.column || 1,
+        });
+        if (entry.line === null) {
+          continue;
         }
-      } catch (e) {}
+
+        const { lineNumber, columnNumber } = uiToRawOffset(
+          { lineNumber: entry.line || 1, columnNumber: entry.column || 1 },
+          kNodeScriptOffset,
+        );
+        const predicted: PredictedLocation = {
+          source: {
+            absolutePath,
+            lineNumber: b.line,
+            columnNumber: b.column || 1,
+          },
+          compiled: {
+            absolutePath: metadata.compiledPath,
+            lineNumber,
+            columnNumber,
+          },
+        };
+        this._predictor._predictedLocations.push(predicted);
+      }
     }
   }
 }

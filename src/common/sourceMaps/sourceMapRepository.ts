@@ -2,21 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourceMap } from './sourceMap';
+import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
 import { getCaseSensitivePaths, absolutePathToFileUrl, completeUrl } from '../urlUtils';
-import { logger } from '../logging/logger';
-import { parseSourceMappingUrl, loadSourceMap } from '../sourceUtils';
-import { LogTag } from '../logging';
-import { IDisposable } from '../disposable';
+import { parseSourceMappingUrl, getSourceMapUrlHash } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
 
-class Directory implements IDisposable {
+class Directory {
   private readonly subdirectories: { [basename: string]: Directory } = {};
-  private sourceMaps?: Promise<{ [basename: string]: SourceMap }>;
+  private sourceMaps?: Promise<{ [basename: string]: ISourceMapMetadata }>;
 
-  constructor(private readonly path: string) {}
+  constructor(
+    private readonly path: string,
+    private readonly byHash: Map<string, ISourceMapMetadata>,
+  ) {}
 
   /**
    * Returns a Directory for the given path.
@@ -43,25 +43,10 @@ class Directory implements IDisposable {
   /**
    * Returns all the sourcemaps in this directory or child directories.
    */
-  public async allChildren(): Promise<{ [absolutePath: string]: SourceMap }> {
+  public async allChildren(): Promise<{ [absolutePath: string]: ISourceMapMetadata }> {
     const directChildren = await this.directChildren();
     const nested = await Promise.all(Object.values(this.subdirectories).map(s => s.allChildren()));
     return Object.assign({}, directChildren, ...nested);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async dispose() {
-    for (const directory of Object.values(this.subdirectories)) {
-      directory.dispose();
-    }
-
-    if (this.sourceMaps) {
-      for (const sourceMap of Object.values(await this.sourceMaps)) {
-        sourceMap.destroy();
-      }
-    }
   }
 
   private lookupInternal(parts: ReadonlyArray<string>, offset: number): Directory {
@@ -71,9 +56,10 @@ class Directory implements IDisposable {
 
     const segment = parts[offset];
     let subdir = this.subdirectories[segment];
-    if (subdir) {
+    if (!subdir) {
       subdir = this.subdirectories[segment] = new Directory(
         parts.slice(0, offset + 1).join(path.sep),
+        this.byHash,
       );
     }
 
@@ -81,16 +67,25 @@ class Directory implements IDisposable {
   }
 
   private async readChildren() {
-    const result: { [basename: string]: SourceMap } = {};
-    Promise.all(
-      (await fsUtils.readdir(this.path))
-        .filter(e => e !== 'node_modules' && e !== '.')
-        .map(async e => {
+    const result: { [basename: string]: ISourceMapMetadata } = {};
+
+    let basenames: string[];
+    try {
+      basenames = await fsUtils.readdir(this.path);
+    } catch (e) {
+      return result;
+    }
+
+    await Promise.all(
+      basenames
+        .filter(bn => bn !== 'node_modules' && bn !== '.')
+        .sort()
+        .map(async bn => {
           if (!getCaseSensitivePaths()) {
-            e = e.toLowerCase();
+            bn = bn.toLowerCase();
           }
 
-          const absolutePath = path.join(this.path, e);
+          const absolutePath = path.join(this.path, bn);
           const stat = await fsUtils.stat(absolutePath);
           if (!stat) {
             return;
@@ -99,13 +94,15 @@ class Directory implements IDisposable {
           if (stat.isFile()) {
             const map = await this.readMapInFile(absolutePath);
             if (map) {
-              result[e] = map;
+              result[bn] = map;
+              this.byHash.set(map.hash.toString('hex'), map);
             }
             return;
           }
 
           if (stat.isDirectory()) {
-            this.subdirectories[e] = this.subdirectories[e] || new Directory(absolutePath);
+            this.subdirectories[bn] =
+              this.subdirectories[bn] || new Directory(absolutePath, this.byHash);
             return;
           }
         }),
@@ -114,7 +111,7 @@ class Directory implements IDisposable {
     return result;
   }
 
-  private async readMapInFile(absolutePath: string): Promise<SourceMap | undefined> {
+  private async readMapInFile(absolutePath: string): Promise<ISourceMapMetadata | undefined> {
     if (path.extname(absolutePath) !== '.js') {
       return;
     }
@@ -131,30 +128,47 @@ class Directory implements IDisposable {
     if (!sourceMapUrl.startsWith('data:') && !sourceMapUrl.startsWith('file://')) {
       return;
     }
-    try {
-      return await loadSourceMap({
-        compiledPath: absolutePath,
-        sourceMapUrl: sourceMapUrl,
-      });
-    } catch (err) {
-      logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', { sourceMapUrl, err });
+
+    const hash = await getSourceMapUrlHash(sourceMapUrl);
+    if (!hash) {
+      return;
     }
+
+    return {
+      compiledPath: absolutePath,
+      sourceMapUrl: sourceMapUrl,
+      hash,
+    };
   }
 }
 
 /**
  * Manages the collection of sourcemaps on the disk.
  */
-export class LocalSourceMapRepository implements IDisposable {
+export class LocalSourceMapRepository {
+  /**
+   * Map of hex-encoded hashes to source map data.
+   */
+  private readonly byHash = new Map<string, ISourceMapMetadata>();
+
   /**
    * A mapping of absolute paths on disk to sourcemaps contained in those paths.
    */
-  private readonly tree: Directory = new Directory('');
+  private readonly tree: Directory = new Directory('', this.byHash);
+
+  /**
+   * Returns if the repository knows about any sourceMap with the given hash.
+   */
+  public findByHash(hash: Buffer) {
+    return this.byHash.get(hash.toString('hex'));
+  }
 
   /**
    * Returns the sourcemaps in the directory, given as an absolute path..
    */
-  public async findDirectChildren(absolutePath: string): Promise<{ [path: string]: SourceMap }> {
+  public async findDirectChildren(
+    absolutePath: string,
+  ): Promise<{ [path: string]: ISourceMapMetadata }> {
     const dir = this.tree.lookup(absolutePath);
     return dir.directChildren();
   }
@@ -162,12 +176,8 @@ export class LocalSourceMapRepository implements IDisposable {
   /**
    * Recursively finds all children of the given direcotry.
    */
-  public findAllChildren(absolutePath: string): Promise<{ [key: string]: SourceMap }> {
+  public findAllChildren(absolutePath: string): Promise<{ [key: string]: ISourceMapMetadata }> {
     const dir = this.tree.lookup(absolutePath);
     return dir.allChildren();
-  }
-
-  public async dispose() {
-    await this.tree.dispose();
   }
 }
