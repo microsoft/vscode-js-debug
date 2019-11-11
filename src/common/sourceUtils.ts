@@ -8,13 +8,10 @@ import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
 import { delay } from './promiseUtil';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
+import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 
-export type SourceMapConsumer =
-  & (sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer)
-  & { hash: string };
-
-export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
+export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMap | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
   const to = generatePositions(minified);
@@ -33,9 +30,7 @@ export async function prettyPrintAsSourceMap(fileName: string, minified: string)
       generated: { line: to[i], column: to[i + 1] }
     });
   }
-  const result = await sourceMap.SourceMapConsumer.fromSourceMap(generator) as SourceMapConsumer;
-  result.hash = '';
-  return result;
+  return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), randomBytes(8));
 }
 
 function generatePositions(text: string) {
@@ -197,17 +192,15 @@ export function wrapObjectLiteral(code: string): string {
   }
 }
 
-export async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
-  if (slowDown)
-    await delay(slowDown);
-  let content = await urlUtils.fetch(url);
-  const hash = createHash('md5').update(content).digest('hex');
-  if (content.slice(0, 3) === ')]}')
-    content = content.substring(content.indexOf('\n'));
+export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
+  let content = await urlUtils.fetch(options.sourceMapUrl);
+  const hash = createHash('md5').update(content).digest();
+  if (content.slice(0, 3) === ')]}') content = content.substring(content.indexOf('\n'));
 
-  const result = await new sourceMap.SourceMapConsumer(content) as SourceMapConsumer;
-  result.hash = hash;
-  return result;
+  return new SourceMap(
+    await new sourceMap.SourceMapConsumer(content),
+    { hash, ...options },
+  );
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

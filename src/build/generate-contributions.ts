@@ -16,7 +16,13 @@ import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
-type OmittedKeysFromAttributes = 'type' | 'request' | 'internalConsoleOptions' | 'name';
+type OmittedKeysFromAttributes =
+  | 'type'
+  | 'request'
+  | 'internalConsoleOptions'
+  | 'name'
+  | 'rootPath';
+
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
     Described & {

@@ -12,6 +12,8 @@ import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay } from '../common/promiseUtil';
+import { SourceMap } from '../common/sourceMaps/sourceMap';
+import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 
 const localize = nls.loadMessageBundle();
 
@@ -25,7 +27,7 @@ export interface UiLocation {
 type ContentGetter = () => Promise<string | undefined>;
 
 // Each source map has a number of compiled sources referncing it.
-type SourceMapData = { compiled: Set<Source>, map?: sourceUtils.SourceMapConsumer, loaded: Promise<void> };
+type SourceMapData = { compiled: Set<Source>, map?: SourceMap, loaded: Promise<void> };
 
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
@@ -245,15 +247,16 @@ export class SourceContainer {
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
 
-  readonly rootPath: string | undefined;
-  readonly sourcePathResolver: ISourcePathResolver;
+  public readonly localSourceMaps = new LocalSourceMapRepository();
   private _disabledSourceMaps = new Set<Source>();
   private _scriptSkipper? : ScriptSkipper;
 
-  constructor(dap: Dap.Api, rootPath: string | undefined, sourcePathResolver: ISourcePathResolver) {
+  constructor(
+    dap: Dap.Api,
+    public readonly rootPath: string | undefined,
+    public readonly sourcePathResolver: ISourcePathResolver,
+  ) {
     this._dap = dap;
-    this.rootPath = rootPath;
-    this.sourcePathResolver = sourcePathResolver;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -343,7 +346,7 @@ export class SourceContainer {
     result.push(sourceMapUiLocation);
   }
 
-  _sourceMappedUiLocation(uiLocation: UiLocation, map: sourceUtils.SourceMapConsumer): UiLocation | undefined {
+  _sourceMappedUiLocation(uiLocation: UiLocation, map: SourceMap): UiLocation | undefined {
     const compiled = uiLocation.source;
     if (this._disabledSourceMaps.has(compiled))
       return;
@@ -468,7 +471,7 @@ export class SourceContainer {
       this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  async _addSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer, sourceMapUrl: string) {
+  async _addSourceMapSources(compiled: Source, map: SourceMap, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
 
     const todo: Promise<void>[] = [];
@@ -504,7 +507,7 @@ export class SourceContainer {
     await Promise.all(todo);
   }
 
-  _removeSourceMapSources(compiled: Source, map: sourceUtils.SourceMapConsumer) {
+  _removeSourceMapSources(compiled: Source, map: SourceMap) {
     for (const url of map.sources) {
       const source = compiled._sourceMapSourceByUrl!.get(url)!;
       compiled._sourceMapSourceByUrl!.delete(url);

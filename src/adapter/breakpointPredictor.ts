@@ -8,6 +8,8 @@ import * as sourceUtils from '../common/sourceUtils';
 import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
+import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { SourceMap, ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -30,7 +32,11 @@ export class BreakpointsPredictor {
   _predictedLocations: PredictedLocation[] = [];
   _sourcePathResolver?: ISourcePathResolver;
 
-  constructor(rootPath: string, sourcePathResolver: ISourcePathResolver | undefined) {
+  constructor(
+    rootPath: string,
+    private readonly repo: LocalSourceMapRepository,
+    sourcePathResolver: ISourcePathResolver | undefined,
+  ) {
     this._rootPath = rootPath;
     this._sourcePathResolver = sourcePathResolver;
 
@@ -53,7 +59,7 @@ export class BreakpointsPredictor {
     await this._directoryScanner(root).predictResolvedLocations(params);
   }
 
-  predictedResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
+  public predictedResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
     const result: WorkspaceLocation[] = [];
     for (const p of this._predictedLocations) {
       if (
@@ -70,87 +76,74 @@ export class BreakpointsPredictor {
   private _directoryScanner(root: string): DirectoryScanner {
     let result = this._directoryScanners.get(root);
     if (!result) {
-      result = new DirectoryScanner(this, root);
+      result = new DirectoryScanner(this, this.repo, root);
       this._directoryScanners.set(root, result);
     }
     return result;
   }
 }
 
+type MetadataMap = Map<
+string,
+Set<ISourceMapMetadata & { sourceUrl: string }>
+>;
+
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
-  private _done: Promise<void>;
-  private _sourceMapUrls = new Map<string, string>();
-  private _sourcePathToCompiled = new Map<
-    string,
-    Set<{ compiledPath: string; sourceUrl: string }>
-  >();
+  private _sourcePathToCompiled: Promise<MetadataMap>;
 
-  constructor(predictor: BreakpointsPredictor, root: string) {
+  constructor(
+    predictor: BreakpointsPredictor,
+    private readonly repo: LocalSourceMapRepository,
+    root: string,
+  ) {
     this._predictor = predictor;
-    this._done = this._scan(root);
+    this._sourcePathToCompiled = this._createInitialMapping(root);
   }
 
-  async _scan(dirOrFile: string): Promise<void> {
-    const stat = await fsUtils.stat(dirOrFile);
-    if (stat && stat.isFile()) {
-      await this._handleFile(dirOrFile);
-    } else if (stat && stat.isDirectory()) {
-      const entries = await fsUtils.readdir(dirOrFile);
-      const filtered = entries.filter(entry => entry !== 'node_modules' && entry[0] !== '.');
-      await Promise.all(filtered.map(entry => this._scan(path.join(dirOrFile, entry))));
-    }
-  }
-
-  async _handleFile(absolutePath: string): Promise<void> {
-    if (path.extname(absolutePath) !== '.js') return;
-    const content = await fsUtils.readfile(absolutePath);
-    let sourceMapUrl = sourceUtils.parseSourceMappingUrl(content);
-    if (!sourceMapUrl) return;
-    const fileUrl = urlUtils.absolutePathToFileUrl(absolutePath);
-    sourceMapUrl = urlUtils.completeUrl(fileUrl, sourceMapUrl);
-    if (!sourceMapUrl) return;
-    if (!sourceMapUrl.startsWith('data:') && !sourceMapUrl.startsWith('file://')) return;
-    try {
-      const map = await sourceUtils.loadSourceMap(sourceMapUrl, 0);
-      if (!map) return;
-      this._sourceMapUrls.set(absolutePath, sourceMapUrl);
+  private async _createInitialMapping(absolutePath: string) {
+    const sourcePathToCompiled: MetadataMap = new Map();
+    for (const [, map] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
+      const baseUrl = map.metadata.sourceMapUrl.startsWith('data:')
+        ? sourceUtils.parseSourceMappingUrl(await fsUtils.readfile(map.metadata.compiledPath))
+        : map.metadata.sourceMapUrl;
       for (const url of map.sources) {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
-        const baseUrl = sourceMapUrl.startsWith('data:') ? fileUrl : sourceMapUrl;
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = this._predictor._sourcePathResolver
           ? this._predictor._sourcePathResolver.urlToAbsolutePath(resolvedUrl)
           : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
-        if (resolvedPath) this._addMapping(absolutePath, resolvedPath, url);
+        if (!resolvedPath) {
+          continue;
+        }
+
+        let set = sourcePathToCompiled.get(resolvedPath);
+        if (!set) {
+          set = new Set();
+          sourcePathToCompiled.set(resolvedPath, set);
+        }
+        set.add({...map.metadata, sourceUrl: url });
       }
-      map.destroy();
-    } catch (e) {}
-  }
-
-  _addMapping(compiledPath: string, sourcePath: string, sourceUrl: string) {
-    let set = this._sourcePathToCompiled.get(sourcePath);
-    if (!set) {
-      set = new Set();
-      this._sourcePathToCompiled.set(sourcePath, set);
     }
-    set.add({ compiledPath, sourceUrl });
+
+    return sourcePathToCompiled;
   }
 
-  async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
-    await this._done;
+  public async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
+    const sourcePathToCompiled = await this._sourcePathToCompiled;
     const absolutePath = params.source.path!;
-    const set = this._sourcePathToCompiled.get(absolutePath);
+    const set = sourcePathToCompiled.get(absolutePath);
+
     if (!set) return;
-    for (const { compiledPath, sourceUrl } of set) {
-      const sourceMapUrl = this._sourceMapUrls.get(compiledPath);
-      if (!sourceMapUrl) continue;
+    for (const metadata of set) {
       try {
-        const map = await sourceUtils.loadSourceMap(sourceMapUrl, 0);
-        if (!map) continue;
+        const map = await sourceUtils.loadSourceMap(metadata);
+        if (!map)
+          continue;
+
         for (const b of params.breakpoints || []) {
           const entry = map.generatedPositionFor({
-            source: sourceUrl,
+            source: metadata.sourceUrl,
             line: b.line,
             column: b.column || 1,
           });
@@ -166,14 +159,13 @@ class DirectoryScanner {
               columnNumber: b.column || 1,
             },
             compiled: {
-              absolutePath: compiledPath,
+              absolutePath: metadata.compiledPath,
               lineNumber,
               columnNumber,
             },
           };
           this._predictor._predictedLocations.push(predicted);
         }
-        map.destroy();
       } catch (e) {}
     }
   }

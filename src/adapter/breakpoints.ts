@@ -272,7 +272,11 @@ export class BreakpointManager {
       };
     };
     if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
+      this._breakpointsPredictor = new BreakpointsPredictor(
+        sourceContainer.rootPath,
+        sourceContainer.localSourceMaps,
+        sourceContainer.sourcePathResolver,
+      );
   }
 
   setThread(thread: Thread) {
