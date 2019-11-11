@@ -42,6 +42,41 @@ export function mapValues<T, R>(
 }
 
 /**
+ * Sorts the object keys using the given sorting function.
+ */
+export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number): T {
+  if (!obj || typeof obj !== 'object' || obj instanceof Array) {
+    return obj;
+  }
+
+  const next: Partial<T> = {};
+  for (const key of (Object.keys(obj) as (keyof T)[]).sort(sortFn)) {
+    next[key] = obj[key];
+  }
+
+  return next as T;
+}
+
+/**
+ * Recurively walks over the simple object.
+ */
+export function walkObject(obj: any, visitor: (value: unknown) => any): any {
+  obj = visitor(obj);
+
+  if (obj) {
+    if (obj instanceof Array) {
+      obj = obj.map(v => walkObject(v, visitor));
+    } else if (typeof obj === 'object' && obj) {
+      for (const key of Object.keys(obj)) {
+        obj[key] = walkObject(obj[key], visitor);
+      }
+    }
+  }
+
+  return obj;
+}
+
+/**
  * Performs a case-insenstive merge of the list of objects.
  */
 export function caseInsensitiveMerge<V>(

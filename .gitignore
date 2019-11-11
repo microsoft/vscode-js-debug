@@ -6,7 +6,7 @@
 .DS_Store
 node_modules/
 out/
-/*.vsix
+dist
 /coverage
 /.nyc_output
 demos/web-worker/vscode-pwa-dap.log

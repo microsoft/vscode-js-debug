@@ -11,7 +11,7 @@ describe('browser launch', () => {
   itIntegrates('environment variables', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html', {
       env: {
-        TZ: 'America/New_York'
+        TZ: 'GMT'
       }
     });
 

@@ -12,6 +12,10 @@ import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
+import { AnyChromeConfiguration } from '../../configuration';
+import { logger } from '../../common/logging/logger';
+import { LogTag } from '../../common/logging';
+import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -30,20 +34,40 @@ export class BrowserTargetManager implements Disposable {
   readonly onTargetAdded = this._onTargetAddedEmitter.event;
   readonly onTargetRemoved = this._onTargetRemovedEmitter.event;
 
-  static async connect(connection: CdpConnection, sourcePathResolver: ISourcePathResolver, targetOrigin: any): Promise<BrowserTargetManager | undefined> {
+  static async connect(
+    connection: CdpConnection,
+    sourcePathResolver: ISourcePathResolver,
+    launchParams: AnyChromeConfiguration,
+    telemetry: RawTelemetryReporter,
+    targetOrigin: any,
+  ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
     if (!result)
       return;
     const browserSession = connection.createSession(result.sessionId);
-    return new BrowserTargetManager(connection, browserSession, sourcePathResolver, targetOrigin);
+    return new BrowserTargetManager(
+      connection,
+      browserSession,
+      sourcePathResolver,
+      telemetry,
+      launchParams,
+      targetOrigin,
+    );
   }
 
   setSkipFiles(scriptSkipper: ScriptSkipper) {
     this._scriptSkipper = scriptSkipper;
   }
 
-  constructor(connection: CdpConnection, browserSession: Cdp.Api, sourcePathResolver: ISourcePathResolver, targetOrigin: any) {
+  constructor(
+    connection: CdpConnection,
+    browserSession: Cdp.Api,
+    sourcePathResolver: ISourcePathResolver,
+    private readonly telemetry: RawTelemetryReporter,
+    private readonly launchParams: AnyChromeConfiguration,
+    targetOrigin: any,
+  ) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
@@ -71,26 +95,35 @@ export class BrowserTargetManager implements Disposable {
     await this._browser.Browser.close({});
   }
 
-  waitForMainTarget(): Promise<BrowserTarget | undefined> {
+  waitForMainTarget(filter?: (target: Cdp.Target.TargetInfo) => boolean): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     const promise = new Promise<BrowserTarget | undefined>(f => callback = f);
-    this._browser.Target.setDiscoverTargets({ discover: true });
-    this._browser.Target.on('targetCreated', async event => {
-      if (this._targets.size)
+    const attemptAttach = async ({ targetInfo }: {targetInfo: Cdp.Target.TargetInfo}) => {
+      if (this._targets.size) {
         return;
-      const targetInfo = event.targetInfo;
-      if (targetInfo.type !== 'page')
+      }
+      if (targetInfo.type !== 'page') {
         return;
+      }
+      if (filter && !filter(targetInfo)) {
+        return;
+      }
+
       const response = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
       if (!response) {
         callback(undefined);
         return;
       }
       callback(this._attachedToTarget(targetInfo, response.sessionId, true));
-    });
+    };
+
+    this._browser.Target.setDiscoverTargets({ discover: true });
+    this._browser.Target.on('targetCreated', attemptAttach); // new page
+    this._browser.Target.on('targetInfoChanged', attemptAttach); // nav on existing page
     this._browser.Target.on('detachedFromTarget', event => {
       this._detachedFromTarget(event.targetId!);
     });
+
     return promise;
   }
 
@@ -111,6 +144,14 @@ export class BrowserTargetManager implements Disposable {
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
+    cdp.Network.setCacheDisabled({ cacheDisabled: this.launchParams.disableNetworkCache })
+      .catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
+
+    // For the 'top-level' page, gather telemetry.
+    if (!parentTarget) {
+      this.retrieveBrowserTelemetry(cdp);
+    }
+
     if (domDebuggerTypes.has(targetInfo.type))
       this.frameModel.attached(cdp, targetInfo.targetId);
     this.serviceWorkerModel.attached(cdp);
@@ -122,6 +163,59 @@ export class BrowserTargetManager implements Disposable {
       cdp.Runtime.runIfWaitingForDebugger({});
 
     return target;
+  }
+
+  private async retrieveBrowserTelemetry(cdp: Cdp.Api) {
+    try {
+      const info = await cdp.Browser.getVersion({});
+      if (!info) {
+        throw new Error('Undefined return from getVersion()');
+      }
+
+      const properties = {
+        'Versions.Target.CRDPVersion': info.protocolVersion,
+        'Versions.Target.Revision': info.revision,
+        'Versions.Target.UserAgent': info.userAgent,
+        'Versions.Target.V8': info.jsVersion,
+        'Versions.Target.Version': '',
+        'Versions.Target.Project': '',
+        'Versions.Target.Product': '',
+      };
+
+      logger.verbose(LogTag.RuntimeTarget, 'Retrieved browser information', info);
+
+      const parts = (info.product || '').split('/');
+      if (parts.length === 2) { // Currently response.product looks like "Chrome/65.0.3325.162" so we split the project and the actual version number
+        properties['Versions.Target.Project'] =  parts[0];
+        properties['Versions.Target.Version'] =  parts[1];
+      } else { // If for any reason that changes, we submit the entire product as-is
+        properties['Versions.Target.Product'] = info.product;
+      }
+
+      /* __GDPR__FRAGMENT__
+        "VersionInformation" : {
+          "Versions.Target.CRDPVersion" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.Revision" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.UserAgent" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.V8" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.V<NUMBER>" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.Project" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.Version" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.Product" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "Versions.Target.NoUserAgentReason" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
+          "${include}": [ "${IExecutionResultTelemetryProperties}" ]
+        }
+      */
+      /* __GDPR__
+        "target-version" : {
+          "${include}": [ "${DebugCommonProperties}" ]
+        }
+      */
+
+      this.telemetry.report('target-version', properties);
+    } catch (e) {
+      logger.warn(LogTag.RuntimeTarget, 'Error getting browser telemetry', e);
+    }
   }
 
   async _detachedFromTarget(targetId: string) {
@@ -219,10 +313,6 @@ export class BrowserTarget implements Target {
 
   initialize() {
     return Promise.resolve();
-  }
-
-  onPaused() {
-    return Promise.resolve(false);
   }
 
   parent(): Target | undefined {

@@ -17,6 +17,7 @@ import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { delay } from '../../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -46,7 +47,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -85,7 +86,7 @@ export class BrowserLauncher implements Launcher {
         env: EnvironmentVars.merge(process.env, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
-        pipe: true,
+        connection: port || 'pipe',
       });
   }
 
@@ -110,7 +111,7 @@ export class BrowserLauncher implements Launcher {
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
     });
-    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
+    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, this._launchParams, rawTelemetryReporter, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
 
@@ -131,7 +132,11 @@ export class BrowserLauncher implements Launcher {
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    this._mainTarget = await this._targetManager.waitForMainTarget();
+    this._mainTarget = await Promise.race([
+      this._targetManager.waitForMainTarget(),
+      delay(params.timeout).then(() => undefined),
+    ]);
+
     if (!this._mainTarget)
       return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {

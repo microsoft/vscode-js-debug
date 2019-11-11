@@ -1,5 +1,7 @@
 import { spawnSync, execSync } from 'child_process';
 import { join } from 'path';
+import { logger } from '../../common/logging/logger';
+import { LogTag } from '../../common/logging';
 
 /**
  * Kills the tree of processes starting at the given parent ID.
@@ -14,7 +16,7 @@ export function killTree(processId: number): void {
     try {
       execSync(`${TASK_KILL} /F /T /PID ${processId}`);
     } catch (err) {
-      // ignored
+      logger.error(LogTag.RuntimeException, 'Error running taskkill.exe', err);
     }
   } else {
     // on linux and OS X we kill all direct and indirect child processes as well
@@ -22,8 +24,7 @@ export function killTree(processId: number): void {
       const cmd = join(__dirname, './terminateProcess.sh');
       spawnSync(cmd, [processId.toString()]);
     } catch (err) {
-      console.log(err);
-      // ignored
+      logger.error(LogTag.RuntimeException, 'Error running terminateProcess', err);
     }
   }
 }

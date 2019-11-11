@@ -28,7 +28,7 @@ import { NodeAttacher } from './targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 
-const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'pwa-debugger-'));
+const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
 class ChildSession {
   private _nameChangedSubscription: Disposable;
