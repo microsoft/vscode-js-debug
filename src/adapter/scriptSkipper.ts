@@ -62,6 +62,10 @@ export class ScriptSkipper {
     }
   }
 
+  private _isNodeInternal(url: string): boolean {
+    return (this._allNodeInternals && this._allNodeInternals.includes(url)) || this._testRegex('^internal/.+\.js|', url);
+  }
+
   public setBlackboxSender(debuggerAPI: cdp.DebuggerApi) {
     this.blackboxSender = debuggerAPI.setBlackboxPatterns.bind(debuggerAPI);
   }
@@ -72,21 +76,13 @@ export class ScriptSkipper {
         this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, localpath));
       }
       else {
-        if (this._allNodeInternals) { // only for Node targets
-          if (this._allNodeInternals.includes(url)) {
-            this._isUrlSkippedMap.set(url, this._testRegex(this._nodeInternalsRegex, url));
-          }
-          else {
-            this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, url));
-          }
+        if (this._isNodeInternal(url)) {
+          this._isUrlSkippedMap.set(url, this._testRegex(this._nodeInternalsRegex, url));
         }
         else {
-          // TODO@Shennie combined regex test?
-
+          this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, url));
         }
-
       }
-
       this._updateBlackboxedUrls(url);
     }
   }
@@ -97,7 +93,6 @@ export class ScriptSkipper {
 
   public setAllNodeInternals(nodeInternalsNames: string[]): void {
     this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
-    this._allNodeInternals.push('^internal/.+\.js|');
   }
 
 }

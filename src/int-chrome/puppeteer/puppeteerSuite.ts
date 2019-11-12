@@ -3,7 +3,6 @@
 
 import * as puppeteer from 'puppeteer';
 import { loadProjectLabels } from '../labels';
-import { ISuiteCallbackContext, ISuite } from 'mocha';
 import { setTestLogName } from '../utils/logging';
 import {
   FrameworkTestContext,

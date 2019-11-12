@@ -20,8 +20,15 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return '';
     }
 
-    const withBase = path.resolve(this.options.basePath, this.applyPathOverrides(url));
-    return this.rebaseRemoteToLocal(withBase);
+    const modified = this.applyPathOverrides(url);
+
+    if (modified !== url) {
+      const withBase = path.resolve(this.options.basePath, modified);
+      return this.rebaseRemoteToLocal(withBase);
+    }
+    else {
+      return undefined;
+    }
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {

@@ -5,6 +5,7 @@ import * as inspector from 'inspector';
 import { writeFileSync } from 'fs';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
+import { LeaseFile } from './lease-file';
 
 function debugLog() {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
@@ -13,6 +14,12 @@ function debugLog() {
 (function() {
   debugLog();
   if (!process.env.NODE_INSPECTOR_IPC) return;
+
+  const leaseFile = process.env.NODE_INSPECTOR_REQUIRE_LEASE;
+  if (leaseFile && !LeaseFile.isValid(leaseFile)) {
+    process.env.NODE_INSPECTOR_IPC = undefined; // save work for any children
+    return;
+  }
 
   // Electron support
   // Do not enable for Electron and other hybrid environments.

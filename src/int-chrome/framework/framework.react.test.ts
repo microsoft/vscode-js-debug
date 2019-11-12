@@ -8,7 +8,7 @@
 import * as path from 'path';
 import * as testSetup from '../testSetup';
 import { setBreakpoint, setConditionalBreakpoint } from '../intTestSupport';
-import { FrameworkTestSuite, testBreakOnLoad } from './frameworkCommonTests';
+import { FrameworkTestSuite } from './frameworkCommonTests';
 import { TestProjectSpec } from './frameworkTestSupport';
 import { puppeteerSuite, puppeteerTest } from '../puppeteer/puppeteerSuite';
 

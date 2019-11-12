@@ -28,7 +28,7 @@ export class SubprocessProgram implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
   private killed = false;
 
-  constructor(private child: ChildProcess) {
+  constructor(private readonly child: ChildProcess) {
     this.stopped = new Promise((resolve, reject) => {
       child.once('exit', code => resolve({ killed: this.killed, code: code || 0 }));
       child.once('error', error => reject({ killed: this.killed, code: 1, error }));
@@ -42,6 +42,28 @@ export class SubprocessProgram implements IProgram {
   public stop(): Promise<IStopMetadata> {
     this.killed = true;
     killTree(this.child.pid);
+    return this.stopped;
+  }
+}
+
+/**
+ * A no-op program that never stops until stop() is called. Currently, we use
+ * this for VS Code launches as we have no way to forcefully close those sssions.
+ */
+export class StubProgram implements IProgram {
+  public readonly stopped: Promise<IStopMetadata>;
+  private stopDefer!: (data: IStopMetadata) => void;
+
+  constructor() {
+    this.stopped = new Promise(resolve => this.stopDefer = resolve);
+  }
+
+  public gotTelemetery() {
+    // no-op
+  }
+
+  public stop() {
+    this.stopDefer({ code: 0, killed: true });
     return this.stopped;
   }
 }
