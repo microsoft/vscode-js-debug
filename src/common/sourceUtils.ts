@@ -9,7 +9,6 @@ import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
 import { createHash, randomBytes } from 'crypto';
 import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
-import { createReadStream } from 'fs';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
 
@@ -195,21 +194,6 @@ export function wrapObjectLiteral(code: string): string {
   } catch (e) {
     return code;
   }
-}
-
-const sourceMapHash = 'md5';
-
-/**
- * Returns the hash of a sourceMap read from a file.
- */
-export async function getSourceMapFileHash(filename: string) {
-  return new Promise<Buffer>((resolve, reject) => {
-    const hash = createHash(sourceMapHash);
-    const stream = createReadStream(filename);
-    stream.on('error', reject);
-    stream.on('data', chunk => hash.update(chunk));
-    stream.on('end', () => resolve(hash.digest()));
-  });
 }
 
 /**

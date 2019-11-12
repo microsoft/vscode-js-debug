@@ -103,7 +103,7 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, pathPrefix?: string) {
+  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, canMapToLocalFile = true) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
     this._contentGetter = contentGetter;
@@ -113,15 +113,9 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
 
-    let absolutePathUrl = url;
-    if (pathPrefix) {
-      try {
-        let swappedUrl = new URL(url);
-        swappedUrl.pathname = `${pathPrefix}/${swappedUrl.pathname}`;
-        absolutePathUrl = swappedUrl.href;
-      } catch (e) {}
-    }
-    this._absolutePath = container.sourcePathResolver.urlToAbsolutePath(absolutePathUrl) || '';
+    this._absolutePath =
+      (canMapToLocalFile && container.sourcePathResolver.urlToAbsolutePath(url))
+      || '';
 
     if (container.scriptSkipper) {
       container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
@@ -479,9 +473,7 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
 
     const todo: Promise<void>[] = [];
-    const pathPrefix = !this.localSourceMaps.findByHash(map.metadata.hash)
-      ? map.metadata.hash.toString('hex')
-      : undefined;
+    const canMapToLocalFile = !!this.localSourceMaps.findByHash(map.metadata.hash);
 
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
@@ -503,7 +495,7 @@ export class SourceContainer {
           undefined,
           undefined,
           undefined,
-          pathPrefix,
+          canMapToLocalFile,
         );
         source._compiledToSourceUrl = new Map();
       }
