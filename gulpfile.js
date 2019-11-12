@@ -219,6 +219,7 @@ gulp.task(
 /** Publishes the build extension to the marketplace */
 gulp.task('publish:vsce', () =>
   vsce.publish({
+    noVerify: true, // for proposed API usage
     pat: process.env.MARKETPLACE_TOKEN,
     useYarn: true,
     cwd: distDir,
