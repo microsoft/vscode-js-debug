@@ -14,6 +14,8 @@ import { Contributions } from '../../common/contributionUtils';
 import { RawTelemetryReporterToDap } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
+import { CancellationToken } from 'vscode';
+import { NeverCancelled } from '../../common/cancellation';
 
 const localize = nls.loadMessageBundle();
 
@@ -42,7 +44,7 @@ export class BrowserAttacher implements Launcher {
 
   async launch(
     params: AnyLaunchConfiguration,
-    { targetOrigin }: ILaunchContext,
+    { targetOrigin, cancellationToken }: ILaunchContext,
     rawTelemetryReporter: RawTelemetryReporterToDap,
   ): Promise<LaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach') {
@@ -52,20 +54,27 @@ export class BrowserAttacher implements Launcher {
     this._launchParams = params;
     this._targetOrigin = targetOrigin;
 
-    const error = await this._attemptToAttach(rawTelemetryReporter);
+    const error = await this._attemptToAttach(rawTelemetryReporter, cancellationToken);
     return error ? { error } : { blockSessionTermination: false };
   }
 
   _scheduleAttach(rawTelemetryReporter: RawTelemetryReporterToDap) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
-      this._attemptToAttach(rawTelemetryReporter);
+      this._attemptToAttach(rawTelemetryReporter, NeverCancelled);
     }, 1000);
   }
 
-  async _attemptToAttach(rawTelemetryReporter: RawTelemetryReporterToDap) {
+  async _attemptToAttach(
+    rawTelemetryReporter: RawTelemetryReporterToDap,
+    cancellationToken: CancellationToken,
+  ) {
     const params = this._launchParams!;
-    const connection = await this.acquireConnectionForBrowser(rawTelemetryReporter, params);
+    const connection = await this.acquireConnectionForBrowser(
+      rawTelemetryReporter,
+      params,
+      cancellationToken,
+    );
     if (typeof connection === 'string') {
       return connection; // an error
     }
@@ -132,15 +141,14 @@ export class BrowserAttacher implements Launcher {
   private async acquireConnectionForBrowser(
     rawTelemetryReporter: RawTelemetryReporterToDap,
     params: IChromeAttachConfiguration,
+    cancellationToken: CancellationToken,
   ) {
     const browserURL = `http://${params.address}:${params.port}`;
-    const deadline = Date.now() + params.timeout;
-
     while (this._launchParams === params) {
       try {
-        return await launcher.attach({ browserURL }, rawTelemetryReporter);
+        return await launcher.attach({ browserURL }, cancellationToken, rawTelemetryReporter);
       } catch (e) {
-        if (Date.now() >= deadline) {
+        if (cancellationToken.isCancellationRequested) {
           return localize(
             'attach.cannotConnect',
             'Cannot connect to the target at {0}: {1}',

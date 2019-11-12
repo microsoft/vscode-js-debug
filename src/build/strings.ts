@@ -157,6 +157,8 @@ const strings = {
     'An array of glob patterns for files to skip when debugging. The pattern `<node_internals>/**` matches all internal Node.js modules.',
   'smartStep.description':
     'Automatically step through generated code that cannot be mapped back to the original source.',
+
+  'errors.timeout': '{0}: timeout after {1}ms',
 };
 
 export default strings;
