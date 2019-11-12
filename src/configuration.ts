@@ -174,11 +174,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
   outFiles: ReadonlyArray<string>;
 
   /**
-   * Restart session after Node.js has terminated.
-   */
-  restart: boolean;
-
-  /**
    * Path to the local directory containing the program.
    */
   localRoot: string | null;
@@ -220,6 +215,11 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
    * Command line arguments passed to the program.
    */
   args: ReadonlyArray<string>;
+
+  /**
+   * Restart session after Node.js has terminated.
+   */
+  restart: boolean;
 
   /**
    * Runtime to use. Either an absolute path or the name of a runtime
@@ -279,6 +279,19 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Can have * wildcards.
    */
   urlFilter: string;
+}
+
+/**
+ * Opens a debugger-enabled terminal.
+ */
+export interface INodeTerminalConfiguration extends INodeBaseConfiguration {
+  type: Contributions.TerminalDebugType;
+  request: 'launch';
+
+  /**
+   * Command to run.
+   */
+  command?: string;
 }
 
 /**
@@ -358,6 +371,7 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
+  | INodeTerminalConfiguration
   | IExtensionHostConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
@@ -370,12 +384,29 @@ export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<IExtensionHostConfiguration>;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
+export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
-  | ResolvingNodeLaunchConfiguration;
+  | ResolvingNodeLaunchConfiguration
+  | ResolvingTerminalConfiguration;
+
+/**
+ * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
+ */
+export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
+  ? INodeAttachConfiguration
+  : T extends ResolvingExtensionHostConfiguration
+  ? IExtensionHostConfiguration
+  : T extends ResolvingNodeLaunchConfiguration
+  ? INodeLaunchConfiguration
+  : T extends ResolvingChromeConfiguration
+  ? AnyChromeConfiguration
+  : T extends ResolvingTerminalConfiguration
+  ? INodeTerminalConfiguration
+  : never;
 
 export const baseDefaults: IBaseConfiguration = {
   type: '',
@@ -403,11 +434,17 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   cwd: '${workspaceFolder}',
   sourceMaps: true,
   outFiles: [],
-  restart: true,
   localRoot: null,
   remoteRoot: null,
   autoAttachChildProcesses: true,
 };
+
+export const terminalBaseDefaults: INodeTerminalConfiguration = {
+  ...nodeBaseDefaults,
+  type: Contributions.TerminalDebugType,
+  request: 'launch',
+  name: 'Debugger Terminal',
+}
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   ...nodeBaseDefaults,
@@ -429,6 +466,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   program: '',
   stopOnEntry: false,
   console: 'internalConsole',
+  restart: true,
   args: [],
   runtimeExecutable: 'node',
   runtimeVersion: 'default',

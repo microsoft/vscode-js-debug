@@ -64,6 +64,16 @@ const strings = {
   'chrome.attach.label': 'Chrome: Attach',
   'chrome.attach.description': 'Attach to an instance of Chrome already in debug mode',
 
+  'debug.npm.script': 'Debug NPM Script',
+  'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',
+  'debug.npm.noScripts': 'No npm scripts found in your package.json',
+  'debug.npm.parseError': 'Could not read {0}: {1}',
+  'debug.npm.edit': 'Edit package.json',
+  'debug.terminal.label': 'Create Javascript Debug Terminal',
+  'debug.terminal.program.description':
+    'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
+  'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
+
   'node.address.description': "TCP/IP address of process to be debugged. Default is 'localhost'.",
   'node.attach.config.name': 'Attach',
   'node.attach.processId.description': 'ID of process to attach to.',

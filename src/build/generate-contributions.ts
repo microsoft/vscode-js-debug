@@ -11,6 +11,7 @@ import {
   IChromeBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
+  INodeTerminalConfiguration,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
@@ -161,11 +162,6 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
       type: 'string',
     },
     default: [],
-  },
-  restart: {
-    type: 'boolean',
-    description: refString('node.restart.description'),
-    default: true,
   },
   localRoot: {
     type: ['string', 'null'],
@@ -427,6 +423,11 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       },
       default: [],
     },
+    restart: {
+      type: 'boolean',
+      description: refString('node.restart.description'),
+      default: true,
+    },
     runtimeExecutable: {
       type: ['string', 'null'],
       markdownDescription: refString('node.launch.runtimeExecutable.description'),
@@ -457,6 +458,32 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       type: 'string',
       description: refString('node.launch.envFile.description'),
       default: '${workspaceFolder}/.env',
+    },
+  },
+};
+
+const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
+  type: Contributions.TerminalDebugType,
+  request: 'launch',
+  label: refString('debug.terminal.label'),
+  configurationSnippets: [
+    {
+      label: refString('debug.terminal.snippet.label'),
+      description: refString('debug.terminal.snippet.label'),
+      body: {
+        type: Contributions.TerminalDebugType,
+        request: 'launch',
+        name: 'Run npm start',
+        command: 'npm start',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...nodeBaseConfigurationAttributes,
+    command: {
+      type: ['string', 'null'],
+      description: refString('debug.terminal.program.description'),
+      default: 'npm start',
     },
   },
 };
@@ -600,6 +627,7 @@ function buildDebuggers() {
   const debuggers = [
     nodeAttachConfig,
     nodeLaunchConfig,
+    nodeTerminalConfiguration,
     extensionHostConfig,
     chromeLaunchConfig,
     chromeAttachConfig,
