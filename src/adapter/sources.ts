@@ -255,6 +255,7 @@ export class SourceContainer {
     dap: Dap.Api,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
+    private readonly forceLocalSourceMaps: boolean,
   ) {
     this._dap = dap;
   }
@@ -473,7 +474,9 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
 
     const todo: Promise<void>[] = [];
-    const canMapToLocalFile = !!this.localSourceMaps.findByHash(map.metadata.hash);
+    const canMapToLocalFile = this.forceLocalSourceMaps
+      ? !!this.localSourceMaps.findByHash(map.metadata.hash)
+      : true;
 
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,

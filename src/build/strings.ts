@@ -106,6 +106,7 @@ const strings = {
   'node.launch.useWSL.description': 'Use Windows Subsystem for Linux.',
   'node.localRoot.description': 'Path to the local directory containing the program.',
   'node.port.description': 'Debug port to attach to. Default is 5858.',
+  'node.forceLocalSourceMaps.description': 'If set, only sourcemaps found within the rootPath will be used to resolve breakpoints.',
   'node.processattach.config.name': 'Attach to Process',
   'node.remoteRoot.description': 'Absolute path to the remote directory containing the program.',
   'node.restart.description': 'Restart session after Node.js has terminated.',

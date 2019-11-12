@@ -66,6 +66,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   port: number;
 
   /**
+   * If set, only sourcemaps found within the rootPath will be used to resolve
+   * breakpoints.
+   */
+  forceLocalSourceMaps: boolean;
+
+  /**
    * Show the async calls that led to the current call stack.
    */
   showAsyncStacks: boolean;
@@ -390,6 +396,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  forceLocalSourceMaps: false,
   rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
@@ -418,6 +425,7 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
   runtimeExecutable: '${execPath}',
   env: {},
+  forceLocalSourceMaps: true,
   envFile: null,
   port: 0,
   outFiles: ['${workspaceFolder}/out/**/*.js'],

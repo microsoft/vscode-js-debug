@@ -72,6 +72,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('node.port.description'),
     default: 9229,
   },
+  forceLocalSourceMaps: {
+    type: 'boolean',
+    description: refString('node.forceLocalSourceMaps.description'),
+    default: true,
+  },
   showAsyncStacks: {
     type: 'boolean',
     description: refString('node.showAsyncStacks.description'),
