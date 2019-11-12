@@ -98,7 +98,7 @@ export class RawTelemetryReporterToDap implements RawTelemetryReporter {
     this._dap.output({
       category: 'telemetry',
       output: entityName,
-      data: JSON.stringify(entityProperties)
+      data: entityProperties
     });
   };
 }
