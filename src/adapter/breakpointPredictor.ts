@@ -102,7 +102,7 @@ class DirectoryScanner {
     const sourcePathToCompiled: MetadataMap = new Map();
     for (const [, metadata] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
       const baseUrl = metadata.sourceMapUrl.startsWith('data:')
-        ? sourceUtils.parseSourceMappingUrl(await fsUtils.readfile(metadata.compiledPath!))
+        ? metadata.compiledPath
         : metadata.sourceMapUrl;
 
       const map = await sourceUtils.loadSourceMap(metadata);
