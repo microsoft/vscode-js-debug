@@ -38,6 +38,10 @@ export class TelemetryReporter {
     this.reportOutcome(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
   }
 
+  reportEvent(event: string, data?: any) {
+    this._strategy.report(`${this._strategy.eventsPrefix}/${event}`, data);
+  }
+
   private reportOutcome(receivedTime: [number, number], dapCommand: string, properties: TelemetryEntityProperties, outcome: RequestOutcome) {
     const elapsedTime = calculateElapsedTime(receivedTime);
     const entityProperties = { ...properties, time: this._strategy.adjustElapsedTime(elapsedTime), succesful: outcome === RequestOutcome.Succesful };

@@ -11,7 +11,7 @@ import {
   nodeLaunchConfigDefaults,
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
-  ResolvedConfiguration,
+  AnyNodeConfiguration,
 } from './configuration';
 import { Contributions } from './common/contributionUtils';
 import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
@@ -19,11 +19,11 @@ import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
+const config = require('../package.json');
+
 const localize = nls.loadMessageBundle();
 
-const breakpointLanguages: ReadonlyArray<
-  string
-> = require('../../package.json').contributes.breakpoints.map(
+const breakpointLanguages: ReadonlyArray<string> = config.contributes.breakpoints.map(
   (b: { language: string }) => b.language,
 );
 
@@ -36,20 +36,24 @@ type ResolvingNodeConfiguration =
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class NodeDebugConfigurationProvider
-  extends BaseConfigurationProvider<ResolvingNodeConfiguration>
+export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration>
   implements vscode.DebugConfigurationProvider {
   constructor(
     context: vscode.ExtensionContext,
     private readonly nvmResolver: INvmResolver = new NvmResolver(),
   ) {
     super(context);
+
+    this.setProvideDefaultConfiguration(folder => createLaunchConfigFromContext(folder, true));
   }
 
+  /**
+   * @override
+   */
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
-  ): Promise<ResolvedConfiguration<ResolvingNodeConfiguration> | undefined> {
+  ): Promise<AnyNodeConfiguration | undefined> {
     if (!config.name && !config.type && !config.request) {
       config = createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {

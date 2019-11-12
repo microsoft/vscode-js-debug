@@ -53,7 +53,7 @@ export interface ILoggingConfiguration {
   tags: ReadonlyArray<string>;
 }
 
-interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
+export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
    * Default is 'localhost'.
@@ -102,7 +102,7 @@ interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   trace: boolean | Partial<ILoggingConfiguration>;
 
   /**
-   * todo: difference between this and webRoot?
+   * Location where sources can be found.
    */
   rootPath?: string;
 
@@ -174,11 +174,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
   outFiles: ReadonlyArray<string>;
 
   /**
-   * Restart session after Node.js has terminated.
-   */
-  restart: boolean;
-
-  /**
    * Path to the local directory containing the program.
    */
   localRoot: string | null;
@@ -187,12 +182,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
    * Path to the remote directory containing the program.
    */
   remoteRoot: string | null;
-
-  /**
-   * Don't set breakpoints in any file until a sourcemap has been
-   * loaded for that file.
-   */
-  disableOptimisticBPs: boolean;
 
   /**
    * Attach debugger to new child processes automatically.
@@ -228,6 +217,11 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
   args: ReadonlyArray<string>;
 
   /**
+   * Restart session after Node.js has terminated.
+   */
+  restart: boolean;
+
+  /**
    * Runtime to use. Either an absolute path or the name of a runtime
    * available on the PATH. If omitted `node` is assumed.
    */
@@ -255,7 +249,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
   envFile: string | null;
 }
 
-interface IChromeBaseConfiguration extends IBaseConfiguration {
+export interface IChromeBaseConfiguration extends IBaseConfiguration {
   type: Contributions.ChromeDebugType;
 
   /**
@@ -352,7 +346,7 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * Custom means a custom wrapper, custom build or CHROME_PATH
    * environment variable.
    */
-  runtimeExecutable: string;
+  runtimeExecutable: string | null;
 
   /**
    * By default, Chrome is launched with a separate user profile in a temp
@@ -382,15 +376,16 @@ export type AnyNodeConfiguration =
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
 
-export type ResolvingExtensionHostConfiguration = IMandatedConfiguration &
-  Partial<IExtensionHostConfiguration>;
-export type ResolvingTerminalConfiguration = IMandatedConfiguration &
-  Partial<INodeTerminalConfiguration>;
-export type ResolvingNodeAttachConfiguration = IMandatedConfiguration &
-  Partial<INodeAttachConfiguration>;
-export type ResolvingNodeLaunchConfiguration = IMandatedConfiguration &
-  Partial<INodeLaunchConfiguration>;
-export type ResolvingChromeConfiguration = IMandatedConfiguration & Partial<AnyChromeConfiguration>;
+/**
+ * Where T subtypes AnyLaunchConfiguration, gets the resolving version of T.
+ */
+export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
+
+export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<IExtensionHostConfiguration>;
+export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
+export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
+export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
+export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
@@ -439,10 +434,8 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   cwd: '${workspaceFolder}',
   sourceMaps: true,
   outFiles: [],
-  restart: true,
   localRoot: null,
   remoteRoot: null,
-  disableOptimisticBPs: true,
   autoAttachChildProcesses: true,
 };
 
@@ -473,6 +466,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   program: '',
   stopOnEntry: false,
   console: 'internalConsole',
+  restart: true,
   args: [],
   runtimeExecutable: 'node',
   runtimeVersion: 'default',
@@ -485,6 +479,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   ...baseDefaults,
   type: Contributions.ChromeDebugType,
   request: 'attach',
+  port: 0,
   disableNetworkCache: true,
   pathMapping: {},
   url: 'http://localhost:8080',

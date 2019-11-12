@@ -7,12 +7,23 @@
     {
       "type": "pwa-chrome",
       "request": "launch",
-      "name": "Web page 2",
+      "name": "[web-worker] launch with server",
       "url": "http://localhost:5002",
+      "trace": true,
       "server": {
         "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
-        "args": ["-p", "5002"]
+        "args": ["-p", "5002"],
+        "logging": {"cdp": "${workspaceFolder}/vscode-pwa-cdp.log", "dap": "${workspaceFolder}/vscode-pwa-dap.log"}
       },
+    },
+    {
+      "type": "pwa-chrome",
+      "request": "attach",
+      "name": "[web-worker] attach to browser",
+      "address": "127.0.0.1",
+      "trace": true,
+      "port": 9222,
+      "url": "http://localhost:5002",
     }
   ]
 }

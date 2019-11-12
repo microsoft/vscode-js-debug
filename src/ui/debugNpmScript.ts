@@ -53,6 +53,14 @@ export async function debugNpmScript() {
   quickPick.show();
 }
 
+interface IEditCandidate {
+  path?: string;
+  score: number;
+}
+
+const updateEditCandidate = (existing: IEditCandidate, updated: IEditCandidate) =>
+  existing.score > updated.score ? existing : updated;
+
 /**
  * Finds configured npm scripts in the workspace.
  */
@@ -76,13 +84,14 @@ async function findScripts(): Promise<IScript[] | void> {
 
   // editCandidate is the file we'll edit if we don't find any npm scripts.
   // We 'narrow' this as we parse to files that look more like a package.json we want
-  let editCandidate = candidates[0];
+  let editCandidate: IEditCandidate = { path: candidates[0], score: 0 };
   for (const packageJson of candidates) {
     if (!fs.existsSync(packageJson)) {
       continue;
     }
 
-    editCandidate = packageJson; // update this now, because we know it exists
+    // update this now, because we know it exists
+    editCandidate = updateEditCandidate(editCandidate, { path: packageJson, score: 1 });
 
     let parsed: { scripts?: { [key: string]: string } };
     try {
@@ -93,10 +102,14 @@ async function findScripts(): Promise<IScript[] | void> {
         localize('debug.npm.parseError', 'Could not read {0}: {1}', packageJson, e.message),
         packageJson,
       );
+      // set the candidate to 'undefined', since we already displayed an error
+      // and if there are no other candidates then that alone is fine.
+      editCandidate = updateEditCandidate(editCandidate, { path: undefined, score: 3 });
       continue;
     }
 
-    editCandidate = packageJson; // update this now, because we know it is valid
+    // update this now, because we know it is valid
+    editCandidate = updateEditCandidate(editCandidate, { path: undefined, score: 2 });
 
     if (!parsed.scripts) {
       continue;
@@ -112,11 +125,13 @@ async function findScripts(): Promise<IScript[] | void> {
   }
 
   if (scripts.length === 0) {
-    promptToOpen(
-      'showErrorMessage',
-      localize('debug.npm.noScripts', 'No npm scripts found in your package.json'),
-      editCandidate,
-    );
+    if (editCandidate.path) {
+      promptToOpen(
+        'showErrorMessage',
+        localize('debug.npm.noScripts', 'No npm scripts found in your package.json'),
+        editCandidate.path,
+      );
+    }
     return;
   }
 

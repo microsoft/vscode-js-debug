@@ -4,12 +4,11 @@
 import * as vscode from 'vscode';
 import {
   ResolvedConfiguration,
-  ResolvingTerminalConfiguration,
   terminalBaseDefaults,
+  INodeTerminalConfiguration,
 } from './configuration';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
-
 
 /**
  * Configuration provider for node debugging. In order to allow for a
@@ -17,13 +16,12 @@ import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
 export class TerminalDebugConfigurationProvider
-  extends BaseConfigurationProvider<ResolvingTerminalConfiguration>
+  extends BaseConfigurationProvider<INodeTerminalConfiguration>
   implements vscode.DebugConfigurationProvider {
-
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
-    config: ResolvingTerminalConfiguration,
-  ): Promise<ResolvedConfiguration<ResolvingTerminalConfiguration> | undefined> {
+    config: ResolvedConfiguration<INodeTerminalConfiguration>,
+  ): Promise<INodeTerminalConfiguration | undefined> {
     if (!config.cwd) {
       config.cwd = guessWorkingDirectory(undefined, folder);
     }
