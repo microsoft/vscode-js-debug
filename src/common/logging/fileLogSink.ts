@@ -7,6 +7,18 @@ import { ILogSink, ILogItem } from '.';
 import Dap from '../../dap/api';
 import { dirname } from 'path';
 
+const replacer = (_key: string, value: unknown): any => {
+  if (value instanceof Error) {
+    return {
+      message: value.message,
+      stack: value.stack,
+      ...value
+    };
+  }
+
+  return value;
+}
+
 /**
  * A log sink that writes to a file.
  */
@@ -44,6 +56,6 @@ export class FileLogSink implements ILogSink {
    * @inheritdoc
    */
   public write(item: ILogItem<any>): void {
-    this.stream.write(JSON.stringify(item) + '\n');
+    this.stream.write(JSON.stringify(item, replacer) + '\n');
   }
 }

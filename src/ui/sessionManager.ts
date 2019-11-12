@@ -18,6 +18,7 @@ import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher
 import { NodeAttacher } from '../targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from '../targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
+import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 
 export class Session implements Disposable {
   public readonly debugSession: vscode.DebugSession;
@@ -45,6 +46,7 @@ export class Session implements Disposable {
     const launchers = [
       new ExtensionHostAttacher(),
       new ExtensionHostLauncher(),
+      new TerminalNodeLauncher(),
       new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
       new NodeAttacher(),
       new BrowserLauncher(context.storagePath || context.extensionPath),

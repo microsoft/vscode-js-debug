@@ -17,6 +17,8 @@ import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { delay } from '../../common/promiseUtil';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -46,7 +48,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -85,7 +87,7 @@ export class BrowserLauncher implements Launcher {
         env: EnvironmentVars.merge(process.env, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
-        pipe: true,
+        connection: port || 'pipe',
       });
   }
 
@@ -110,7 +112,7 @@ export class BrowserLauncher implements Launcher {
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
     });
-    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, targetOrigin);
+    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, this._launchParams, rawTelemetryReporter, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
 
@@ -131,7 +133,11 @@ export class BrowserLauncher implements Launcher {
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    this._mainTarget = await this._targetManager.waitForMainTarget();
+    this._mainTarget = await Promise.race([
+      this._targetManager.waitForMainTarget(),
+      delay(params.timeout).then(() => undefined),
+    ]);
+
     if (!this._mainTarget)
       return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
@@ -141,9 +147,18 @@ export class BrowserLauncher implements Launcher {
     return this._mainTarget;
   }
 
-  async finishLaunch(mainTarget: BrowserTarget): Promise<void> {
-    if (this._launchParams!.url && !(this._launchParams as any)['skipNavigateForTest'])
-      await mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
+  private async finishLaunch(mainTarget: BrowserTarget, params: AnyChromeConfiguration): Promise<void> {
+    if ('skipNavigateForTest' in params) {
+      return;
+    }
+
+    const url = 'file' in params && params.file
+      ? absolutePathToFileUrl(path.resolve(params.webRoot || params.rootPath || '', params.file))
+      : params.url;
+
+    if (url) {
+      await mainTarget.cdp().Page.navigate({ url });
+    }
   }
 
   async launch(params: AnyChromeConfiguration, targetOrigin: any, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
@@ -154,7 +169,7 @@ export class BrowserLauncher implements Launcher {
     const targetOrError = await this.prepareLaunch(params, targetOrigin, telemetryReporter);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
-    await this.finishLaunch(targetOrError);
+    await this.finishLaunch(targetOrError, params);
     return { blockSessionTermination: true };
   }
 

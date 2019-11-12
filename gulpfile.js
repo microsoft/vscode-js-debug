@@ -10,20 +10,30 @@ const path = require('path');
 const replace = require('gulp-replace');
 const sourcemaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
+const rename = require('gulp-rename');
+const merge = require('merge2');
 const tslint = require('gulp-tslint');
 const typescript = require('typescript');
 const vsce = require('vsce');
+const webpack = require('webpack');
+const execSync = require('child_process').execSync;
 const fs = require('fs');
 const cp = require('child_process');
+const util = require('util');
 
-const dirname = 'vscode-node-debug3';
-const extensionId = 'node-debug3';
+const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
-const translationExtensionName = 'vscode-node-debug';
+const translationExtensionName = 'js-debug';
 
 const sources = ['src/**/*.ts'];
 const tslintFilter = ['**', '!**/*.d.ts'];
 const allPackages = [];
+
+const buildDir = 'out';
+const buildSrcDir = `${buildDir}/src`;
+const distDir = 'dist';
+const distSrcDir = `${distDir}/src`;
+const nodeTargetsDir = `targets/node`;
 
 /**
  * If --drop-in is set, commands and debug types will be set to 'chrome' and
@@ -32,8 +42,48 @@ const allPackages = [];
  */
 const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 
+/**
+ * Whether we're running a nightly build.
+ */
+const isNightly = process.argv.includes('--nightly');
+
+/**
+ * Extension ID to build. Appended with '-nightly' as necessary.
+ */
+const extensionId = isNightly ? 'js-debug-nightly' : 'js-debug';
+
+function runBuildScript(name) {
+  return new Promise((resolve, reject) =>
+    cp.execFile(
+      process.execPath,
+      [path.join(__dirname, 'out', 'src', 'build', name)],
+      (err, stdout, stderr) => {
+        process.stderr.write(stderr);
+        if (err) {
+          return reject(err);
+        }
+
+        const outstr = stdout.toString('utf-8');
+        try {
+          resolve(JSON.parse(outstr));
+        } catch {
+          resolve(outstr);
+        }
+      },
+    ),
+  );
+}
+
+const writeFile = util.promisify(fs.writeFile);
+const readFile = util.promisify(fs.readFile);
+
+async function readJson(file) {
+  const contents = await readFile(path.join(__dirname, file), 'utf-8');
+  return JSON.parse(contents);
+}
+
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
-const tsProject = ts.createProject('./src/tsconfig.json', { typescript });
+const tsProject = ts.createProject('./tsconfig.json', { typescript });
 const tslintOptions = {
   formatter: 'prose',
   rulesDirectory: 'node_modules/tslint-microsoft-contrib',
@@ -50,76 +100,133 @@ gulp.task('compile:ts', () =>
     .pipe(replaceNamespace())
     .pipe(tsProject())
     .js.pipe(
-      sourcemaps.write('../out', {
+      sourcemaps.write('.', {
         includeContent: false,
         sourceRoot: '.',
       }),
     )
-    .pipe(gulp.dest('out/out')),
+    .pipe(gulp.dest(buildSrcDir)),
 );
 
-gulp.task(
-  'compile:static',
-  gulp.parallel(
-    () =>
-      gulp
-        .src(['*.json', 'resources/**/*'], { base: '.' })
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out')),
-    () =>
-      gulp
-        .src('src/**/*.sh')
-        .pipe(replaceNamespace())
-        .pipe(gulp.dest('out/out')),
-  ),
-);
+gulp.task('compile:dynamic', async () => {
+  const [contributions, strings] = await Promise.all([
+    runBuildScript('generate-contributions'),
+    runBuildScript('strings'),
+  ]);
 
-gulp.task('compile', gulp.parallel('compile:ts', 'compile:static'));
-
-gulp.task('package:copy-modules', () => {
-  // vsce wants to run `npm ls` to verify modules in the target package. For
-  // this, they need to exist. Copy our production dependencies into the out
-  // directory so this works and they can be bundled. We need to walk the
-  // dependency list recursively to get any hoisted/deduped modules.
-
-  const prodModules = [];
-  function walk(tree) {
-    for (const key of Object.keys(tree.dependencies || {})) {
-      prodModules.push(key);
-      walk(tree.dependencies[key]);
-    }
+  const packageJson = await readJson(`${buildDir}/package.json`);
+  packageJson.name = extensionId;
+  if (isNightly) {
+    const date = new Date();
+    const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
+    packageJson.displayName += ' Nightly';
+    packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
   }
 
-  walk(JSON.parse(cp.execSync('npm ls --prod --json')));
+  Object.assign(packageJson.contributes, contributions);
 
-  return gulp
-    .src(`node_modules/{${prodModules.join(',')}}/**/*`)
-    .pipe(gulp.dest('out/node_modules'));
+  return Promise.all([
+    writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson, null, 2)),
+    writeFile(`${buildDir}/package.nls.json`, JSON.stringify(strings, null, 2)),
+  ]);
 });
 
-gulp.task('package:vsix', () =>
+gulp.task('compile:static', () =>
+  merge(
+    gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
+    gulp.src('resources/**/*', { base: '.' }),
+  ).pipe(gulp.dest(buildDir)),
+);
+
+gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
+
+/** Run webpack to bundle the extension output files */
+gulp.task('package:webpack-bundle', async () => {
+  const packages = [
+    { entry: `${buildSrcDir}/extension.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+  ];
+
+  for (const { entry, library } of packages) {
+    const config = {
+      mode: 'production',
+      target: 'node',
+      entry: path.resolve(entry),
+      output: {
+        path: path.resolve(distSrcDir),
+        filename: path.basename(entry),
+        devtoolModuleFilenameTemplate: '../[resource-path]',
+      },
+      node: {
+        __dirname: false,
+        __filename: false,
+      },
+      externals: {
+        vscode: 'commonjs vscode',
+      },
+    };
+
+    if (library) {
+      config.output.libraryTarget = 'commonjs2';
+    }
+
+    await new Promise((resolve, reject) =>
+      webpack(config, (err, stats) => {
+        if (err) {
+          reject(err);
+        } else if (stats.hasErrors()) {
+          reject(stats);
+        } else {
+          resolve();
+        }
+      }),
+    );
+  }
+});
+
+/** Copy the extension static files */
+gulp.task('package:copy-extension-files', () =>
+  merge(
+    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`], {
+      base: buildDir,
+    }),
+    gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
+  ).pipe(gulp.dest(distDir)),
+);
+
+/** Create a VSIX package using the vsce command line tool */
+gulp.task('package:createVSIX', () =>
   vsce.createVSIX({
-    ...minimist(process.argv.slice(2)),
-    cwd: 'out',
-    packagePath: path.join(__dirname, 'out', `${extensionId}.vsix`),
+    cwd: distDir,
+    useYarn: true,
+    packagePath: path.join(distDir, `${extensionId}.vsix`),
   }),
 );
 
+/** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
   'package',
-  gulp.series('clean', gulp.parallel('compile', 'package:copy-modules'), 'package:vsix'),
-);
-
-gulp.task(
-  'publish',
-  gulp.series('package', () =>
-    vsce.publish({
-      ...minimist(process.argv.slice(2)),
-      cwd: 'out',
-    }),
+  gulp.series(
+    'clean',
+    'compile',
+    'package:webpack-bundle',
+    'package:copy-extension-files',
+    'package:createVSIX',
   ),
 );
 
+/** Publishes the build extension to the marketplace */
+gulp.task('publish:vsce', () =>
+  vsce.publish({
+    noVerify: true, // for proposed API usage
+    pat: process.env.MARKETPLACE_TOKEN,
+    useYarn: true,
+    cwd: distDir,
+  }),
+);
+
+gulp.task('publish', gulp.series('package', 'publish:vsce'));
 gulp.task('default', gulp.series('compile'));
 
 gulp.task(
@@ -151,7 +258,7 @@ gulp.task(
     gulp
       .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
       .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
-      .pipe(gulp.dest(path.join('..', 'vscode-translations-export'))),
+      .pipe(gulp.dest(`../vscode-translations-export`)),
   ),
 );
 
@@ -171,3 +278,20 @@ gulp.task('lint', () =>
     .pipe(tslint(tslintOptions))
     .pipe(tslint.report()),
 );
+
+/**
+ * Run a command in the terminal using exec, and wrap it in a promise
+ * @param {string} cmd The command line command + args to execute
+ * @param {ExecOptions} options, see here for options: https://nodejs.org/docs/latest-v10.x/api/child_process.html#child_process_child_process_exec_command_options_callback
+ */
+function runCommand(cmd, options) {
+  return new Promise((resolve, reject) => {
+    let execError = undefined;
+    try {
+      execSync(cmd, { stdio: 'inherit', ...options });
+    } catch (err) {
+      reject(err);
+    }
+    resolve();
+  });
+}

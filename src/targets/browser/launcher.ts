@@ -33,7 +33,7 @@ interface LaunchOptions {
   cwd?: string;
   env?: EnvironmentVars;
   ignoreDefaultArgs?: boolean;
-  pipe?: boolean;
+  connection?: 'pipe' | number; // pipe or port number
   timeout?: number;
   userDataDir?: string;
 }
@@ -49,7 +49,7 @@ export async function launch(
     cwd = process.cwd(),
     env = EnvironmentVars.empty,
     ignoreDefaultArgs = false,
-    pipe = false,
+    connection = 'pipe',
     timeout = 30000,
   } = options;
 
@@ -62,7 +62,9 @@ export async function launch(
   else browserArguments.push(...args);
 
   if (!browserArguments.some(argument => argument.startsWith('--remote-debugging-')))
-    browserArguments.push(pipe ? '--remote-debugging-pipe' : '--remote-debugging-port=0');
+    browserArguments.push(
+      connection === 'pipe' ? '--remote-debugging-pipe' : `--remote-debugging-port=${connection}`,
+    );
 
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
@@ -143,7 +145,10 @@ interface AttachOptions {
   browserWSEndpoint?: string;
 }
 
-export async function attach(options: AttachOptions, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<CdpConnection> {
+export async function attach(
+  options: AttachOptions,
+  rawTelemetryReporter: RawTelemetryReporterToDap,
+): Promise<CdpConnection> {
   const { browserWSEndpoint, browserURL } = options;
 
   if (browserWSEndpoint) {
@@ -214,14 +219,18 @@ function waitForWSEndpoint(
 }
 
 export async function getWSEndpoint(browserURL: string): Promise<string> {
-  const jsonVersion = await fetchJson<{ webSocketDebuggerUrl?: string }>(URL.resolve(browserURL, '/json/version'));
+  const jsonVersion = await fetchJson<{ webSocketDebuggerUrl?: string }>(
+    URL.resolve(browserURL, '/json/version'),
+  );
   if (jsonVersion.webSocketDebuggerUrl) {
     return jsonVersion.webSocketDebuggerUrl;
   }
 
   // Chrome its top-level debugg on /json/version, while Node does not.
   // Request both and return whichever one got us a string.
-  const jsonList = await fetchJson<{ webSocketDebuggerUrl: string }[]>(URL.resolve(browserURL, '/json/list'));
+  const jsonList = await fetchJson<{ webSocketDebuggerUrl: string }[]>(
+    URL.resolve(browserURL, '/json/list'),
+  );
   if (jsonList.length) {
     return jsonList[0].webSocketDebuggerUrl;
   }

@@ -262,7 +262,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     const server = await new Promise<net.Server>((resolve, reject) => {
       const s = net
-      .createServer(socket => this._startSession(socket, rawTelemetryReporter))
+        .createServer(socket => this._startSession(socket, rawTelemetryReporter))
         .on('error', reject)
         .listen(pipe, () => resolve(s));
     });
@@ -339,13 +339,13 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     // 2. Try the tmpdir, if it's space-free.
     const contents = `require(${JSON.stringify(targetPath)})`;
     if (!os.tmpdir().includes(' ')) {
-      const tmpPath = path.join(os.tmpdir(), 'vscode-pwa-bootloader.js');
+      const tmpPath = path.join(os.tmpdir(), 'vscode-js-debug-bootloader.js');
       fs.writeFileSync(tmpPath, contents);
       return { path: tmpPath, dispose: () => fs.unlinkSync(tmpPath) };
     }
 
     // 3. Worst case, write into the cwd. This is messy, but we have few options.
-    const nearFilename = '.vscode-pwa-bootloader.js';
+    const nearFilename = '.vscode-js-debug-bootloader.js';
     const nearPath = path.join(cwd, nearFilename);
     fs.writeFileSync(nearPath, contents);
     return { path: `./${nearFilename}`, dispose: () => fs.unlinkSync(nearPath) };

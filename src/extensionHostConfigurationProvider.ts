@@ -13,7 +13,7 @@ import { BaseConfigurationProvider } from './baseConfigurationProvider';
  * Configuration provider for Extension host debugging.
  */
 export class ExtensionHostConfigurationProvider
-  extends BaseConfigurationProvider<ResolvingExtensionHostConfiguration>
+  extends BaseConfigurationProvider<IExtensionHostConfiguration>
   implements vscode.DebugConfigurationProvider {
 
   protected async resolveDebugConfigurationAsync(

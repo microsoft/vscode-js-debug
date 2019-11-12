@@ -41,7 +41,7 @@ export async function attachProcess() {
     return;
   }
 
-  const cwd = guessWorkingDirectory(config);
+  const cwd = guessWorkingDirectory();
   const assignWorkspaceFolder = (obj: any): any =>
     mapValues(obj, value => {
       if (typeof value === 'string') {

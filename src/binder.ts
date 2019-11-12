@@ -154,7 +154,8 @@ export class Binder implements Disposable {
       return;
     const connection = await this._delegate.acquireDap(target);
     const dap = await connection.dap();
-    const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined, target.sourcePathResolver(), this._launchParams!);
+    const debugAdapter = new DebugAdapter(dap, this._launchParams && this._launchParams.rootPath || undefined,
+      target.sourcePathResolver(), this._launchParams!, this._rawTelemetryReporter!);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     const startThread = async () => {

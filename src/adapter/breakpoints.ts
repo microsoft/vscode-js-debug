@@ -9,6 +9,8 @@ import { Disposable } from '../common/events';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { rewriteLogPoint } from '../common/sourceUtils';
+import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
+import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
@@ -46,16 +48,7 @@ export class Breakpoint {
   async _notifyResolved(): Promise<void> {
     if (!this._resolvedUiLocation)
       return;
-    this._manager._dap.breakpoint({
-      reason: 'changed',
-      breakpoint: {
-        id: this._dapId,
-        verified: true,
-        source: await this._resolvedUiLocation.source.toDap(),
-        line: this._resolvedUiLocation.lineNumber,
-        column: this._resolvedUiLocation.columnNumber
-      }
-    });
+    await this._manager.notifyBreakpointResolved(this._dapId, this._resolvedUiLocation);
   }
 
   async set(thread: Thread): Promise<void> {
@@ -104,7 +97,7 @@ export class Breakpoint {
   async updateForSourceMap(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
     if (!source)
-      return;
+      return [];
     // Find all locations for this breakpoint in the new script.
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
       lineNumber: this._lineColumn.lineNumber,
@@ -115,6 +108,8 @@ export class Breakpoint {
     for (const uiLocation of uiLocations)
       promises.push(this._setByScriptId(thread, script, uiLocation));
     await Promise.all(promises);
+
+    return uiLocations;
   }
 
   async _setPredicted(thread: Thread): Promise<void> {
@@ -163,15 +158,18 @@ export class Breakpoint {
     if (this._setUrlLocations.has(urlLocation))
       return;
     this._setUrlLocations.add(urlLocation);
+
+    lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
+    const location = {
+      url,
+      lineNumber: lineColumn.lineNumber - 1,
+      columnNumber: lineColumn.columnNumber - 1,
+      condition: this._condition,
+    };
+
     const activeSetter = (async () => {
       // TODO: add a test for this - breakpoint in node on the first line.
-      lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
-      const result = await thread.cdp().Debugger.setBreakpointByUrl({
-        url,
-        lineNumber: lineColumn.lineNumber - 1,
-        columnNumber: lineColumn.columnNumber - 1,
-        condition: this._condition,
-      });
+      const result = await thread.cdp().Debugger.setBreakpointByUrl(location);
       if (result)
         this.breakpointResolved(thread, result.breakpointId, result.locations);
     })();
@@ -183,10 +181,17 @@ export class Breakpoint {
     const urlLocation = this._urlLocation(script.url, lineColumn);
     if (script.url && this._setUrlLocations.has(urlLocation))
       return;
+
+    lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
+    const location = {
+      scriptId: script.scriptId,
+      lineNumber: lineColumn.lineNumber - 1,
+      columnNumber: lineColumn.columnNumber - 1
+    };
+
     const activeSetter = (async () => {
-      lineColumn = uiToRawOffset(lineColumn, thread.defaultScriptOffset());
       const result = await thread.cdp().Debugger.setBreakpoint({
-        location: { scriptId: script.scriptId, lineNumber: lineColumn.lineNumber - 1, columnNumber: lineColumn.columnNumber - 1 },
+        location,
         condition: this._condition,
       });
       if (result)
@@ -232,13 +237,14 @@ export class BreakpointManager {
   _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
   private _predictorDisabledForTest = false;
+  private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
 
   constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<void>[] = [];
+      const todo: Promise<UiLocation[]>[] = [];
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -253,7 +259,11 @@ export class BreakpointManager {
           todo.push(breakpoint.updateForSourceMap(this._thread!, script));
       }
 
-      await Promise.all(todo);
+      const result = await Promise.all(todo);
+
+      return {
+        remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1))
+      };
     };
     if (sourceContainer.rootPath)
       this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
@@ -305,7 +315,7 @@ export class BreakpointManager {
     await this._thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
   }
 
-  async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult | Dap.Error> {
+  async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor!.predictBreakpoints(params);
@@ -333,7 +343,39 @@ export class BreakpointManager {
     if (this._thread)
       breakpoints.forEach(b => b.set(this._thread!));
     this._updateSourceMapHandler();
-    return { breakpoints: breakpoints.map(b => b.toProvisionalDap()) };
+    const dapBreakpoints = breakpoints.map(b => b.toProvisionalDap());
+    this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
+    return { breakpoints: dapBreakpoints };
+  }
+
+  public async notifyBreakpointResolved(breakpointId: number, location: UiLocation): Promise<void> {
+    this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpointId);
+    this._dap.breakpoint({
+      reason: 'changed',
+      breakpoint: {
+        id: breakpointId,
+        verified: true,
+        source: await location.source.toDap(),
+        line: location.lineNumber,
+        column: location.columnNumber
+      }
+    });
+  }
+
+  public notifyBreakpointHit(hitBreakpointIds: string[]): void {
+    hitBreakpointIds.forEach(breakpointId => {
+      const breakpoint = this._resolvedBreakpoints.get(breakpointId);
+      if (breakpoint) {
+        const id = breakpoint.toProvisionalDap().id;
+        if (id !== undefined) {
+          this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
+        }
+      }
+    });
+  }
+
+  public statisticsForTelemetry(): TelemetryEntityProperties {
+    return this._breakpointsStatisticsCalculator.statistics();
   }
 }
 
