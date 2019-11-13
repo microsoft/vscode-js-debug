@@ -4,17 +4,20 @@
 
 import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
-import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
-import { SubprocessProgram } from './program';
+import { IRunData } from './nodeLauncherBase';
+import { SubprocessProgram, TerminalProcess } from './program';
 import { getWSEndpoint } from '../browser/launcher';
 import { delay } from '../../common/promiseUtil';
 import { spawnWatchdog } from './watchdogSpawn';
 import { findInPath } from '../../common/pathUtils';
+import Cdp from '../../cdp/api';
+import { IDisposable } from '../../common/disposable';
+import { NodeAttacherBase } from './nodeAttacherBase';
 
 /**
  * Attaches to an instance of VS Code for extension debugging.
  */
-export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfiguration> {
+export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfiguration> {
   /**
    * @inheritdoc
    */
@@ -60,5 +63,26 @@ export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfig
         this.onProgramTerminated(result);
       }
     });
+  }
+  /**
+   * Called the first time, for each program, we get an attachment. Can
+   * return disposables to clean up when the run finishes.
+   */
+  protected async onFirstInitialize(
+    cdp: Cdp.Api,
+    run: IRunData<IExtensionHostConfiguration>,
+  ): Promise<ReadonlyArray<IDisposable>> {
+    const telemetry = await this.gatherTelemetry(cdp, run);
+
+    // Monitor the process ID we read from the telemetry. Once the VS Code
+    // process stops, stop our Watchdog, and vise versa.
+    const program = this.program;
+    if (telemetry && program) {
+      const p = new TerminalProcess({ processId: telemetry.processId });
+      p.stopped.then(() => program.stop());
+      program.stopped.then(() => p.stop());
+    }
+
+    return [];
   }
 }
