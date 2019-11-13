@@ -12,6 +12,7 @@ import * as utils from '../common/urlUtils';
 import * as errors from '../dap/errors';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay } from '../common/promiseUtil';
+import { SourceMapConsumer } from 'source-map';
 
 const localize = nls.loadMessageBundle();
 
@@ -373,10 +374,19 @@ export class SourceContainer {
       const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
       if (!map)
         continue;
-      const entry = map.generatedPositionFor({source: sourceUrl, line: uiLocation.lineNumber, column: uiLocation.columnNumber});
+      const entry = map.generatedPositionFor({
+        source: sourceUrl,
+        line: uiLocation.lineNumber,
+        column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+        bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+      });
+
       if (entry.line === null)
         continue;
-      const {lineNumber, columnNumber} = uiToRawOffset({lineNumber: entry.line || 1, columnNumber: entry.column || 1}, compiled._inlineScriptOffset);
+      const {lineNumber, columnNumber} = uiToRawOffset({
+        lineNumber: entry.line || 1,
+        columnNumber: (entry.column || 0) + 1 // correct for 0 index
+      }, compiled._inlineScriptOffset);
       const compiledUiLocation: UiLocation = {
         lineNumber,
         columnNumber,
