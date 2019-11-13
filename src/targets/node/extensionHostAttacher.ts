@@ -27,15 +27,19 @@ export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfig
   /**
    * @inheritdoc
    */
-  protected async launchProgram(runData: IRunData<IExtensionHostConfiguration>): Promise<void> {
+  protected async launchProgram(
+    runData: IRunData<IExtensionHostConfiguration>,
+  ): Promise<string | void> {
     let inspectorUrl: string | undefined;
-    const deadline = Date.now() + runData.params.timeout;
     do {
       try {
-        inspectorUrl = await getWSEndpoint(`http://localhost:${runData.params.port}`);
+        inspectorUrl = await getWSEndpoint(
+          `http://localhost:${runData.params.port}`,
+          runData.context.cancellationToken,
+        );
       } catch (e) {
-        if (Date.now() > deadline) {
-          throw e;
+        if (runData.context.cancellationToken.isCancellationRequested) {
+          return `Could not connect to extension host: ${e.message}`;
         }
 
         await delay(200);

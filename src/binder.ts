@@ -4,7 +4,7 @@
 import { Disposable, EventEmitter } from './common/events';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
-import { Launcher, Target } from './targets/targets';
+import { Launcher, Target, LaunchResult } from './targets/targets';
 import * as errors from './dap/errors';
 import * as urlUtils from './common/urlUtils';
 import Dap from './dap/api';
@@ -14,7 +14,12 @@ import { AnyLaunchConfiguration } from './configuration';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 import { logger } from './common/logging/logger';
-import { resolveLoggerOptions } from './common/logging';
+import { resolveLoggerOptions, LogTag } from './common/logging';
+import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
+import { CancellationToken } from 'vscode';
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -72,14 +77,8 @@ export class Binder implements Disposable {
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('attach', async params => {
-        await this._boot(params as AnyLaunchConfiguration, dap);
-        return {};
-      });
-      dap.on('launch', async params => {
-        await this._boot(params as AnyLaunchConfiguration, dap);
-        return {};
-      });
+      dap.on('attach', params => this._boot(params as AnyLaunchConfiguration, dap));
+      dap.on('launch', params => this._boot(params as AnyLaunchConfiguration, dap));
       dap.on('terminate', async () => {
         await Promise.all([...this._launchers].map(l => l.terminate()));
         return {};
@@ -98,10 +97,12 @@ export class Binder implements Disposable {
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     logger.setup(resolveLoggerOptions(dap, params.trace));
 
+    const cts = CancellationTokenSource.withTimeout(params.timeout);
+
     if (params.rootPath)
       params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
-    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params)));
+    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params, cts.token)));
     results = results.filter(result => !!result);
     if (results.length)
       return errors.createUserError(results.join('\n'));
@@ -112,12 +113,16 @@ export class Binder implements Disposable {
     await Promise.all([...this._launchers].map(l => l.restart(rawTelemetryReporter)));
   }
 
-  async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap }, this._rawTelemetryReporter!);
-    if (result.error)
+  async _launch(launcher: Launcher, params: AnyLaunchConfiguration, cancellationToken: CancellationToken): Promise<string | undefined> {
+    const result = await this.captureLaunch(launcher, params, cancellationToken)
+    if (result.error) {
       return result.error;
-    if (!result.blockSessionTermination)
+    }
+
+    if (!result.blockSessionTermination) {
       return;
+    }
+
     ++this._terminationCount;
     launcher.onTerminated(() => {
       this._launchers.delete(launcher);
@@ -127,6 +132,43 @@ export class Binder implements Disposable {
       if (!this._terminationCount)
         this._dap.then(dap => dap.terminated({}));
     }, undefined, this._disposables);
+  }
+
+  /**
+   * Launches the debug target, returning any the resolved result. Does a
+   * bunch of mangling to log things, catch uncaught errors,
+   * and format timeouts correctly.
+   */
+  private async captureLaunch(launcher: Launcher, params: AnyLaunchConfiguration, cancellationToken: CancellationToken): Promise<LaunchResult> {
+    const name = launcher.constructor.name;
+
+    let result: LaunchResult;
+    try {
+      result = await launcher.launch(
+        params,
+        { cancellationToken, targetOrigin: this._targetOrigin, dap: await this._dap },
+        this._rawTelemetryReporter!
+      );
+    } catch (e) {
+      if (e instanceof TaskCancelledError) {
+        result = { error: localize('errors.timeout', '{0}: timeout after {1}ms', e.message, params.timeout ) };
+      }
+
+      result = { error: e.message };
+    }
+
+    if (result.error) {
+      // Assume it was precipiated from some timeout, if we got an error after cancellation
+      if (cancellationToken.isCancellationRequested) {
+        result.error = localize('errors.timeout', '{0}: timeout after {1}ms', result.error, params.timeout);
+      }
+
+      logger.warn(LogTag.RuntimeLaunch, 'Launch returned error', { error: result.error, name });
+    } else if (result.blockSessionTermination) {
+      logger.info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
+    }
+
+    return result;
   }
 
   dispose() {
