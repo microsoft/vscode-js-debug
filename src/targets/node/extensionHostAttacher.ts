@@ -76,11 +76,11 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
 
     // Monitor the process ID we read from the telemetry. Once the VS Code
     // process stops, stop our Watchdog, and vise versa.
-    const program = this.program;
-    if (telemetry && program) {
-      const p = new TerminalProcess({ processId: telemetry.processId });
-      p.stopped.then(() => program.stop());
-      program.stopped.then(() => p.stop());
+    const watchdog = this.program;
+    if (telemetry && watchdog) {
+      const code = new TerminalProcess({ processId: telemetry.processId });
+      code.stopped.then(() => watchdog.stop());
+      watchdog.stopped.then(() => code.stop());
     }
 
     return [];
