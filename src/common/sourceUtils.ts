@@ -7,7 +7,6 @@ import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
-import { createHash, randomBytes } from 'crypto';
 import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
@@ -32,7 +31,6 @@ export async function prettyPrintAsSourceMap(fileName: string, minified: string)
     });
   }
   return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), {
-    hash: randomBytes(8),
     sourceMapUrl: '',
   });
 }
@@ -196,25 +194,6 @@ export function wrapObjectLiteral(code: string): string {
   }
 }
 
-/**
- * Returns the hash of a soureMap from its string contents.
- */
-export function getSourceMapStringHash(contents: string | Buffer) {
-  return createHash('md5').update(contents).digest();
-}
-
-/**
- * Returns the hash of a soureMap from its url.
- */
-export async function getSourceMapUrlHash(sourceMapUrl: string): Promise<Buffer | undefined> {
-  try {
-    return getSourceMapStringHash(await urlUtils.fetch(sourceMapUrl));
-  } catch (err) {
-    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
-    return;
-  }
-}
-
 export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
   let content: string;
   try {
@@ -224,7 +203,6 @@ export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, '
     return;
   }
 
-  const hash = getSourceMapStringHash(content);
   if (content.slice(0, 3) === ')]}') {
     content = content.substring(content.indexOf('\n'));
   }
@@ -232,7 +210,7 @@ export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, '
   try {
     return new SourceMap(
       await new sourceMap.SourceMapConsumer(content),
-      { hash, ...options },
+      options,
     );
   } catch (err) {
     logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);

@@ -103,7 +103,7 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
-  constructor(container: SourceContainer, url: string, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string, canMapToLocalFile = true) {
+  constructor(container: SourceContainer, url: string, absolutePath: string | undefined, contentGetter: ContentGetter, sourceMapUrl?: string, inlineScriptOffset?: InlineScriptOffset, contentHash?: string) {
     this._sourceReference = ++Source._lastSourceReference;
     this._url = url;
     this._contentGetter = contentGetter;
@@ -112,10 +112,7 @@ export class Source {
     this._container = container;
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
-
-    this._absolutePath =
-      (canMapToLocalFile && container.sourcePathResolver.urlToAbsolutePath(url))
-      || '';
+    this._absolutePath = absolutePath || '';
 
     if (container.scriptSkipper) {
       container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
@@ -255,7 +252,6 @@ export class SourceContainer {
     dap: Dap.Api,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
-    private readonly forceLocalSourceMaps: boolean,
   ) {
     this._dap = dap;
   }
@@ -393,7 +389,8 @@ export class SourceContainer {
 
   addSource(url: string, contentGetter: ContentGetter,
       sourceMapUrl?: string, inlineSourceRange?: InlineScriptOffset, contentHash?: string): Source {
-    const source = new Source(this, url, contentGetter, sourceMapUrl,
+    const absolutePath = this.sourcePathResolver.urlToAbsolutePath({ url });
+    const source = new Source(this, url, absolutePath, contentGetter, sourceMapUrl,
           inlineSourceRange, contentHash);
     this._addSource(source);
     return source;
@@ -474,10 +471,6 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
 
     const todo: Promise<void>[] = [];
-    const canMapToLocalFile = this.forceLocalSourceMaps
-      ? !!this.localSourceMaps.findByHash(map.metadata.hash)
-      : true;
-
     for (const url of map.sources) {
       // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
       // webpack emits absolute paths in some situations instead of a relative url. We check
@@ -490,15 +483,16 @@ export class SourceContainer {
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
+        const absolutePath = this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map });
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
         source = new Source(
           this,
           resolvedUrl,
+          absolutePath,
           content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
           undefined,
           undefined,
           undefined,
-          canMapToLocalFile,
         );
         source._compiledToSourceUrl = new Map();
       }

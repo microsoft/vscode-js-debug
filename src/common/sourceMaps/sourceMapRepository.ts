@@ -6,17 +6,14 @@ import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
 import { getCaseSensitivePaths, absolutePathToFileUrl, completeUrl } from '../urlUtils';
-import { parseSourceMappingUrl, getSourceMapUrlHash } from '../sourceUtils';
+import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
 
 class Directory {
   private readonly subdirectories: { [basename: string]: Directory } = {};
   private sourceMaps?: Promise<{ [basename: string]: ISourceMapMetadata }>;
 
-  constructor(
-    private readonly path: string,
-    private readonly byHash: Map<string, ISourceMapMetadata>,
-  ) {}
+  constructor(private readonly path: string) {}
 
   /**
    * Returns a Directory for the given path.
@@ -59,7 +56,6 @@ class Directory {
     if (!subdir) {
       subdir = this.subdirectories[segment] = new Directory(
         parts.slice(0, offset + 1).join(path.sep),
-        this.byHash,
       );
     }
 
@@ -95,14 +91,12 @@ class Directory {
             const map = await this.readMapInFile(absolutePath);
             if (map) {
               result[bn] = map;
-              this.byHash.set(map.hash.toString('hex'), map);
             }
             return;
           }
 
           if (stat.isDirectory()) {
-            this.subdirectories[bn] =
-              this.subdirectories[bn] || new Directory(absolutePath, this.byHash);
+            this.subdirectories[bn] = this.subdirectories[bn] || new Directory(absolutePath);
             return;
           }
         }),
@@ -129,15 +123,9 @@ class Directory {
       return;
     }
 
-    const hash = await getSourceMapUrlHash(sourceMapUrl);
-    if (!hash) {
-      return;
-    }
-
     return {
       compiledPath: absolutePath,
       sourceMapUrl: sourceMapUrl,
-      hash,
     };
   }
 }
@@ -154,7 +142,7 @@ export class LocalSourceMapRepository {
   /**
    * A mapping of absolute paths on disk to sourcemaps contained in those paths.
    */
-  private readonly tree: Directory = new Directory('', this.byHash);
+  private readonly tree: Directory = new Directory('');
 
   /**
    * Returns if the repository knows about any sourceMap with the given hash.

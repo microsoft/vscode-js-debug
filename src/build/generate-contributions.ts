@@ -73,10 +73,13 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('node.port.description'),
     default: 9229,
   },
-  forceLocalSourceMaps: {
-    type: 'boolean',
-    description: refString('node.forceLocalSourceMaps.description'),
-    default: true,
+  resolveSourceMapLocations: {
+    type: ['array', 'null'],
+    description: refString('node.resolveSourceMapLocations.description'),
+    default: null,
+    items: {
+      type: 'string',
+    },
   },
   showAsyncStacks: {
     type: 'boolean',
@@ -161,6 +164,10 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
  */
 const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfiguration> = {
   ...baseConfigurationAttributes,
+  resolveSourceMapLocations: {
+    ...baseConfigurationAttributes.resolveSourceMapLocations,
+    default: ['${workspaceFolder}/**', '!**/node_modules/**'],
+  },
   cwd: {
     type: 'string',
     description: refString('node.launch.cwd.description'),

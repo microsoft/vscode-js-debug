@@ -66,10 +66,13 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   port: number;
 
   /**
-   * If set, only sourcemaps found within the rootPath will be used to resolve
-   * breakpoints.
+   * A list of minimatch patterns for locations (folders and URLs) in which
+   * source maps can be used to resolve local files. This can be used to avoid
+   * incorrectly breaking in external source mapped code. Patterns can be
+   * prefixed with "!" to exclude them. May be set to an empty array or null
+   * to avoid restriction.
    */
-  forceLocalSourceMaps: boolean;
+  resolveSourceMapLocations: ReadonlyArray<string> | null;
 
   /**
    * Show the async calls that led to the current call stack.
@@ -387,7 +390,9 @@ export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfigurati
  */
 export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 
-export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<IExtensionHostConfiguration>;
+export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
+  IExtensionHostConfiguration
+>;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
 export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
@@ -427,7 +432,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
-  forceLocalSourceMaps: false,
+  resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
@@ -444,6 +449,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   outFiles: [],
   localRoot: null,
   remoteRoot: null,
+  resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
 };
 
@@ -452,7 +458,7 @@ export const terminalBaseDefaults: INodeTerminalConfiguration = {
   type: Contributions.TerminalDebugType,
   request: 'launch',
   name: 'Debugger Terminal',
-}
+};
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   ...nodeBaseDefaults,
@@ -462,7 +468,6 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
   runtimeExecutable: '${execPath}',
   env: {},
-  forceLocalSourceMaps: true,
   envFile: null,
   port: 0,
   outFiles: ['${workspaceFolder}/out/**/*.js'],

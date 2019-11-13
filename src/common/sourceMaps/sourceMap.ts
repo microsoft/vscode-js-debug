@@ -13,7 +13,6 @@ import {
 } from 'source-map';
 
 export interface ISourceMapMetadata {
-  hash: Buffer;
   sourceMapUrl: string;
   compiledPath?: string;
 }
@@ -32,13 +31,6 @@ export class SourceMap implements SourceMapConsumer {
    */
   public get sources() {
     return this.original.sources;
-  }
-
-  /**
-   * Returns whether this sourcemap is the same as another.
-   */
-  public equals(other: SourceMap) {
-    return other.metadata.hash.equals(other.metadata.hash);
   }
 
   /**

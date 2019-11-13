@@ -114,7 +114,7 @@ class DirectoryScanner {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = this._predictor._sourcePathResolver
-          ? this._predictor._sourcePathResolver.urlToAbsolutePath(resolvedUrl)
+          ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
           : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
         if (!resolvedPath) {
           continue;

@@ -56,7 +56,7 @@ export class DebugAdapter {
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
-    this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver, launchConfig.forceLocalSourceMaps);
+    this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
     this._rawTelemetryReporter.flush.event(() => {
       this._rawTelemetryReporter.report('breakpointsStatistics', this.breakpointManager.statisticsForTelemetry());
