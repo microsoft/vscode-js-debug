@@ -38,7 +38,7 @@
     "js-beautify": "^1.10.0",
     "long": "^4.0.0",
     "source-map": "^0.7.3",
-    "typescript": "^3.5.3",
+    "typescript": "^3.7.2",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
@@ -112,6 +112,7 @@
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:NAMESPACE(node)",
+    "onDebugResolve:NAMESPACE(node-terminal)",
     "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
     "onCommand:extension.NAMESPACE(node-debug).pickLoadedScript",
@@ -119,6 +120,8 @@
     "onCommand:extension.NAMESPACE(node-debug).attachNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).startAutoAttach",
     "onCommand:extension.NAMESPACE(node-debug).startWithStopOnEntry",
+    "onCommand:extension.NAMESPACE(node-debug).npmScript",
+    "onCommand:extension.NAMESPACE(node-debug).createDebuggerTerminal",
     "onDebugResolve:NAMESPACE(chrome)",
     "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
@@ -185,6 +188,16 @@
       {
         "command": "extension.NAMESPACE(node-debug).attachNodeProcess",
         "title": "%attach.node.process%",
+        "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).npmScript",
+        "title": "%debug.npm.script%",
+        "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).createDebuggerTerminal",
+        "title": "%debug.terminal.label%",
         "category": "Debug"
       }
     ],

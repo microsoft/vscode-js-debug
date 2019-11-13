@@ -8,6 +8,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
 import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { CancellationToken } from 'vscode';
 
 /**
  * A generic running process that can be debugged. We may have a target before
@@ -50,6 +51,7 @@ export interface Target {
 
 export interface ILaunchContext {
   dap: Dap.Api;
+  cancellationToken: CancellationToken;
   targetOrigin: any;
 }
 

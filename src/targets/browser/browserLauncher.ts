@@ -17,8 +17,9 @@ import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
-import { delay } from '../../common/promiseUtil';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
+import { cancellableRace } from '../../common/cancellation';
+import { CancellationToken } from 'vscode';
 
 const localize = nls.loadMessageBundle();
 
@@ -48,7 +49,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, timeout, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
     if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
       executablePath = executable;
@@ -81,8 +82,7 @@ export class BrowserLauncher implements Launcher {
     }
 
     return await launcher.launch(
-      executablePath, rawTelemetryReporter, {
-        timeout,
+      executablePath, rawTelemetryReporter, cancellationToken, {
         cwd: cwd || undefined,
         env: EnvironmentVars.merge(process.env, env),
         args: runtimeArgs || [],
@@ -91,10 +91,10 @@ export class BrowserLauncher implements Launcher {
       });
   }
 
-  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin, cancellationToken }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params, rawTelemetryReporter);
+      connection = await this._launchBrowser(params, cancellationToken, rawTelemetryReporter);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
@@ -133,10 +133,11 @@ export class BrowserLauncher implements Launcher {
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    this._mainTarget = await Promise.race([
+    this._mainTarget = await cancellableRace(
       this._targetManager.waitForMainTarget(),
-      delay(params.timeout).then(() => undefined),
-    ]);
+      cancellationToken,
+      'Could not attach to main target',
+    );
 
     if (!this._mainTarget)
       return localize('error.threadNotFound', 'Target page not found');
@@ -161,12 +162,12 @@ export class BrowserLauncher implements Launcher {
     }
   }
 
-  async launch(params: AnyChromeConfiguration, targetOrigin: any, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
+  async launch(params: AnyChromeConfiguration, context: ILaunchContext, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(params, targetOrigin, telemetryReporter);
+    const targetOrError = await this.prepareLaunch(params, context, telemetryReporter);
     if (typeof targetOrError === 'string')
       return { error: targetOrError };
     await this.finishLaunch(targetOrError, params);

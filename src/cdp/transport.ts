@@ -5,6 +5,8 @@ import * as net from 'net';
 import WebSocket from 'ws';
 import * as events from 'events';
 import { HighResolutionTime } from '../utils/performance';
+import { CancellationToken } from 'vscode';
+import { cancellableRace } from '../common/cancellation';
 
 export interface Transport {
   send(message: string): void;
@@ -84,14 +86,22 @@ export class WebSocketTransport implements Transport {
   onmessage?: (message: string) => void;
   onclose?: () => void;
 
-  static create(url: string): Promise<WebSocketTransport> {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(url, [], {
-        perMessageDeflate: false,
-        maxPayload: 256 * 1024 * 1024, // 256Mb
-      });
-      ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
-      ws.addEventListener('error', reject);
+  static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
+    const ws = new WebSocket(url, [], {
+      perMessageDeflate: false,
+      maxPayload: 256 * 1024 * 1024, // 256Mb
+    });
+
+    return cancellableRace(
+      new Promise<WebSocketTransport>((resolve, reject) => {
+        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
+        ws.addEventListener('error', reject);
+      }),
+      cancellationToken,
+      `Could not open ${url}`
+    ).catch(err => {
+      ws.close();
+      throw err;
     });
   }
 

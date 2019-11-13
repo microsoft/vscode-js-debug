@@ -47,7 +47,10 @@ export class NodeAttacher extends NodeLauncherBase<INodeAttachConfiguration> {
     const wd = spawnWatchdog(findInPath('node', process.env) || 'node', {
       ipcAddress: runData.serverAddress,
       scriptName: 'Remote Process',
-      inspectorURL: await getWSEndpoint(`http://${runData.params.address}:${runData.params.port}`),
+      inspectorURL: await getWSEndpoint(
+        `http://${runData.params.address}:${runData.params.port}`,
+        runData.context.cancellationToken,
+      ),
       waitForDebugger: true,
       dynamicAttach: true,
     });
