@@ -111,7 +111,7 @@ export class StackTrace {
     to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
     for (let index = from; index < to; index++)
-      result.push(await frames[index].toDap());
+      result.push(await frames[index].toDap(params));
     return { stackFrames: result, totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length };
   }
 };
@@ -248,7 +248,7 @@ export class StackFrame {
     return { scopes };
   }
 
-  async toDap(): Promise<Dap.StackFrame> {
+  async toDap(_params: Dap.StackTraceParams): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
@@ -260,7 +260,7 @@ export class StackFrame {
 
     return <Dap.StackFrame>{
       id: this._id,
-      name: this._name,
+      name: this._name, // TODO: Use params to format the name
       line: (uiLocation || this._rawLocation).lineNumber,
       column: (uiLocation || this._rawLocation).columnNumber,
       source,

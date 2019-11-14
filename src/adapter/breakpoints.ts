@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as nls from 'vscode-nls';
 import { UiLocation, SourceContainer, Source, uiToRawOffset } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
@@ -11,6 +12,8 @@ import * as urlUtils from '../common/urlUtils';
 import { rewriteLogPoint } from '../common/sourceUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
+
+const localize = nls.loadMessageBundle();
 
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
@@ -41,7 +44,8 @@ export class Breakpoint {
   toProvisionalDap(): Dap.Breakpoint {
     return {
       id: this._dapId,
-      verified: false
+      verified: false,
+      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) // TODO: Put a useful message here
     };
   }
 
