@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Thread, RawLocation } from "./threads";
-import { UiLocation } from "./sources";
-import Cdp from "../cdp/api";
-import { kLogPointUrl } from "./breakpoints";
-import Dap from "../dap/api";
-import { ScopeRef, ExtraProperty } from "./variables";
 import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import Dap from '../dap/api';
+import { kLogPointUrl } from './breakpoints';
+import { shouldSmartStepStackFrame } from './smartStepping';
+import { PreferredUILocation as PreferredUiLocation } from './sources';
+import { RawLocation, Thread } from './threads';
+import { ExtraProperty, ScopeRef } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -129,7 +130,7 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  private _uiLocation: Promise<UiLocation | undefined>;
+  private _uiLocation: Promise<PreferredUiLocation | undefined>;
   private _isAsyncSeparator = false;
   private _scope: Scope | undefined;
   private _thread: Thread;
@@ -250,8 +251,14 @@ export class StackFrame {
   async toDap(): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
-    const presentationHint = this._isAsyncSeparator ? 'label' : 'normal';
-    return {
+    const isSmartStepped = await shouldSmartStepStackFrame(this);
+    const presentationHint = this._isAsyncSeparator ? 'label' :
+      isSmartStepped ? 'deemphasize' :
+      'normal';
+    if (isSmartStepped && source)
+      source.origin = localize('smartStepSkipLabel', "Skipped by smartStep");
+
+    return <Dap.StackFrame>{
       id: this._id,
       name: this._name,
       line: (uiLocation || this._rawLocation).lineNumber,
@@ -273,7 +280,7 @@ export class StackFrame {
     return text;
   }
 
-  uiLocation(): Promise<UiLocation | undefined> {
+  uiLocation(): Promise<PreferredUiLocation | undefined> {
     return this._uiLocation;
   }
 

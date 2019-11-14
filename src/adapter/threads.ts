@@ -3,22 +3,23 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import Dap from '../dap/api';
+import { delay } from '../common/promiseUtil';
+import { InlineScriptOffset } from '../common/sourcePathResolver';
+import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
+import { BreakpointManager } from './breakpoints';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
-import * as errors from '../dap/errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { UiLocation, Source, SourceContainer, rawToUiOffset } from './sources';
+import { ScriptSkipper } from './scriptSkipper';
+import { SmartStepper } from './smartStepping';
+import { PreferredUILocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
-import * as sourceUtils from '../common/sourceUtils';
-import { InlineScriptOffset } from '../common/sourcePathResolver';
-import { ScriptSkipper } from './scriptSkipper';
-import { AnyLaunchConfiguration, OutputSource } from '../configuration';
-import { delay } from '../common/promiseUtil';
-import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 
@@ -95,6 +96,7 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
+  private _smartStepper: SmartStepper;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -113,6 +115,7 @@ export class Thread implements VariableStoreDelegate {
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
+    this._smartStepper = new SmartStepper(this.launchConfig);
     this._initialize();
   }
 
@@ -386,45 +389,7 @@ export class Thread implements VariableStoreDelegate {
     });
     this._cdp.Runtime.enable({});
 
-    this._cdp.Debugger.on('paused', async event => {
-      if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-        const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
-
-        if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
-            scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
-            scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
-          // Paused on the script which is run as a task for scheduled async call.
-          // We are waiting for this pause, no need to resume.
-        } else if (remainPaused) {
-          // If should stay paused, that means the user set a breakpoint on
-          // the first line (which we are already on!), so pretend it's
-          // a breakpoint and let it bubble up.
-          event.data.__rewriteAsBreakpoint = true;
-        } else {
-          await this._pauseOnScheduledAsyncCall();
-          this.resume();
-          return;
-        }
-      }
-
-      if (event.asyncCallStackTraceId) {
-        scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
-        const threads = Array.from(Thread._allThreadsByDebuggerId.values());
-        await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
-        this.resume();
-        return;
-      }
-
-      this._pausedDetails = this._createPausedDetails(event);
-      if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-        this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
-      }
-
-      (this._pausedDetails as any)[kPausedEventSymbol] = event;
-      this._pausedVariables = new VariableStore(this._cdp, this);
-      scheduledPauseOnAsyncCall = undefined;
-      this._onThreadPaused();
-    });
+    this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this._onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
@@ -522,6 +487,51 @@ export class Thread implements VariableStoreDelegate {
     });
   }
 
+  private async _onPaused(event: Cdp.Debugger.PausedEvent) {
+    if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
+      const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
+
+      if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
+          scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
+          scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
+        // Paused on the script which is run as a task for scheduled async call.
+        // We are waiting for this pause, no need to resume.
+      } else if (remainPaused) {
+        // If should stay paused, that means the user set a breakpoint on
+        // the first line (which we are already on!), so pretend it's
+        // a breakpoint and let it bubble up.
+        event.data.__rewriteAsBreakpoint = true;
+      } else {
+        await this._pauseOnScheduledAsyncCall();
+        this.resume();
+        return;
+      }
+    }
+
+    if (event.asyncCallStackTraceId) {
+      scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
+      const threads = Array.from(Thread._allThreadsByDebuggerId.values());
+      await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
+      this.resume();
+      return;
+    }
+
+    this._pausedDetails = this._createPausedDetails(event);
+    if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
+      this.stepInto();
+      return;
+    }
+
+    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
+      this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
+    }
+
+    (this._pausedDetails as any)[kPausedEventSymbol] = event;
+    this._pausedVariables = new VariableStore(this._cdp, this);
+    scheduledPauseOnAsyncCall = undefined;
+    this._onThreadPaused();
+  }
+
   _onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
@@ -562,7 +572,7 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  rawLocationToUiLocation(rawLocation: RawLocation): Promise<UiLocation | undefined> {
+  rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
     const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
     if (!script)
       return Promise.resolve(undefined);
