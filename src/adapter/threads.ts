@@ -96,7 +96,7 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
-  private _smartStepper = new SmartStepper();
+  private _smartStepper: SmartStepper;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -115,6 +115,7 @@ export class Thread implements VariableStoreDelegate {
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
+    this._smartStepper = new SmartStepper(this.launchConfig);
     this._initialize();
   }
 
