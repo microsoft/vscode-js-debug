@@ -36,7 +36,7 @@ jobs:
     displayName: Publish to Marketplace
     inputs:
       targets: publish:vsce
-      arguments: --nightly --drop-in
+      arguments: --nightly
     env:
       MARKETPLACE_TOKEN: $(vsce.token)
     condition: and(succeeded(), eq(variables['dryrun'], 'false'))
