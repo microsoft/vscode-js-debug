@@ -66,7 +66,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Data set while a debug session is running.
    */
-  private run?: IRunData<T>;
+  protected run?: IRunData<T>;
 
   /**
    * Attached server connections. Tracked so they can be torn down readily.
@@ -112,6 +112,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     if (!resolved) {
       return { blockSessionTermination: false };
     }
+
+    this._stopServer(); // clear any ongoing run
 
     const { server, pipe } = await this._startServer(rawTelemetryReporter);
     const run = (this.run = {

@@ -134,7 +134,7 @@ gulp.task('compile:dynamic', async () => {
 gulp.task('compile:static', () =>
   merge(
     gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
-    gulp.src('resources/**/*', { base: '.' }),
+    gulp.src(['resources/**/*', 'src/**/*.sh'], { base: '.' }),
   ).pipe(gulp.dest(buildDir)),
 );
 

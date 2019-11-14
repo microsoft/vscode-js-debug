@@ -45,14 +45,14 @@ export class Binder implements Disposable {
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._disposables = [this._onTargetListChangedEmitter];
+    this._disposables = [this._onTargetListChangedEmitter, logger];
 
     for (const launcher of launchers) {
       this._launchers.add(launcher);
       launcher.onTargetListChanged(() => {
         const targets = this.targetList();
         this._attachToNewTargets(targets);
-        this._detachOrphaneThreads(targets);
+        this._detachOrphanThreads(targets);
         this._onTargetListChangedEmitter.fire();
       }, undefined, this._disposables);
     }
@@ -88,7 +88,7 @@ export class Binder implements Disposable {
         return {};
       });
       dap.on('restart', async () => {
-        await this._restart(this._rawTelemetryReporter!);
+        await this._restart();
         return {};
       });
     });
@@ -109,8 +109,8 @@ export class Binder implements Disposable {
     return {};
   }
 
-  async _restart(rawTelemetryReporter: RawTelemetryReporterToDap) {
-    await Promise.all([...this._launchers].map(l => l.restart(rawTelemetryReporter)));
+  async _restart() {
+    await Promise.all([...this._launchers].map(l => l.restart()));
   }
 
   async _launch(launcher: Launcher, params: AnyLaunchConfiguration, cancellationToken: CancellationToken): Promise<string | undefined> {
@@ -124,13 +124,13 @@ export class Binder implements Disposable {
     }
 
     ++this._terminationCount;
-    launcher.onTerminated(() => {
+    launcher.onTerminated(result => {
       this._launchers.delete(launcher);
-      this._detachOrphaneThreads(this.targetList());
+      this._detachOrphanThreads(this.targetList(), { restart: result.restart });
       this._onTargetListChangedEmitter.fire();
-      --this._terminationCount;
-      if (!this._terminationCount)
-        this._dap.then(dap => dap.terminated({}));
+      if (!--this._terminationCount) {
+        this._dap.then(dap => dap.terminated({ restart: result.restart }));
+      }
     }, undefined, this._disposables);
   }
 
@@ -178,7 +178,7 @@ export class Binder implements Disposable {
     for (const launcher of this._launchers)
       launcher.dispose();
     this._launchers.clear();
-    this._detachOrphaneThreads([]);
+    this._detachOrphanThreads([]);
   }
 
   targetList(): Target[] {
@@ -224,7 +224,7 @@ export class Binder implements Disposable {
         if (target.canRestart())
           target.restart();
         else
-          await this._restart(this._rawTelemetryReporter!);
+          await this._restart();
         return {};
       });
     }
@@ -236,7 +236,7 @@ export class Binder implements Disposable {
     if (!target.canDetach())
       return;
     await target.detach();
-    this._releaseTarget(target);
+    this._releaseTarget(target,);
   }
 
   _attachToNewTargets(targets: Target[]) {
@@ -249,21 +249,21 @@ export class Binder implements Disposable {
     }
   }
 
-  _detachOrphaneThreads(targets: Target[]) {
+  _detachOrphanThreads(targets: Target[], terminateArgs?: Dap.TerminatedEventParams) {
     const set = new Set(targets);
     for (const target of this._threads.keys()) {
       if (!set.has(target))
-        this._releaseTarget(target);
+        this._releaseTarget(target, terminateArgs);
     }
   }
 
-  _releaseTarget(target: Target) {
+  _releaseTarget(target: Target, terminateArgs: Dap.TerminatedEventParams = {}) {
     const data = this._threads.get(target);
     if (!data)
       return;
     this._threads.delete(target);
     data.thread.dispose();
-    data.debugAdapter.dap.terminated({});
+    data.debugAdapter.dap.terminated(terminateArgs);
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
   }
