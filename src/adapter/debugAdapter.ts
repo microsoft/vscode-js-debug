@@ -15,7 +15,6 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
-import { IToggleSkipFileStatusArgs } from './scriptSkipper';
 import * as utils from '../common/sourceUtils';
 
 const localize = nls.loadMessageBundle();
@@ -263,27 +262,36 @@ export class DebugAdapter {
     return {};
   }
 
-  async _toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
-    if (!await this._isInCurrentStack(args) || !this.sourceContainer.scriptSkipper) {
-      return;
+  async _toggleSkipFileStatus(params: Dap.ToggleSkipFileStatusParams): Promise<Dap.ToggleSkipFileStatusResult> {
+    if (params.resource) {
+      params.resource = utils.fileUrlToPath(params.resource);
     }
 
-    if (args.path) {
-      args.path = utils.fileUrlToPath(args.path);
+    const dapSource = await this._isSourceInCurrentStack(params);
+    if (dapSource && this.sourceContainer.scriptSkipper) {
+      // TODO@Shennie set up script toggling regardless of whether skipfiles was passed from the beginning
+      const source = this.sourceContainer.source(dapSource);
+      if (source) {
+        source._blackboxed = !source._blackboxed;
+      }
+      this.sourceContainer.scriptSkipper.toggleSkipFileStatus(params.resource);
+      this._withThread(thread => thread.pause());
     }
-
-    this.sourceContainer.scriptSkipper.toggleSkipFileStatus(args.path!);
+    return {};
   }
 
-  private async _isInCurrentStack(args: IToggleSkipFileStatusArgs): Promise<boolean> {
+  private async _isSourceInCurrentStack(params: Dap.ToggleSkipFileStatusParams): Promise<Dap.Source | undefined> {
     const currentStack = await this._onStackTrace({ threadId: this._thread?.id! });
     const stackFrames = (currentStack as Dap.StackTraceResult).stackFrames;
 
-    if (args.path && stackFrames) {
-      return stackFrames.some(frame => frame.source && frame.source.path === args.path);
+    let foundStackFrame;
+    if (params.resource && stackFrames) {
+      foundStackFrame = stackFrames.find(frame => frame.source && frame.source.path?.toLocaleLowerCase() === params.resource?.toLocaleLowerCase());
     } else {
-      return stackFrames.some(frame => frame.source && frame.source.sourceReference === args.sourceReference);
+      foundStackFrame = stackFrames.find(frame => frame.source && frame.source.sourceReference === params.sourceReference);
     }
+
+    return (foundStackFrame) ? foundStackFrame.source : undefined;
   }
 
   dispose() {

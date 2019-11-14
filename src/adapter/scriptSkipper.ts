@@ -4,11 +4,6 @@
 import cdp from '../cdp/api';
 import * as utils from '../common/sourceUtils';
 
-export interface IToggleSkipFileStatusArgs {
-  path?: string;
-  sourceReference?: number;
-}
-
 export class ScriptSkipper {
   private _userSkipPatterns: ReadonlyArray<string>;
   private _nonNodeInternalRegex: string = '';
@@ -100,9 +95,11 @@ export class ScriptSkipper {
     this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
   }
 
-  public toggleSkipFileStatus(url: string): void {
-    let currentSkipValue = this._isUrlSkippedMap.get(url);
-    this._isUrlSkippedMap.set(url, !currentSkipValue);
+  public toggleSkipFileStatus(url: string | undefined): void {
+    if (url) {
+      let currentSkipValue = this._isUrlSkippedMap.get(url);
+      this._isUrlSkippedMap.set(url, !currentSkipValue);
+    }
   }
 
 }

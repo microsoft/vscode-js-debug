@@ -568,6 +568,15 @@ export namespace Dap {
     prettyPrintSourceRequest(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
 
     /**
+     * Toggle skip status of file.
+     */
+    on(request: 'toggleSkipFileStatus', handler: (params: ToggleSkipFileStatusParams) => Promise<ToggleSkipFileStatusResult | Error>): () => void;
+    /**
+     * Toggle skip status of file.
+     */
+    toggleSkipFileStatusRequest(params: ToggleSkipFileStatusParams): Promise<ToggleSkipFileStatusResult>;
+
+    /**
      * A request to reveal a certain location in the UI.
      */
     revealLocationRequested(params: RevealLocationRequestedEventParams): void;
@@ -940,6 +949,11 @@ export namespace Dap {
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
+
+    /**
+     * Toggle skip status of file.
+     */
+    toggleSkipFileStatus(params: ToggleSkipFileStatusParams): Promise<ToggleSkipFileStatusResult>;
 
     /**
      * A request to reveal a certain location in the UI.
@@ -2255,6 +2269,21 @@ export namespace Dap {
      * All threads.
      */
     threads: Thread[];
+  }
+
+  export interface ToggleSkipFileStatusParams {
+    /**
+     * Url of file to be skipped.
+     */
+    resource?: string;
+
+    /**
+     * Source reference number of file.
+     */
+    sourceReference?: number;
+  }
+
+  export interface ToggleSkipFileStatusResult {
   }
 
   export interface VariablesParams {
