@@ -127,7 +127,7 @@ export class BrowserLauncher implements Launcher {
       this._onTargetListChangedEmitter.fire();
     });
 
-    if (params.skipFiles) {
+    if (params.skipFiles.length) {
       this._targetManager.setSkipFiles(new ScriptSkipper(params.skipFiles));
     }
 

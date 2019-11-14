@@ -162,7 +162,19 @@
         "description": "Response to 'prettyPrintSource' request."
 			}]
     },
-
+    "ToggleSkipFileStatusRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Toggle skipfile status.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "toggleSkipFileStatus" ]
+					}
+				},
+				"required": [ "command" ]
+			}]
+		},
 		"RevealLocationRequestedEvent": {
 			"allOf": [ { "$ref": "#/definitions/Event" }, {
 				"type": "object",

@@ -413,7 +413,7 @@ export class BrowserTarget implements Target {
   }
 
   skipFiles(): ScriptSkipper | undefined {
-    return undefined;
+    return this._manager._scriptSkipper;
   }
 
   isServiceWorker(): boolean {

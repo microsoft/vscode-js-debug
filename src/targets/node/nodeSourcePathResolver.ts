@@ -27,7 +27,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return this.rebaseRemoteToLocal(withBase);
     }
     else {
-      return undefined;
+      return '';
     }
   }
 

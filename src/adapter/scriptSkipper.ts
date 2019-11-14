@@ -4,6 +4,11 @@
 import cdp from '../cdp/api';
 import * as utils from '../common/sourceUtils';
 
+export interface IToggleSkipFileStatusArgs {
+  path?: string;
+  sourceReference?: number;
+}
+
 export class ScriptSkipper {
   private _userSkipPatterns: ReadonlyArray<string>;
   private _nonNodeInternalRegex: string = '';
@@ -57,13 +62,13 @@ export class ScriptSkipper {
   private _updateBlackboxedUrls(url: string) {
     if (this._isUrlSkippedMap.get(url) && this.blackboxSender) {
       this._blackboxedUrls.push(url);
-      let blackboxPattern = '^' + this._blackboxedUrls.join('|') + '$';
+      let blackboxPattern = '^' + this._createRegexString(this._blackboxedUrls) + '$';
       this.blackboxSender({patterns: [blackboxPattern]});
     }
   }
 
   private _isNodeInternal(url: string): boolean {
-    return (this._allNodeInternals && this._allNodeInternals.includes(url)) || this._testRegex('^internal/.+\.js|', url);
+    return (this._allNodeInternals && this._allNodeInternals.includes(url)) || this._testRegex('^internal/.+\.js$', url);
   }
 
   public setBlackboxSender(debuggerAPI: cdp.DebuggerApi) {
@@ -93,6 +98,11 @@ export class ScriptSkipper {
 
   public setAllNodeInternals(nodeInternalsNames: string[]): void {
     this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
+  }
+
+  public toggleSkipFileStatus(url: string): void {
+    let currentSkipValue = this._isUrlSkippedMap.get(url);
+    this._isUrlSkippedMap.set(url, !currentSkipValue);
   }
 
 }

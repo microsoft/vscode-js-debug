@@ -14,6 +14,7 @@ import { Contributions } from '../../common/contributionUtils';
 import { RawTelemetryReporterToDap } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
+import { ScriptSkipper } from '../../adapter/scriptSkipper';
 
 const localize = nls.loadMessageBundle();
 
@@ -102,7 +103,9 @@ export class BrowserAttacher implements Launcher {
       this._targetOrigin,
     );
     if (!this._targetManager) return;
-
+    if (params.skipFiles.length) {
+      this._targetManager.setSkipFiles(new ScriptSkipper(params.skipFiles));
+    }
     this._targetManager.serviceWorkerModel.onDidChange(() =>
       this._onTargetListChangedEmitter.fire(),
     );

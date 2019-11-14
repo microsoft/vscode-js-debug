@@ -15,6 +15,8 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { IToggleSkipFileStatusArgs } from './scriptSkipper';
+import * as utils from '../common/sourceUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -56,6 +58,7 @@ export class DebugAdapter {
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
+    this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
     this._rawTelemetryReporter.flush.event(() => {
@@ -258,6 +261,29 @@ export class DebugAdapter {
       this.sourceContainer.revealUiLocation(newUiLocation);
     }
     return {};
+  }
+
+  async _toggleSkipFileStatus(args: IToggleSkipFileStatusArgs): Promise<void> {
+    if (!await this._isInCurrentStack(args) || !this.sourceContainer.scriptSkipper) {
+      return;
+    }
+
+    if (args.path) {
+      args.path = utils.fileUrlToPath(args.path);
+    }
+
+    this.sourceContainer.scriptSkipper.toggleSkipFileStatus(args.path!);
+  }
+
+  private async _isInCurrentStack(args: IToggleSkipFileStatusArgs): Promise<boolean> {
+    const currentStack = await this._onStackTrace({ threadId: this._thread?.id! });
+    const stackFrames = (currentStack as Dap.StackTraceResult).stackFrames;
+
+    if (args.path && stackFrames) {
+      return stackFrames.some(frame => frame.source && frame.source.path === args.path);
+    } else {
+      return stackFrames.some(frame => frame.source && frame.source.sourceReference === args.sourceReference);
+    }
   }
 
   dispose() {
