@@ -7,11 +7,11 @@ import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { calculateHash } from './hash';
-import { delay } from './promiseUtil';
+import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
+import { logger } from './logging/logger';
+import { LogTag } from './logging';
 
-export type SourceMapConsumer = sourceMap.BasicSourceMapConsumer | sourceMap.IndexedSourceMapConsumer;
-
-export function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMapConsumer | undefined> {
+export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMap | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
   const to = generatePositions(minified);
@@ -30,7 +30,9 @@ export function prettyPrintAsSourceMap(fileName: string, minified: string): Prom
       generated: { line: to[i], column: to[i + 1] }
     });
   }
-  return sourceMap.SourceMapConsumer.fromSourceMap(generator);
+  return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), {
+    sourceMapUrl: '',
+  });
 }
 
 function generatePositions(text: string) {
@@ -192,13 +194,27 @@ export function wrapObjectLiteral(code: string): string {
   }
 }
 
-export async function loadSourceMap(url: string, slowDown: number): Promise<SourceMapConsumer | undefined> {
-  if (slowDown)
-    await delay(slowDown);
-  let content = await urlUtils.fetch(url);
-  if (content.slice(0, 3) === ')]}')
+export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
+  let content: string;
+  try {
+    content = await urlUtils.fetch(options.sourceMapUrl);
+  } catch (err) {
+    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
+    return;
+  }
+
+  if (content.slice(0, 3) === ')]}') {
     content = content.substring(content.indexOf('\n'));
-  return await new sourceMap.SourceMapConsumer(content);
+  }
+
+  try {
+    return new SourceMap(
+      await new sourceMap.SourceMapConsumer(content),
+      options,
+    );
+  } catch (err) {
+    logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);
+  }
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

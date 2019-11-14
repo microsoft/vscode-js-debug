@@ -26,6 +26,7 @@ export enum LogTag {
   RuntimeWelcome = 'runtime.welcome',
   RuntimeException = 'runtime.exception',
   RuntimeSourceMap = 'runtime.sourcemap',
+  SourceMapParsing = 'sourcemap.parsing',
   CdpSend = 'cdp.send',
   CdpReceive = 'cdp.receive',
   DapSend = 'dap.send',

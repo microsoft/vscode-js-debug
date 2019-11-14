@@ -107,7 +107,7 @@ export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): str
   if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
     const prefixLen = 'file:///'.length;
     aPath = 'file:///' + aPath[prefixLen].toLowerCase() + aPath.substr(prefixLen + 1);
-  } else if (aPath.match(/^[A-Za-z]:/)) {
+  } else if (isWindowsPath(aPath)) {
     // If the path starts with a drive letter, ensure lowercase. VS Code uses a lowercase drive letter
     const driveLetter = uppercaseDriveLetter ? aPath[0].toUpperCase() : aPath[0].toLowerCase();
     aPath = driveLetter + aPath.substr(1);
@@ -126,7 +126,7 @@ export function fixDriveLetterAndSlashes(aPath: string, uppercaseDriveLetter = f
   if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
     const prefixLen = 'file:///'.length;
     aPath = aPath.substr(0, prefixLen + 1) + aPath.substr(prefixLen + 1).replace(/\//g, '\\');
-  } else if (aPath.match(/^[A-Za-z]:/)) {
+  } else if (isWindowsPath(aPath)) {
     aPath = aPath.replace(/\//g, '\\');
   }
 
@@ -142,3 +142,8 @@ export function forceForwardSlashes(aUrl: string): string {
     .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
     .replace(/\\/g, '/');
 }
+
+/**
+ * Returns whether the path looks like a Windows path.
+ */
+export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path);

@@ -121,6 +121,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       context,
       bootloader: this.getBootloaderFile(resolved.cwd),
       pathResolver: new NodeSourcePathResolver({
+        resolveSourceMapLocations: resolved.resolveSourceMapLocations,
         basePath: resolved.cwd,
         sourceMapOverrides: resolved.sourceMapPathOverrides,
         remoteRoot: resolved.remoteRoot,

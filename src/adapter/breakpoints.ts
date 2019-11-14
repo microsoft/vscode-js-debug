@@ -266,7 +266,11 @@ export class BreakpointManager {
       };
     };
     if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
+      this._breakpointsPredictor = new BreakpointsPredictor(
+        sourceContainer.rootPath,
+        sourceContainer.localSourceMaps,
+        sourceContainer.sourcePathResolver,
+      );
   }
 
   setThread(thread: Thread) {
@@ -318,7 +322,7 @@ export class BreakpointManager {
   async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
-      const promise = this._breakpointsPredictor!.predictBreakpoints(params);
+      const promise = this._breakpointsPredictor.predictBreakpoints(params);
       this._launchBlocker = Promise.all([this._launchBlocker, promise]);
       await promise;
     }

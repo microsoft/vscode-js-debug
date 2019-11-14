@@ -1,21 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ISourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver, IUrlResolution } from '../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
 import {
   properJoin,
   fixDriveLetter,
   fixDriveLetterAndSlashes,
   forceForwardSlashes,
+  isWindowsPath,
 } from '../common/pathUtils';
 import * as path from 'path';
-import { isFileUrl } from '../common/urlUtils';
+import { isFileUrl, fileUrlToAbsolutePath, getCaseSensitivePaths } from '../common/urlUtils';
 import { baseDefaults } from '../configuration';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+import { SourceMap } from '../common/sourceMaps/sourceMap';
+import match from 'micromatch';
 
 export interface ISourcePathResolverOptions {
+  resolveSourceMapLocations: ReadonlyArray<string> | null;
   sourceMapOverrides: { [key: string]: string };
   localRoot: string | null;
   remoteRoot: string | null;
@@ -25,9 +29,43 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
   implements ISourcePathResolver {
   constructor(protected readonly options: T) {}
 
-  public abstract urlToAbsolutePath(url: string): string | undefined;
+  public abstract urlToAbsolutePath(request: IUrlResolution): string | undefined;
 
   public abstract absolutePathToUrl(absolutePath: string): string | undefined;
+
+  /**
+   * Returns whether the source map should be used to resolve a local path,
+   * following the `resolveSourceMapPaths`
+   */
+  protected shouldResolveSourceMap(map: SourceMap) {
+    if (
+      !this.options.resolveSourceMapLocations ||
+      this.options.resolveSourceMapLocations.length === 0
+    ) {
+      return true;
+    }
+
+    const isFile = isFileUrl(map.metadata.sourceMapUrl);
+    const sourcePath =
+      (isFile && fileUrlToAbsolutePath(map.metadata.sourceMapUrl)) || map.metadata.sourceMapUrl;
+
+    // Be case insensitive for remote URIs--we have no way to know
+    // whether the server is case sensitive or not.
+    const caseSensitive = isFileUrl ? getCaseSensitivePaths() : true;
+    const processMatchInput = (value: string) => {
+      value = forceForwardSlashes(value);
+      // built-in 'nocase' match option applies only to operand; we need to normalize both
+      return caseSensitive ? value : value.toLowerCase();
+    };
+
+    return (
+      match(
+        [processMatchInput(sourcePath)],
+        this.options.resolveSourceMapLocations.map(processMatchInput),
+        { dot: true },
+      ).length > 0
+    );
+  }
 
   /**
    * Rebases a remote path to a local one using the remote and local roots.
@@ -47,7 +85,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     localPath = fixDriveLetter(localPath);
     logger.verbose(LogTag.RuntimeSourceMap, `Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
-    return path.resolve(localPath);
+    return resolve(localPath);
   }
 
   /**
@@ -133,15 +171,22 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 }
 
 /**
+ * Cross-platform path.resolve
+ */
+function resolve(a: string): string {
+  return isWindowsPath(a) ? path.win32.resolve(a) : path.posix.resolve(a);
+}
+
+/**
  * Cross-platform path.relative
  */
 function relative(a: string, b: string): string {
-  return a.match(/^[A-Za-z]:/) ? path.win32.relative(a, b) : path.posix.relative(a, b);
+  return isWindowsPath(a) ? path.win32.relative(a, b) : path.posix.relative(a, b);
 }
 
 /**
  * Cross-platform path.join
  */
 function join(a: string, b: string): string {
-  return a.match(/^[A-Za-z]:/) ? path.win32.join(a, b) : forceForwardSlashes(path.posix.join(a, b));
+  return isWindowsPath(a) ? path.win32.join(a, b) : forceForwardSlashes(path.posix.join(a, b));
 }

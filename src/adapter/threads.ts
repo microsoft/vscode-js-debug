@@ -17,6 +17,7 @@ import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 import { ScriptSkipper } from './scriptSkipper';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import { delay } from '../common/promiseUtil';
 import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
@@ -878,8 +879,7 @@ export class Thread implements VariableStoreDelegate {
       const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
       const sources = await Promise.race([
         this._sourceContainer.waitForSourceMapSources(script.source),
-        // Make typescript happy by resolving with empty array.
-        new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
+        delay(timeout),
       ]);
       if (sources && this._scriptWithSourceMapHandler) {
         remainPaused = (await this._scriptWithSourceMapHandler(script, sources)).remainPaused;

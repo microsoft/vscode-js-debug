@@ -97,6 +97,7 @@ export class BrowserAttacher implements Launcher {
     );
 
     const pathResolver = new BrowserSourcePathResolver({
+      resolveSourceMapLocations: params.resolveSourceMapLocations,
       baseUrl: baseURL(params),
       localRoot: null,
       remoteRoot: null,
