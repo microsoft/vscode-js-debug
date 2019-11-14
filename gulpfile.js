@@ -198,9 +198,18 @@ gulp.task('package:webpack-bundle', async () => {
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`, `${buildDir}/README.md`], {
-      base: buildDir,
-    }),
+    gulp.src(
+      [
+        `${buildDir}/LICENSE`,
+        `${buildDir}/package.json`,
+        `${buildDir}/package.*.json`,
+        `${buildDir}/resources/**/*`,
+        `${buildDir}/README.md`,
+      ],
+      {
+        base: buildDir,
+      },
+    ),
     gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );
