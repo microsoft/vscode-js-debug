@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { Thread, RawLocation } from "./threads";
-import { UiLocation } from "./sources";
+import { UiLocation, PreferredUILocation as PreferredUiLocation } from "./sources";
 import Cdp from "../cdp/api";
 import { kLogPointUrl } from "./breakpoints";
 import Dap from "../dap/api";
@@ -129,7 +129,7 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  private _uiLocation: Promise<UiLocation | undefined>;
+  private _uiLocation: Promise<PreferredUiLocation | undefined>;
   private _isAsyncSeparator = false;
   private _scope: Scope | undefined;
   private _thread: Thread;
@@ -250,8 +250,14 @@ export class StackFrame {
   async toDap(): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
-    const presentationHint = this._isAsyncSeparator ? 'label' : 'normal';
-    return {
+    const isSmartStepped = await this.shouldSmartStep();
+    const presentationHint = this._isAsyncSeparator ? 'label' :
+      isSmartStepped ? 'deemphasize' :
+      'normal';
+    if (isSmartStepped && source)
+      source.origin = localize('smartStepSkipLabel', "Skipped by smartStep");
+
+    return <Dap.StackFrame>{
       id: this._id,
       name: this._name,
       line: (uiLocation || this._rawLocation).lineNumber,
@@ -275,6 +281,20 @@ export class StackFrame {
 
   uiLocation(): Promise<UiLocation | undefined> {
     return this._uiLocation;
+  }
+
+  async shouldSmartStep(): Promise<boolean> {
+    const uiLocation = await this._uiLocation;
+    if (!uiLocation)
+      return false;
+
+    if (!uiLocation.source._sourceMapUrl)
+      return false;
+
+    if (!uiLocation.isMapped)
+      return true;
+
+    return false;
   }
 
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {

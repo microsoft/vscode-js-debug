@@ -232,6 +232,10 @@ export class Source {
   }
 };
 
+export interface PreferredUILocation extends UiLocation {
+  isMapped: boolean;
+}
+
 export class SourceContainer {
   private _dap: Dap.Api;
   private _sourceByReference: Map<number, Source> = new Map();
@@ -247,7 +251,7 @@ export class SourceContainer {
 
   public readonly localSourceMaps = new LocalSourceMapRepository();
   private _disabledSourceMaps = new Set<Source>();
-  private _scriptSkipper? : ScriptSkipper;
+  private _scriptSkipper?: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -298,21 +302,23 @@ export class SourceContainer {
   // This method returns a "preferred" location. This usually means going through a source map
   // and showing the source map source instead of a compiled one. We use timeout to avoid
   // waiting for the source map for too long.
-  async preferredUiLocation(uiLocation: UiLocation): Promise<UiLocation> {
+  async preferredUiLocation(uiLocation: UiLocation): Promise<PreferredUILocation> {
+    let isMapped = false;
     while (true) {
       if (!uiLocation.source._sourceMapUrl)
-        return uiLocation;
+        return { ...uiLocation, isMapped };
       const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
         delay(this._sourceMapTimeouts.resolveLocation),
       ]);
       if (!sourceMap.map)
-        return uiLocation;
+        return { ...uiLocation, isMapped };
       const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
       if (!sourceMapped)
-        return uiLocation;
+        return { ...uiLocation, isMapped };
       uiLocation = sourceMapped;
+      isMapped = true;
     }
   }
 
