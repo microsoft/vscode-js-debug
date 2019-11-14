@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Thread, RawLocation } from "./threads";
-import { UiLocation, PreferredUILocation as PreferredUiLocation } from "./sources";
-import Cdp from "../cdp/api";
-import { kLogPointUrl } from "./breakpoints";
-import Dap from "../dap/api";
-import { ScopeRef, ExtraProperty } from "./variables";
 import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import Dap from '../dap/api';
+import { kLogPointUrl } from './breakpoints';
+import { shouldSmartStepStackFrame } from './smartStepping';
+import { PreferredUILocation as PreferredUiLocation } from './sources';
+import { RawLocation, Thread } from './threads';
+import { ExtraProperty, ScopeRef } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -250,7 +251,7 @@ export class StackFrame {
   async toDap(): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
-    const isSmartStepped = await this.shouldSmartStep();
+    const isSmartStepped = await shouldSmartStepStackFrame(this);
     const presentationHint = this._isAsyncSeparator ? 'label' :
       isSmartStepped ? 'deemphasize' :
       'normal';
@@ -279,22 +280,8 @@ export class StackFrame {
     return text;
   }
 
-  uiLocation(): Promise<UiLocation | undefined> {
+  uiLocation(): Promise<PreferredUiLocation | undefined> {
     return this._uiLocation;
-  }
-
-  async shouldSmartStep(): Promise<boolean> {
-    const uiLocation = await this._uiLocation;
-    if (!uiLocation)
-      return false;
-
-    if (!uiLocation.source._sourceMapUrl)
-      return false;
-
-    if (!uiLocation.isMapped)
-      return true;
-
-    return false;
   }
 
   async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {

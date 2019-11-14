@@ -3,24 +3,23 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import Dap from '../dap/api';
+import { delay } from '../common/promiseUtil';
+import { InlineScriptOffset } from '../common/sourcePathResolver';
+import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
+import { BreakpointManager } from './breakpoints';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
-import * as errors from '../dap/errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { UiLocation, Source, SourceContainer, rawToUiOffset, PreferredUILocation } from './sources';
+import { ScriptSkipper } from './scriptSkipper';
+import { SmartStepper } from './smartStepping';
+import { PreferredUILocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
-import * as sourceUtils from '../common/sourceUtils';
-import { InlineScriptOffset } from '../common/sourcePathResolver';
-import { ScriptSkipper } from './scriptSkipper';
-import { AnyLaunchConfiguration, OutputSource } from '../configuration';
-import { delay } from '../common/promiseUtil';
-import { BreakpointManager } from './breakpoints';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -97,6 +96,7 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
+  private _smartStepper = new SmartStepper();
 
   constructor(
     sourceContainer: SourceContainer,
@@ -516,9 +516,7 @@ export class Thread implements VariableStoreDelegate {
     }
 
     this._pausedDetails = this._createPausedDetails(event);
-    const frame = (await this._pausedDetails.stackTrace.loadFrames(1))[0];
-    if (frame && await frame.shouldSmartStep()) {
-      logger.verbose(LogTag.Internal, 'smartStepping');
+    if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
       this.stepInto();
       return;
     }
