@@ -397,6 +397,7 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
 export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
+export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
@@ -523,3 +524,39 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   request: 'attach',
   processId: '',
 };
+
+export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
+  return config.request === 'attach'
+      ? { ...nodeAttachConfigDefaults, ...config }
+      : { ...nodeLaunchConfigDefaults, ...config };
+}
+
+export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyChromeConfiguration {
+  return config.request === 'attach'
+      ? { ...chromeAttachConfigDefaults, ...config }
+      : { ...chromeLaunchConfigDefaults, ...config };
+}
+
+export function applyExtensionHostDefaults(config: ResolvingExtensionHostConfiguration): IExtensionHostConfiguration {
+    return { ...extensionHostConfigDefaults, ...config };
+}
+
+export function applyTerminalDefaults(config: ResolvingTerminalConfiguration): INodeTerminalConfiguration {
+    return { ...extensionHostConfigDefaults, ...config };
+}
+
+export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
+  if (config.type === Contributions.NodeDebugType)
+    return applyNodeDefaults(config);
+
+  if (config.type === Contributions.ChromeDebugType)
+    return applyChromeDefaults(config);
+
+  if (config.type === Contributions.ExtensionHostDebugType)
+    return applyExtensionHostDefaults(config);
+
+  if (config.type === Contributions.TerminalDebugType)
+    return applyTerminalDefaults(config);
+
+  return config as AnyLaunchConfiguration;
+}
