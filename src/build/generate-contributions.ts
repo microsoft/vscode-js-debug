@@ -12,6 +12,7 @@ import {
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
   INodeTerminalConfiguration,
+  baseDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
@@ -104,13 +105,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   sourceMapPathOverrides: {
     type: 'object',
     description: refString('node.sourceMapPathOverrides.description'),
-    default: {
-      'webpack:///./*': '${webRoot}/*',
-      'webpack:///src/*': '${webRoot}/*',
-      'webpack:///*': '*',
-      'webpack:///./~/*': '${webRoot}/node_modules/*',
-      'meteor://💻app/*': '${webRoot}/*',
-    },
+    default: baseDefaults.sourceMapPathOverrides,
   },
   timeout: {
     type: 'number',

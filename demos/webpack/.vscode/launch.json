@@ -12,6 +12,14 @@
       "preLaunchTask": "npm: compile-node"
     },
     {
+      "type": "pwa-node",
+      "request": "launch",
+      "smartStep": false,
+      "trace": true,
+      "name": "[Webpack]: Consume Lib In Node",
+      "program": "${workspaceFolder}/src/consume-lib.js",
+    },
+    {
       "type": "pwa-chrome",
       "request": "launch",
       "name": "[Webpack]: In Browser",
