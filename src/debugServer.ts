@@ -20,6 +20,9 @@ import { IDisposable } from './common/disposable';
 import { NodeAttacher } from './targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -37,7 +40,8 @@ class Configurator {
     dap.on('setBreakpoints', async params => {
       const ids = generateBreakpointIds(params);
       this._setBreakpointsParams.push({params, ids});
-      const breakpoints = ids.map(id => ({ id, verified: false }));
+      const breakpoints = ids.map(id => ({ id, verified: false,
+        message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) })); // TODO: Put a useful message here
       return { breakpoints };
     });
 

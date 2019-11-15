@@ -93,7 +93,7 @@ export class DebugAdapter {
       supportedChecksumAlgorithms: [],
       supportsRestartRequest: true,
       supportsExceptionOptions: false,
-      supportsValueFormattingOptions: false,  // This is not used by vscode.
+      supportsValueFormattingOptions: true,
       supportsExceptionInfoRequest: true,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
