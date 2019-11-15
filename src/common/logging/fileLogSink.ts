@@ -19,8 +19,6 @@ const replacer = (_key: string, value: unknown): any => {
   return value;
 };
 
-const writingFiles = new Set<String>();
-
 /**
  * A log sink that writes to a file.
  */
@@ -34,8 +32,7 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    this.stream = writingFiles.has(file) ? undefined : createWriteStream(file, { flags: 'a' });
-    writingFiles.add(file);
+    this.stream = createWriteStream(file, { flags: 'a' });
   }
 
   /**
@@ -55,7 +52,6 @@ export class FileLogSink implements ILogSink {
     if (this.stream) {
       this.stream.end();
       this.stream = undefined;
-      writingFiles.delete(this.file);
     }
   }
 

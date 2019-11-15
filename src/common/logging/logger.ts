@@ -155,17 +155,16 @@ export class Logger implements ILogger, Disposable {
       }
     }
 
-    if ('sinks' in this.logTarget) {
-      this.logTarget.sinks.push(...options.sinks);
-      return;
-    }
-
     const prevTarget = this.logTarget;
     this.logTarget = { sinks: options.sinks.slice() };
 
-    // intentionally re-`log()` instead of writing directly to sinks so that
-    // and tag or level filtering is applied.
-    prevTarget.queue.forEach(m => this.log(m));
+    if ('sinks' in prevTarget) {
+      prevTarget.sinks.forEach(s => s.dispose());
+    } else {
+      // intentionally re-`log()` instead of writing directly to sinks so that
+      // and tag or level filtering is applied.
+      prevTarget.queue.forEach(m => this.log(m));
+    }
   }
 }
 

@@ -48,7 +48,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
   }
 }
 
-export const resolveCodeLaunchArgs = (launchArgs: IExtensionHostConfiguration, port: number) => {
+const resolveCodeLaunchArgs = (launchArgs: IExtensionHostConfiguration, port: number) => {
   // Separate all "paths" from an arguments into separate attributes.
   const args = launchArgs.args.map<ILaunchVSCodeArgument>(arg => {
     if (arg.startsWith('-')) {
