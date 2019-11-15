@@ -56,6 +56,7 @@ export class DebugAdapter {
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
+    this.dap.on('breakpointLocations', params => this._withThread(async thread => ({ breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params) })));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
     this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
     this._rawTelemetryReporter.flush.event(() => {
@@ -102,7 +103,8 @@ export class DebugAdapter {
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
       supportsTerminateRequest: false,
-      completionTriggerCharacters: ['.', '[', '"', "'"]
+      completionTriggerCharacters: ['.', '[', '"', "'"],
+      supportsBreakpointLocationsRequest: true,
       //supportsDataBreakpoints: false,
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,
