@@ -3,7 +3,6 @@
 import Long from 'long';
 
 export function calculateHash(input: Buffer): string {
-
   const prime = [new Long(0x3fb75161,0,true), new Long(0xab1f4e4f,0,true), new Long(0x82675bc5,0,true), new Long(0xcd924d35,0,true), new Long(0x81abe279,0,true)];
   const random = [new Long(0x67452301,0,true), new Long(0xefcdab89,0,true), new Long(0x98badcfe,0,true), new Long(0x10325476,0,true), new Long(0xc3d2e1f0,0,true)];
   const randomOdd = [new Long(0xb4663807,0,true), new Long(0xcc322bf5,0,true), new Long(0xd4f91bbd,0,true), new Long(0xa7bea11d,0,true), new Long(0x8f462907,0,true)];

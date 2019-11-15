@@ -32,7 +32,6 @@ export async function run(): Promise<void> {
 
   const runner = new Mocha({
     timeout: 2000000,
-    grep: 'createTargetFilter',
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 

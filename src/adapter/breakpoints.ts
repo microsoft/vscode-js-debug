@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as nls from 'vscode-nls';
 import { UiLocation, SourceContainer, Source, uiToRawOffset } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
@@ -11,6 +12,8 @@ import * as urlUtils from '../common/urlUtils';
 import { rewriteLogPoint } from '../common/sourceUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
+
+const localize = nls.loadMessageBundle();
 
 type LineColumn = { lineNumber: number, columnNumber: number }; // 1-based
 
@@ -41,7 +44,8 @@ export class Breakpoint {
   toProvisionalDap(): Dap.Breakpoint {
     return {
       id: this._dapId,
-      verified: false
+      verified: false,
+      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) // TODO: Put a useful message here
     };
   }
 
@@ -266,7 +270,11 @@ export class BreakpointManager {
       };
     };
     if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(sourceContainer.rootPath, sourceContainer.sourcePathResolver);
+      this._breakpointsPredictor = new BreakpointsPredictor(
+        sourceContainer.rootPath,
+        sourceContainer.localSourceMaps,
+        sourceContainer.sourcePathResolver,
+      );
   }
 
   setThread(thread: Thread) {
@@ -318,7 +326,7 @@ export class BreakpointManager {
   async setBreakpoints(params: Dap.SetBreakpointsParams, ids: number[]): Promise<Dap.SetBreakpointsResult> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
-      const promise = this._breakpointsPredictor!.predictBreakpoints(params);
+      const promise = this._breakpointsPredictor.predictBreakpoints(params);
       this._launchBlocker = Promise.all([this._launchBlocker, promise]);
       await promise;
     }

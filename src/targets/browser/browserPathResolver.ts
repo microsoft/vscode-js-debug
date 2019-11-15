@@ -4,6 +4,7 @@
 import * as path from 'path';
 import * as utils from '../../common/urlUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
+import { IUrlResolution } from '../../common/sourcePathResolver';
 
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
@@ -31,7 +32,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     return utils.completeUrlEscapingRoot(baseUrl, utils.platformPathToUrlPath(relative));
   }
 
-  urlToAbsolutePath(url: string): string {
+  urlToAbsolutePath({ url, map }: IUrlResolution): string | undefined {
+    if (map && !this.shouldResolveSourceMap(map)) {
+      return undefined;
+    }
+
     const { baseUrl, webRoot } = this.options;
 
     const absolutePath = utils.fileUrlToAbsolutePath(url);

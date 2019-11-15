@@ -9,6 +9,20 @@ import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
 
+let isCaseSensitive = process.platform !== 'win32';
+
+export function resetCaseSensitivePaths() {
+  isCaseSensitive = process.platform !== 'win32';
+}
+
+export function setCaseSensitivePaths(sensitive: boolean) {
+  isCaseSensitive = sensitive;
+}
+
+export function getCaseSensitivePaths() {
+  return isCaseSensitive;
+}
+
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
     const prefix = url.substring(0, url.indexOf(','));

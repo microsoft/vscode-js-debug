@@ -62,8 +62,8 @@ export class GoldenText {
     this._hasNonAssertedLogs = false;
     const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
     const actualFilePath = path.join(path.dirname(testFilePath), fileFriendlyName + '.txt');
-    const index = actualFilePath.lastIndexOf(path.join('out', 'out', 'test'));
-    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'out', 'test').length);
+    const index = actualFilePath.lastIndexOf(path.join('out', 'src', 'test'));
+    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'src', 'test').length);
     fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);

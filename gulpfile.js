@@ -108,6 +108,14 @@ gulp.task('compile:ts', () =>
     .pipe(gulp.dest(buildSrcDir)),
 );
 
+async function fixNightlyReadme() {
+  const readmePath = `${buildDir}/README.md`;
+  const readmeText = await readFile(readmePath);
+  const readmeNightlyText = await readFile(`README.nightly.md`);
+
+  await writeFile(readmePath, readmeNightlyText + '\n' + readmeText);
+}
+
 gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
@@ -119,8 +127,10 @@ gulp.task('compile:dynamic', async () => {
   if (isNightly) {
     const date = new Date();
     const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
-    packageJson.displayName += ' Nightly';
+    packageJson.displayName += ' (Nightly)';
     packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
+
+    await fixNightlyReadme();
   }
 
   Object.assign(packageJson.contributes, contributions);
@@ -134,7 +144,7 @@ gulp.task('compile:dynamic', async () => {
 gulp.task('compile:static', () =>
   merge(
     gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
-    gulp.src(['resources/**/*', 'src/**/*.sh'], { base: '.' }),
+    gulp.src(['resources/**/*', 'README.md', 'src/**/*.sh'], { base: '.' }),
   ).pipe(gulp.dest(buildDir)),
 );
 
@@ -188,9 +198,19 @@ gulp.task('package:webpack-bundle', async () => {
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`], {
-      base: buildDir,
-    }),
+    gulp.src(
+      [
+        `${buildDir}/LICENSE`,
+        `${buildDir}/package.json`,
+        `${buildDir}/package.*.json`,
+        `${buildDir}/resources/**/*`,
+        `${buildDir}/README.md`,
+      ],
+      {
+        base: buildDir,
+      },
+    ),
+    gulp.src('node_modules/source-map/lib/*.wasm').pipe(rename({ dirname: 'src' })),
     gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );

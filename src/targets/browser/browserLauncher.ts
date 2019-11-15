@@ -106,6 +106,7 @@ export class BrowserLauncher implements Launcher {
     this._launchParams = params;
 
     const pathResolver = new BrowserSourcePathResolver({
+      resolveSourceMapLocations: params.resolveSourceMapLocations,
       baseUrl: baseURL(params),
       localRoot: null,
       remoteRoot: null,
