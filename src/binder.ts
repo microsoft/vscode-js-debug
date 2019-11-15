@@ -72,7 +72,8 @@ export class Binder implements Disposable {
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
-        return { breakpoints: generateBreakpointIds(params).map(id => ({ id, verified: false })) };
+        return { breakpoints: generateBreakpointIds(params).map(id => ({ id, verified: false,
+          message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) })) }; // TODO: Put a useful message here
       });
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));

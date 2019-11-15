@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import { UiLocation, SourceContainer, Source, uiToRawOffset, base1To0 } from './sources';
+import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
@@ -13,6 +14,8 @@ import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatis
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+
+const localize = nls.loadMessageBundle();
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -51,6 +54,7 @@ export class Breakpoint {
     return {
       id: this._dapId,
       verified: false,
+      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`), // TODO: Put a useful message here
     };
   }
 
