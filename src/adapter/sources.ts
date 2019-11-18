@@ -322,32 +322,44 @@ export class SourceContainer {
     }
   }
 
-  // This method shows all possible locations for a given one. For example, all compiled sources
-  // which refer to the same source map will be returned given the location in source map source.
-  // This method does not wait for the source map to be loaded.
+  /**
+   * This method shows all possible locations for a given one. For example, all
+   * compiled sources which refer to the same source map will be returned given
+   * the location in source map source. This method does not wait for the
+   * source map to be loaded.
+   */
   currentSiblingUiLocations(uiLocation: UiLocation, inSource?: Source): UiLocation[] {
     return this._uiLocations(uiLocation).filter(uiLocation => !inSource || uiLocation.source === inSource);
   }
 
-  _uiLocations(uiLocation: UiLocation): UiLocation[] {
-    const result: UiLocation[] = [];
-    this._addSourceMapUiLocations(uiLocation, result);
-    result.push(uiLocation);
-    this._addCompiledUiLocations(uiLocation, result);
-    return result;
+  /**
+   * Returns all the possible locations the given location can map to or from,
+   * taking into account source maps.
+   */
+  private _uiLocations(uiLocation: UiLocation): UiLocation[] {
+    return [
+      ...this.getSourceMapUiLocations(uiLocation),
+      uiLocation,
+      ...this.getCompiledLocations(uiLocation),
+    ];
   }
 
-  _addSourceMapUiLocations(uiLocation: UiLocation, result: UiLocation[]) {
+  /**
+   * Returns all UI locations the given location maps to.
+   */
+  private getSourceMapUiLocations(uiLocation: UiLocation): UiLocation[] {
     if (!uiLocation.source._sourceMapUrl)
-      return;
+      return [];
     const map = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!.map;
     if (!map)
-      return;
+      return [];
     const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
     if (!sourceMapUiLocation)
-      return;
-    this._addSourceMapUiLocations(sourceMapUiLocation, result);
-    result.push(sourceMapUiLocation);
+      return [];
+
+    const r = this.getSourceMapUiLocations(sourceMapUiLocation);
+    r.push(sourceMapUiLocation);
+    return r;
   }
 
   _sourceMappedUiLocation(uiLocation: UiLocation, map: SourceMap): UiLocation | undefined {
@@ -373,34 +385,44 @@ export class SourceContainer {
     };
   }
 
-  _addCompiledUiLocations(uiLocation: UiLocation, result: UiLocation[]) {
-    if (!uiLocation.source._compiledToSourceUrl)
-      return;
+  private getCompiledLocations(uiLocation: UiLocation): UiLocation[] {
+    if (!uiLocation.source._compiledToSourceUrl) {
+      return [];
+    }
+
+    let output: UiLocation[] = [];
     for (const [compiled, sourceUrl] of uiLocation.source._compiledToSourceUrl) {
-      const map = this._sourceMaps.get(compiled._sourceMapUrl!)!.map;
-      if (!map)
+      const sourceMap = this._sourceMaps.get(compiled._sourceMapUrl!);
+      if (!sourceMap || !sourceMap.map) {
         continue;
-      const entry = map.generatedPositionFor({
+      }
+
+      const entry = sourceMap.map.generatedPositionFor({
         source: sourceUrl,
         line: uiLocation.lineNumber,
         column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
         bias: SourceMapConsumer.LEAST_UPPER_BOUND,
       });
 
-      if (entry.line === null)
+      if (entry.line === null) {
         continue;
-      const {lineNumber, columnNumber} = uiToRawOffset({
+      }
+
+      const { lineNumber, columnNumber } = uiToRawOffset({
         lineNumber: entry.line || 1,
         columnNumber: (entry.column || 0) + 1 // correct for 0 index
       }, compiled._inlineScriptOffset);
+
       const compiledUiLocation: UiLocation = {
         lineNumber,
         columnNumber,
         source: compiled
       };
-      result.push(compiledUiLocation);
-      this._addCompiledUiLocations(compiledUiLocation, result);
+
+      output = output.concat(compiledUiLocation, this.getCompiledLocations(compiledUiLocation));
     }
+
+    return output;
   }
 
   addSource(url: string, contentGetter: ContentGetter,
@@ -582,3 +604,13 @@ export function rawToUiOffset(lc: LineColumn, offset?: InlineScriptOffset): Line
   }
   return {lineNumber, columnNumber};
 }
+
+export const base0To1 = (lc: LineColumn) => ({
+  lineNumber: lc.lineNumber + 1,
+  columnNumber: lc.columnNumber + 1,
+});
+
+export const base1To0 = (lc: LineColumn) => ({
+  lineNumber: lc.lineNumber - 1,
+  columnNumber: lc.columnNumber - 1,
+});
