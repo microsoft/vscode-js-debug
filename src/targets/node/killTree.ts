@@ -22,7 +22,10 @@ export function killTree(processId: number): void {
     // on linux and OS X we kill all direct and indirect child processes as well
     try {
       const cmd = join(__dirname, './terminateProcess.sh');
-      spawnSync(cmd, [processId.toString()]);
+      const r = spawnSync('sh', [cmd, processId.toString()]);
+      if (r.stderr && r.status) {
+        logger.error(LogTag.RuntimeException, 'Error running terminateProcess', r);
+      }
     } catch (err) {
       logger.error(LogTag.RuntimeException, 'Error running terminateProcess', err);
     }

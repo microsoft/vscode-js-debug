@@ -155,7 +155,7 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
   runtimeExecutable: string | null;
 
   /**
-   * Extension host session ID.
+   * Extension host session ID. A "magical" value set by VS Code.
    */
   __sessionId?: string;
 }

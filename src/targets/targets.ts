@@ -76,13 +76,18 @@ export interface IStopMetadata {
    * Any error that occurred.
    */
   error?: Error;
+
+  /**
+   * Restart parameters.
+   */
+  restart?: any;
 }
 
 export interface Launcher extends Disposable {
   launch(params: AnyLaunchConfiguration, context: ILaunchContext, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
-  restart(rawTelemetryReporter: RawTelemetryReporterToDap): Promise<void>;
+  restart(): Promise<void>;
   onTargetListChanged: Event<void>;
   onTerminated: Event<IStopMetadata>;
   targetList(): Target[];

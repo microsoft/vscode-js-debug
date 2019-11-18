@@ -12,18 +12,18 @@ const replacer = (_key: string, value: unknown): any => {
     return {
       message: value.message,
       stack: value.stack,
-      ...value
+      ...value,
     };
   }
 
   return value;
-}
+};
 
 /**
  * A log sink that writes to a file.
  */
 export class FileLogSink implements ILogSink {
-  private readonly stream: WriteStream;
+  private stream?: WriteStream;
 
   constructor(private readonly file: string, private readonly dap: Dap.Api) {
     try {
@@ -32,7 +32,7 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    this.stream = createWriteStream(file);
+    this.stream = createWriteStream(file, { flags: 'a' });
   }
 
   /**
@@ -49,13 +49,18 @@ export class FileLogSink implements ILogSink {
    * @inheritdoc
    */
   public dispose() {
-    this.stream.end();
+    if (this.stream) {
+      this.stream.end();
+      this.stream = undefined;
+    }
   }
 
   /**
    * @inheritdoc
    */
   public write(item: ILogItem<any>): void {
-    this.stream.write(JSON.stringify(item, replacer) + '\n');
+    if (this.stream) {
+      this.stream.write(JSON.stringify(item, replacer) + '\n');
+    }
   }
 }
