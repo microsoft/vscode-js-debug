@@ -64,7 +64,9 @@ export class ChromeDebugConfigurationProvider
 
     if (config.request === 'attach') {
       // todo https://github.com/microsoft/vscode-chrome-debug/blob/ee5ae7ac7734f369dba58ba57bb910aac467c97a/src/extension.ts#L48
-    } else if (config.server && 'program' in config.server) {
+    }
+
+    if (config.server && 'program' in config.server) {
       const serverOpts = {
         ...config.server,
         type: Contributions.NodeDebugType,

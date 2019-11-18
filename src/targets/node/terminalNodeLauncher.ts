@@ -47,7 +47,6 @@ export class TerminalNodeLauncher extends NodeLauncherBase<INodeTerminalConfigur
 
     if (
       params.type === Contributions.ChromeDebugType &&
-      params.request === 'launch' &&
       params.server &&
       'command' in params.server
     ) {

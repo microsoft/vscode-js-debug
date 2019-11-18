@@ -288,6 +288,11 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Can have * wildcards.
    */
   urlFilter: string;
+
+  /**
+   * Launch options to boot a server.
+   */
+  server: INodeLaunchConfiguration | INodeTerminalConfiguration | null;
 }
 
 /**
@@ -363,11 +368,6 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * with your default user profile.
    */
   userDataDir: string | boolean;
-
-  /**
-   * Launch options to boot a server.
-   */
-  server: INodeLaunchConfiguration | INodeTerminalConfiguration | null;
 }
 
 /**
@@ -499,6 +499,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   url: 'http://localhost:8080',
   urlFilter: '',
   webRoot: '${workspaceFolder}',
+  server: null,
 };
 
 export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
@@ -511,7 +512,6 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeArgs: null,
   runtimeExecutable: 'stable',
   userDataDir: true,
-  server: null,
 };
 
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {

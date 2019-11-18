@@ -31,7 +31,6 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
 
     if (
       params.type === Contributions.ChromeDebugType &&
-      params.request === 'launch' &&
       params.server &&
       'program' in params.server
     ) {
