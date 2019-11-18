@@ -322,18 +322,21 @@ export class SourceContainer {
     }
   }
 
-  // This method shows all possible locations for a given one. For example, all compiled sources
-  // which refer to the same source map will be returned given the location in source map source.
-  // This method does not wait for the source map to be loaded.
+  /**
+   * This method shows all possible locations for a given one. For example, all
+   * compiled sources which refer to the same source map will be returned given
+   * the location in source map source. This method does not wait for the
+   * source map to be loaded.
+   */
   currentSiblingUiLocations(uiLocation: UiLocation, inSource?: Source): UiLocation[] {
-    return this.allPossibleLocations(uiLocation).filter(uiLocation => !inSource || uiLocation.source === inSource);
+    return this._uiLocations(uiLocation).filter(uiLocation => !inSource || uiLocation.source === inSource);
   }
 
   /**
    * Returns all the possible locations the given location can map to or from,
    * taking into account source maps.
    */
-  public allPossibleLocations(uiLocation: UiLocation): UiLocation[] {
+  private _uiLocations(uiLocation: UiLocation): UiLocation[] {
     return [
       ...this.getSourceMapUiLocations(uiLocation),
       uiLocation,

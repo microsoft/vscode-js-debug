@@ -297,13 +297,13 @@ export class BreakpointManager {
       return [];
     }
 
-    const startLocations = this._sourceContainer.allPossibleLocations({
+    const startLocations = this._sourceContainer.currentSiblingUiLocations({
       source,
       lineNumber: request.line,
       columnNumber: request.column === undefined ? 1 : request.column,
     });
 
-    const endLocations = this._sourceContainer.allPossibleLocations({
+    const endLocations = this._sourceContainer.currentSiblingUiLocations({
       source,
       lineNumber: request.endLine === undefined ? request.line + 1 : request.endLine,
       columnNumber: request.endColumn === undefined ? 1 : request.endColumn,
@@ -323,6 +323,11 @@ export class BreakpointManager {
     for (let i = 0; i < startLocations.length; i++) {
       const start = startLocations[i];
       const end = endLocations[i];
+
+      if (start.source !== end.source) {
+        logger.warn(LogTag.Internal, 'Expected to have the same number of start and end scripts');
+        continue;
+      }
 
       // Only take the first script that matches this source. The breakpoints
       // are all coming from the same source code, so possible breakpoints
@@ -352,16 +357,14 @@ export class BreakpointManager {
             // inlined amongst the range we request).
             const result: Dap.BreakpointLocation[] = [];
             for (const location of r.locations) {
-              const sourceLocations = this._sourceContainer.allPossibleLocations({
+              const sourceLocations = this._sourceContainer.currentSiblingUiLocations({
                 source: start.source,
                 lineNumber: location.lineNumber + 1,
                 columnNumber: (location.columnNumber || 0) + 1,
-              });
+              }, source);
 
               for (const srcLocation of sourceLocations) {
-                if (srcLocation.source === source) {
-                  result.push({ line: srcLocation.lineNumber, column: srcLocation.columnNumber });
-                }
+                result.push({ line: srcLocation.lineNumber, column: srcLocation.columnNumber });
               }
             }
 
