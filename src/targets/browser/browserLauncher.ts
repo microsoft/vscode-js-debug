@@ -18,10 +18,16 @@ import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { cancellableRace } from '../../common/cancellation';
+import { timeoutPromise } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
+import Dap from '../../dap/api';
 
 const localize = nls.loadMessageBundle();
+
+/**
+ * 'magic' chrome version runtime executables.
+ */
+const chromeVersions = new Set<string>(['canary', 'stable', 'custom']);
 
 export class BrowserLauncher implements Launcher {
   private _connectionForTest: CdpConnection | undefined;
@@ -49,32 +55,40 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port }: IChromeLaunchConfiguration, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port, webRoot }: IChromeLaunchConfiguration, dap: Dap.Api, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
     let executablePath = '';
-    if (executable && executable !== 'canary' && executable !== 'stable' && executable !== 'custom') {
+    if (executable && !chromeVersions.has(executable)) {
       executablePath = executable;
     } else {
       const installations = findBrowser();
       if (executable) {
         const installation = installations.find(e => e.type === executable);
-        if (installation)
+        if (installation) {
           executablePath = installation.path;
+        }
       } else {
         // Prefer canary over stable, it comes earlier in the list.
-        if (installations.length)
+        if (installations.length) {
           executablePath = installations[0].path;
+        }
       }
     }
 
+    if (!executablePath) {
+      throw new Error(`Unable to find browser ${executable}`);
+    }
+
+    // If we had a custom executable, don't resolve a data
+    // dir unless it's  explicitly requested.
     let resolvedDataDir: string | undefined;
-    if (userDataDir === true) {
-        resolvedDataDir = path.join(this._storagePath, runtimeArgs && runtimeArgs.includes('--headless') ? '.headless-profile' : '.profile');
+    if (!executable || chromeVersions.has(executable) || userDataDir === true) {
+      resolvedDataDir = path.join(
+        this._storagePath,
+        runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
+      );
     } else if (typeof userDataDir === 'string') {
       resolvedDataDir = userDataDir;
     }
-
-    if (!executablePath)
-      throw new Error('Unable to find browser');
 
     try {
       fs.mkdirSync(this._storagePath);
@@ -83,18 +97,20 @@ export class BrowserLauncher implements Launcher {
 
     return await launcher.launch(
       executablePath, rawTelemetryReporter, cancellationToken, {
-        cwd: cwd || undefined,
-        env: EnvironmentVars.merge(process.env, env),
+        onStdout: output => dap.output({ category: 'stdout', output }),
+        onStderr: output => dap.output({ category: 'stderr', output }),
+        cwd: cwd || webRoot || undefined,
+        env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
         connection: port || 'pipe',
       });
   }
 
-  async prepareLaunch(params: IChromeLaunchConfiguration, { targetOrigin, cancellationToken }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
+  async prepareLaunch(params: IChromeLaunchConfiguration, { dap, targetOrigin, cancellationToken }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
     let connection: CdpConnection;
     try {
-      connection = await this._launchBrowser(params, cancellationToken, rawTelemetryReporter);
+      connection = await this._launchBrowser(params, dap, cancellationToken, rawTelemetryReporter);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
@@ -134,7 +150,7 @@ export class BrowserLauncher implements Launcher {
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    this._mainTarget = await cancellableRace(
+    this._mainTarget = await timeoutPromise(
       this._targetManager.waitForMainTarget(),
       cancellationToken,
       'Could not attach to main target',

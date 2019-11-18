@@ -7,13 +7,14 @@ import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
 import CdpConnection from '../../cdp/connection';
-import { PipeTransport, WebSocketTransport } from '../../cdp/transport';
+import { PipeTransport, WebSocketTransport, Transport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
 import { TaskCancelledError } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
+import { delay } from '../../common/promiseUtil';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -30,7 +31,11 @@ const DEFAULT_ARGS = [
   '--no-first-run',
 ];
 
+const noop = () => undefined;
+
 interface LaunchOptions {
+  onStdout?: (data: string) => void;
+  onStderr?: (data: string) => void;
   args?: ReadonlyArray<string>;
   dumpio?: boolean;
   cwd?: string;
@@ -40,6 +45,13 @@ interface LaunchOptions {
   userDataDir?: string;
 }
 
+const suggestedPortArg = '--remote-debugging-';
+
+const findSuggestedPort = (args: ReadonlyArray<string>): number | undefined => {
+  const arg = args.find(a => a.startsWith(suggestedPortArg));
+  return arg ? Number(arg.slice(suggestedPortArg.length)) : undefined;
+};
+
 export async function launch(
   executablePath: string,
   rawTelemetryReporter: RawTelemetryReporter,
@@ -47,6 +59,8 @@ export async function launch(
   options: LaunchOptions | undefined = {},
 ): Promise<CdpConnection> {
   const {
+    onStderr = noop,
+    onStdout = noop,
     args = [],
     dumpio = false,
     cwd = process.cwd(),
@@ -56,17 +70,23 @@ export async function launch(
   } = options;
 
   const browserArguments: string[] = [];
-  if (!ignoreDefaultArgs) browserArguments.push(...defaultArgs(options));
-  else if (Array.isArray(ignoreDefaultArgs))
-    browserArguments.push(
-      ...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1),
-    );
-  else browserArguments.push(...args);
+  if (!ignoreDefaultArgs) {
+    browserArguments.push(...defaultArgs(options));
+  } else if (Array.isArray(ignoreDefaultArgs)) {
+    browserArguments.push(...defaultArgs(options).filter(arg => !ignoreDefaultArgs.includes(arg)));
+  } else {
+    browserArguments.push(...args);
+  }
 
-  if (!browserArguments.some(argument => argument.startsWith('--remote-debugging-')))
-    browserArguments.push(
-      connection === 'pipe' ? '--remote-debugging-pipe' : `--remote-debugging-port=${connection}`,
-    );
+  let suggestedPort = findSuggestedPort(args);
+  if (suggestedPort === undefined) {
+    if (connection === 'pipe') {
+      browserArguments.push('--remote-debugging-pipe');
+    } else {
+      suggestedPort = connection;
+      browserArguments.push(`--remote-debugging-port=${connection}`);
+    }
+  }
 
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
@@ -91,27 +111,27 @@ export async function launch(
   }
 
   if (dumpio) {
-    browserProcess.stderr!.on('data', data => console.warn(data.toString()));
-    browserProcess.stdout!.on('data', data => console.warn(data.toString()));
+    browserProcess.stderr!.on('data', d => onStderr(d.toString()));
+    browserProcess.stdout!.on('data', d => onStdout(d.toString()));
   }
 
   process.on('exit', killBrowser);
   try {
-    if (!usePipe) {
-      const browserWSEndpoint = await waitForWSEndpoint(browserProcess, cancellationToken);
-      const transport = await WebSocketTransport.create(browserWSEndpoint, cancellationToken);
-      return new CdpConnection(transport, rawTelemetryReporter);
+    let transport: Transport;
+    if (usePipe) {
+      transport = new PipeTransport(
+        browserProcess.stdio[3] as Writable,
+        browserProcess.stdio[4] as Readable,
+      );
+    } else if (suggestedPort === undefined || suggestedPort === 0) {
+      const endpoint = await waitForWSEndpoint(browserProcess, cancellationToken);
+      transport = await WebSocketTransport.create(endpoint, cancellationToken);
     } else {
-      const stdio = (browserProcess.stdio as unknown) as [
-        Writable,
-        Readable,
-        Readable,
-        Writable,
-        Readable,
-      ];
-      const transport = new PipeTransport(stdio[3], stdio[4]);
-      return new CdpConnection(transport, rawTelemetryReporter);
+      const endpoint = await waitForDebuggerServerOnPort(suggestedPort, cancellationToken);
+      transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
+
+    return new CdpConnection(transport, rawTelemetryReporter);
   } catch (e) {
     killBrowser();
     throw e;
@@ -155,7 +175,10 @@ export async function attach(
   const { browserWSEndpoint, browserURL } = options;
 
   if (browserWSEndpoint) {
-    const connectionTransport = await WebSocketTransport.create(browserWSEndpoint, cancellationToken);
+    const connectionTransport = await WebSocketTransport.create(
+      browserWSEndpoint,
+      cancellationToken,
+    );
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   } else if (browserURL) {
     const connectionURL = await getWSEndpoint(browserURL, cancellationToken);
@@ -163,6 +186,22 @@ export async function attach(
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
+}
+
+/**
+ * Polls for the debug server on the port, until we get a server or
+ * cancellation is requested.
+ */
+async function waitForDebuggerServerOnPort(port: number, ct: CancellationToken) {
+  while (!ct.isCancellationRequested) {
+    try {
+      return await getWSEndpoint(`http://localhost:${port}`, ct);
+    } catch (_e) {
+      await delay(50);
+    }
+  }
+
+  throw new TaskCancelledError('Lookup cancelled');
 }
 
 function waitForWSEndpoint(
@@ -183,7 +222,11 @@ function waitForWSEndpoint(
 
     const timeout = cancellationToken.onCancellationRequested(() => {
       cleanup();
-      reject(new Error(`Timed out after ${timeout} ms while trying to connect to the browser!`));
+      reject(
+        new TaskCancelledError(
+          `Timed out after ${timeout} ms while trying to connect to the browser!`,
+        ),
+      );
     });
 
     function onDone(error?: Error) {
