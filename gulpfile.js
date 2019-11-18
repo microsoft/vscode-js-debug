@@ -150,14 +150,7 @@ gulp.task('compile:static', () =>
 
 gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
-/** Run webpack to bundle the extension output files */
-gulp.task('package:webpack-bundle', async () => {
-  const packages = [
-    { entry: `${buildSrcDir}/extension.js`, library: true },
-    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
-    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
-  ];
-
+async function runWebpack(packages) {
   for (const { entry, library } of packages) {
     const config = {
       mode: 'production',
@@ -193,6 +186,28 @@ gulp.task('package:webpack-bundle', async () => {
       }),
     );
   }
+}
+
+/** Run webpack to bundle the extension output files */
+gulp.task('package:webpack-bundle', async () => {
+  const packages = [
+    { entry: `${buildSrcDir}/extension.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+  ];
+
+  return runWebpack(packages);
+});
+
+/** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
+gulp.task('flatSessionBundle:webpack-bundle', async () => {
+  const packages = [
+    { entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+  ];
+
+  return runWebpack(packages);
 });
 
 /** Copy the extension static files */
@@ -233,6 +248,16 @@ gulp.task(
     'package:webpack-bundle',
     'package:copy-extension-files',
     'package:createVSIX',
+  ),
+);
+
+gulp.task(
+  'flatSessionBundle',
+  gulp.series(
+    'clean',
+    'compile',
+    'flatSessionBundle:webpack-bundle',
+    'package:copy-extension-files',
   ),
 );
 
