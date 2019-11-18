@@ -75,6 +75,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   resolveSourceMapLocations: ReadonlyArray<string> | null;
 
   /**
+   * Whether to pause when sourcemapped scripts are loaded to load their
+   * sourcemap and ensure breakpoints are set.
+   */
+  pauseForSourceMap: boolean;
+
+  /**
    * Show the async calls that led to the current call stack.
    */
   showAsyncStacks: boolean;
@@ -433,6 +439,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json

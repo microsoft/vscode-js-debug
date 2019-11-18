@@ -1002,7 +1002,7 @@ export class Thread implements VariableStoreDelegate {
     if (this._scriptWithSourceMapHandler === handler)
       return;
     this._scriptWithSourceMapHandler = handler;
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
+    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
       this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;

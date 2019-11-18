@@ -58,7 +58,7 @@ export class DebugAdapter {
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('breakpointLocations', params => this._withThread(async thread => ({ breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params) })));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
-    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, launchConfig.pauseForSourceMap);
     this._rawTelemetryReporter.flush.event(() => {
       this._rawTelemetryReporter.report('breakpointsStatistics', this.breakpointManager.statisticsForTelemetry());
     });
