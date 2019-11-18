@@ -14,6 +14,7 @@ import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider
 import { Contributions } from './common/contributionUtils';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { basename } from 'path';
+import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -26,6 +27,7 @@ export class ChromeDebugConfigurationProvider
   constructor(
     context: vscode.ExtensionContext,
     private readonly nodeProvider: NodeDebugConfigurationProvider,
+    private readonly terminalProvider: TerminalDebugConfigurationProvider,
   ) {
     super(context);
 
@@ -62,7 +64,7 @@ export class ChromeDebugConfigurationProvider
 
     if (config.request === 'attach') {
       // todo https://github.com/microsoft/vscode-chrome-debug/blob/ee5ae7ac7734f369dba58ba57bb910aac467c97a/src/extension.ts#L48
-    } else if (config.server) {
+    } else if (config.server && 'program' in config.server) {
       const serverOpts = {
         ...config.server,
         type: Contributions.NodeDebugType,
@@ -74,6 +76,13 @@ export class ChromeDebugConfigurationProvider
         folder,
         serverOpts,
       )) as INodeLaunchConfiguration;
+    } else if (config.server && 'command' in config.server) {
+      config.server = await this.terminalProvider.resolveDebugConfiguration(folder, {
+        ...config.server,
+        type: Contributions.TerminalDebugType,
+        request: 'launch',
+        name: `${config.name}: Server`,
+      });
     }
 
     return config.request === 'attach'

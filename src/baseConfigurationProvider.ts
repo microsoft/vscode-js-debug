@@ -31,7 +31,7 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
-  ): vscode.ProviderResult<vscode.DebugConfiguration> {
+  ): vscode.ProviderResult<T> {
     // We can't make the entire method async, as TS complains that it must
     // return a Promise rather than a ProviderResult.
     return (async () => {

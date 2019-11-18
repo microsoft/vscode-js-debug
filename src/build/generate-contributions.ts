@@ -577,12 +577,23 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   configurationAttributes: {
     ...chromeBaseConfigurationAttributes,
     server: {
-      type: 'object',
-      description: refString('chrome.server.description'),
-      additionalProperties: false,
-      default: { program: 'node my-server.js' } as any,
-      properties: nodeLaunchConfig.configurationAttributes as { [key: string]: JSONSchema6 },
-    },
+      oneOf: [
+        {
+          type: 'object',
+          description: refString('chrome.server.description'),
+          additionalProperties: false,
+          default: { program: 'node my-server.js' },
+          properties: nodeLaunchConfig.configurationAttributes,
+        },
+        {
+          type: 'object',
+          description: refString('debug.terminal.label'),
+          additionalProperties: false,
+          default: { program: 'npm start' },
+          properties: nodeTerminalConfiguration.configurationAttributes,
+        },
+      ],
+    } as any,
     file: {
       type: 'string',
       description: refString('chrome.file.description'),

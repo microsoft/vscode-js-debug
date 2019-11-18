@@ -367,7 +367,7 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
   /**
    * Launch options to boot a server.
    */
-  server: INodeLaunchConfiguration | null;
+  server: INodeLaunchConfiguration | INodeTerminalConfiguration | null;
 }
 
 /**
