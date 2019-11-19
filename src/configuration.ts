@@ -119,6 +119,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * From where to capture output messages: The debug API, or stdout/stderr streams.
    */
   outputCapture: OutputSource;
+
+  /**
+   * The value of the ${workspaceFolder} variable
+   */
+  __workspaceFolder: string;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
@@ -442,6 +447,8 @@ export const baseDefaults: IBaseConfiguration = {
     'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
     'meteor://💻app/*': '${workspaceFolder}/*',
   },
+  // Should always be determined upstream
+  __workspaceFolder: ''
 };
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
@@ -546,17 +553,36 @@ export function applyTerminalDefaults(config: ResolvingTerminalConfiguration): I
 }
 
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
+  let configWithDefaults: AnyLaunchConfiguration;
   if (config.type === Contributions.NodeDebugType)
-    return applyNodeDefaults(config);
+    configWithDefaults = applyNodeDefaults(config);
+  else if (config.type === Contributions.ChromeDebugType)
+    configWithDefaults = applyChromeDefaults(config);
+  else if (config.type === Contributions.ExtensionHostDebugType)
+    configWithDefaults = applyExtensionHostDefaults(config);
+  else if (config.type === Contributions.TerminalDebugType)
+    configWithDefaults = applyTerminalDefaults(config);
+  else
+    throw new Error('Unknown config type: ' + (config as any).type);
 
-  if (config.type === Contributions.ChromeDebugType)
-    return applyChromeDefaults(config);
+  resolveWorkspaceRoot(configWithDefaults);
+  return configWithDefaults;
+}
 
-  if (config.type === Contributions.ExtensionHostDebugType)
-    return applyExtensionHostDefaults(config);
+function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
+  resolveVariablesInConfig(config, 'workspaceFolder', config.__workspaceFolder);
+}
 
-  if (config.type === Contributions.TerminalDebugType)
-    return applyTerminalDefaults(config);
+function resolveVariablesInConfig(config: any, varName: string, varValue: string): any {
+  for (const key in config) {
+    if (typeof config[key] === 'string') {
+      config[key] = resolveVariable(config[key], varName, varValue);
+    } else {
+      resolveVariablesInConfig(config[key], varName, varValue);
+    }
+  }
+}
 
-  return config as AnyLaunchConfiguration;
+function resolveVariable(entry: string, varName: string, varValue: string): string {
+  return entry.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
 }

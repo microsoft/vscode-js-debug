@@ -22,7 +22,8 @@ type OmittedKeysFromAttributes =
   | 'request'
   | 'internalConsoleOptions'
   | 'name'
-  | 'rootPath';
+  | 'rootPath'
+  | '__workspaceFolder';
 
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
