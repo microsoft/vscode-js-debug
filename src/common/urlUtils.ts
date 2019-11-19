@@ -4,7 +4,7 @@
 import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fixDriveLetterAndSlashes, isUncPath, isWindowsPath } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath, isWindowsPath, splitWithDriveLetter } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
@@ -40,7 +40,7 @@ export function lowerCaseInsensitivePath(path: string) {
  */
 export const truePathCasing = memoize(
   async (inputPath: string): Promise<string> => {
-    if (!isCaseSensitive || isUncPath(inputPath)) {
+    if (isCaseSensitive || isUncPath(inputPath)) {
       return inputPath;
     }
 
@@ -50,21 +50,25 @@ export const truePathCasing = memoize(
     }
 
     // This seems to be the canonical way to do things as far as I can tell.
-    const input = inputPath.toLowerCase().split(path.sep);
+    const input = splitWithDriveLetter(inputPath.toLowerCase());
     const output = await Promise.all(
       input.map(async (segment, i) => {
         if (i === 0 && isWindowsPath(inputPath)) {
           // drive letter
-          return segment;
+          return segment.toUpperCase();
         }
 
         const needle = segment.toLowerCase();
-        const children = await readdir(input.slice(0, i).join(path.sep));
-        return children.find(c => c.toLowerCase() === needle) || segment;
+        try {
+          const children = await readdir(input.slice(0, i).join(path.sep));
+          return children.find(c => c.toLowerCase() === needle) || segment;
+        } catch (e) {
+          return segment;
+        }
       }),
     );
 
-    return output.join(path.sep);
+    return path.join(...output);
   },
 );
 

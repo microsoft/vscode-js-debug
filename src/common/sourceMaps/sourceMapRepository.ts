@@ -8,7 +8,7 @@ import * as path from 'path';
 import { absolutePathToFileUrl, completeUrl, truePathCasing } from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
-import { fixDriveLetter, isWindowsPath } from '../pathUtils';
+import { splitWithDriveLetter } from '../pathUtils';
 
 class Directory {
   private readonly subdirectories: { [normalizedName: string]: Directory } = {};
@@ -22,12 +22,7 @@ class Directory {
    * Returns a Directory for the given path.
    */
   public async lookup(requestedPath: string): Promise<Directory> {
-    const segments = (await truePathCasing(requestedPath)).split(path.sep);
-    if (isWindowsPath(requestedPath)) {
-      // ensure casing of drive letter and trailing slash so that .join() is correct.
-      segments[0] = segments[0][0].toUpperCase() + ':\\';
-    };
-
+    const segments = splitWithDriveLetter(await truePathCasing(requestedPath));
     return this.lookupInternal(segments, 0);
   }
 
@@ -124,7 +119,7 @@ class Directory {
 
     return {
       compiledPath: absolutePath,
-      sourceMapUrl: fixDriveLetter(sourceMapUrl, false),
+      sourceMapUrl: sourceMapUrl,
     };
   }
 }

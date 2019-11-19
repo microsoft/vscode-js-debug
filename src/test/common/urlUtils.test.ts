@@ -1,7 +1,9 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import * as os from 'os';
-import { fileUrlToAbsolutePath, createTargetFilter } from '../../common/urlUtils';
+import { fileUrlToAbsolutePath, createTargetFilter, truePathCasing, getCaseSensitivePaths } from '../../common/urlUtils';
+import { createFileTree, testFixturesDir } from '../test';
+import { join } from 'path';
 
 describe('urlUtils', () => {
   describe('fileUrlToPath()', () => {
@@ -37,6 +39,24 @@ describe('urlUtils', () => {
       // Should remove query args?
       const expectedPath = '/Users/me/file?config={"a":"b"}';
       expect(fileUrlToAbsolutePath('file://' + expectedPath)).to.equal(expectedPath);
+    });
+  });
+
+  describe('truePathCasing()',  () => {
+    it('works', async () => {
+      createFileTree(testFixturesDir, {
+        'foo/Bar/BAZ.txt': 'hello.txt',
+      });
+
+      const correct = join(testFixturesDir, 'foo/Bar/BAZ.txt');
+      const incorrect = join(testFixturesDir, 'FOO/bar/baz.txt');
+      expect(await truePathCasing(correct)).to.equal(correct);
+
+      if (getCaseSensitivePaths()) {
+        expect(await truePathCasing(incorrect)).to.equal(incorrect);
+      } else {
+        expect(await truePathCasing(incorrect)).to.equal(correct);
+      }
     });
   });
 

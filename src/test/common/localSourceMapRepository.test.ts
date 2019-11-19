@@ -6,8 +6,7 @@ import { expect } from 'chai';
 import { LocalSourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
 import { createFileTree, testFixturesDir } from '../test';
-import { createHash } from 'crypto';
-import { absolutePathToFileUrl } from '../../common/urlUtils';
+import { absolutePathToFileUrl, getCaseSensitivePaths } from '../../common/urlUtils';
 
 describe('localSourceMapRepository', () => {
   let r: LocalSourceMapRepository;
@@ -36,16 +35,10 @@ describe('localSourceMapRepository', () => {
   it('discovers all children and skips node_modules', async () => {
     expect(await r.findAllChildren(testFixturesDir)).to.deep.equal({
       [join(testFixturesDir, 'a.js')]: {
-        hash: createHash('md5')
-          .update('content1')
-          .digest(),
         compiledPath: join(testFixturesDir, 'a.js'),
         sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'a.js.map')),
       },
       [join(testFixturesDir, 'nested', 'd.js')]: {
-        hash: createHash('md5')
-          .update('content2')
-          .digest(),
         compiledPath: join(testFixturesDir, 'nested', 'd.js'),
         sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'nested', 'd.js.map')),
       },
@@ -55,12 +48,20 @@ describe('localSourceMapRepository', () => {
   it('looks in node_modules if required', async () => {
     expect(await r.findAllChildren(join(testFixturesDir, 'node_modules'))).to.deep.equal({
       [join(testFixturesDir, 'node_modules', 'e.js')]: {
-        hash: createHash('md5')
-          .update('content3')
-          .digest(),
         compiledPath: join(testFixturesDir, 'node_modules', 'e.js'),
         sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'node_modules', 'e.js.map')),
       },
     });
+  });
+
+  it('normalizes for path insensitivity', async () => {
+    if (getCaseSensitivePaths()) {
+      expect(await r.findAllChildren(testFixturesDir.toUpperCase())).to.be.empty;
+      return;
+    }
+
+    const expected = await r.findAllChildren(testFixturesDir);
+    const newInst = new LocalSourceMapRepository();
+    expect(await newInst.findAllChildren(testFixturesDir.toUpperCase())).to.deep.equal(expected);
   });
 });
