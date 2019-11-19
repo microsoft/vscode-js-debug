@@ -237,8 +237,11 @@ export function urlPathToPlatformPath(p: string): string {
 
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
-  if (process.platform === 'win32') return p.replace(/\\/g, '/');
-  return p;
+  if (process.platform === 'win32') {
+    p = p.replace(/\\/g, '/');
+  }
+
+  return p.replace(/ /g, '%20');
 }
 
 export function platformPathToPreferredCase(p: string): string;

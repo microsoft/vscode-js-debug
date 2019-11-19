@@ -11,13 +11,20 @@ let servers: child_process.ChildProcess[];
 
 before(async () => {
   servers = [
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001']),
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002']),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001'], { stdio: 'pipe' }),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'], { stdio: 'pipe' }),
   ];
 
   await Promise.all(
     servers.map(server => {
-      return new Promise(callback => server.once('message', callback));
+      return new Promise((resolve, reject) => {
+        let error = '';
+        server.stderr?.on('data', data => error += data.toString());
+        server.stdout?.on('data', data => error += data.toString());
+        server.once('error', reject);
+        server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
+        server.once('message', resolve);
+      });
     }),
   );
 });

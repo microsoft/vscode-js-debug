@@ -5,13 +5,16 @@
 import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
-import { absolutePathToFileUrl, completeUrl, truePathCasing } from '../urlUtils';
+import { absolutePathToFileUrl, completeUrl, lowerCaseInsensitivePath } from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
 import { splitWithDriveLetter } from '../pathUtils';
+import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 
 class Directory {
-  private readonly subdirectories: { [normalizedName: string]: Directory } = {};
+  private readonly subdirectories: Map<string, Directory> = new MapUsingProjection(
+    lowerCaseInsensitivePath,
+  );
   private sourceMaps?: Promise<{
     [basename: string]: ISourceMapMetadata;
   }>;
@@ -22,7 +25,7 @@ class Directory {
    * Returns a Directory for the given path.
    */
   public async lookup(requestedPath: string): Promise<Directory> {
-    const segments = splitWithDriveLetter(await truePathCasing(requestedPath));
+    const segments = splitWithDriveLetter(requestedPath);
     return this.lookupInternal(segments, 0);
   }
 
@@ -42,7 +45,7 @@ class Directory {
    */
   public async allChildren(): Promise<{ [absolutePath: string]: ISourceMapMetadata }> {
     const directChildren = await this.directChildren();
-    const nested = await Promise.all(Object.values(this.subdirectories).map(s => s.allChildren()));
+    const nested = await Promise.all([...this.subdirectories.values()].map(s => s.allChildren()));
     return Object.assign({}, directChildren, ...nested);
   }
 
@@ -52,9 +55,10 @@ class Directory {
     }
 
     const segment = parts[offset];
-    let subdir = this.subdirectories[segment];
+    let subdir = this.subdirectories.get(segment);
     if (!subdir) {
-      subdir = this.subdirectories[segment] = new Directory(path.join(this.path, segment));
+      subdir = new Directory(path.join(this.path, segment));
+      this.subdirectories.set(segment, subdir);
     }
 
     return subdir.lookupInternal(parts, offset + 1);
@@ -89,8 +93,8 @@ class Directory {
             return;
           }
 
-          if (stat.isDirectory()) {
-            this.subdirectories[bn] = this.subdirectories[bn] || new Directory(absolutePath);
+          if (stat.isDirectory() && !this.subdirectories.has(bn)) {
+            this.subdirectories.set(bn, new Directory(absolutePath));
             return;
           }
         }),

@@ -14,6 +14,7 @@ import { delay } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 const localize = nls.loadMessageBundle();
 
@@ -240,7 +241,7 @@ export class SourceContainer {
   private _dap: Dap.Api;
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
-  private _sourceByAbsolutePath: Map<string, Source> = new Map();
+  private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(utils.lowerCaseInsensitivePath);
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
@@ -295,7 +296,7 @@ export class SourceContainer {
     if (ref.sourceReference)
       return this._sourceByReference.get(ref.sourceReference);
     if (ref.path)
-      return this._sourceByAbsolutePath.get(utils.lowerCaseInsensitivePath(ref.path));
+      return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
   }
 
@@ -438,7 +439,7 @@ export class SourceContainer {
     this._sourceByReference.set(source.sourceReference(), source);
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.set(source._url, source);
-    this._sourceByAbsolutePath.set(utils.lowerCaseInsensitivePath(source._absolutePath), source);
+    this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
@@ -484,7 +485,7 @@ export class SourceContainer {
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.delete(source._url);
-    this._sourceByAbsolutePath.delete(utils.lowerCaseInsensitivePath(source._absolutePath));
+    this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
 
