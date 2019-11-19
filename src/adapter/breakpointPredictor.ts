@@ -10,6 +10,7 @@ import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathRes
 import { uiToRawOffset } from './sources';
 import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { SourceMapConsumer } from 'source-map';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -120,10 +121,11 @@ class DirectoryScanner {
           continue;
         }
 
-        let set = sourcePathToCompiled.get(resolvedPath);
+        const normalizedPath = urlUtils.lowerCaseInsensitivePath(resolvedPath);
+        let set = sourcePathToCompiled.get(normalizedPath);
         if (!set) {
           set = new Set();
-          sourcePathToCompiled.set(resolvedPath, set);
+          sourcePathToCompiled.set(normalizedPath, set);
         }
         set.add({ ...metadata, sourceUrl: url });
       }
@@ -135,7 +137,7 @@ class DirectoryScanner {
   public async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
     const sourcePathToCompiled = await this._sourcePathToCompiled;
     const absolutePath = params.source.path!;
-    const set = sourcePathToCompiled.get(absolutePath);
+    const set = sourcePathToCompiled.get(urlUtils.lowerCaseInsensitivePath(absolutePath));
 
     if (!set) return;
     for (const metadata of set) {
@@ -153,13 +155,14 @@ class DirectoryScanner {
           source: metadata.sourceUrl,
           line: b.line,
           column: b.column || 1,
+          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
         });
         if (entry.line === null) {
           continue;
         }
 
         const { lineNumber, columnNumber } = uiToRawOffset(
-          { lineNumber: entry.line || 1, columnNumber: entry.column || 1 },
+          { lineNumber: entry.line || 1, columnNumber: entry.column ? entry.column + 1 : 1 },
           kNodeScriptOffset,
         );
         const predicted: PredictedLocation = {

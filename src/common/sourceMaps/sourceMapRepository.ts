@@ -5,13 +5,22 @@
 import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
-import { getCaseSensitivePaths, absolutePathToFileUrl, completeUrl } from '../urlUtils';
+import {
+  absolutePathToFileUrl,
+  completeUrl,
+  lowerCaseInsensitivePath,
+  getCaseSensitivePaths,
+} from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
+import { readdirSync } from 'fs';
+import { isWindowsPath, fixDriveLetter } from '../pathUtils';
 
 class Directory {
-  private readonly subdirectories: { [basename: string]: Directory } = {};
-  private sourceMaps?: Promise<{ [basename: string]: ISourceMapMetadata }>;
+  private readonly subdirectories: { [normalizedName: string]: Directory } = {};
+  private sourceMaps?: Promise<{
+    [basename: string]: ISourceMapMetadata;
+  }>;
 
   constructor(private readonly path: string) {}
 
@@ -19,8 +28,13 @@ class Directory {
    * Returns a Directory for the given path.
    */
   public lookup(requestedPath: string): Directory {
-    if (!getCaseSensitivePaths()) {
-      requestedPath = requestedPath.toLowerCase();
+    requestedPath = lowerCaseInsensitivePath(requestedPath);
+
+    // special case: on windows treat the drive letter "c:\" as one segment.
+    if (isWindowsPath(requestedPath)) {
+      requestedPath = fixDriveLetter(requestedPath, false);
+      const drive = requestedPath.slice(0, 3);
+      return this.lookupInternal([drive, ...requestedPath.slice(3).split(path.sep)], 0);
     }
 
     return this.lookupInternal(requestedPath.split(path.sep), 0);
@@ -52,10 +66,27 @@ class Directory {
     }
 
     const segment = parts[offset];
-    let subdir = this.subdirectories[segment];
-    if (!subdir) {
+    let subdir = this.subdirectories[lowerCaseInsensitivePath(segment)];
+    if (subdir) {
+      // continue...
+    } else if (getCaseSensitivePaths() || offset === 0) {
+      // on case sensitive systems, we can take the lookup at its word that it's the right path
       subdir = this.subdirectories[segment] = new Directory(
-        parts.slice(0, offset + 1).join(path.sep),
+        path.join(this.path, segment),
+      );
+    } else {
+      // otherwise, we need to make sure it's correct
+      let correctCase: string | undefined;
+      try {
+        const children = readdirSync(this.path);
+        correctCase = children.find(c => c.toLowerCase() === segment.toLowerCase());
+      } catch (e) {
+        console.warn(e);
+        // ignored
+      }
+
+      subdir = this.subdirectories[segment] = new Directory(
+        path.join(this.path, correctCase || segment),
       );
     }
 
@@ -77,10 +108,6 @@ class Directory {
         .filter(bn => bn !== 'node_modules' && bn !== '.')
         .sort()
         .map(async bn => {
-          if (!getCaseSensitivePaths()) {
-            bn = bn.toLowerCase();
-          }
-
           const absolutePath = path.join(this.path, bn);
           const stat = await fsUtils.stat(absolutePath);
           if (!stat) {
@@ -96,7 +123,8 @@ class Directory {
           }
 
           if (stat.isDirectory()) {
-            this.subdirectories[bn] = this.subdirectories[bn] || new Directory(absolutePath);
+            this.subdirectories[lowerCaseInsensitivePath(bn)] =
+              this.subdirectories[bn] || new Directory(absolutePath);
             return;
           }
         }),
@@ -125,7 +153,7 @@ class Directory {
 
     return {
       compiledPath: absolutePath,
-      sourceMapUrl: sourceMapUrl,
+      sourceMapUrl: fixDriveLetter(sourceMapUrl, false),
     };
   }
 }

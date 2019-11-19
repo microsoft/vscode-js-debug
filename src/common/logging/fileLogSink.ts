@@ -32,7 +32,7 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    this.stream = createWriteStream(file, { flags: 'a' });
+    this.stream = createWriteStream(file);
   }
 
   /**

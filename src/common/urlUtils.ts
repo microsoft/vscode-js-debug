@@ -23,6 +23,16 @@ export function getCaseSensitivePaths() {
   return isCaseSensitive;
 }
 
+/**
+ * Lowercases the path if the filesystem is case-insensitive. Warning: this
+ * should only be done for the purposes of comparing paths. Paths returned
+ * through DAP and other protocols should be correctly-cased to avoid incorrect
+ * disambiguation.
+ */
+export function lowerCaseInsensitivePath(path: string) {
+  return isCaseSensitive ? path : path.toLowerCase();
+}
+
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
     const prefix = url.substring(0, url.indexOf(','));
