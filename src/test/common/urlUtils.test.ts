@@ -1,7 +1,15 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import * as os from 'os';
-import { fileUrlToAbsolutePath, createTargetFilter, truePathCasing, getCaseSensitivePaths } from '../../common/urlUtils';
+import {
+  fileUrlToAbsolutePath,
+  createTargetFilter,
+  urlToRegex,
+  setCaseSensitivePaths,
+  resetCaseSensitivePaths,
+  truePathCasing,
+  getCaseSensitivePaths,
+} from '../../common/urlUtils';
 import { createFileTree, testFixturesDir } from '../test';
 import { join } from 'path';
 
@@ -42,7 +50,7 @@ describe('urlUtils', () => {
     });
   });
 
-  describe('truePathCasing()',  () => {
+  describe('truePathCasing()', () => {
     it('works', async () => {
       createFileTree(testFixturesDir, {
         'foo/Bar/BAZ.txt': 'hello.txt',
@@ -57,6 +65,62 @@ describe('urlUtils', () => {
       } else {
         expect(await truePathCasing(incorrect)).to.equal(correct);
       }
+    });
+  });
+
+  describe('urlToRegex - case sensitive', () => {
+    before(() => setCaseSensitivePaths(true));
+    after(() => resetCaseSensitivePaths());
+
+    it('works for a simple posix path', () => {
+      expect(urlToRegex('file:///a/b.js')).to.equal('file:\\/\\/\\/a\\/b\\.js|\\/a\\/b\\.js');
+    });
+
+    it('works for a simple windows path', () => {
+      expect(urlToRegex('file:///c:/a/b.js')).to.equal(
+        'file:\\/\\/\\/[Cc]:\\/a\\/b\\.js|[Cc]:\\\\a\\\\b\\.js',
+      );
+    });
+
+    it('works for a url', () => {
+      expect(urlToRegex('http://localhost:8080/a/b.js')).to.equal(
+        'http:\\/\\/localhost:8080\\/a\\/b\\.js',
+      );
+    });
+
+    it('space in path', () => {
+      expect(urlToRegex('file:///a/space%20path.js')).to.equal(
+        'file:\\/\\/\\/a\\/space%20path\\.js|\\/a\\/space path\\.js',
+      );
+    });
+  });
+
+  describe('urlToRegex - case insensitive', () => {
+    before(() => setCaseSensitivePaths(false));
+    after(() => resetCaseSensitivePaths());
+
+    it('works for a simple posix path', () => {
+      expect(urlToRegex('file:///a/b.js')).to.equal(
+        '[fF][iI][lL][eE]:\\/\\/\\/[aA]\\/[bB]\\.[jJ][sS]|\\/[aA]\\/[bB]\\.[jJ][sS]',
+      );
+    });
+
+    it('works for a simple windows path', () => {
+      expect(urlToRegex('file:///c:/a/b.js')).to.equal(
+        '[fF][iI][lL][eE]:\\/\\/\\/[cC]:\\/[aA]\\/[bB]\\.[jJ][sS]|[cC]:\\\\[aA]\\\\[bB]\\.[jJ][sS]',
+      );
+    });
+
+    it('works for a url', () => {
+      expect(urlToRegex('http://localhost:8080/a/b.js')).to.equal(
+        '[hH][tT][tT][pP]:\\/\\/[lL][oO][cC][aA][lL][hH][oO][sS][tT]:8080\\/[aA]\\/[bB]\\.[jJ][sS]',
+      );
+    });
+
+    it('space in path', () => {
+      expect(urlToRegex('file:///a/space%20path.js')).to.equal(
+        '[fF][iI][lL][eE]:\\/\\/\\/[aA]\\/[sS][pP][aA][cC][eE]%20[pP][aA][tT][hH]\\.[jJ][sS]|\\/[aA]\\/[sS][pP][aA][cC][eE] [pP][aA][tT][hH]\\.[jJ][sS]',
+      );
     });
   });
 

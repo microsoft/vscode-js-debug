@@ -168,23 +168,6 @@ export function escapeForRegExp(s: string): string {
   return result;
 }
 
-export function urlToRegExString(urlString: string): string {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch (e) {
-    return '^' + escapeForRegExp(urlString) + '$';
-  }
-  if (url.protocol === 'about:' && url.pathname === 'blank') return '';
-  if (url.protocol === 'data:') return '';
-  let prefix = '';
-  if (url.protocol && url.protocol !== 'http:' && url.protocol !== 'https') {
-    prefix = '^' + url.protocol + '//';
-    if (url.protocol.endsWith('-extension:')) prefix += url.hostname + '\\b';
-  }
-  return prefix + escapeForRegExp(url.pathname) + (url.search ? '\\b' : '$');
-}
-
 /**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences
  */
@@ -211,6 +194,42 @@ export function absolutePathToFileUrl(absolutePath: string): string | undefined 
     if (process.platform === 'win32') return 'file:///' + platformPathToUrlPath(absolutePath);
     return 'file://' + platformPathToUrlPath(absolutePath);
   } catch (e) {}
+}
+
+/**
+ * Returns whether the path is a Windows or posix path.
+ */
+export function isAbsolute(_path: string): boolean {
+  return path.posix.isAbsolute(_path) || path.win32.isAbsolute(_path);
+}
+
+/**
+ * Converts and escape the file URL to a regular expression.
+ */
+export function urlToRegex(aPath: string) {
+  const absolutePath = fileUrlToAbsolutePath(aPath);
+
+  aPath = escapeRegexSpecialChars(aPath);
+  if (absolutePath) {
+    aPath += `|${escapeRegexSpecialChars(absolutePath)}`;
+  }
+
+  // If we should resolve paths in a case-sensitive way, we still need to set
+  // the BP for either an upper or lowercased drive letter
+  if (isCaseSensitive) {
+    aPath = aPath.replace(
+      /(^|\|)(file:\\\/\\\/\\\/)?([a-zA-Z]):/g,
+      (_match, start = '', file = '', letter) => {
+        const upper = letter.toUpperCase();
+        const lower = letter.toLowerCase();
+        return `${start}${file}[${upper}${lower}]:`;
+      },
+    );
+  } else {
+    aPath = aPath.replace(/[a-z]/gi, letter => `[${letter.toLowerCase()}${letter.toUpperCase()}]`);
+  }
+
+  return aPath;
 }
 
 export function isFileUrl(candidate: string): boolean {

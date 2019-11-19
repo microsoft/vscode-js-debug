@@ -14,7 +14,6 @@ import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatis
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
-import { fixDriveLetter } from '../common/pathUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -178,8 +177,8 @@ export class Breakpoint {
     if (this._setUrlLocations.has(urlLocation)) return;
     this._setUrlLocations.add(urlLocation);
 
-    const location = {
-      url: fixDriveLetter(url, false),
+    const location: Cdp.Debugger.SetBreakpointByUrlParams = {
+      urlRegex: urlUtils.urlToRegex(url),
       condition: this._condition,
       ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
     };
