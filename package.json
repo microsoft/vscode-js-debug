@@ -30,7 +30,7 @@
     "watch": "gulp watch",
     "package": "gulp package",
     "publish": "gulp publish",
-    "test": "gulp --drop-in && node ./out/src/test/runTest.js",
+    "test": "gulp && node ./out/src/test/runTest.js",
     "intTest": "mocha --exit --timeout 20000 -s 3500 -u tdd --colors --reporter out/src/int-chrome/testSupport/loggingReporter.js \"./out/src/int-chrome/**/*.test.js\""
   },
   "dependencies": {

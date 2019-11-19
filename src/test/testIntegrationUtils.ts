@@ -6,6 +6,7 @@ import { testWorkspace, testFixturesDir, TestRoot } from './test';
 import { GoldenText } from './goldenText';
 import * as child_process from 'child_process';
 import * as path from 'path';
+import { TestFunction, ExclusiveTestFunction } from 'mocha';
 
 let servers: child_process.ChildProcess[];
 
@@ -32,8 +33,8 @@ interface IIntegrationState {
   r: TestRoot;
 }
 
-export const itIntegrates = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) =>
-  it(test, async function() {
+const itIntegratesBasic = (test: string, fn: (s: IIntegrationState) => Promise<void> | void, testFunction: TestFunction | ExclusiveTestFunction = it) =>
+testFunction(test, async function() {
     const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
     const root = new TestRoot(golden);
     await root.initialize;
@@ -52,6 +53,9 @@ export const itIntegrates = (test: string, fn: (s: IIntegrationState) => Promise
       throw new Error(`Whoa, test "${test}" has some logs that it did not assert!`);
     }
   });
+
+itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.only);
+export const itIntegrates = itIntegratesBasic;
 
 afterEach(async () => {
   await del([`${testFixturesDir}/**`], { force: true /* delete outside cwd */ });
