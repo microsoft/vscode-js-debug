@@ -4,10 +4,12 @@
 import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fixDriveLetterAndSlashes } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath, isWindowsPath } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
+import { readdir } from './fsUtils';
+import { memoize } from './objUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -32,6 +34,39 @@ export function getCaseSensitivePaths() {
 export function lowerCaseInsensitivePath(path: string) {
   return isCaseSensitive ? path : path.toLowerCase();
 }
+
+/**
+ * Returns the path in its true case, correcting for case-insensitive file systems.
+ */
+export const truePathCasing = memoize(
+  async (inputPath: string): Promise<string> => {
+    if (!isCaseSensitive || isUncPath(inputPath)) {
+      return inputPath;
+    }
+
+    const parsedFromUrl = fileUrlToAbsolutePath(inputPath);
+    if (parsedFromUrl) {
+      return absolutePathToFileUrl(await truePathCasing(parsedFromUrl))!;
+    }
+
+    // This seems to be the canonical way to do things as far as I can tell.
+    const input = inputPath.toLowerCase().split(path.sep);
+    const output = await Promise.all(
+      input.map(async (segment, i) => {
+        if (i === 0 && isWindowsPath(inputPath)) {
+          // drive letter
+          return segment;
+        }
+
+        const needle = segment.toLowerCase();
+        const children = await readdir(input.slice(0, i).join(path.sep));
+        return children.find(c => c.toLowerCase() === needle) || segment;
+      }),
+    );
+
+    return output.join(path.sep);
+  },
+);
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
@@ -253,11 +288,11 @@ export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boo
 
     const fileUrl = fileUrlToAbsolutePath(aUrl);
     if (fileUrl) {
-        // Strip file:///, if present
-        aUrl = fileUrl;
+      // Strip file:///, if present
+      aUrl = fileUrl;
     } else if (isValidUrl(aUrl) && aUrl.includes('://')) {
-        // Strip the protocol, if present
-        aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
+      // Strip the protocol, if present
+      aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
     }
 
     // Remove optional trailing /
@@ -266,7 +301,7 @@ export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boo
     }
 
     return aUrl;
-};
+  };
 
   targetUrl = escapeRegexSpecialChars(standardizeMatch(targetUrl), '/*').replace(/\*/g, '.*');
   const targetUrlRegex = new RegExp('^' + targetUrl + '$', 'g');

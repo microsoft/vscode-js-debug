@@ -5,16 +5,10 @@
 import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
-import {
-  absolutePathToFileUrl,
-  completeUrl,
-  lowerCaseInsensitivePath,
-  getCaseSensitivePaths,
-} from '../urlUtils';
+import { absolutePathToFileUrl, completeUrl, truePathCasing } from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
-import { readdirSync } from 'fs';
-import { isWindowsPath, fixDriveLetter } from '../pathUtils';
+import { fixDriveLetter, isWindowsPath } from '../pathUtils';
 
 class Directory {
   private readonly subdirectories: { [normalizedName: string]: Directory } = {};
@@ -27,17 +21,14 @@ class Directory {
   /**
    * Returns a Directory for the given path.
    */
-  public lookup(requestedPath: string): Directory {
-    requestedPath = lowerCaseInsensitivePath(requestedPath);
-
-    // special case: on windows treat the drive letter "c:\" as one segment.
+  public async lookup(requestedPath: string): Promise<Directory> {
+    const segments = (await truePathCasing(requestedPath)).split(path.sep);
     if (isWindowsPath(requestedPath)) {
-      requestedPath = fixDriveLetter(requestedPath, false);
-      const drive = requestedPath.slice(0, 3);
-      return this.lookupInternal([drive, ...requestedPath.slice(3).split(path.sep)], 0);
-    }
+      // ensure casing of drive letter and trailing slash so that .join() is correct.
+      segments[0] = segments[0][0].toUpperCase() + ':\\';
+    };
 
-    return this.lookupInternal(requestedPath.split(path.sep), 0);
+    return this.lookupInternal(segments, 0);
   }
 
   /**
@@ -66,28 +57,9 @@ class Directory {
     }
 
     const segment = parts[offset];
-    let subdir = this.subdirectories[lowerCaseInsensitivePath(segment)];
-    if (subdir) {
-      // continue...
-    } else if (getCaseSensitivePaths() || offset === 0) {
-      // on case sensitive systems, we can take the lookup at its word that it's the right path
-      subdir = this.subdirectories[segment] = new Directory(
-        path.join(this.path, segment),
-      );
-    } else {
-      // otherwise, we need to make sure it's correct
-      let correctCase: string | undefined;
-      try {
-        const children = readdirSync(this.path);
-        correctCase = children.find(c => c.toLowerCase() === segment.toLowerCase());
-      } catch (e) {
-        console.warn(e);
-        // ignored
-      }
-
-      subdir = this.subdirectories[segment] = new Directory(
-        path.join(this.path, correctCase || segment),
-      );
+    let subdir = this.subdirectories[segment];
+    if (!subdir) {
+      subdir = this.subdirectories[segment] = new Directory(path.join(this.path, segment));
     }
 
     return subdir.lookupInternal(parts, offset + 1);
@@ -123,8 +95,7 @@ class Directory {
           }
 
           if (stat.isDirectory()) {
-            this.subdirectories[lowerCaseInsensitivePath(bn)] =
-              this.subdirectories[bn] || new Directory(absolutePath);
+            this.subdirectories[bn] = this.subdirectories[bn] || new Directory(absolutePath);
             return;
           }
         }),
@@ -185,15 +156,17 @@ export class LocalSourceMapRepository {
   public async findDirectChildren(
     absolutePath: string,
   ): Promise<{ [path: string]: ISourceMapMetadata }> {
-    const dir = this.tree.lookup(absolutePath);
+    const dir = await this.tree.lookup(absolutePath);
     return dir.directChildren();
   }
 
   /**
    * Recursively finds all children of the given direcotry.
    */
-  public findAllChildren(absolutePath: string): Promise<{ [key: string]: ISourceMapMetadata }> {
-    const dir = this.tree.lookup(absolutePath);
+  public async findAllChildren(
+    absolutePath: string,
+  ): Promise<{ [key: string]: ISourceMapMetadata }> {
+    const dir = await this.tree.lookup(absolutePath);
     return dir.allChildren();
   }
 }

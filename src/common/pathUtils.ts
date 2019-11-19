@@ -144,6 +144,11 @@ export function forceForwardSlashes(aUrl: string): string {
 }
 
 /**
+ * Returns whether the path looks like a UNC path.
+ */
+export const isUncPath = (path: string) => path.startsWith('\\\\');
+
+/**
  * Returns whether the path looks like a Windows path.
  */
 export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path);

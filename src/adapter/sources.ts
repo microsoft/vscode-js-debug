@@ -295,7 +295,7 @@ export class SourceContainer {
     if (ref.sourceReference)
       return this._sourceByReference.get(ref.sourceReference);
     if (ref.path)
-      return this._sourceByAbsolutePath.get(ref.path);
+      return this._sourceByAbsolutePath.get(utils.lowerCaseInsensitivePath(ref.path));
     return undefined;
   }
 
@@ -438,7 +438,7 @@ export class SourceContainer {
     this._sourceByReference.set(source.sourceReference(), source);
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.set(source._url, source);
-    this._sourceByAbsolutePath.set(source._absolutePath, source);
+    this._sourceByAbsolutePath.set(utils.lowerCaseInsensitivePath(source._absolutePath), source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
@@ -484,7 +484,7 @@ export class SourceContainer {
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl)
       this._sourceMapSourcesByUrl.delete(source._url);
-    this._sourceByAbsolutePath.delete(source._absolutePath);
+    this._sourceByAbsolutePath.delete(utils.lowerCaseInsensitivePath(source._absolutePath));
     this._disabledSourceMaps.delete(source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
 
