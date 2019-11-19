@@ -7,7 +7,7 @@ import { expect } from 'chai';
 import {
   CancellationTokenSource,
   NeverCancelled,
-  cancellableRace,
+  timeoutPromise,
   Cancelled,
   TaskCancelledError,
 } from '../../common/cancellation';
@@ -126,13 +126,13 @@ describe('CancellationToken', () => {
 
   describe('cancellableRace', () => {
     it('returns the value when no cancellation is requested', async () => {
-      const v = await cancellableRace(Promise.resolve(42), NeverCancelled);
+      const v = await timeoutPromise(Promise.resolve(42), NeverCancelled);
       expect(v).to.equal(42);
     });
 
     it('throws if cancellation is requested', async () => {
       try {
-        await cancellableRace(Promise.resolve(42), Cancelled);
+        await timeoutPromise(Promise.resolve(42), Cancelled);
         throw new Error('expected to throw');
       } catch (e) {
         if (e instanceof TaskCancelledError) {
@@ -145,7 +145,7 @@ describe('CancellationToken', () => {
 
     it('throws if lazy cancellation is requested', async () => {
       try {
-        await cancellableRace(
+        await timeoutPromise(
           delay(1000),
           CancellationTokenSource.withTimeout(3).token,
           'Could not do the thing',

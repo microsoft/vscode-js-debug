@@ -279,9 +279,10 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
   webRoot: string;
 
   /**
-   * Will search for a tab with this exact url and attach to it, if found.
+   * Will navigate to this URL and attach to it. This can be omitted to
+   * avoid navigation.
    */
-  url: string;
+  url: string | null;
 
   /**
    * Will search for a page with this url and attach to it, if found.
@@ -496,7 +497,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   port: 0,
   disableNetworkCache: true,
   pathMapping: {},
-  url: 'http://localhost:8080',
+  url: null,
   urlFilter: '',
   webRoot: '${workspaceFolder}',
   server: null,
@@ -511,7 +512,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   env: {},
   runtimeArgs: null,
   runtimeExecutable: 'stable',
-  userDataDir: true,
+  userDataDir: false,
 };
 
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {

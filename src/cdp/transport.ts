@@ -6,7 +6,7 @@ import WebSocket from 'ws';
 import * as events from 'events';
 import { HighResolutionTime } from '../utils/performance';
 import { CancellationToken } from 'vscode';
-import { cancellableRace } from '../common/cancellation';
+import { timeoutPromise } from '../common/cancellation';
 
 export interface Transport {
   send(message: string): void;
@@ -92,7 +92,7 @@ export class WebSocketTransport implements Transport {
       maxPayload: 256 * 1024 * 1024, // 256Mb
     });
 
-    return cancellableRace(
+    return timeoutPromise(
       new Promise<WebSocketTransport>((resolve, reject) => {
         ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
         ws.addEventListener('error', reject);

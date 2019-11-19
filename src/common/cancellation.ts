@@ -15,7 +15,7 @@ export class TaskCancelledError extends Error {}
  * Returns the result of the promise if it resolves before the cancellation
  * is requested. Otherwise, throws a TaskCancelledError.
  */
-export function cancellableRace<T>(
+export function timeoutPromise<T>(
   promise: Promise<T>,
   cancellation: CancellationToken,
   message?: string,
@@ -34,6 +34,26 @@ export function cancellableRace<T>(
     }),
     promise.finally(() => disposable.dispose()),
   ]);
+}
+
+/**
+ * Like Promise.race, but cancels other promises after the first returns.
+ */
+export function cancellableRace<T>(
+  promises: ReadonlyArray<(ct: CancellationToken) => Promise<T>>,
+  parent?: CancellationToken,
+): Promise<T> {
+  const cts = new CancellationTokenSource(parent);
+
+  const todo = promises.map(async fn => {
+    try {
+      return await fn(cts.token);
+    } finally {
+      cts.cancel();
+    }
+  });
+
+  return Promise.race(todo);
 }
 
 const shortcutEvent = Object.freeze(function(callback, context?): IDisposable {
