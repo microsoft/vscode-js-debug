@@ -31,7 +31,7 @@ export async function run(): Promise<void> {
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
   const runner = new Mocha({
-    timeout: 2000000,
+    timeout: 20 * 1000,
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   });
 
