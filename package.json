@@ -39,6 +39,7 @@
     "long": "^4.0.0",
     "micromatch": "^4.0.2",
     "source-map": "^0.7.3",
+    "split2": "^3.1.1",
     "typescript": "^3.7.2",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
@@ -72,6 +73,7 @@
     "@types/puppeteer": "^1.20.2",
     "@types/request-promise-native": "^1.0.17",
     "@types/sinon": "^7.5.0",
+    "@types/split2": "^2.1.6",
     "@types/tmp": "^0.1.0",
     "@types/ws": "^6.0.1",
     "chai": "^4.2.0",

@@ -13,7 +13,7 @@ import { ScriptSkipper } from './scriptSkipper';
 import { delay } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
-import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 const localize = nls.loadMessageBundle();
@@ -250,7 +250,6 @@ export class SourceContainer {
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
 
-  public readonly localSourceMaps = new LocalSourceMapRepository();
   private _disabledSourceMaps = new Set<Source>();
   private _scriptSkipper?: ScriptSkipper;
 
@@ -258,6 +257,7 @@ export class SourceContainer {
     dap: Dap.Api,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
+    public readonly localSourceMaps:ISourceMapRepository,
   ) {
     this._dap = dap;
   }

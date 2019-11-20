@@ -130,6 +130,18 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
+
+  /**
+   * If set, ripgrep will be used for discovering local sourcemaps and will
+   * be stored in this folder after downloading. If this is omitted, we'll
+   * use a plain Node.js strategy for grepping instead.
+   */
+  __ripGrepStoragePath?: string;
+
+  /**
+   * Cache directory for workspace-related configuration.
+   */
+  __workspaceCachePath?: string;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {

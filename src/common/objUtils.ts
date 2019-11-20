@@ -161,3 +161,29 @@ export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
     return value;
   };
 }
+
+/**
+ * Debounces the function call for an interval.
+ */
+export function debounce(duration: number, fn: () => void): (() => void) & { clear: () => void } {
+  let timeout: NodeJS.Timer | void;
+  const debounced = () => {
+    if (timeout !== undefined) {
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      fn();
+    }, duration);
+  };
+
+  debounced.clear = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
+  };
+
+  return debounced;
+}

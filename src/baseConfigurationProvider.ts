@@ -96,6 +96,9 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
    */
   protected commonResolution(config: T): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
+    config.__ripGrepStoragePath = this.extensionContext.globalStoragePath;
+    config.__workspaceCachePath = this.extensionContext.storagePath;
+
     return config;
   }
 }
