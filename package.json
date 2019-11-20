@@ -6,6 +6,7 @@
   "author": {
     "name": "Microsoft Corporation"
   },
+  "preview": true,
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
