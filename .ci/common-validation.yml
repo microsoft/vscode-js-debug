@@ -29,8 +29,16 @@ steps:
     verbose: false
     customCommand: test
   continueOnError: true
+  timeoutInMinutes: 5
   env:
     DISPLAY: ':99.0'
+
+- task: PublishTestResults@2
+  displayName: Publish Tests Results
+  inputs:
+    testResultsFiles: '*-results.xml'
+    searchFolder: '$(Build.ArtifactStagingDirectory)/test-results'
+  condition: succeededOrFailed()
 
 - task: Gulp@0
   displayName: gulp lint

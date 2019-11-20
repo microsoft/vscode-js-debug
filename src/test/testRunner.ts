@@ -30,10 +30,23 @@ function setupCoverage() {
 export async function run(): Promise<void> {
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
-  const runner = new Mocha({
-    timeout: 20 * 1000,
+  const mochaOpts = {
+    timeout: 10 * 1000,
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
-  });
+  };
+
+  if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY) {
+    mochaOpts.reporter = 'mocha-multi-reporters';
+    mochaOpts.reporterOptions = {
+      reporterEnabled: 'spec, mocha-junit-reporter',
+      mochaJunitReporterReporterOptions: {
+        testsuitesTitle: `tests ${process.platform}`,
+        mochaFile: join(process.env.BUILD_ARTIFACTSTAGINGDIRECTORY, `test-results/${process.platform}-test-results.xml`)
+      }
+    };
+  }
+
+  const runner = new Mocha(mochaOpts);
 
   runner.useColors(true);
 
