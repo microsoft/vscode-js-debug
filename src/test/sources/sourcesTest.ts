@@ -69,7 +69,7 @@ describe('sources', () => {
     p.assertLog();
   });
 
-  itIntegrates('waiting for source map failure', async ({ r }) => {
+  itIntegrates.skip('waiting for source map failure', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.adapter.sourceContainer.setSourceMapTimeouts({
       load: 2000,

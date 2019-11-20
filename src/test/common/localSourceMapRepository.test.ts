@@ -32,7 +32,7 @@ describe('localSourceMapRepository', () => {
     expect(await r.findAllChildren(join(__dirname, 'does-not-exist'))).to.be.empty;
   });
 
-  it('discovers all children and skips node_modules', async () => {
+  it.skip('discovers all children and skips node_modules', async () => {
     expect(await r.findAllChildren(testFixturesDir)).to.deep.equal({
       [join(testFixturesDir, 'a.js')]: {
         compiledPath: join(testFixturesDir, 'a.js'),
@@ -45,7 +45,7 @@ describe('localSourceMapRepository', () => {
     });
   });
 
-  it('looks in node_modules if required', async () => {
+  it.skip('looks in node_modules if required', async () => {
     expect(await r.findAllChildren(join(testFixturesDir, 'node_modules'))).to.deep.equal({
       [join(testFixturesDir, 'node_modules', 'e.js')]: {
         compiledPath: join(testFixturesDir, 'node_modules', 'e.js'),

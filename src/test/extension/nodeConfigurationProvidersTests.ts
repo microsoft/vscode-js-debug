@@ -29,7 +29,7 @@ describe('NodeDebugConfigurationProvider', () => {
     EnvironmentVars.platform = process.platform;
   });
 
-  describe('logging resolution', () => {
+  describe.skip('logging resolution', () => {
     const emptyRequest = {
       type: '',
       name: '',

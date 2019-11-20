@@ -97,7 +97,7 @@ describe('node runtime', () => {
       }
     })
 
-    itIntegrates('attaches to existing processes', async ({ r }) => {
+    itIntegrates.skip('attaches to existing processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': ['setInterval(() => { debugger; }, 500)'],
       });
@@ -109,7 +109,7 @@ describe('node runtime', () => {
       handle.assertLog();
     });
 
-    itIntegrates('attaches children of child processes', async ({ r }) => {
+    itIntegrates.skip('attaches children of child processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': `
           const { spawn } = require('child_process');

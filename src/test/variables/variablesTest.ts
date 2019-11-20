@@ -87,7 +87,7 @@ describe('variables', () => {
   });
 
   describe('web', () => {
-    itIntegrates('tags', async ({ r }) => {
+    itIntegrates.skip('tags', async ({ r }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
