@@ -570,15 +570,15 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
 }
 
 function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
-  resolveVariablesInConfig(config, 'workspaceFolder', config.__workspaceFolder);
+  resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
 }
 
-function resolveVariablesInConfig(config: any, varName: string, varValue: string): any {
+export function resolveVariableInConfig(config: any, varName: string, varValue: string): void {
   for (const key in config) {
     if (typeof config[key] === 'string') {
       config[key] = resolveVariable(config[key], varName, varValue);
-    } else {
-      resolveVariablesInConfig(config[key], varName, varValue);
+    } else if (!!config[key] && typeof config[key] === 'object') {
+      resolveVariableInConfig(config[key], varName, varValue);
     }
   }
 }
