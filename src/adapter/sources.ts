@@ -14,6 +14,7 @@ import { delay } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 const localize = nls.loadMessageBundle();
 
@@ -240,7 +241,7 @@ export class SourceContainer {
   private _dap: Dap.Api;
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
-  private _sourceByAbsolutePath: Map<string, Source> = new Map();
+  private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(utils.lowerCaseInsensitivePath);
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();

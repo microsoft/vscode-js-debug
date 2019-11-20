@@ -177,8 +177,8 @@ export class Breakpoint {
     if (this._setUrlLocations.has(urlLocation)) return;
     this._setUrlLocations.add(urlLocation);
 
-    const location = {
-      url,
+    const location: Cdp.Debugger.SetBreakpointByUrlParams = {
+      urlRegex: urlUtils.urlToRegex(url),
       condition: this._condition,
       ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
     };

@@ -10,6 +10,8 @@ import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathRes
 import { uiToRawOffset } from './sources';
 import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { SourceMapConsumer } from 'source-map';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -99,7 +101,9 @@ class DirectoryScanner {
   }
 
   private async _createInitialMapping(absolutePath: string) {
-    const sourcePathToCompiled: MetadataMap = new Map();
+    const sourcePathToCompiled: MetadataMap = new MapUsingProjection(
+      urlUtils.lowerCaseInsensitivePath,
+    );
     for (const [, metadata] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
       const baseUrl = metadata.sourceMapUrl.startsWith('data:')
         ? metadata.compiledPath
@@ -153,13 +157,14 @@ class DirectoryScanner {
           source: metadata.sourceUrl,
           line: b.line,
           column: b.column || 1,
+          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
         });
         if (entry.line === null) {
           continue;
         }
 
         const { lineNumber, columnNumber } = uiToRawOffset(
-          { lineNumber: entry.line || 1, columnNumber: entry.column || 1 },
+          { lineNumber: entry.line || 1, columnNumber: entry.column ? entry.column + 1 : 1 },
           kNodeScriptOffset,
         );
         const predicted: PredictedLocation = {
