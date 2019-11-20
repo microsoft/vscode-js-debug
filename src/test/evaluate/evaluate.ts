@@ -4,6 +4,7 @@
 import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
+import { TestP } from '../test';
 
 describe('evaluate', () => {
   itIntegrates('default', async ({ r }) => {
@@ -34,11 +35,11 @@ describe('evaluate', () => {
     p.log('');
 
     p.evaluate(`setTimeout(() => { throw new Error('bar')}, 0)`);
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `setTimeout(() => { throw new Error('baz')}, 0)` });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     await p.addScriptTag('browserify/bundle.js');
@@ -50,7 +51,7 @@ describe('evaluate', () => {
     p.log('');
 
     p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.assertLog();
@@ -60,43 +61,43 @@ describe('evaluate', () => {
     const p = await r.launchUrlAndLoad('index.html');
 
     p.dap.evaluate({ expression: `42`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `'foo'`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `1234567890n`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `throw new Error('foo')`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `throw {foo: 3, bar: 'baz'};`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `throw 42;`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `{foo: 3}`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `baz();`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({
       expression: `setTimeout(() => { throw new Error('bar')}, 0); 42`,
       context: 'repl',
     });
-    const r1 = await p.dap.once('output');
-    const e1 = await p.dap.once('output');
+    const r1 = await onceOnOutput(p);
+    const e1 = await onceOnOutput(p);
     await p.logger.logOutput(r1);
     await p.logger.logOutput(e1);
     p.log('');
@@ -105,8 +106,8 @@ describe('evaluate', () => {
       expression: `setTimeout(() => { throw new Error('baz')}, 0); 42`,
       context: 'repl',
     });
-    const r2 = await p.dap.once('output');
-    const e2 = await p.dap.once('output');
+    const r2 = await onceOnOutput(p);
+    const e2 = await onceOnOutput(p);
     await p.logger.logOutput(r2);
     await p.logger.logOutput(e2);
     p.log('');
@@ -114,19 +115,19 @@ describe('evaluate', () => {
     await p.addScriptTag('browserify/bundle.js');
 
     p.dap.evaluate({ expression: `window.throwError('error1')`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({ expression: `window.throwValue({foo: 3, bar: 'baz'})`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.log('');
 
     p.dap.evaluate({
       expression: `setTimeout(() => { window.throwError('error2')}, 0); 42`,
       context: 'repl',
     });
-    const r3 = await p.dap.once('output');
-    const e3 = await p.dap.once('output');
+    const r3 = await onceOnOutput(p);
+    const e3 = await onceOnOutput(p);
     await p.logger.logOutput(r3);
     await p.logger.logOutput(e3);
     p.log('');
@@ -168,7 +169,7 @@ describe('evaluate', () => {
     `,
     });
     p.dap.evaluate({ expression: 'queryObjects(Foo)' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.logOutput(await onceOnOutput(p));
     p.assertLog();
   });
 
@@ -282,8 +283,8 @@ describe('evaluate', () => {
       expression: 'let i = 0; console.log(++i); ++i',
       context: 'repl',
     });
-    const console = await p.dap.once('output');
-    const result = await p.dap.once('output');
+    const console = await onceOnOutput(p);
+    const result = await onceOnOutput(p);
     await p.logger.logEvaluateResult(empty);
     await p.logger.logOutput(console);
     await p.logger.logOutput(result);
@@ -303,9 +304,9 @@ describe('evaluate', () => {
     `,
       context: 'repl',
     });
-    const result = await p.dap.once('output');
-    const console = await p.dap.once('output');
-    const exception = await p.dap.once('output');
+    const result = await onceOnOutput(p);
+    const console = await onceOnOutput(p);
+    const exception = await onceOnOutput(p);
     await p.logger.logEvaluateResult(empty);
     await p.logger.logOutput(result);
     await p.logger.logOutput(console);
@@ -373,3 +374,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 });
+
+function onceOnOutput(p: TestP): Dap.OutputEventParams | PromiseLike<Dap.OutputEventParams> {
+  return p.dap.once('output', event => event.category !== 'telemetry'); // We ignore telemetry events
+}
