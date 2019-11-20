@@ -1,6 +1,6 @@
 Breakpoint resolved: {
     breakpoint : {
-        column : 4
+        column : 5
         id : <number>
         line : 36
         source : {
