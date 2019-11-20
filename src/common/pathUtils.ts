@@ -144,6 +144,24 @@ export function forceForwardSlashes(aUrl: string): string {
 }
 
 /**
+ * Splits the path with the drive letter included with a trailing slash
+ * such that path.join, readdir, etc. work on it standalone.
+ */
+export const splitWithDriveLetter = (inputPath: string) => {
+  const parts = inputPath.split(path.sep);
+  if (/^[a-z]:$/i.test(parts[0])) {
+    parts[0] += path.sep;
+  }
+
+  return parts;
+}
+
+/**
+ * Returns whether the path looks like a UNC path.
+ */
+export const isUncPath = (path: string) => path.startsWith('\\\\');
+
+/**
  * Returns whether the path looks like a Windows path.
  */
 export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path);

@@ -1,23 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable, EventEmitter } from './common/events';
-import { DebugAdapter } from './adapter/debugAdapter';
-import { Thread } from './adapter/threads';
-import { Launcher, Target, LaunchResult } from './targets/targets';
-import * as errors from './dap/errors';
-import * as urlUtils from './common/urlUtils';
-import Dap from './dap/api';
-import DapConnection from './dap/connection';
-import { generateBreakpointIds } from './adapter/breakpoints';
-import { AnyLaunchConfiguration } from './configuration';
-import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
-import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
-import { logger } from './common/logging/logger';
-import { resolveLoggerOptions, LogTag } from './common/logging';
-import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
 import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
+import { generateBreakpointIds } from './adapter/breakpoints';
+import { DebugAdapter } from './adapter/debugAdapter';
+import { Thread } from './adapter/threads';
+import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
+import { Disposable, EventEmitter } from './common/events';
+import { LogTag, resolveLoggerOptions } from './common/logging';
+import { logger } from './common/logging/logger';
+import * as urlUtils from './common/urlUtils';
+import { AnyLaunchConfiguration, AnyResolvingConfiguration, applyDefaults } from './configuration';
+import Dap from './dap/api';
+import DapConnection from './dap/connection';
+import * as errors from './dap/errors';
+import { Launcher, LaunchResult, Target } from './targets/targets';
+import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
+import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 
 const localize = nls.loadMessageBundle();
 
@@ -78,8 +78,8 @@ export class Binder implements Disposable {
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('attach', params => this._boot(params as AnyLaunchConfiguration, dap));
-      dap.on('launch', params => this._boot(params as AnyLaunchConfiguration, dap));
+      dap.on('attach', params => this._boot(applyDefaults(params as AnyResolvingConfiguration), dap));
+      dap.on('launch', params => this._boot(applyDefaults(params as AnyResolvingConfiguration), dap));
       dap.on('terminate', async () => {
         await Promise.all([...this._launchers].map(l => l.terminate()));
         return {};

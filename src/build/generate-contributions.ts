@@ -22,7 +22,8 @@ type OmittedKeysFromAttributes =
   | 'request'
   | 'internalConsoleOptions'
   | 'name'
-  | 'rootPath';
+  | 'rootPath'
+  | '__workspaceFolder';
 
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
@@ -200,48 +201,6 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     type: 'boolean',
     description: refString('node.launch.autoAttachChildProcesses.description'),
     default: true,
-  },
-};
-
-/**
- * Shared Chrome configuration.
- */
-const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConfiguration> = {
-  ...baseConfigurationAttributes,
-  port: {
-    type: 'number',
-    description: refString('chrome.port.description'),
-    default: 9222,
-  },
-  address: {
-    type: 'string',
-    description: refString('chrome.address.description'),
-    default: '127.0.0.1',
-  },
-  disableNetworkCache: {
-    type: 'boolean',
-    description: refString('chrome.disableNetworkCache.description'),
-    default: true,
-  },
-  pathMapping: {
-    type: 'object',
-    description: refString('chrome.pathMapping.description'),
-    default: {},
-  },
-  webRoot: {
-    type: 'string',
-    description: refString('chrome.webRoot.description'),
-    default: '${workspaceFolder}',
-  },
-  urlFilter: {
-    type: 'string',
-    description: refString('chrome.urlFilter.description'),
-    default: '',
-  },
-  url: {
-    type: 'string',
-    description: refString('chrome.url.description'),
-    default: 'http://localhost:8080',
   },
 };
 
@@ -511,6 +470,66 @@ const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
   },
 };
 
+/**
+ * Shared Chrome configuration.
+ */
+const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConfiguration> = {
+  ...baseConfigurationAttributes,
+  port: {
+    type: 'number',
+    description: refString('chrome.port.description'),
+    default: 9222,
+  },
+  address: {
+    type: 'string',
+    description: refString('chrome.address.description'),
+    default: '127.0.0.1',
+  },
+  disableNetworkCache: {
+    type: 'boolean',
+    description: refString('chrome.disableNetworkCache.description'),
+    default: true,
+  },
+  pathMapping: {
+    type: 'object',
+    description: refString('chrome.pathMapping.description'),
+    default: {},
+  },
+  webRoot: {
+    type: 'string',
+    description: refString('chrome.webRoot.description'),
+    default: '${workspaceFolder}',
+  },
+  urlFilter: {
+    type: 'string',
+    description: refString('chrome.urlFilter.description'),
+    default: '',
+  },
+  url: {
+    type: 'string',
+    description: refString('chrome.url.description'),
+    default: 'http://localhost:8080',
+  },
+  server: {
+    oneOf: [
+      {
+        type: 'object',
+        description: refString('chrome.server.description'),
+        additionalProperties: false,
+        default: { program: 'node my-server.js' },
+        properties: nodeLaunchConfig.configurationAttributes,
+      },
+      {
+        type: 'object',
+        description: refString('debug.terminal.label'),
+        additionalProperties: false,
+        default: { program: 'npm start' },
+        properties: nodeTerminalConfiguration.configurationAttributes,
+      },
+    ],
+  } as any,
+};
+
 const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
   type: Contributions.ExtensionHostDebugType,
   request: 'launch',
@@ -581,13 +600,6 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   ],
   configurationAttributes: {
     ...chromeBaseConfigurationAttributes,
-    server: {
-      type: 'object',
-      description: refString('chrome.server.description'),
-      additionalProperties: false,
-      default: { program: 'node my-server.js' } as any,
-      properties: nodeLaunchConfig.configurationAttributes as { [key: string]: JSONSchema6 },
-    },
     file: {
       type: 'string',
       description: refString('chrome.file.description'),

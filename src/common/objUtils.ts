@@ -125,6 +125,9 @@ export function caseInsensitiveMerge<V>(
   return out;
 }
 
+/**
+ * Does a case-insensitive lookup on the given object.
+ */
 export function getCaseInsensitiveProperty<R>(
   obj: { [key: string]: R },
   prop: string,
@@ -141,4 +144,20 @@ export function getCaseInsensitiveProperty<R>(
   }
 
   return undefined;
+}
+
+/**
+ * Memoizes the single-parameter function.
+ */
+export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
+  let cached = new Map<T, R>();
+  return arg => {
+    if (cached.has(arg)) {
+      return cached.get(arg)!;
+    }
+
+    const value = fn(arg);
+    cached.set(arg, value);
+    return value;
+  };
 }

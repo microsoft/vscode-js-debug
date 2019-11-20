@@ -5,25 +5,28 @@
 import { ISourceMapMetadata } from './sourceMap';
 import * as fsUtils from '../fsUtils';
 import * as path from 'path';
-import { getCaseSensitivePaths, absolutePathToFileUrl, completeUrl } from '../urlUtils';
+import { absolutePathToFileUrl, completeUrl, lowerCaseInsensitivePath } from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
+import { splitWithDriveLetter } from '../pathUtils';
+import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 
 class Directory {
-  private readonly subdirectories: { [basename: string]: Directory } = {};
-  private sourceMaps?: Promise<{ [basename: string]: ISourceMapMetadata }>;
+  private readonly subdirectories: Map<string, Directory> = new MapUsingProjection(
+    lowerCaseInsensitivePath,
+  );
+  private sourceMaps?: Promise<{
+    [basename: string]: ISourceMapMetadata;
+  }>;
 
   constructor(private readonly path: string) {}
 
   /**
    * Returns a Directory for the given path.
    */
-  public lookup(requestedPath: string): Directory {
-    if (!getCaseSensitivePaths()) {
-      requestedPath = requestedPath.toLowerCase();
-    }
-
-    return this.lookupInternal(requestedPath.split(path.sep), 0);
+  public async lookup(requestedPath: string): Promise<Directory> {
+    const segments = splitWithDriveLetter(requestedPath);
+    return this.lookupInternal(segments, 0);
   }
 
   /**
@@ -42,7 +45,7 @@ class Directory {
    */
   public async allChildren(): Promise<{ [absolutePath: string]: ISourceMapMetadata }> {
     const directChildren = await this.directChildren();
-    const nested = await Promise.all(Object.values(this.subdirectories).map(s => s.allChildren()));
+    const nested = await Promise.all([...this.subdirectories.values()].map(s => s.allChildren()));
     return Object.assign({}, directChildren, ...nested);
   }
 
@@ -52,11 +55,10 @@ class Directory {
     }
 
     const segment = parts[offset];
-    let subdir = this.subdirectories[segment];
+    let subdir = this.subdirectories.get(segment);
     if (!subdir) {
-      subdir = this.subdirectories[segment] = new Directory(
-        parts.slice(0, offset + 1).join(path.sep),
-      );
+      subdir = new Directory(path.join(this.path, segment));
+      this.subdirectories.set(segment, subdir);
     }
 
     return subdir.lookupInternal(parts, offset + 1);
@@ -77,10 +79,6 @@ class Directory {
         .filter(bn => bn !== 'node_modules' && bn !== '.')
         .sort()
         .map(async bn => {
-          if (!getCaseSensitivePaths()) {
-            bn = bn.toLowerCase();
-          }
-
           const absolutePath = path.join(this.path, bn);
           const stat = await fsUtils.stat(absolutePath);
           if (!stat) {
@@ -95,8 +93,8 @@ class Directory {
             return;
           }
 
-          if (stat.isDirectory()) {
-            this.subdirectories[bn] = this.subdirectories[bn] || new Directory(absolutePath);
+          if (stat.isDirectory() && !this.subdirectories.has(bn)) {
+            this.subdirectories.set(bn, new Directory(absolutePath));
             return;
           }
         }),
@@ -157,15 +155,17 @@ export class LocalSourceMapRepository {
   public async findDirectChildren(
     absolutePath: string,
   ): Promise<{ [path: string]: ISourceMapMetadata }> {
-    const dir = this.tree.lookup(absolutePath);
+    const dir = await this.tree.lookup(absolutePath);
     return dir.directChildren();
   }
 
   /**
    * Recursively finds all children of the given direcotry.
    */
-  public findAllChildren(absolutePath: string): Promise<{ [key: string]: ISourceMapMetadata }> {
-    const dir = this.tree.lookup(absolutePath);
+  public async findAllChildren(
+    absolutePath: string,
+  ): Promise<{ [key: string]: ISourceMapMetadata }> {
+    const dir = await this.tree.lookup(absolutePath);
     return dir.allChildren();
   }
 }

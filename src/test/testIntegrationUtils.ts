@@ -6,18 +6,26 @@ import { testWorkspace, testFixturesDir, TestRoot } from './test';
 import { GoldenText } from './goldenText';
 import * as child_process from 'child_process';
 import * as path from 'path';
+import { TestFunction, ExclusiveTestFunction } from 'mocha';
 
 let servers: child_process.ChildProcess[];
 
 before(async () => {
   servers = [
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001']),
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002']),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001'], { stdio: 'pipe' }),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'], { stdio: 'pipe' }),
   ];
 
   await Promise.all(
     servers.map(server => {
-      return new Promise(callback => server.once('message', callback));
+      return new Promise((resolve, reject) => {
+        let error = '';
+        server.stderr?.on('data', data => error += data.toString());
+        server.stdout?.on('data', data => error += data.toString());
+        server.once('error', reject);
+        server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
+        server.once('message', resolve);
+      });
     }),
   );
 });
@@ -32,8 +40,8 @@ interface IIntegrationState {
   r: TestRoot;
 }
 
-export const itIntegrates = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) =>
-  it(test, async function() {
+const itIntegratesBasic = (test: string, fn: (s: IIntegrationState) => Promise<void> | void, testFunction: TestFunction | ExclusiveTestFunction = it) =>
+testFunction(test, async function() {
     const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
     const root = new TestRoot(golden);
     await root.initialize;
@@ -52,6 +60,9 @@ export const itIntegrates = (test: string, fn: (s: IIntegrationState) => Promise
       throw new Error(`Whoa, test "${test}" has some logs that it did not assert!`);
     }
   });
+
+itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.only);
+export const itIntegrates = itIntegratesBasic;
 
 afterEach(async () => {
   await del([`${testFixturesDir}/**`], { force: true /* delete outside cwd */ });

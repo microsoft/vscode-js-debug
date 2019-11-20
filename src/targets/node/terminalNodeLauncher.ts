@@ -41,7 +41,19 @@ export class TerminalNodeLauncher extends NodeLauncherBase<INodeTerminalConfigur
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration): INodeTerminalConfiguration | undefined {
-    return params.type === Contributions.TerminalDebugType ? params : undefined;
+    if (params.type === Contributions.TerminalDebugType && params.request === 'launch') {
+      return params;
+    }
+
+    if (
+      params.type === Contributions.ChromeDebugType &&
+      params.server &&
+      'command' in params.server
+    ) {
+      return params.server;
+    }
+
+    return undefined;
   }
 
   /**
