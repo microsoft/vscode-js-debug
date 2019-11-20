@@ -418,6 +418,11 @@ export class TestRoot {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
     const p = await this._launch(url, options);
     await p.load();
+    const originalOnce = p.dap.once;
+    p.dap.once = <any>((request: any, filterParameter: any) => {
+      const filter = filterParameter || ((event: any) => !event || event.category !== 'telemetry'); // We ignore telemetry events by default
+      return originalOnce(request, filter);
+    });
     return p;
   }
 
