@@ -423,26 +423,16 @@ export class BreakpointManager {
   }
 
   async _updateSourceMapHandler(thread: Thread) {
-    if (this.pauseForSourceMaps) {
-      await thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
-    }
+    await thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
 
-    if (!this._breakpointsPredictor) {
+    if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
       return;
     }
 
     // If we set a predictor and don't want to pause, we still wait to wait
     // for the predictor to finish running. Uninstall the sourcemap handler
-    // once we see the predictor is ready to roll, and if we get a sourcemap
-    // in the meantime wait for the predictor to finish before allowing
-    // the attached client to continue.
-    const prepared = this._breakpointsPredictor.prepareToPredict();
-    await thread.setScriptSourceMapHandler(async (script, sources) => {
-      await prepared;
-      return this._scriptSourceMapHandler(script, sources);
-    });
-
-    await prepared;
+    // once we see the predictor is ready to roll.
+    await this._breakpointsPredictor.prepareToPredict();
     thread.setScriptSourceMapHandler(undefined);
   }
 
