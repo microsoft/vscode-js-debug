@@ -119,6 +119,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * From where to capture output messages: The debug API, or stdout/stderr streams.
    */
   outputCapture: OutputSource;
+
+  /**
+   * The value of the ${workspaceFolder} variable
+   */
+  __workspaceFolder: string;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
@@ -397,6 +402,7 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
 export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
+export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
@@ -441,6 +447,8 @@ export const baseDefaults: IBaseConfiguration = {
     'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
     'meteor://💻app/*': '${workspaceFolder}/*',
   },
+  // Should always be determined upstream
+  __workspaceFolder: ''
 };
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
@@ -523,3 +531,58 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   request: 'attach',
   processId: '',
 };
+
+export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
+  return config.request === 'attach'
+      ? { ...nodeAttachConfigDefaults, ...config }
+      : { ...nodeLaunchConfigDefaults, ...config };
+}
+
+export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyChromeConfiguration {
+  return config.request === 'attach'
+      ? { ...chromeAttachConfigDefaults, ...config }
+      : { ...chromeLaunchConfigDefaults, ...config };
+}
+
+export function applyExtensionHostDefaults(config: ResolvingExtensionHostConfiguration): IExtensionHostConfiguration {
+    return { ...extensionHostConfigDefaults, ...config };
+}
+
+export function applyTerminalDefaults(config: ResolvingTerminalConfiguration): INodeTerminalConfiguration {
+    return { ...extensionHostConfigDefaults, ...config };
+}
+
+export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
+  let configWithDefaults: AnyLaunchConfiguration;
+  if (config.type === Contributions.NodeDebugType)
+    configWithDefaults = applyNodeDefaults(config);
+  else if (config.type === Contributions.ChromeDebugType)
+    configWithDefaults = applyChromeDefaults(config);
+  else if (config.type === Contributions.ExtensionHostDebugType)
+    configWithDefaults = applyExtensionHostDefaults(config);
+  else if (config.type === Contributions.TerminalDebugType)
+    configWithDefaults = applyTerminalDefaults(config);
+  else
+    throw new Error('Unknown config type: ' + (config as any).type);
+
+  resolveWorkspaceRoot(configWithDefaults);
+  return configWithDefaults;
+}
+
+function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
+  resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
+}
+
+export function resolveVariableInConfig(config: any, varName: string, varValue: string): void {
+  for (const key in config) {
+    if (typeof config[key] === 'string') {
+      config[key] = resolveVariable(config[key], varName, varValue);
+    } else if (!!config[key] && typeof config[key] === 'object') {
+      resolveVariableInConfig(config[key], varName, varValue);
+    }
+  }
+}
+
+function resolveVariable(entry: string, varName: string, varValue: string): string {
+  return entry.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
+}

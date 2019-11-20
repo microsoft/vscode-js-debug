@@ -4,19 +4,14 @@
 
 'use strict';
 
-import * as nls from 'vscode-nls';
-import * as vscode from 'vscode';
-import { basename } from 'path';
-import { getProcesses } from './processTree';
 import { execSync } from 'child_process';
+import { basename } from 'path';
+import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import { Contributions } from '../common/contributionUtils';
-import {
-  nodeAttachConfigDefaults,
-  INodeAttachConfiguration,
-  ResolvingNodeAttachConfiguration,
-} from '../configuration';
+import { INodeAttachConfiguration, nodeAttachConfigDefaults, resolveVariableInConfig, ResolvingNodeAttachConfiguration } from '../configuration';
 import { guessWorkingDirectory } from '../nodeDebugConfigurationProvider';
-import { mapValues } from '../common/objUtils';
+import { getProcesses } from './processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -42,20 +37,7 @@ export async function attachProcess() {
   }
 
   const cwd = guessWorkingDirectory();
-  const assignWorkspaceFolder = (obj: any): any =>
-    mapValues(obj, value => {
-      if (typeof value === 'string') {
-        return value.replace('${workspaceFolder}', cwd);
-      }
-
-      if (value && typeof value === 'object') {
-        return assignWorkspaceFolder(value);
-      }
-
-      return value;
-    });
-
-  config = assignWorkspaceFolder(config);
+  resolveVariableInConfig(config, 'workspaceFolder', cwd);
   return vscode.debug.startDebugging(undefined, config);
 }
 
