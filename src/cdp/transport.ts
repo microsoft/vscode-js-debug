@@ -7,6 +7,8 @@ import * as events from 'events';
 import { HighResolutionTime } from '../utils/performance';
 import { CancellationToken } from 'vscode';
 import { timeoutPromise } from '../common/cancellation';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 export interface Transport {
   send(message: string): void;
@@ -35,8 +37,13 @@ export class PipeTransport implements Transport {
     this._eventListeners = [
       addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
       addEventListener(pipeWrite, 'end', () => this._onPipeEnd()),
+      // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
+      addEventListener(pipeWrite, 'error', err => logger.error(LogTag.Internal, 'pipeWrite error: ' + err))
     ];
-    if (pipeRead) this._eventListeners.push(addEventListener(pipeRead, 'end', () => this._onPipeEnd()));
+    if (pipeRead) {
+      this._eventListeners.push(addEventListener(pipeRead, 'end', () => this._onPipeEnd()));
+      this._eventListeners.push(addEventListener(pipeRead, 'error', err => logger.error(LogTag.Internal, 'pipeRead error: ' + err)));
+    }
 
     this.onmessage = undefined;
     this.onend = undefined;
