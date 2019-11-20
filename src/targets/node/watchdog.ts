@@ -59,7 +59,7 @@ process.on('exit', () => {
       }
       target = await WebSocketTransport.create(info.inspectorURL, NeverCancelled);
       target.onmessage = data => server.send(data);
-      target.onclose = () => {
+      target.onend = () => {
         if (target)
           // Could be due us closing.
           server.send(
@@ -91,7 +91,7 @@ process.on('exit', () => {
     server.send(JSON.stringify({ id: object.id, result }));
   };
 
-  server.onclose = () => {
+  server.onend = () => {
     debugLog('SERVER CLOSED');
     if (target) target.close();
   };

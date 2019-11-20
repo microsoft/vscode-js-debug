@@ -12,7 +12,7 @@ export interface Transport {
   send(message: string): void;
   close(): void;
   onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
-  onclose?: () => void;
+  onend?: () => void;
 }
 
 export class PipeTransport implements Transport {
@@ -21,7 +21,7 @@ export class PipeTransport implements Transport {
   private _pendingBuffers: Buffer[];
   private _eventListeners: any[];
   onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
-  onclose?: () => void;
+  onend?: () => void;
 
   constructor(socket: net.Socket);
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
@@ -34,19 +34,29 @@ export class PipeTransport implements Transport {
     this._pendingBuffers = [];
     this._eventListeners = [
       addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
-      addEventListener(pipeRead || pipeWrite, 'close', () => {
-        this._pipeWrite = undefined;
-        if (this.onclose)
-          this.onclose.call(null);
-      })
+      addEventListener(pipeWrite, 'end', () => this._onPipeEnd()),
     ];
+    if (pipeRead) this._eventListeners.push(addEventListener(pipeRead, 'end', () => this._onPipeEnd()));
+
     this.onmessage = undefined;
-    this.onclose = undefined;
+    this.onend = undefined;
+  }
+
+  private _onPipeEnd(): void {
+    if (this._pipeWrite) {
+      this._pipeWrite = undefined;
+      if (this.onend)
+        this.onend.call(null);
+    }
   }
 
   send(message: string) {
-    this._pipeWrite!.write(message);
-    this._pipeWrite!.write('\0');
+    if (!this._pipeWrite)
+      // Handle this in place, otherwise the socket will fire an unhandled error
+      throw new Error('Tried to write to stream after end');
+
+    this._pipeWrite.write(message);
+    this._pipeWrite.write('\0');
   }
 
   _dispatch(buffer: Buffer) {
@@ -84,7 +94,7 @@ export class PipeTransport implements Transport {
 export class WebSocketTransport implements Transport {
   private _ws: WebSocket | undefined;
   onmessage?: (message: string) => void;
-  onclose?: () => void;
+  onend?: () => void;
 
   static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
     const ws = new WebSocket(url, [], {
@@ -112,14 +122,14 @@ export class WebSocketTransport implements Transport {
         this.onmessage.call(null, event.data);
     });
     this._ws.addEventListener('close', event => {
-      if (this.onclose)
-        this.onclose.call(null);
+      if (this.onend)
+        this.onend.call(null);
       this._ws = undefined;
     });
     // Silently ignore all errors - we don't know what to do with them.
     this._ws.addEventListener('error', () => { });
     this.onmessage = undefined;
-    this.onclose = undefined;
+    this.onend = undefined;
   }
 
   send(message: string) {
