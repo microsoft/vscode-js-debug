@@ -4,7 +4,7 @@
 
 import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
 import { expect } from 'chai';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { setCaseSensitivePaths, resetCaseSensitivePaths } from '../../common/urlUtils';
 
 describe('node source path resolver', () => {
@@ -19,7 +19,9 @@ describe('node source path resolver', () => {
 
     it('resolves absolute', () => {
       const r = new NodeSourcePathResolver(defaultOptions);
-      expect(r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal('/src/index.js');
+      expect(r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
+        resolve('/src/index.js'),
+      );
     });
 
     it('normalizes roots (win -> posix) ', () => {

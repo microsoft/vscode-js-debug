@@ -96,13 +96,14 @@ describe('NodeDebugConfigurationProvider', () => {
         'package.json': JSON.stringify({ main: 'hello.js' }),
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
+      const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
+      result.cwd = result.cwd.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',
-        cwd: testFixturesDir,
+        cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
-        program: '${workspaceFolder}/hello.js',
+        program: join('${workspaceFolder}', 'hello.js'),
         request: 'launch',
       });
     });
@@ -113,13 +114,14 @@ describe('NodeDebugConfigurationProvider', () => {
         'package.json': JSON.stringify({ scripts: { start: 'node hello.js' } }),
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
+      const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
+      result.cwd = result.cwd.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',
-        cwd: testFixturesDir,
+        cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
-        program: '${workspaceFolder}/hello.js',
+        program: join('${workspaceFolder}', 'hello.js'),
         request: 'launch',
       });
     });
@@ -148,7 +150,7 @@ describe('NodeDebugConfigurationProvider', () => {
       try {
         const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
         expect(result).to.containSubset({
-          program: '${workspaceFolder}/hello.js',
+          program: join('${workspaceFolder}', 'hello.js'),
         });
       } finally {
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
@@ -168,7 +170,7 @@ describe('NodeDebugConfigurationProvider', () => {
       try {
         const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
         expect(result).to.containSubset({
-          program: '${workspaceFolder}/out/hello.js',
+          program: join('${workspaceFolder}', 'out', 'hello.js'),
           preLaunchTask: 'tsc: build - tsconfig.json',
           outFiles: ['${workspaceFolder}/out/**/*.js'],
         });

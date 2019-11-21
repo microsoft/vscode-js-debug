@@ -6,6 +6,8 @@ import * as path from 'path';
 import { expect } from 'chai';
 import * as urlUtils from '../common/urlUtils';
 import { testFixturesDir } from './test';
+import { escapeRegexSpecialChars } from '../common/stringUtils';
+import { forceForwardSlashes } from '../common/pathUtils';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -23,15 +25,13 @@ export class GoldenText {
   }
 
   _getLocation() {
-    const stack = (new Error()).stack;
-    if (!stack)
-      return null;
+    const stack = new Error().stack;
+    if (!stack) return null;
     const stackFrames = stack.split('\n').slice(1);
     // Find first stackframe that doesn't point to this file.
     for (let frame of stackFrames) {
       frame = frame.trim();
-      if (!frame.startsWith('at '))
-        return null;
+      if (!frame.startsWith('at ')) return null;
       if (frame.endsWith(')')) {
         const from = frame.indexOf('(');
         frame = frame.substring(from + 1, frame.length - 1);
@@ -40,11 +40,9 @@ export class GoldenText {
       }
 
       const match = frame.match(/^(.*):(\d+):(\d+)$/);
-      if (!match)
-        return null;
+      if (!match) return null;
       const filePath = match[1];
-      if (filePath === __filename)
-        continue;
+      if (filePath === __filename) continue;
       return filePath;
     }
     return null;
@@ -57,19 +55,25 @@ export class GoldenText {
   assertLog(options: { substring?: boolean } = {}) {
     const output = this._results.join('\n') + '\n';
     const testFilePath = this._getLocation();
-    if (!testFilePath)
-      throw new Error('GoldenText failed to get filename!');
+    if (!testFilePath) throw new Error('GoldenText failed to get filename!');
     this._hasNonAssertedLogs = false;
-    const fileFriendlyName = this._testName.trim().toLowerCase().replace(/\s/g, '-').replace(/[^-0-9a-zа-яё]/ig, '');
+    const fileFriendlyName = this._testName
+      .trim()
+      .toLowerCase()
+      .replace(/\s/g, '-')
+      .replace(/[^-0-9a-zа-яё]/gi, '');
     const actualFilePath = path.join(path.dirname(testFilePath), fileFriendlyName + '.txt');
     const index = actualFilePath.lastIndexOf(path.join('out', 'src', 'test'));
-    const goldenFilePath = actualFilePath.substring(0, index) + path.join('src', 'test') + actualFilePath.substring(index + path.join('out', 'src', 'test').length);
-    fs.writeFileSync(actualFilePath, output, {encoding: 'utf-8'});
+    const goldenFilePath =
+      actualFilePath.substring(0, index) +
+      path.join('src', 'test') +
+      actualFilePath.substring(index + path.join('out', 'src', 'test').length);
+    fs.writeFileSync(actualFilePath, output, { encoding: 'utf-8' });
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);
-      fs.writeFileSync(goldenFilePath, output, {encoding: 'utf-8'});
+      fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else if (process.env.RESET_RESULTS) {
-      fs.writeFileSync(goldenFilePath, output, {encoding: 'utf-8'});
+      fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
       if (options.substring) {
@@ -81,19 +85,25 @@ export class GoldenText {
   }
 
   _sanitize(value: string): string {
-    value = String(value);
-    if (value.includes(this._workspaceFolder)) {
-      value = value
-        .replace(this._workspaceFolder, '${workspaceFolder}')
-        .replace(/\\/g, '/');
-    }
+    // replaces path like C:/testDir/foo/bar.js -> ${testDir}/foo/bar.js
+    const replacePath = (needle: string, replacement: string) => {
+      // Escape special chars, force paths to use forward slashes
+      const safeStr = escapeRegexSpecialChars(forceForwardSlashes(needle), '/');
+      // Create an re that allows for any slash delimiter, and looks at the rest of the line
+      const re = new RegExp(safeStr.replace(/\//g, '[\\\\/]') + '(.*)', 'gi');
 
-    if (value.includes(testFixturesDir)) {
-      value = value
-        .replace(testFixturesDir, '${fixturesDir}')
-        .replace('/private${fixturesDir}', '${fixturesDir}') // for osx
-        .replace(/\\/g, '/');
-    }
+      // Replace it with the ${replacementString} and a forward-slashed version
+      // of the rest of the line.
+      value = value.replace(
+        re,
+        (_match, trailing) => replacement + forceForwardSlashes(trailing),
+      );
+    };
+
+    value = String(value);
+    replacePath(this._workspaceFolder, '${workspaceFolder}');
+    replacePath(testFixturesDir, '${fixturesDir}');
+    value = value.replace('/private${fixturesDir}', '${fixturesDir}'); // for osx
 
     // Don't compare blackboxed code, as this is subject to change between
     // runtime/Node.js versions.
@@ -103,16 +113,15 @@ export class GoldenText {
       .join('\n');
 
     return value
-        .replace(/VM\d+/g, 'VM<xx>')
-        .replace(/\r\n/g, '\n')
-        .replace(/@\ .*vscode-pwa(\/|\\)/g, '@ ')
-        .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');
+      .replace(/VM\d+/g, 'VM<xx>')
+      .replace(/\r\n/g, '\n')
+      .replace(/@\ .*vscode-pwa(\/|\\)/g, '@ ')
+      .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');
   }
 
   log(item: any, title?: string, stabilizeNames?: string[]): any {
     this._hasNonAssertedLogs = true;
-    if (typeof item === 'object')
-      return this._logObject(item, title, stabilizeNames);
+    if (typeof item === 'object') return this._logObject(item, title, stabilizeNames);
     this._results.push((title || '') + this._sanitize(item));
     return item;
   }
@@ -123,10 +132,8 @@ export class GoldenText {
 
     const dumpValue = (value: any, prefix: string, prefixWithName: string) => {
       if (typeof value === 'object' && value !== null) {
-        if (value instanceof Array)
-          dumpItems(value, prefix, prefixWithName);
-        else
-          dumpProperties(value, prefix, prefixWithName);
+        if (value instanceof Array) dumpItems(value, prefix, prefixWithName);
+        else dumpProperties(value, prefix, prefixWithName);
       } else {
         lines.push(prefixWithName + this._sanitize(value).replace(/\n/g, ' '));
       }
@@ -141,12 +148,10 @@ export class GoldenText {
       propertyNames.sort();
       for (let i = 0; i < propertyNames.length; ++i) {
         const name = propertyNames[i];
-        if (!object.hasOwnProperty(name))
-          continue;
+        if (!object.hasOwnProperty(name)) continue;
         const prefixWithName = '    ' + prefix + name + ' : ';
         let value = object[name];
-        if (stabilizeNames && stabilizeNames.includes(name))
-          value = `<${typeof value}>`;
+        if (stabilizeNames && stabilizeNames.includes(name)) value = `<${typeof value}>`;
         dumpValue(value, '    ' + prefix, prefixWithName);
       }
       lines.push(prefix + '}');
@@ -166,4 +171,3 @@ export class GoldenText {
     return object;
   }
 }
-
