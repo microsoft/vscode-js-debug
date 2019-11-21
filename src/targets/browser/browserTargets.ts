@@ -16,6 +16,8 @@ import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ChildProcess } from 'child_process';
+import { killTree } from '../node/killTree';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -36,6 +38,7 @@ export class BrowserTargetManager implements Disposable {
 
   static async connect(
     connection: CdpConnection,
+    process: undefined | ChildProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
     telemetry: RawTelemetryReporter,
@@ -48,6 +51,7 @@ export class BrowserTargetManager implements Disposable {
     const browserSession = connection.createSession(result.sessionId);
     return new BrowserTargetManager(
       connection,
+      process,
       browserSession,
       sourcePathResolver,
       telemetry,
@@ -62,6 +66,7 @@ export class BrowserTargetManager implements Disposable {
 
   constructor(
     connection: CdpConnection,
+    private readonly process: ChildProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
     private readonly telemetry: RawTelemetryReporter,
@@ -92,7 +97,9 @@ export class BrowserTargetManager implements Disposable {
   }
 
   async closeBrowser(): Promise<void> {
-    await this._browser.Browser.close({});
+    if (!this.process || !killTree(this.process.pid)) {
+      await this._browser.Browser.close({});
+    }
   }
 
   waitForMainTarget(filter?: (target: Cdp.Target.TargetInfo) => boolean): Promise<BrowserTarget | undefined> {

@@ -6,7 +6,7 @@ import { LogTag } from '../../common/logging';
 /**
  * Kills the tree of processes starting at the given parent ID.
  */
-export function killTree(processId: number): void {
+export function killTree(processId: number): boolean {
   if (process.platform === 'win32') {
     const windir = process.env['WINDIR'] || 'C:\\Windows';
     const TASK_KILL = join(windir, 'System32', 'taskkill.exe');
@@ -15,8 +15,10 @@ export function killTree(processId: number): void {
     // Therefore we use TASKKILL.EXE
     try {
       execSync(`${TASK_KILL} /F /T /PID ${processId}`);
+      return true;
     } catch (err) {
       logger.error(LogTag.RuntimeException, 'Error running taskkill.exe', err);
+      return false;
     }
   } else {
     // on linux and OS X we kill all direct and indirect child processes as well
@@ -25,9 +27,13 @@ export function killTree(processId: number): void {
       const r = spawnSync('sh', [cmd, processId.toString()]);
       if (r.stderr && r.status) {
         logger.error(LogTag.RuntimeException, 'Error running terminateProcess', r);
+        return false;
       }
+
+      return true;
     } catch (err) {
       logger.error(LogTag.RuntimeException, 'Error running terminateProcess', err);
+      return false;
     }
   }
 }
