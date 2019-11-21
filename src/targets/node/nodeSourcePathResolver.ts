@@ -26,7 +26,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return '';
     }
 
-    const withBase = properResolve(this.options.basePath, this.applyPathOverrides(url));
+    const withBase = properResolve(this.options.basePath, this.sourceMapOverrides.apply(url));
     return this.rebaseRemoteToLocal(withBase);
   }
 

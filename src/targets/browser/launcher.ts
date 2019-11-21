@@ -15,6 +15,7 @@ import { CancellationToken } from 'vscode';
 import { TaskCancelledError } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
 import { delay } from '../../common/promiseUtil';
+import { killTree } from '../node/killTree';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -52,12 +53,17 @@ const findSuggestedPort = (args: ReadonlyArray<string>): number | undefined => {
   return arg ? Number(arg.slice(suggestedPortArg.length)) : undefined;
 };
 
+export interface ILaunchResult {
+  cdp: CdpConnection;
+  process: childProcess.ChildProcess;
+}
+
 export async function launch(
   executablePath: string,
   rawTelemetryReporter: RawTelemetryReporter,
   cancellationToken: CancellationToken,
   options: LaunchOptions | undefined = {},
-): Promise<CdpConnection> {
+): Promise<ILaunchResult> {
   const {
     onStderr = noop,
     onStdout = noop,
@@ -103,10 +109,8 @@ export async function launch(
     cwd,
     stdio,
   });
-  let browserClosed = false;
 
   if (browserProcess.pid === undefined) {
-    killBrowser();
     throw new Error('Unable to launch the executable');
   }
 
@@ -115,7 +119,10 @@ export async function launch(
     browserProcess.stdout!.on('data', d => onStdout(d.toString()));
   }
 
-  process.on('exit', killBrowser);
+  const exitListener = () => killTree(browserProcess.pid);
+  process.on('exit', exitListener);
+  browserProcess.on('exit', () => process.removeListener('exit', exitListener));
+
   try {
     let transport: Transport;
     if (usePipe) {
@@ -131,25 +138,10 @@ export async function launch(
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
 
-    return new CdpConnection(transport, rawTelemetryReporter);
+    return { cdp: new CdpConnection(transport, rawTelemetryReporter), process: browserProcess };
   } catch (e) {
-    killBrowser();
+    exitListener();
     throw e;
-  }
-
-  // This method has to be sync to be used as 'exit' event handler.
-  function killBrowser() {
-    process.removeListener('exit', killBrowser);
-    if (browserProcess.pid && !browserProcess.killed && !browserClosed) {
-      // Force kill browser.
-      try {
-        if (process.platform === 'win32')
-          childProcess.execSync(`taskkill /pid ${browserProcess.pid} /T /F`);
-        else process.kill(-browserProcess.pid, 'SIGKILL');
-      } catch (e) {
-        // the process might have already stopped
-      }
-    }
   }
 }
 
