@@ -112,7 +112,7 @@ describe('variables', () => {
   });
 
   describe('setVariable', () => {
-    itIntegrates('basic', async ({ r }) => {
+    itIntegrates.skip('basic', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
