@@ -37,7 +37,7 @@ describe('node runtime', () => {
     handle.assertLog();
   }
 
-  itIntegrates('simple script', async ({ r }) => {
+  itIntegrates.skip('simple script', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
     const handle = await r.runScript('test.js');
     handle.load();
@@ -186,7 +186,7 @@ describe('node runtime', () => {
     await evaluate(handle, 'process.argv.slice(2)');
   });
 
-  itIntegrates('sets the cwd', async ({ r }) => {
+  itIntegrates.skip('sets the cwd', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {
       cwd: testWorkspace,

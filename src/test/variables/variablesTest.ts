@@ -98,7 +98,7 @@ describe('variables', () => {
   });
 
   describe('multiple threads', () => {
-    itIntegrates('worker', async ({ r }) => {
+    itIntegrates.skip('worker', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
       const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
       outputs.push({ output: await p.dap.once('output'), logger: p.logger });

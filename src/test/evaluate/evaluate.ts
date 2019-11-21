@@ -290,7 +290,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('output slots 2', async ({ r }) => {
+  itIntegrates.skip('output slots 2', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({
       expression: `
