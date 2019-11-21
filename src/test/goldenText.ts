@@ -54,21 +54,9 @@ export class GoldenText {
 
   assertLog(options: { substring?: boolean } = {}) {
     const output = this._results.join('\n') + '\n';
-    const testFilePath = this._getLocation();
-    if (!testFilePath) throw new Error('GoldenText failed to get filename!');
     this._hasNonAssertedLogs = false;
-    const fileFriendlyName = this._testName
-      .trim()
-      .toLowerCase()
-      .replace(/\s/g, '-')
-      .replace(/[^-0-9a-zа-яё]/gi, '');
-    const actualFilePath = path.join(path.dirname(testFilePath), fileFriendlyName + '.txt');
-    const index = actualFilePath.lastIndexOf(path.join('out', 'src', 'test'));
-    const goldenFilePath =
-      actualFilePath.substring(0, index) +
-      path.join('src', 'test') +
-      actualFilePath.substring(index + path.join('out', 'src', 'test').length);
-    fs.writeFileSync(actualFilePath, output, { encoding: 'utf-8' });
+
+    const goldenFilePath = this.findGoldenFilePath();
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
@@ -82,6 +70,32 @@ export class GoldenText {
         expect(output).to.equal(expectations);
       }
     }
+  }
+
+  private findGoldenFilePath() {
+    const testFilePath = this._getLocation();
+    if (!testFilePath) {
+      throw new Error('GoldenText failed to get filename!');
+    }
+
+    const fileFriendlyTestName = this._testName
+      .trim()
+      .toLowerCase()
+      .replace(/\s/g, '-')
+      .replace(/[^-0-9a-zа-яё]/gi, '');
+
+    const testFileBase = path.resolve(
+      __dirname, '..', '..', '..', 'src', 'test',
+      path.relative(__dirname, path.dirname(testFilePath)),
+      fileFriendlyTestName
+    );
+
+    const platformPath = testFileBase + `.${process.platform}.txt`;
+    if (fs.existsSync(platformPath)) {
+      return platformPath;
+    }
+
+    return testFileBase + '.txt';
   }
 
   _sanitize(value: string): string {
