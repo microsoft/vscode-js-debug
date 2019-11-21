@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import del from 'del';
-import { testWorkspace, testFixturesDir, TestRoot } from './test';
-import { GoldenText } from './goldenText';
 import * as child_process from 'child_process';
+import del from 'del';
+import { ExclusiveTestFunction, TestFunction } from 'mocha';
 import * as path from 'path';
-import { TestFunction, ExclusiveTestFunction } from 'mocha';
+import { GoldenText } from './goldenText';
+import { testFixturesDir, TestRoot, testWorkspace } from './test';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -43,9 +43,9 @@ interface IIntegrationState {
 }
 
 const itIntegratesBasic = (test: string, fn: (s: IIntegrationState) => Promise<void> | void, testFunction: TestFunction | ExclusiveTestFunction = it) =>
-testFunction(test, async function() {
+  testFunction(test, async function() {
     const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
-    const root = new TestRoot(golden);
+    const root = new TestRoot(golden, this.test!.fullTitle());
     await root.initialize;
 
     try {
