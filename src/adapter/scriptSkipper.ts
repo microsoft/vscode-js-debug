@@ -97,7 +97,7 @@ export class ScriptSkipper {
 
   public toggleSkipFileStatus(url: string | undefined): void {
     if (url) {
-      let currentSkipValue = this._isUrlSkippedMap.get(url);
+      const currentSkipValue = this._isUrlSkippedMap.get(url);
       this._isUrlSkippedMap.set(url, !currentSkipValue);
     }
   }

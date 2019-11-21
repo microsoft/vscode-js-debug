@@ -15,7 +15,6 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
-import * as utils from '../common/sourceUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -264,7 +263,7 @@ export class DebugAdapter {
 
   async _toggleSkipFileStatus(params: Dap.ToggleSkipFileStatusParams): Promise<Dap.ToggleSkipFileStatusResult> {
     if (params.resource) {
-      params.resource = utils.fileUrlToPath(params.resource);
+      params.resource = urlUtils.fileUrlToAbsolutePath(params.resource);
     }
 
     const dapSource = await this._isSourceInCurrentStack(params);
