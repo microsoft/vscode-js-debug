@@ -350,7 +350,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('cd', async ({ r }) => {
+  itIntegrates.skip('cd', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     async function logCompletions(params: Dap.CompletionsParams) {

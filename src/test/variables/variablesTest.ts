@@ -57,7 +57,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('large array', async ({ r }) => {
+    itIntegrates.skip('large array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', {
         logInternalInfo: true,

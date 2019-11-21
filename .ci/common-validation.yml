@@ -28,7 +28,6 @@ steps:
     command: custom
     verbose: false
     customCommand: test
-  continueOnError: true
   timeoutInMinutes: 10
   env:
     DISPLAY: ':99.0'
