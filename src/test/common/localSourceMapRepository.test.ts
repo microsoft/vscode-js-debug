@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { LocalSourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
 import { createFileTree, testFixturesDir } from '../test';
-import { absolutePathToFileUrl, getCaseSensitivePaths } from '../../common/urlUtils';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
 
 describe('localSourceMapRepository', () => {
   let r: LocalSourceMapRepository;
@@ -15,7 +15,6 @@ describe('localSourceMapRepository', () => {
     createFileTree(testFixturesDir, {
       'a.js': '//# sourceMappingURL=a.js.map',
       'a.js.map': 'content1',
-      'b.js': '//# sourceMappingURL=does-not-exist.js.map',
       'c.js': 'no.sourcemap.here',
       nested: {
         'd.js': '//# sourceMappingURL=d.js.map',
@@ -32,7 +31,7 @@ describe('localSourceMapRepository', () => {
     expect(await r.findAllChildren(join(__dirname, 'does-not-exist'))).to.be.empty;
   });
 
-  it.skip('discovers all children and skips node_modules', async () => {
+  it('discovers all children and skips node_modules', async () => {
     expect(await r.findAllChildren(testFixturesDir)).to.deep.equal({
       [join(testFixturesDir, 'a.js')]: {
         compiledPath: join(testFixturesDir, 'a.js'),
@@ -45,7 +44,7 @@ describe('localSourceMapRepository', () => {
     });
   });
 
-  it.skip('looks in node_modules if required', async () => {
+  it('looks in node_modules if required', async () => {
     expect(await r.findAllChildren(join(testFixturesDir, 'node_modules'))).to.deep.equal({
       [join(testFixturesDir, 'node_modules', 'e.js')]: {
         compiledPath: join(testFixturesDir, 'node_modules', 'e.js'),
@@ -54,8 +53,9 @@ describe('localSourceMapRepository', () => {
     });
   });
 
+  // We don't normalize this any more
   it.skip('normalizes for case insensitivity', async () => {
-    if (getCaseSensitivePaths()) {
+    if (process.platform !== 'win32' && process.platform !== 'darwin') {
       expect(await r.findAllChildren(testFixturesDir.toUpperCase())).to.be.empty;
       return;
     }

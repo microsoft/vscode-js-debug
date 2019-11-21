@@ -8,7 +8,6 @@ import * as path from 'path';
 import { absolutePathToFileUrl, completeUrl, lowerCaseInsensitivePath } from '../urlUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { mapKeys } from '../objUtils';
-import { splitWithDriveLetter } from '../pathUtils';
 import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 
 class Directory {
@@ -25,8 +24,17 @@ class Directory {
    * Returns a Directory for the given path.
    */
   public async lookup(requestedPath: string): Promise<Directory> {
-    const segments = splitWithDriveLetter(requestedPath);
-    return this.lookupInternal(segments, 0);
+    let route: string[] = [];
+    while (true) {
+      route.unshift(requestedPath);
+
+      const next = path.dirname(requestedPath);
+      if (next === requestedPath) { // found the root
+        return this.lookupInternal(route, 0);
+      }
+
+      requestedPath = next;
+    }
   }
 
   /**
@@ -57,7 +65,7 @@ class Directory {
     const segment = parts[offset];
     let subdir = this.subdirectories.get(segment);
     if (!subdir) {
-      subdir = new Directory(path.join(this.path, segment));
+      subdir = new Directory(segment);
       this.subdirectories.set(segment, subdir);
     }
 
@@ -94,7 +102,7 @@ class Directory {
           }
 
           if (stat.isDirectory() && !this.subdirectories.has(bn)) {
-            this.subdirectories.set(bn, new Directory(absolutePath));
+            this.subdirectories.set(absolutePath, new Directory(absolutePath));
             return;
           }
         }),
