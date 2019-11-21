@@ -57,7 +57,7 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates.skip('large array', async ({ r }) => {
+    itIntegrates('large array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', {
         logInternalInfo: true,
@@ -87,7 +87,7 @@ describe('variables', () => {
   });
 
   describe('web', () => {
-    itIntegrates.skip('tags', async ({ r }) => {
+    itIntegrates('tags', async ({ r }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
@@ -98,7 +98,7 @@ describe('variables', () => {
   });
 
   describe('multiple threads', () => {
-    itIntegrates.skip('worker', async ({ r }) => {
+    itIntegrates('worker', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
       const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
       outputs.push({ output: await p.dap.once('output'), logger: p.logger });
@@ -112,7 +112,7 @@ describe('variables', () => {
   });
 
   describe('setVariable', () => {
-    itIntegrates.skip('basic', async ({ r }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 

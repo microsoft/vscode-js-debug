@@ -4,7 +4,7 @@
 import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fixDriveLetterAndSlashes, isUncPath, isWindowsPath, splitWithDriveLetter } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
@@ -50,25 +50,27 @@ export const truePathCasing = memoize(
     }
 
     // This seems to be the canonical way to do things as far as I can tell.
-    const input = splitWithDriveLetter(inputPath.toLowerCase());
-    const output = await Promise.all(
-      input.map(async (segment, i) => {
-        if (i === 0 && isWindowsPath(inputPath)) {
-          // drive letter
-          return segment.toUpperCase();
-        }
+    const trueSegment: Promise<string>[] = [];
+    while (true) {
+      const nextDir = path.dirname(inputPath);
+      if (nextDir === inputPath) {
+        return path.join(nextDir, ...(await Promise.all(trueSegment)));
+      }
 
-        const needle = segment.toLowerCase();
-        try {
-          const children = await readdir(input.slice(0, i).join(path.sep));
-          return children.find(c => c.toLowerCase() === needle) || segment;
-        } catch (e) {
-          return segment;
-        }
-      }),
-    );
+      const needle = path.basename(inputPath);
+      trueSegment.unshift(
+        (async () => {
+          try {
+            const children = await readdir(nextDir);
+            return children.find(c => c.toLowerCase() === needle.toLowerCase()) || needle;
+          } catch (e) {
+            return needle;
+          }
+        })(),
+      );
 
-    return path.join(...output);
+      inputPath = nextDir;
+    }
   },
 );
 

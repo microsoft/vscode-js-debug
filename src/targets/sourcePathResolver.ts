@@ -8,7 +8,8 @@ import {
   fixDriveLetter,
   fixDriveLetterAndSlashes,
   forceForwardSlashes,
-  isWindowsPath,
+  properResolve,
+  properRelative,
 } from '../common/pathUtils';
 import * as path from 'path';
 import { isFileUrl, fileUrlToAbsolutePath, getCaseSensitivePaths } from '../common/urlUtils';
@@ -76,16 +77,16 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return path.resolve(remotePath);
     }
 
-    const relativePath = relative(this.options.remoteRoot, remotePath);
+    const relativePath = properRelative(this.options.remoteRoot, remotePath);
     if (relativePath.startsWith('../')) {
       return '';
     }
 
-    let localPath = join(this.options.localRoot, relativePath);
+    let localPath = properJoin(this.options.localRoot, relativePath);
 
     localPath = fixDriveLetter(localPath);
     logger.verbose(LogTag.RuntimeSourceMap, `Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
-    return resolve(localPath);
+    return properResolve(localPath);
   }
 
   /**
@@ -97,10 +98,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return localPath;
     }
 
-    const relPath = relative(this.options.localRoot, localPath);
+    const relPath = properRelative(this.options.localRoot, localPath);
     if (relPath.startsWith('../')) return '';
 
-    let remotePath = join(this.options.remoteRoot, relPath);
+    let remotePath = properJoin(this.options.remoteRoot, relPath);
 
     remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
     logger.verbose(LogTag.RuntimeSourceMap, `Mapped localToRemote: ${localPath} -> ${remotePath}`);
@@ -168,25 +169,4 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       path.posix.isAbsolute(candidate) || path.win32.isAbsolute(candidate) || isFileUrl(candidate)
     );
   }
-}
-
-/**
- * Cross-platform path.resolve
- */
-function resolve(a: string): string {
-  return isWindowsPath(a) ? path.win32.resolve(a) : path.posix.resolve(a);
-}
-
-/**
- * Cross-platform path.relative
- */
-function relative(a: string, b: string): string {
-  return isWindowsPath(a) ? path.win32.relative(a, b) : path.posix.relative(a, b);
-}
-
-/**
- * Cross-platform path.join
- */
-function join(a: string, b: string): string {
-  return isWindowsPath(a) ? path.win32.join(a, b) : forceForwardSlashes(path.posix.join(a, b));
 }

@@ -7,5 +7,5 @@ e.on('data', data => {
 });
 
 debugger;
-e.emit(1);
-e.emit(2);
+e.emit('data', 1);
+e.emit('data', 2);

@@ -6,11 +6,11 @@
 }
 foo @ ${fixturesDir}/child.js:1:1
 <anonymous> @ ${fixturesDir}/child.js:1:1
-Module._compile @ internal/modules/cjs/loader.js:778:30 <hidden: blackboxed>
-Module._extensions..js @ internal/modules/cjs/loader.js:789:10 <hidden: blackboxed>
-Module.load @ internal/modules/cjs/loader.js:653:32 <hidden: blackboxed>
-tryModuleLoad @ internal/modules/cjs/loader.js:593:12 <hidden: blackboxed>
-Module._load @ internal/modules/cjs/loader.js:585:3 <hidden: blackboxed>
-Module.runMain @ internal/modules/cjs/loader.js:831:12 <hidden: blackboxed>
-startup @ internal/bootstrap/node.js:283:19 <hidden: blackboxed>
-bootstrapNodeJSCore @ internal/bootstrap/node.js:622:3 <hidden: blackboxed>
+Module._compile @ internal/modules/cjs/loader.js:778:30
+Module._extensions..js @ internal/modules/cjs/loader.js:789:10
+Module.load @ internal/modules/cjs/loader.js:653:32
+tryModuleLoad @ internal/modules/cjs/loader.js:593:12
+Module._load @ internal/modules/cjs/loader.js:585:3
+Module.runMain @ internal/modules/cjs/loader.js:831:12
+startup @ internal/bootstrap/node.js:283:19
+bootstrapNodeJSCore @ internal/bootstrap/node.js:622:3

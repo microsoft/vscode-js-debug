@@ -80,7 +80,7 @@ export class GoldenText {
     }
   }
 
-  _sanitize(value: any): string {
+  _sanitize(value: string): string {
     value = String(value);
     if (value.includes(this._workspaceFolder)) {
       value = value
@@ -94,6 +94,13 @@ export class GoldenText {
         .replace('/private${fixturesDir}', '${fixturesDir}') // for osx
         .replace(/\\/g, '/');
     }
+
+    // Don't compare blackboxed code, as this is subject to change between
+    // runtime/Node.js versions.
+    value = value
+      .split('\n')
+      .filter(line => !line.includes('hidden: blackboxed'))
+      .join('\n');
 
     return value
         .replace(/VM\d+/g, 'VM<xx>')

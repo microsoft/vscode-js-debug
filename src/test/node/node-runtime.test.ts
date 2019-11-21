@@ -37,7 +37,7 @@ describe('node runtime', () => {
     handle.assertLog();
   }
 
-  itIntegrates.skip('simple script', async ({ r }) => {
+  itIntegrates('simple script', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
     const handle = await r.runScript('test.js');
     handle.load();
@@ -97,7 +97,7 @@ describe('node runtime', () => {
       }
     })
 
-    itIntegrates.skip('attaches to existing processes', async ({ r }) => {
+    itIntegrates('attaches to existing processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': ['setInterval(() => { debugger; }, 500)'],
       });
@@ -109,7 +109,7 @@ describe('node runtime', () => {
       handle.assertLog();
     });
 
-    itIntegrates.skip('attaches children of child processes', async ({ r }) => {
+    itIntegrates('attaches children of child processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': `
           const { spawn } = require('child_process');
@@ -186,7 +186,7 @@ describe('node runtime', () => {
     await evaluate(handle, 'process.argv.slice(2)');
   });
 
-  itIntegrates.skip('sets the cwd', async ({ r }) => {
+  itIntegrates('sets the cwd', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {
       cwd: testWorkspace,

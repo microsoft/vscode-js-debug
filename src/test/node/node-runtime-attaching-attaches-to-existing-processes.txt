@@ -5,7 +5,7 @@
     threadId : <number>
 }
 setInterval @ ${fixturesDir}/test.js:1:1
-ontimeout @ timers.js:436:11 <hidden: blackboxed>
-tryOnTimeout @ timers.js:300:5 <hidden: blackboxed>
-listOnTimeout @ timers.js:263:5 <hidden: blackboxed>
-processTimers @ timers.js:223:10 <hidden: blackboxed>
+ontimeout @ timers.js:436:11
+tryOnTimeout @ timers.js:300:5
+listOnTimeout @ timers.js:263:5
+processTimers @ timers.js:223:10

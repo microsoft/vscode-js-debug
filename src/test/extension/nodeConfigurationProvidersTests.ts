@@ -29,9 +29,9 @@ describe('NodeDebugConfigurationProvider', () => {
     EnvironmentVars.platform = process.platform;
   });
 
-  describe.skip('logging resolution', () => {
+  describe('logging resolution', () => {
     const emptyRequest = {
-      type: '',
+      type: 'node',
       name: '',
       request: '',
     };
@@ -45,7 +45,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
     it('does not log by default', async () => {
       const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.deep.equal({
         console: false,
         level: 'fatal',
         logFile: null,
@@ -58,7 +58,7 @@ describe('NodeDebugConfigurationProvider', () => {
         ...emptyRequest,
         trace: true,
       });
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.containSubset({
         console: false,
         level: 'verbose',
         logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
@@ -74,7 +74,7 @@ describe('NodeDebugConfigurationProvider', () => {
           tags: ['cdp'],
         },
       });
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.deep.equal({
         console: false,
         level: 'warn',
         logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
@@ -90,7 +90,7 @@ describe('NodeDebugConfigurationProvider', () => {
       request: '',
     };
 
-    it.skip('loads the program from a package.json main if available', async () => {
+    it('loads the program from a package.json main if available', async () => {
       createFileTree(testFixturesDir, {
         'hello.js': '',
         'package.json': JSON.stringify({ main: 'hello.js' }),
@@ -107,7 +107,7 @@ describe('NodeDebugConfigurationProvider', () => {
       });
     });
 
-    it.skip('loads the program from a package.json start script if available', async () => {
+    it('loads the program from a package.json start script if available', async () => {
       createFileTree(testFixturesDir, {
         'hello.js': '',
         'package.json': JSON.stringify({ scripts: { start: 'node hello.js' } }),
@@ -140,7 +140,7 @@ describe('NodeDebugConfigurationProvider', () => {
       });
     });
 
-    it.skip('attempts to load the active text editor', async () => {
+    it('attempts to load the active text editor', async () => {
       createFileTree(testFixturesDir, { 'hello.js': '' });
       const doc = await vscode.workspace.openTextDocument(join(testFixturesDir, 'hello.js'));
       await vscode.window.showTextDocument(doc);
@@ -155,7 +155,7 @@ describe('NodeDebugConfigurationProvider', () => {
       }
     });
 
-    it.skip('applies tsconfig settings automatically', async () => {
+    it('applies tsconfig settings automatically', async () => {
       createFileTree(testFixturesDir, {
         out: { 'hello.js': '' },
         src: { 'hello.ts': '' },
