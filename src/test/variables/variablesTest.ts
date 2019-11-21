@@ -51,13 +51,13 @@ describe('variables', () => {
   });
 
   describe('object', () => {
-    itIntegrates.skip('simple array', async ({ r }) => {
+    itIntegrates('simple array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true });
       p.assertLog();
     });
 
-    itIntegrates.skip('large array', async ({ r }) => {
+    itIntegrates('large array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = new Array(110); a.fill(1); a', {
         logInternalInfo: true,
@@ -87,7 +87,7 @@ describe('variables', () => {
   });
 
   describe('web', () => {
-    itIntegrates.skip('tags', async ({ r }) => {
+    itIntegrates('tags', async ({ r }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
