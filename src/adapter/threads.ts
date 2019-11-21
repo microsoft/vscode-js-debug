@@ -97,6 +97,7 @@ export class Thread implements VariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _smartStepper: SmartStepper;
+  private _expectedPauseReason: PausedReason | undefined;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -158,19 +159,25 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async pause(): Promise<Dap.PauseResult | Dap.Error> {
-    if (!await this._cdp.Debugger.pause({}))
+    if (await this._cdp.Debugger.pause({}))
+      this._expectedPauseReason = 'pause';
+    else
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepOver({}))
+    if (await this._cdp.Debugger.stepOver({}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+    if (await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
@@ -703,11 +710,19 @@ export class Thread implements VariableStoreDelegate {
             description: localize('pause.breakpoint', 'Paused on breakpoint')
           };
         }
+        if (this._expectedPauseReason) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: this._expectedPauseReason,
+            description: localize('pause.default', 'Paused')
+          };
+        }
         return {
           thread: this,
           stackTrace,
-          reason: 'step',
-          description: localize('pause.default', 'Paused')
+          reason: 'pause',
+          description: localize('pause.default', 'Paused on debugger statement')
         };
     }
   }
@@ -981,6 +996,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onThreadPaused() {
+    this._expectedPauseReason = undefined;
     const details = this.pausedDetails()!;
     this._dap.stopped({
       reason: details.reason,

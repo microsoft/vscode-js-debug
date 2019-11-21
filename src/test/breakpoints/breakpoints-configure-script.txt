@@ -7,8 +7,8 @@
 <anonymous> @ ${workspaceFolder}/web/script.js:9:1
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/script.js:10:1
