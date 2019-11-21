@@ -51,7 +51,7 @@ export default class Connection {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
-    this._transport.onclose = this._onTransportClose.bind(this);
+    this._transport.onend = this._onTransportClose.bind(this);
     this._sessions = new Map();
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
@@ -103,7 +103,7 @@ export default class Connection {
       return;
     this._closed = true;
     this._transport.onmessage = undefined;
-    this._transport.onclose = undefined;
+    this._transport.onend = undefined;
     for (const session of this._sessions.values())
       session._onClose();
     this._sessions.clear();

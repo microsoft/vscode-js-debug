@@ -96,7 +96,7 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('cross target', async ({ r }) => {
+  itIntegrates.skip('cross target', async ({ r }) => {
     const p = await r.launchUrlAndLoad('worker.html');
     p.cdp.Runtime.evaluate({ expression: `window.w.postMessage('pause')` });
     await dumpStackAndContinue(p, true);

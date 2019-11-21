@@ -86,7 +86,7 @@ export class Logger {
 
   async logOutput(params: Dap.OutputEventParams, options?: LogOptions) {
     const prefix = `${params.category}> `;
-    if (params.output && params.category !== 'telemetry') // We don't test telemetry events at the moment
+    if (params.output)
       this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
       const result = await this._dap.variables({ variablesReference: params.variablesReference });

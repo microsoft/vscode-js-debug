@@ -16,7 +16,7 @@ describe('node source path resolver', () => {
       localRoot: null,
       sourceMapOverrides: { 'webpack:///*': '*' },
     };
-    it('resolves absolute', () => {
+    it.skip('resolves absolute', () => {
       const r = new NodeSourcePathResolver(defaultOptions);
 
       expect(r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal('/src/index.js');

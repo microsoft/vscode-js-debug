@@ -8,6 +8,8 @@ import * as child_process from 'child_process';
 import * as path from 'path';
 import { TestFunction, ExclusiveTestFunction } from 'mocha';
 
+process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
+
 let servers: child_process.ChildProcess[];
 
 before(async () => {
@@ -62,6 +64,7 @@ testFunction(test, async function() {
   });
 
 itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.only);
+itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.skip);
 export const itIntegrates = itIntegratesBasic;
 
 afterEach(async () => {
