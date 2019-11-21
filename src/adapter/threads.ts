@@ -883,6 +883,7 @@ export class Thread implements VariableStoreDelegate {
     const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
     const script = this._scripts.get(scriptId);
     if (!script) {
+      this._pausedForSourceMapScriptId = undefined;
       return false;
     }
 

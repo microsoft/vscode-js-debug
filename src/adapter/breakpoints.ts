@@ -466,7 +466,6 @@ export class BreakpointManager {
     this._totalBreakpointsCount += breakpoints.length;
     if (this._thread) {
       breakpoints.forEach(b => b.set(this._thread!));
-      this._updateSourceMapHandler(this._thread);
     }
     const dapBreakpoints = breakpoints.map(b => b.toProvisionalDap());
     this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
