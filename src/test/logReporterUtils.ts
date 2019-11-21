@@ -10,5 +10,5 @@ export interface TestWithLogfile extends mocha.Test {
 }
 
 export function getLogFileForTest(testTitlePath: string) {
-  return path.join(os.tmpdir(), `${testTitlePath.replace(/[\s*^<>\\\/|?:]+/g, '-')}.json`);
+  return path.join(os.tmpdir(), `${testTitlePath.replace(/[^a-z0-9]/gi, '-')}.json`);
 }
