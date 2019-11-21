@@ -29,6 +29,7 @@ steps:
     verbose: false
     customCommand: test
   timeoutInMinutes: 10
+  condition: ne(variables['Agent.OS'], 'Darwin')
   env:
     DISPLAY: ':99.0'
 
