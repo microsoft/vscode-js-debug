@@ -6,6 +6,7 @@ import { PausedDetails } from './threads';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
+import { UnmappedReason } from './sources';
 
 export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
     const uiLocation = await stackFrame.uiLocation();
@@ -15,7 +16,7 @@ export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise
     if (!uiLocation.source._sourceMapUrl)
       return false;
 
-    if (!uiLocation.isMapped)
+    if (!uiLocation.isMapped && uiLocation.unmappedReason !== UnmappedReason.MapDisabled)
       return true;
 
     return false;

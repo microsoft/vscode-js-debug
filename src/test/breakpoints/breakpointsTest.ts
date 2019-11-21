@@ -209,7 +209,7 @@ describe('breakpoints', () => {
     itIntegrates('source map set compiled', async ({ r }) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
-      const p = await r.launchUrlAndLoad('browserify/browserify.html', { smartStep: false });
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js'),
       };
@@ -235,7 +235,7 @@ describe('breakpoints', () => {
     itIntegrates('source map set compiled 2', async ({ r }) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
-      const p = await r.launchUrlAndLoad('browserify/browserify.html', { smartStep: false });
+      const p = await r.launchUrlAndLoad('browserify/browserify.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js'),
       };

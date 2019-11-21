@@ -17,7 +17,7 @@ import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { ScriptSkipper } from './scriptSkipper';
 import { SmartStepper } from './smartStepping';
-import { PreferredUILocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
+import { PreferredUiLocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
@@ -580,7 +580,7 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  public async rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
+  public async rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUiLocation | undefined> {
     const script = rawLocation.scriptId ? await this.getScriptByIdOrWait(rawLocation.scriptId) : undefined;
     if (!script) {
       return;
