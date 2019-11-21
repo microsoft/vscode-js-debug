@@ -51,7 +51,7 @@ describe('variables', () => {
   });
 
   describe('object', () => {
-    itIntegrates('simple array', async ({ r }) => {
+    itIntegrates.skip('simple array', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog('var a = [1, 2, 3]; a.foo = 1; a', { logInternalInfo: true });
       p.assertLog();

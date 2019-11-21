@@ -4,4 +4,3 @@
     reason : step
     threadId : <number>
 }
-setInterval @ ${fixturesDir}/test.js:1:1

@@ -103,6 +103,7 @@ export class GoldenText {
     value = String(value);
     replacePath(this._workspaceFolder, '${workspaceFolder}');
     replacePath(testFixturesDir, '${fixturesDir}');
+    value = value.replace(/testWorkspace/g, '${workspaceFolder}');
     value = value.replace('/private${fixturesDir}', '${fixturesDir}'); // for osx
 
     // Don't compare blackboxed code, as this is subject to change between
