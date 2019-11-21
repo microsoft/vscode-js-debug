@@ -46,7 +46,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return '';
     }
 
-    const unmappedPath = this.applyPathOverrides(url);
+    const unmappedPath = this.sourceMapOverrides.apply(url);
     if (unmappedPath !== url) {
       return path.resolve(webRoot, unmappedPath);
     }
