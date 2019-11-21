@@ -450,7 +450,7 @@ export const baseDefaults: IBaseConfiguration = {
   rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
-    'webpack:///*': '*',
+    'webpack://?:*/*': '*',
     'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
     'meteor://💻app/*': '${workspaceFolder}/*',
   },

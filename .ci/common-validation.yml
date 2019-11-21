@@ -22,15 +22,23 @@ steps:
     targets: compile
     publishJUnitResults: true
 
-# - task: Npm@1
-#   displayName: npm test
-#   inputs:
-#     command: custom
-#     verbose: false
-#     customCommand: test
-#   continueOnError: true
-#   env:
-#     DISPLAY: ':99.0'
+- task: Npm@1
+  displayName: npm test
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: test
+  timeoutInMinutes: 10
+  condition: ne(variables['Agent.OS'], 'Darwin')
+  env:
+    DISPLAY: ':99.0'
+
+- task: PublishTestResults@2
+  displayName: Publish Tests Results
+  inputs:
+    testResultsFiles: '*-results.xml'
+    searchFolder: '$(Build.ArtifactStagingDirectory)/test-results'
+  condition: succeededOrFailed()
 
 - task: Gulp@0
   displayName: gulp lint

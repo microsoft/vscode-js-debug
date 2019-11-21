@@ -1,29 +1,30 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as path from 'path';
 import * as fs from 'fs';
-import * as stream from 'stream';
 import * as mkdirp from 'mkdirp';
+import { tmpdir } from 'os';
+import * as path from 'path';
+import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
-import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { ScriptSkipper } from '../adapter/scriptSkipper';
+import { Binder } from '../binder';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
+import { EventEmitter } from '../common/events';
+import * as utils from '../common/urlUtils';
+import { chromeLaunchConfigDefaults, IChromeLaunchConfiguration, INodeAttachConfiguration, INodeLaunchConfiguration, nodeAttachConfigDefaults, nodeLaunchConfigDefaults } from '../configuration';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import * as utils from '../common/urlUtils';
-import { GoldenText } from './goldenText';
-import { Logger } from './logger';
-import { Binder } from '../binder';
-import { Target } from '../targets/targets';
-import { EventEmitter } from '../common/events';
-import { IChromeLaunchConfiguration, chromeLaunchConfigDefaults, nodeLaunchConfigDefaults, INodeLaunchConfiguration, INodeAttachConfiguration, nodeAttachConfigDefaults } from '../configuration';
-import { tmpdir } from 'os';
+import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { NodeAttacher } from '../targets/node/nodeAttacher';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
-import { NodeAttacher } from '../targets/node/nodeAttacher';
-import { ScriptSkipper } from '../adapter/scriptSkipper';
+import { Target } from '../targets/targets';
+import { GoldenText } from './goldenText';
+import { Logger } from './logger';
+import { getLogFileForTest } from './logReporterUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -285,7 +286,7 @@ export class TestRoot {
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
   readonly onSessionCreated = this._onSessionCreatedEmitter.event;
 
-  constructor(goldenText: GoldenText) {
+  constructor(goldenText: GoldenText, private _testTitlePath: string) {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
@@ -357,6 +358,8 @@ export class TestRoot {
   async _launch(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     await this.initialize;
     this._launchUrl = url;
+
+    const tmpLogPath = getLogFileForTest(this._testTitlePath);
     this._root.dap.launch({
       ...chromeLaunchConfigDefaults,
       url,
@@ -364,6 +367,7 @@ export class TestRoot {
       webRoot: this._webRoot,
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
+      trace: { logFile: tmpLogPath },
       ...options,
     } as IChromeLaunchConfiguration);
 

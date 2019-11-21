@@ -91,15 +91,20 @@ export interface RawTelemetryReporter {
 
 export class RawTelemetryReporterToDap implements RawTelemetryReporter {
   public readonly flush = new EventEmitter<void>();
+  private _enableTelemetry: boolean;
 
-  public constructor(private readonly _dap: Dap.Api) { }
+  public constructor(private readonly _dap: Dap.Api) {
+    this._enableTelemetry = !process.env['DA_TEST_DISABLE_TELEMETRY'];
+  }
 
   report(entityName: string, entityProperties: TelemetryEntityProperties) {
-    this._dap.output({
-      category: 'telemetry',
-      output: entityName,
-      data: entityProperties
-    });
+    if (this._enableTelemetry) {
+      this._dap.output({
+        category: 'telemetry',
+        output: entityName,
+        data: entityProperties
+      });
+    }
   };
 }
 

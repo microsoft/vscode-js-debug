@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { LocalSourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
 import { createFileTree, testFixturesDir } from '../test';
-import { absolutePathToFileUrl, getCaseSensitivePaths } from '../../common/urlUtils';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
 
 describe('localSourceMapRepository', () => {
   let r: LocalSourceMapRepository;
@@ -15,7 +15,6 @@ describe('localSourceMapRepository', () => {
     createFileTree(testFixturesDir, {
       'a.js': '//# sourceMappingURL=a.js.map',
       'a.js.map': 'content1',
-      'b.js': '//# sourceMappingURL=does-not-exist.js.map',
       'c.js': 'no.sourcemap.here',
       nested: {
         'd.js': '//# sourceMappingURL=d.js.map',
@@ -54,8 +53,9 @@ describe('localSourceMapRepository', () => {
     });
   });
 
-  it('normalizes for path insensitivity', async () => {
-    if (getCaseSensitivePaths()) {
+  // We don't normalize this any more
+  it.skip('normalizes for case insensitivity', async () => {
+    if (process.platform !== 'win32' && process.platform !== 'darwin') {
       expect(await r.findAllChildren(testFixturesDir.toUpperCase())).to.be.empty;
       return;
     }
