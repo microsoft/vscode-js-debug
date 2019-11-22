@@ -55,8 +55,12 @@ export class ScriptSkipper {
   }
 
   private _updateBlackboxedUrls(url: string) {
-    if (this._isUrlSkippedMap.get(url) && this.blackboxSender) {
-      this._blackboxedUrls.push(url);
+    if (this.blackboxSender) {
+      if (this._isUrlSkippedMap.get(url)) {
+        this._blackboxedUrls.push(url);
+      } else {
+        this._blackboxedUrls = this._blackboxedUrls.filter(blackBoxedUrl => blackBoxedUrl !== url);
+      }
       let blackboxPattern = '^' + this._createRegexString(this._blackboxedUrls) + '$';
       this.blackboxSender({patterns: [blackboxPattern]});
     }
@@ -95,11 +99,9 @@ export class ScriptSkipper {
     this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
   }
 
-  public toggleSkipFileStatus(url: string | undefined): void {
-    if (url) {
-      const currentSkipValue = this._isUrlSkippedMap.get(url);
-      this._isUrlSkippedMap.set(url, !currentSkipValue);
-    }
+  public toggleSkipFileStatus(url: string): void {
+    const currentSkipValue = this._isUrlSkippedMap.get(url);
+    this._isUrlSkippedMap.set(url, !currentSkipValue);
+    this._updateBlackboxedUrls(url);
   }
-
 }

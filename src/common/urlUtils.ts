@@ -172,6 +172,10 @@ export function urlPathToPlatformPath(p: string): string {
   return p;
 }
 
+export function compareUrlsAreEqual(url1: string, url2: string): boolean {
+  return urlPathToPlatformPath(url1).toLocaleLowerCase() === urlPathToPlatformPath(url2).toLocaleLowerCase();
+}
+
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
   if (process.platform === 'win32') return p.replace(/\\/g, '/');

@@ -15,6 +15,7 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { ScriptSkipper } from './scriptSkipper';
 
 const localize = nls.loadMessageBundle();
 
@@ -263,17 +264,27 @@ export class DebugAdapter {
 
   async _toggleSkipFileStatus(params: Dap.ToggleSkipFileStatusParams): Promise<Dap.ToggleSkipFileStatusResult> {
     if (params.resource) {
-      params.resource = urlUtils.fileUrlToAbsolutePath(params.resource);
+      const absPath = urlUtils.fileUrlToAbsolutePath(params.resource);
+      if (absPath) {
+        params.resource = absPath;
+      }
+    }
+
+    if (!this.sourceContainer.scriptSkipper) {
+      if (!this._thread || !this._thread.cdp()) {
+        return {};
+      }
+      this.sourceContainer.initializeScriptSkipper(new ScriptSkipper([]));
+      this.sourceContainer.scriptSkipper!.setBlackboxSender(this._thread.cdp().Debugger);
     }
 
     const dapSource = await this._isSourceInCurrentStack(params);
-    if (dapSource && this.sourceContainer.scriptSkipper) {
-      // TODO@Shennie set up script toggling regardless of whether skipfiles was passed from the beginning
+    if (dapSource && params.resource) {
       const source = this.sourceContainer.source(dapSource);
       if (source) {
         source._blackboxed = !source._blackboxed;
       }
-      this.sourceContainer.scriptSkipper.toggleSkipFileStatus(params.resource);
+      this.sourceContainer.scriptSkipper!.toggleSkipFileStatus(params.resource);
       this._withThread(thread => thread.pause());
     }
     return {};
@@ -285,7 +296,7 @@ export class DebugAdapter {
 
     let foundStackFrame;
     if (params.resource && stackFrames) {
-      foundStackFrame = stackFrames.find(frame => frame.source && frame.source.path?.toLocaleLowerCase() === params.resource?.toLocaleLowerCase());
+      foundStackFrame = stackFrames.find(frame => frame.source && frame.source.path && urlUtils.compareUrlsAreEqual(frame.source.path, params.resource!));
     } else {
       foundStackFrame = stackFrames.find(frame => frame.source && frame.source.sourceReference === params.sourceReference);
     }
