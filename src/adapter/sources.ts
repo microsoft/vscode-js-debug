@@ -25,7 +25,7 @@ export interface UiLocation {
   source: Source;
 }
 
-function isUiLocation(loc: any): loc is UiLocation {
+function isUiLocation(loc: unknown): loc is UiLocation {
   return typeof (loc as UiLocation).lineNumber === 'number' &&
     typeof (loc as UiLocation).columnNumber === 'number' &&
     !!(loc as UiLocation).source;
@@ -245,7 +245,13 @@ export interface PreferredUiLocation extends UiLocation {
 }
 
 export enum UnmappedReason {
+  /** The map has been disabled temporarily, due to setting a breakpoint in a compiled script */
   MapDisabled,
+
+  /**
+   * The location cannot be sourcemapped, due to not having a sourcemap,
+   * failing to load the sourcemap, not having a mapping in the sourcemap, etc
+   */
   CannotMap
 }
 
