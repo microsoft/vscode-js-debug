@@ -1,3 +1,7 @@
+# Self-Hosting
+
+To use your existing launch configs with this extension, install the extension "Javascript Debugger" in VS Code. Then you can either change the types of your "node" and "chrome" launch configs to "pwa-node" and "pwa-chrome". Or configure `"debug.node.useV3": true` to use it for normal "node"-type configs.
+
 # Demos
 
 Win

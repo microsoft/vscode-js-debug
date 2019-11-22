@@ -1,6 +1,6 @@
 {
   "name": "js-debug",
-  "displayName": "VS Code JavaScript Debugger",
+  "displayName": "JavaScript Debugger",
   "version": "0.9.0",
   "publisher": "ms-vscode",
   "author": {
