@@ -48,6 +48,17 @@ export class BreakpointsPredictor {
       .then(exists => (exists ? nodeModules : undefined));
   }
 
+  /**
+   * Returns a promise that resolves once maps in the root are predicted.
+   */
+  public async prepareToPredict(): Promise<void> {
+    await this._directoryScanner(this._rootPath).waitForLoad();
+  }
+
+  /**
+   * Returns a promise that resolves when breakpoints for the given location
+   * are predicted.
+   */
   public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
     if (!params.source.path) return;
     const nodeModules = await this._nodeModules;
@@ -61,6 +72,9 @@ export class BreakpointsPredictor {
     await this._directoryScanner(root).predictResolvedLocations(params);
   }
 
+  /**
+   * Returns predicted breakpoint locations for the provided source.
+   */
   public predictedResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
     const result: WorkspaceLocation[] = [];
     for (const p of this._predictedLocations) {
@@ -134,6 +148,14 @@ class DirectoryScanner {
     }
 
     return sourcePathToCompiled;
+  }
+
+  /**
+   * Returns a promise that resolves when the sourcemaps predictions are
+   * successfully prepared.
+   */
+  public async waitForLoad() {
+    await this._sourcePathToCompiled;
   }
 
   public async predictResolvedLocations(params: Dap.SetBreakpointsParams) {

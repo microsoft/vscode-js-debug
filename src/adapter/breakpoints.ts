@@ -249,7 +249,11 @@ export class BreakpointManager {
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
 
-  constructor(dap: Dap.Api, sourceContainer: SourceContainer) {
+  constructor(
+    dap: Dap.Api,
+    sourceContainer: SourceContainer,
+    private readonly pauseForSourceMaps: boolean,
+  ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
 
@@ -275,6 +279,7 @@ export class BreakpointManager {
         remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1)),
       };
     };
+
     if (sourceContainer.rootPath)
       this._breakpointsPredictor = new BreakpointsPredictor(
         sourceContainer.rootPath,
@@ -357,11 +362,14 @@ export class BreakpointManager {
             // inlined amongst the range we request).
             const result: Dap.BreakpointLocation[] = [];
             for (const location of r.locations) {
-              const sourceLocations = this._sourceContainer.currentSiblingUiLocations({
-                source: start.source,
-                lineNumber: location.lineNumber + 1,
-                columnNumber: (location.columnNumber || 0) + 1,
-              }, source);
+              const sourceLocations = this._sourceContainer.currentSiblingUiLocations(
+                {
+                  source: start.source,
+                  lineNumber: location.lineNumber + 1,
+                  columnNumber: (location.columnNumber || 0) + 1,
+                },
+                source,
+              );
 
               for (const srcLocation of sourceLocations) {
                 result.push({ line: srcLocation.lineNumber, column: srcLocation.columnNumber });
@@ -399,7 +407,7 @@ export class BreakpointManager {
     });
     for (const breakpoints of this._byPath.values()) breakpoints.forEach(b => b.set(thread));
     for (const breakpoints of this._byRef.values()) breakpoints.forEach(b => b.set(thread));
-    this._updateSourceMapHandler();
+    this._updateSourceMapHandler(this._thread);
   }
 
   launchBlocker(): Promise<void> {
@@ -414,11 +422,18 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  async _updateSourceMapHandler() {
-    if (!this._thread) return;
-    // TODO: disable pausing before source map with a setting or unconditionally.
-    // const enableSourceMapHandler = this._totalBreakpointsCount && !this._sourceMapPauseDisabledForTest;
-    await this._thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
+  async _updateSourceMapHandler(thread: Thread) {
+    await thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
+
+    if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
+      return;
+    }
+
+    // If we set a predictor and don't want to pause, we still wait to wait
+    // for the predictor to finish running. Uninstall the sourcemap handler
+    // once we see the predictor is ready to roll.
+    await this._breakpointsPredictor.prepareToPredict();
+    thread.setScriptSourceMapHandler(undefined);
   }
 
   async setBreakpoints(
@@ -449,8 +464,9 @@ export class BreakpointManager {
       await Promise.all(previous.map(b => b.remove()));
     }
     this._totalBreakpointsCount += breakpoints.length;
-    if (this._thread) breakpoints.forEach(b => b.set(this._thread!));
-    this._updateSourceMapHandler();
+    if (this._thread) {
+      breakpoints.forEach(b => b.set(this._thread!));
+    }
     const dapBreakpoints = breakpoints.map(b => b.toProvisionalDap());
     this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
     return { breakpoints: dapBreakpoints };

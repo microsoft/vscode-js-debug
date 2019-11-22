@@ -83,6 +83,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
       type: 'string',
     },
   },
+  pauseForSourceMap: {
+    type: 'boolean',
+    markdownDescription: refString('node.pauseForSourceMap.description'),
+    default: false,
+  },
   showAsyncStacks: {
     type: 'boolean',
     description: refString('node.showAsyncStacks.description'),

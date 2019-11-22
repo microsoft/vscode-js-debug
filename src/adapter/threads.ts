@@ -96,6 +96,7 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
+  private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
   private _smartStepper: SmartStepper;
   private _expectedPauseReason: PausedReason | undefined;
 
@@ -883,37 +884,53 @@ export class Thread implements VariableStoreDelegate {
       (source as any)[kScriptsSymbol] = new Set();
     (source as any)[kScriptsSymbol].add(script);
 
-    if (!this._pauseOnSourceMapBreakpointId && event.sourceMapURL) {
-      // If we won't pause before executing this script, try to load source map
-      // and set breakpoints as soon as possible. This is still racy against the script execution,
-      // but better than nothing.
-      this._sourceContainer.waitForSourceMapSources(source).then(sources => {
-        if (sources.length && this._scriptWithSourceMapHandler)
-          this._scriptWithSourceMapHandler(script, sources);
-      });
+    if (event.sourceMapURL) {
+      // If we won't pause before executing this script, still try to load source
+      // map and set breakpoints as soon as possible. This is racy against the
+      // script execution, but better than nothing.
+      this._getOrStartLoadingSourceMaps(script);
     }
   }
 
   // Wait for source map to load and set all breakpoints in this particular script.
   async _handleSourceMapPause(scriptId: string): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
+    const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
     const script = this._scripts.get(scriptId);
-
-    let remainPaused = false;
-    if (script) {
-      const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
-      const sources = await Promise.race([
-        this._sourceContainer.waitForSourceMapSources(script.source),
-        delay(timeout),
-      ]);
-      if (sources && this._scriptWithSourceMapHandler) {
-        remainPaused = (await this._scriptWithSourceMapHandler(script, sources)).remainPaused;
-      }
+    if (!script) {
+      this._pausedForSourceMapScriptId = undefined;
+      return false;
     }
+
+    const result = await Promise.race([
+      this._getOrStartLoadingSourceMaps(script),
+      delay(timeout),
+    ]);
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
-    return remainPaused;
+    return result ? result.remainPaused : false;
+  }
+
+  /**
+   * Loads sourcemaps for the given script and invokes the handler, if we
+   * haven't already done so. Returns a promise that resolves with the
+   * handler's results.
+   */
+  private _getOrStartLoadingSourceMaps(script: Script) {
+    const existing = this._sourceMapLoads.get(script.scriptId);
+    if (existing) {
+      return existing;
+    }
+
+    const result = this._sourceContainer.waitForSourceMapSources(script.source).then(sources =>
+      sources.length && this._scriptWithSourceMapHandler
+        ? this._scriptWithSourceMapHandler(script, sources)
+        : { remainPaused: false }
+    );
+
+    this._sourceMapLoads.set(script.scriptId, result);
+    return result;
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {
@@ -1018,7 +1035,7 @@ export class Thread implements VariableStoreDelegate {
     if (this._scriptWithSourceMapHandler === handler)
       return;
     this._scriptWithSourceMapHandler = handler;
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
+    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
       this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
