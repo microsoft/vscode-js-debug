@@ -25,7 +25,6 @@ import { Target } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './logReporterUtils';
-import { delay } from '../common/promiseUtil';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -204,7 +203,6 @@ export class TestP implements ITestHandle {
     this._cdp!.Page.navigate({ url: this._root._launchUrl! });
     await new Promise(f => this._cdp!.Page.on('loadEventFired', f));
     await this._cdp!.Page.disable({});
-    await delay(5);
   }
 }
 
