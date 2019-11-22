@@ -14,12 +14,14 @@ import { pickProcess, attachProcess } from './ui/processPicker';
 import { ExtensionHostConfigurationProvider } from './extensionHostConfigurationProvider';
 import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
 import { debugNpmScript } from './ui/debugNpmScript';
+import { toggleSkippingFile } from './ui/toggleSkippingFile';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
     vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
     vscode.commands.registerCommand(Contributions.DebugNpmScript, debugNpmScript),
+    vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile)
   );
 
   const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);
