@@ -92,7 +92,7 @@ suite('Chrome Debug Adapter etc', () => {
       return Promise.all([
         dc.configurationSequence(),
         dc.launch({ url: 'http://localhost:7890', webRoot: testProjectRoot }),
-        dc.assertStoppedLocation('debugger_statement', { path: breakFile, line: DEBUGGER_LINE }),
+        dc.assertStoppedLocation('pause', { path: breakFile, line: DEBUGGER_LINE }),
       ]);
     });
 

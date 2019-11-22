@@ -22,8 +22,8 @@ bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
 <anonymous> @ localhost꞉8001/browserify/test.js:1:8
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
