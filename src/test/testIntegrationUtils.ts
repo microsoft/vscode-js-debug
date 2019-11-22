@@ -7,6 +7,7 @@ import { ExclusiveTestFunction, TestFunction } from 'mocha';
 import * as path from 'path';
 import { GoldenText } from './goldenText';
 import { testFixturesDir, TestRoot, testWorkspace } from './test';
+import { forceForwardSlashes } from '../common/pathUtils';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -68,5 +69,5 @@ itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<vo
 export const itIntegrates = itIntegratesBasic;
 
 afterEach(async () => {
-  await del([`${testFixturesDir}/**`], { force: true /* delete outside cwd */ });
+  await del([`${forceForwardSlashes(testFixturesDir)}/**`], { force: true /* delete outside cwd */ });
 });

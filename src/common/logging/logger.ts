@@ -27,7 +27,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * Log tag filter.
    */
-  private tags?: ReadonlySet<string>;
+  private tags?: ReadonlySet<LogTag>;
 
   /**
    * @inheritdoc
@@ -139,7 +139,11 @@ export class Logger implements ILogger, Disposable {
       // options. For instance, `cdp` adds the tags `cdp`, `cdp.send`, etc.
       this.tags = new Set(
         options.tags
-          .map(src => allLogTags.filter(t => t === src || t.startsWith(`${src}.`)))
+          .map(src =>
+            allLogTags
+              .map(key => LogTag[key])
+              .filter(tag => tag === src || tag.startsWith(`${src}.`)),
+          )
           .reduce((acc, tags) => [...acc, ...tags], []),
       );
     } else {

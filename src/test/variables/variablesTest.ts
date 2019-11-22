@@ -87,7 +87,7 @@ describe('variables', () => {
   });
 
   describe('web', () => {
-    itIntegrates.skip('tags', async ({ r }) => {
+    itIntegrates('tags', async ({ r }) => {
       const p = await r.launchAndLoad(`<head>
         <meta name='foo' content='bar'></meta>
         <title>Title</title>
@@ -98,7 +98,7 @@ describe('variables', () => {
   });
 
   describe('multiple threads', () => {
-    itIntegrates.skip('worker', async ({ r }) => {
+    itIntegrates('worker', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
       const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
       outputs.push({ output: await p.dap.once('output'), logger: p.logger });

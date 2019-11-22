@@ -580,16 +580,39 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
-    const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
-    if (!script)
-      return Promise.resolve(undefined);
-    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this.defaultScriptOffset());
+  public async rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
+    const script = rawLocation.scriptId ? await this.getScriptByIdOrWait(rawLocation.scriptId) : undefined;
+    if (!script) {
+      return;
+    }
+
+    const { lineNumber, columnNumber } = rawToUiOffset(rawLocation, this.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
       lineNumber,
       columnNumber,
       source: script.source
     });
+  }
+
+  /**
+   * Gets a script ID if it exists, or waits to up maxTime. In rare cases we
+   * can get a request (like a stacktrace request) from DAP before Chrome
+   * finishes passing its sources over. We *should* normally know about all
+   * possible script IDs; this waits if we see one that we don't.
+   */
+  private async getScriptByIdOrWait(scriptId: string, maxTime: number = 500) {
+    let script = this._scripts.get(scriptId);
+    if (script) {
+      return script;
+    }
+
+    const deadline = Date.now() + maxTime;
+    do {
+      await delay(50);
+      script = this._scripts.get(scriptId);
+    } while (!script && Date.now() < deadline);
+
+    return script;
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {

@@ -5,7 +5,7 @@ import { TestP } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('threads', () => {
-  itIntegrates.skip('paused', async ({ r }) => {
+  itIntegrates('paused', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.cdp.Runtime.evaluate({ expression: 'debugger;' });
     await p.dap.once('stopped');
@@ -13,7 +13,7 @@ describe('threads', () => {
     p.assertLog();
   });
 
-  itIntegrates.skip('not paused', async ({ r }) => {
+  itIntegrates('not paused', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     p.log(await p.dap.threads({}));
     p.assertLog();

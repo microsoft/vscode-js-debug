@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as utils from '../../common/urlUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
+import { properResolve } from '../../common/pathUtils';
 
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
@@ -48,7 +49,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
     const unmappedPath = this.sourceMapOverrides.apply(url);
     if (unmappedPath !== url) {
-      return path.resolve(webRoot, unmappedPath);
+      return properResolve(webRoot, unmappedPath);
     }
 
     if (!baseUrl || !url.startsWith(baseUrl)) return '';

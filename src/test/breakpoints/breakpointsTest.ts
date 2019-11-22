@@ -255,7 +255,7 @@ describe('breakpoints', () => {
   });
 
   describe('logpoints', () => {
-    itIntegrates.skip('basic', async ({ r }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchUrl('logging.html');
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js'),
