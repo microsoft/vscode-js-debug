@@ -1,3 +1,6 @@
+parameters:
+  runTests: true
+
 steps:
 - task: NodeTool@0
   displayName: Use Node
@@ -29,7 +32,7 @@ steps:
     verbose: false
     customCommand: test
   timeoutInMinutes: 10
-  condition: ne(variables['Agent.OS'], 'Darwin')
+  condition: and(eq(${{ parameters.runTests }}, true), ne(variables['Agent.OS'], 'Darwin'))
   env:
     DISPLAY: ':99.0'
 
@@ -38,7 +41,7 @@ steps:
   inputs:
     testResultsFiles: '*-results.xml'
     searchFolder: '$(Build.ArtifactStagingDirectory)/test-results'
-  condition: succeededOrFailed()
+  condition: and(succeededOrFailed(), eq(${{ parameters.runTests }}, true))
 
 - task: Gulp@0
   displayName: gulp lint
