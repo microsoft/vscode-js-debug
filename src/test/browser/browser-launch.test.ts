@@ -28,7 +28,7 @@ describe('browser launch', () => {
     r.assertLog();
   });
 
-  itIntegrates('user data dir', async ({ r }) => {
+  itIntegrates.skip('user data dir', async ({ r }) => {
     mkdirp.sync(testFixturesDir);
     expect(readdirSync(testFixturesDir)).to.be.empty;
 

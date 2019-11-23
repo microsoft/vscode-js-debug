@@ -51,7 +51,7 @@ describe('urlUtils', () => {
   });
 
   describe('truePathCasing()', () => {
-    it('works', async () => {
+    it.skip('works', async () => {
       createFileTree(testFixturesDir, {
         'foo/Bar/BAZ.txt': 'hello.txt',
       });
