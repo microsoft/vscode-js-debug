@@ -106,6 +106,8 @@ export class BreakpointsPredictor {
 type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
+const defaultFileMappings = ['**/*.js', '!node_modules/**'];
+
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
   private _sourcePathToCompiled: Promise<MetadataMap>;
@@ -135,7 +137,8 @@ class DirectoryScanner {
     };
 
     const start = Date.now();
-    const todo = Object.values(await this.repo.findAllChildren(absolutePath)).map(
+    await this.repo.streamAllChildren(
+      defaultFileMappings.map(m => `${absolutePath}/${m}`),
       async metadata => {
         const baseUrl = metadata.sourceMapUrl.startsWith('data:')
           ? metadata.compiledPath
@@ -175,7 +178,6 @@ class DirectoryScanner {
       },
     );
 
-    await Promise.all(todo);
     console.log('runtime using', this.repo.constructor.name, Date.now() - start);
     return sourcePathToCompiled;
   }

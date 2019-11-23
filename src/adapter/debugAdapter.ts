@@ -15,8 +15,7 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
-import { RipGrepSourceMapRepository } from '../common/sourceMaps/ripGrepSourceMapRepository';
-import { NodeSourceMapRepository } from '../common/sourceMaps/nodeSourceMapRepository';
+import { CodeSearchSourceMapRepository } from '../common/sourceMaps/codeSearchSourceMapRepository';
 import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPredictor';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { join } from 'path';
@@ -72,9 +71,7 @@ export class DebugAdapter {
       })),
     );
 
-    const sourceMapRepo = launchConfig.__ripGrepStoragePath
-      ? RipGrepSourceMapRepository.create(launchConfig.__ripGrepStoragePath)
-      : new NodeSourceMapRepository();
+    const sourceMapRepo = CodeSearchSourceMapRepository.createOrFallback();
     const bpCache: BreakpointPredictionCache | undefined = launchConfig.__workspaceCachePath
       ? new CorrelatedCache(join(launchConfig.__workspaceCachePath, 'bp-predict.json'))
       : undefined;

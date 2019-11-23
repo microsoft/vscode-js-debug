@@ -7,6 +7,7 @@ import { ISourceMapRepository, createMetadataForFile } from './sourceMapReposito
 import globStream from 'glob-stream';
 import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
+import { resolve as pathResolve } from 'path';
 import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
 
 /**
@@ -32,7 +33,12 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
     const todo: Promise<T | void>[] = [];
 
     await new Promise((resolve, reject) =>
-      globStream(patterns.map(forceForwardSlashes))
+      globStream(patterns.map(forceForwardSlashes), {
+        matchBase: true,
+        // set the root of the filesystem as the 'working directory' so that
+        // patterns like "!**/foo/**" get matched.
+        cwd: pathResolve(patterns[0], '/'),
+      })
         .on('data', (value: globStream.Entry) =>
           todo.push(
             createMetadataForFile(fixDriveLetterAndSlashes(value.path))

@@ -3,15 +3,53 @@
  *--------------------------------------------------------*/
 
 import { ISourceMapMetadata } from './sourceMap';
+import { parseSourceMappingUrl } from '../sourceUtils';
+import { completeUrl, absolutePathToFileUrl } from '../urlUtils';
+import { stat, readfile } from '../fsUtils';
 
 export interface ISourceMapRepository {
   /**
-   * Returns the sourcemaps in the directory, given as an absolute path.
+   * Recursively finds all children matching the given glob, calling `onChild`
+   * when children are found and returning a promise that resolves once all
+   * children have been discovered.
    */
-  findDirectChildren(absolutePath: string): Promise<{ [path: string]: Required<ISourceMapMetadata> }>;
-
-  /**
-   * Recursively finds all children of the given direcotry.
-   */
-  findAllChildren(absolutePath: string): Promise<{ [key: string]: Required<ISourceMapMetadata> }>;
+  streamAllChildren<T>(
+    patterns: ReadonlyArray<string>,
+    onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
+  ): Promise<T[]>;
 }
+
+/**
+ * Generates source map metadata from a path on disk and file contents.
+ * @param compiledPath -- Absolute path of the .js file on disk
+ * @param fileContents -- Read contents of the file
+ */
+export const createMetadataForFile = async (compiledPath: string, fileContents?: string) => {
+  if (typeof fileContents === 'undefined') {
+    fileContents = await readfile(compiledPath);
+  }
+
+  let sourceMapUrl = parseSourceMappingUrl(fileContents);
+  if (!sourceMapUrl) {
+    return;
+  }
+
+  sourceMapUrl = completeUrl(absolutePathToFileUrl(compiledPath), sourceMapUrl);
+  if (!sourceMapUrl) {
+    return;
+  }
+
+  if (!sourceMapUrl.startsWith('data:') && !sourceMapUrl.startsWith('file://')) {
+    return;
+  }
+
+  const stats = await stat(compiledPath);
+  if (!stats) {
+    return;
+  }
+  return {
+    compiledPath,
+    sourceMapUrl: sourceMapUrl!,
+    mtime: stats && stats.mtimeMs,
+  };
+};

@@ -8,10 +8,12 @@ import { join } from 'path';
 import { createFileTree, testFixturesDir } from '../test';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
-import { RipGrepSourceMapRepository } from '../../common/sourceMaps/ripGrepSourceMapRepository';
-import { tmpdir, platform } from 'os';
+import { tmpdir } from 'os';
 import { mkdirSync } from 'fs';
 import del from 'del';
+import * as vscode from 'vscode';
+import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
+import { fixDriveLetter } from '../../common/pathUtils';
 
 describe('ISourceMapRepository', () => {
   let rgPath = join(tmpdir(), 'pwa-ripgrep');
@@ -28,8 +30,9 @@ describe('ISourceMapRepository', () => {
   [
     { name: 'NodeSourceMapRepository', create: () => new NodeSourceMapRepository() },
     {
-      name: 'RipGrepSourceMapRepository',
-      create: () => RipGrepSourceMapRepository.create(tmpdir()),
+      name: 'CodeSearchSourceMapRepository',
+      create: () =>
+        new CodeSearchSourceMapRepository(vscode.workspace.findTextInFiles.bind(vscode.workspace)),
     },
   ].forEach(tcase =>
     describe(tcase.name, () => {
@@ -51,44 +54,31 @@ describe('ISourceMapRepository', () => {
         });
       });
 
+      const gather = (dir: string) =>
+        r
+          .streamAllChildren([`${dir}/**/*.js`, '!**/node_modules/**'], async m => {
+            const { mtime, ...rest } = m;
+            expect(mtime).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
+            rest.compiledPath = fixDriveLetter(rest.compiledPath);
+            return rest;
+          })
+          .then(r => r.sort((a, b) => a.compiledPath.length - b.compiledPath.length));
+
       it('no-ops for non-existent directories', async () => {
-        expect(await r.findAllChildren(join(__dirname, 'does-not-exist'))).to.be.empty;
+        expect(await gather(join(__dirname, 'does-not-exist'))).to.be.empty;
       });
 
-      it('discovers all children and skips node_modules', async () => {
-        expect(await r.findAllChildren(testFixturesDir)).to.deep.equal({
-          [join(testFixturesDir, 'a.js')]: {
-            compiledPath: join(testFixturesDir, 'a.js'),
+      it('discovers all children and applies negated globs', async () => {
+        expect(await gather(testFixturesDir)).to.deep.equal([
+          {
+            compiledPath: fixDriveLetter(join(testFixturesDir, 'a.js')),
             sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'a.js.map')),
           },
-          [join(testFixturesDir, 'nested', 'd.js')]: {
-            compiledPath: join(testFixturesDir, 'nested', 'd.js'),
+          {
+            compiledPath: fixDriveLetter(join(testFixturesDir, 'nested', 'd.js')),
             sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'nested', 'd.js.map')),
           },
-        });
-      });
-
-      it('looks in node_modules if required', async () => {
-        expect(await r.findAllChildren(join(testFixturesDir, 'node_modules'))).to.deep.equal({
-          [join(testFixturesDir, 'node_modules', 'e.js')]: {
-            compiledPath: join(testFixturesDir, 'node_modules', 'e.js'),
-            sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'node_modules', 'e.js.map')),
-          },
-        });
-      });
-
-      // we removed this functionality, for now...
-      it.skip('normalizes for path insensitivity', async () => {
-        if (platform() !== 'win32' && platform() !== 'darwin') {
-          expect(await r.findAllChildren(testFixturesDir.toUpperCase())).to.be.empty;
-          return;
-        }
-
-        const expected = await r.findAllChildren(testFixturesDir);
-        const newInst = tcase.create();
-        expect(await newInst.findAllChildren(testFixturesDir.toUpperCase())).to.deep.equal(
-          expected,
-        );
+        ]);
       });
     }),
   );
