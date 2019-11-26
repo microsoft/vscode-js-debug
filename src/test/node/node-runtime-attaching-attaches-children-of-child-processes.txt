@@ -1,7 +1,14 @@
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 foo @ ${fixturesDir}/child.js:1:1
+<anonymous> @ ${fixturesDir}/child.js:1:1
+Module._compile @ internal/modules/cjs/loader.js:956:30
+Module._extensions..js @ internal/modules/cjs/loader.js:973:10
+Module.load @ internal/modules/cjs/loader.js:812:32
+Module._load @ internal/modules/cjs/loader.js:724:14
+Module.runMain @ internal/modules/cjs/loader.js:1025:10
+<anonymous> @ internal/main/run_main_module.js:17:11
