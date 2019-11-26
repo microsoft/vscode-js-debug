@@ -11,8 +11,8 @@ r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 <anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2

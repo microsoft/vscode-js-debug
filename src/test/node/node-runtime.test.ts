@@ -106,7 +106,7 @@ describe('node runtime', () => {
       await delay(500); // give it a moment to boot
       const handle = await r.attachNode(child.pid);
       await waitForPause(handle);
-      handle.assertLog();
+      handle.assertLog({ substring: true });
     });
 
     itIntegrates('attaches children of child processes', async ({ r }) => {
@@ -127,7 +127,7 @@ describe('node runtime', () => {
       worker.load();
 
       await waitForPause(worker);
-      worker.assertLog();
+      worker.assertLog({ substring: true });
     });
   });
 

@@ -4,13 +4,19 @@
 import * as urlUtils from '../../common/urlUtils';
 import * as path from 'path';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
+import { IUrlResolution } from '../../common/sourcePathResolver';
+import { properResolve } from '../../common/pathUtils';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
 }
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
-  urlToAbsolutePath(url: string): string | undefined {
+  urlToAbsolutePath({ url, map }: IUrlResolution): string | undefined {
+    if (map && !this.shouldResolveSourceMap(map)) {
+      return undefined;
+    }
+
     const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
     if (absolutePath) {
       return this.rebaseRemoteToLocal(absolutePath);
@@ -20,10 +26,10 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return '';
     }
 
-    const modified = this.applyPathOverrides(url);
+    const modified = this.sourceMapOverrides.apply(url);
 
     if (modified !== url) {
-      const withBase = path.resolve(this.options.basePath, modified);
+      const withBase = properResolve(this.options.basePath, modified);
       return this.rebaseRemoteToLocal(withBase);
     }
     else {

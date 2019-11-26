@@ -8,6 +8,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
 import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { CancellationToken } from 'vscode';
 
 /**
  * A generic running process that can be debugged. We may have a target before
@@ -50,6 +51,7 @@ export interface Target {
 
 export interface ILaunchContext {
   dap: Dap.Api;
+  cancellationToken: CancellationToken;
   targetOrigin: any;
 }
 
@@ -74,13 +76,18 @@ export interface IStopMetadata {
    * Any error that occurred.
    */
   error?: Error;
+
+  /**
+   * Restart parameters.
+   */
+  restart?: any;
 }
 
 export interface Launcher extends Disposable {
   launch(params: AnyLaunchConfiguration, context: ILaunchContext, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
-  restart(rawTelemetryReporter: RawTelemetryReporterToDap): Promise<void>;
+  restart(): Promise<void>;
   onTargetListChanged: Event<void>;
   onTerminated: Event<IStopMetadata>;
   targetList(): Target[];

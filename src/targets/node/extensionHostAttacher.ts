@@ -4,17 +4,34 @@
 
 import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
-import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
-import { SubprocessProgram } from './program';
+import { IRunData } from './nodeLauncherBase';
+import { SubprocessProgram, TerminalProcess } from './program';
 import { getWSEndpoint } from '../browser/launcher';
 import { delay } from '../../common/promiseUtil';
 import { spawnWatchdog } from './watchdogSpawn';
 import { findInPath } from '../../common/pathUtils';
+import Cdp from '../../cdp/api';
+import { IDisposable } from '../../common/disposable';
+import { NodeAttacherBase } from './nodeAttacherBase';
 
 /**
  * Attaches to an instance of VS Code for extension debugging.
  */
-export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfiguration> {
+export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfiguration> {
+  protected restarting = false;
+
+  /**
+   * @inheritdoc
+   */
+  public async restart() {
+    this.restarting = true;
+    this.onProgramTerminated({ code: 0, killed: true, restart: true });
+
+    if (this.program) {
+      this.program.stop();
+    }
+  }
+
   /**
    * @inheritdoc
    */
@@ -27,15 +44,19 @@ export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfig
   /**
    * @inheritdoc
    */
-  protected async launchProgram(runData: IRunData<IExtensionHostConfiguration>): Promise<void> {
+  protected async launchProgram(
+    runData: IRunData<IExtensionHostConfiguration>,
+  ): Promise<string | void> {
     let inspectorUrl: string | undefined;
-    const deadline = Date.now() + runData.params.timeout;
     do {
       try {
-        inspectorUrl = await getWSEndpoint(`http://localhost:${runData.params.port}`);
+        inspectorUrl = await getWSEndpoint(
+          `http://localhost:${runData.params.port}`,
+          runData.context.cancellationToken,
+        );
       } catch (e) {
-        if (Date.now() > deadline) {
-          throw e;
+        if (runData.context.cancellationToken.isCancellationRequested) {
+          return `Could not connect to extension host: ${e.message}`;
         }
 
         await delay(200);
@@ -56,5 +77,31 @@ export class ExtensionHostAttacher extends NodeLauncherBase<IExtensionHostConfig
         this.onProgramTerminated(result);
       }
     });
+  }
+
+  /**
+   * Called the first time, for each program, we get an attachment. Can
+   * return disposables to clean up when the run finishes.
+   */
+  protected async onFirstInitialize(
+    cdp: Cdp.Api,
+    run: IRunData<IExtensionHostConfiguration>,
+  ): Promise<ReadonlyArray<IDisposable>> {
+    const telemetry = await this.gatherTelemetry(cdp, run);
+
+    // Monitor the process ID we read from the telemetry. Once the VS Code
+    // process stops, stop our Watchdog, and vise versa.
+    const watchdog = this.program;
+    if (telemetry && watchdog) {
+      const code = new TerminalProcess({ processId: telemetry.processId });
+      code.stopped.then(() => watchdog.stop());
+      watchdog.stopped.then(() => {
+        if (!this.restarting) {
+          code.stop();
+        }
+      });
+    }
+
+    return [];
   }
 }

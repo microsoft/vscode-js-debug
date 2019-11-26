@@ -5,12 +5,16 @@ import * as net from 'net';
 import WebSocket from 'ws';
 import * as events from 'events';
 import { HighResolutionTime } from '../utils/performance';
+import { CancellationToken } from 'vscode';
+import { timeoutPromise } from '../common/cancellation';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 export interface Transport {
   send(message: string): void;
   close(): void;
   onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
-  onclose?: () => void;
+  onend?: () => void;
 }
 
 export class PipeTransport implements Transport {
@@ -19,7 +23,7 @@ export class PipeTransport implements Transport {
   private _pendingBuffers: Buffer[];
   private _eventListeners: any[];
   onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
-  onclose?: () => void;
+  onend?: () => void;
 
   constructor(socket: net.Socket);
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
@@ -32,19 +36,34 @@ export class PipeTransport implements Transport {
     this._pendingBuffers = [];
     this._eventListeners = [
       addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
-      addEventListener(pipeRead || pipeWrite, 'close', () => {
-        this._pipeWrite = undefined;
-        if (this.onclose)
-          this.onclose.call(null);
-      })
+      addEventListener(pipeWrite, 'end', () => this._onPipeEnd()),
+      // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
+      addEventListener(pipeWrite, 'error', err => logger.error(LogTag.Internal, 'pipeWrite error: ' + err))
     ];
+    if (pipeRead) {
+      this._eventListeners.push(addEventListener(pipeRead, 'end', () => this._onPipeEnd()));
+      this._eventListeners.push(addEventListener(pipeRead, 'error', err => logger.error(LogTag.Internal, 'pipeRead error: ' + err)));
+    }
+
     this.onmessage = undefined;
-    this.onclose = undefined;
+    this.onend = undefined;
+  }
+
+  private _onPipeEnd(): void {
+    if (this._pipeWrite) {
+      this._pipeWrite = undefined;
+      if (this.onend)
+        this.onend.call(null);
+    }
   }
 
   send(message: string) {
-    this._pipeWrite!.write(message);
-    this._pipeWrite!.write('\0');
+    if (!this._pipeWrite)
+      // Handle this in place, otherwise the socket will fire an unhandled error
+      throw new Error('Tried to write to stream after end');
+
+    this._pipeWrite.write(message);
+    this._pipeWrite.write('\0');
   }
 
   _dispatch(buffer: Buffer) {
@@ -82,16 +101,24 @@ export class PipeTransport implements Transport {
 export class WebSocketTransport implements Transport {
   private _ws: WebSocket | undefined;
   onmessage?: (message: string) => void;
-  onclose?: () => void;
+  onend?: () => void;
 
-  static create(url: string): Promise<WebSocketTransport> {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(url, [], {
-        perMessageDeflate: false,
-        maxPayload: 256 * 1024 * 1024, // 256Mb
-      });
-      ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
-      ws.addEventListener('error', reject);
+  static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
+    const ws = new WebSocket(url, [], {
+      perMessageDeflate: false,
+      maxPayload: 256 * 1024 * 1024, // 256Mb
+    });
+
+    return timeoutPromise(
+      new Promise<WebSocketTransport>((resolve, reject) => {
+        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
+        ws.addEventListener('error', reject);
+      }),
+      cancellationToken,
+      `Could not open ${url}`
+    ).catch(err => {
+      ws.close();
+      throw err;
     });
   }
 
@@ -102,14 +129,14 @@ export class WebSocketTransport implements Transport {
         this.onmessage.call(null, event.data);
     });
     this._ws.addEventListener('close', event => {
-      if (this.onclose)
-        this.onclose.call(null);
+      if (this.onend)
+        this.onend.call(null);
       this._ws = undefined;
     });
     // Silently ignore all errors - we don't know what to do with them.
     this._ws.addEventListener('error', () => { });
     this.onmessage = undefined;
-    this.onclose = undefined;
+    this.onend = undefined;
   }
 
   send(message: string) {

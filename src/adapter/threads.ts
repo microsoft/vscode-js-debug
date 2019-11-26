@@ -3,21 +3,23 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import Dap from '../dap/api';
+import { delay } from '../common/promiseUtil';
+import { InlineScriptOffset } from '../common/sourcePathResolver';
+import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
+import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
+import { BreakpointManager } from './breakpoints';
 import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
-import * as errors from '../dap/errors';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { UiLocation, Source, SourceContainer, rawToUiOffset } from './sources';
+import { ScriptSkipper } from './scriptSkipper';
+import { SmartStepper } from './smartStepping';
+import { PreferredUILocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
-import * as sourceUtils from '../common/sourceUtils';
-import { InlineScriptOffset } from '../common/sourcePathResolver';
-import { ScriptSkipper } from './scriptSkipper';
-import { AnyLaunchConfiguration, OutputSource } from '../configuration';
-import { BreakpointManager } from './breakpoints';
 
 const localize = nls.loadMessageBundle();
 
@@ -94,6 +96,9 @@ export class Thread implements VariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
+  private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
+  private _smartStepper: SmartStepper;
+  private _expectedPauseReason: PausedReason | undefined;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -112,6 +117,7 @@ export class Thread implements VariableStoreDelegate {
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
+    this._smartStepper = new SmartStepper(this.launchConfig);
     this._initialize();
   }
 
@@ -154,19 +160,25 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async pause(): Promise<Dap.PauseResult | Dap.Error> {
-    if (!await this._cdp.Debugger.pause({}))
+    if (await this._cdp.Debugger.pause({}))
+      this._expectedPauseReason = 'pause';
+    else
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepOver({}))
+    if (await this._cdp.Debugger.stepOver({}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+    if (await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
@@ -385,45 +397,7 @@ export class Thread implements VariableStoreDelegate {
     });
     this._cdp.Runtime.enable({});
 
-    this._cdp.Debugger.on('paused', async event => {
-      if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-        const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
-
-        if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
-            scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
-            scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
-          // Paused on the script which is run as a task for scheduled async call.
-          // We are waiting for this pause, no need to resume.
-        } else if (remainPaused) {
-          // If should stay paused, that means the user set a breakpoint on
-          // the first line (which we are already on!), so pretend it's
-          // a breakpoint and let it bubble up.
-          event.data.__rewriteAsBreakpoint = true;
-        } else {
-          await this._pauseOnScheduledAsyncCall();
-          this.resume();
-          return;
-        }
-      }
-
-      if (event.asyncCallStackTraceId) {
-        scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
-        const threads = Array.from(Thread._allThreadsByDebuggerId.values());
-        await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
-        this.resume();
-        return;
-      }
-
-      this._pausedDetails = this._createPausedDetails(event);
-      if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-        this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
-      }
-
-      (this._pausedDetails as any)[kPausedEventSymbol] = event;
-      this._pausedVariables = new VariableStore(this._cdp, this);
-      scheduledPauseOnAsyncCall = undefined;
-      this._onThreadPaused();
-    });
+    this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this._onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
@@ -521,6 +495,51 @@ export class Thread implements VariableStoreDelegate {
     });
   }
 
+  private async _onPaused(event: Cdp.Debugger.PausedEvent) {
+    if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
+      const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
+
+      if (scheduledPauseOnAsyncCall && event.asyncStackTraceId &&
+          scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
+          scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id) {
+        // Paused on the script which is run as a task for scheduled async call.
+        // We are waiting for this pause, no need to resume.
+      } else if (remainPaused) {
+        // If should stay paused, that means the user set a breakpoint on
+        // the first line (which we are already on!), so pretend it's
+        // a breakpoint and let it bubble up.
+        event.data.__rewriteAsBreakpoint = true;
+      } else {
+        await this._pauseOnScheduledAsyncCall();
+        this.resume();
+        return;
+      }
+    }
+
+    if (event.asyncCallStackTraceId) {
+      scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
+      const threads = Array.from(Thread._allThreadsByDebuggerId.values());
+      await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
+      this.resume();
+      return;
+    }
+
+    this._pausedDetails = this._createPausedDetails(event);
+    if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
+      this.stepInto();
+      return;
+    }
+
+    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
+      this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
+    }
+
+    (this._pausedDetails as any)[kPausedEventSymbol] = event;
+    this._pausedVariables = new VariableStore(this._cdp, this);
+    scheduledPauseOnAsyncCall = undefined;
+    this._onThreadPaused();
+  }
+
   _onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
@@ -561,16 +580,39 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  rawLocationToUiLocation(rawLocation: RawLocation): Promise<UiLocation | undefined> {
-    const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
-    if (!script)
-      return Promise.resolve(undefined);
-    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this.defaultScriptOffset());
+  public async rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
+    const script = rawLocation.scriptId ? await this.getScriptByIdOrWait(rawLocation.scriptId) : undefined;
+    if (!script) {
+      return;
+    }
+
+    const { lineNumber, columnNumber } = rawToUiOffset(rawLocation, this.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
       lineNumber,
       columnNumber,
       source: script.source
     });
+  }
+
+  /**
+   * Gets a script ID if it exists, or waits to up maxTime. In rare cases we
+   * can get a request (like a stacktrace request) from DAP before Chrome
+   * finishes passing its sources over. We *should* normally know about all
+   * possible script IDs; this waits if we see one that we don't.
+   */
+  private async getScriptByIdOrWait(scriptId: string, maxTime: number = 500) {
+    let script = this._scripts.get(scriptId);
+    if (script) {
+      return script;
+    }
+
+    const deadline = Date.now() + maxTime;
+    do {
+      await delay(50);
+      script = this._scripts.get(scriptId);
+    } while (!script && Date.now() < deadline);
+
+    return script;
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
@@ -692,11 +734,19 @@ export class Thread implements VariableStoreDelegate {
             description: localize('pause.breakpoint', 'Paused on breakpoint')
           };
         }
+        if (this._expectedPauseReason) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: this._expectedPauseReason,
+            description: localize('pause.default', 'Paused')
+          };
+        }
         return {
           thread: this,
           stackTrace,
-          reason: 'step',
-          description: localize('pause.default', 'Paused')
+          reason: 'pause',
+          description: localize('pause.default', 'Paused on debugger statement')
         };
     }
   }
@@ -857,38 +907,53 @@ export class Thread implements VariableStoreDelegate {
       (source as any)[kScriptsSymbol] = new Set();
     (source as any)[kScriptsSymbol].add(script);
 
-    if (!this._pauseOnSourceMapBreakpointId && event.sourceMapURL) {
-      // If we won't pause before executing this script, try to load source map
-      // and set breakpoints as soon as possible. This is still racy against the script execution,
-      // but better than nothing.
-      this._sourceContainer.waitForSourceMapSources(source).then(sources => {
-        if (sources.length && this._scriptWithSourceMapHandler)
-          this._scriptWithSourceMapHandler(script, sources);
-      });
+    if (event.sourceMapURL) {
+      // If we won't pause before executing this script, still try to load source
+      // map and set breakpoints as soon as possible. This is racy against the
+      // script execution, but better than nothing.
+      this._getOrStartLoadingSourceMaps(script);
     }
   }
 
   // Wait for source map to load and set all breakpoints in this particular script.
   async _handleSourceMapPause(scriptId: string): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
+    const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
     const script = this._scripts.get(scriptId);
-
-    let remainPaused = false;
-    if (script) {
-      const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
-      const sources = await Promise.race([
-        this._sourceContainer.waitForSourceMapSources(script.source),
-        // Make typescript happy by resolving with empty array.
-        new Promise<Source[]>(f => setTimeout(() => f([]), timeout))
-      ]);
-      if (sources && this._scriptWithSourceMapHandler) {
-        remainPaused = (await this._scriptWithSourceMapHandler(script, sources)).remainPaused;
-      }
+    if (!script) {
+      this._pausedForSourceMapScriptId = undefined;
+      return false;
     }
+
+    const result = await Promise.race([
+      this._getOrStartLoadingSourceMaps(script),
+      delay(timeout),
+    ]);
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
-    return remainPaused;
+    return result ? result.remainPaused : false;
+  }
+
+  /**
+   * Loads sourcemaps for the given script and invokes the handler, if we
+   * haven't already done so. Returns a promise that resolves with the
+   * handler's results.
+   */
+  private _getOrStartLoadingSourceMaps(script: Script) {
+    const existing = this._sourceMapLoads.get(script.scriptId);
+    if (existing) {
+      return existing;
+    }
+
+    const result = this._sourceContainer.waitForSourceMapSources(script.source).then(sources =>
+      sources.length && this._scriptWithSourceMapHandler
+        ? this._scriptWithSourceMapHandler(script, sources)
+        : { remainPaused: false }
+    );
+
+    this._sourceMapLoads.set(script.scriptId, result);
+    return result;
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {
@@ -971,6 +1036,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onThreadPaused() {
+    this._expectedPauseReason = undefined;
     const details = this.pausedDetails()!;
     this._dap.stopped({
       reason: details.reason,
@@ -992,7 +1058,7 @@ export class Thread implements VariableStoreDelegate {
     if (this._scriptWithSourceMapHandler === handler)
       return;
     this._scriptWithSourceMapHandler = handler;
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && this._scriptWithSourceMapHandler;
+    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({ instrumentation: 'beforeScriptWithSourceMapExecution' });
       this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;

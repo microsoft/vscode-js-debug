@@ -8,15 +8,15 @@ foo @ ${workspaceFolder}/web/script.js:2:3
 <anonymous> @ ${workspaceFolder}/web/script.js:9:1
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/script.js:10:1
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 <anonymous> @ localhost꞉8001/test.js:2:1

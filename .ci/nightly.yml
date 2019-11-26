@@ -9,6 +9,8 @@ jobs:
     vmImage: 'ubuntu-16.04'
   steps:
   - template: common-validation.yml
+    parameters:
+      runTests: false
 
   - task: Gulp@0
     displayName: gulp package
@@ -35,8 +37,8 @@ jobs:
   - task: Gulp@0
     displayName: Publish to Marketplace
     inputs:
-      targets: publish:vsce
-      arguments: --nightly --drop-in
+      targets: publish
+      arguments: --nightly
     env:
       MARKETPLACE_TOKEN: $(vsce.token)
     condition: and(succeeded(), eq(variables['dryrun'], 'false'))

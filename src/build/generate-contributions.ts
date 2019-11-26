@@ -12,12 +12,20 @@ import {
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
   INodeTerminalConfiguration,
+  baseDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
-type OmittedKeysFromAttributes = 'type' | 'request' | 'internalConsoleOptions' | 'name';
+type OmittedKeysFromAttributes =
+  | 'type'
+  | 'request'
+  | 'internalConsoleOptions'
+  | 'name'
+  | 'rootPath'
+  | '__workspaceFolder';
+
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
     Described & {
@@ -67,6 +75,19 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('node.port.description'),
     default: 9229,
   },
+  resolveSourceMapLocations: {
+    type: ['array', 'null'],
+    description: refString('node.resolveSourceMapLocations.description'),
+    default: null,
+    items: {
+      type: 'string',
+    },
+  },
+  pauseForSourceMap: {
+    type: 'boolean',
+    markdownDescription: refString('node.pauseForSourceMap.description'),
+    default: false,
+  },
   showAsyncStacks: {
     type: 'boolean',
     description: refString('node.showAsyncStacks.description'),
@@ -90,13 +111,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   sourceMapPathOverrides: {
     type: 'object',
     description: refString('node.sourceMapPathOverrides.description'),
-    default: {
-      'webpack:///./*': '${webRoot}/*',
-      'webpack:///src/*': '${webRoot}/*',
-      'webpack:///*': '*',
-      'webpack:///./~/*': '${webRoot}/node_modules/*',
-      'meteor://💻app/*': '${webRoot}/*',
-    },
+    default: baseDefaults.sourceMapPathOverrides,
   },
   timeout: {
     type: 'number',
@@ -150,6 +165,10 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
  */
 const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfiguration> = {
   ...baseConfigurationAttributes,
+  resolveSourceMapLocations: {
+    ...baseConfigurationAttributes.resolveSourceMapLocations,
+    default: ['${workspaceFolder}/**', '!**/node_modules/**'],
+  },
   cwd: {
     type: 'string',
     description: refString('node.launch.cwd.description'),
@@ -177,48 +196,6 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     type: 'boolean',
     description: refString('node.launch.autoAttachChildProcesses.description'),
     default: true,
-  },
-};
-
-/**
- * Shared Chrome configuration.
- */
-const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConfiguration> = {
-  ...baseConfigurationAttributes,
-  port: {
-    type: 'number',
-    description: refString('chrome.port.description'),
-    default: 9222,
-  },
-  address: {
-    type: 'string',
-    description: refString('chrome.address.description'),
-    default: '127.0.0.1',
-  },
-  disableNetworkCache: {
-    type: 'boolean',
-    description: refString('chrome.disableNetworkCache.description'),
-    default: true,
-  },
-  pathMapping: {
-    type: 'object',
-    description: refString('chrome.pathMapping.description'),
-    default: {},
-  },
-  webRoot: {
-    type: 'string',
-    description: refString('chrome.webRoot.description'),
-    default: '${workspaceFolder}',
-  },
-  urlFilter: {
-    type: 'string',
-    description: refString('chrome.urlFilter.description'),
-    default: '',
-  },
-  url: {
-    type: 'string',
-    description: refString('chrome.url.description'),
-    default: 'http://localhost:8080',
   },
 };
 
@@ -488,6 +465,66 @@ const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
   },
 };
 
+/**
+ * Shared Chrome configuration.
+ */
+const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConfiguration> = {
+  ...baseConfigurationAttributes,
+  port: {
+    type: 'number',
+    description: refString('chrome.port.description'),
+    default: 9222,
+  },
+  address: {
+    type: 'string',
+    description: refString('chrome.address.description'),
+    default: '127.0.0.1',
+  },
+  disableNetworkCache: {
+    type: 'boolean',
+    description: refString('chrome.disableNetworkCache.description'),
+    default: true,
+  },
+  pathMapping: {
+    type: 'object',
+    description: refString('chrome.pathMapping.description'),
+    default: {},
+  },
+  webRoot: {
+    type: 'string',
+    description: refString('chrome.webRoot.description'),
+    default: '${workspaceFolder}',
+  },
+  urlFilter: {
+    type: 'string',
+    description: refString('chrome.urlFilter.description'),
+    default: '',
+  },
+  url: {
+    type: 'string',
+    description: refString('chrome.url.description'),
+    default: 'http://localhost:8080',
+  },
+  server: {
+    oneOf: [
+      {
+        type: 'object',
+        description: refString('chrome.server.description'),
+        additionalProperties: false,
+        default: { program: 'node my-server.js' },
+        properties: nodeLaunchConfig.configurationAttributes,
+      },
+      {
+        type: 'object',
+        description: refString('debug.terminal.label'),
+        additionalProperties: false,
+        default: { program: 'npm start' },
+        properties: nodeTerminalConfiguration.configurationAttributes,
+      },
+    ],
+  } as any,
+};
+
 const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
   type: Contributions.ExtensionHostDebugType,
   request: 'launch',
@@ -558,13 +595,6 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   ],
   configurationAttributes: {
     ...chromeBaseConfigurationAttributes,
-    server: {
-      type: 'object',
-      description: refString('chrome.server.description'),
-      additionalProperties: false,
-      default: { program: 'node my-server.js' } as any,
-      properties: nodeLaunchConfig.configurationAttributes as { [key: string]: JSONSchema6 },
-    },
     file: {
       type: 'string',
       description: refString('chrome.file.description'),

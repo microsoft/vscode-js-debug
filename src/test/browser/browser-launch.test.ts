@@ -9,6 +9,10 @@ import { readdirSync } from 'fs';
 
 describe('browser launch', () => {
   itIntegrates('environment variables', async ({ r }) => {
+    if (process.platform === 'win32') {
+      return; // Chrome on windows doesn't set the TZ correctly
+    }
+
     const p = await r.launchUrlAndLoad('index.html', {
       env: {
         TZ: 'GMT'
@@ -28,7 +32,7 @@ describe('browser launch', () => {
     r.assertLog();
   });
 
-  itIntegrates('user data dir', async ({ r }) => {
+  itIntegrates.skip('user data dir', async ({ r }) => {
     mkdirp.sync(testFixturesDir);
     expect(readdirSync(testFixturesDir)).to.be.empty;
 

@@ -93,11 +93,37 @@ export function findExecutable(
  */
 export function properJoin(...segments: string[]): string {
   if (path.posix.isAbsolute(segments[0])) {
-    return path.posix.join(...segments);
+    return forceForwardSlashes(path.posix.join(...segments));
   } else if (path.win32.isAbsolute(segments[0])) {
     return path.win32.join(...segments);
   } else {
     return path.join(...segments);
+  }
+}
+
+/**
+ * Resolves path segments properly based on whether they appear to be c:/ -style or / style.
+ */
+export function properResolve(...segments: string[]): string {
+  if (path.posix.isAbsolute(segments[0])) {
+    return path.posix.resolve(...segments);
+  } else if (path.win32.isAbsolute(segments[0])) {
+    return path.win32.resolve(...segments);
+  } else {
+    return path.resolve(...segments);
+  }
+}
+
+/**
+ * Resolves path segments properly based on whether they appear to be c:/ -style or / style.
+ */
+export function properRelative(fromPath: string, toPath: string): string {
+  if (path.posix.isAbsolute(fromPath)) {
+    return path.posix.relative(fromPath, toPath);
+  } else if (path.win32.isAbsolute(fromPath)) {
+    return path.win32.relative(fromPath, toPath);
+  } else {
+    return path.relative(fromPath, toPath);
   }
 }
 
@@ -107,7 +133,7 @@ export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): str
   if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
     const prefixLen = 'file:///'.length;
     aPath = 'file:///' + aPath[prefixLen].toLowerCase() + aPath.substr(prefixLen + 1);
-  } else if (aPath.match(/^[A-Za-z]:/)) {
+  } else if (isWindowsPath(aPath)) {
     // If the path starts with a drive letter, ensure lowercase. VS Code uses a lowercase drive letter
     const driveLetter = uppercaseDriveLetter ? aPath[0].toUpperCase() : aPath[0].toLowerCase();
     aPath = driveLetter + aPath.substr(1);
@@ -126,7 +152,7 @@ export function fixDriveLetterAndSlashes(aPath: string, uppercaseDriveLetter = f
   if (aPath.match(/file:\/\/\/[A-Za-z]:/)) {
     const prefixLen = 'file:///'.length;
     aPath = aPath.substr(0, prefixLen + 1) + aPath.substr(prefixLen + 1).replace(/\//g, '\\');
-  } else if (aPath.match(/^[A-Za-z]:/)) {
+  } else if (isWindowsPath(aPath)) {
     aPath = aPath.replace(/\//g, '\\');
   }
 
@@ -142,3 +168,26 @@ export function forceForwardSlashes(aUrl: string): string {
     .replace(/\\\//g, '/') // Replace \/ (unnecessarily escaped forward slash)
     .replace(/\\/g, '/');
 }
+
+/**
+ * Splits the path with the drive letter included with a trailing slash
+ * such that path.join, readdir, etc. work on it standalone.
+ */
+export const splitWithDriveLetter = (inputPath: string) => {
+  const parts = inputPath.split(path.sep);
+  if (/^[a-z]:$/i.test(parts[0])) {
+    parts[0] += path.sep;
+  }
+
+  return parts;
+}
+
+/**
+ * Returns whether the path looks like a UNC path.
+ */
+export const isUncPath = (path: string) => path.startsWith('\\\\');
+
+/**
+ * Returns whether the path looks like a Windows path.
+ */
+export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path);

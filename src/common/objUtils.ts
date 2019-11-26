@@ -42,6 +42,24 @@ export function mapValues<T, R>(
 }
 
 /**
+ * Maps the object keys.
+ */
+export function mapKeys<T>(
+  obj: Readonly<{ [key: string]: T }>,
+  generator: (key: string, value: T) => string | void,
+): { [key: string]: T } {
+  const next: { [key: string]: T } = {};
+  for (const key of Object.keys(obj)) {
+    const newKey = generator(key, obj[key]);
+    if (newKey !== undefined) {
+      next[newKey] = obj[key];
+    }
+  }
+
+  return next;
+}
+
+/**
  * Sorts the object keys using the given sorting function.
  */
 export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number): T {
@@ -107,6 +125,9 @@ export function caseInsensitiveMerge<V>(
   return out;
 }
 
+/**
+ * Does a case-insensitive lookup on the given object.
+ */
 export function getCaseInsensitiveProperty<R>(
   obj: { [key: string]: R },
   prop: string,
@@ -123,4 +144,20 @@ export function getCaseInsensitiveProperty<R>(
   }
 
   return undefined;
+}
+
+/**
+ * Memoizes the single-parameter function.
+ */
+export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
+  let cached = new Map<T, R>();
+  return arg => {
+    if (cached.has(arg)) {
+      return cached.get(arg)!;
+    }
+
+    const value = fn(arg);
+    cached.set(arg, value);
+    return value;
+  };
 }

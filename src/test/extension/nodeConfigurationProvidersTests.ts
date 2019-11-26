@@ -31,7 +31,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
   describe('logging resolution', () => {
     const emptyRequest = {
-      type: '',
+      type: 'node',
       name: '',
       request: '',
     };
@@ -45,7 +45,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
     it('does not log by default', async () => {
       const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.deep.equal({
         console: false,
         level: 'fatal',
         logFile: null,
@@ -58,7 +58,7 @@ describe('NodeDebugConfigurationProvider', () => {
         ...emptyRequest,
         trace: true,
       });
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.containSubset({
         console: false,
         level: 'verbose',
         logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
@@ -74,7 +74,7 @@ describe('NodeDebugConfigurationProvider', () => {
           tags: ['cdp'],
         },
       });
-      expect((result as any).logging).to.deep.equal({
+      expect(result!.trace).to.deep.equal({
         console: false,
         level: 'warn',
         logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
@@ -96,13 +96,14 @@ describe('NodeDebugConfigurationProvider', () => {
         'package.json': JSON.stringify({ main: 'hello.js' }),
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
+      const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
+      result.cwd = result.cwd.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',
-        cwd: testFixturesDir,
+        cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
-        program: '${workspaceFolder}/hello.js',
+        program: join('${workspaceFolder}', 'hello.js'),
         request: 'launch',
       });
     });
@@ -113,13 +114,14 @@ describe('NodeDebugConfigurationProvider', () => {
         'package.json': JSON.stringify({ scripts: { start: 'node hello.js' } }),
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
+      const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
+      result.cwd = result.cwd.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',
-        cwd: testFixturesDir,
+        cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
-        program: '${workspaceFolder}/hello.js',
+        program: join('${workspaceFolder}', 'hello.js'),
         request: 'launch',
       });
     });
@@ -148,7 +150,7 @@ describe('NodeDebugConfigurationProvider', () => {
       try {
         const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
         expect(result).to.containSubset({
-          program: '${workspaceFolder}/hello.js',
+          program: join('${workspaceFolder}', 'hello.js'),
         });
       } finally {
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
@@ -168,7 +170,7 @@ describe('NodeDebugConfigurationProvider', () => {
       try {
         const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
         expect(result).to.containSubset({
-          program: '${workspaceFolder}/out/hello.js',
+          program: join('${workspaceFolder}', 'out', 'hello.js'),
           preLaunchTask: 'tsc: build - tsconfig.json',
           outFiles: ['${workspaceFolder}/out/**/*.js'],
         });

@@ -21,14 +21,17 @@ export const enum LogLevel {
 
 export enum LogTag {
   Runtime = 'runtime',
+  RuntimeLaunch = 'runtime.launch',
   RuntimeTarget = 'runtime.target',
   RuntimeWelcome = 'runtime.welcome',
   RuntimeException = 'runtime.exception',
   RuntimeSourceMap = 'runtime.sourcemap',
+  SourceMapParsing = 'sourcemap.parsing',
   CdpSend = 'cdp.send',
   CdpReceive = 'cdp.receive',
   DapSend = 'dap.send',
   DapReceive = 'dap.receive',
+  Internal = 'internal'
 }
 
 /**

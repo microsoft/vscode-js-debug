@@ -27,7 +27,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * Log tag filter.
    */
-  private tags?: ReadonlySet<string>;
+  private tags?: ReadonlySet<LogTag>;
 
   /**
    * @inheritdoc
@@ -139,7 +139,11 @@ export class Logger implements ILogger, Disposable {
       // options. For instance, `cdp` adds the tags `cdp`, `cdp.send`, etc.
       this.tags = new Set(
         options.tags
-          .map(src => allLogTags.filter(t => t === src || t.startsWith(`${src}.`)))
+          .map(src =>
+            allLogTags
+              .map(key => LogTag[key])
+              .filter(tag => tag === src || tag.startsWith(`${src}.`)),
+          )
           .reduce((acc, tags) => [...acc, ...tags], []),
       );
     } else {
@@ -155,17 +159,16 @@ export class Logger implements ILogger, Disposable {
       }
     }
 
-    if ('sinks' in this.logTarget) {
-      this.logTarget.sinks.push(...options.sinks);
-      return;
-    }
-
     const prevTarget = this.logTarget;
     this.logTarget = { sinks: options.sinks.slice() };
 
-    // intentionally re-`log()` instead of writing directly to sinks so that
-    // and tag or level filtering is applied.
-    prevTarget.queue.forEach(m => this.log(m));
+    if ('sinks' in prevTarget) {
+      prevTarget.sinks.forEach(s => s.dispose());
+    } else {
+      // intentionally re-`log()` instead of writing directly to sinks so that
+      // and tag or level filtering is applied.
+      prevTarget.queue.forEach(m => this.log(m));
+    }
   }
 }
 

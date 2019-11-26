@@ -18,7 +18,7 @@ describe('Logger', () => {
 
   it('buffers and logs messages once sinks are attached', async () => {
     logger.verbose(LogTag.Runtime, 'Hello world!');
-    await logger.setup({ level: LogLevel.Verbose, sinks: [sink] });
+    await logger.setup({ level: LogLevel.Verbose, sinks: [sink], showWelcome: false });
     expect(sink.write.args[0][0]).to.containSubset({
       tag: LogTag.Runtime,
       message: 'Hello world!',

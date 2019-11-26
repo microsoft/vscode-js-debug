@@ -1,20 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Disposable, EventEmitter } from './common/events';
+import { CancellationToken } from 'vscode';
+import * as nls from 'vscode-nls';
+import { generateBreakpointIds } from './adapter/breakpoints';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
-import { Launcher, Target } from './targets/targets';
-import * as errors from './dap/errors';
+import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
+import { Disposable, EventEmitter } from './common/events';
+import { LogTag, resolveLoggerOptions } from './common/logging';
+import { logger } from './common/logging/logger';
 import * as urlUtils from './common/urlUtils';
+import { AnyLaunchConfiguration, AnyResolvingConfiguration, applyDefaults } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
-import { generateBreakpointIds } from './adapter/breakpoints';
-import { AnyLaunchConfiguration } from './configuration';
+import * as errors from './dap/errors';
+import { Launcher, LaunchResult, Target } from './targets/targets';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
-import { logger } from './common/logging/logger';
-import { resolveLoggerOptions } from './common/logging';
+
+const localize = nls.loadMessageBundle();
 
 export interface BinderDelegate {
   acquireDap(target: Target): Promise<DapConnection>;
@@ -40,14 +45,14 @@ export class Binder implements Disposable {
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._disposables = [this._onTargetListChangedEmitter];
+    this._disposables = [this._onTargetListChangedEmitter, logger];
 
     for (const launcher of launchers) {
       this._launchers.add(launcher);
       launcher.onTargetListChanged(() => {
         const targets = this.targetList();
         this._attachToNewTargets(targets);
-        this._detachOrphaneThreads(targets);
+        this._detachOrphanThreads(targets);
         this._onTargetListChangedEmitter.fire();
       }, undefined, this._disposables);
     }
@@ -67,19 +72,14 @@ export class Binder implements Disposable {
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
-        return { breakpoints: generateBreakpointIds(params).map(id => ({ id, verified: false })) };
+        return { breakpoints: generateBreakpointIds(params).map(id => ({ id, verified: false,
+          message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) })) }; // TODO: Put a useful message here
       });
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('attach', async params => {
-        await this._boot(params as AnyLaunchConfiguration, dap);
-        return {};
-      });
-      dap.on('launch', async params => {
-        await this._boot(params as AnyLaunchConfiguration, dap);
-        return {};
-      });
+      dap.on('attach', params => this._boot(applyDefaults(params as AnyResolvingConfiguration), dap));
+      dap.on('launch', params => this._boot(applyDefaults(params as AnyResolvingConfiguration), dap));
       dap.on('terminate', async () => {
         await Promise.all([...this._launchers].map(l => l.terminate()));
         return {};
@@ -89,7 +89,7 @@ export class Binder implements Disposable {
         return {};
       });
       dap.on('restart', async () => {
-        await this._restart(this._rawTelemetryReporter!);
+        await this._restart();
         return {};
       });
     });
@@ -98,35 +98,78 @@ export class Binder implements Disposable {
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     logger.setup(resolveLoggerOptions(dap, params.trace));
 
+    const cts = CancellationTokenSource.withTimeout(params.timeout);
+
     if (params.rootPath)
       params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
-    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params)));
+    let results = await Promise.all([...this._launchers].map(l => this._launch(l, params, cts.token)));
     results = results.filter(result => !!result);
     if (results.length)
       return errors.createUserError(results.join('\n'));
     return {};
   }
 
-  async _restart(rawTelemetryReporter: RawTelemetryReporterToDap) {
-    await Promise.all([...this._launchers].map(l => l.restart(rawTelemetryReporter)));
+  async _restart() {
+    await Promise.all([...this._launchers].map(l => l.restart()));
   }
 
-  async _launch(launcher: Launcher, params: any): Promise<string | undefined> {
-    const result = await launcher.launch(params, { targetOrigin: this._targetOrigin, dap: await this._dap }, this._rawTelemetryReporter!);
-    if (result.error)
+  async _launch(launcher: Launcher, params: AnyLaunchConfiguration, cancellationToken: CancellationToken): Promise<string | undefined> {
+    const result = await this.captureLaunch(launcher, params, cancellationToken)
+    if (result.error) {
       return result.error;
-    if (!result.blockSessionTermination)
+    }
+
+    if (!result.blockSessionTermination) {
       return;
+    }
+
     ++this._terminationCount;
-    launcher.onTerminated(() => {
+    launcher.onTerminated(result => {
       this._launchers.delete(launcher);
-      this._detachOrphaneThreads(this.targetList());
+      this._detachOrphanThreads(this.targetList(), { restart: result.restart });
       this._onTargetListChangedEmitter.fire();
-      --this._terminationCount;
-      if (!this._terminationCount)
-        this._dap.then(dap => dap.terminated({}));
+      if (!--this._terminationCount) {
+        this._dap.then(dap => dap.terminated({ restart: result.restart }));
+      }
     }, undefined, this._disposables);
+  }
+
+  /**
+   * Launches the debug target, returning any the resolved result. Does a
+   * bunch of mangling to log things, catch uncaught errors,
+   * and format timeouts correctly.
+   */
+  private async captureLaunch(launcher: Launcher, params: AnyLaunchConfiguration, cancellationToken: CancellationToken): Promise<LaunchResult> {
+    const name = launcher.constructor.name;
+
+    let result: LaunchResult;
+    try {
+      result = await launcher.launch(
+        params,
+        { cancellationToken, targetOrigin: this._targetOrigin, dap: await this._dap },
+        this._rawTelemetryReporter!
+      );
+    } catch (e) {
+      if (e instanceof TaskCancelledError) {
+        result = { error: localize('errors.timeout', '{0}: timeout after {1}ms', e.message, params.timeout ) };
+      }
+
+      result = { error: e.message };
+    }
+
+    if (result.error) {
+      // Assume it was precipiated from some timeout, if we got an error after cancellation
+      if (cancellationToken.isCancellationRequested) {
+        result.error = localize('errors.timeout', '{0}: timeout after {1}ms', result.error, params.timeout);
+      }
+
+      logger.warn(LogTag.RuntimeLaunch, 'Launch returned error', { error: result.error, name });
+    } else if (result.blockSessionTermination) {
+      logger.info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
+    }
+
+    return result;
   }
 
   dispose() {
@@ -136,7 +179,7 @@ export class Binder implements Disposable {
     for (const launcher of this._launchers)
       launcher.dispose();
     this._launchers.clear();
-    this._detachOrphaneThreads([]);
+    this._detachOrphanThreads([]);
   }
 
   targetList(): Target[] {
@@ -182,7 +225,7 @@ export class Binder implements Disposable {
         if (target.canRestart())
           target.restart();
         else
-          await this._restart(this._rawTelemetryReporter!);
+          await this._restart();
         return {};
       });
     }
@@ -194,7 +237,7 @@ export class Binder implements Disposable {
     if (!target.canDetach())
       return;
     await target.detach();
-    this._releaseTarget(target);
+    this._releaseTarget(target,);
   }
 
   _attachToNewTargets(targets: Target[]) {
@@ -207,21 +250,21 @@ export class Binder implements Disposable {
     }
   }
 
-  _detachOrphaneThreads(targets: Target[]) {
+  _detachOrphanThreads(targets: Target[], terminateArgs?: Dap.TerminatedEventParams) {
     const set = new Set(targets);
     for (const target of this._threads.keys()) {
       if (!set.has(target))
-        this._releaseTarget(target);
+        this._releaseTarget(target, terminateArgs);
     }
   }
 
-  _releaseTarget(target: Target) {
+  _releaseTarget(target: Target, terminateArgs: Dap.TerminatedEventParams = {}) {
     const data = this._threads.get(target);
     if (!data)
       return;
     this._threads.delete(target);
     data.thread.dispose();
-    data.debugAdapter.dap.terminated({});
+    data.debugAdapter.dap.terminated(terminateArgs);
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
   }

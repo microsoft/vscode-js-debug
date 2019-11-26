@@ -4,10 +4,75 @@
 import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fixDriveLetterAndSlashes } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
+import { readdir } from './fsUtils';
+import { memoize } from './objUtils';
+
+let isCaseSensitive = process.platform !== 'win32';
+
+export function resetCaseSensitivePaths() {
+  isCaseSensitive = process.platform !== 'win32';
+}
+
+export function setCaseSensitivePaths(sensitive: boolean) {
+  isCaseSensitive = sensitive;
+}
+
+export function getCaseSensitivePaths() {
+  return isCaseSensitive;
+}
+
+/**
+ * Lowercases the path if the filesystem is case-insensitive. Warning: this
+ * should only be done for the purposes of comparing paths. Paths returned
+ * through DAP and other protocols should be correctly-cased to avoid incorrect
+ * disambiguation.
+ */
+export function lowerCaseInsensitivePath(path: string) {
+  return isCaseSensitive ? path : path.toLowerCase();
+}
+
+/**
+ * Returns the path in its true case, correcting for case-insensitive file systems.
+ */
+export const truePathCasing = memoize(
+  async (inputPath: string): Promise<string> => {
+    if (isCaseSensitive || isUncPath(inputPath)) {
+      return inputPath;
+    }
+
+    const parsedFromUrl = fileUrlToAbsolutePath(inputPath);
+    if (parsedFromUrl) {
+      return absolutePathToFileUrl(await truePathCasing(parsedFromUrl))!;
+    }
+
+    // This seems to be the canonical way to do things as far as I can tell.
+    const trueSegment: Promise<string>[] = [];
+    while (true) {
+      const nextDir = path.dirname(inputPath);
+      if (nextDir === inputPath) {
+        return path.join(nextDir, ...(await Promise.all(trueSegment)));
+      }
+
+      const needle = path.basename(inputPath);
+      trueSegment.unshift(
+        (async () => {
+          try {
+            const children = await readdir(nextDir);
+            return children.find(c => c.toLowerCase() === needle.toLowerCase()) || needle;
+          } catch (e) {
+            return needle;
+          }
+        })(),
+      );
+
+      inputPath = nextDir;
+    }
+  },
+);
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
@@ -105,23 +170,6 @@ export function escapeForRegExp(s: string): string {
   return result;
 }
 
-export function urlToRegExString(urlString: string): string {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch (e) {
-    return '^' + escapeForRegExp(urlString) + '$';
-  }
-  if (url.protocol === 'about:' && url.pathname === 'blank') return '';
-  if (url.protocol === 'data:') return '';
-  let prefix = '';
-  if (url.protocol && url.protocol !== 'http:' && url.protocol !== 'https') {
-    prefix = '^' + url.protocol + '//';
-    if (url.protocol.endsWith('-extension:')) prefix += url.hostname + '\\b';
-  }
-  return prefix + escapeForRegExp(url.pathname) + (url.search ? '\\b' : '$');
-}
-
 /**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences
  */
@@ -148,6 +196,42 @@ export function absolutePathToFileUrl(absolutePath: string): string | undefined 
     if (process.platform === 'win32') return 'file:///' + platformPathToUrlPath(absolutePath);
     return 'file://' + platformPathToUrlPath(absolutePath);
   } catch (e) {}
+}
+
+/**
+ * Returns whether the path is a Windows or posix path.
+ */
+export function isAbsolute(_path: string): boolean {
+  return path.posix.isAbsolute(_path) || path.win32.isAbsolute(_path);
+}
+
+/**
+ * Converts and escape the file URL to a regular expression.
+ */
+export function urlToRegex(aPath: string) {
+  const absolutePath = fileUrlToAbsolutePath(aPath);
+
+  aPath = escapeRegexSpecialChars(aPath);
+  if (absolutePath) {
+    aPath += `|${escapeRegexSpecialChars(absolutePath)}`;
+  }
+
+  // If we should resolve paths in a case-sensitive way, we still need to set
+  // the BP for either an upper or lowercased drive letter
+  if (isCaseSensitive) {
+    aPath = aPath.replace(
+      /(^|\|)(file:\\\/\\\/\\\/)?([a-zA-Z]):/g,
+      (_match, start = '', file = '', letter) => {
+        const upper = letter.toUpperCase();
+        const lower = letter.toLowerCase();
+        return `${start}${file}[${upper}${lower}]:`;
+      },
+    );
+  } else {
+    aPath = aPath.replace(/[a-z]/gi, letter => `[${letter.toLowerCase()}${letter.toUpperCase()}]`);
+  }
+
+  return aPath;
 }
 
 export function isFileUrl(candidate: string): boolean {
@@ -178,8 +262,11 @@ export function compareUrlsAreEqual(url1: string, url2: string): boolean {
 
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
-  if (process.platform === 'win32') return p.replace(/\\/g, '/');
-  return p;
+  if (process.platform === 'win32') {
+    p = p.replace(/\\/g, '/');
+  }
+
+  return p.replace(/ /g, '%20');
 }
 
 export function platformPathToPreferredCase(p: string): string;
@@ -233,11 +320,11 @@ export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boo
 
     const fileUrl = fileUrlToAbsolutePath(aUrl);
     if (fileUrl) {
-        // Strip file:///, if present
-        aUrl = fileUrl;
+      // Strip file:///, if present
+      aUrl = fileUrl;
     } else if (isValidUrl(aUrl) && aUrl.includes('://')) {
-        // Strip the protocol, if present
-        aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
+      // Strip the protocol, if present
+      aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
     }
 
     // Remove optional trailing /
@@ -246,7 +333,7 @@ export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boo
     }
 
     return aUrl;
-};
+  };
 
   targetUrl = escapeRegexSpecialChars(standardizeMatch(targetUrl), '/*').replace(/\*/g, '.*');
   const targetUrlRegex = new RegExp('^' + targetUrl + '$', 'g');

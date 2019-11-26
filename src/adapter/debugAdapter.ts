@@ -58,8 +58,9 @@ export class DebugAdapter {
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
+    this.dap.on('breakpointLocations', params => this._withThread(async thread => ({ breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params) })));
     this.sourceContainer = new SourceContainer(this.dap, rootPath, sourcePathResolver);
-    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer);
+    this.breakpointManager = new BreakpointManager(this.dap, this.sourceContainer, launchConfig.pauseForSourceMap);
     this._rawTelemetryReporter.flush.event(() => {
       this._rawTelemetryReporter.report('breakpointsStatistics', this.breakpointManager.statisticsForTelemetry());
     });
@@ -95,7 +96,7 @@ export class DebugAdapter {
       supportedChecksumAlgorithms: [],
       supportsRestartRequest: true,
       supportsExceptionOptions: false,
-      supportsValueFormattingOptions: false,  // This is not used by vscode.
+      supportsValueFormattingOptions: true,
       supportsExceptionInfoRequest: true,
       supportTerminateDebuggee: false,
       supportsDelayedStackTraceLoading: true,
@@ -104,7 +105,8 @@ export class DebugAdapter {
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: false,
       supportsTerminateRequest: false,
-      completionTriggerCharacters: ['.', '[', '"', "'"]
+      completionTriggerCharacters: ['.', '[', '"', "'"],
+      supportsBreakpointLocationsRequest: true,
       //supportsDataBreakpoints: false,
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,

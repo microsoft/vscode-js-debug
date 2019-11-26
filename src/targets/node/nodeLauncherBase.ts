@@ -66,7 +66,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Data set while a debug session is running.
    */
-  private run?: IRunData<T>;
+  protected run?: IRunData<T>;
 
   /**
    * Attached server connections. Tracked so they can be torn down readily.
@@ -113,6 +113,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       return { blockSessionTermination: false };
     }
 
+    this._stopServer(); // clear any ongoing run
+
     const { server, pipe } = await this._startServer(rawTelemetryReporter);
     const run = (this.run = {
       server,
@@ -121,6 +123,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       context,
       bootloader: this.getBootloaderFile(resolved.cwd),
       pathResolver: new NodeSourcePathResolver({
+        resolveSourceMapLocations: resolved.resolveSourceMapLocations,
         basePath: resolved.cwd,
         sourceMapOverrides: resolved.sourceMapPathOverrides,
         remoteRoot: resolved.remoteRoot,
@@ -128,8 +131,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       }),
     });
 
-    await this.launchProgram(run);
-    return { blockSessionTermination: true };
+    const error = await this.launchProgram(run);
+    return error ? { error } : { blockSessionTermination: true };
   }
 
   /**
@@ -185,7 +188,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Launches the program. Called after the server is running and upon restart.
    */
-  protected abstract launchProgram(runData: IRunData<T>): Promise<void>;
+  protected abstract launchProgram(runData: IRunData<T>): Promise<string | void>;
 
   /**
    * Method that should be called when the program from launchProgram() exits.

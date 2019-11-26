@@ -74,6 +74,7 @@ const strings = {
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
 
+  'node.pauseForSourceMap.description': 'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
   'node.address.description': "TCP/IP address of process to be debugged. Default is 'localhost'.",
   'node.attach.config.name': 'Attach',
   'node.attach.processId.description': 'ID of process to attach to.',
@@ -116,6 +117,8 @@ const strings = {
   'node.launch.useWSL.description': 'Use Windows Subsystem for Linux.',
   'node.localRoot.description': 'Path to the local directory containing the program.',
   'node.port.description': 'Debug port to attach to. Default is 5858.',
+  'node.resolveSourceMapLocations.description':
+    'A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with "!" to exclude them. May be set to an empty array or null to avoid restriction.',
   'node.processattach.config.name': 'Attach to Process',
   'node.remoteRoot.description': 'Absolute path to the remote directory containing the program.',
   'node.restart.description': 'Restart session after Node.js has terminated.',
@@ -157,6 +160,8 @@ const strings = {
     'An array of glob patterns for files to skip when debugging. The pattern `<node_internals>/**` matches all internal Node.js modules.',
   'smartStep.description':
     'Automatically step through generated code that cannot be mapped back to the original source.',
+
+  'errors.timeout': '{0}: timeout after {1}ms',
 };
 
 export default strings;

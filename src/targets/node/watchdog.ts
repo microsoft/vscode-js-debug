@@ -4,6 +4,7 @@
 import * as net from 'net';
 import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 import { IWatchdogInfo } from './watchdogSpawn';
+import { NeverCancelled } from '../../common/cancellation';
 
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 
@@ -56,9 +57,9 @@ process.on('exit', () => {
         target.close();
         target = undefined;
       }
-      target = await WebSocketTransport.create(info.inspectorURL);
+      target = await WebSocketTransport.create(info.inspectorURL, NeverCancelled);
       target.onmessage = data => server.send(data);
-      target.onclose = () => {
+      target.onend = () => {
         if (target)
           // Could be due us closing.
           server.send(
@@ -90,7 +91,7 @@ process.on('exit', () => {
     server.send(JSON.stringify({ id: object.id, result }));
   };
 
-  server.onclose = () => {
+  server.onend = () => {
     debugLog('SERVER CLOSED');
     if (target) target.close();
   };

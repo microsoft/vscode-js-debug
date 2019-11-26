@@ -109,7 +109,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
   connection.init(inputStream, outputStream);
 }
 
-const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : 0;
+const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : undefined;
 if(debugServerPort !== undefined) {
   const server = net.createServer(async socket => {
     main(socket, socket);

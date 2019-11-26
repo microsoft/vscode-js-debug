@@ -3,6 +3,7 @@
 
 import * as path from 'path';
 import { createServer } from 'http-server';
+import { expect } from 'chai';
 
 import * as testSetup from './testSetup';
 import { HttpOrHttpsServer } from './types/server';
@@ -24,6 +25,71 @@ suite('Breakpoints', () => {
     }
 
     await testSetup.teardown();
+  });
+
+  suite('getPossibleBreakpoints', () => {
+    const testProjectRoot = path.join(DATA_ROOT, 'columns');
+    const scriptPath = path.join(testProjectRoot, 'src/script.ts');
+
+    setup(async () => {
+      const url = 'http://localhost:7890/index.html';
+      server = createServer({ root: testProjectRoot });
+      server.listen(7890);
+
+      await dc.hitBreakpointUnverified(
+        { url, webRoot: testProjectRoot },
+        { path: scriptPath, line: 4, column: 16 },
+      );
+    });
+
+    test('gets breakpoints on a single line', async () => {
+      const result = await dc.breakpointLocations({
+        source: { path: scriptPath },
+        line: 4,
+      });
+
+      expect(result).to.deep.equal({
+        breakpoints: [{ line: 4, column: 9 }, { line: 4, column: 16 }, { line: 4, column: 24 }],
+      });
+    });
+
+    test('gets breakpoints across multiple lines', async () => {
+      const result = await dc.breakpointLocations({
+        source: { path: scriptPath },
+        line: 3,
+        column: 2,
+        endLine: 4,
+        endColumn: 20,
+      });
+
+      expect(result).to.deep.equal({
+        breakpoints: [
+          { line: 3, column: 18 },
+          { line: 3, column: 21 },
+          { line: 3, column: 28 },
+          { line: 4, column: 9 },
+          { line: 4, column: 16 },
+        ],
+      });
+    });
+
+    test('no-ops if getting breakpoints outside range', async () => {
+      const result = await dc.breakpointLocations({
+        source: { path: scriptPath },
+        line: 100,
+      });
+
+      expect(result.breakpoints).to.be.empty;
+    });
+
+    test('no-ops if getting a non-existent file', async () => {
+      const result = await dc.breakpointLocations({
+        source: { path: 'potato.js' },
+        line: 100,
+      });
+
+      expect(result.breakpoints).to.be.empty;
+    });
   });
 
   suite('Column BPs', () => {

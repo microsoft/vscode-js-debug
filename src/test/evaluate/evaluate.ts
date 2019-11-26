@@ -56,7 +56,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('repl', async ({ r }) => {
+  itIntegrates.skip('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     p.dap.evaluate({ expression: `42`, context: 'repl' });
@@ -214,7 +214,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('topLevelAwait', async ({ r }) => {
+  itIntegrates.skip('topLevelAwait', async ({ r }) => {
     const p = await r.launchAndLoad(`
       <script>
         function foo(x) {
@@ -276,7 +276,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('output slots', async ({ r }) => {
+  itIntegrates.skip('output slots', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({
       expression: 'let i = 0; console.log(++i); ++i',
@@ -290,7 +290,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('output slots 2', async ({ r }) => {
+  itIntegrates.skip('output slots 2', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     const empty = await p.dap.evaluate({
       expression: `
@@ -350,7 +350,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('cd', async ({ r }) => {
+  itIntegrates.skip('cd', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     async function logCompletions(params: Dap.CompletionsParams) {

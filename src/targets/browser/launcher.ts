@@ -7,10 +7,15 @@ import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
 import CdpConnection from '../../cdp/connection';
-import { PipeTransport, WebSocketTransport } from '../../cdp/transport';
+import { PipeTransport, WebSocketTransport, Transport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { CancellationToken } from 'vscode';
+import { TaskCancelledError } from '../../common/cancellation';
+import { IDisposable } from '../../common/disposable';
+import { delay } from '../../common/promiseUtil';
+import { killTree } from '../node/killTree';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -27,44 +32,67 @@ const DEFAULT_ARGS = [
   '--no-first-run',
 ];
 
+const noop = () => undefined;
+
 interface LaunchOptions {
+  onStdout?: (data: string) => void;
+  onStderr?: (data: string) => void;
   args?: ReadonlyArray<string>;
   dumpio?: boolean;
   cwd?: string;
   env?: EnvironmentVars;
   ignoreDefaultArgs?: boolean;
   connection?: 'pipe' | number; // pipe or port number
-  timeout?: number;
   userDataDir?: string;
+}
+
+const suggestedPortArg = '--remote-debugging-';
+
+const findSuggestedPort = (args: ReadonlyArray<string>): number | undefined => {
+  const arg = args.find(a => a.startsWith(suggestedPortArg));
+  return arg ? Number(arg.slice(suggestedPortArg.length)) : undefined;
+};
+
+export interface ILaunchResult {
+  cdp: CdpConnection;
+  process: childProcess.ChildProcess;
 }
 
 export async function launch(
   executablePath: string,
   rawTelemetryReporter: RawTelemetryReporter,
+  cancellationToken: CancellationToken,
   options: LaunchOptions | undefined = {},
-): Promise<CdpConnection> {
+): Promise<ILaunchResult> {
   const {
+    onStderr = noop,
+    onStdout = noop,
     args = [],
     dumpio = false,
     cwd = process.cwd(),
     env = EnvironmentVars.empty,
     ignoreDefaultArgs = false,
     connection = 'pipe',
-    timeout = 30000,
   } = options;
 
   const browserArguments: string[] = [];
-  if (!ignoreDefaultArgs) browserArguments.push(...defaultArgs(options));
-  else if (Array.isArray(ignoreDefaultArgs))
-    browserArguments.push(
-      ...defaultArgs(options).filter(arg => ignoreDefaultArgs.indexOf(arg) === -1),
-    );
-  else browserArguments.push(...args);
+  if (!ignoreDefaultArgs) {
+    browserArguments.push(...defaultArgs(options));
+  } else if (Array.isArray(ignoreDefaultArgs)) {
+    browserArguments.push(...defaultArgs(options).filter(arg => !ignoreDefaultArgs.includes(arg)));
+  } else {
+    browserArguments.push(...args);
+  }
 
-  if (!browserArguments.some(argument => argument.startsWith('--remote-debugging-')))
-    browserArguments.push(
-      connection === 'pipe' ? '--remote-debugging-pipe' : `--remote-debugging-port=${connection}`,
-    );
+  let suggestedPort = findSuggestedPort(args);
+  if (suggestedPort === undefined) {
+    if (connection === 'pipe') {
+      browserArguments.push('--remote-debugging-pipe');
+    } else {
+      suggestedPort = connection;
+      browserArguments.push(`--remote-debugging-port=${connection}`);
+    }
+  }
 
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
@@ -81,53 +109,39 @@ export async function launch(
     cwd,
     stdio,
   });
-  let browserClosed = false;
 
   if (browserProcess.pid === undefined) {
-    killBrowser();
     throw new Error('Unable to launch the executable');
   }
 
   if (dumpio) {
-    browserProcess.stderr!.on('data', data => console.warn(data.toString()));
-    browserProcess.stdout!.on('data', data => console.warn(data.toString()));
+    browserProcess.stderr!.on('data', d => onStderr(d.toString()));
+    browserProcess.stdout!.on('data', d => onStdout(d.toString()));
   }
 
-  process.on('exit', killBrowser);
+  const exitListener = () => killTree(browserProcess.pid);
+  process.on('exit', exitListener);
+  browserProcess.on('exit', () => process.removeListener('exit', exitListener));
+
   try {
-    if (!usePipe) {
-      const browserWSEndpoint = await waitForWSEndpoint(browserProcess, timeout);
-      const transport = await WebSocketTransport.create(browserWSEndpoint);
-      return new CdpConnection(transport, rawTelemetryReporter);
+    let transport: Transport;
+    if (usePipe) {
+      transport = new PipeTransport(
+        browserProcess.stdio[3] as Writable,
+        browserProcess.stdio[4] as Readable,
+      );
+    } else if (suggestedPort === undefined || suggestedPort === 0) {
+      const endpoint = await waitForWSEndpoint(browserProcess, cancellationToken);
+      transport = await WebSocketTransport.create(endpoint, cancellationToken);
     } else {
-      const stdio = (browserProcess.stdio as unknown) as [
-        Writable,
-        Readable,
-        Readable,
-        Writable,
-        Readable,
-      ];
-      const transport = new PipeTransport(stdio[3], stdio[4]);
-      return new CdpConnection(transport, rawTelemetryReporter);
+      const endpoint = await waitForDebuggerServerOnPort(suggestedPort, cancellationToken);
+      transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
-  } catch (e) {
-    killBrowser();
-    throw e;
-  }
 
-  // This method has to be sync to be used as 'exit' event handler.
-  function killBrowser() {
-    process.removeListener('exit', killBrowser);
-    if (browserProcess.pid && !browserProcess.killed && !browserClosed) {
-      // Force kill browser.
-      try {
-        if (process.platform === 'win32')
-          childProcess.execSync(`taskkill /pid ${browserProcess.pid} /T /F`);
-        else process.kill(-browserProcess.pid, 'SIGKILL');
-      } catch (e) {
-        // the process might have already stopped
-      }
-    }
+    return { cdp: new CdpConnection(transport, rawTelemetryReporter), process: browserProcess };
+  } catch (e) {
+    exitListener();
+    throw e;
   }
 }
 
@@ -147,24 +161,44 @@ interface AttachOptions {
 
 export async function attach(
   options: AttachOptions,
+  cancellationToken: CancellationToken,
   rawTelemetryReporter: RawTelemetryReporterToDap,
 ): Promise<CdpConnection> {
   const { browserWSEndpoint, browserURL } = options;
 
   if (browserWSEndpoint) {
-    const connectionTransport = await WebSocketTransport.create(browserWSEndpoint);
+    const connectionTransport = await WebSocketTransport.create(
+      browserWSEndpoint,
+      cancellationToken,
+    );
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   } else if (browserURL) {
-    const connectionURL = await getWSEndpoint(browserURL);
-    const connectionTransport = await WebSocketTransport.create(connectionURL);
+    const connectionURL = await getWSEndpoint(browserURL, cancellationToken);
+    const connectionTransport = await WebSocketTransport.create(connectionURL, cancellationToken);
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }
 
+/**
+ * Polls for the debug server on the port, until we get a server or
+ * cancellation is requested.
+ */
+async function waitForDebuggerServerOnPort(port: number, ct: CancellationToken) {
+  while (!ct.isCancellationRequested) {
+    try {
+      return await getWSEndpoint(`http://localhost:${port}`, ct);
+    } catch (_e) {
+      await delay(50);
+    }
+  }
+
+  throw new TaskCancelledError('Lookup cancelled');
+}
+
 function waitForWSEndpoint(
   browserProcess: childProcess.ChildProcess,
-  timeout: number,
+  cancellationToken: CancellationToken,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const rl = readline.createInterface({ input: browserProcess.stderr! });
@@ -178,7 +212,14 @@ function waitForWSEndpoint(
     browserProcess.on('exit', onExit);
     browserProcess.on('error', onError);
 
-    const timeoutId = timeout ? setTimeout(onTimeout, timeout) : 0;
+    const timeout = cancellationToken.onCancellationRequested(() => {
+      cleanup();
+      reject(
+        new TaskCancelledError(
+          `Timed out after ${timeout} ms while trying to connect to the browser!`,
+        ),
+      );
+    });
 
     function onDone(error?: Error) {
       cleanup();
@@ -195,11 +236,6 @@ function waitForWSEndpoint(
       );
     }
 
-    function onTimeout() {
-      cleanup();
-      reject(new Error(`Timed out after ${timeout} ms while trying to connect to the browser!`));
-    }
-
     function onLine(line: string) {
       stderr += line + '\n';
       const match = line.match(/^DevTools listening on (ws:\/\/.*)$/);
@@ -209,7 +245,7 @@ function waitForWSEndpoint(
     }
 
     function cleanup() {
-      if (timeoutId) clearTimeout(timeoutId);
+      timeout.dispose();
       rl.removeListener('line', onLine);
       rl.removeListener('close', onClose);
       browserProcess.removeListener('exit', onExit);
@@ -218,9 +254,13 @@ function waitForWSEndpoint(
   });
 }
 
-export async function getWSEndpoint(browserURL: string): Promise<string> {
+export async function getWSEndpoint(
+  browserURL: string,
+  cancellationToken: CancellationToken,
+): Promise<string> {
   const jsonVersion = await fetchJson<{ webSocketDebuggerUrl?: string }>(
     URL.resolve(browserURL, '/json/version'),
+    cancellationToken,
   );
   if (jsonVersion.webSocketDebuggerUrl) {
     return jsonVersion.webSocketDebuggerUrl;
@@ -230,6 +270,7 @@ export async function getWSEndpoint(browserURL: string): Promise<string> {
   // Request both and return whichever one got us a string.
   const jsonList = await fetchJson<{ webSocketDebuggerUrl: string }[]>(
     URL.resolve(browserURL, '/json/list'),
+    cancellationToken,
   );
   if (jsonList.length) {
     return jsonList[0].webSocketDebuggerUrl;
@@ -238,17 +279,20 @@ export async function getWSEndpoint(browserURL: string): Promise<string> {
   throw new Error('Could not find any debuggable target');
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  return new Promise((resolve, reject) => {
+async function fetchJson<T>(url: string, cancellationToken: CancellationToken): Promise<T> {
+  const disposables: IDisposable[] = [];
+
+  return new Promise<T>((resolve, reject) => {
     const protocolRequest = url.startsWith('https')
       ? https.request.bind(https)
       : http.request.bind(http);
-    const requestOptions = Object.assign(URL.parse(url), { method: 'GET' });
-    const request = protocolRequest(requestOptions, (res: http.IncomingMessage) => {
+
+    const request = protocolRequest(url, res => {
+      disposables.push(cancellationToken.onCancellationRequested(() => res.destroy()));
+
       let data = '';
       if (res.statusCode !== 200) {
-        // Consume response data to free up memory.
-        res.resume();
+        res.resume(); // Consume response data to free up memory.
         reject(new Error('HTTP ' + res.statusCode));
         return;
       }
@@ -258,7 +302,14 @@ async function fetchJson<T>(url: string): Promise<T> {
       res.on('end', () => resolve(JSON.parse(data)));
     });
 
-    request.on('error', reject!);
+    disposables.push(
+      cancellationToken.onCancellationRequested(() => {
+        request.destroy();
+        reject(new TaskCancelledError(`Cancelled GET ${url}`));
+      }),
+    );
+
+    request.on('error', reject);
     request.end();
-  });
+  }).finally(() => disposables.forEach(d => d.dispose()));
 }

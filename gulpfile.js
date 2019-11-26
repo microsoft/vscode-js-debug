@@ -108,6 +108,14 @@ gulp.task('compile:ts', () =>
     .pipe(gulp.dest(buildSrcDir)),
 );
 
+async function fixNightlyReadme() {
+  const readmePath = `${buildDir}/README.md`;
+  const readmeText = await readFile(readmePath);
+  const readmeNightlyText = await readFile(`README.nightly.md`);
+
+  await writeFile(readmePath, readmeNightlyText + '\n' + readmeText);
+}
+
 gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
@@ -119,8 +127,10 @@ gulp.task('compile:dynamic', async () => {
   if (isNightly) {
     const date = new Date();
     const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
-    packageJson.displayName += ' Nightly';
+    packageJson.displayName += ' (Nightly)';
     packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
+
+    await fixNightlyReadme();
   }
 
   Object.assign(packageJson.contributes, contributions);
@@ -134,20 +144,13 @@ gulp.task('compile:dynamic', async () => {
 gulp.task('compile:static', () =>
   merge(
     gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
-    gulp.src('resources/**/*', { base: '.' }),
+    gulp.src(['resources/**/*', 'README.md', 'src/**/*.sh'], { base: '.' }),
   ).pipe(gulp.dest(buildDir)),
 );
 
 gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
-/** Run webpack to bundle the extension output files */
-gulp.task('package:webpack-bundle', async () => {
-  const packages = [
-    { entry: `${buildSrcDir}/extension.js`, library: true },
-    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
-    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
-  ];
-
+async function runWebpack(packages) {
   for (const { entry, library } of packages) {
     const config = {
       mode: 'production',
@@ -183,14 +186,46 @@ gulp.task('package:webpack-bundle', async () => {
       }),
     );
   }
+}
+
+/** Run webpack to bundle the extension output files */
+gulp.task('package:webpack-bundle', async () => {
+  const packages = [
+    { entry: `${buildSrcDir}/extension.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+  ];
+
+  return runWebpack(packages);
+});
+
+/** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
+gulp.task('flatSessionBundle:webpack-bundle', async () => {
+  const packages = [
+    { entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
+    { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+  ];
+
+  return runWebpack(packages);
 });
 
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
-    gulp.src([`${buildDir}/LICENSE`, `${buildDir}/package.json`, `${buildDir}/resources/**/*`], {
-      base: buildDir,
-    }),
+    gulp.src(
+      [
+        `${buildDir}/LICENSE`,
+        `${buildDir}/package.json`,
+        `${buildDir}/package.*.json`,
+        `${buildDir}/resources/**/*`,
+        `${buildDir}/README.md`,
+      ],
+      {
+        base: buildDir,
+      },
+    ),
+    gulp.src('node_modules/source-map/lib/*.wasm').pipe(rename({ dirname: 'src' })),
     gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );
@@ -213,6 +248,16 @@ gulp.task(
     'package:webpack-bundle',
     'package:copy-extension-files',
     'package:createVSIX',
+  ),
+);
+
+gulp.task(
+  'flatSessionBundle',
+  gulp.series(
+    'clean',
+    'compile',
+    'flatSessionBundle:webpack-bundle',
+    'package:copy-extension-files',
   ),
 );
 

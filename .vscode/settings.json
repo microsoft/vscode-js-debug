@@ -12,5 +12,9 @@
     "[Default Dark+]": {
       "activityBar.background": "#105200"
     },
+  },
+  "search.exclude": {
+    "**/testdata": true,
+    "**/testWorkspace": true
   }
 }

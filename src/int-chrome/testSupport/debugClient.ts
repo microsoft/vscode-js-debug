@@ -70,6 +70,13 @@ export class ExtendedDebugClient extends DebugClient {
     return response.body;
   }
 
+  async breakpointLocations(
+    args: DebugProtocol.BreakpointLocationsArguments,
+  ): Promise<DebugProtocol.BreakpointLocationsResponse['body']> {
+    const response = await super.send('breakpointLocations', args);
+    return response.body;
+  }
+
   continueRequest(): Promise<DebugProtocol.ContinueResponse> {
     return super.continueRequest({ threadId: THREAD_ID });
   }

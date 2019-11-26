@@ -4,7 +4,7 @@
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('console format', () => {
-  itIntegrates('string', async ({ r }) => {
+  itIntegrates.skip('string', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;

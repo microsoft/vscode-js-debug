@@ -22,6 +22,7 @@
     supportTerminateDebuggee : false
     supportedChecksumAlgorithms : [
     ]
+    supportsBreakpointLocationsRequest : true
     supportsCompletionsRequest : true
     supportsConditionalBreakpoints : true
     supportsConfigurationDoneRequest : true
@@ -43,5 +44,5 @@
     supportsStepInTargetsRequest : false
     supportsTerminateRequest : false
     supportsTerminateThreadsRequest : false
-    supportsValueFormattingOptions : false
+    supportsValueFormattingOptions : true
 }

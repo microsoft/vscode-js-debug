@@ -51,7 +51,7 @@ export default class Connection {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
-    this._transport.onclose = this._onTransportClose.bind(this);
+    this._transport.onend = this._onTransportClose.bind(this);
     this._sessions = new Map();
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
@@ -70,8 +70,7 @@ export default class Connection {
   _send(method: string, params: object | undefined = {}, sessionId: string): number {
     const id = ++this._lastId;
     const message: ProtocolCommand = { id, method, params };
-    if (sessionId)
-      message.sessionId = sessionId;
+    if (sessionId) message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
     logger.verbose(LogTag.CdpSend, undefined, { message });
     this._transport.send(messageString);
@@ -87,25 +86,21 @@ export default class Connection {
       const eventName = object.method;
       try {
         session._onMessage(object);
-        if (eventName)
-          this._telemetryReporter.reportSuccess(eventName, receivedTime);
+        if (eventName) this._telemetryReporter.reportSuccess(eventName, receivedTime);
       } catch (error) {
-        if (eventName)
-          this._telemetryReporter.reportError(eventName, receivedTime, error);
+        if (eventName) this._telemetryReporter.reportError(eventName, receivedTime, error);
       }
     } else {
-      throw new Error(`Unknown session id: ${object.sessionId}`)
+      throw new Error(`Unknown session id: ${object.sessionId}`);
     }
   }
 
   _onTransportClose() {
-    if (this._closed)
-      return;
+    if (this._closed) return;
     this._closed = true;
     this._transport.onmessage = undefined;
-    this._transport.onclose = undefined;
-    for (const session of this._sessions.values())
-      session._onClose();
+    this._transport.onend = undefined;
+    for (const session of this._sessions.values()) session._onClose();
     this._sessions.clear();
     this._onDisconnectedEmitter.fire();
   }
@@ -127,8 +122,7 @@ export default class Connection {
 
   disposeSession(sessionId: Cdp.Target.SessionID) {
     const session = this._sessions.get(sessionId);
-    if (!session)
-      return;
+    if (!session) return;
     session._onClose();
     this._sessions.delete(session.sessionId());
   }
@@ -166,6 +160,7 @@ class CDPSession {
     this.paused = false;
     const toSend = this._queue;
     this._queue = [];
+    logger.verbose(LogTag.CdpReceive, 'Dequeue messages', { message: toSend });
     for (const item of toSend) {
       this._processResponse(item);
     }
@@ -180,38 +175,42 @@ class CDPSession {
   }
 
   _createApi(): Cdp.Api {
-    return new Proxy({}, {
-      get: (_target, agentName: string, _receiver) => {
-        if (agentName === 'pause')
-          return () => this.pause();
-        if (agentName === 'resume')
-          return () => this.resume();
+    return new Proxy(
+      {},
+      {
+        get: (_target, agentName: string, _receiver) => {
+          if (agentName === 'pause') return () => this.pause();
+          if (agentName === 'resume') return () => this.resume();
 
-        return new Proxy({}, {
-          get: (_target, methodName: string, _receiver) => {
-            if (methodName === 'then')
-              return;
-            if (methodName === 'on')
-              return (eventName: string, listener: (params: any) => void) => this._on(`${agentName}.${eventName}`, listener);
-            if (methodName === 'off')
-              return (eventName: string, listener: (params: any) => void) => this._off(`${agentName}.${eventName}`, listener);
-            return (params: object | undefined) => this._send(`${agentName}.${methodName}`, params);
-          }
-        });
+          return new Proxy(
+            {},
+            {
+              get: (_target, methodName: string, _receiver) => {
+                if (methodName === 'then') return;
+                if (methodName === 'on')
+                  return (eventName: string, listener: (params: any) => void) =>
+                    this._on(`${agentName}.${eventName}`, listener);
+                if (methodName === 'off')
+                  return (eventName: string, listener: (params: any) => void) =>
+                    this._off(`${agentName}.${eventName}`, listener);
+                return (params: object | undefined) =>
+                  this._send(`${agentName}.${methodName}`, params);
+              },
+            },
+          );
+        },
       },
-    }) as Cdp.Api;
+    ) as Cdp.Api;
   }
 
   _on(method: string, listener: (params: any) => void): void {
-    if (!this._listeners.has(method))
-      this._listeners.set(method, new Set());
+    if (!this._listeners.has(method)) this._listeners.set(method, new Set());
     this._listeners.get(method)!.add(listener);
   }
 
   _off(method: string, listener: (params: any) => void): void {
     const listeners = this._listeners.get(method);
-    if (listeners)
-      listeners.delete(listener);
+    if (listeners) listeners.delete(listener);
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
@@ -220,7 +219,11 @@ class CDPSession {
 
   _sendOrDie(method: string, params: object | undefined = {}): Promise<object | undefined> {
     if (!this._connection)
-      return Promise.reject(new Error(`Protocol error (${method}): Session closed. Most likely the target has been closed.`));
+      return Promise.reject(
+        new Error(
+          `Protocol error (${method}): Session closed. Most likely the target has been closed.`,
+        ),
+      );
     const id = this._connection._send(method, params, this._sessionId);
     return new Promise((resolve, reject) => {
       this._callbacks.set(id, { resolve, reject, from: new Error(), method });
@@ -269,16 +272,14 @@ class CDPSession {
       this._callbacks.delete(object.id);
       if (object.error) {
         callback.from.message = `Protocol error (${object.method}): ${object.error.message}`;
-        if (object.error)
-          callback.from.message += ` - ${JSON.stringify(object.error)}`;
+        if (object.error) callback.from.message += ` - ${JSON.stringify(object.error)}`;
         callback.reject(callback.from);
       } else {
         callback.resolve(object.result!);
       }
     } else {
       const listeners = this._listeners.get(object.method!);
-      for (const listener of listeners || [])
-        listener(object.params);
+      for (const listener of listeners || []) listener(object.params);
     }
   }
 
