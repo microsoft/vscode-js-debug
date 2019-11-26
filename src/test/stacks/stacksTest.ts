@@ -110,6 +110,21 @@ describe('stacks', () => {
     p.assertLog();
   });
 
+  itIntegrates('smartStep', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('index.html');
+    p.addScriptTag('async-ts/test.js');
+    const { threadId } = await p.dap.once('stopped');
+    await p.dap.next({ threadId: threadId! });
+
+    await p.dap.once('stopped');
+    await p.logger.logStackTrace(threadId!);
+
+    await p.dap.stepIn({ threadId: threadId! });
+    await p.dap.stepIn({ threadId: threadId! });
+    await dumpStackAndContinue(p, false);
+    p.assertLog();
+  });
+
   // TODO: Shennie -- fix integration for blackboxing to use skipfiles
   // itIntegrates('blackboxed', async ({ r }) => {
   //   r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
