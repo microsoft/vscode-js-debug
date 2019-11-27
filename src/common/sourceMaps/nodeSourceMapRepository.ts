@@ -3,11 +3,11 @@
  *--------------------------------------------------------*/
 
 import { ISourceMapMetadata } from './sourceMap';
-import { ISourceMapRepository, createMetadataForFile } from './sourceMapRepository';
+import { ISourceMapRepository, createMetadataForFile, IRelativePattern } from './sourceMapRepository';
 import globStream from 'glob-stream';
 import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
-import { resolve as pathResolve } from 'path';
+import { resolve as pathResolve, join } from 'path';
 import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
 
 /**
@@ -27,17 +27,20 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
    * Recursively finds all children of the given direcotry.
    */
   public async streamAllChildren<T>(
-    patterns: ReadonlyArray<string>,
+    patterns: ReadonlyArray<IRelativePattern>,
     onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
+    const absolutePatterns = patterns
+      .map(relativePatternToAbsolute)
+      .map(forceForwardSlashes);
     await new Promise((resolve, reject) =>
-      globStream(patterns.map(forceForwardSlashes), {
+      globStream(absolutePatterns, {
         matchBase: true,
         // set the root of the filesystem as the 'working directory' so that
         // patterns like "!**/foo/**" get matched.
-        cwd: pathResolve(patterns[0], '/'),
+        cwd: pathResolve(absolutePatterns[0], '/'),
       })
         .on('data', (value: globStream.Entry) =>
           todo.push(
@@ -57,4 +60,10 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
 
     return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
   }
+}
+
+function relativePatternToAbsolute(pattern: IRelativePattern): string {
+  return pattern.pattern.startsWith('!') ?
+    pattern.pattern :
+    join(pattern.base, pattern.pattern);
 }

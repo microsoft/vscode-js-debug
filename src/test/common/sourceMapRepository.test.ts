@@ -3,17 +3,17 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import del from 'del';
-import { mkdirSync } from 'fs';
-import { tmpdir } from 'os';
+import { ISourceMapRepository, IRelativePattern } from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
-import * as vscode from 'vscode';
-import { fixDriveLetter } from '../../common/pathUtils';
-import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
-import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
-import { ISourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
+import { createFileTree, testFixturesDir, workspaceFolder, testFixturesDirName } from '../test';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { createFileTree, testFixturesDir, testFixturesDirName } from '../test';
+import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
+import { tmpdir } from 'os';
+import { mkdirSync } from 'fs';
+import del from 'del';
+import * as vscode from 'vscode';
+import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
+import { fixDriveLetter } from '../../common/pathUtils';
 
 describe('ISourceMapRepository', () => {
   let rgPath = join(tmpdir(), 'pwa-ripgrep');
@@ -28,16 +28,11 @@ describe('ISourceMapRepository', () => {
   after(() => del(`${rgPath}/**`, { force: true }));
 
   [
-    {
-      name: 'NodeSourceMapRepository',
-      create: () => new NodeSourceMapRepository(),
-      absolutePaths: true
-    },
+    { name: 'NodeSourceMapRepository', create: () => new NodeSourceMapRepository() },
     {
       name: 'CodeSearchSourceMapRepository',
       create: () =>
         new CodeSearchSourceMapRepository(vscode.workspace.findTextInFiles.bind(vscode.workspace)),
-      absolutePaths: false
     },
   ].forEach(tcase =>
     describe(tcase.name, () => {
@@ -59,24 +54,27 @@ describe('ISourceMapRepository', () => {
         });
       });
 
-      const gather = (dir: string) =>
-        r
-          .streamAllChildren([`${dir}/**/*.js`, '!**/node_modules/**'], async m => {
+      const gather = (dir: string, firstIncludeSegment: string) => {
+        const patterns = [`${firstIncludeSegment}/**/*.js`, '!**/node_modules/**'].map(p => (<IRelativePattern>{
+          base: dir,
+          pattern: p
+        }));
+        return r
+          .streamAllChildren(patterns, async m => {
             const { mtime, ...rest } = m;
             expect(mtime).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
             rest.compiledPath = fixDriveLetter(rest.compiledPath);
             return rest;
           })
           .then(r => r.sort((a, b) => a.compiledPath.length - b.compiledPath.length));
+      };
 
       it('no-ops for non-existent directories', async () => {
-        const gatherPath = tcase.absolutePaths ? join(__dirname, 'does-not-exist') : 'does-not-exit';
-        expect(await gather(gatherPath)).to.be.empty;
+        expect(await gather(__dirname, 'does-not-exist')).to.be.empty;
       });
 
       it('discovers all children and applies negated globs', async () => {
-        const gatherPath = tcase.absolutePaths ? testFixturesDir : testFixturesDirName;
-        expect(await gather(gatherPath)).to.deep.equal([
+        expect(await gather(workspaceFolder, testFixturesDirName)).to.deep.equal([
           {
             compiledPath: fixDriveLetter(join(testFixturesDir, 'a.js')),
             sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'a.js.map')),

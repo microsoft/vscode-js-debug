@@ -18,7 +18,7 @@ async function main() {
     process.env.PWA_TEST_OPTIONS = JSON.stringify(minimist(process.argv.slice(2)));
 
     // Download VS Code, unzip it and run the integration test
-    await runTests({extensionDevelopmentPath, extensionTestsPath, launchArgs: ['--disable-extensions']});
+    await runTests({extensionDevelopmentPath, extensionTestsPath, launchArgs: [path.resolve(__dirname, '../../..'), '--disable-extensions']});
   } catch (err) {
     console.error('Failed to run tests');
     process.exit(1);

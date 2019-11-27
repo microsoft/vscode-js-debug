@@ -8,7 +8,7 @@ import * as sourceUtils from '../common/sourceUtils';
 import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
-import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository, IRelativePattern } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
@@ -138,7 +138,10 @@ class DirectoryScanner {
 
     const start = Date.now();
     await this.repo.streamAllChildren(
-      defaultFileMappings.map(m => `${absolutePath}/${m}`),
+      defaultFileMappings.map(m => (<IRelativePattern>{
+        base: absolutePath,
+        pattern: m
+      })),
       async metadata => {
         const baseUrl = metadata.sourceMapUrl.startsWith('data:')
           ? metadata.compiledPath

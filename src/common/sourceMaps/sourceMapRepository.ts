@@ -7,6 +7,14 @@ import { parseSourceMappingUrl } from '../sourceUtils';
 import { completeUrl, absolutePathToFileUrl } from '../urlUtils';
 import { stat, readfile } from '../fsUtils';
 
+/**
+ * A copy of vscode.RelativePattern, but we can't to import 'vscode' here.
+ */
+export interface IRelativePattern {
+  base: string;
+  pattern: string;
+}
+
 export interface ISourceMapRepository {
   /**
    * Recursively finds all children matching the given glob, calling `onChild`
@@ -14,7 +22,7 @@ export interface ISourceMapRepository {
    * children have been discovered.
    */
   streamAllChildren<T>(
-    patterns: ReadonlyArray<string>,
+    patterns: ReadonlyArray<IRelativePattern>,
     onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
   ): Promise<T[]>;
 }
