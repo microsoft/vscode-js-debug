@@ -405,8 +405,8 @@ export class BreakpointManager {
       }
       return sources;
     });
-    for (const breakpoints of this._byPath.values()) breakpoints.forEach(b => b.set(thread));
-    for (const breakpoints of this._byRef.values()) breakpoints.forEach(b => b.set(thread));
+    for (const breakpoints of this._byPath.values()) breakpoints.forEach(b => this._setBreakpoint(b));
+    for (const breakpoints of this._byRef.values()) breakpoints.forEach(b => this._setBreakpoint(b));
     this._updateSourceMapHandler(this._thread);
   }
 
@@ -434,6 +434,10 @@ export class BreakpointManager {
     // once we see the predictor is ready to roll.
     await this._breakpointsPredictor.prepareToPredict();
     thread.setScriptSourceMapHandler(undefined);
+  }
+
+  private _setBreakpoint(b: Breakpoint): void {
+    this._launchBlocker = Promise.all([this._launchBlocker, b.set(this._thread!)]);
   }
 
   async setBreakpoints(
@@ -465,7 +469,7 @@ export class BreakpointManager {
     }
     this._totalBreakpointsCount += breakpoints.length;
     if (this._thread) {
-      breakpoints.forEach(b => b.set(this._thread!));
+      breakpoints.forEach(b => this._setBreakpoint(b));
     }
     const dapBreakpoints = breakpoints.map(b => b.toProvisionalDap());
     this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
