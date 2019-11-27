@@ -3,17 +3,17 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { ISourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
-import { join } from 'path';
-import { createFileTree, testFixturesDir } from '../test';
-import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
-import { tmpdir } from 'os';
-import { mkdirSync } from 'fs';
 import del from 'del';
+import { mkdirSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import * as vscode from 'vscode';
-import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
 import { fixDriveLetter } from '../../common/pathUtils';
+import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
+import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
+import { ISourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
+import { createFileTree, testFixturesDir, testFixturesDirName } from '../test';
 
 describe('ISourceMapRepository', () => {
   let rgPath = join(tmpdir(), 'pwa-ripgrep');
@@ -28,11 +28,16 @@ describe('ISourceMapRepository', () => {
   after(() => del(`${rgPath}/**`, { force: true }));
 
   [
-    { name: 'NodeSourceMapRepository', create: () => new NodeSourceMapRepository() },
+    {
+      name: 'NodeSourceMapRepository',
+      create: () => new NodeSourceMapRepository(),
+      absolutePaths: true
+    },
     {
       name: 'CodeSearchSourceMapRepository',
       create: () =>
         new CodeSearchSourceMapRepository(vscode.workspace.findTextInFiles.bind(vscode.workspace)),
+      absolutePaths: false
     },
   ].forEach(tcase =>
     describe(tcase.name, () => {
@@ -65,11 +70,13 @@ describe('ISourceMapRepository', () => {
           .then(r => r.sort((a, b) => a.compiledPath.length - b.compiledPath.length));
 
       it('no-ops for non-existent directories', async () => {
-        expect(await gather(join(__dirname, 'does-not-exist'))).to.be.empty;
+        const gatherPath = tcase.absolutePaths ? join(__dirname, 'does-not-exist') : 'does-not-exit';
+        expect(await gather(gatherPath)).to.be.empty;
       });
 
       it('discovers all children and applies negated globs', async () => {
-        expect(await gather(testFixturesDir)).to.deep.equal([
+        const gatherPath = tcase.absolutePaths ? testFixturesDir : testFixturesDirName;
+        expect(await gather(gatherPath)).to.deep.equal([
           {
             compiledPath: fixDriveLetter(join(testFixturesDir, 'a.js')),
             sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'a.js.map')),
