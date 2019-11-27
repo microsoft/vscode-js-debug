@@ -6,6 +6,13 @@
   "author": {
     "name": "Microsoft Corporation"
   },
+  "keywords": [
+    "pwa",
+    "javascript",
+    "node",
+    "chrome",
+    "debugger"
+  ],
   "preview": true,
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
