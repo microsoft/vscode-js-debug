@@ -126,6 +126,7 @@
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
+    "onDebugResolve:chrome",
     "onDebugResolve:NAMESPACE(node)",
     "onDebugResolve:NAMESPACE(node-terminal)",
     "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
