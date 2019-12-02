@@ -202,7 +202,7 @@ export class Binder implements Disposable {
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, {thread, debugAdapter});
     const startThread = async () => {
-      await debugAdapter.breakpointManager.launchBlocker();
+      await debugAdapter.launchBlocker();
       cdp.Runtime.runIfWaitingForDebugger({});
       return {};
     };
