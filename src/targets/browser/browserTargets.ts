@@ -449,6 +449,8 @@ export class BrowserTarget implements Target {
       else
         threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : this._targetInfo.title;
     } catch (e) {
+      // todo(connor4312): a test around this occasionally fails on windows, log:
+      logger.warn(LogTag.Internal, 'Error creating target name', { e, info: this._targetInfo });
       threadName += this._targetInfo.url;
     }
     return threadName;
