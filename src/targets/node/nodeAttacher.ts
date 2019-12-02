@@ -4,7 +4,7 @@
 
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
-import { getWSEndpoint } from '../browser/launcher';
+import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IRunData } from './nodeLauncherBase';
 import { findInPath } from '../../common/pathUtils';
@@ -40,7 +40,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     const wd = spawnWatchdog(findInPath('node', process.env) || 'node', {
       ipcAddress: runData.serverAddress,
       scriptName: 'Remote Process',
-      inspectorURL: await getWSEndpoint(
+      inspectorURL: await retryGetWSEndpoint(
         `http://${runData.params.address}:${runData.params.port}`,
         runData.context.cancellationToken,
       ),
