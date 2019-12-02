@@ -19,6 +19,8 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
   constructor(private readonly findFn: FindTextFn) {}
 
   public static createOrFallback() {
+    /*
+    todo(connor4312): disabled until https://github.com/microsoft/vscode/issues/85946
     try {
       const code: typeof import('vscode') = require('vscode');
       if (code.workspace.findTextInFiles) {
@@ -29,7 +31,7 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
     } catch {
       // ignored -- VS won't have vscode as a viable import, fall back to the memory/node.js version
     }
-
+    */
     return new NodeSourceMapRepository();
   }
 

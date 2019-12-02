@@ -106,7 +106,7 @@ export class BreakpointsPredictor {
 type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
-const defaultFileMappings = ['**/*.js', '!node_modules/**'];
+const defaultFileMappings = ['**/*.js', '!**/node_modules/**'];
 
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;

@@ -44,7 +44,7 @@ export default class Connection {
 
   constructor() {
     this._sequence = 1;
-    this._rawData = new Buffer(0);
+    this._rawData = Buffer.alloc(0);
     this._ready = () => {};
     this._dap = new Promise<Dap.Api>(f => this._ready = f);
   }

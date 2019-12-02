@@ -3,7 +3,11 @@
  *--------------------------------------------------------*/
 
 import { ISourceMapMetadata } from './sourceMap';
-import { ISourceMapRepository, createMetadataForFile, IRelativePattern } from './sourceMapRepository';
+import {
+  ISourceMapRepository,
+  createMetadataForFile,
+  IRelativePattern,
+} from './sourceMapRepository';
 import globStream from 'glob-stream';
 import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
@@ -32,9 +36,13 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
-    const absolutePatterns = patterns
-      .map(relativePatternToAbsolute)
-      .map(forceForwardSlashes);
+    const absolutePatterns = [
+      ...patterns.map(relativePatternToAbsolute).map(forceForwardSlashes),
+      // Avoid reading asar files: electron patches in support for them, but
+      // if we see an invalid one then it throws a synchronous error that
+      // breaks glob. We don't care about asar's here, so just skip that:
+      '!**/*.asar/**',
+    ];
     await new Promise((resolve, reject) =>
       globStream(absolutePatterns, {
         matchBase: true,
@@ -63,7 +71,5 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
 }
 
 function relativePatternToAbsolute(pattern: IRelativePattern): string {
-  return pattern.pattern.startsWith('!') ?
-    pattern.pattern :
-    join(pattern.base, pattern.pattern);
+  return pattern.pattern.startsWith('!') ? pattern.pattern : join(pattern.base, pattern.pattern);
 }
