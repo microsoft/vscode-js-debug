@@ -3,30 +3,19 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { ISourceMapRepository, IRelativePattern } from '../../common/sourceMaps/sourceMapRepository';
+import {
+  ISourceMapRepository,
+  IRelativePattern,
+} from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
 import { createFileTree, testFixturesDir, workspaceFolder, testFixturesDirName } from '../test';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { NodeSourceMapRepository } from '../../common/sourceMaps/nodeSourceMapRepository';
-import { tmpdir } from 'os';
-import { mkdirSync } from 'fs';
-import del from 'del';
 import * as vscode from 'vscode';
 import { CodeSearchSourceMapRepository } from '../../common/sourceMaps/codeSearchSourceMapRepository';
 import { fixDriveLetter } from '../../common/pathUtils';
 
 describe('ISourceMapRepository', () => {
-  let rgPath = join(tmpdir(), 'pwa-ripgrep');
-  before(() => {
-    try {
-      mkdirSync(rgPath);
-    } catch {
-      // ignored
-    }
-  });
-
-  after(() => del(`${rgPath}/**`, { force: true }));
-
   [
     { name: 'NodeSourceMapRepository', create: () => new NodeSourceMapRepository() },
     {
@@ -55,9 +44,12 @@ describe('ISourceMapRepository', () => {
       });
 
       const gather = (dir: string, firstIncludeSegment: string) => {
-        const patterns = [`${firstIncludeSegment}/**/*.js`, '!**/node_modules/**'].map(p => (<IRelativePattern>{
+        const patterns: IRelativePattern[] = [
+          `${firstIncludeSegment}/**/*.js`,
+          '!**/node_modules/**',
+        ].map(p => ({
           base: dir,
-          pattern: p
+          pattern: p,
         }));
         return r
           .streamAllChildren(patterns, async m => {

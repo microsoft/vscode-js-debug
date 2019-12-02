@@ -93,11 +93,37 @@ export function findExecutable(
  */
 export function properJoin(...segments: string[]): string {
   if (path.posix.isAbsolute(segments[0])) {
-    return path.posix.join(...segments);
+    return forceForwardSlashes(path.posix.join(...segments));
   } else if (path.win32.isAbsolute(segments[0])) {
     return path.win32.join(...segments);
   } else {
     return path.join(...segments);
+  }
+}
+
+/**
+ * Resolves path segments properly based on whether they appear to be c:/ -style or / style.
+ */
+export function properResolve(...segments: string[]): string {
+  if (path.posix.isAbsolute(segments[0])) {
+    return path.posix.resolve(...segments);
+  } else if (path.win32.isAbsolute(segments[0])) {
+    return path.win32.resolve(...segments);
+  } else {
+    return path.resolve(...segments);
+  }
+}
+
+/**
+ * Resolves path segments properly based on whether they appear to be c:/ -style or / style.
+ */
+export function properRelative(fromPath: string, toPath: string): string {
+  if (path.posix.isAbsolute(fromPath)) {
+    return path.posix.relative(fromPath, toPath);
+  } else if (path.win32.isAbsolute(fromPath)) {
+    return path.win32.relative(fromPath, toPath);
+  } else {
+    return path.relative(fromPath, toPath);
   }
 }
 

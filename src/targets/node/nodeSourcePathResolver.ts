@@ -5,6 +5,7 @@ import * as urlUtils from '../../common/urlUtils';
 import * as path from 'path';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
+import { properResolve } from '../../common/pathUtils';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
@@ -25,7 +26,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return '';
     }
 
-    const withBase = path.resolve(this.options.basePath, this.applyPathOverrides(url));
+    const withBase = properResolve(this.options.basePath, this.sourceMapOverrides.apply(url));
     return this.rebaseRemoteToLocal(withBase);
   }
 

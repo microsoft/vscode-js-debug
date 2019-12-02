@@ -455,7 +455,7 @@ export const baseDefaults: IBaseConfiguration = {
   rootPath: '${workspaceFolder}',
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
-    'webpack:///*': '*',
+    'webpack://?:*/*': '*',
     'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
     'meteor://💻app/*': '${workspaceFolder}/*',
   },
@@ -597,4 +597,13 @@ export function resolveVariableInConfig(config: any, varName: string, varValue: 
 
 function resolveVariable(entry: string, varName: string, varValue: string): string {
   return entry.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
+}
+
+export function isNightly(): boolean {
+  try {
+    const packageJson = require('../package.json');
+    return packageJson && (packageJson.name as string).includes('nightly');
+  } catch (e) {
+    return false;
+  }
 }

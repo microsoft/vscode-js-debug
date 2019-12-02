@@ -1,11 +1,18 @@
 {
   "name": "js-debug",
-  "displayName": "VS Code JavaScript Debugger",
+  "displayName": "JavaScript Debugger",
   "version": "0.9.0",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
   },
+  "keywords": [
+    "pwa",
+    "javascript",
+    "node",
+    "chrome",
+    "debugger"
+  ],
   "preview": true,
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
@@ -121,6 +128,7 @@
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
+    "onDebugResolve:chrome",
     "onDebugResolve:NAMESPACE(node)",
     "onDebugResolve:NAMESPACE(node-terminal)",
     "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",

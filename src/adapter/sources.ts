@@ -23,7 +23,13 @@ export interface UiLocation {
   lineNumber: number; // 1-based
   columnNumber: number;  // 1-based
   source: Source;
-};
+}
+
+function isUiLocation(loc: unknown): loc is UiLocation {
+  return typeof (loc as UiLocation).lineNumber === 'number' &&
+    typeof (loc as UiLocation).columnNumber === 'number' &&
+    !!(loc as UiLocation).source;
+}
 
 type ContentGetter = () => Promise<string | undefined>;
 
@@ -233,8 +239,20 @@ export class Source {
   }
 };
 
-export interface PreferredUILocation extends UiLocation {
+export interface PreferredUiLocation extends UiLocation {
   isMapped: boolean;
+  unmappedReason?: UnmappedReason;
+}
+
+export enum UnmappedReason {
+  /** The map has been disabled temporarily, due to setting a breakpoint in a compiled script */
+  MapDisabled,
+
+  /**
+   * The location cannot be sourcemapped, due to not having a sourcemap,
+   * failing to load the sourcemap, not having a mapping in the sourcemap, etc
+   */
+  CannotMap
 }
 
 export class SourceContainer {
@@ -303,23 +321,25 @@ export class SourceContainer {
   // This method returns a "preferred" location. This usually means going through a source map
   // and showing the source map source instead of a compiled one. We use timeout to avoid
   // waiting for the source map for too long.
-  async preferredUiLocation(uiLocation: UiLocation): Promise<PreferredUILocation> {
+  async preferredUiLocation(uiLocation: UiLocation): Promise<PreferredUiLocation> {
     let isMapped = false;
+    let unmappedReason: UnmappedReason | undefined = UnmappedReason.CannotMap;
     while (true) {
       if (!uiLocation.source._sourceMapUrl)
-        return { ...uiLocation, isMapped };
+        return { ...uiLocation, isMapped, unmappedReason };
       const sourceMap = this._sourceMaps.get(uiLocation.source._sourceMapUrl)!;
       await Promise.race([
         sourceMap.loaded,
         delay(this._sourceMapTimeouts.resolveLocation),
       ]);
       if (!sourceMap.map)
-        return { ...uiLocation, isMapped };
+        return { ...uiLocation, isMapped, unmappedReason };
       const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
-      if (!sourceMapped)
-        return { ...uiLocation, isMapped };
+      if (!isUiLocation(sourceMapped))
+        return { ...uiLocation, isMapped, unmappedReason: isMapped ? undefined : sourceMapped };
       uiLocation = sourceMapped;
       isMapped = true;
+      unmappedReason = undefined;
     }
   }
 
@@ -355,7 +375,7 @@ export class SourceContainer {
     if (!map)
       return [];
     const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
-    if (!sourceMapUiLocation)
+    if (!isUiLocation(sourceMapUiLocation))
       return [];
 
     const r = this.getSourceMapUiLocations(sourceMapUiLocation);
@@ -363,21 +383,21 @@ export class SourceContainer {
     return r;
   }
 
-  _sourceMappedUiLocation(uiLocation: UiLocation, map: SourceMap): UiLocation | undefined {
+  _sourceMappedUiLocation(uiLocation: UiLocation, map: SourceMap): UiLocation | UnmappedReason {
     const compiled = uiLocation.source;
     if (this._disabledSourceMaps.has(compiled))
-      return;
+      return UnmappedReason.MapDisabled;
     if (!compiled._sourceMapSourceByUrl)
-      return;
+      return UnmappedReason.CannotMap;
 
     const {lineNumber, columnNumber} = rawToUiOffset(uiLocation, compiled._inlineScriptOffset);
     const entry = map.originalPositionFor({line: lineNumber, column: columnNumber});
     if (!entry.source)
-      return;
+      return UnmappedReason.CannotMap;
 
     const source = compiled._sourceMapSourceByUrl.get(entry.source);
     if (!source)
-      return;
+      return UnmappedReason.CannotMap;
 
     return {
       lineNumber: entry.line || 1,

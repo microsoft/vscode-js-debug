@@ -1,5 +1,7 @@
 stdout> 123
 stdout> > {foo: 'bar'}
+stdout>     foo: 'bar'
+stdout>     > __proto__: Object
 stdout> bar
 stdout> bar
 stdout> bar 1
@@ -10,6 +12,8 @@ stdout> b=barbaz
 stdout> hi
 stdout> 123
 stdout> > {foo: 'bar'}
+stdout>     foo: 'bar'
+stdout>     > __proto__: Object
 stdout> bar
 stdout> bar
 stdout> bar 1

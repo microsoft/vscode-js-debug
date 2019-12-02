@@ -1,7 +1,7 @@
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
 result: 'It works!'

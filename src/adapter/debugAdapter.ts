@@ -19,6 +19,7 @@ import { CodeSearchSourceMapRepository } from '../common/sourceMaps/codeSearchSo
 import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPredictor';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { join } from 'path';
+import { IDeferred, getDeferred } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -32,6 +33,7 @@ export class DebugAdapter {
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
+  private _configurationDoneDeferred: IDeferred<void>;
 
   constructor(
     dap: Dap.Api,
@@ -40,6 +42,7 @@ export class DebugAdapter {
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: RawTelemetryReporter,
   ) {
+    this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -98,6 +101,11 @@ export class DebugAdapter {
         this.breakpointManager.statisticsForTelemetry(),
       );
     });
+  }
+
+  public async launchBlocker(): Promise<void> {
+    await this._configurationDoneDeferred.promise;
+    await this.breakpointManager.launchBlocker();
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -173,6 +181,7 @@ export class DebugAdapter {
   }
 
   async configurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
+    this._configurationDoneDeferred.resolve();
     return {};
   }
 

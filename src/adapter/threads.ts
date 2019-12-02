@@ -17,7 +17,7 @@ import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { ScriptSkipper } from './scriptSkipper';
 import { SmartStepper } from './smartStepping';
-import { PreferredUILocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
+import { PreferredUiLocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, VariableStoreDelegate } from './variables';
 
@@ -98,6 +98,7 @@ export class Thread implements VariableStoreDelegate {
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
   private _smartStepper: SmartStepper;
+  private _expectedPauseReason: PausedReason | undefined;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -159,19 +160,25 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async pause(): Promise<Dap.PauseResult | Dap.Error> {
-    if (!await this._cdp.Debugger.pause({}))
+    if (await this._cdp.Debugger.pause({}))
+      this._expectedPauseReason = 'pause';
+    else
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepOver({}))
+    if (await this._cdp.Debugger.stepOver({}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
-    if (!await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+    if (await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
+      this._expectedPauseReason = 'step';
+    else
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
@@ -573,16 +580,39 @@ export class Thread implements VariableStoreDelegate {
     };
   }
 
-  rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUILocation | undefined> {
-    const script = rawLocation.scriptId ? this._scripts.get(rawLocation.scriptId) : undefined;
-    if (!script)
-      return Promise.resolve(undefined);
-    let {lineNumber, columnNumber} = rawToUiOffset(rawLocation, this.defaultScriptOffset());
+  public async rawLocationToUiLocation(rawLocation: RawLocation): Promise<PreferredUiLocation | undefined> {
+    const script = rawLocation.scriptId ? await this.getScriptByIdOrWait(rawLocation.scriptId) : undefined;
+    if (!script) {
+      return;
+    }
+
+    const { lineNumber, columnNumber } = rawToUiOffset(rawLocation, this.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
       lineNumber,
       columnNumber,
       source: script.source
     });
+  }
+
+  /**
+   * Gets a script ID if it exists, or waits to up maxTime. In rare cases we
+   * can get a request (like a stacktrace request) from DAP before Chrome
+   * finishes passing its sources over. We *should* normally know about all
+   * possible script IDs; this waits if we see one that we don't.
+   */
+  private async getScriptByIdOrWait(scriptId: string, maxTime: number = 500) {
+    let script = this._scripts.get(scriptId);
+    if (script) {
+      return script;
+    }
+
+    const deadline = Date.now() + maxTime;
+    do {
+      await delay(50);
+      script = this._scripts.get(scriptId);
+    } while (!script && Date.now() < deadline);
+
+    return script;
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
@@ -704,11 +734,19 @@ export class Thread implements VariableStoreDelegate {
             description: localize('pause.breakpoint', 'Paused on breakpoint')
           };
         }
+        if (this._expectedPauseReason) {
+          return {
+            thread: this,
+            stackTrace,
+            reason: this._expectedPauseReason,
+            description: localize('pause.default', 'Paused')
+          };
+        }
         return {
           thread: this,
           stackTrace,
-          reason: 'step',
-          description: localize('pause.default', 'Paused')
+          reason: 'pause',
+          description: localize('pause.default', 'Paused on debugger statement')
         };
     }
   }
@@ -883,6 +921,7 @@ export class Thread implements VariableStoreDelegate {
     const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
     const script = this._scripts.get(scriptId);
     if (!script) {
+      this._pausedForSourceMapScriptId = undefined;
       return false;
     }
 
@@ -997,6 +1036,7 @@ export class Thread implements VariableStoreDelegate {
   }
 
   _onThreadPaused() {
+    this._expectedPauseReason = undefined;
     const details = this.pausedDetails()!;
     this._dap.stopped({
       reason: details.reason,

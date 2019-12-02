@@ -96,7 +96,7 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates.skip('cross target', async ({ r }) => {
+  itIntegrates('cross target', async ({ r }) => {
     const p = await r.launchUrlAndLoad('worker.html');
     p.cdp.Runtime.evaluate({ expression: `window.w.postMessage('pause')` });
     await dumpStackAndContinue(p, true);
@@ -107,6 +107,21 @@ describe('stacks', () => {
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('browserify/pause.js');
     await dumpStackAndContinue(p, true);
+    p.assertLog();
+  });
+
+  itIntegrates('smartStep', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('index.html');
+    p.addScriptTag('async-ts/test.js');
+    const { threadId } = await p.dap.once('stopped');
+    await p.dap.next({ threadId: threadId! });
+
+    await p.dap.once('stopped');
+    await p.logger.logStackTrace(threadId!);
+
+    await p.dap.stepIn({ threadId: threadId! });
+    await p.dap.stepIn({ threadId: threadId! });
+    await dumpStackAndContinue(p, false);
     p.assertLog();
   });
 

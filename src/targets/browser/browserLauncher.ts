@@ -55,7 +55,7 @@ export class BrowserLauncher implements Launcher {
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port, webRoot }: IChromeLaunchConfiguration, dap: Dap.Api, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<CdpConnection> {
+  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port, webRoot }: IChromeLaunchConfiguration, dap: Dap.Api, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<launcher.ILaunchResult> {
     let executablePath = '';
     if (executable && !chromeVersions.has(executable)) {
       executablePath = executable;
@@ -108,17 +108,17 @@ export class BrowserLauncher implements Launcher {
   }
 
   async prepareLaunch(params: IChromeLaunchConfiguration, { dap, targetOrigin, cancellationToken }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
-    let connection: CdpConnection;
+    let launched: launcher.ILaunchResult;
     try {
-      connection = await this._launchBrowser(params, dap, cancellationToken, rawTelemetryReporter);
+      launched = await this._launchBrowser(params, dap, cancellationToken, rawTelemetryReporter);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    connection.onDisconnected(() => {
+    launched.cdp.onDisconnected(() => {
       this._onTerminatedEmitter.fire({ code: 0, killed: true });
     }, undefined, this._disposables);
-    this._connectionForTest = connection;
+    this._connectionForTest = launched.cdp;
     this._launchParams = params;
 
     const pathResolver = new BrowserSourcePathResolver({
@@ -129,7 +129,7 @@ export class BrowserLauncher implements Launcher {
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
     });
-    this._targetManager = await BrowserTargetManager.connect(connection, pathResolver, this._launchParams, rawTelemetryReporter, targetOrigin);
+    this._targetManager = await BrowserTargetManager.connect(launched.cdp, launched.process, pathResolver, this._launchParams, rawTelemetryReporter, targetOrigin);
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
 

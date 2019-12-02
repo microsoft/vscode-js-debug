@@ -106,6 +106,7 @@ export class BrowserAttacher implements Launcher {
     });
     this._targetManager = await BrowserTargetManager.connect(
       connection,
+      undefined,
       pathResolver,
       params,
       rawTelemetryReporter,

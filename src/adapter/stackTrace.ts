@@ -6,7 +6,7 @@ import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { kLogPointUrl } from './breakpoints';
 import { shouldSmartStepStackFrame } from './smartStepping';
-import { PreferredUILocation as PreferredUiLocation } from './sources';
+import { PreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { ExtraProperty, ScopeRef } from './variables';
 

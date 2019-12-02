@@ -215,7 +215,6 @@ export class VariableStore {
     this._referenceToVariables.clear();
     this._objectToReference.clear();
     this._referenceToObject.clear();
-    this._cdp.Runtime.releaseObjectGroup({ objectGroup: 'console' });
   }
 
   private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {

@@ -1,11 +1,9 @@
 {
     allThreadsStopped : false
-    description : Paused
-    reason : step
+    description : Paused on debugger statement
+    reason : pause
     threadId : <number>
 }
-setInterval @ ${fixturesDir}/test.js:1:1
-ontimeout @ timers.js:436:11 <hidden: blackboxed>
-tryOnTimeout @ timers.js:300:5 <hidden: blackboxed>
-listOnTimeout @ timers.js:263:5 <hidden: blackboxed>
-processTimers @ timers.js:223:10 <hidden: blackboxed>
+<anonymous> @ ${fixturesDir}/test.js:1:1
+listOnTimeout @ internal/timers.js:531:17
+processTimers @ internal/timers.js:475:7
