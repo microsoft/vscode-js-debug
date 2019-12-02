@@ -593,3 +593,12 @@ export function resolveVariableInConfig(config: any, varName: string, varValue: 
 function resolveVariable(entry: string, varName: string, varValue: string): string {
   return entry.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
 }
+
+export function isNightly(): boolean {
+  try {
+    const packageJson = require('../package.json');
+    return packageJson && (packageJson.name as string).includes('nightly');
+  } catch (e) {
+    return false;
+  }
+}

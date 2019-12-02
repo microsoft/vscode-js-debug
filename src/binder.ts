@@ -11,7 +11,7 @@ import { Disposable, EventEmitter } from './common/events';
 import { LogTag, resolveLoggerOptions } from './common/logging';
 import { logger } from './common/logging/logger';
 import * as urlUtils from './common/urlUtils';
-import { AnyLaunchConfiguration, AnyResolvingConfiguration, applyDefaults } from './configuration';
+import { AnyLaunchConfiguration, AnyResolvingConfiguration, applyDefaults, isNightly } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import * as errors from './dap/errors';
@@ -96,6 +96,7 @@ export class Binder implements Disposable {
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
+    warnNightly(dap);
     logger.setup(resolveLoggerOptions(dap, params.trace));
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
@@ -267,5 +268,14 @@ export class Binder implements Disposable {
     data.debugAdapter.dap.terminated(terminateArgs);
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
+  }
+}
+
+function warnNightly(dap: Dap.Api): void {
+  if (isNightly()) {
+    dap.output({
+      category: 'console',
+      output: `Note: Using the "nightly" debug extension\n`,
+    });
   }
 }
