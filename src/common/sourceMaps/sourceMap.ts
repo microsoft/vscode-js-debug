@@ -14,6 +14,7 @@ import {
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
+  mtime?: number;
   compiledPath?: string;
 }
 

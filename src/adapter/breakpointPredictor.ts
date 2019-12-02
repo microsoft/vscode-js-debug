@@ -8,10 +8,11 @@ import * as sourceUtils from '../common/sourceUtils';
 import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
-import { LocalSourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository, IRelativePattern } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -27,6 +28,8 @@ type PredictedLocation = {
   compiled: WorkspaceLocation;
 };
 
+export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetadata[]>;
+
 export class BreakpointsPredictor {
   _rootPath: string;
   private _nodeModules: Promise<string | undefined>;
@@ -36,8 +39,9 @@ export class BreakpointsPredictor {
 
   constructor(
     rootPath: string,
-    private readonly repo: LocalSourceMapRepository,
+    private readonly repo: ISourceMapRepository,
     sourcePathResolver: ISourcePathResolver | undefined,
+    private readonly cache: BreakpointPredictionCache | undefined,
   ) {
     this._rootPath = rootPath;
     this._sourcePathResolver = sourcePathResolver;
@@ -92,14 +96,17 @@ export class BreakpointsPredictor {
   private _directoryScanner(root: string): DirectoryScanner {
     let result = this._directoryScanners.get(root);
     if (!result) {
-      result = new DirectoryScanner(this, this.repo, root);
+      result = new DirectoryScanner(this, this.repo, root, this.cache);
       this._directoryScanners.set(root, result);
     }
     return result;
   }
 }
 
-type MetadataMap = Map<string, Set<ISourceMapMetadata & { sourceUrl: string }>>;
+type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
+type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
+
+const defaultFileMappings = ['**/*.js', '!**/node_modules/**'];
 
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
@@ -107,46 +114,74 @@ class DirectoryScanner {
 
   constructor(
     predictor: BreakpointsPredictor,
-    private readonly repo: LocalSourceMapRepository,
+    private readonly repo: ISourceMapRepository,
     root: string,
+    cache?: BreakpointPredictionCache,
   ) {
     this._predictor = predictor;
-    this._sourcePathToCompiled = this._createInitialMapping(root);
+    this._sourcePathToCompiled = this._createInitialMapping(root, cache);
   }
 
-  private async _createInitialMapping(absolutePath: string) {
+  private async _createInitialMapping(absolutePath: string, cache?: BreakpointPredictionCache) {
     const sourcePathToCompiled: MetadataMap = new MapUsingProjection(
       urlUtils.lowerCaseInsensitivePath,
     );
-    for (const [, metadata] of Object.entries(await this.repo.findAllChildren(absolutePath))) {
-      const baseUrl = metadata.sourceMapUrl.startsWith('data:')
-        ? metadata.compiledPath
-        : metadata.sourceMapUrl;
-
-      const map = await sourceUtils.loadSourceMap(metadata);
-      if (!map) {
-        continue;
+    const addDiscovery = (discovery: DiscoveredMetadata) => {
+      let set = sourcePathToCompiled.get(discovery.resolvedPath);
+      if (!set) {
+        set = new Set();
+        sourcePathToCompiled.set(discovery.resolvedPath, set);
       }
 
-      for (const url of map.sources) {
-        const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
-        const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
-        const resolvedPath = this._predictor._sourcePathResolver
-          ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
-          : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
-        if (!resolvedPath) {
-          continue;
+      set.add(discovery);
+    };
+
+    const start = Date.now();
+    await this.repo.streamAllChildren(
+      defaultFileMappings.map(m => (<IRelativePattern>{
+        base: absolutePath,
+        pattern: m
+      })),
+      async metadata => {
+        const baseUrl = metadata.sourceMapUrl.startsWith('data:')
+          ? metadata.compiledPath
+          : metadata.sourceMapUrl;
+
+        const cached = cache && (await cache.lookup(metadata.compiledPath, metadata.mtime));
+        if (cached) {
+          cached.forEach(addDiscovery);
+          return;
         }
 
-        let set = sourcePathToCompiled.get(resolvedPath);
-        if (!set) {
-          set = new Set();
-          sourcePathToCompiled.set(resolvedPath, set);
+        const map = await sourceUtils.loadSourceMap(metadata);
+        if (!map) {
+          return;
         }
-        set.add({ ...metadata, sourceUrl: url });
-      }
-    }
 
+        const discovered: DiscoveredMetadata[] = [];
+        for (const url of map.sources) {
+          const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
+          const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
+          const resolvedPath = this._predictor._sourcePathResolver
+            ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
+            : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+
+          if (!resolvedPath) {
+            continue;
+          }
+
+          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
+          discovered.push(discovery);
+          addDiscovery(discovery);
+        }
+
+        if (cache) {
+          cache.store(metadata.compiledPath, metadata.mtime, discovered);
+        }
+      },
+    );
+
+    console.log('runtime using', this.repo.constructor.name, Date.now() - start);
     return sourcePathToCompiled;
   }
 

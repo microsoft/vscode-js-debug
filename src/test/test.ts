@@ -3,7 +3,6 @@
 
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
-import { tmpdir } from 'os';
 import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
@@ -28,9 +27,11 @@ import { getLogFileForTest } from './logReporterUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
-export const testWorkspace = path.join(__dirname, '..', '..', '..', 'testWorkspace');
-export const testSources = path.join(__dirname, '..', '..', '..', 'src');
-export const testFixturesDir = path.join(tmpdir(), 'vscode-pwa-test');
+export const workspaceFolder = path.join(__dirname, '..', '..', '..');
+export const testWorkspace = path.join(workspaceFolder, 'testWorkspace');
+export const testSources = path.join(workspaceFolder, 'src');
+export const testFixturesDirName = '.dynamic-testWorkspace';
+export const testFixturesDir = path.join(workspaceFolder, testFixturesDirName);
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {

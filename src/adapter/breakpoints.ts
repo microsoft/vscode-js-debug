@@ -244,7 +244,6 @@ export class BreakpointManager {
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
-  _breakpointsPredictor?: BreakpointsPredictor;
   private _launchBlocker: Promise<any> = Promise.resolve();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
@@ -253,6 +252,7 @@ export class BreakpointManager {
     dap: Dap.Api,
     sourceContainer: SourceContainer,
     private readonly pauseForSourceMaps: boolean,
+    public readonly _breakpointsPredictor?: BreakpointsPredictor,
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
@@ -279,13 +279,6 @@ export class BreakpointManager {
         remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1)),
       };
     };
-
-    if (sourceContainer.rootPath)
-      this._breakpointsPredictor = new BreakpointsPredictor(
-        sourceContainer.rootPath,
-        sourceContainer.localSourceMaps,
-        sourceContainer.sourcePathResolver,
-      );
   }
 
   /**

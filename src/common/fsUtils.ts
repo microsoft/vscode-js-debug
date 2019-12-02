@@ -29,6 +29,8 @@ export function readfile(path: string): Promise<string> {
   });
 }
 
+export const writeFile = util.promisify(fs.writeFile);
+
 export function readFileRaw(path: string): Promise<Buffer> {
   return readFileAsync(path).catch(err => Buffer.alloc(0));
 }

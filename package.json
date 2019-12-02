@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "color": "^3.1.2",
+    "glob-stream": "^6.1.0",
     "js-beautify": "^1.10.0",
     "long": "^4.0.0",
     "micromatch": "^4.0.2",
@@ -68,6 +69,7 @@
     "@types/del": "^4.0.0",
     "@types/express": "^4.17.0",
     "@types/glob": "^7.1.1",
+    "@types/glob-stream": "^6.1.0",
     "@types/http-server": "^0.10.0",
     "@types/js-beautify": "^1.8.1",
     "@types/json-schema": "^7.0.3",

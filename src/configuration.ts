@@ -130,6 +130,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
+
+  /**
+   * Cache directory for workspace-related configuration.
+   */
+  __workspaceCachePath?: string;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
