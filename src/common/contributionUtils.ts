@@ -7,6 +7,8 @@ export const enum Contributions {
   PickProcessCommand = 'extension.NAMESPACE(node-debug).pickNodeProcess',
   AttachProcessCommand = 'extension.NAMESPACE(node-debug).attachNodeProcess',
   DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
+  PickLoadedScript = 'extension.NAMESPACE(node-debug).pickLoadedScript',
+  OpenScript = 'extension.NAMESPACE(node-debug).openScript',
   CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
 
   AddCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',

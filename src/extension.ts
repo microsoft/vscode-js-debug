@@ -14,12 +14,15 @@ import { pickProcess, attachProcess } from './ui/processPicker';
 import { ExtensionHostConfigurationProvider } from './extensionHostConfigurationProvider';
 import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
 import { debugNpmScript } from './ui/debugNpmScript';
+import { pickLoadedScript, openScript } from './ui/openLoadedScript';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
     vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
     vscode.commands.registerCommand(Contributions.DebugNpmScript, debugNpmScript),
+    vscode.commands.registerCommand(Contributions.PickLoadedScript, pickLoadedScript),
+    vscode.commands.registerCommand(Contributions.OpenScript, openScript),
   );
 
   const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);
