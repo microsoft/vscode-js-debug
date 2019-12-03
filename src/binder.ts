@@ -271,8 +271,10 @@ export class Binder implements Disposable {
   }
 }
 
+let warnedNightly = false;
 function warnNightly(dap: Dap.Api): void {
-  if (isNightly()) {
+  if (isNightly() && !warnedNightly) {
+    warnedNightly = true;
     dap.output({
       category: 'console',
       output: `Note: Using the "nightly" debug extension\n`,
