@@ -94,7 +94,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       });
     };
 
-    doLaunch(this.restarters.create(runData.params));
+    return doLaunch(this.restarters.create(runData.params));
   }
 
   /**

@@ -356,6 +356,13 @@ export class TestRoot {
     return this._worker;
   }
 
+  /**
+   * Returns the root session DAP connection.
+   */
+  rootDap() {
+    return this._root.dap;
+  }
+
   async _launch(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     await this.initialize;
     this._launchUrl = url;

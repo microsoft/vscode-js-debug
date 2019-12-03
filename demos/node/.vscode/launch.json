@@ -28,6 +28,13 @@
     {
       "type": "pwa-node",
       "request": "launch",
+      "runtimeExecutable": "missing-executable",
+      "name": "[Node] Invalid Runtime Executable",
+      "program": "${workspaceFolder}/main.js"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
       "name": "[Node] Invalid Launch Program",
       "program": "missing-file.js",
     },

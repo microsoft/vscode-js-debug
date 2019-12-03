@@ -9,13 +9,14 @@ import {
   NodeTestHandle,
   testWorkspace,
 } from '../test';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
 import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
+import { nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../../configuration';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -95,7 +96,7 @@ describe('node runtime', () => {
       if (child) {
         child.kill();
       }
-    })
+    });
 
     itIntegrates('attaches to existing processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
@@ -115,7 +116,7 @@ describe('node runtime', () => {
           const { spawn } = require('child_process');
           setInterval(() => spawn('node', ['child'], { cwd: __dirname }), 500);
         `,
-        'child.js': '(function foo() { debugger; })();'
+        'child.js': '(function foo() { debugger; })();',
       });
 
       child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
@@ -239,5 +240,20 @@ describe('node runtime', () => {
     );
 
     process.env.C = previousC;
+  });
+
+  itIntegrates('writes errors if runtime executable not found', async ({ r }) => {
+    await r.initialize;
+    const result = await r.rootDap().launch({
+      ...nodeLaunchConfigDefaults,
+      cwd: dirname(testFixturesDir),
+      program: join(testFixturesDir, 'test.js'),
+      rootPath: testWorkspace,
+      runtimeExecutable: 'does-not-exist',
+    } as INodeLaunchConfiguration);
+
+    expect(result).to.equal(
+      "Cannot find runtime 'does-not-exist' on PATH. Make sure to have 'does-not-exist' installed.",
+    );
   });
 });
