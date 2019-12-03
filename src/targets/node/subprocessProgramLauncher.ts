@@ -86,7 +86,7 @@ export class SubprocessProgramLauncher extends ProcessLauncher {
       dumpFilter();
       dap.output({
         category: 'stderr',
-        output: `Process exited with code ${code}`,
+        output: `Process exited with code ${code}\r\n`,
       });
     });
   }
