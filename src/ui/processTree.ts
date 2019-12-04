@@ -3,54 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-'use strict';
-
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { join } from 'path';
-
-export class ProcessTreeNode {
-  children?: ProcessTreeNode[];
-
-  constructor(
-    public pid: number,
-    public ppid: number,
-    public command: string,
-    public args: string,
-  ) {}
-}
-
-export async function getProcessTree(rootPid: number): Promise<ProcessTreeNode | undefined> {
-  const map = new Map<number, ProcessTreeNode>();
-
-  map.set(0, new ProcessTreeNode(0, 0, '???', ''));
-
-  try {
-    await getProcesses(({ pid, ppid, command, args }) => {
-      if (pid !== ppid) {
-        map.set(pid, new ProcessTreeNode(pid, ppid, command, args));
-      }
-      return map;
-    }, null);
-  } catch (err) {
-    return undefined;
-  }
-
-  const values = map.values();
-  for (const p of values) {
-    const parent = map.get(p.ppid);
-    if (parent && parent !== p) {
-      if (!parent.children) {
-        parent.children = [];
-      }
-      parent.children.push(p);
-    }
-  }
-
-  if (!isNaN(rootPid) && rootPid > 0) {
-    return map.get(rootPid);
-  }
-  return map.get(0);
-}
 
 export interface IProcess {
   pid: number;
@@ -58,6 +12,36 @@ export interface IProcess {
   command: string;
   args: string;
   date?: number;
+}
+
+/*
+ * analyse the given command line arguments and extract debug port and protocol from it.
+ */
+export function analyseArguments(args: string) {
+  const DEBUG_FLAGS_PATTERN = /--inspect(-brk)?(=((\[[0-9a-fA-F:]*\]|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|[a-zA-Z0-9\.]*):)?(\d+))?/;
+  const DEBUG_PORT_PATTERN = /--inspect-port=(\d+)/;
+
+  let address: string | undefined;
+  let port: number | undefined;
+
+  // match --inspect, --inspect=1234, --inspect-brk, --inspect-brk=1234
+  let matches = DEBUG_FLAGS_PATTERN.exec(args);
+  if (matches && matches.length >= 2) {
+    if (matches.length >= 6 && matches[5]) {
+      address = matches[5];
+    }
+    if (matches.length >= 7 && matches[6]) {
+      port = parseInt(matches[6]);
+    }
+  }
+
+  // a --inspect-port=1234 overrides the port
+  matches = DEBUG_PORT_PATTERN.exec(args);
+  if (matches && matches.length === 2) {
+    port = parseInt(matches[1]);
+  }
+
+  return { address, port };
 }
 
 export function getProcesses<T>(

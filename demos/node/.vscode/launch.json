@@ -13,6 +13,13 @@
     },
     {
       "type": "pwa-node",
+      "request": "attach",
+      "trace": true,
+      "name": "[Node] Attach to program",
+      "port": 9229
+    },
+    {
+      "type": "pwa-node",
       "request": "launch",
       "name": "[Node] Launch crashing program",
       "restart": true,

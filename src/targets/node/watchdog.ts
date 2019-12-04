@@ -17,7 +17,7 @@ process.on('unhandledRejection', e => debugLog(`Unhandled rejection: ${e}`));
 
 process.on('exit', () => {
   debugLog('KILL');
-  if (info.pid) {
+  if (info.pid && !info.dynamicAttach) {
     process.kill(Number(info.pid));
   }
 });
