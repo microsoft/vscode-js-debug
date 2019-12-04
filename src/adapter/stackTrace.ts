@@ -216,7 +216,7 @@ export class StackFrame {
       if (scope.name && scope.type === 'closure') {
         name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
       } else if (scope.name) {
-        name = scope.name;
+        name = `${name}: ${scope.name}`;
       }
 
       const variable = await this._scopeVariable(scopeNumber);
@@ -289,7 +289,7 @@ export class StackFrame {
     if (!scope.variables[scopeNumber]) {
       const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
       const extraProperties: ExtraProperty[] = [];
-      if (scopeNumber === 0 && scope.chain[scopeNumber].type === 'local') {
+      if (scopeNumber === 0) {
         extraProperties.push({name: 'this', value: scope.thisObject});
         if (scope.returnValue)
           extraProperties.push({name: localize('scope.returnValue', 'Return value'), value: scope.returnValue});
