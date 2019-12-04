@@ -9,7 +9,13 @@ import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../../targets/targets';
+import {
+  Target,
+  Launcher,
+  LaunchResult,
+  ILaunchContext,
+  IStopMetadata,
+} from '../../targets/targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
@@ -50,13 +56,25 @@ export class BrowserLauncher implements Launcher {
   }
 
   dispose() {
-    for (const disposable of this._disposables)
-      disposable.dispose();
+    for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
   }
 
-  async _launchBrowser({ runtimeExecutable: executable, runtimeArgs, userDataDir, env, cwd, port, webRoot }: IChromeLaunchConfiguration, dap: Dap.Api, cancellationToken: CancellationToken, rawTelemetryReporter: RawTelemetryReporter): Promise<launcher.ILaunchResult> {
-    let executablePath = '';
+  async _launchBrowser(
+    {
+      runtimeExecutable: executable,
+      runtimeArgs,
+      userDataDir,
+      env,
+      cwd,
+      port,
+      webRoot,
+    }: IChromeLaunchConfiguration,
+    dap: Dap.Api,
+    cancellationToken: CancellationToken,
+    rawTelemetryReporter: RawTelemetryReporter,
+  ): Promise<launcher.ILaunchResult> {
+    let executablePath: string | undefined;
     if (executable && !chromeVersions.has(executable)) {
       executablePath = executable;
     } else {
@@ -72,10 +90,15 @@ export class BrowserLauncher implements Launcher {
           executablePath = installations[0].path;
         }
       }
-    }
 
-    if (!executablePath) {
-      throw new Error(`Unable to find browser ${executable}`);
+      if (!executablePath) {
+        const available = installations.map(i => i.type).join(', ');
+        throw new Error(
+          `Unable to find Chrome version ${executable}. ` +
+            (available ? `Available versions are: ${available}. ` : '') +
+            'You can set the "runtimeExecutable" in your launch.json to the path to Chrome',
+        );
+      }
     }
 
     // If we had a custom executable, don't resolve a data
@@ -92,22 +115,24 @@ export class BrowserLauncher implements Launcher {
 
     try {
       fs.mkdirSync(this._storagePath);
-    } catch (e) {
-    }
+    } catch (e) {}
 
-    return await launcher.launch(
-      executablePath, rawTelemetryReporter, cancellationToken, {
-        onStdout: output => dap.output({ category: 'stdout', output }),
-        onStderr: output => dap.output({ category: 'stderr', output }),
-        cwd: cwd || webRoot || undefined,
-        env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
-        args: runtimeArgs || [],
-        userDataDir: resolvedDataDir,
-        connection: port || 'pipe',
-      });
+    return await launcher.launch(executablePath, rawTelemetryReporter, cancellationToken, {
+      onStdout: output => dap.output({ category: 'stdout', output }),
+      onStderr: output => dap.output({ category: 'stderr', output }),
+      cwd: cwd || webRoot || undefined,
+      env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
+      args: runtimeArgs || [],
+      userDataDir: resolvedDataDir,
+      connection: port || 'pipe',
+    });
   }
 
-  async prepareLaunch(params: IChromeLaunchConfiguration, { dap, targetOrigin, cancellationToken }: ILaunchContext, rawTelemetryReporter: RawTelemetryReporter): Promise<BrowserTarget | string> {
+  async prepareLaunch(
+    params: IChromeLaunchConfiguration,
+    { dap, targetOrigin, cancellationToken }: ILaunchContext,
+    rawTelemetryReporter: RawTelemetryReporter,
+  ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
     try {
       launched = await this._launchBrowser(params, dap, cancellationToken, rawTelemetryReporter);
@@ -115,9 +140,13 @@ export class BrowserLauncher implements Launcher {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    launched.cdp.onDisconnected(() => {
-      this._onTerminatedEmitter.fire({ code: 0, killed: true });
-    }, undefined, this._disposables);
+    launched.cdp.onDisconnected(
+      () => {
+        this._onTerminatedEmitter.fire({ code: 0, killed: true });
+      },
+      undefined,
+      this._disposables,
+    );
     this._connectionForTest = launched.cdp;
     this._launchParams = params;
 
@@ -129,11 +158,20 @@ export class BrowserLauncher implements Launcher {
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
     });
-    this._targetManager = await BrowserTargetManager.connect(launched.cdp, launched.process, pathResolver, this._launchParams, rawTelemetryReporter, targetOrigin);
+    this._targetManager = await BrowserTargetManager.connect(
+      launched.cdp,
+      launched.process,
+      pathResolver,
+      this._launchParams,
+      rawTelemetryReporter,
+      targetOrigin,
+    );
     if (!this._targetManager)
       return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
 
-    this._targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
+    this._targetManager.serviceWorkerModel.onDidChange(() =>
+      this._onTargetListChangedEmitter.fire(),
+    );
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
 
@@ -156,62 +194,63 @@ export class BrowserLauncher implements Launcher {
       'Could not attach to main target',
     );
 
-    if (!this._mainTarget)
-      return localize('error.threadNotFound', 'Target page not found');
+    if (!this._mainTarget) return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
-      if (target === this._mainTarget)
-        this._onTerminatedEmitter.fire({ code: 0, killed: true });
+      if (target === this._mainTarget) this._onTerminatedEmitter.fire({ code: 0, killed: true });
     });
     return this._mainTarget;
   }
 
-  private async finishLaunch(mainTarget: BrowserTarget, params: AnyChromeConfiguration): Promise<void> {
+  private async finishLaunch(
+    mainTarget: BrowserTarget,
+    params: AnyChromeConfiguration,
+  ): Promise<void> {
     if ('skipNavigateForTest' in params) {
       return;
     }
 
-    const url = 'file' in params && params.file
-      ? absolutePathToFileUrl(path.resolve(params.webRoot || params.rootPath || '', params.file))
-      : params.url;
+    const url =
+      'file' in params && params.file
+        ? absolutePathToFileUrl(path.resolve(params.webRoot || params.rootPath || '', params.file))
+        : params.url;
 
     if (url) {
       await mainTarget.cdp().Page.navigate({ url });
     }
   }
 
-  async launch(params: AnyChromeConfiguration, context: ILaunchContext, telemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult> {
+  async launch(
+    params: AnyChromeConfiguration,
+    context: ILaunchContext,
+    telemetryReporter: RawTelemetryReporterToDap,
+  ): Promise<LaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
     const targetOrError = await this.prepareLaunch(params, context, telemetryReporter);
-    if (typeof targetOrError === 'string')
-      return { error: targetOrError };
+    if (typeof targetOrError === 'string') return { error: targetOrError };
     await this.finishLaunch(targetOrError, params);
     return { blockSessionTermination: true };
   }
 
   async terminate(): Promise<void> {
-    if (this._mainTarget)
-      this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
+    if (this._mainTarget) this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
   }
 
   async disconnect(): Promise<void> {
-    if (this._targetManager)
-      await this._targetManager.closeBrowser();
+    if (this._targetManager) await this._targetManager.closeBrowser();
   }
 
   async restart(): Promise<void> {
-    if (!this._mainTarget)
-      return;
+    if (!this._mainTarget) return;
     if (this._launchParams!.url)
       await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
-    else
-      await this._mainTarget.cdp().Page.reload({ });
+    else await this._mainTarget.cdp().Page.reload({});
   }
 
   targetList(): Target[] {
-    const manager = this.targetManager()
+    const manager = this.targetManager();
     return manager ? manager.targetList() : [];
   }
 
