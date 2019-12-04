@@ -39,6 +39,7 @@ interface LaunchOptions {
   onStderr?: (data: string) => void;
   args?: ReadonlyArray<string>;
   dumpio?: boolean;
+  hasUserNavigation?: boolean;
   cwd?: string;
   env?: EnvironmentVars;
   ignoreDefaultArgs?: boolean;
@@ -150,7 +151,10 @@ function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
   const browserArguments = [...DEFAULT_ARGS];
   if (userDataDir) browserArguments.push(`--user-data-dir=${userDataDir}`);
   browserArguments.push(...args);
-  if (args.every(arg => arg.startsWith('-'))) browserArguments.push('about:blank');
+  if (args.every(arg => arg.startsWith('-')) && options.hasUserNavigation) {
+    browserArguments.push('about:blank');
+  }
+
   return browserArguments;
 }
 

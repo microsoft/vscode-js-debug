@@ -68,6 +68,7 @@ export class BrowserLauncher implements Launcher {
       env,
       cwd,
       port,
+      url,
       webRoot,
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
@@ -120,6 +121,7 @@ export class BrowserLauncher implements Launcher {
     return await launcher.launch(executablePath, rawTelemetryReporter, cancellationToken, {
       onStdout: output => dap.output({ category: 'stdout', output }),
       onStderr: output => dap.output({ category: 'stderr', output }),
+      hasUserNavigation: !!url,
       cwd: cwd || webRoot || undefined,
       env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
       args: runtimeArgs || [],
