@@ -204,11 +204,8 @@ export class Thread implements VariableStoreDelegate {
     const callFrameId = stackFrame.callFrameId();
     if (!callFrameId)
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
-    const response = await this._cdp.Debugger.restartFrame({ callFrameId });
-    if (response && this._pausedDetails)
-      this._pausedDetails.stackTrace = this.launchConfig.showAsyncStacks
-      ? StackTrace.fromDebugger(this, response.callFrames, response.asyncStackTrace, response.asyncStackTraceId)
-      : StackTrace.fromDebugger(this, response.callFrames);
+    await this._cdp.Debugger.restartFrame({ callFrameId });
+    await this._cdp.Debugger.stepInto({});
     return {};
   }
 
