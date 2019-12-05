@@ -1,2 +1,0 @@
-foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
-3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3

@@ -1,6 +1,6 @@
 
 foo @ <eval>/VM<xx>:4:19
-  > scope #0: foo
+  > scope #0: Local: foo
       > this: Window
       Return value: 42
   scope #1: Global [expensive]
