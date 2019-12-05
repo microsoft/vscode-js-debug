@@ -1,0 +1,16 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/restart.js:6:3
+<anonymous> @ ${workspaceFolder}/web/restart.js:7:3
+{
+    allThreadsStopped : false
+    description : Paused on frame entry
+    reason : frame_entry
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/restart.js:4:3
+<anonymous> @ ${workspaceFolder}/web/restart.js:7:3

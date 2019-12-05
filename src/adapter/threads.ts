@@ -98,7 +98,7 @@ export class Thread implements VariableStoreDelegate {
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
   private _smartStepper: SmartStepper;
-  private _expectedPauseReason: PausedReason | undefined;
+  private _expectedPauseReason?: { reason: PausedReason, description?: string };
 
   constructor(
     sourceContainer: SourceContainer,
@@ -161,7 +161,7 @@ export class Thread implements VariableStoreDelegate {
 
   async pause(): Promise<Dap.PauseResult | Dap.Error> {
     if (await this._cdp.Debugger.pause({}))
-      this._expectedPauseReason = 'pause';
+      this._expectedPauseReason = { reason: 'pause' };
     else
       return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
@@ -169,7 +169,7 @@ export class Thread implements VariableStoreDelegate {
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
     if (await this._cdp.Debugger.stepOver({}))
-      this._expectedPauseReason = 'step';
+      this._expectedPauseReason = { reason: 'step' };
     else
       return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
@@ -177,7 +177,7 @@ export class Thread implements VariableStoreDelegate {
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
     if (await this._cdp.Debugger.stepInto({breakOnAsyncCall: true}))
-      this._expectedPauseReason = 'step';
+      this._expectedPauseReason = { reason: 'step' };
     else
       return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
@@ -198,13 +198,21 @@ export class Thread implements VariableStoreDelegate {
   }
 
   async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
-    const stackFrame = this._pausedDetails ? this._pausedDetails.stackTrace.frame(params.frameId) : undefined;
-    if (!stackFrame)
+    const stackFrame = this._pausedDetails?.stackTrace.frame(params.frameId);
+    if (!stackFrame) {
       return this._stackFrameNotFoundError();
+    }
+
     const callFrameId = stackFrame.callFrameId();
-    if (!callFrameId)
+    if (!callFrameId) {
       return errors.createUserError(localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'));
+    }
+
     await this._cdp.Debugger.restartFrame({ callFrameId });
+    this._expectedPauseReason = {
+      reason: 'frame_entry' as PausedReason,
+      description: localize('reason.description.restart', 'Paused on frame entry'),
+    };
     await this._cdp.Debugger.stepInto({});
     return {};
   }
@@ -735,8 +743,8 @@ export class Thread implements VariableStoreDelegate {
           return {
             thread: this,
             stackTrace,
-            reason: this._expectedPauseReason,
-            description: localize('pause.default', 'Paused')
+            description: localize('pause.default', 'Paused'),
+            ...this._expectedPauseReason,
           };
         }
         return {
