@@ -34,6 +34,11 @@ describe('SourceMapOverrides', () => {
       const r = new SourceMapOverrides({ '/a/*': '/c', '/a/foo': '/b' });
       expect(r.apply('/a/foo')).to.equal('/b');
     });
+
+    it('normalizes mapped paths', () => {
+      const r = new SourceMapOverrides({ 'file:///./foo/*': '/b/*' });
+      expect(r.apply('file:///foo/bar')).to.equal('/b/bar');
+    });
   });
 
   describe('defaults', () => {

@@ -3,8 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { ResolvingConfiguration, AnyLaunchConfiguration } from './configuration';
+import {
+  ResolvingConfiguration,
+  AnyLaunchConfiguration,
+  IChromeBaseConfiguration,
+} from './configuration';
 import { fulfillLoggerOptions } from './common/logging';
+import { mapValues } from './common/objUtils';
+import { Contributions } from './common/contributionUtils';
 
 /**
  * Base configuration provider that handles some resolution around common
@@ -97,6 +103,16 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   protected commonResolution(config: T): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
+
+    // The "${webRoot}" is not a standard vscode thing--replace it appropriately.
+    config.sourceMapPathOverrides = mapValues(config.sourceMapPathOverrides, value =>
+      value.replace(
+        '${webRoot}',
+        (config.type === Contributions.ChromeDebugType &&
+          (config as IChromeBaseConfiguration).webRoot) ||
+          '${workspaceFolder}',
+      ),
+    );
 
     return config;
   }
