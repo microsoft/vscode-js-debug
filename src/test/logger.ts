@@ -140,6 +140,8 @@ export class Logger {
         }, {}, '  ');
       }
     }
+
+    return stack;
   }
 
   evaluateAndLog(expression: string, options?: LogOptions, context?: 'watch' | 'repl' | 'hover'): Promise<Dap.Variable>;

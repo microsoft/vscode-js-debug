@@ -205,7 +205,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-     // See #109
+    // See #109
     itIntegrates('source map set compiled', async ({ r }) => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
@@ -328,5 +328,20 @@ describe('breakpoints', () => {
       p.log(await p.dap.continue({ threadId: event.threadId }));
       p.assertLog();
     });
+  });
+
+  itIntegrates('restart frame', async ({ r }) => {
+    const p = await r.launchUrl('restart.html');
+    const source: Dap.Source = {
+      path: p.workspacePath('web/restart.js'),
+    };
+    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+    p.load();
+    const { threadId } = p.log(await p.dap.once('stopped'));
+    const stack = await p.logger.logStackTrace(threadId);
+    p.dap.restartFrame({ frameId: stack[0].id });
+
+    await waitForPause(p);
+    p.assertLog();
   });
 });

@@ -96,7 +96,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   skipFiles: {
     type: 'array',
     description: refString('chrome.skipFiles.description'),
-    default: [],
+    default: ["<node_internals>/**"],
   },
   smartStep: {
     type: 'boolean',
