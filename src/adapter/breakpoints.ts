@@ -19,9 +19,26 @@ const localize = nls.loadMessageBundle();
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
+/**
+ * Differential result used internally in setBreakpoints.
+ */
+interface ISetBreakpointResult {
+  /**
+   * Breakpoints that previous existed which can be destroyed.
+   */
+  unbound: Breakpoint[];
+  /**
+   * Newly created breakpoints;
+   */
+  new: Breakpoint[];
+  /**
+   * All old and new breakpoints.
+   */
+  list: Breakpoint[];
+}
+
 export class Breakpoint {
   private _manager: BreakpointManager;
-  private _dapId: number;
   _source: Dap.Source;
   private _condition?: string;
   private _lineColumn: LineColumn;
@@ -34,12 +51,12 @@ export class Breakpoint {
 
   constructor(
     manager: BreakpointManager,
-    dapId: number,
+    public readonly dapId: number,
     source: Dap.Source,
     params: Dap.SourceBreakpoint,
   ) {
     this._manager = manager;
-    this._dapId = dapId;
+    this.dapId = dapId;
     this._source = source;
     this._lineColumn = { lineNumber: params.line, columnNumber: params.column || 1 };
     if (params.logMessage)
@@ -50,20 +67,31 @@ export class Breakpoint {
         : params.condition;
   }
 
-  toProvisionalDap(): Dap.Breakpoint {
+  async toProvisionalDap(): Promise<Dap.Breakpoint> {
+    if (this._resolvedUiLocation) {
+      return {
+        id: this.dapId,
+        verified: true,
+        source: await this._resolvedUiLocation.source.toDap(),
+        line: this._resolvedUiLocation.lineNumber,
+        column: this._resolvedUiLocation.columnNumber,
+      };
+    }
+
     return {
-      id: this._dapId,
+      id: this.dapId,
       verified: false,
       message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`), // TODO: Put a useful message here
     };
   }
 
   async _notifyResolved(): Promise<void> {
-    if (!this._resolvedUiLocation) return;
-    await this._manager.notifyBreakpointResolved(this._dapId, this._resolvedUiLocation);
+    if (this._resolvedUiLocation) {
+      await this._manager.notifyBreakpointResolved(this.dapId, this._resolvedUiLocation);
+    }
   }
 
-  async set(thread: Thread): Promise<void> {
+  async set(thread: Thread, notifyResolved: boolean): Promise<void> {
     const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
@@ -86,7 +114,10 @@ export class Breakpoint {
     }
 
     await Promise.all(promises);
-    await this._notifyResolved();
+
+    if (notifyResolved) {
+      await this._notifyResolved();
+    }
   }
 
   async breakpointResolved(
@@ -230,6 +261,20 @@ export class Breakpoint {
     this._resolvedBreakpoints.clear();
     this._setUrlLocations.clear();
     await Promise.all(promises);
+  }
+
+  /**
+   * Compares this breakpoint with the other. String comparison-style return:
+   *  - a negative number if this breakpoint is before the other one
+   *  - zero if they're the same location
+   *  - a positive number if this breakpoint is after the other one
+   */
+  public compare(other: Breakpoint) {
+    const lca = this._lineColumn;
+    const lcb = other._lineColumn;
+    return lca.lineNumber !== lcb.lineNumber
+      ? lca.lineNumber - lcb.lineNumber
+      : lca.columnNumber - lcb.columnNumber;
   }
 }
 
@@ -398,8 +443,10 @@ export class BreakpointManager {
       }
       return sources;
     });
-    for (const breakpoints of this._byPath.values()) breakpoints.forEach(b => this._setBreakpoint(b));
-    for (const breakpoints of this._byRef.values()) breakpoints.forEach(b => this._setBreakpoint(b));
+    for (const breakpoints of this._byPath.values())
+      breakpoints.forEach(b => this._setBreakpoint(b));
+    for (const breakpoints of this._byRef.values())
+      breakpoints.forEach(b => this._setBreakpoint(b));
     this._updateSourceMapHandler(this._thread);
   }
 
@@ -430,7 +477,7 @@ export class BreakpointManager {
   }
 
   private _setBreakpoint(b: Breakpoint): void {
-    this._launchBlocker = Promise.all([this._launchBlocker, b.set(this._thread!)]);
+    this._launchBlocker = Promise.all([this._launchBlocker, b.set(this._thread!, true)]);
   }
 
   async setBreakpoints(
@@ -438,33 +485,64 @@ export class BreakpointManager {
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
+
+    // Wait until the breakpoint predictor finishes to be sure that we
+    // can place correctly in breakpoint.set().
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor.predictBreakpoints(params);
       this._launchBlocker = Promise.all([this._launchBlocker, promise]);
       await promise;
     }
-    const breakpoints: Breakpoint[] = [];
-    const inBreakpoints = params.breakpoints || [];
-    for (let index = 0; index < inBreakpoints.length; index++)
-      breakpoints.push(new Breakpoint(this, ids[index], params.source, inBreakpoints[index]));
-    let previous: Breakpoint[] | undefined;
+
+    // Creates new breakpoints for the parameters, unsetting any previous
+    // breakpoints that don't still exist in the params.
+    const mergeInto = (previous: Breakpoint[]): ISetBreakpointResult => {
+      const result: ISetBreakpointResult = { unbound: previous.slice(), new: [], list: [] };
+      if (!params.breakpoints) {
+        return result;
+      }
+
+      for (let index = 0; index < params.breakpoints.length; index++) {
+        const created = new Breakpoint(this, ids[index], params.source, params.breakpoints[index]);
+        const existingIndex = result.unbound.findIndex(p => p.compare(created) === 0);
+        if (existingIndex === -1) {
+          result.new.push(created);
+          result.list.push(created);
+          continue;
+        }
+
+        const existing = result.unbound[existingIndex];
+        result.list.push(existing);
+        result.unbound.splice(existingIndex, 1);
+      }
+
+      return result;
+    };
+
+    let result: ISetBreakpointResult;
     if (params.source.path) {
-      previous = this._byPath.get(params.source.path);
-      this._byPath.set(params.source.path, breakpoints);
+      result = mergeInto(this._byPath.get(params.source.path) || []);
+      this._byPath.set(params.source.path, result.list);
     } else {
-      previous = this._byRef.get(params.source.sourceReference!);
-      this._byRef.set(params.source.sourceReference!, breakpoints);
+      result = mergeInto(this._byRef.get(params.source.sourceReference!) || []);
+      this._byRef.set(params.source.sourceReference!, result.list);
     }
+
     // Cleanup existing breakpoints before setting new ones.
-    if (previous) {
-      this._totalBreakpointsCount -= previous.length;
-      await Promise.all(previous.map(b => b.remove()));
+    this._totalBreakpointsCount -= result.unbound.length;
+    await Promise.all(result.unbound.map(b => b.remove()));
+
+    this._totalBreakpointsCount += result.new.length;
+
+    const thread = this._thread;
+    if (thread) {
+      await (this._launchBlocker = Promise.all([
+        this._launchBlocker,
+        ...result.new.map(b => b.set(thread, false)),
+      ]));
     }
-    this._totalBreakpointsCount += breakpoints.length;
-    if (this._thread) {
-      breakpoints.forEach(b => this._setBreakpoint(b));
-    }
-    const dapBreakpoints = breakpoints.map(b => b.toProvisionalDap());
+
+    const dapBreakpoints = await Promise.all(result.list.map(b => b.toProvisionalDap()));
     this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
     return { breakpoints: dapBreakpoints };
   }
@@ -487,10 +565,8 @@ export class BreakpointManager {
     hitBreakpointIds.forEach(breakpointId => {
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
       if (breakpoint) {
-        const id = breakpoint.toProvisionalDap().id;
-        if (id !== undefined) {
-          this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
-        }
+        const id = breakpoint.dapId;
+        this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
       }
     });
   }
