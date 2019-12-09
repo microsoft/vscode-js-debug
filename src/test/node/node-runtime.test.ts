@@ -110,6 +110,19 @@ describe('node runtime', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('retries attachment', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 500)'],
+      });
+
+      const handleProm = r.attachNode(0, { port: 9229 });
+      await delay(500); // give it a moment to start trying to attach
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const handle = await handleProm;
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('attaches children of child processes', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': `

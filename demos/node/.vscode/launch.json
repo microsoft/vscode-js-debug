@@ -39,6 +39,12 @@
       "program": "missing-file.js",
     },
     {
+      "type": "pwa-node",
+      "request": "attach",
+      "name": "[Node] Attach to Program",
+      "port": 9229,
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "[Node] Launch Legacy Debug",

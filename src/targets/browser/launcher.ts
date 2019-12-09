@@ -135,7 +135,10 @@ export async function launch(
       const endpoint = await waitForWSEndpoint(browserProcess, cancellationToken);
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     } else {
-      const endpoint = await waitForDebuggerServerOnPort(suggestedPort, cancellationToken);
+      const endpoint = await retryGetWSEndpoint(
+        `http://localhost:${suggestedPort}`,
+        cancellationToken,
+      );
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
 
@@ -177,27 +180,11 @@ export async function attach(
     );
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   } else if (browserURL) {
-    const connectionURL = await getWSEndpoint(browserURL, cancellationToken);
+    const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
     const connectionTransport = await WebSocketTransport.create(connectionURL, cancellationToken);
     return new CdpConnection(connectionTransport, rawTelemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
-}
-
-/**
- * Polls for the debug server on the port, until we get a server or
- * cancellation is requested.
- */
-async function waitForDebuggerServerOnPort(port: number, ct: CancellationToken) {
-  while (!ct.isCancellationRequested) {
-    try {
-      return await getWSEndpoint(`http://localhost:${port}`, ct);
-    } catch (_e) {
-      await delay(50);
-    }
-  }
-
-  throw new TaskCancelledError('Lookup cancelled');
 }
 
 function waitForWSEndpoint(
@@ -258,6 +245,11 @@ function waitForWSEndpoint(
   });
 }
 
+/**
+ * Returns the debugger websocket URL a process listening at the given address.
+ * @param browserURL -- Address like `http://localhost:1234`
+ * @param cancellationToken -- Optional cancellation for this operation
+ */
 export async function getWSEndpoint(
   browserURL: string,
   cancellationToken: CancellationToken,
@@ -281,6 +273,28 @@ export async function getWSEndpoint(
   }
 
   throw new Error('Could not find any debuggable target');
+}
+
+/**
+ * Attempts to retrieve the debugger websocket URL for a process listening
+ * at the given address, retrying until available.
+ * @param browserURL -- Address like `http://localhost:1234`
+ * @param cancellationToken -- Optional cancellation for this operation
+ */
+export async function retryGetWSEndpoint(
+  browserURL: string,
+  cancellationToken: CancellationToken,
+): Promise<string> {
+  try {
+    return await getWSEndpoint(browserURL, cancellationToken);
+  } catch (e) {
+    if (cancellationToken.isCancellationRequested) {
+      throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
+    }
+
+    await delay(200);
+    return retryGetWSEndpoint(browserURL, cancellationToken);
+  }
 }
 
 async function fetchJson<T>(url: string, cancellationToken: CancellationToken): Promise<T> {
