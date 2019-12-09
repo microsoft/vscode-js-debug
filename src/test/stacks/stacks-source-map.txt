@@ -1,11 +1,11 @@
 
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
-  > scope #0: foo
+  > scope #0: Local: foo
       this: undefined
   scope #1: Global [expensive]
 
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
-  > scope #0: bar
+  > scope #0: Local: bar
       
 > callback: ƒ foo() {
     debugger;
@@ -14,7 +14,7 @@ bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
   scope #1: Global [expensive]
 
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
-  > scope #0: 3../module1
+  > scope #0: Local: 3../module1
       > exports: {__esModule: true}
       > m1: {__esModule: true, kModule1: 1, foo: ƒ, throwError: ƒ, throwValue: ƒ}
       > m2: {__esModule: true, kModule2: 2, bar: ƒ, pause: ƒ}
@@ -24,7 +24,7 @@ bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
   scope #1: Global [expensive]
 
 o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
-  > scope #0: o
+  > scope #0: Local: o
       a: undefined
       c: undefined
       f: undefined
@@ -42,7 +42,7 @@ o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   scope #3: Global [expensive]
 
 r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
-  > scope #0: r
+  > scope #0: Local: r
       > e: {1: Array(2), 2: Array(2), 3: Array(2)}
       i: 0
       > n: {1: {…}, 2: {…}, 3: {…}}

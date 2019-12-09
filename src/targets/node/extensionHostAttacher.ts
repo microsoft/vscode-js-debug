@@ -6,10 +6,8 @@ import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../confi
 import { Contributions } from '../../common/contributionUtils';
 import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
-import { getWSEndpoint } from '../browser/launcher';
-import { delay } from '../../common/promiseUtil';
+import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
-import { findInPath } from '../../common/pathUtils';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
 import { NodeAttacherBase } from './nodeAttacherBase';
@@ -47,23 +45,12 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
   protected async launchProgram(
     runData: IRunData<IExtensionHostConfiguration>,
   ): Promise<string | void> {
-    let inspectorUrl: string | undefined;
-    do {
-      try {
-        inspectorUrl = await getWSEndpoint(
-          `http://localhost:${runData.params.port}`,
-          runData.context.cancellationToken,
-        );
-      } catch (e) {
-        if (runData.context.cancellationToken.isCancellationRequested) {
-          return `Could not connect to extension host: ${e.message}`;
-        }
+    const inspectorUrl = await retryGetWSEndpoint(
+      `http://localhost:${runData.params.port}`,
+      runData.context.cancellationToken,
+    );
 
-        await delay(200);
-      }
-    } while (!inspectorUrl);
-
-    const wd = spawnWatchdog(findInPath('node', process.env) || 'node', {
+    const wd = spawnWatchdog(await this.resolveNodePath(runData.params), {
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
       inspectorURL: inspectorUrl!,

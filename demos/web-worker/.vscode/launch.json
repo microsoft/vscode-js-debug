@@ -13,7 +13,6 @@
       "server": {
         "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
         "args": ["-p", "5002"],
-        "logging": {"cdp": "${workspaceFolder}/vscode-pwa-cdp.log", "dap": "${workspaceFolder}/vscode-pwa-dap.log"}
       },
     },
     {

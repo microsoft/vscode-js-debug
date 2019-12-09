@@ -4,4 +4,4 @@
     reason : pause
     threadId : <number>
 }
-foo @ ${fixturesDir}/child.js:1:1
+<anonymous> @ ${fixturesDir}/test.js:1:1

@@ -104,8 +104,9 @@ export class BrowserTargetManager implements Disposable {
 
   waitForMainTarget(filter?: (target: Cdp.Target.TargetInfo) => boolean): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
+    let attachmentQueue = Promise.resolve();
     const promise = new Promise<BrowserTarget | undefined>(f => callback = f);
-    const attemptAttach = async ({ targetInfo }: {targetInfo: Cdp.Target.TargetInfo}) => {
+    const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
       if (this._targets.size) {
         return;
       }
@@ -121,7 +122,12 @@ export class BrowserTargetManager implements Disposable {
         callback(undefined);
         return;
       }
+
       callback(this._attachedToTarget(targetInfo, response.sessionId, true));
+    };
+
+    const attemptAttach = (info: { targetInfo: Cdp.Target.TargetInfo }) => {
+      attachmentQueue = attachmentQueue.then(() => attachInner(info))
     };
 
     this._browser.Target.setDiscoverTargets({ discover: true });

@@ -20,7 +20,7 @@
     "vscode": "^1.30.0-insider",
     "node": "^8.9.3"
   },
-  "icon": "resources/pwa.png",
+  "icon": "resources/logo.png",
   "categories": [
     "Debuggers"
   ],
@@ -152,7 +152,7 @@
         {
           "id": "pwa",
           "title": "PWA",
-          "icon": "resources/pwa.svg"
+          "icon": "resources/logo.svg"
         }
       ]
     },

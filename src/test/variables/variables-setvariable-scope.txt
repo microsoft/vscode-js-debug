@@ -4,7 +4,7 @@ stopped: {
     reason : pause
     threadId : <number>
 }
-> scope: foo
+> scope: Local: foo
     y: 'value of y'
     z: 'value of z'
     > this: Window
@@ -13,7 +13,7 @@ Setting "y" to "z"
 <result>: 'value of z'
 
 Original
-> scope: foo
+> scope: Local: foo
     y: 'value of z'
     z: 'value of z'
     > this: Window

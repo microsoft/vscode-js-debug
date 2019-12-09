@@ -1,12 +1,12 @@
 
 paused @ <eval>/VM<xx>:4:9
-  > scope #0: paused
+  > scope #0: Local: paused
       y: 'paused'
       > this: Window
   scope #1: Global [expensive]
 
 chained @ <eval>/VM<xx>:11:23
-  > scope #0: chained
+  > scope #0: Local: chained
       x: 'x1'
       > this: Window
   > scope #1: Closure (chain)
@@ -14,7 +14,7 @@ chained @ <eval>/VM<xx>:11:23
   scope #2: Global [expensive]
 
 chained @ <eval>/VM<xx>:11:23
-  > scope #0: chained
+  > scope #0: Local: chained
       x: 'x2'
       > this: Window
   > scope #1: Closure (chain)
@@ -22,7 +22,7 @@ chained @ <eval>/VM<xx>:11:23
   scope #2: Global [expensive]
 
 chained @ <eval>/VM<xx>:11:23
-  > scope #0: chained
+  > scope #0: Local: chained
       x: 'x3'
       > this: Window
   > scope #1: Closure (chain)

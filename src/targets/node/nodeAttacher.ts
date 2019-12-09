@@ -4,10 +4,9 @@
 
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
-import { getWSEndpoint } from '../browser/launcher';
+import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IRunData } from './nodeLauncherBase';
-import { findInPath } from '../../common/pathUtils';
 import { SubprocessProgram } from './program';
 import Cdp from '../../cdp/api';
 import { isLoopback } from '../../common/urlUtils';
@@ -38,10 +37,10 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
    * @inheritdoc
    */
   protected async launchProgram(runData: IRunData<INodeAttachConfiguration>): Promise<void> {
-    const wd = spawnWatchdog(findInPath('node', process.env) || 'node', {
+    const wd = spawnWatchdog(await this.resolveNodePath(runData.params), {
       ipcAddress: runData.serverAddress,
       scriptName: 'Remote Process',
-      inspectorURL: await getWSEndpoint(
+      inspectorURL: await retryGetWSEndpoint(
         `http://${runData.params.address}:${runData.params.port}`,
         runData.context.cancellationToken,
       ),
