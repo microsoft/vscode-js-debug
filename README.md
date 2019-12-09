@@ -1,26 +1,26 @@
-# Self-Hosting
+# js-debug
 
-To use your existing launch configs with this extension, install the extension "Javascript Debugger" in VS Code. Then you can either change the types of your "node" and "chrome" launch configs to "pwa-node" and "pwa-chrome". Or configure `"debug.node.useV3": true` to use it for normal "node"-type configs.
+This repo contains the new, upcoming JavaScript debugger for VS Code. It's currently a work in progress, expect minor bugs and incompatibilities at this stage.
 
-# Demos
+## Installation
 
-Win
-```
-git clone https://github.com/microsoft/vscode-pwa
-cd vscode-pwa\demos
-dir
-```
+You can use this extension from the marketplace by:
 
-Mac / Linux
-```
-git clone https://github.com/microsoft/vscode-pwa
-cd vscode-pwa/demos
-ls
-```
+1. Installing the `js-debug-nightly` extension,
+2. Adding `"debug.node.useV3": true` and `"debug.chrome.useV3": true` to your user settings,
+3. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
 
-# Features
+Or alternatively by self-hosting:
 
-## Multiple threads
+1. Clone this repository and run `npm install`,
+2. Then either:
+    - Run `gulp build --nightly` to package a `.vsix` you can install manually, or
+    - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
+3. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
+
+## Features
+
+### Multiple threads
 
 - Attaching to relevant browser threads: page, out of process iframes, web workers, related service workers
 
@@ -35,7 +35,7 @@ ls
 
     <img width="320" alt="Screen Shot 2019-07-30 at 4 13 21 PM" src="https://user-images.githubusercontent.com/883973/62171782-03a65c80-b2e5-11e9-958b-73582efd513c.png">
 
-## Console
+### Console
 
 - Evaluate in selected execution context
 
@@ -70,7 +70,7 @@ ls
 
     <img width="259" alt="Screen Shot 2019-07-22 at 10 32 03 PM" src="https://user-images.githubusercontent.com/883973/61685138-8bcaa780-acd0-11e9-99d9-151c2839b5f6.png">
 
-## Debugging
+### Debugging
 
 - Instrumentation breakpoints
 
@@ -93,6 +93,6 @@ ls
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
 - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
 
-# Contributing
+## Contributing
 
 This project welcomes contributions and suggestions. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.

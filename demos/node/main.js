@@ -1,12 +1,13 @@
 console.log('hi');console.log('hi2');
+
 async function bar() {
   return 42;
 }
 
 async function foo() {
-  const result = await bar();
+  const result1 = await bar();
   const result2 = await bar();
-  console.log(result + result);
+  console.log(result1 + result2);
 }
 
 function throwIt() {
