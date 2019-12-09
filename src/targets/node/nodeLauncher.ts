@@ -12,13 +12,15 @@ import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { resolve } from 'path';
 import Cdp from '../../cdp/api';
+import { NodePathProvider } from './nodePathProvider';
 
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
+    pathProvider: NodePathProvider,
     private readonly launchers: ReadonlyArray<IProgramLauncher>,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
-    super();
+    super(pathProvider);
   }
 
   /**
@@ -61,7 +63,15 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         throw new Error('Cannot find an appropriate launcher for the given set of options');
       }
 
-      const program = (this.program = await launcher.launchProgram(options, runData.context));
+      const binary = await this.resolveNodePath(
+        runData.params,
+        runData.params.runtimeExecutable || undefined,
+      );
+      const program = (this.program = await launcher.launchProgram(
+        binary,
+        options,
+        runData.context,
+      ));
 
       // Once the program stops, dispose of the file. If we started a new program
       // in the meantime, don't do anything. Otherwise, restart if we need to,

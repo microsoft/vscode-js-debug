@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
-import { ProcessLauncher } from './processLauncher';
+import { IProgramLauncher } from './processLauncher';
 import { ILaunchContext } from '../targets';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { SubprocessProgram } from './program';
@@ -12,13 +12,17 @@ import Dap from '../../dap/api';
 /**
  * Launcher that boots a subprocess.
  */
-export class SubprocessProgramLauncher extends ProcessLauncher {
+export class SubprocessProgramLauncher implements IProgramLauncher {
   public canLaunch(args: INodeLaunchConfiguration) {
     return args.console === 'internalConsole';
   }
 
-  public async launchProgram(config: INodeLaunchConfiguration, context: ILaunchContext) {
-    const { executable, args, shell } = formatArguments(this.getRuntime(config), [
+  public async launchProgram(
+    binary: string,
+    config: INodeLaunchConfiguration,
+    context: ILaunchContext,
+  ) {
+    const { executable, args, shell } = formatArguments(binary, [
       ...config.runtimeArgs,
       config.program,
       ...config.args,

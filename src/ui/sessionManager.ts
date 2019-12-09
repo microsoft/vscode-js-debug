@@ -21,6 +21,7 @@ import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+import { NodePathProvider } from '../targets/node/nodePathProvider';
 
 export class Session implements Disposable {
   public readonly debugSession: vscode.DebugSession;
@@ -47,12 +48,13 @@ export class Session implements Disposable {
   }
 
   createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
+    const pathProvider = new NodePathProvider();
     const launchers = [
-      new ExtensionHostAttacher(),
-      new ExtensionHostLauncher(),
-      new TerminalNodeLauncher(),
-      new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-      new NodeAttacher(),
+      new ExtensionHostAttacher(pathProvider),
+      new ExtensionHostLauncher(pathProvider),
+      new TerminalNodeLauncher(pathProvider),
+      new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+      new NodeAttacher(pathProvider),
       new BrowserLauncher(context.storagePath || context.extensionPath),
       new BrowserAttacher(),
     ];

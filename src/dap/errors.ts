@@ -12,7 +12,9 @@ export const enum ErrorCodes {
   NvmNotFound,
   NvmHomeNotFound,
   CannotLaunchInTerminal,
-  CannotLoadEnvironmentVariables
+  CannotLoadEnvironmentVariables,
+  CannotFindNodeBinary,
+  NodeBinaryOutOfDate,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -83,6 +85,27 @@ export const cannotLoadEnvironmentVars = (errorMessage: string) =>
   createUserError(
     localize('VSND2029', "Can't load environment variables from file ({0}).", errorMessage),
     ErrorCodes.CannotLoadEnvironmentVariables,
+  );
+
+export const cannotFindNodeBinary = (attemptedPath: string) =>
+  createUserError(
+    localize(
+      'runtime.node.notfound',
+      'Can\'t find Node.js binary "{0}". Make sure Node.js is installed and in your PATH, or set the "runtimeExecutable" in your launch.json',
+      attemptedPath,
+    ),
+    ErrorCodes.CannotFindNodeBinary,
+  );
+
+export const nodeBinaryOutOfDate = (readVersion: string, attemptedPath: string) =>
+  createUserError(
+    localize(
+      'runtime.node.outdated',
+      'The Node version in "{0}" is outdated (version {1}), we require at least Node 8.x.',
+      attemptedPath,
+      readVersion,
+    ),
+    ErrorCodes.NodeBinaryOutOfDate,
   );
 
 export class ProtocolError extends Error {

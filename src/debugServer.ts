@@ -21,6 +21,7 @@ import { NodeAttacher } from './targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import * as nls from 'vscode-nls';
+import { NodePathProvider } from './targets/node/nodePathProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -88,11 +89,12 @@ class Configurator {
 export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net.createServer(async socket => {
+      const pathProvider = new NodePathProvider();
       const launchers = [
-        new ExtensionHostAttacher(),
-        new ExtensionHostLauncher(),
-        new NodeAttacher(),
-        new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+        new ExtensionHostAttacher(pathProvider),
+        new ExtensionHostLauncher(pathProvider),
+        new NodeAttacher(pathProvider),
+        new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
         new BrowserLauncher(storagePath),
         new BrowserAttacher(),
       ];
