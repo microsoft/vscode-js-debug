@@ -25,6 +25,7 @@ import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
 import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { NodePathProvider } from './nodePathProvider';
 
 /**
  * Telemetry received from the nested process.
@@ -99,6 +100,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * running.
    */
   protected program?: IProgram;
+
+  constructor(private readonly pathProvider: NodePathProvider) {}
 
   /**
    * @inheritdoc
@@ -198,6 +201,17 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     this.onTerminatedEmitter.fire(result);
     this._stopServer();
     this.program = undefined;
+  }
+
+  /**
+   * Resolves and validates the path to the Node binary as specified in
+   * the params.
+   */
+  protected resolveNodePath(params: T, executable: string = 'node') {
+    return this.pathProvider.resolveAndValidate(
+      EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
+      executable,
+    );
   }
 
   /**

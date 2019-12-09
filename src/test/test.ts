@@ -24,6 +24,7 @@ import { Target } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './logReporterUtils';
+import { NodePathProvider } from '../targets/node/nodePathProvider';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -307,10 +308,11 @@ export class TestRoot {
 
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath);
+    const pathProvider = new NodePathProvider();
     this.binder = new Binder(this, this._root.adapterConnection, [
       this._browserLauncher,
-      new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-      new NodeAttacher()
+      new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+      new NodeAttacher(pathProvider)
     ], '0');
 
     this.initialize = this._root._init();

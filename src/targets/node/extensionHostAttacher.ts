@@ -8,7 +8,6 @@ import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
 import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
-import { findInPath } from '../../common/pathUtils';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
 import { NodeAttacherBase } from './nodeAttacherBase';
@@ -51,7 +50,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
       runData.context.cancellationToken,
     );
 
-    const wd = spawnWatchdog(findInPath('node', process.env) || 'node', {
+    const wd = spawnWatchdog(await this.resolveNodePath(runData.params), {
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
       inspectorURL: inspectorUrl!,

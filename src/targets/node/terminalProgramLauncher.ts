@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { INodeLaunchConfiguration } from '../../configuration';
-import { ProcessLauncher } from './processLauncher';
+import { IProgramLauncher } from './processLauncher';
 import { ILaunchContext } from '../targets';
 import * as nls from 'vscode-nls';
 import Dap from '../../dap/api';
@@ -15,19 +15,19 @@ const localize = nls.loadMessageBundle();
 /**
  * Launcher that boots a subprocess.
  */
-export class TerminalProgramLauncher extends ProcessLauncher {
+export class TerminalProgramLauncher implements IProgramLauncher {
   public canLaunch(args: INodeLaunchConfiguration) {
     args.internalConsoleOptions;
     return args.console !== 'internalConsole';
   }
 
-  public async launchProgram(config: INodeLaunchConfiguration, context: ILaunchContext) {
+  public async launchProgram(binary: string, config: INodeLaunchConfiguration, context: ILaunchContext) {
     const params: Dap.RunInTerminalParams = {
       kind: config.console === 'integratedTerminal' ? 'integrated' : 'external',
       title: localize('node.console.title', 'Node Debug Console'),
       cwd: config.cwd,
       args: [
-        this.getRuntime(config),
+        binary,
         ...config.runtimeArgs,
         config.program,
         ...config.args,

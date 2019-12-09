@@ -27,6 +27,7 @@ import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher'
 import { NodeAttacher } from './targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
+import { NodePathProvider } from './targets/node/nodePathProvider';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -50,11 +51,12 @@ class ChildSession {
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
 
   const _childSessionsForTarget = new Map<Target, ChildSession>();
+  const pathProvider = new NodePathProvider();
   const launchers = [
-    new ExtensionHostAttacher(),
-    new ExtensionHostLauncher(),
-    new NodeLauncher([new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-    new NodeAttacher(),
+    new ExtensionHostAttacher(pathProvider),
+    new ExtensionHostLauncher(pathProvider),
+    new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+    new NodeAttacher(pathProvider),
     new BrowserLauncher(storagePath),
     new BrowserAttacher(),
   ];
