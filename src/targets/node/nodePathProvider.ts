@@ -1,12 +1,12 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findInPath } from '../../common/pathUtils';
 import { isAbsolute } from 'path';
 import { cannotFindNodeBinary, nodeBinaryOutOfDate, ProtocolError } from '../../dap/errors';
 import { spawnAsync } from '../../common/processUtils';
-
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
 
 /**
  * Utility that resolves a path to Node.js and validates
