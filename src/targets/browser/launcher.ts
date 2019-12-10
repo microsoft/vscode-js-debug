@@ -51,7 +51,12 @@ const suggestedPortArg = '--remote-debugging-';
 
 const findSuggestedPort = (args: ReadonlyArray<string>): number | undefined => {
   const arg = args.find(a => a.startsWith(suggestedPortArg));
-  return arg ? Number(arg.slice(suggestedPortArg.length)) : undefined;
+  if (!arg) {
+    return undefined;
+  }
+
+  const match = /[0-9]+/.exec(arg);
+  return match ? Number(match[0]) : 0;
 };
 
 export interface ILaunchResult {
