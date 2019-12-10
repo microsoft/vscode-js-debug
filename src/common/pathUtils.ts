@@ -30,10 +30,13 @@ export function findInPath(
 
       if (process.platform === 'win32') {
         // return the first path that has a executable extension
-        const executableExtensions = String(env['PATHEXT']).toUpperCase();
+        const executableExtensions = String(env['PATHEXT'] || '.exe')
+          .toUpperCase()
+          .split(';');
+
         for (const candidate of lines) {
           const ext = path.extname(candidate).toUpperCase();
-          if (ext && executableExtensions.indexOf(ext + ';') > 0) {
+          if (ext && executableExtensions.includes(ext)) {
             return candidate;
           }
         }
@@ -180,7 +183,7 @@ export const splitWithDriveLetter = (inputPath: string) => {
   }
 
   return parts;
-}
+};
 
 /**
  * Returns whether the path looks like a UNC path.

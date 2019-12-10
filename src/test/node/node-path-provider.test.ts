@@ -13,7 +13,7 @@ describe('NodePathProvider', () => {
   let p: NodePathProvider;
   const env = EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider'));
   const binaryLocation = (name: string) =>
-    join(testWorkspace, 'nodePathProvider', name + (process.platform === 'win32' ? '.bat' : ''));
+    join(testWorkspace, 'nodePathProvider', name + (process.platform === 'win32' ? '.exe' : ''));
 
   beforeEach(() => (p = new NodePathProvider()));
 

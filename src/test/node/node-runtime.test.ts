@@ -265,8 +265,6 @@ describe('node runtime', () => {
       runtimeExecutable: 'does-not-exist',
     } as INodeLaunchConfiguration);
 
-    expect(result).to.equal(
-      "Cannot find runtime 'does-not-exist' on PATH. Make sure to have 'does-not-exist' installed.",
-    );
+    expect(result).to.include('Can\'t find Node.js binary "does-not-exist"');
   });
 });
