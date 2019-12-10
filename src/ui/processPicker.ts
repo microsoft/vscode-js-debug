@@ -2,16 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-'use strict';
-
 import { execSync } from 'child_process';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Contributions } from '../common/contributionUtils';
-import { INodeAttachConfiguration, nodeAttachConfigDefaults, resolveVariableInConfig, ResolvingNodeAttachConfiguration } from '../configuration';
+import {
+  INodeAttachConfiguration,
+  nodeAttachConfigDefaults,
+  resolveVariableInConfig,
+  ResolvingNodeAttachConfiguration,
+} from '../configuration';
 import { guessWorkingDirectory } from '../nodeDebugConfigurationProvider';
-import { getProcesses, analyseArguments } from './processTree';
+import { processTree, analyseArguments } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -134,7 +137,7 @@ async function listProcesses(): Promise<ProcessItem[]> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const items = await getProcesses<ProcessItem[]>(({ pid, command, args, date }, acc) => {
+  const items = await processTree.lookup<ProcessItem[]>(({ pid, command, args, date }, acc) => {
     if (process.platform === 'win32' && command.indexOf('\\??\\') === 0) {
       // remove leading device specifier
       command = command.replace('\\??\\', '');

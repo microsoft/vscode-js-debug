@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { getProcesses, analyseArguments } from '../../ui/processTree';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { spawnWatchdog } from './watchdogSpawn';
@@ -10,6 +9,7 @@ import { getWSEndpoint } from '../browser/launcher';
 import { NeverCancelled } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
 import { ChildProcess } from 'child_process';
+import { processTree, analyseArguments } from '../../ui/processTree/processTree';
 
 interface IProcessTreeNode {
   children: IProcessTreeNode[];
@@ -79,7 +79,7 @@ async function getProcessTree(rootPid: number): Promise<IProcessTreeNode | undef
   map.set(0, { children: [], pid: 0, ppid: 0, command: '', args: '' });
 
   try {
-    await getProcesses(({ pid, ppid, command, args }) => {
+    await processTree.lookup(({ pid, ppid, command, args }) => {
       if (pid !== ppid) {
         map.set(pid, { pid, ppid, command, args, children: [] });
       }
