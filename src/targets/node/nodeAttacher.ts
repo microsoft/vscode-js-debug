@@ -71,7 +71,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     if (telemetry && run.params.attachSpawnedProcesses) {
       watchAllChildren({
         pid: telemetry.processId,
-        nodePath: findInPath('node', process.env) || 'node',
+        nodePath: await this.resolveNodePath(run.params),
         hostname: run.params.address,
         ipcAddress: run.serverAddress,
       }).catch(err => logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
