@@ -168,8 +168,9 @@
     "views": {
       "debug": [
         {
-          "id": "pwa.breakpoints",
-          "name": "Browser breakpoints"
+          "id": "jsBrowserBreakpoints",
+          "name": "Browser breakpoints",
+          "when": "debugConfigurationType == 'NAMESPACE(chrome)'"
         }
       ]
     },
@@ -248,23 +249,30 @@
           "when": "inDebugMode && debugType == 'node' && callStackItemType == 'stackFrame'"
         }
       ],
+      "view/title": [
+        {
+          "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
+          "when": "view == jsBrowserBreakpoints",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-          "when": "view == pwa.breakpoints",
+          "when": "view == jsBrowserBreakpoints",
           "group": "inline"
         },
         {
           "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
-          "when": "view == pwa.breakpoints"
+          "when": "view == jsBrowserBreakpoints"
         },
         {
           "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-          "when": "view == pwa.breakpoints"
+          "when": "view == jsBrowserBreakpoints"
         },
         {
           "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
-          "when": "view == pwa.breakpoints"
+          "when": "view == jsBrowserBreakpoints"
         }
       ]
     },
