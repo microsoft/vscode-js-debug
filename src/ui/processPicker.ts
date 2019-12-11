@@ -2,16 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-'use strict';
-
 import { execSync } from 'child_process';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Contributions } from '../common/contributionUtils';
-import { INodeAttachConfiguration, nodeAttachConfigDefaults, resolveVariableInConfig, ResolvingNodeAttachConfiguration } from '../configuration';
+import {
+  INodeAttachConfiguration,
+  nodeAttachConfigDefaults,
+  resolveVariableInConfig,
+  ResolvingNodeAttachConfiguration,
+} from '../configuration';
 import { guessWorkingDirectory } from '../nodeDebugConfigurationProvider';
-import { getProcesses } from './processTree';
+import { processTree, analyseArguments } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -134,7 +137,7 @@ async function listProcesses(): Promise<ProcessItem[]> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const items = await getProcesses<ProcessItem[]>(({ pid, command, args, date }, acc) => {
+  const items = await processTree.lookup<ProcessItem[]>(({ pid, command, args, date }, acc) => {
     if (process.platform === 'win32' && command.indexOf('\\??\\') === 0) {
       // remove leading device specifier
       command = command.replace('\\??\\', '');
@@ -201,34 +204,4 @@ function putPidInDebugMode(pid: number): void {
       ),
     );
   }
-}
-
-/*
- * analyse the given command line arguments and extract debug port and protocol from it.
- */
-export function analyseArguments(args: string) {
-  const DEBUG_FLAGS_PATTERN = /--inspect(-brk)?(=((\[[0-9a-fA-F:]*\]|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|[a-zA-Z0-9\.]*):)?(\d+))?/;
-  const DEBUG_PORT_PATTERN = /--inspect-port=(\d+)/;
-
-  let address: string | undefined;
-  let port: number | undefined;
-
-  // match --inspect, --inspect=1234, --inspect-brk, --inspect-brk=1234
-  let matches = DEBUG_FLAGS_PATTERN.exec(args);
-  if (matches && matches.length >= 2) {
-    if (matches.length >= 6 && matches[5]) {
-      address = matches[5];
-    }
-    if (matches.length >= 7 && matches[6]) {
-      port = parseInt(matches[6]);
-    }
-  }
-
-  // a --inspect-port=1234 overrides the port
-  matches = DEBUG_PORT_PATTERN.exec(args);
-  if (matches && matches.length === 3) {
-    port = parseInt(matches[2]);
-  }
-
-  return { address, port };
 }

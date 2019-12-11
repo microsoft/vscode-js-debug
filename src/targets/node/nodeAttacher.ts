@@ -14,6 +14,7 @@ import { LeaseFile } from './lease-file';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { NodeAttacherBase } from './nodeAttacherBase';
+import { watchAllChildren } from './nodeAttacherCluster';
 
 /**
  * Attaches to ongoing Node processes. This works pretty similar to the
@@ -62,10 +63,19 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     // close, but this isn't reliable as it's always possible
     const leaseFile = new LeaseFile();
 
-    await Promise.all([
+    const [telemetry] = await Promise.all([
       this.gatherTelemetry(cdp, run),
       this.setEnvironmentVariables(cdp, run, leaseFile.path),
     ]);
+
+    if (telemetry && run.params.attachSpawnedProcesses) {
+      watchAllChildren({
+        pid: telemetry.processId,
+        nodePath: await this.resolveNodePath(run.params),
+        hostname: run.params.address,
+        ipcAddress: run.serverAddress,
+      }).catch(err => logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
+    }
 
     return [leaseFile];
   }

@@ -143,6 +143,30 @@ describe('node runtime', () => {
       await waitForPause(worker);
       worker.assertLog({ substring: true });
     });
+
+    itIntegrates('attaches to cluster processes', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': `
+          const cluster = require('cluster');
+          if (cluster.isMaster) {
+            cluster.fork();
+          } else {
+            setInterval(() => { debugger; }, 500);
+          }
+        `,
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      await delay(500); // give it a moment to boot
+      const handle = await r.attachNode(child.pid);
+      handle.load();
+
+      const worker = await r.worker();
+      worker.load();
+
+      await waitForPause(worker);
+      worker.assertLog({ substring: true });
+    });
   });
 
   describe('child processes', () => {

@@ -7,12 +7,12 @@ import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { LeaseFile } from './lease-file';
 
-function debugLog() {
+function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
 }
 
 (function() {
-  debugLog();
+  debugLog('args: ' + process.argv.join(' '));
   if (!process.env.NODE_INSPECTOR_IPC) return;
 
   const leaseFile = process.env.NODE_INSPECTOR_REQUIRE_LEASE;
@@ -70,7 +70,7 @@ function debugLog() {
   }
   process.env.NODE_INSPECTOR_PPID = '' + process.pid;
 
-  debugLog();
+  debugLog('args: ' + process.argv.join(' '));
   inspector.open(0, undefined, false);
 
   const info = {
@@ -82,15 +82,15 @@ function debugLog() {
     ppid,
   };
 
-  debugLog();
+  debugLog('args: ' + process.argv.join(' '));
   const execPath = process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath;
-  debugLog();
+  debugLog('Spawning: ' + execPath);
 
   spawnWatchdog(execPath, info);
 
   if (waitForDebugger) {
-    debugLog();
+    debugLog('Will wait for debugger');
     inspector.open(0, undefined, true);
-    debugLog();
+    debugLog('Got debugger');
   }
 })();
