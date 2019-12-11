@@ -60,7 +60,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
     return [];
   }
 
-  async getParent(item: Breakpoint): Promise<Breakpoint | undefined> {
+  async getParent(): Promise<Breakpoint | undefined> {
     return undefined;
   }
 
@@ -89,13 +89,15 @@ export function registerCustomBreakpointsUI(
 ) {
   const provider = new BreakpointsDataProvider(debugSessionTracker);
 
-  vscode.window.createTreeView('pwa.breakpoints', { treeDataProvider: provider });
+  vscode.window.createTreeView(Contributions.BrowserBreakpointsView, {
+    treeDataProvider: provider,
+  });
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, e => {
+    vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, () => {
       const quickPick = vscode.window.createQuickPick();
       const items = provider.breakpoints.filter(b => !b.enabled);
       quickPick.items = items;
-      quickPick.onDidAccept(e => {
+      quickPick.onDidAccept(() => {
         provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
         quickPick.dispose();
       });
@@ -104,7 +106,7 @@ export function registerCustomBreakpointsUI(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, e => {
+    vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, () => {
       provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
     }),
   );

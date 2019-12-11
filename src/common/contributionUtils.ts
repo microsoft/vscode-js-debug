@@ -18,4 +18,6 @@ export const enum Contributions {
   TerminalDebugType = 'NAMESPACE(node-terminal)',
   NodeDebugType = 'NAMESPACE(node)',
   ChromeDebugType = 'NAMESPACE(chrome)',
+
+  BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
