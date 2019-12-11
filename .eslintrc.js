@@ -1,5 +1,5 @@
 module.exports = {
-  ignorePatterns: ['**/*.d.ts', 'src/int-chrome/**/*.ts', 'src/test/**/*.ts'],
+  ignorePatterns: ['**/*.d.ts', 'src/int-chrome/**/*.ts', 'src/test/**/*.ts', 'demos/**/*'],
   parser: '@typescript-eslint/parser',
   extends: ['plugin:@typescript-eslint/recommended'],
   plugins: ['header'],
