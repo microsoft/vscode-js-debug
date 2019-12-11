@@ -40,6 +40,20 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
+
+    itIntegrates('query params', async ({ r }) => {
+      // Breakpoint in separate script set before launch.
+      const p = await r.launchUrl('script-with-query-param.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/script.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 9, column: 0 }] });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
     itIntegrates('remove', async ({ r }) => {
       // Breakpoint in separate script set before launch, but then removed.
       const p = await r.launchUrl('script.html');

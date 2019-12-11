@@ -39,8 +39,12 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return undefined;
     }
 
-    const { baseUrl, webRoot } = this.options;
+    // Remove query params
+    if (url.indexOf('?') >= 0) {
+      url = url.split('?')[0];
+    }
 
+    const { baseUrl, webRoot } = this.options;
     const absolutePath = utils.fileUrlToAbsolutePath(url);
     if (absolutePath) return absolutePath;
 
