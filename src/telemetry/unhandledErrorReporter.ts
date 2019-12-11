@@ -1,14 +1,15 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
-import { extractErrorDetails, RawTelemetryReporter } from './telemetryReporter';
+import { extractErrorDetails, IRawTelemetryReporter } from './telemetryReporter';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
 type ExceptionType = 'uncaughtException' | 'unhandledRejection';
 
-export function installUnhandledErrorReporter(telemetryReporter: RawTelemetryReporter): void {
+export function installUnhandledErrorReporter(telemetryReporter: IRawTelemetryReporter): void {
   process.addListener('uncaughtException', (exception: unknown) => {
     if (shouldReportThisError(exception)) {
       reportErrorTelemetry(telemetryReporter, exception, 'uncaughtException');
@@ -35,16 +36,21 @@ export function installUnhandledErrorReporter(telemetryReporter: RawTelemetryRep
 }
 
 function reportErrorTelemetry(
-  telemetryReporter: RawTelemetryReporter,
+  telemetryReporter: IRawTelemetryReporter,
   err: unknown,
   exceptionType: ExceptionType,
 ): void {
-  const properties = { ...extractErrorDetails(err), successful: 'false', exceptionType };
+  const properties = {
+    ...(err instanceof Error ? extractErrorDetails(err) : { error: err }),
+    successful: 'false',
+    exceptionType,
+  };
 
   telemetryReporter.report('error', properties);
 }
 
-const isErrorObjectLike = (err: unknown): err is Error => err && 'stack' in <Error>err;
+const isErrorObjectLike = (err: unknown): err is Error =>
+  typeof err === 'object' && !!err && 'stack' in err;
 
 function safeGetErrDetails(err: unknown) {
   if (!err) {
@@ -64,12 +70,12 @@ function safeGetErrDetails(err: unknown) {
 
 const debugAdapterFolder = path.dirname(path.dirname(path.dirname(__dirname)));
 
-function shouldReportThisError(error: any): boolean {
+function shouldReportThisError(error: unknown): boolean {
   // In VS Code, this debug adapter runs inside the extension host process, so we could capture
   // errors from other pieces of software here. We check to make sure this is our error before reporting it
   return (
     !shouldFilterErrorsReportedToTelemetry ||
-    (error && typeof error.stack === 'string' && error.stack.includes(debugAdapterFolder))
+    (isErrorObjectLike(error) && !!error.stack?.includes(debugAdapterFolder))
   );
 }
 

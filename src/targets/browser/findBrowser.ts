@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -225,7 +226,7 @@ function findChromeExecutables(folder: string) {
   const argumentsRegex = /(^[^ ]+).*/; // Take everything up to the first space
   const chromeExecRegex = '^Exec=/.*/(google-chrome|chrome|chromium)-.*';
 
-  let installations: string[] = [];
+  const installations: string[] = [];
   if (canAccess(folder)) {
     // Output of the grep & print looks like:
     //    /opt/google/chrome/google-chrome --profile-directory
@@ -240,7 +241,7 @@ function findChromeExecutables(folder: string) {
       execResult = execSync(`grep -Er "${chromeExecRegex}" ${folder} | awk -F '=' '{print $2}'`);
     }
 
-    let execPaths = execResult
+    const execPaths = execResult
       .toString()
       .split(newLineRegex)
       .map(execPath => execPath.replace(argumentsRegex, '$1'));

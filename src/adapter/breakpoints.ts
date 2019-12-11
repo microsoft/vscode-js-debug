@@ -1,18 +1,19 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { UiLocation, SourceContainer, Source, uiToRawOffset, base1To0 } from './sources';
+import { IUiLocation, SourceContainer, Source, uiToRawOffset, base1To0 } from './sources';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
-import { Disposable } from '../common/events';
+import { IDisposable } from '../common/events';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { rewriteLogPoint } from '../common/sourceUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
-import { logger } from '../common/logging/logger';
+import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
 const localize = nls.loadMessageBundle();
@@ -42,11 +43,11 @@ export class Breakpoint {
   _source: Dap.Source;
   private _condition?: string;
   private _lineColumn: LineColumn;
-  private _disposables: Disposable[] = [];
+  private _disposables: IDisposable[] = [];
   private _activeSetters = new Set<Promise<void>>();
 
   private _resolvedBreakpoints = new Set<Cdp.Debugger.BreakpointId>();
-  private _resolvedUiLocation?: UiLocation;
+  private _resolvedUiLocation?: IUiLocation;
   private _setUrlLocations = new Set<string>();
 
   constructor(
@@ -181,7 +182,7 @@ export class Breakpoint {
     await Promise.all(promises);
   }
 
-  async _setByUiLocation(thread: Thread, uiLocation: UiLocation): Promise<void> {
+  async _setByUiLocation(thread: Thread, uiLocation: IUiLocation): Promise<void> {
     const promises: Promise<void>[] = [];
     const scripts = thread.scriptsFromSource(uiLocation.source);
     for (const script of scripts) promises.push(this._setByScriptId(thread, script, uiLocation));
@@ -253,10 +254,14 @@ export class Breakpoint {
     // ones being set right now.
     await Promise.all(Array.from(this._activeSetters));
 
-    const promises: Promise<any>[] = [];
+    if (!assert(this._manager._thread, 'Expected thread to be set for Breakpoint.remove()')) {
+      return;
+    }
+
+    const promises: Promise<unknown>[] = [];
     for (const id of this._resolvedBreakpoints) {
       this._manager._resolvedBreakpoints.delete(id);
-      promises.push(this._manager._thread!.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
+      promises.push(this._manager._thread.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
     }
     this._resolvedBreakpoints.clear();
     this._setUrlLocations.clear();
@@ -285,11 +290,11 @@ export class BreakpointManager {
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
   _thread: Thread | undefined;
-  _disposables: Disposable[] = [];
+  _disposables: IDisposable[] = [];
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
-  private _launchBlocker: Promise<any> = Promise.resolve();
+  private _launchBlocker: Promise<unknown> = Promise.resolve();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
 
@@ -303,7 +308,13 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<UiLocation[]>[] = [];
+      const todo: Promise<IUiLocation[]>[] = [];
+
+      if (
+        !assert(this._thread, 'Expected thread to be set for the breakpoint source map handler')
+      ) {
+        return { remainPaused: false };
+      }
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -312,10 +323,10 @@ export class BreakpointManager {
         const path = source.absolutePath();
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread!, script));
+          todo.push(breakpoint.updateForSourceMap(this._thread, script));
         const byRef = this._byRef.get(source.sourceReference());
         for (const breakpoint of byRef || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread!, script));
+          todo.push(breakpoint.updateForSourceMap(this._thread, script));
       }
 
       const result = await Promise.all(todo);
@@ -362,7 +373,7 @@ export class BreakpointManager {
     // For each viable location, attempt to identify its script ID and then ask
     // Chrome for the breakpoints in the given range. For almost all scripts
     // we'll only every find one viable location with a script.
-    let todo: Promise<Dap.BreakpointLocation[]>[] = [];
+    const todo: Promise<Dap.BreakpointLocation[]>[] = [];
     for (let i = 0; i < startLocations.length; i++) {
       const start = startLocations[i];
       const end = endLocations[i];
@@ -444,17 +455,19 @@ export class BreakpointManager {
       return sources;
     });
     for (const breakpoints of this._byPath.values())
-      breakpoints.forEach(b => this._setBreakpoint(b));
+      breakpoints.forEach(b => this._setBreakpoint(b, thread));
     for (const breakpoints of this._byRef.values())
-      breakpoints.forEach(b => this._setBreakpoint(b));
+      breakpoints.forEach(b => this._setBreakpoint(b, thread));
     this._updateSourceMapHandler(this._thread);
   }
 
-  launchBlocker(): Promise<void> {
-    return this._predictorDisabledForTest ? Promise.resolve() : this._launchBlocker;
+  async launchBlocker(): Promise<void> {
+    if (!this._predictorDisabledForTest) {
+      await this._launchBlocker;
+    }
   }
 
-  setSourceMapPauseDisabledForTest(disabled: boolean) {
+  setSourceMapPauseDisabledForTest() {
     // this._sourceMapPauseDisabledForTest = disabled;
   }
 
@@ -476,8 +489,8 @@ export class BreakpointManager {
     thread.setScriptSourceMapHandler(undefined);
   }
 
-  private _setBreakpoint(b: Breakpoint): void {
-    this._launchBlocker = Promise.all([this._launchBlocker, b.set(this._thread!, true)]);
+  private _setBreakpoint(b: Breakpoint, thread: Thread): void {
+    this._launchBlocker = Promise.all([this._launchBlocker, b.set(thread, true)]);
   }
 
   async setBreakpoints(
@@ -523,9 +536,11 @@ export class BreakpointManager {
     if (params.source.path) {
       result = mergeInto(this._byPath.get(params.source.path) || []);
       this._byPath.set(params.source.path, result.list);
+    } else if (params.source.sourceReference) {
+      result = mergeInto(this._byRef.get(params.source.sourceReference) || []);
+      this._byRef.set(params.source.sourceReference, result.list);
     } else {
-      result = mergeInto(this._byRef.get(params.source.sourceReference!) || []);
-      this._byRef.set(params.source.sourceReference!, result.list);
+      return { breakpoints: [] };
     }
 
     // Cleanup existing breakpoints before setting new ones.
@@ -547,7 +562,10 @@ export class BreakpointManager {
     return { breakpoints: dapBreakpoints };
   }
 
-  public async notifyBreakpointResolved(breakpointId: number, location: UiLocation): Promise<void> {
+  public async notifyBreakpointResolved(
+    breakpointId: number,
+    location: IUiLocation,
+  ): Promise<void> {
     this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpointId);
     this._dap.breakpoint({
       reason: 'changed',
@@ -580,7 +598,5 @@ export const kLogPointUrl = 'logpoint.cdp';
 
 let lastBreakpointId = 0;
 export function generateBreakpointIds(params: Dap.SetBreakpointsParams): number[] {
-  const ids: number[] = [];
-  for (const _ of params.breakpoints || []) ids.push(++lastBreakpointId);
-  return ids;
+  return params.breakpoints?.map(() => ++lastBreakpointId) ?? [];
 }

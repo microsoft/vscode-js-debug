@@ -1,15 +1,19 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { URL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as http from 'http';
+import * as https from 'https';
 import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
 import { readdir } from './fsUtils';
 import { memoize } from './objUtils';
+import { assert } from './logging/logger';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -46,7 +50,10 @@ export const truePathCasing = memoize(
 
     const parsedFromUrl = fileUrlToAbsolutePath(inputPath);
     if (parsedFromUrl) {
-      return absolutePathToFileUrl(await truePathCasing(parsedFromUrl))!;
+      const fileUrl = absolutePathToFileUrl(await truePathCasing(parsedFromUrl));
+      if (assert(fileUrl, 'Expected to be able to build file URL from a path')) {
+        return fileUrl;
+      }
     }
 
     // This seems to be the canonical way to do things as far as I can tell.
@@ -90,16 +97,16 @@ export async function fetch(url: string): Promise<string> {
     if (!path) throw new Error(`Can't fetch from '${url}'`);
 
     return new Promise<string>((fulfill, reject) => {
-      fs.readFile(path!, (err, data) => {
+      fs.readFile(path, (err, data) => {
         if (err) reject(err);
         else fulfill(data.toString());
       });
     });
   }
 
-  const driver = url.startsWith('https://') ? require('https') : require('http');
+  const driver = url.startsWith('https://') ? https : http;
   return new Promise<string>((fulfill, reject) => {
-    const request = driver.get(url, (response: any) => {
+    const request = driver.get(url, response => {
       let data = '';
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => (data += chunk));

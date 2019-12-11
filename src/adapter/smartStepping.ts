@@ -1,8 +1,9 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { StackFrame } from './stackTrace';
-import { PausedDetails } from './threads';
+import { IPausedDetails } from './threads';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -28,7 +29,7 @@ export class SmartStepper {
     this._smartStepCount = 0;
   }
 
-  async shouldSmartStep(pausedDetails: PausedDetails): Promise<boolean> {
+  async shouldSmartStep(pausedDetails: IPausedDetails): Promise<boolean> {
     if (!this.launchConfig.smartStep) return false;
 
     const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];

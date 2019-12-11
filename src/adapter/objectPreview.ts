@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
 import * as stringUtils from '../common/stringUtils';
@@ -50,7 +51,7 @@ export function previewRemoteObject(
   context: string | undefined,
 ): string {
   const characterBudget = context === 'repl' ? 1000 : context === 'copy' ? Infinity : 100;
-  let result = previewRemoteObjectInternal(object, characterBudget, context !== 'copy');
+  const result = previewRemoteObjectInternal(object, characterBudget, context !== 'copy');
   return result;
 }
 
@@ -405,7 +406,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 
   // Template string for line separators.
   const colTemplates: string[] = [];
-  for (let name of colNames.values()) colTemplates.push('-'.repeat(colLengths.get(name)!));
+  for (const name of colNames.values()) colTemplates.push('-'.repeat(colLengths.get(name)!));
   const rowTemplate = '[-' + colTemplates.join('-|-') + '-]';
 
   const table: string[] = [];

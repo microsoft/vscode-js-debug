@@ -1,10 +1,11 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
 import { URL } from 'url';
-import { Disposable, EventEmitter } from '../../common/events';
-import { Target } from '../../targets/targets';
+import { IDisposable, EventEmitter } from '../../common/events';
+import { ITarget } from '../../targets/targets';
 import Cdp from '../../cdp/api';
 import CdpConnection from '../../cdp/connection';
 import * as urlUtils from '../../common/urlUtils';
@@ -15,13 +16,13 @@ import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
-import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ChildProcess } from 'child_process';
 import { killTree } from '../node/killTree';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class BrowserTargetManager implements Disposable {
+export class BrowserTargetManager implements IDisposable {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
   private _browser: Cdp.Api;
@@ -41,7 +42,7 @@ export class BrowserTargetManager implements Disposable {
     process: undefined | ChildProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
-    telemetry: RawTelemetryReporter,
+    telemetry: IRawTelemetryReporter,
     targetOrigin: any,
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
@@ -68,7 +69,7 @@ export class BrowserTargetManager implements Disposable {
     private readonly process: ChildProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
-    private readonly telemetry: RawTelemetryReporter,
+    private readonly telemetry: IRawTelemetryReporter,
     private readonly launchParams: AnyChromeConfiguration,
     targetOrigin: any,
   ) {
@@ -90,7 +91,7 @@ export class BrowserTargetManager implements Disposable {
     this.serviceWorkerModel.dispose();
   }
 
-  targetList(): Target[] {
+  targetList(): ITarget[] {
     return Array.from(this._targets.values()).filter(target =>
       jsTypes.has(target._targetInfo.type),
     );
@@ -284,14 +285,14 @@ export class BrowserTargetManager implements Disposable {
 const jsTypes = new Set(['page', 'iframe', 'worker', 'service_worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
-export class BrowserTarget implements Target {
+export class BrowserTarget implements ITarget {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
   _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
-  private _attached: boolean = false;
+  private _attached = false;
   _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
 
@@ -349,14 +350,14 @@ export class BrowserTarget implements Target {
     return Promise.resolve();
   }
 
-  parent(): Target | undefined {
+  parent(): ITarget | undefined {
     if (this.parentTarget && !jsTypes.has(this.parentTarget.type()))
       return this.parentTarget.parentTarget;
     return this.parentTarget;
   }
 
-  children(): Target[] {
-    const result: Target[] = [];
+  children(): ITarget[] {
+    const result: ITarget[] = [];
     for (const target of this._children.values()) {
       if (jsTypes.has(target.type())) result.push(target);
       else result.push(...target.children());

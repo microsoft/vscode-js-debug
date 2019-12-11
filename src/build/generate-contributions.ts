@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { Contributions } from '../common/contributionUtils';
 import {
   AnyLaunchConfiguration,
@@ -43,6 +46,7 @@ type Described =
  */
 type MappedReferenceString = { __opaque: true } & string;
 
+// eslint-disable-next-line
 const refString = (str: keyof typeof strings): MappedReferenceString => `%${str}%` as any;
 
 /**
@@ -522,6 +526,7 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
         properties: nodeTerminalConfiguration.configurationAttributes,
       },
     ],
+    // eslint-disable-next-line
   } as any,
 };
 
@@ -663,10 +668,12 @@ function buildDebuggers() {
     chromeAttachConfig,
   ];
 
+  // eslint-disable-next-line
   const output: any[] = [];
   for (const d of debuggers) {
     let entry = output.find(o => o.type === d.type);
     if (!entry) {
+      // eslint-disable-next-line
       const { request, configurationAttributes, required, ...rest } = d;
       entry = {
         ...rest,

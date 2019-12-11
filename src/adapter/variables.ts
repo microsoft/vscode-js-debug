@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as objectPreview from './objectPreview';
 import Cdp from '../cdp/api';
@@ -15,8 +16,8 @@ class RemoteObject {
   readonly objectId: Cdp.Runtime.RemoteObjectId;
   readonly cdp: Cdp.Api;
 
-  scopeRef?: ScopeRef;
-  extraProperties?: ExtraProperty[];
+  scopeRef?: IScopeRef;
+  extraProperties?: IExtraProperty[];
   // Scope remote object is never updated, even after changing local variables.
   // So, we cache variables here and update locally.
   scopeVariables?: Dap.Variable[];
@@ -34,29 +35,29 @@ class RemoteObject {
   }
 }
 
-export interface ScopeRef {
+export interface IScopeRef {
   callFrameId: Cdp.Debugger.CallFrameId;
   scopeNumber: number;
 }
 
-export interface ExtraProperty {
+export interface IExtraProperty {
   name: string;
   value: Cdp.Runtime.RemoteObject;
 }
 
-export interface VariableStoreDelegate {
+export interface IVariableStoreDelegate {
   renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
 }
 
 export class VariableStore {
   private _cdp: Cdp.Api;
-  private static _lastVariableReference: number = 0;
+  private static _lastVariableReference = 0;
   private _referenceToVariables: Map<number, () => Promise<Dap.Variable[]>> = new Map();
   private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
   private _referenceToObject: Map<number, RemoteObject> = new Map();
-  private _delegate: VariableStoreDelegate;
+  private _delegate: IVariableStoreDelegate;
 
-  constructor(cdp: Cdp.Api, delegate: VariableStoreDelegate) {
+  constructor(cdp: Cdp.Api, delegate: IVariableStoreDelegate) {
     this._cdp = cdp;
     this._delegate = delegate;
   }
@@ -186,8 +187,8 @@ export class VariableStore {
 
   async createScope(
     value: Cdp.Runtime.RemoteObject,
-    scopeRef: ScopeRef,
-    extraProperties: ExtraProperty[],
+    scopeRef: IScopeRef,
+    extraProperties: IExtraProperty[],
   ): Promise<Dap.Variable> {
     const object = new RemoteObject(this._cdp, value);
     object.scopeRef = scopeRef;

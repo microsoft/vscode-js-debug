@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Dap from '../dap/api';
 import { HighResolutionTime, calculateElapsedTime } from '../utils/performance';
@@ -18,31 +19,38 @@ enum RequestOutcome {
   Failed,
 }
 
-export interface TelemetryReporterStrategy {
+export interface ITelemetryReporterStrategy {
   eventsPrefix: string;
   adjustElapsedTime(elapsedTime: number): number;
   report(eventName: string, entityProperties: TelemetryEntityProperties): void;
 }
 
 export class TelemetryReporter {
-  private constructor(private readonly _strategy: TelemetryReporterStrategy) {}
+  private constructor(private readonly _strategy: ITelemetryReporterStrategy) {}
 
   public static dap(dap: Dap.Api): TelemetryReporter {
     return new TelemetryReporter(new DapRequestTelemetryReporter(dap));
   }
-  public static cdp(rawTelemetryReporter: RawTelemetryReporter): TelemetryReporter {
+  public static cdp(rawTelemetryReporter: IRawTelemetryReporter): TelemetryReporter {
     return new TelemetryReporter(new CdpTelemetryReporter(rawTelemetryReporter));
   }
 
   reportError(dapCommand: string, receivedTime: HighResolutionTime, error: unknown) {
-    this.reportOutcome(receivedTime, dapCommand, extractErrorDetails(error), RequestOutcome.Failed);
+    this.reportOutcome(
+      receivedTime,
+      dapCommand,
+      error instanceof Error
+        ? extractErrorDetails(error)
+        : { error: { message: JSON.stringify(error) } },
+      RequestOutcome.Failed,
+    );
   }
 
   reportSuccess(dapCommand: string, receivedTime: HighResolutionTime) {
     this.reportOutcome(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
   }
 
-  reportEvent(event: string, data?: any) {
+  reportEvent(event: string, data: TelemetryEntityProperties) {
     this._strategy.report(`${this._strategy.eventsPrefix}/${event}`, data);
   }
 
@@ -80,7 +88,7 @@ class DapRequestTelemetryReporter {
 class CdpTelemetryReporter {
   private readonly _batcher = new OpsReportBatcher();
 
-  public constructor(private readonly _rawTelemetryReporter: RawTelemetryReporter) {
+  public constructor(private readonly _rawTelemetryReporter: IRawTelemetryReporter) {
     this._rawTelemetryReporter.flush.event(() => {
       this._rawTelemetryReporter.report('cdpOperations', this._batcher.batched());
     });
@@ -97,12 +105,12 @@ class CdpTelemetryReporter {
   }
 }
 
-export interface RawTelemetryReporter {
+export interface IRawTelemetryReporter {
   flush: EventEmitter<void>;
   report(entityName: string, entityProperties: TelemetryEntityProperties): void;
 }
 
-export class RawTelemetryReporterToDap implements RawTelemetryReporter {
+export class RawTelemetryReporterToDap implements IRawTelemetryReporter {
   public readonly flush = new EventEmitter<void>();
   private _enableTelemetry: boolean;
 
@@ -127,13 +135,13 @@ export class RawTelemetryReporterToDap implements RawTelemetryReporter {
 //                                C  :     \  foo\ble  \  (fi.ts:)
 const extractFileNamePattern = /(?:[A-z]:)?(?:[\\/][^:]*)+[\\/]([^:]*:)/g;
 
-interface ErrorTelemetryProperties {
+interface IErrorTelemetryProperties {
   message: string | undefined;
   name: string | undefined;
   stack: string | undefined;
 }
 
-export function extractErrorDetails(e: any): { error: ErrorTelemetryProperties } {
+export function extractErrorDetails(e: Error): { error: IErrorTelemetryProperties } {
   const message = '' + e.message || e.toString();
   const name = '' + e.name;
 

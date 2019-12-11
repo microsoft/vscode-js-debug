@@ -1,20 +1,21 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Disposable } from '../common/events';
+import { IDisposable } from '../common/events';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import * as errors from '../dap/errors';
-import { SourceContainer, UiLocation } from './sources';
-import { Thread, ThreadDelegate, PauseOnExceptionsState } from './threads';
+import { SourceContainer, IUiLocation } from './sources';
+import { Thread, IThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager, generateBreakpointIds } from './breakpoints';
 import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
-import { RawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { IRawTelemetryReporter } from '../telemetry/telemetryReporter';
 import { CodeSearchSourceMapRepository } from '../common/sourceMaps/codeSearchSourceMapRepository';
 import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPredictor';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
@@ -29,7 +30,7 @@ export class DebugAdapter {
   readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
-  private _disposables: Disposable[] = [];
+  private _disposables: IDisposable[] = [];
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
@@ -40,30 +41,30 @@ export class DebugAdapter {
     rootPath: string | undefined,
     sourcePathResolver: ISourcePathResolver,
     private readonly launchConfig: AnyLaunchConfiguration,
-    private readonly _rawTelemetryReporter: RawTelemetryReporter,
+    private readonly _rawTelemetryReporter: IRawTelemetryReporter,
   ) {
     this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
-    this.dap.on('configurationDone', params => this.configurationDone(params));
-    this.dap.on('loadedSources', params => this._onLoadedSources(params));
+    this.dap.on('configurationDone', () => this.configurationDone());
+    this.dap.on('loadedSources', () => this._onLoadedSources());
     this.dap.on('source', params => this._onSource(params));
-    this.dap.on('threads', params => this._onThreads(params));
+    this.dap.on('threads', () => this._onThreads());
     this.dap.on('stackTrace', params => this._onStackTrace(params));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
-    this.dap.on('continue', params => this._withThread(thread => thread.resume()));
-    this.dap.on('pause', params => this._withThread(thread => thread.pause()));
-    this.dap.on('next', params => this._withThread(thread => thread.stepOver()));
-    this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto()));
-    this.dap.on('stepOut', params => this._withThread(thread => thread.stepOut()));
+    this.dap.on('continue', () => this._withThread(thread => thread.resume()));
+    this.dap.on('pause', () => this._withThread(thread => thread.pause()));
+    this.dap.on('next', () => this._withThread(thread => thread.stepOver()));
+    this.dap.on('stepIn', () => this._withThread(thread => thread.stepInto()));
+    this.dap.on('stepOut', () => this._withThread(thread => thread.stepOut()));
     this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params)));
     this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params)));
     this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
-    this.dap.on('exceptionInfo', params => this._withThread(thread => thread.exceptionInfo()));
+    this.dap.on('exceptionInfo', () => this._withThread(thread => thread.exceptionInfo()));
     this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
@@ -180,18 +181,22 @@ export class DebugAdapter {
     return {};
   }
 
-  async configurationDone(_: Dap.ConfigurationDoneParams): Promise<Dap.ConfigurationDoneResult> {
+  async configurationDone(): Promise<Dap.ConfigurationDoneResult> {
     this._configurationDoneDeferred.resolve();
     return {};
   }
 
-  async _onLoadedSources(_: Dap.LoadedSourcesParams): Promise<Dap.LoadedSourcesResult> {
+  async _onLoadedSources(): Promise<Dap.LoadedSourcesResult> {
     return { sources: await this.sourceContainer.loadedSources() };
   }
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
-    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    if (!params.source) {
+      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    }
+
+    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
+    const source = this.sourceContainer.source(params.source);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     const content = await source.content();
@@ -202,7 +207,7 @@ export class DebugAdapter {
     return { content, mimeType: source.mimeType() };
   }
 
-  async _onThreads(_: Dap.ThreadsParams): Promise<Dap.ThreadsResult | Dap.Error> {
+  async _onThreads(): Promise<Dap.ThreadsResult | Dap.Error> {
     const threads: Dap.Thread[] = [];
     if (this._thread) threads.push({ id: this._thread.id, name: this._thread.name() });
     return { threads };
@@ -215,23 +220,21 @@ export class DebugAdapter {
 
   _findVariableStore(variablesReference: number): VariableStore | undefined {
     if (!this._thread) return;
-    if (
-      this._thread.pausedVariables() &&
-      this._thread.pausedVariables()!.hasVariables(variablesReference)
-    )
-      return this._thread.pausedVariables();
+
+    const pausedVariables = this._thread.pausedVariables();
+    if (pausedVariables?.hasVariables(variablesReference)) return pausedVariables;
     if (this._thread.replVariables.hasVariables(variablesReference))
       return this._thread.replVariables;
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    let variableStore = this._findVariableStore(params.variablesReference);
+    const variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore) return { variables: [] };
     return { variables: await variableStore.getVariables(params) };
   }
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
-    let variableStore = this._findVariableStore(params.variablesReference);
+    const variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
     params.value = sourceUtils.wrapObjectLiteral(params.value.trim());
@@ -253,7 +256,7 @@ export class DebugAdapter {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  createThread(threadName: string, cdp: Cdp.Api, delegate: ThreadDelegate): Thread {
+  createThread(threadName: string, cdp: Cdp.Api, delegate: IThreadDelegate): Thread {
     this._thread = new Thread(
       this.sourceContainer,
       threadName,
@@ -297,8 +300,12 @@ export class DebugAdapter {
   async _canPrettyPrintSource(
     params: Dap.CanPrettyPrintSourceParams,
   ): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
-    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    if (!params.source) {
+      return { canPrettyPrint: false };
+    }
+
+    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
+    const source = this.sourceContainer.source(params.source);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
     return { canPrettyPrint: source.canPrettyPrint() };
@@ -307,8 +314,12 @@ export class DebugAdapter {
   async _prettyPrintSource(
     params: Dap.PrettyPrintSourceParams,
   ): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
-    params.source!.path = urlUtils.platformPathToPreferredCase(params.source!.path);
-    const source = this.sourceContainer.source(params.source!);
+    if (!params.source) {
+      return { canPrettyPrint: false };
+    }
+
+    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
+    const source = this.sourceContainer.source(params.source);
     if (!source)
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
 
@@ -319,7 +330,7 @@ export class DebugAdapter {
 
     this._refreshStackTrace();
     if (params.line) {
-      const originalUiLocation: UiLocation = {
+      const originalUiLocation: IUiLocation = {
         source,
         lineNumber: params.line || 1,
         columnNumber: params.column || 1,

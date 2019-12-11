@@ -1,16 +1,13 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Color from 'color';
 import { BudgetStringBuilder } from '../common/budgetStringBuilder';
 
-export interface FormatToken {
-  type: string;
-  value?: string;
-  specifier?: string;
-  precision?: number;
-  substitutionIndex?: number;
-}
+export type FormatToken =
+  | { type: 'string'; value: string }
+  | { type: 'specifier'; specifier: string; precision?: number; substitutionIndex: number };
 
 const maxMessageFormatLength = 10000;
 
@@ -21,8 +18,8 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
 
   function addStringToken(str: string) {
     if (!str) return;
-    if (tokens.length && tokens[tokens.length - 1].type === 'string')
-      tokens[tokens.length - 1].value += str;
+    const lastToken = tokens[tokens.length - 1];
+    if (lastToken?.type === 'string') lastToken.value += str;
     else tokens.push({ type: 'string', value: str });
   }
 
@@ -64,22 +61,26 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
 
 export function formatMessage<T>(
   format: string,
-  substitutions: any[],
+  substitutions: ReadonlyArray<T>,
   formatters: Formatters<T>,
 ): string {
   const tokens = tokenizeFormatString(format, Array.from(formatters.keys()));
   const usedSubstitutionIndexes = new Set<number>();
-  const defaultFormatter = formatters.get('')!;
+  const defaultFormatter = formatters.get('');
+  if (!defaultFormatter) {
+    throw new Error('Expected to hav a default formatter');
+  }
+
   const builder = new BudgetStringBuilder(maxMessageFormatLength);
   let cssFormatApplied = false;
   for (let i = 0; builder.checkBudget() && i < tokens.length; ++i) {
     const token = tokens[i];
     if (token.type === 'string') {
-      builder.append(token.value!);
+      builder.append(token.value);
       continue;
     }
 
-    const index = token.substitutionIndex!;
+    const index = token.substitutionIndex;
     if (index >= substitutions.length) {
       // If there are not enough substitutions for the current substitutionIndex
       // just output the format specifier literally and move on.
@@ -88,7 +89,7 @@ export function formatMessage<T>(
     }
     usedSubstitutionIndexes.add(index);
     if (token.specifier === 'c') cssFormatApplied = true;
-    const formatter = formatters.get(token.specifier!) || defaultFormatter;
+    const formatter = formatters.get(token.specifier) || defaultFormatter;
     builder.append(formatter(substitutions[index], builder.budget()));
   }
 

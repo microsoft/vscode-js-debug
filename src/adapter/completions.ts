@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
 import Dap from '../dap/api';
@@ -72,9 +73,9 @@ export async function completions(
 
   traverse(sourceFile);
 
-  if (toevaluate)
+  if (toevaluate && prefix)
     return (
-      (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!, {
+      (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix, {
         length,
         quoteBefore,
         quoteAfter,
@@ -151,13 +152,10 @@ async function completePropertyAccess(
     returnByValue: true,
     // completePropertyAccess has numerous false positive side effects, so we can't use throwOnSideEffect.
   };
-  const response =
-    stackFrame && stackFrame.callFrameId()
-      ? await cdp.Debugger.evaluateOnCallFrame({
-          ...params,
-          callFrameId: stackFrame.callFrameId()!,
-        })
-      : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
+  const callFrameId = stackFrame && stackFrame.callFrameId();
+  const response = callFrameId
+    ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId })
+    : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
   if (!response || response.exceptionDetails) return;
 
   return response.result.value.map((item: Dap.CompletionItem) => ({

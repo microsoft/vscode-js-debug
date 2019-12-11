@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { MakePropertyRequired, Replace } from '../../../core-v2/typeUtils';
 import { DebugProtocol } from 'vscode-debugprotocol';

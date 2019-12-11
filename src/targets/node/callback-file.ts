@@ -1,13 +1,16 @@
-import * as path from 'path';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { tmpdir } from 'os';
+import * as path from 'path';
 import { randomBytes } from 'crypto';
-import { Disposable } from '../../common/events';
 import { unlinkSync, existsSync, readFileSync } from 'fs';
+import { IDisposable } from '../../common/disposable';
 
 /**
  * File written by the bootloader containing some process information.
  */
-export class CallbackFile<T> implements Disposable {
+export class CallbackFile<T> implements IDisposable {
   private static readonly pollInterval = 200;
 
   /**

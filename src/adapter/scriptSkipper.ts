@@ -1,16 +1,17 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import cdp from '../cdp/api';
 import * as utils from '../common/sourceUtils';
 
 export class ScriptSkipper {
   private _userSkipPatterns: ReadonlyArray<string>;
-  private _nonNodeInternalRegex: string = '';
+  private _nonNodeInternalRegex = '';
 
   // filtering node internals
-  private _nodeInternalsRegex: string = '';
-  skipAllNodeInternals: boolean = false;
+  private _nodeInternalsRegex = '';
+  skipAllNodeInternals = false;
 
   private _isUrlSkippedMap = new Map<string, boolean>();
 
@@ -29,16 +30,18 @@ export class ScriptSkipper {
     const nodeInternalRegex = /^<node_internals>[\/|\\\\](.*)$/;
     const skipAllNodeInternalsRegex = /^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js/;
 
-    const nodeInternalPatterns = this._userSkipPatterns!.filter(pattern =>
-      pattern.includes('<node_internals>'),
-    ).map(nodeInternal => {
-      nodeInternal = nodeInternal.trim();
-      if (skipAllNodeInternalsRegex.test(nodeInternal)) {
-        // check if all node internals are skipped
-        this.skipAllNodeInternals = true;
-      }
-      return nodeInternalRegex.exec(nodeInternal)![1];
-    });
+    const nodeInternalPatterns = this._userSkipPatterns
+      .filter(pattern => pattern.includes('<node_internals>'))
+      .map(nodeInternal => {
+        nodeInternal = nodeInternal.trim();
+        if (skipAllNodeInternalsRegex.test(nodeInternal)) {
+          // check if all node internals are skipped
+          this.skipAllNodeInternals = true;
+        }
+
+        const match = nodeInternalRegex.exec(nodeInternal);
+        return match ? match[1] : nodeInternal;
+      });
 
     if (!this.skipAllNodeInternals && nodeInternalPatterns.length > 0) {
       this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
@@ -65,7 +68,7 @@ export class ScriptSkipper {
   private _updateBlackboxedUrls(url: string) {
     if (this._isUrlSkippedMap.get(url) && this.blackboxSender) {
       this._blackboxedUrls.push(url);
-      let blackboxPattern = '^' + this._blackboxedUrls.join('|') + '$';
+      const blackboxPattern = '^' + this._blackboxedUrls.join('|') + '$';
       this.blackboxSender({ patterns: [blackboxPattern] });
     }
   }
@@ -87,11 +90,11 @@ export class ScriptSkipper {
   }
 
   public isScriptSkipped(url: string): boolean {
-    return this._isUrlSkippedMap.get(url)!;
+    return this._isUrlSkippedMap.get(url) === true;
   }
 
   public setAllNodeInternalsToSkip(nodeInternalsNames: string[]): void {
-    let fullLibNames = nodeInternalsNames.map(name => name + '.js');
+    const fullLibNames = nodeInternalsNames.map(name => name + '.js');
     fullLibNames.push('^internal/.+.js|');
     this._nodeInternalsRegex = this._createRegexString(fullLibNames);
   }

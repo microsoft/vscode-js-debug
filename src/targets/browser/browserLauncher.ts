@@ -1,18 +1,19 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Disposable, EventEmitter } from '../../common/events';
+import { IDisposable, EventEmitter } from '../../common/events';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import {
-  Target,
-  Launcher,
-  LaunchResult,
+  ITarget,
+  ILauncher,
+  ILaunchResult,
   ILaunchContext,
   IStopMetadata,
 } from '../../targets/targets';
@@ -22,7 +23,10 @@ import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../config
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
-import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import {
+  RawTelemetryReporterToDap,
+  IRawTelemetryReporter,
+} from '../../telemetry/telemetryReporter';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { timeoutPromise } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
@@ -35,13 +39,13 @@ const localize = nls.loadMessageBundle();
  */
 const chromeVersions = new Set<string>(['canary', 'stable', 'custom']);
 
-export class BrowserLauncher implements Launcher {
+export class BrowserLauncher implements ILauncher {
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: IChromeLaunchConfiguration | undefined;
   private _mainTarget?: BrowserTarget;
-  private _disposables: Disposable[] = [];
+  private _disposables: IDisposable[] = [];
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -73,7 +77,7 @@ export class BrowserLauncher implements Launcher {
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
-    rawTelemetryReporter: RawTelemetryReporter,
+    rawTelemetryReporter: IRawTelemetryReporter,
   ): Promise<launcher.ILaunchResult> {
     let executablePath: string | undefined;
     if (executable && !chromeVersions.has(executable)) {
@@ -133,7 +137,7 @@ export class BrowserLauncher implements Launcher {
   async prepareLaunch(
     params: IChromeLaunchConfiguration,
     { dap, targetOrigin, cancellationToken }: ILaunchContext,
-    rawTelemetryReporter: RawTelemetryReporter,
+    rawTelemetryReporter: IRawTelemetryReporter,
   ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
     try {
@@ -225,7 +229,7 @@ export class BrowserLauncher implements Launcher {
     params: AnyChromeConfiguration,
     context: ILaunchContext,
     telemetryReporter: RawTelemetryReporterToDap,
-  ): Promise<LaunchResult> {
+  ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
@@ -251,7 +255,7 @@ export class BrowserLauncher implements Launcher {
     else await this._mainTarget.cdp().Page.reload({});
   }
 
-  targetList(): Target[] {
+  targetList(): ITarget[] {
     const manager = this.targetManager();
     return manager ? manager.targetList() : [];
   }

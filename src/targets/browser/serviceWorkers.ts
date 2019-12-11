@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Disposable, EventEmitter } from '../../common/events';
+import { IDisposable, EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import { FrameModel } from './frames';
 import { URL } from 'url';
@@ -62,7 +63,7 @@ export class ServiceWorkerVersion {
     const parsedURL = new URL(this.registration.scopeURL);
     let path = parsedURL.pathname.substr(1);
     if (path.endsWith('/')) path = path.substring(0, path.length - 1);
-    let scope = path ? path : `${parsedURL.host}`;
+    const scope = path ? path : `${parsedURL.host}`;
     const status = this._status === 'activated' ? '' : ` ${this._status}`;
     const runningStatus = this._runningStatus === 'running' ? '' : ` ${this._runningStatus}`;
     return `${scope} #${this.id}${status}${runningStatus}`;
@@ -71,7 +72,7 @@ export class ServiceWorkerVersion {
 
 export type ServiceWorkerMode = 'normal' | 'bypass' | 'force';
 
-export class ServiceWorkerModel implements Disposable {
+export class ServiceWorkerModel implements IDisposable {
   private _registrations = new Map<Cdp.ServiceWorker.RegistrationID, ServiceWorkerRegistration>();
   private _versions = new Map<Cdp.Target.TargetID, ServiceWorkerVersion>();
   private _frameModel: FrameModel;

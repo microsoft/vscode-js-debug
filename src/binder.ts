@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
@@ -7,7 +8,7 @@ import { generateBreakpointIds } from './adapter/breakpoints';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
-import { Disposable, EventEmitter } from './common/events';
+import { IDisposable, EventEmitter } from './common/events';
 import { LogTag, resolveLoggerOptions } from './common/logging';
 import { logger } from './common/logging/logger';
 import * as urlUtils from './common/urlUtils';
@@ -20,24 +21,24 @@ import {
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import * as errors from './dap/errors';
-import { Launcher, LaunchResult, Target } from './targets/targets';
+import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 
 const localize = nls.loadMessageBundle();
 
-export interface BinderDelegate {
-  acquireDap(target: Target): Promise<DapConnection>;
+export interface IBinderDelegate {
+  acquireDap(target: ITarget): Promise<DapConnection>;
   // Returns whether we should disable child session treatment.
-  initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean>;
-  releaseDap(target: Target): void;
+  initAdapter(debugAdapter: DebugAdapter, target: ITarget): Promise<boolean>;
+  releaseDap(target: ITarget): void;
 }
 
-export class Binder implements Disposable {
-  private _delegate: BinderDelegate;
-  private _disposables: Disposable[];
-  private _threads = new Map<Target, { thread: Thread; debugAdapter: DebugAdapter }>();
-  private _launchers = new Set<Launcher>();
+export class Binder implements IDisposable {
+  private _delegate: IBinderDelegate;
+  private _disposables: IDisposable[];
+  private _threads = new Map<ITarget, { thread: Thread; debugAdapter: DebugAdapter }>();
+  private _launchers = new Set<ILauncher>();
   private _terminationCount = 0;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
@@ -47,9 +48,9 @@ export class Binder implements Disposable {
   private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
 
   constructor(
-    delegate: BinderDelegate,
+    delegate: IBinderDelegate,
     connection: DapConnection,
-    launchers: Launcher[],
+    launchers: ILauncher[],
     targetOrigin: any,
   ) {
     this._delegate = delegate;
@@ -139,7 +140,7 @@ export class Binder implements Disposable {
   }
 
   async _launch(
-    launcher: Launcher,
+    launcher: ILauncher,
     params: AnyLaunchConfiguration,
     cancellationToken: CancellationToken,
   ): Promise<string | undefined> {
@@ -173,13 +174,13 @@ export class Binder implements Disposable {
    * and format timeouts correctly.
    */
   private async captureLaunch(
-    launcher: Launcher,
+    launcher: ILauncher,
     params: AnyLaunchConfiguration,
     cancellationToken: CancellationToken,
-  ): Promise<LaunchResult> {
+  ): Promise<ILaunchResult> {
     const name = launcher.constructor.name;
 
-    let result: LaunchResult;
+    let result: ILaunchResult;
     try {
       result = await launcher.launch(
         params,
@@ -223,13 +224,13 @@ export class Binder implements Disposable {
     this._detachOrphanThreads([]);
   }
 
-  targetList(): Target[] {
-    const result: Target[] = [];
+  targetList(): ITarget[] {
+    const result: ITarget[] = [];
     for (const delegate of this._launchers) result.push(...delegate.targetList());
     return result;
   }
 
-  async attach(target: Target) {
+  async attach(target: ITarget) {
     if (!target.canAttach()) return;
     const cdp = await target.attach();
     if (!cdp) return;
@@ -272,13 +273,13 @@ export class Binder implements Disposable {
     await target.afterBind();
   }
 
-  async detach(target: Target) {
+  async detach(target: ITarget) {
     if (!target.canDetach()) return;
     await target.detach();
     this._releaseTarget(target);
   }
 
-  _attachToNewTargets(targets: Target[]) {
+  _attachToNewTargets(targets: ITarget[]) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger()) continue;
       const thread = this._threads.get(target);
@@ -286,14 +287,14 @@ export class Binder implements Disposable {
     }
   }
 
-  _detachOrphanThreads(targets: Target[], terminateArgs?: Dap.TerminatedEventParams) {
+  _detachOrphanThreads(targets: ITarget[], terminateArgs?: Dap.TerminatedEventParams) {
     const set = new Set(targets);
     for (const target of this._threads.keys()) {
       if (!set.has(target)) this._releaseTarget(target, terminateArgs);
     }
   }
 
-  _releaseTarget(target: Target, terminateArgs: Dap.TerminatedEventParams = {}) {
+  _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
     const data = this._threads.get(target);
     if (!data) return;
     this._threads.delete(target);

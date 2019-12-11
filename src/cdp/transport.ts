@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as net from 'net';
 import WebSocket from 'ws';
@@ -10,14 +11,14 @@ import { timeoutPromise } from '../common/cancellation';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
-export interface Transport {
+export interface ITransport {
   send(message: string): void;
   close(): void;
   onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
   onend?: () => void;
 }
 
-export class PipeTransport implements Transport {
+export class PipeTransport implements ITransport {
   private _pipeWrite: NodeJS.WritableStream | undefined;
   private _socket: net.Socket | undefined;
   private _pendingBuffers: Buffer[];
@@ -100,7 +101,7 @@ export class PipeTransport implements Transport {
   }
 }
 
-export class WebSocketTransport implements Transport {
+export class WebSocketTransport implements ITransport {
   private _ws: WebSocket | undefined;
   onmessage?: (message: string) => void;
   onend?: () => void;
@@ -113,7 +114,7 @@ export class WebSocketTransport implements Transport {
 
     return timeoutPromise(
       new Promise<WebSocketTransport>((resolve, reject) => {
-        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws, url)));
+        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
         ws.addEventListener('error', reject);
       }),
       cancellationToken,
@@ -124,7 +125,7 @@ export class WebSocketTransport implements Transport {
     });
   }
 
-  constructor(ws: WebSocket, wsUrl: string) {
+  constructor(ws: WebSocket) {
     this._ws = ws;
     this._ws.addEventListener('message', event => {
       if (this.onmessage) this.onmessage.call(null, event.data);
@@ -133,8 +134,9 @@ export class WebSocketTransport implements Transport {
       if (this.onend) this.onend.call(null);
       this._ws = undefined;
     });
-    // Silently ignore all errors - we don't know what to do with them.
-    this._ws.addEventListener('error', () => {});
+    this._ws.addEventListener('error', () => {
+      // Silently ignore all errors - we don't know what to do with them.
+    });
     this.onmessage = undefined;
     this.onend = undefined;
   }
@@ -155,7 +157,7 @@ export class WebSocketTransport implements Transport {
 
 type HandlerFunction = (...args: any[]) => void;
 
-export interface Listener {
+export interface IListener {
   emitter: events.EventEmitter;
   eventName: string;
   handler: HandlerFunction;
@@ -165,12 +167,12 @@ export function addEventListener(
   emitter: events.EventEmitter,
   eventName: string,
   handler: HandlerFunction,
-): Listener {
+): IListener {
   emitter.on(eventName, handler);
   return { emitter, eventName, handler };
 }
 
-export function removeEventListeners(listeners: Listener[]) {
+export function removeEventListeners(listeners: IListener[]) {
   for (const listener of listeners)
     listener.emitter.removeListener(listener.eventName, listener.handler);
   listeners.splice(0, listeners.length);

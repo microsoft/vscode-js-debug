@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
 import * as queryString from 'querystring';
@@ -9,7 +10,7 @@ import { Contributions } from '../common/contributionUtils';
 
 let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
-let prettyPrintedUris: Set<string> = new Set();
+const prettyPrintedUris: Set<string> = new Set();
 
 export function registerPrettyPrintActions(
   context: vscode.ExtensionContext,

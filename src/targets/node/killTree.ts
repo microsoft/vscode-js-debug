@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { spawnSync, execSync } from 'child_process';
 import { join } from 'path';
 import { logger } from '../../common/logging/logger';

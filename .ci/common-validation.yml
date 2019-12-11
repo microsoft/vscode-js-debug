@@ -36,14 +36,15 @@ steps:
   env:
     DISPLAY: ':99.0'
 
+- task: Gulp@0
+  displayName: gulp lint
+  inputs:
+    targets: lint
+  condition: and(eq(${{ parameters.runTests }}, true), eq(variables['Agent.OS'], 'Darwin'))
+
 - task: PublishTestResults@2
   displayName: Publish Tests Results
   inputs:
     testResultsFiles: '*-results.xml'
     searchFolder: '$(Build.ArtifactStagingDirectory)/test-results'
   condition: and(succeededOrFailed(), eq(${{ parameters.runTests }}, true))
-
-- task: Gulp@0
-  displayName: gulp lint
-  inputs:
-    targets: lint

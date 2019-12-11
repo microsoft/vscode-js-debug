@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { OutcomeAndTime, TelemetryEntityProperties } from './telemetryReporter';
 import * as _ from 'lodash';
@@ -43,7 +44,7 @@ export class OpsReportBatcher {
     this.reports.push(report);
   }
 
-  public batched(): OpsReportBatch {
+  public batched(): IOpsReportBatch {
     const opsGroupedByName = _.groupBy(this.reports, report => report.operationName);
     const propertiesGroupedByName = _.mapValues(opsGroupedByName, manyOpsReports =>
       manyOpsReports.map(operation => operation.properties),
@@ -99,18 +100,14 @@ function aggregateIntoSingleObject(
   objectsToAggregate: object[],
 ): { [propertyName: string]: unknown[] } {
   const manyPropertyNames = extractAllPropertyNames(objectsToAggregate);
-  const aggregatedObject = <{ [propertyName: string]: unknown[] }>(<unknown>_.fromPairs(
+  return _.fromPairs(
     manyPropertyNames.map((propertyName: string) => {
       return [
         propertyName,
-        objectsToAggregate.map(
-          (objectToAggregate: any) => <unknown>objectToAggregate[propertyName],
-        ),
+        objectsToAggregate.map((objectToAggregate: any) => objectToAggregate[propertyName]),
       ];
     }),
-  ));
-
-  return aggregatedObject;
+  );
 }
 
 export class UnbatchedOpReport {
@@ -120,7 +117,7 @@ export class UnbatchedOpReport {
   ) {}
 }
 
-export interface OpsReportBatch {
+export interface IOpsReportBatch {
   [operationName: string]: OpsSharingNameReportBatch;
 }
 

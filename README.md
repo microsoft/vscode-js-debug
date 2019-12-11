@@ -14,8 +14,8 @@ Or alternatively by self-hosting:
 
 1. Clone this repository and run `npm install`,
 2. Then either:
-    - Run `gulp build --nightly` to package a `.vsix` you can install manually, or
-    - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
+   - Run `gulp build --nightly` to package a `.vsix` you can install manually, or
+   - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
 3. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
 
 ## Features
@@ -30,8 +30,7 @@ Or alternatively by self-hosting:
 
     <img width="273" alt="Screen Shot 2019-07-30 at 4 16 15 PM" src="https://user-images.githubusercontent.com/883973/62171895-67308a00-b2e5-11e9-832a-0867cf2ea411.png">
 
-
-- Full stack debugging with all targets at a glance.
+* Full stack debugging with all targets at a glance.
 
     <img width="320" alt="Screen Shot 2019-07-30 at 4 13 21 PM" src="https://user-images.githubusercontent.com/883973/62171782-03a65c80-b2e5-11e9-958b-73582efd513c.png">
 
@@ -64,6 +63,7 @@ Or alternatively by self-hosting:
     <img width="751" alt="Screen Shot 2019-07-24 at 10 29 43 PM" src="https://user-images.githubusercontent.com/883973/61848317-8e5d0680-ae62-11e9-88db-5017ed58a430.png">
 
 - Complete command line API:
+
   - `inspect(function)` - reveal function definition
   - `copy(value)` - copies value into clipboard
   - `queryObjects(prototype)` - returns all heap objects of type
@@ -81,14 +81,15 @@ Or alternatively by self-hosting:
 - Pretty print minified source with complete debugging support
 
     <!--img width="464" alt="Screen Shot 2019-07-22 at 9 55 22 PM" src="https://user-images.githubusercontent.com/883973/61683714-6c7d4b80-accb-11e9-92ae-084e3b4f36e7.png"-->
-    ![pretty_print](https://user-images.githubusercontent.com/883973/61990381-71f0d380-aff4-11e9-95ae-10f2b1a732ec.gif)
+
+  ![pretty_print](https://user-images.githubusercontent.com/883973/61990381-71f0d380-aff4-11e9-95ae-10f2b1a732ec.gif)
 
 
     <img width="553" alt="Screen Shot 2019-07-22 at 9 56 12 PM" src="https://user-images.githubusercontent.com/883973/61683776-a9e1d900-accb-11e9-9884-f7494b1d8fc4.png">
 
 - Step into async, step into Worker, etc
 
-    ![step_into](https://user-images.githubusercontent.com/883973/61990326-2c7fd680-aff3-11e9-9602-ba4b25c7f138.gif)
+  ![step_into](https://user-images.githubusercontent.com/883973/61990326-2c7fd680-aff3-11e9-9602-ba4b25c7f138.gif)
 
 - All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
 - Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).

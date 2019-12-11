@@ -1,32 +1,43 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-export interface Disposable {
+export interface IDisposable {
   dispose(): void;
 }
 
-export interface Event<T> {
-  (listener: (e: T) => any, thisArgs?: any, disposables?: Disposable[]): Disposable;
+export interface IEvent<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (listener: (e: T) => void, thisArg?: any, disposables?: IDisposable[]): IDisposable;
 }
 
-type ListenerData<T> = {
-  listener: (e: T) => void;
-  thisArg: any;
+type ListenerData<T, A> = {
+  listener: (this: A, e: T) => void;
+  thisArg?: A;
 };
 
-export class EventEmitter<T> implements Disposable {
-  public event: Event<T>;
+export class EventEmitter<T> implements IDisposable {
+  public event: IEvent<T>;
 
-  private _deliveryQueue?: { data: ListenerData<T>; event: T }[];
-  private _listeners = new Set<ListenerData<T>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _deliveryQueue?: { data: ListenerData<T, any>; event: T }[];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _listeners = new Set<ListenerData<T, any>>();
 
   constructor() {
-    this.event = (listener: (e: T) => any, thisArg?: any, disposables?: Disposable[]) => {
-      const data: ListenerData<T> = { listener, thisArg };
+    this.event = <ThisArg>(
+      listener: (this: ThisArg, e: T) => void,
+      thisArg?: ThisArg,
+      disposables?: IDisposable[],
+    ) => {
+      const data: ListenerData<T, ThisArg> = { listener, thisArg };
       this._listeners.add(data);
       const result = {
         dispose: () => {
-          result.dispose = () => {};
+          result.dispose = () => {
+            /* no-op */
+          };
           this._listeners.delete(data);
         },
       };
@@ -36,7 +47,7 @@ export class EventEmitter<T> implements Disposable {
   }
 
   fire(event: T): void {
-    let dispatch = !this._deliveryQueue;
+    const dispatch = !this._deliveryQueue;
     if (!this._deliveryQueue) this._deliveryQueue = [];
     for (const data of this._listeners) this._deliveryQueue.push({ data, event });
     if (!dispatch) return;

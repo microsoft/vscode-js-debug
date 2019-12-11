@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 export const removeNulls = <V>(obj: { [key: string]: V | null }) =>
   filterValues(obj, (v): v is V => v !== null);
@@ -68,7 +69,7 @@ export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number)
   }
 
   const next: Partial<T> = {};
-  for (const key of (Object.keys(obj) as (keyof T)[]).sort(sortFn)) {
+  for (const key of Object.keys(obj).sort(sortFn)) {
     next[key] = obj[key];
   }
 
@@ -78,6 +79,7 @@ export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number)
 /**
  * Recurively walks over the simple object.
  */
+// eslint-disable-next-line
 export function walkObject(obj: any, visitor: (value: unknown) => any): any {
   obj = visitor(obj);
 
@@ -104,7 +106,7 @@ export function caseInsensitiveMerge<V>(
     return {};
   }
 
-  const out: any = {};
+  const out: { [key: string]: V } = {};
   const caseMapping: { [key: string]: string } = Object.create(null); // prototype-free object
   for (const obj of objs) {
     if (!obj) {
@@ -112,7 +114,7 @@ export function caseInsensitiveMerge<V>(
     }
 
     for (const key of Object.keys(obj)) {
-      let normalized = key.toLowerCase();
+      const normalized = key.toLowerCase();
       if (caseMapping[normalized]) {
         out[caseMapping[normalized]] = obj[key];
       } else {
@@ -150,9 +152,10 @@ export function getCaseInsensitiveProperty<R>(
  * Memoizes the single-parameter function.
  */
 export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
-  let cached = new Map<T, R>();
+  const cached = new Map<T, R>();
   return arg => {
     if (cached.has(arg)) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return cached.get(arg)!;
     }
 

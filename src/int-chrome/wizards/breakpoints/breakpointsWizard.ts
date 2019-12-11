@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { PromiseOrNot } from '../../testUtils';
 import { IExpectedVariables, VariablesWizard } from '../variables/variablesWizard';
 import {

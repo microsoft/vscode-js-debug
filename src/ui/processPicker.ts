@@ -20,7 +20,7 @@ const INSPECTOR_PORT_DEFAULT = 9229;
 
 const localize = nls.loadMessageBundle();
 
-interface ProcessItem extends vscode.QuickPickItem {
+interface IProcessItem extends vscode.QuickPickItem {
   pidOrPort: string; // picker result
   sortKey: number;
 }
@@ -29,7 +29,7 @@ interface ProcessItem extends vscode.QuickPickItem {
  * end user action for picking a process and attaching debugger to it
  */
 export async function attachProcess() {
-  let config: INodeAttachConfiguration = {
+  const config: INodeAttachConfiguration = {
     ...nodeAttachConfigDefaults,
     name: 'process',
     processId: `\${command:${Contributions.PickProcessCommand}}`,
@@ -57,7 +57,7 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
     processId === '${command:PickProcess}' ||
     processId === `\${command:${Contributions.PickProcessCommand}}`
   ) {
-    const result = await pickProcess(true); // ask for pids and ports!
+    const result = await pickProcess(); // ask for pids and ports!
     if (!result) {
       return false; // UI dismissed (cancelled)
     }
@@ -112,10 +112,10 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
  * - "legacy12345": port number and legacy protocol
  * - null: abort launch silently
  */
-export async function pickProcess(ports: boolean = false): Promise<string | null> {
+export async function pickProcess(): Promise<string | null> {
   try {
     const items = await listProcesses();
-    let options: vscode.QuickPickOptions = {
+    const options: vscode.QuickPickOptions = {
       placeHolder: localize('pickNodeProcess', 'Pick the node.js process to attach to'),
       matchOnDescription: true,
       matchOnDetail: true,
@@ -133,11 +133,11 @@ export async function pickProcess(ports: boolean = false): Promise<string | null
 
 //---- private
 
-async function listProcesses(): Promise<ProcessItem[]> {
+async function listProcesses(): Promise<IProcessItem[]> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const items = await processTree.lookup<ProcessItem[]>(({ pid, command, args, date }, acc) => {
+  const items = await processTree.lookup<IProcessItem[]>(({ pid, command, args, date }, acc) => {
     if (process.platform === 'win32' && command.indexOf('\\??\\') === 0) {
       // remove leading device specifier
       command = command.replace('\\??\\', '');

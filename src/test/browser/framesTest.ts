@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Target } from '../../targets/targets';
+import { ITarget } from '../../targets/targets';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('frames', () => {
@@ -10,7 +11,7 @@ describe('frames', () => {
     const p = await r.launchUrl('frames.html');
     p.load();
 
-    const logTarget = (t: Target, indent: number) => {
+    const logTarget = (t: ITarget, indent: number) => {
       const s = ' '.repeat(indent);
       p.log(
         `${s}${t.type()} "${t.name()}" [thread "${t.scriptUrlToUrl('')}"]${

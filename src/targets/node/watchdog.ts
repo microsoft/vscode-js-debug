@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as net from 'net';
 import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
@@ -24,10 +25,9 @@ process.on('exit', () => {
 
 (async () => {
   debugLog('CONNECTED TO TARGET');
-  let server: PipeTransport;
   let pipe: any;
   await new Promise(f => (pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f)));
-  server = new PipeTransport(pipe);
+  const server = new PipeTransport(pipe);
 
   const targetInfo = {
     targetId: info.pid || '0',

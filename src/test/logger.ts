@@ -1,10 +1,11 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { Log } from './test';
 import Dap from '../dap/api';
 
-interface LogOptions {
+interface ILogOptions {
   depth?: number;
   params?: Partial<Dap.EvaluateParams>;
   logInternalInfo?: boolean;
@@ -25,7 +26,7 @@ export class Logger {
     this._log(text);
   }
 
-  async logVariable(variable: Dap.Variable, options?: LogOptions, indent?: string) {
+  async logVariable(variable: Dap.Variable, options?: ILogOptions, indent?: string) {
     options = options || {};
     if (typeof options.depth !== 'number') options.depth = 1;
     if (options.depth < 0) return;
@@ -91,7 +92,7 @@ export class Logger {
     }
   }
 
-  async logOutput(params: Dap.OutputEventParams, options?: LogOptions) {
+  async logOutput(params: Dap.OutputEventParams, options?: ILogOptions) {
     const prefix = `${params.category}> `;
     if (params.output) this.logAsConsole(`${prefix}${params.output}`);
     if (params.variablesReference) {
@@ -100,7 +101,10 @@ export class Logger {
     }
   }
 
-  async logEvaluateResult(result: Dap.EvaluateResult, options?: LogOptions): Promise<Dap.Variable> {
+  async logEvaluateResult(
+    result: Dap.EvaluateResult,
+    options?: ILogOptions,
+  ): Promise<Dap.Variable> {
     const variable = { name: 'result', value: result.result, ...result };
     await this.logVariable(variable, options);
     return variable;
@@ -163,17 +167,17 @@ export class Logger {
 
   evaluateAndLog(
     expression: string,
-    options?: LogOptions,
+    options?: ILogOptions,
     context?: 'watch' | 'repl' | 'hover',
   ): Promise<Dap.Variable>;
   evaluateAndLog(
     expressions: string[],
-    options?: LogOptions,
+    options?: ILogOptions,
     context?: 'watch' | 'repl' | 'hover',
   ): Promise<void>;
   async evaluateAndLog(
     expressions: string[] | string,
-    options: LogOptions = {},
+    options: ILogOptions = {},
     context?: 'watch' | 'repl' | 'hover',
   ): Promise<Dap.Variable | void> {
     if (typeof expressions === 'string') {

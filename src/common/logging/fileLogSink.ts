@@ -7,7 +7,7 @@ import { ILogSink, ILogItem } from '.';
 import Dap from '../../dap/api';
 import { dirname } from 'path';
 
-const replacer = (_key: string, value: unknown): any => {
+const replacer = (_key: string, value: unknown): unknown => {
   if (value instanceof Error) {
     return {
       message: value.message,
@@ -58,7 +58,7 @@ export class FileLogSink implements ILogSink {
   /**
    * @inheritdoc
    */
-  public write(item: ILogItem<any>): void {
+  public write(item: ILogItem<unknown>): void {
     if (this.stream) {
       this.stream.write(JSON.stringify(item, replacer) + '\n');
     }

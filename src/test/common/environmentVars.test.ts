@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { EnvironmentVars } from '../../common/environmentVars';
 import { expect } from 'chai';
 

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
 import * as tmp from 'tmp';
@@ -49,7 +50,7 @@ function formLaunchArgs(
   const tmpDir = tmp.dirSync({ prefix: 'chrome2-' });
   launchArgs.userDataDir = tmpDir.name;
   if (testLaunchProps) {
-    for (let key in testLaunchProps) {
+    for (const key in testLaunchProps) {
       launchArgs[key] = testLaunchProps[key];
     }
     testLaunchProps = undefined;

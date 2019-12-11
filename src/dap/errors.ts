@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Dap from './api';
 import * as nls from 'vscode-nls';
@@ -116,3 +117,9 @@ export class ProtocolError extends Error {
     this.cause = '__errorMarker' in cause ? cause.error : cause;
   }
 }
+
+/**
+ * Returns if the value looks like a DAP error.
+ */
+export const isDapError = (value: unknown): value is Dap.Error =>
+  typeof value === 'object' && !!value && '__errorMarker' in value;

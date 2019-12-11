@@ -2,22 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Disposable } from '../events';
+import { IDisposable } from '../events';
 import * as os from 'os';
 import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
 
+// eslint-disable-next-line
 const packageJson = require('../../../package.json');
 
 /**
  * Implementation of ILogger for the extension. You should probably use the
  * global const `logger` instance.
  */
-export class Logger implements ILogger, Disposable {
+export class Logger implements ILogger, IDisposable {
   /**
    * The target of the logger. Either a list of sinks, or a queue of items
    * to write once we get sinks.
    */
-  private logTarget: { queue: ILogItem<any>[] } | { sinks: ILogSink[] } = { queue: [] };
+  private logTarget: { queue: ILogItem<unknown>[] } | { sinks: ILogSink[] } = { queue: [] };
 
   /**
    * Minimum log level.
@@ -32,7 +33,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public info(tag: LogTag, msg?: string, metadata?: any): void {
+  public info(tag: LogTag, msg?: string, metadata?: unknown): void {
     this.log({
       tag,
       timestamp: Date.now(),
@@ -45,7 +46,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public verbose(tag: LogTag, msg?: string, metadata?: any): void {
+  public verbose(tag: LogTag, msg?: string, metadata?: unknown): void {
     this.log({
       tag,
       timestamp: Date.now(),
@@ -58,7 +59,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public warn(tag: LogTag, msg?: string, metadata?: any): void {
+  public warn(tag: LogTag, msg?: string, metadata?: unknown): void {
     this.log({
       tag,
       timestamp: Date.now(),
@@ -71,7 +72,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public error(tag: LogTag, msg?: string, metadata?: any): void {
+  public error(tag: LogTag, msg?: string, metadata?: unknown): void {
     this.log({
       tag,
       timestamp: Date.now(),
@@ -84,7 +85,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public fatal(tag: LogTag, msg?: string, metadata?: any): void {
+  public fatal(tag: LogTag, msg?: string, metadata?: unknown): void {
     this.log({
       tag,
       timestamp: Date.now(),
@@ -97,7 +98,7 @@ export class Logger implements ILogger, Disposable {
   /**
    * @inheritdoc
    */
-  public log(data: ILogItem<any>): void {
+  public log(data: ILogItem<unknown>): void {
     if ('queue' in this.logTarget) {
       this.logTarget.queue.push(data);
       return;
@@ -177,7 +178,22 @@ export class Logger implements ILogger, Disposable {
  */
 export const logger = new Logger();
 
-const createWelcomeMessage = (): ILogItem<any> => ({
+/**
+ * Makes an assertion, *logging* if it failed.
+ */
+export const assert = <T>(
+  assertion: T | false | undefined | null,
+  message: string,
+): assertion is T => {
+  if (assertion === false || assertion === undefined || assertion === null) {
+    return false;
+  }
+
+  logger.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
+  return true;
+};
+
+const createWelcomeMessage = (): ILogItem<unknown> => ({
   timestamp: Date.now(),
   tag: LogTag.RuntimeWelcome,
   level: LogLevel.Info,

@@ -1,6 +1,6 @@
-/**
- * Returns a promise that resolves after the given time.
- */
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 export const delay = (duration: number) =>
   new Promise<void>(resolve => setTimeout(resolve, duration));
 
@@ -11,7 +11,10 @@ export interface IDeferred<T> {
 }
 
 export function getDeferred<T>(): IDeferred<T> {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let resolve: IDeferred<T>['resolve'] = null!;
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let reject: IDeferred<T>['reject'] = null!;
 
   // Promise constructor is called synchronously

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -142,8 +143,9 @@ function nvsStandardArchName(arch: string) {
     case 'amd64':
       return 'x64';
     case 'arm':
-      const arm_version = (process.config.variables as any).arm_version;
-      return arm_version ? 'armv' + arm_version + 'l' : 'arm';
+      // eslint-disable-next-line
+      const armVersion = (process.config.variables as any).arm_version;
+      return armVersion ? 'armv' + armVersion + 'l' : 'arm';
     default:
       return arch;
   }

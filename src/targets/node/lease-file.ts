@@ -5,14 +5,14 @@
 import * as path from 'path';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
-import { Disposable } from '../../common/events';
+import { IDisposable } from '../../common/events';
 import { unlinkSync, readFileSync, writeFileSync } from 'fs';
 
 /**
  * File that stores a lease on the filesystem. Can be validated to ensure
  * that the file is still 'held' by someone.
  */
-export class LeaseFile implements Disposable {
+export class LeaseFile implements IDisposable {
   private static readonly updateInterval = 1000;
   private static readonly recencyDeadline = 2000;
 

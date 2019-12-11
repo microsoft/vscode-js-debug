@@ -1,7 +1,8 @@
-import { SourceMap } from './sourceMaps/sourceMap';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+import { SourceMap } from './sourceMaps/sourceMap';
 
 /**
  * Request to resolve a URL to an absolute path.

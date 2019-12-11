@@ -23,10 +23,7 @@ export class NodePathProvider {
   /**
    * Validates the path and returns an absolute path to the Node binary to run.
    */
-  public async resolveAndValidate(
-    env: EnvironmentVars,
-    executable: string = 'node',
-  ): Promise<string> {
+  public async resolveAndValidate(env: EnvironmentVars, executable = 'node'): Promise<string> {
     const location =
       executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
     if (!location) {

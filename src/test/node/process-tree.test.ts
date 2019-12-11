@@ -40,8 +40,8 @@ describe('process tree', () => {
     // sanity check
     const data = await processTree.lookup<IProcess[]>((entry, acc) => [...acc, entry], []);
     expect(data.length).to.be.greaterThan(0);
-    expect(data[0].pid).to.be.a('number')
-    expect(data[0].ppid).to.be.a('number')
+    expect(data[0].pid).to.be.a('number');
+    expect(data[0].ppid).to.be.a('number');
     expect(data[0].command).to.match(/./); // not empty string
   });
 

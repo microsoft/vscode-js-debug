@@ -1,27 +1,32 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Dap from './api';
 
 import { HighResolutionTime } from '../utils/performance';
 import { TelemetryReporter, RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
 import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
-import { logger } from '../common/logging/logger';
+import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+import { isDapError } from './errors';
 
-export interface Message {
+export type Message = (
+  | { type: 'request'; command: string; arguments: object }
+  | {
+      type: 'response';
+      message?: string;
+      command: string;
+      request_seq: number;
+      success: boolean;
+      body: object;
+    }
+  | { type: 'event'; event: string; body: object }
+) & {
   sessionId?: string;
   seq: number;
-  type: string;
-  command?: string;
-  event?: string;
-  body?: any;
-  arguments?: any;
-  request_seq?: number;
-  success?: boolean;
-  message?: string;
   __receivedTime?: HighResolutionTime;
-}
+};
 
 let isFirstDapConnectionEver = true;
 
@@ -35,8 +40,8 @@ export default class Connection {
   private _sequence: number;
 
   private _pendingRequests = new Map<number, (result: string | object) => void>();
-  private _requestHandlers = new Map<string, (params: any) => Promise<any>>();
-  private _eventListeners = new Map<string, Set<(params: any) => any>>();
+  private _requestHandlers = new Map<string, (params: object) => Promise<object>>();
+  private _eventListeners = new Map<string, Set<(params: object) => void>>();
   private _dap: Promise<Dap.Api>;
 
   protected _ready: (dap: Dap.Api) => void;
@@ -45,7 +50,9 @@ export default class Connection {
   constructor() {
     this._sequence = 1;
     this._rawData = Buffer.alloc(0);
-    this._ready = () => {};
+    this._ready = () => {
+      /* no-op */
+    };
     this._dap = new Promise<Dap.Api>(f => (this._ready = f));
   }
 
@@ -64,11 +71,13 @@ export default class Connection {
     inStream.on('data', (data: Buffer) => {
       this._handleData(data);
     });
-    inStream.on('close', () => {});
-    inStream.on('error', error => {
+    inStream.on('close', () => {
+      /* no-op */
+    });
+    inStream.on('error', () => {
       // error.message
     });
-    outStream.on('error', error => {
+    outStream.on('error', () => {
       // error.message
     });
     inStream.resume();
@@ -91,18 +100,17 @@ export default class Connection {
     return new Proxy(
       {},
       {
-        get: (target, methodName: string, receiver) => {
+        get: (_target, methodName: string) => {
           if (methodName === 'then') return;
           if (methodName === 'on') {
-            return (requestName: string, handler: (params: any) => Promise<any>) => {
+            return (requestName: string, handler: (params: object) => Promise<object>) => {
               this._requestHandlers.set(requestName, handler);
               return () => this._requestHandlers.delete(requestName);
             };
           }
           if (methodName === 'off')
-            return (requestName: string, handler: () => void) =>
-              this._requestHandlers.delete(requestName);
-          return (params?: object) => {
+            return (requestName: string) => this._requestHandlers.delete(requestName);
+          return (params: object) => {
             if (methodName.endsWith(requestSuffix)) {
               return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
             }
@@ -140,7 +148,7 @@ export default class Connection {
     return new Proxy(
       {},
       {
-        get: (_target, methodName: string, _receiver) => {
+        get: (_target, methodName: string) => {
           if (methodName === 'on') return on;
           if (methodName === 'off') return off;
           if (methodName === 'once') return once;
@@ -152,8 +160,7 @@ export default class Connection {
 
   private enqueueRequest(command: string, params?: object) {
     return new Promise(cb => {
-      const request: Message = { seq: 0, type: 'request', command };
-      if (params && Object.keys(params).length > 0) request.arguments = params;
+      const request: Message = { seq: 0, type: 'request', command, arguments: params || {} };
       this._pendingRequests.set(this._sequence, cb);
       this._send(request);
     });
@@ -170,7 +177,7 @@ export default class Connection {
     message.seq = this._sequence++;
     const json = JSON.stringify(message);
 
-    if (!Connection.logOmittedCalls.has(message.body)) {
+    if (message.type !== 'event' || !Connection.logOmittedCalls.has(message.body)) {
       logger.verbose(LogTag.DapSend, undefined, { message });
     }
 
@@ -184,65 +191,67 @@ export default class Connection {
 
   async _onMessage(msg: Message, receivedTime: HighResolutionTime): Promise<void> {
     if (msg.type === 'request') {
-      const response: Message = {
+      const response = {
         seq: 0,
-        type: 'response',
+        type: 'response' as const,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         request_seq: msg.seq,
         command: msg.command,
         success: true,
       };
+
       try {
-        const callback = this._requestHandlers.get(msg.command!);
+        const callback = msg.command && this._requestHandlers.get(msg.command);
         if (!callback) {
-          response.success = false;
-          response.body = {
+          console.error(`Unknown request: ${msg.command}`);
+        } else {
+          const result = await callback(msg.arguments);
+          if (isDapError(result)) {
+            this._send({
+              ...response,
+              success: false,
+              message: result.error.format,
+              body: { error: result.error },
+            });
+          } else {
+            this._send({ ...response, body: result });
+          }
+        }
+        this._telemetryReporter?.reportSuccess(msg.command, receivedTime);
+      } catch (e) {
+        console.error(e);
+        this._send({
+          ...response,
+          success: false,
+          body: {
             error: {
               id: 9221,
-              format: `Unrecognized request: ${msg.command}`,
+              format: `Error processing ${msg.command}: ${e.stack || e.message}`,
               showUser: false,
               sendTelemetry: false,
             },
-          };
-          console.error(`Unknown request: ${msg.command}`);
-          // this._send(response);
-        } else {
-          const result = await callback(msg.arguments!);
-          if (result.__errorMarker) {
-            response.success = false;
-            response.message = result.error.format;
-            response.body = { error: result.error };
-          } else {
-            response.body = result;
-          }
-          this._send(response);
-        }
-        this._telemetryReporter!.reportSuccess(msg.command!, receivedTime);
-      } catch (e) {
-        console.error(e);
-        response.success = false;
-        response.body = {
-          error: {
-            id: 9221,
-            format: `Error processing ${msg.command}: ${e.stack || e.message}`,
-            showUser: false,
-            sendTelemetry: false,
           },
-        };
-        this._send(response);
-        this._telemetryReporter!.reportError(msg.command!, receivedTime, e);
+        });
+
+        this._telemetryReporter?.reportError(msg.command, receivedTime, e);
       }
     }
     if (msg.type === 'event') {
-      const listeners = this._eventListeners.get(msg.event!) || new Set();
+      const listeners = this._eventListeners.get(msg.event) || new Set();
       for (const listener of listeners) listener(msg.body);
     }
     if (msg.type === 'response') {
-      const cb = this._pendingRequests.get(msg.request_seq!)!;
-      this._pendingRequests.delete(msg.request_seq!);
+      const cb = this._pendingRequests.get(msg.request_seq);
+      if (!assert(cb, `Expected callback for request sequence ID ${msg.request_seq}`)) {
+        return;
+      }
+
+      this._pendingRequests.delete(msg.request_seq);
       if (msg.success) {
-        cb(msg.body as object);
+        cb(msg.body);
       } else {
-        const format: string | undefined = msg.body && msg.body.error && msg.body.error.format;
+        // eslint-disable-next-line
+        const format: string | undefined = (msg.body as any)?.error?.format;
         cb(format || msg.message || `Unknown error`);
       }
     }
@@ -259,7 +268,7 @@ export default class Connection {
           this._contentLength = -1;
           if (message.length > 0) {
             try {
-              let msg: Message = JSON.parse(message);
+              const msg: Message = JSON.parse(message);
               logger.verbose(LogTag.DapReceive, undefined, { message: msg });
               this._onMessage(msg, receivedTime);
             } catch (e) {

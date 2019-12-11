@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Target } from '../targets';
+import { ITarget } from '../targets';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
@@ -22,7 +23,7 @@ export interface INodeTargetLifecycleHooks {
   close?(target: NodeTarget): void;
 }
 
-export class NodeTarget implements Target {
+export class NodeTarget implements ITarget {
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
   private _children: NodeTarget[] = [];
@@ -82,11 +83,11 @@ export class NodeTarget implements Target {
     return this.targetOriginValue;
   }
 
-  parent(): Target | undefined {
+  parent(): ITarget | undefined {
     return this._parent;
   }
 
-  children(): Target[] {
+  children(): ITarget[] {
     return Array.from(this._children.values());
   }
 
@@ -203,7 +204,9 @@ export class NodeTarget implements Target {
     return false;
   }
 
-  restart() {}
+  restart() {
+    // no-op
+  }
 
   canStop(): boolean {
     return true;

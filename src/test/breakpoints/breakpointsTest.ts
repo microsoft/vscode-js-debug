@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { TestP } from '../test';
 import Dap from '../../dap/api';
@@ -74,7 +75,7 @@ describe('breakpoints', () => {
     itIntegrates('source map predicted', async ({ r }) => {
       // Breakpoint in source mapped script set before launch use breakpoints predictor.
       const p = await r.launchUrl('browserify/pause.html');
-      p.adapter.breakpointManager.setSourceMapPauseDisabledForTest(true);
+      p.adapter.breakpointManager.setSourceMapPauseDisabledForTest();
       p.adapter.breakpointManager.setPredictorDisabledForTest(false);
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),

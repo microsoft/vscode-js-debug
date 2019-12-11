@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { BreakpointLocation } from './intTestSupport';
 import * as fs from 'fs';
@@ -42,7 +43,7 @@ export async function loadProjectLabels(
 
   const files = await readdirAsync(projectRoot);
 
-  for (let file of files) {
+  for (const file of files) {
     let subMap: Map<string, BreakpointLocation> | null = null;
     const fullPath = path.join(projectRoot, file);
     if (fs.lstatSync(fullPath).isDirectory()) {
@@ -51,7 +52,7 @@ export async function loadProjectLabels(
       subMap = await loadLabelsFromFile(fullPath);
     }
 
-    for (let entry of subMap.entries()) {
+    for (const entry of subMap.entries()) {
       labelMap.set(entry[0], entry[1]);
     }
   }
@@ -75,7 +76,7 @@ export async function loadLabelsFromFile(
   });
 
   lineReader.on('line', fileLine => {
-    let match = labelRegex.exec(fileLine);
+    const match = labelRegex.exec(fileLine);
 
     if (match) {
       labelMap.set(match[2], new BreakpointLocation(filePath, lineNumber));

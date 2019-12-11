@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 /**
  * This script launches the pwa adapter in "flat session" mode for DAP, which means
@@ -11,16 +12,16 @@ import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Binder, BinderDelegate } from './binder';
+import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { Target } from './targets/targets';
+import { ITarget } from './targets/targets';
 import { DebugAdapter } from './adapter/debugAdapter';
 import * as crypto from 'crypto';
 import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
-import { Disposable } from './common/events';
+import { IDisposable } from './common/events';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { Contributions } from './common/contributionUtils';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
@@ -32,13 +33,13 @@ import { NodePathProvider } from './targets/node/nodePathProvider';
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
 class ChildSession {
-  private _nameChangedSubscription: Disposable;
+  private _nameChangedSubscription: IDisposable;
   public readonly connection: ChildConnection;
 
   constructor(
     public readonly sessionId: string,
     connection: MessageEmitterConnection,
-    target: Target,
+    target: ITarget,
   ) {
     this.connection = new ChildConnection(connection, sessionId);
     this._nameChangedSubscription = target.onNameChanged(() => {
@@ -53,7 +54,7 @@ class ChildSession {
 }
 
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
-  const _childSessionsForTarget = new Map<Target, ChildSession>();
+  const _childSessionsForTarget = new Map<ITarget, ChildSession>();
   const pathProvider = new NodePathProvider();
   const launchers = [
     new ExtensionHostAttacher(pathProvider),
@@ -67,8 +68,8 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
     new BrowserAttacher(),
   ];
 
-  const binderDelegate: BinderDelegate = {
-    async acquireDap(target: Target): Promise<DapConnection> {
+  const binderDelegate: IBinderDelegate = {
+    async acquireDap(target: ITarget): Promise<DapConnection> {
       const sessionId = crypto.randomBytes(20).toString('hex');
       const config = {
         type: Contributions.ChromeDebugType,
@@ -93,11 +94,11 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
       return childSession.connection;
     },
 
-    async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+    async initAdapter(debugAdapter: DebugAdapter, target: ITarget): Promise<boolean> {
       return false;
     },
 
-    releaseDap(target: Target): void {
+    releaseDap(target: ITarget): void {
       const childSession = _childSessionsForTarget.get(target);
       if (childSession !== undefined) {
         childSession.dispose();

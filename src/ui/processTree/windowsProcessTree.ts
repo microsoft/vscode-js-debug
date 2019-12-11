@@ -27,7 +27,7 @@ export class WindowsProcessTree extends BaseProcessTree {
     const CMD_PAT = /^(.*)\s+([0-9]+)\.[0-9]+[+-][0-9]+\s+([0-9]+)\s+([0-9]+)$/;
 
     return line => {
-      let matches = CMD_PAT.exec(line.trim());
+      const matches = CMD_PAT.exec(line.trim());
       console.log(matches, line.trim());
       if (!matches || matches.length !== 5) {
         return;

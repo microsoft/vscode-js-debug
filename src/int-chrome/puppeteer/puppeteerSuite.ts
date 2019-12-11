@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as puppeteer from 'puppeteer';
 import { loadProjectLabels } from '../labels';
@@ -112,7 +113,7 @@ function puppeteerSuiteFunction(
     | Mocha.PendingSuiteFunction = suite,
 ): Mocha.ISuite | void {
   return suiteFunctionToUse(description, () => {
-    let testContext = new PuppeteerTestContext();
+    const testContext = new PuppeteerTestContext();
     let fixture: LaunchProject | NullFixture = new NullFixture(); // This variable is shared across all test of this suite
 
     setup(async function() {

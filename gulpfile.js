@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 const del = require('del');
 const filter = require('gulp-filter');
@@ -12,7 +13,6 @@ const sourcemaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
 const rename = require('gulp-rename');
 const merge = require('merge2');
-const tslint = require('gulp-tslint');
 const prettier = require('gulp-prettier');
 const typescript = require('typescript');
 const vsce = require('vsce');
@@ -27,7 +27,6 @@ const translationProjectName = 'vscode-extensions';
 const translationExtensionName = 'js-debug';
 
 const sources = ['src/**/*.ts'];
-const tslintFilter = ['**', '!**/*.d.ts'];
 const allPackages = [];
 
 const buildDir = 'out';
@@ -85,10 +84,6 @@ async function readJson(file) {
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
 const tsProject = ts.createProject('./tsconfig.json', { typescript });
-const tslintOptions = {
-  formatter: 'prose',
-  rulesDirectory: 'node_modules/tslint-microsoft-contrib',
-};
 const prettierOptions = require('./package.json').prettier;
 
 gulp.task('clean', () =>
@@ -309,28 +304,33 @@ gulp.task(
   ),
 );
 
-gulp.task('format', () => {
-  const f = filter(tslintFilter, { restore: true });
+const runPrettier = (fix, callback) => {
+  const child = cp.fork(
+    './node_modules/prettier/bin-prettier.js',
+    [fix ? '--write' : '--list-different', 'src/**/*.ts', '!src/**/*.d.ts', '*.md'],
+    { stdio: 'inherit' },
+  );
 
-  return gulp
-    .src(sources)
-    .pipe(prettier(prettierOptions))
-    .pipe(f)
-    .pipe(tslint({ ...tslintOptions, fix: true }))
-    .pipe(tslint.report({ emitError: false }))
-    .pipe(f.restore)
-    .pipe(gulp.dest('./src'));
-});
+  child.on('exit', code => (code ? callback(`Prettier exited with code ${code}`) : callback()));
+};
 
-gulp.task('lint', () =>
-  gulp
-    .src(sources)
-    .pipe(prettier.check(prettierOptions))
-    .pipe(filter(tslintFilter))
-    .pipe(tslint(tslintOptions))
-    .pipe(tslint.report())
-    .pipe(gulp.dest('./src')),
-);
+const runEslint = (fix, callback) => {
+  const child = cp.fork(
+    './node_modules/eslint/bin/eslint.js',
+    ['--color', 'src/**/*.ts', fix ? '--fix' : ''],
+    { stdio: 'inherit' },
+  );
+
+  child.on('exit', code => (code ? callback(`Eslint exited with code ${code}`) : callback()));
+}
+
+gulp.task('format:prettier', callback => runPrettier(true, callback));
+gulp.task('format:eslint', callback => runEslint(true, callback));
+gulp.task('format', gulp.series('format:prettier', 'format:eslint'));
+
+gulp.task('lint:prettier', callback => runPrettier(false, callback));
+gulp.task('lint:eslint', callback => runEslint(false, callback));
+gulp.task('lint', gulp.parallel('lint:prettier', 'lint:eslint'));
 
 /**
  * Run a command in the terminal using exec, and wrap it in a promise

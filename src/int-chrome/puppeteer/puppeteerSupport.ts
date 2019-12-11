@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 /*
  * Functions that make puppeteer testing easier
@@ -61,7 +62,7 @@ export async function getPageByUrl(
   url: string,
   timeout = 5000,
 ): Promise<puppeteer.Page> {
-  let before = new Date().getTime();
+  const before = new Date().getTime();
   let current = before;
 
   // poll for the desired page url. If we don't find it within the timeout, throw an error

@@ -14,7 +14,7 @@ export async function findOpenPort(maxAttempts = 1000, ct?: CancellationToken) {
   for (let i = 0; ; i++) {
     const port = 3000 + Math.floor(Math.random() * 50000);
     try {
-      await assertPortOpen(port);
+      await assertPortOpen(port, ct);
       return port;
     } catch (e) {
       if (i >= maxAttempts || e instanceof TaskCancelledError) {

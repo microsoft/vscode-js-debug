@@ -1,36 +1,37 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Transport } from './transport';
+import { ITransport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
-import { RawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
+import { IRawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
 import { HighResolutionTime } from '../utils/performance';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
-interface ProtocolCommand {
+interface IProtocolCommand {
   id: number;
   method: string;
   params: object;
   sessionId?: string;
 }
 
-interface ProtocolError {
+interface IProtocolError {
   message: string;
   data: any;
 }
 
-interface ProtocolResponse {
+interface IProtocolResponse {
   id?: number;
   method?: string;
   params?: object;
   result?: object;
-  error?: ProtocolError;
+  error?: IProtocolError;
   sessionId?: string;
 }
 
-interface ProtocolCallback {
+interface IProtocolCallback {
   resolve: (o: object) => void;
   reject: (e: Error) => void;
   from: Error;
@@ -39,7 +40,7 @@ interface ProtocolCallback {
 
 export default class Connection {
   private _lastId: number;
-  private _transport: Transport;
+  private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
   private _closed: boolean;
   private _rootSession: CDPSession;
@@ -47,7 +48,7 @@ export default class Connection {
   readonly onDisconnected = this._onDisconnectedEmitter.event;
   private readonly _telemetryReporter: TelemetryReporter;
 
-  constructor(transport: Transport, rawTelemetryReporter: RawTelemetryReporter) {
+  constructor(transport: ITransport, rawTelemetryReporter: IRawTelemetryReporter) {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -69,7 +70,7 @@ export default class Connection {
 
   _send(method: string, params: object | undefined = {}, sessionId: string): number {
     const id = ++this._lastId;
-    const message: ProtocolCommand = { id, method, params };
+    const message: IProtocolCommand = { id, method, params };
     if (sessionId) message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
     logger.verbose(LogTag.CdpSend, undefined, { message });
@@ -134,10 +135,10 @@ const needsReordering = +process.version.substring(1).split('.')[0] <= 12;
 
 class CDPSession {
   private _connection?: Connection;
-  private _callbacks: Map<number, ProtocolCallback>;
+  private _callbacks: Map<number, IProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
-  private _queue: ProtocolResponse[] = [];
+  private _queue: IProtocolResponse[] = [];
   private _listeners = new Map<string, Set<(params: any) => void>>();
   private paused = false;
 
@@ -230,7 +231,7 @@ class CDPSession {
     });
   }
 
-  _onMessage(object: ProtocolResponse) {
+  _onMessage(object: IProtocolResponse) {
     if (object.id) {
       this._processResponse(object);
     }
@@ -266,7 +267,7 @@ class CDPSession {
     }, 0);
   }
 
-  _processResponse(object: ProtocolResponse) {
+  _processResponse(object: IProtocolResponse) {
     if (object.id && this._callbacks.has(object.id)) {
       const callback = this._callbacks.get(object.id)!;
       this._callbacks.delete(object.id);

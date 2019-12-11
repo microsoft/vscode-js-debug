@@ -1,18 +1,19 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { EventEmitter, Disposable } from '../../common/events';
+import { EventEmitter, IDisposable } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { PipeTransport } from '../../cdp/transport';
 import {
-  Launcher,
-  Target,
-  LaunchResult,
+  ILauncher,
+  ITarget,
+  ILaunchResult,
   ILaunchContext,
   IStopMetadata,
 } from '../../targets/targets';
@@ -24,7 +25,7 @@ import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
-import { RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider } from './nodePathProvider';
 
 /**
@@ -47,7 +48,7 @@ export interface IProcessTelemetry {
   architecture: string;
 }
 
-type BootloaderFile = Disposable & { path: string };
+type BootloaderFile = IDisposable & { path: string };
 
 /**
  * Data stored for a currently running debug session within the Node launcher.
@@ -63,7 +64,7 @@ export interface IRunData<T> {
 
 let counter = 0;
 
-export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implements Launcher {
+export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implements ILauncher {
   /**
    * Data set while a debug session is running.
    */
@@ -109,8 +110,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   public async launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
-    rawTelemetryReporter: RawTelemetryReporter,
-  ): Promise<LaunchResult> {
+    rawTelemetryReporter: IRawTelemetryReporter,
+  ): Promise<ILaunchResult> {
     const resolved = this.resolveParams(params);
     if (!resolved) {
       return { blockSessionTermination: false };
@@ -171,7 +172,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     await this.launchProgram(this.run);
   }
 
-  public targetList(): Target[] {
+  public targetList(): ITarget[] {
     return this.targets.value();
   }
 
@@ -207,7 +208,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Resolves and validates the path to the Node binary as specified in
    * the params.
    */
-  protected resolveNodePath(params: T, executable: string = 'node') {
+  protected resolveNodePath(params: T, executable = 'node') {
     return this.pathProvider.resolveAndValidate(
       EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
       executable,
@@ -267,14 +268,17 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Logic run when a thread is created.
    */
   protected createLifecycle(
+    // eslint-disable-next-line
     _cdp: Cdp.Api,
+    // eslint-disable-next-line
     _run: IRunData<T>,
+    // eslint-disable-next-line
     _target: Cdp.Target.TargetInfo,
   ): INodeTargetLifecycleHooks {
     return {};
   }
 
-  protected async _startServer(rawTelemetryReporter: RawTelemetryReporter) {
+  protected async _startServer(rawTelemetryReporter: IRawTelemetryReporter) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     const server = await new Promise<net.Server>((resolve, reject) => {
@@ -302,7 +306,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     this.serverConnections = [];
   }
 
-  protected async _startSession(socket: net.Socket, rawTelemetryReporter: RawTelemetryReporter) {
+  protected async _startSession(socket: net.Socket, rawTelemetryReporter: IRawTelemetryReporter) {
     const { connection, cdp, targetInfo } = await this.acquireTarget(socket, rawTelemetryReporter);
     if (!this.run) {
       // if we aren't running a session, discard the socket.
@@ -328,7 +332,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Acquires the CDP session and target info from the connecting socket.
    */
 
-  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: RawTelemetryReporter) {
+  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: IRawTelemetryReporter) {
     const connection = new Connection(new PipeTransport(socket), rawTelemetryReporter);
     this.serverConnections.push(connection);
     const cdp = connection.rootSession();
@@ -381,12 +385,12 @@ function readEnvFile(file: string): { [key: string]: string } {
       continue;
     }
 
-    let [, key, value = ''] = r;
+    let value = r[2] || '';
     // .env variables never overwrite existing variables (see #21169)
     if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
       value = value.replace(/\\n/gm, '\n');
     }
-    env[key] = value.replace(/(^['"]|['"]$)/g, '');
+    env[r[1]] = value.replace(/(^['"]|['"]$)/g, '');
   }
 
   return env;

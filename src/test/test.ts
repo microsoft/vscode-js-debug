@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
@@ -27,7 +28,7 @@ import { NodeAttacher } from '../targets/node/nodeAttacher';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
-import { Target } from '../targets/targets';
+import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './logReporterUtils';
@@ -60,7 +61,9 @@ class Stream extends stream.Duplex {
       });
   }
 
-  _read(size: number) {}
+  _read(size: number) {
+    // no-op
+  }
 }
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
@@ -110,7 +113,7 @@ export interface ITestHandle {
   readonly assertLog: AssertLog;
 
   load(): Promise<void>;
-  _init(adapter: DebugAdapter, target: Target): Promise<boolean>;
+  _init(adapter: DebugAdapter, target: ITarget): Promise<boolean>;
 }
 
 export class TestP implements ITestHandle {
@@ -125,9 +128,9 @@ export class TestP implements ITestHandle {
   private _evaluateCounter = 0;
   private _connection: CdpConnection | undefined;
   private _cdp: Cdp.Api | undefined;
-  private _target: Target;
+  private _target: ITarget;
 
-  constructor(root: TestRoot, target: Target) {
+  constructor(root: TestRoot, target: ITarget) {
     this._root = root;
     this._target = target;
     this.log = root.log;
@@ -241,9 +244,9 @@ export class NodeTestHandle implements ITestHandle {
   _adapter?: DebugAdapter;
   private _root: TestRoot;
   private _cdp: Cdp.Api | undefined;
-  private _target: Target;
+  private _target: ITarget;
 
-  constructor(root: TestRoot, target: Target) {
+  constructor(root: TestRoot, target: ITarget) {
     this._root = root;
     this._target = target;
     this.log = root.log;
@@ -271,7 +274,7 @@ export class NodeTestHandle implements ITestHandle {
     return this._root.workspacePath(relative);
   }
 
-  async _init(adapter: DebugAdapter, target: Target) {
+  async _init(adapter: DebugAdapter, target: ITarget) {
     this._adapter = adapter;
     await this._session._init();
     if (this._target.parent()) {
@@ -293,7 +296,7 @@ export class TestRoot {
   readonly log: Log;
   readonly assertLog: AssertLog;
 
-  private _targetToP = new Map<Target, ITestHandle>();
+  private _targetToP = new Map<ITarget, ITestHandle>();
   private _root: Session;
   private _workspaceRoot: string;
   private _webRoot: string | undefined;
@@ -355,7 +358,7 @@ export class TestRoot {
     this._worker = new Promise(f => (this._workerCallback = f));
   }
 
-  public async acquireDap(target: Target): Promise<DapConnection> {
+  public async acquireDap(target: ITarget): Promise<DapConnection> {
     if (this._skipFiles) target.skipFiles = () => this._skipFiles;
 
     const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
@@ -363,7 +366,7 @@ export class TestRoot {
     return p._session.adapterConnection;
   }
 
-  async initAdapter(adapter: DebugAdapter, target: Target): Promise<boolean> {
+  async initAdapter(adapter: DebugAdapter, target: ITarget): Promise<boolean> {
     const p = this._targetToP.get(target);
     if (!p) {
       return true;
@@ -376,7 +379,7 @@ export class TestRoot {
     return boot;
   }
 
-  releaseDap(target: Target) {
+  releaseDap(target: ITarget) {
     this._targetToP.delete(target);
   }
 

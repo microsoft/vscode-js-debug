@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,12 +13,12 @@ import { forceForwardSlashes } from '../common/pathUtils';
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
 export class GoldenText {
-  _results: String[];
-  _testName: String;
+  _results: string[];
+  _testName: string;
   _hasNonAssertedLogs: boolean;
   _workspaceFolder: string;
 
-  constructor(testName: String, workspaceFolder: string) {
+  constructor(testName: string, workspaceFolder: string) {
     this._results = [];
     this._testName = testName;
     this._hasNonAssertedLogs = false;
@@ -143,7 +144,7 @@ export class GoldenText {
     return item;
   }
 
-  _logObject(object: Object, title?: string, stabilizeNames?: string[]): any {
+  _logObject(object: Record<string, any>, title?: string, stabilizeNames?: string[]): any {
     stabilizeNames = stabilizeNames || kStabilizeNames;
     const lines: string[] = [];
 

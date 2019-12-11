@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import Long from 'long';
 
 export function calculateHash(input: Buffer): string {
@@ -25,14 +26,14 @@ export function calculateHash(input: Buffer): string {
     new Long(0x8f462907, 0, true),
   ];
 
-  let hashes = [
+  const hashes = [
     new Long(0, 0, true),
     new Long(0, 0, true),
     new Long(0, 0, true),
     new Long(0, 0, true),
     new Long(0, 0, true),
   ];
-  let zi = [
+  const zi = [
     new Long(1, 0, true),
     new Long(1, 0, true),
     new Long(1, 0, true),
@@ -47,10 +48,10 @@ export function calculateHash(input: Buffer): string {
   // First pass reads 4 bytes at a time
   let current = 0;
   for (let i = 0; i < buffer.byteLength - (buffer.byteLength % inc); i += inc) {
-    let d = buffer.readUInt32LE(i);
-    let v = d;
+    const d = buffer.readUInt32LE(i);
+    const v = d;
 
-    let xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
+    const xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
     hashes[current] = hashes[current].add(zi[current].mul(xi)).mod(prime[current]);
     zi[current] = zi[current].mul(random[current]).mod(prime[current]);
     current = current === hashes.length - 1 ? 0 : current + 1;
@@ -63,7 +64,7 @@ export function calculateHash(input: Buffer): string {
       v <<= 8;
       v |= buffer.readUInt8(i);
     }
-    let xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
+    const xi = new Long(v).mul(randomOdd[current]).and(k0x7FFFFFFF);
     hashes[current] = hashes[current].add(zi[current].mul(xi)).mod(prime[current]);
     zi[current] = zi[current].mul(random[current]).mod(prime[current]);
     current = current === hashes.length - 1 ? 0 : current + 1;

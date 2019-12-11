@@ -1,14 +1,15 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { kLogPointUrl } from './breakpoints';
 import { shouldSmartStepStackFrame } from './smartStepping';
-import { PreferredUiLocation } from './sources';
+import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
-import { ExtraProperty, ScopeRef } from './variables';
+import { IExtraProperty, IScopeRef } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -114,7 +115,7 @@ export class StackTrace {
     const frames = await this.loadFrames(to);
     to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to; index++) result.push(await frames[index].toDap(params));
+    for (let index = from; index < to; index++) result.push(await frames[index].toDap());
     return {
       stackFrames: result,
       totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length,
@@ -122,7 +123,7 @@ export class StackTrace {
   }
 }
 
-interface Scope {
+interface IScope {
   chain: Cdp.Debugger.Scope[];
   thisObject: Cdp.Runtime.RemoteObject;
   returnValue?: Cdp.Runtime.RemoteObject;
@@ -136,9 +137,9 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  private _uiLocation: Promise<PreferredUiLocation | undefined>;
+  private _uiLocation: Promise<IPreferredUiLocation | undefined>;
   private _isAsyncSeparator = false;
-  private _scope: Scope | undefined;
+  private _scope: IScope | undefined;
   private _thread: Thread;
 
   static fromRuntime(thread: Thread, callFrame: Cdp.Runtime.CallFrame): StackFrame {
@@ -152,6 +153,7 @@ export class StackFrame {
       thisObject: callFrame.this,
       returnValue: callFrame.returnValue,
       variables: new Array(callFrame.scopeChain.length).fill(undefined),
+      // eslint-disable-next-line
       callFrameId: callFrame.callFrameId!,
     };
     return result;
@@ -182,7 +184,7 @@ export class StackFrame {
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       const scope: Cdp.Debugger.Scope = this._scope.chain[scopeNumber];
 
-      let name: string = '';
+      let name = '';
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
       switch (scope.type) {
         case 'global':
@@ -224,7 +226,7 @@ export class StackFrame {
         name = `${name}: ${scope.name}`;
       }
 
-      const variable = await this._scopeVariable(scopeNumber);
+      const variable = await this._scopeVariable(scopeNumber, this._scope);
       const dap: Dap.Scope = {
         name,
         presentationHint,
@@ -252,7 +254,7 @@ export class StackFrame {
     return { scopes };
   }
 
-  async toDap(_params: Dap.StackTraceParams): Promise<Dap.StackFrame> {
+  async toDap(): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
@@ -264,14 +266,14 @@ export class StackFrame {
     if (isSmartStepped && source)
       source.origin = localize('smartStepSkipLabel', 'Skipped by smartStep');
 
-    return <Dap.StackFrame>{
+    return {
       id: this._id,
       name: this._name, // TODO: Use params to format the name
       line: (uiLocation || this._rawLocation).lineNumber,
       column: (uiLocation || this._rawLocation).columnNumber,
       source,
       presentationHint,
-    };
+    } as Dap.StackFrame;
   }
 
   async format(): Promise<string> {
@@ -285,38 +287,45 @@ export class StackFrame {
     return text;
   }
 
-  uiLocation(): Promise<PreferredUiLocation | undefined> {
+  uiLocation(): Promise<IPreferredUiLocation | undefined> {
     return this._uiLocation;
   }
 
-  async _scopeVariable(scopeNumber: number): Promise<Dap.Variable> {
-    const scope = this._scope!;
-    if (!scope.variables[scopeNumber]) {
-      const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
-      const extraProperties: ExtraProperty[] = [];
-      if (scopeNumber === 0) {
-        extraProperties.push({ name: 'this', value: scope.thisObject });
-        if (scope.returnValue)
-          extraProperties.push({
-            name: localize('scope.returnValue', 'Return value'),
-            value: scope.returnValue,
-          });
-      }
-      const variable = await this._thread
-        .pausedVariables()!
-        .createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
-      scope.variables[scopeNumber] = variable;
+  async _scopeVariable(scopeNumber: number, scope: IScope): Promise<Dap.Variable> {
+    const existing = scope.variables[scopeNumber];
+    if (existing) {
+      return existing;
     }
-    return scope.variables[scopeNumber]!;
+
+    const scopeRef: IScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
+    const extraProperties: IExtraProperty[] = [];
+    if (scopeNumber === 0) {
+      extraProperties.push({ name: 'this', value: scope.thisObject });
+      if (scope.returnValue)
+        extraProperties.push({
+          name: localize('scope.returnValue', 'Return value'),
+          value: scope.returnValue,
+        });
+    }
+
+    // eslint-disable-next-line
+    const variable = await this._thread
+      .pausedVariables()!
+      .createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
+    return (scope.variables[scopeNumber] = variable);
   }
 
   async completions(): Promise<Dap.CompletionItem[]> {
     if (!this._scope) return [];
-    const variableStore = this._thread.pausedVariables()!;
+    const variableStore = this._thread.pausedVariables();
+    if (!variableStore) {
+      return [];
+    }
+
     const promises: Promise<Dap.CompletionItem[]>[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       promises.push(
-        this._scopeVariable(scopeNumber).then(async scopeVariable => {
+        this._scopeVariable(scopeNumber, this._scope).then(async scopeVariable => {
           if (!scopeVariable.variablesReference) return [];
           const variables = await variableStore.getVariables({
             variablesReference: scopeVariable.variablesReference,

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 /*
  * This file contains support functions to make integration testing easier
@@ -51,7 +52,7 @@ export async function launchTestAdapter(
   launchConfig: IScenarioConfiguration,
   callbacks: IDebugAdapterCallbacks,
 ) {
-  let init = client.waitForEvent('initialized');
+  const init = client.waitForEvent('initialized');
 
   if (callbacks.registerListeners !== undefined) {
     await callbacks.registerListeners(client);

@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { InternalFileBreakpointsWizard } from './implementation/internalFileBreakpointsWizard';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { IVerificationsAndAction } from './breakpointsWizard';

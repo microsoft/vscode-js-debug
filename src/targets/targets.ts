@@ -1,8 +1,9 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
-import { Disposable, Event } from '../common/events';
+import { IDisposable, IEvent } from '../common/events';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
@@ -15,14 +16,14 @@ import { CancellationToken } from 'vscode';
  * we start debugging, until we call `attach()` to
  * actually get a debug adapter API.
  */
-export interface Target {
+export interface ITarget {
   id(): string;
   name(): string;
-  onNameChanged: Event<void>;
+  onNameChanged: IEvent<void>;
   fileName(): string | undefined;
   type(): string;
-  parent(): Target | undefined;
-  children(): Target[];
+  parent(): ITarget | undefined;
+  children(): ITarget[];
   canStop(): boolean;
   stop(): void;
   canRestart(): boolean;
@@ -55,7 +56,7 @@ export interface ILaunchContext {
   targetOrigin: any;
 }
 
-export interface LaunchResult {
+export interface ILaunchResult {
   error?: string;
   blockSessionTermination?: boolean;
 }
@@ -83,16 +84,16 @@ export interface IStopMetadata {
   restart?: any;
 }
 
-export interface Launcher extends Disposable {
+export interface ILauncher extends IDisposable {
   launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
     rawTelemetryReporter: RawTelemetryReporterToDap,
-  ): Promise<LaunchResult>;
+  ): Promise<ILaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;
-  onTargetListChanged: Event<void>;
-  onTerminated: Event<IStopMetadata>;
-  targetList(): Target[];
+  onTargetListChanged: IEvent<void>;
+  onTerminated: IEvent<IStopMetadata>;
+  targetList(): ITarget[];
 }

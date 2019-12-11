@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as assert from 'assert';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -56,7 +57,7 @@ export class StackTraceStringAssertions {
   }
 
   private printStackTraceFrame(frame: DebugProtocol.StackFrame): string {
-    let frameName = frame.name;
+    const frameName = frame.name;
     return `${frameName}:${frame.column}${
       frame.presentationHint && frame.presentationHint !== 'normal'
         ? ` (${frame.presentationHint})`

@@ -1,12 +1,13 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-import { Disposable, EventEmitter } from '../../common/events';
+import { IDisposable, EventEmitter } from '../../common/events';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
-import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Target, Launcher, LaunchResult, ILaunchContext, IStopMetadata } from '../targets';
+import { BrowserTargetManager } from './browserTargets';
+import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
@@ -19,13 +20,13 @@ import { NeverCancelled } from '../../common/cancellation';
 
 const localize = nls.loadMessageBundle();
 
-export class BrowserAttacher implements Launcher {
+export class BrowserAttacher implements ILauncher {
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: IChromeAttachConfiguration | undefined;
   private _targetOrigin: any;
-  private _disposables: Disposable[] = [];
+  private _disposables: IDisposable[] = [];
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -46,7 +47,7 @@ export class BrowserAttacher implements Launcher {
     params: AnyLaunchConfiguration,
     { targetOrigin, cancellationToken }: ILaunchContext,
     rawTelemetryReporter: RawTelemetryReporterToDap,
-  ): Promise<LaunchResult> {
+  ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
@@ -118,10 +119,10 @@ export class BrowserAttacher implements Launcher {
       this._onTargetListChangedEmitter.fire(),
     );
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
-    this._targetManager.onTargetAdded((target: BrowserTarget) => {
+    this._targetManager.onTargetAdded(() => {
       this._onTargetListChangedEmitter.fire();
     });
-    this._targetManager.onTargetRemoved((target: BrowserTarget) => {
+    this._targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
     });
 
@@ -176,11 +177,15 @@ export class BrowserAttacher implements Launcher {
     if (this._connection) this._connection.close();
   }
 
-  async disconnect(): Promise<void> {}
+  async disconnect(): Promise<void> {
+    // no-op
+  }
 
-  async restart(): Promise<void> {}
+  async restart(): Promise<void> {
+    // no-op
+  }
 
-  targetList(): Target[] {
+  targetList(): ITarget[] {
     const manager = this.targetManager();
     return manager ? manager.targetList() : [];
   }

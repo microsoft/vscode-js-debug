@@ -1,16 +1,16 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Binder, BinderDelegate } from './binder';
+import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { Target } from './targets/targets';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
@@ -83,7 +83,7 @@ class Configurator {
     for (const { params, ids } of this._setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.enableCustomBreakpoints({ ids: Array.from(this._customBreakpoints) });
-    await adapter.configurationDone({});
+    await adapter.configurationDone();
   }
 }
 
@@ -104,8 +104,8 @@ export function startDebugServer(port: number): Promise<IDisposable> {
           new BrowserAttacher(),
         ];
 
-        const binderDelegate: BinderDelegate = {
-          async acquireDap(target: Target): Promise<DapConnection> {
+        const binderDelegate: IBinderDelegate = {
+          async acquireDap(): Promise<DapConnection> {
             // Note: we can make multi-session work through custom dap message:
             // - spin up a separate server for this session;
             // - ask ui part to create a session for us and connect to the port;
@@ -113,12 +113,14 @@ export function startDebugServer(port: number): Promise<IDisposable> {
             return connection;
           },
 
-          async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+          async initAdapter(debugAdapter: DebugAdapter): Promise<boolean> {
             await configurator.configure(debugAdapter);
             return true;
           },
 
-          releaseDap(target: Target): void {},
+          releaseDap(): void {
+            // no-op
+          },
         };
 
         const connection = new DapConnection();
@@ -127,6 +129,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
 
         connection.init(socket, socket);
       })
+      .on('error', reject)
       .listen(port, () => {
         console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
         resolve({

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as http from 'http';
 import * as https from 'https';
@@ -7,10 +8,13 @@ import * as URL from 'url';
 import * as childProcess from 'child_process';
 import * as readline from 'readline';
 import CdpConnection from '../../cdp/connection';
-import { PipeTransport, WebSocketTransport, Transport } from '../../cdp/transport';
+import { PipeTransport, WebSocketTransport, ITransport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { RawTelemetryReporterToDap, RawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import {
+  RawTelemetryReporterToDap,
+  IRawTelemetryReporter,
+} from '../../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
 import { TaskCancelledError } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
@@ -34,7 +38,7 @@ const DEFAULT_ARGS = [
 
 const noop = () => undefined;
 
-interface LaunchOptions {
+interface ILaunchOptions {
   onStdout?: (data: string) => void;
   onStderr?: (data: string) => void;
   args?: ReadonlyArray<string>;
@@ -66,9 +70,9 @@ export interface ILaunchResult {
 
 export async function launch(
   executablePath: string,
-  rawTelemetryReporter: RawTelemetryReporter,
+  rawTelemetryReporter: IRawTelemetryReporter,
   cancellationToken: CancellationToken,
-  options: LaunchOptions | undefined = {},
+  options: ILaunchOptions | undefined = {},
 ): Promise<ILaunchResult> {
   const {
     onStderr = noop,
@@ -130,7 +134,7 @@ export async function launch(
   browserProcess.on('exit', () => process.removeListener('exit', exitListener));
 
   try {
-    let transport: Transport;
+    let transport: ITransport;
     if (usePipe) {
       transport = new PipeTransport(
         browserProcess.stdio[3] as Writable,
@@ -154,7 +158,7 @@ export async function launch(
   }
 }
 
-function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
+function defaultArgs(options: ILaunchOptions | undefined = {}): Array<string> {
   const { args = [], userDataDir = null } = options;
   const browserArguments = [...DEFAULT_ARGS];
   if (userDataDir) browserArguments.push(`--user-data-dir=${userDataDir}`);
@@ -166,13 +170,13 @@ function defaultArgs(options: LaunchOptions | undefined = {}): Array<string> {
   return browserArguments;
 }
 
-interface AttachOptions {
+interface IAttachOptions {
   browserURL?: string;
   browserWSEndpoint?: string;
 }
 
 export async function attach(
-  options: AttachOptions,
+  options: IAttachOptions,
   cancellationToken: CancellationToken,
   rawTelemetryReporter: RawTelemetryReporterToDap,
 ): Promise<CdpConnection> {

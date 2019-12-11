@@ -55,9 +55,10 @@ export const createMetadataForFile = async (compiledPath: string, fileContents?:
   if (!stats) {
     return;
   }
+
   return {
     compiledPath,
-    sourceMapUrl: sourceMapUrl!,
+    sourceMapUrl,
     mtime: stats && stats.mtimeMs,
   };
 };

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
@@ -19,6 +20,11 @@ interface IMandatedConfiguration {
    * The request type of the debug session.
    */
   request: string;
+
+  /**
+   * VS Code pre-launch task to run.
+   */
+  preLaunchTask?: string;
 }
 
 export const enum OutputSource {
@@ -579,7 +585,7 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
     configWithDefaults = applyExtensionHostDefaults(config);
   else if (config.type === Contributions.TerminalDebugType)
     configWithDefaults = applyTerminalDefaults(config);
-  else throw new Error('Unknown config type: ' + (config as any).type);
+  else throw new Error(`Unknown config: ${JSON.stringify(config)}`);
 
   resolveWorkspaceRoot(configWithDefaults);
   return configWithDefaults;
@@ -589,12 +595,14 @@ function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
   resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
 }
 
-export function resolveVariableInConfig(config: any, varName: string, varValue: string): void {
-  for (const key in config) {
-    if (typeof config[key] === 'string') {
-      config[key] = resolveVariable(config[key], varName, varValue);
-    } else if (!!config[key] && typeof config[key] === 'object') {
-      resolveVariableInConfig(config[key], varName, varValue);
+export function resolveVariableInConfig<T>(config: T, varName: string, varValue: string): void {
+  for (const key of Object.keys(config)) {
+    const value = config[key];
+    if (typeof value === 'string') {
+      // eslint-disable-next-line
+      config[key] = resolveVariable(value, varName, varValue) as any;
+    } else if (typeof value === 'object' && !!value) {
+      resolveVariableInConfig(value, varName, varValue);
     }
   }
 }
@@ -605,6 +613,7 @@ function resolveVariable(entry: string, varName: string, varValue: string): stri
 
 export function isNightly(): boolean {
   try {
+    // eslint-disable-next-line
     const packageJson = require('../package.json');
     return packageJson && (packageJson.name as string).includes('nightly');
   } catch (e) {

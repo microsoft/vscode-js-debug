@@ -21,9 +21,7 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
   /**
    * Returns the sourcemaps in the directory, given as an absolute path..
    */
-  public async findDirectChildren(
-    _absolutePath: string,
-  ): Promise<{ [path: string]: Required<ISourceMapMetadata> }> {
+  public async findDirectChildren(): Promise<{ [path: string]: Required<ISourceMapMetadata> }> {
     throw new Error('not implemented');
   }
 

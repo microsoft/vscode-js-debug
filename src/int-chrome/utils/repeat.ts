@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 export async function asyncRepeatSerially(
   howManyTimes: number,
   action: () => Promise<void>,

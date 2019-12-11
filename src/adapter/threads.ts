@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
@@ -17,9 +18,15 @@ import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { ScriptSkipper } from './scriptSkipper';
 import { SmartStepper } from './smartStepping';
-import { PreferredUiLocation, rawToUiOffset, Source, SourceContainer, UiLocation } from './sources';
+import {
+  IPreferredUiLocation,
+  rawToUiOffset,
+  Source,
+  SourceContainer,
+  IUiLocation,
+} from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
-import { VariableStore, VariableStoreDelegate } from './variables';
+import { VariableStore, IVariableStoreDelegate } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -33,7 +40,7 @@ export type PausedReason =
   | 'function breakpoint'
   | 'data breakpoint';
 
-export interface PausedDetails {
+export interface IPausedDetails {
   thread: Thread;
   reason: PausedReason;
   description: string;
@@ -60,7 +67,7 @@ export class ExecutionContext {
 
 export type Script = { url: string; scriptId: string; hash: string; source: Source };
 
-export interface ThreadDelegate {
+export interface IThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
   defaultScriptOffset(): InlineScriptOffset | undefined;
@@ -83,18 +90,18 @@ export type RawLocation = {
   scriptId?: Cdp.Runtime.ScriptId;
 };
 
-export class Thread implements VariableStoreDelegate {
+export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
   public readonly id: number;
   private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _name: string;
-  private _pausedDetails?: PausedDetails;
+  private _pausedDetails?: IPausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _scripts: Map<string, Script> = new Map();
   private _executionContexts: Map<number, ExecutionContext> = new Map();
-  private _delegate: ThreadDelegate;
+  private _delegate: IThreadDelegate;
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
   private _serializedOutput: Promise<void>;
@@ -115,7 +122,7 @@ export class Thread implements VariableStoreDelegate {
     threadName: string,
     cdp: Cdp.Api,
     dap: Dap.Api,
-    delegate: ThreadDelegate,
+    delegate: IThreadDelegate,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
   ) {
@@ -139,7 +146,7 @@ export class Thread implements VariableStoreDelegate {
     return this._name;
   }
 
-  pausedDetails(): PausedDetails | undefined {
+  pausedDetails(): IPausedDetails | undefined {
     return this._pausedDetails;
   }
 
@@ -447,7 +454,7 @@ export class Thread implements VariableStoreDelegate {
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
     this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    let scriptSkipper = this._delegate.skipFiles();
+    const scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
       this._sourceContainer.initializeScriptSkipper(scriptSkipper);
@@ -627,7 +634,7 @@ export class Thread implements VariableStoreDelegate {
 
   public async rawLocationToUiLocation(
     rawLocation: RawLocation,
-  ): Promise<PreferredUiLocation | undefined> {
+  ): Promise<IPreferredUiLocation | undefined> {
     const script = rawLocation.scriptId
       ? await this.getScriptByIdOrWait(rawLocation.scriptId)
       : undefined;
@@ -649,7 +656,7 @@ export class Thread implements VariableStoreDelegate {
    * finishes passing its sources over. We *should* normally know about all
    * possible script IDs; this waits if we see one that we don't.
    */
-  private async getScriptByIdOrWait(scriptId: string, maxTime: number = 500) {
+  private async getScriptByIdOrWait(scriptId: string, maxTime = 500) {
     let script = this._scripts.get(scriptId);
     if (script) {
       return script;
@@ -684,7 +691,7 @@ export class Thread implements VariableStoreDelegate {
     await breakpoint.apply(this._cdp, enabled);
   }
 
-  _createPausedDetails(event: Cdp.Debugger.PausedEvent): PausedDetails {
+  _createPausedDetails(event: Cdp.Debugger.PausedEvent): IPausedDetails {
     // When hitting breakpoint in compiled source, we ignore source maps during the stepping
     // sequence (or exceptions) until user resumes or hits another breakpoint-alike pause.
     // TODO: this does not work for async stepping just yet.
@@ -816,7 +823,7 @@ export class Thread implements VariableStoreDelegate {
   _resolveEventListenerBreakpointDetails(
     stackTrace: StackTrace,
     event: Cdp.Debugger.PausedEvent,
-  ): PausedDetails {
+  ): IPausedDetails {
     const data = event.data;
     const id = data ? data['eventName'] || '' : '';
     const breakpoint = customBreakpoints().get(id);
@@ -849,7 +856,7 @@ export class Thread implements VariableStoreDelegate {
     }
 
     let stackTrace: StackTrace | undefined;
-    let uiLocation: UiLocation | undefined;
+    let uiLocation: IUiLocation | undefined;
     const isAssert = event.type === 'assert';
     const isError = event.type === 'error';
     if (event.stackTrace) {
@@ -914,7 +921,7 @@ export class Thread implements VariableStoreDelegate {
     message = (prefix || '') + message;
 
     let stackTrace: StackTrace | undefined;
-    let uiLocation: UiLocation | undefined;
+    let uiLocation: IUiLocation | undefined;
     if (details.stackTrace) stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
     if (stackTrace) {
       const frames = await stackTrace.loadFrames(1);

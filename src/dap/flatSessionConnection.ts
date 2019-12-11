@@ -1,10 +1,12 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import DapConnection, { Message } from './connection';
-import { EventEmitter, Disposable } from '../common/events';
+import { EventEmitter, IDisposable } from '../common/events';
 import { HighResolutionTime } from '../utils/performance';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { assert } from '../common/logging/logger';
 
 /**
  * An extension of the DAP connection class which publishes all messages which are received
@@ -25,7 +27,10 @@ export class MessageEmitterConnection extends DapConnection {
 
   public init(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
     super.init(inStream, outStream);
-    this.initialized.fire(this._telemetryReporter!);
+
+    if (assert(this._telemetryReporter, 'Expected telemetry reporter to have been set')) {
+      this.initialized.fire(this._telemetryReporter);
+    }
   }
 }
 
@@ -35,7 +40,7 @@ export class MessageEmitterConnection extends DapConnection {
  * to a child session.
  */
 export class ChildConnection extends DapConnection {
-  private _messageSubscription: Disposable;
+  private _messageSubscription: IDisposable;
 
   constructor(
     private readonly parentConnection: MessageEmitterConnection,

@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { BreakpointWizard } from './breakpointWizard';
 import { InternalFileBreakpointsWizard } from './implementation/internalFileBreakpointsWizard';
 import { PromiseOrNot } from '../../testUtils';

@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
 import Dap from '../dap/api';
@@ -17,15 +18,15 @@ import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
 
-export interface WorkspaceLocation {
+export interface IWorkspaceLocation {
   absolutePath: string;
   lineNumber: number; // 1-based
   columnNumber: number; // 1-based
 }
 
 type PredictedLocation = {
-  source: WorkspaceLocation;
-  compiled: WorkspaceLocation;
+  source: IWorkspaceLocation;
+  compiled: IWorkspaceLocation;
 };
 
 export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetadata[]>;
@@ -79,8 +80,8 @@ export class BreakpointsPredictor {
   /**
    * Returns predicted breakpoint locations for the provided source.
    */
-  public predictedResolvedLocations(location: WorkspaceLocation): WorkspaceLocation[] {
-    const result: WorkspaceLocation[] = [];
+  public predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[] {
+    const result: IWorkspaceLocation[] = [];
     for (const p of this._predictedLocations) {
       if (
         p.source.absolutePath === location.absolutePath &&
@@ -140,10 +141,10 @@ class DirectoryScanner {
     await this.repo.streamAllChildren(
       defaultFileMappings.map(
         m =>
-          <IRelativePattern>{
+          ({
             base: absolutePath,
             pattern: m,
-          },
+          } as IRelativePattern),
       ),
       async metadata => {
         const baseUrl = metadata.sourceMapUrl.startsWith('data:')
@@ -198,7 +199,11 @@ class DirectoryScanner {
 
   public async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
     const sourcePathToCompiled = await this._sourcePathToCompiled;
-    const absolutePath = params.source.path!;
+    const absolutePath = params.source.path;
+    if (!absolutePath) {
+      return;
+    }
+
     const set = sourcePathToCompiled.get(absolutePath);
 
     if (!set) return;

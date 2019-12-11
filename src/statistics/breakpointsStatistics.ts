@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import { Dap } from '../dap/api';
 
@@ -7,7 +8,7 @@ class BreakpointStatistic {
   public constructor(public verified = false, public hit = false) {}
 }
 
-export interface ManyBreakpointsStatistics {
+export interface IManyBreakpointsStatistics {
   set: number;
   verified: number;
   hit: number;
@@ -46,7 +47,7 @@ export class BreakpointsStatisticsCalculator {
     }
   }
 
-  public statistics(): ManyBreakpointsStatistics {
+  public statistics(): IManyBreakpointsStatistics {
     let count = 0;
     let verified = 0;
     let hit = 0;

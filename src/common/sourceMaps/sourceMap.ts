@@ -83,9 +83,9 @@ export class SourceMap implements SourceMapConsumer {
   /**
    * @inheritdoc
    */
-  eachMapping(
-    callback: (mapping: MappingItem) => void,
-    context?: any,
+  eachMapping<ThisArg = void>(
+    callback: (this: ThisArg, mapping: MappingItem) => void,
+    context?: ThisArg,
     order?: number | undefined,
   ): void {
     return this.original.eachMapping(callback, context, order);

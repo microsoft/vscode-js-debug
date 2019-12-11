@@ -1,18 +1,18 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as net from 'net';
 import * as vscode from 'vscode';
-import { Binder, BinderDelegate } from '../binder';
+import { Binder, IBinderDelegate } from '../binder';
 import DapConnection from '../dap/connection';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { BrowserAttacher } from '../targets/browser/browserAttacher';
-import { Target } from '../targets/targets';
-import { Disposable } from '../common/events';
+import { ITarget } from '../targets/targets';
+import { IDisposable } from '../common/events';
 import { checkVersion } from './version';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
-import { DebugAdapter } from '../adapter/debugAdapter';
 import { Contributions } from '../common/contributionUtils';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 import { NodeAttacher } from '../targets/node/nodeAttacher';
@@ -20,13 +20,14 @@ import { ExtensionHostLauncher } from '../targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
+import { assert } from '../common/logging/logger';
 
-export class Session implements Disposable {
+export class Session implements IDisposable {
   public readonly debugSession: vscode.DebugSession;
   public readonly connection: DapConnection;
   private _server: net.Server;
   private _binder?: Binder;
-  private _onTargetNameChanged?: Disposable;
+  private _onTargetNameChanged?: IDisposable;
 
   constructor(debugSession: vscode.DebugSession) {
     this.debugSession = debugSession;
@@ -38,14 +39,14 @@ export class Session implements Disposable {
       .listen(0);
   }
 
-  listenToTarget(target: Target) {
+  listenToTarget(target: ITarget) {
     if (checkVersion('1.39.0'))
       this._onTargetNameChanged = target.onNameChanged(() => {
         this.debugSession.name = target.name();
       });
   }
 
-  createBinder(context: vscode.ExtensionContext, delegate: BinderDelegate) {
+  createBinder(context: vscode.ExtensionContext, delegate: IBinderDelegate) {
     const pathProvider = new NodePathProvider();
     const launchers = [
       new ExtensionHostAttacher(pathProvider),
@@ -74,14 +75,14 @@ export class Session implements Disposable {
 }
 
 export class SessionManager
-  implements vscode.DebugAdapterDescriptorFactory, Disposable, BinderDelegate {
-  private _disposables: Disposable[] = [];
+  implements vscode.DebugAdapterDescriptorFactory, IDisposable, IBinderDelegate {
+  private _disposables: IDisposable[] = [];
   private _sessions = new Map<string, Session>();
 
-  private _pendingTarget = new Map<string, Target>();
-  private _sessionForTarget = new Map<Target, Promise<Session>>();
+  private _pendingTarget = new Map<string, ITarget>();
+  private _sessionForTarget = new Map<ITarget, Promise<Session>>();
   private _sessionForTargetCallbacks = new Map<
-    Target,
+    ITarget,
     { fulfill: (session: Session) => void; reject: (error: Error) => void }
   >();
 
@@ -95,12 +96,15 @@ export class SessionManager
 
   createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
-    executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const session = new Session(debugSession);
     if (debugSession.configuration['__pendingTargetId']) {
       const pendingTargetId = debugSession.configuration['__pendingTargetId'] as string;
-      const target = this._pendingTarget.get(pendingTargetId)!;
+      const target = this._pendingTarget.get(pendingTargetId);
+      if (!assert(target, `Cannot find target ${pendingTargetId}`)) {
+        return;
+      }
+
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target);
       const callbacks = this._sessionForTargetCallbacks.get(target);
@@ -113,58 +117,56 @@ export class SessionManager
     return session.descriptor();
   }
 
-  async acquireDap(target: Target): Promise<DapConnection> {
+  async acquireDap(target: ITarget): Promise<DapConnection> {
     const session = await this._createSession(target);
     return session.connection;
   }
 
-  _createSession(target: Target): Promise<Session> {
-    if (!this._sessionForTarget.has(target)) {
-      this._sessionForTarget.set(
-        target,
-        new Promise<Session>(async (fulfill, reject) => {
-          this._pendingTarget.set(target.id(), target);
-          this._sessionForTargetCallbacks.set(target, { fulfill, reject });
-
-          let parentDebugSession: vscode.DebugSession;
-          const parentTarget = target.parent();
-          if (parentTarget) {
-            const parentSession = await this._createSession(parentTarget);
-            parentDebugSession = parentSession.debugSession;
-          } else {
-            parentDebugSession = this._sessions.get(target.targetOrigin() as string)!.debugSession;
-          }
-
-          const config = {
-            type: Contributions.ChromeDebugType,
-            name: target.name(),
-            request: 'attach',
-            __pendingTargetId: target.id(),
-          };
-
-          if (checkVersion('1.39.0')) {
-            vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
-              parentSession: parentDebugSession,
-              consoleMode: vscode.DebugConsoleMode.MergeWithParent,
-            });
-          } else {
-            vscode.debug.startDebugging(
-              parentDebugSession.workspaceFolder,
-              config,
-              parentDebugSession,
-            );
-          }
-        }),
-      );
+  _createSession(target: ITarget): Promise<Session> {
+    const existingSession = this._sessionForTarget.get(target);
+    if (existingSession) {
+      return existingSession;
     }
-    return this._sessionForTarget.get(target)!;
+
+    const newSession = new Promise<Session>(async (fulfill, reject) => {
+      this._pendingTarget.set(target.id(), target);
+      this._sessionForTargetCallbacks.set(target, { fulfill, reject });
+
+      let parentDebugSession: vscode.DebugSession;
+      const parentTarget = target.parent();
+      if (parentTarget) {
+        const parentSession = await this._createSession(parentTarget);
+        parentDebugSession = parentSession.debugSession;
+      } else {
+        parentDebugSession = this._sessions.get(target.targetOrigin() as string)!.debugSession;
+      }
+
+      const config = {
+        type: Contributions.ChromeDebugType,
+        name: target.name(),
+        request: 'attach',
+        __pendingTargetId: target.id(),
+      };
+
+      if (checkVersion('1.39.0')) {
+        vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
+          parentSession: parentDebugSession,
+          consoleMode: vscode.DebugConsoleMode.MergeWithParent,
+        });
+      } else {
+        vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, parentDebugSession);
+      }
+    });
+
+    this._sessionForTarget.set(target, newSession);
+    return newSession;
   }
 
-  initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+  initAdapter(): Promise<boolean> {
     return Promise.resolve(false);
   }
 
-  releaseDap(target: Target) {
+  releaseDap(target: ITarget) {
     this._sessionForTarget.delete(target);
     const callbacks = this._sessionForTargetCallbacks.get(target);
     if (callbacks) callbacks.reject(new Error('Target gone'));

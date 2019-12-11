@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as nls from 'vscode-nls';
 import * as vscode from 'vscode';
@@ -19,6 +20,7 @@ import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 
+// eslint-disable-next-line
 const config = require('../package.json');
 
 const localize = nls.loadMessageBundle();
@@ -133,6 +135,18 @@ export function guessWorkingDirectory(program?: string, folder?: vscode.Workspac
   return '${workspaceFolder}';
 }
 
+interface ITSConfig {
+  compilerOptions?: {
+    outDir: string;
+  };
+}
+
+interface IPartialPackageJson {
+  name?: string;
+  main?: string;
+  scripts?: { [key: string]: string };
+}
+
 function createLaunchConfigFromContext(
   folder: vscode.WorkspaceFolder | undefined,
   resolve: boolean,
@@ -149,7 +163,7 @@ function createLaunchConfigFromContext(
     config.noDebug = true;
   }
 
-  const pkg = loadJSON(folder, 'package.json');
+  const pkg = loadJSON<IPartialPackageJson>(folder, 'package.json');
   let program: string | undefined;
   let useSourceMaps = false;
 
@@ -221,9 +235,9 @@ function createLaunchConfigFromContext(
     }
 
     let dir = '';
-    const tsConfig = loadJSON(folder, 'tsconfig.json');
+    const tsConfig = loadJSON<ITSConfig>(folder, 'tsconfig.json');
     if (tsConfig && tsConfig.compilerOptions && tsConfig.compilerOptions.outDir) {
-      const outDir = <string>tsConfig.compilerOptions.outDir;
+      const outDir = tsConfig.compilerOptions.outDir;
       if (!path.isAbsolute(outDir)) {
         dir = outDir;
         if (dir.indexOf('./') === 0) {
@@ -233,7 +247,7 @@ function createLaunchConfigFromContext(
           dir += '/';
         }
       }
-      (config as any)['preLaunchTask'] = 'tsc: build - tsconfig.json';
+      config.preLaunchTask = 'tsc: build - tsconfig.json';
     }
     config['outFiles'] = ['${workspaceFolder}/' + dir + '**/*.js'];
   }
@@ -258,7 +272,7 @@ function isTranspiledLanguage(languagId: string): boolean {
   return languagId === 'typescript' || languagId === 'coffeescript';
 }
 
-function loadJSON(folder: vscode.WorkspaceFolder | undefined, file: string): any {
+function loadJSON<T>(folder: vscode.WorkspaceFolder | undefined, file: string): T | void {
   if (folder) {
     try {
       const content = fs.readFileSync(path.join(folder.uri.fsPath, file), 'utf8');
@@ -274,7 +288,7 @@ function loadJSON(folder: vscode.WorkspaceFolder | undefined, file: string): any
  */
 function guessProgramFromPackage(
   folder: vscode.WorkspaceFolder | undefined,
-  packageJson: any,
+  packageJson: IPartialPackageJson,
   resolve: boolean,
 ): string | undefined {
   let program: string | undefined;
@@ -284,7 +298,7 @@ function guessProgramFromPackage(
       program = packageJson.main;
     } else if (packageJson.scripts && typeof packageJson.scripts.start === 'string') {
       // assume a start script of the form 'node server.js'
-      program = (<string>packageJson.scripts.start).split(' ').pop();
+      program = packageJson.scripts.start.split(' ').pop();
     }
 
     if (program) {

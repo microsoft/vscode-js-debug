@@ -31,8 +31,8 @@ export function spawnAsync(
   return new Promise((resolve, reject) => {
     const process = spawn(command, args, { ...options, stdio: 'pipe' });
 
-    let stderr: Buffer[] = [];
-    let stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    const stdout: Buffer[] = [];
     process.stderr.on('data', chunk => stderr.push(chunk));
     process.stdout.on('data', chunk => stdout.push(chunk));
 

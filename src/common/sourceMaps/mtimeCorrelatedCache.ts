@@ -1,3 +1,6 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { debounce } from '../objUtils';

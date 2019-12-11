@@ -21,6 +21,7 @@ export const enum LogLevel {
 
 export enum LogTag {
   Runtime = 'runtime',
+  RuntimeAssertion = 'runtime.assertion',
   RuntimeLaunch = 'runtime.launch',
   RuntimeTarget = 'runtime.target',
   RuntimeWelcome = 'runtime.welcome',
@@ -51,10 +52,10 @@ export interface ILogItem<T> {
  * Logger interface.
  */
 export interface ILogger {
-  log(item: ILogItem<any>): void;
-  verbose(msg?: string, metadata?: any): void;
-  warn(msg?: string, metadata?: any): void;
-  error(msg?: string, metadata?: any): void;
+  log(item: ILogItem<unknown>): void;
+  verbose(msg?: string, metadata?: unknown): void;
+  warn(msg?: string, metadata?: unknown): void;
+  error(msg?: string, metadata?: unknown): void;
 }
 
 /**
@@ -69,7 +70,7 @@ export interface ILogSink extends IDisposable {
   /**
    * Writes an item to the log sink.
    */
-  write(item: ILogItem<any>): void;
+  write(item: ILogItem<unknown>): void;
 }
 
 /**
@@ -135,7 +136,7 @@ export function resolveLoggerOptions(
   const options = {
     tags: fulfilled.tags,
     level: fulfilled.level === undefined ? LogLevel.Verbose : stringToLogLevel(fulfilled.level),
-    sinks: <ILogSink[]>[],
+    sinks: [] as ILogSink[],
   };
 
   if (fulfilled.console) {

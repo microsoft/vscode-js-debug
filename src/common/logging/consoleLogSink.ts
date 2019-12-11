@@ -29,7 +29,7 @@ export class ConsoleLogSink implements ILogSink {
   /**
    * @inheritdoc
    */
-  public write(item: ILogItem<any>): void {
+  public write(item: ILogItem<unknown>): void {
     const category =
       item.level > LogLevel.Error ? 'stderr' : item.level === LogLevel.Warn ? 'console' : 'stdout';
     let output = `[${getLogLevel(item.level)}@${getFormattedTimeString()}] [${item.tag}]`;

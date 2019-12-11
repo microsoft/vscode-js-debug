@@ -1,9 +1,10 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
 import {
-  CustomBreakpoint,
+  ICustomBreakpoint,
   CustomBreakpointId,
   customBreakpoints,
 } from '../adapter/customBreakpoints';
@@ -17,7 +18,7 @@ class Breakpoint {
   enabled: boolean;
   treeItem: vscode.TreeItem;
 
-  constructor(cb: CustomBreakpoint, enabled: boolean) {
+  constructor(cb: ICustomBreakpoint, enabled: boolean) {
     this.id = cb.id;
     this.enabled = enabled;
     this.label = `${cb.group}: ${cb.title}`;

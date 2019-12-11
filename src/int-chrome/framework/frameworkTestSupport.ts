@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as path from 'path';
 const puppeteer = require('puppeteer');
@@ -71,7 +72,7 @@ export class TestProjectSpec {
     const pathComponents = reversedSlashesRelativePath.split('/');
     const projectAbsolutePath = path.join(...[DATA_ROOT].concat(pathComponents));
     const projectSrc = path.join(projectAbsolutePath, sourceDir);
-    let props: ProjectSpecProps = { projectRoot: projectAbsolutePath, projectSrc };
+    const props: ProjectSpecProps = { projectRoot: projectAbsolutePath, projectSrc };
     return new TestProjectSpec(props, staticUrl);
   }
 

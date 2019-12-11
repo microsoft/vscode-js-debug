@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import * as util from 'util';
 import * as fs from 'fs';
@@ -88,7 +89,7 @@ export function getDeferred<T>(): Promise<IDeferred<T>> {
     let reject: IDeferred<T>['reject'] = () => {
       throw new Error('Deferred was rejected before initialization');
     };
-    let promise = new Promise<T>((_resolve, _reject) => {
+    const promise = new Promise<T>((_resolve, _reject) => {
       resolve = _resolve;
       reject = _reject;
     });

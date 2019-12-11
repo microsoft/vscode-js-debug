@@ -1,12 +1,13 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
 import * as nls from 'vscode-nls';
 
 export type CustomBreakpointId = string;
 
-export interface CustomBreakpoint {
+export interface ICustomBreakpoint {
   id: string;
   title: string;
   group: string;
@@ -14,26 +15,27 @@ export interface CustomBreakpoint {
   apply: (cdp: Cdp.Api, enabled: boolean) => Promise<boolean>;
 }
 
-const map: Map<string, CustomBreakpoint> = new Map();
+const map: Map<string, ICustomBreakpoint> = new Map();
 
-export function customBreakpoints(): Map<string, CustomBreakpoint> {
+export function customBreakpoints(): Map<string, ICustomBreakpoint> {
   if (map.size) return map;
 
   const localize = nls.loadMessageBundle();
 
-  function g(group: string, breakpoints: CustomBreakpoint[]) {
+  function g(group: string, breakpoints: ICustomBreakpoint[]) {
     for (const b of breakpoints) {
       b.group = group;
       map.set(b.id, b);
     }
   }
 
-  function i(instrumentation: string, maybeTitle?: string): CustomBreakpoint {
+  function i(instrumentation: string, maybeTitle?: string): ICustomBreakpoint {
     const title = maybeTitle || instrumentation;
     return {
       id: 'instrumentation:' + instrumentation,
       title,
       group: '',
+      // eslint-disable-next-line
       details: (data: any): { short: string; long: string } => {
         if (instrumentation === 'webglErrorFired') {
           let errorName = data['webglErrorName'];
@@ -74,25 +76,25 @@ export function customBreakpoints(): Map<string, CustomBreakpoint> {
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
         if (enabled)
           return !!(await cdp.DOMDebugger.setInstrumentationBreakpoint({
-            eventName: instrumentation!,
+            eventName: instrumentation,
           }));
         else
           return !!(await cdp.DOMDebugger.removeInstrumentationBreakpoint({
-            eventName: instrumentation!,
+            eventName: instrumentation,
           }));
       },
     };
   }
 
-  function e(eventName: string, target?: string | string[], title?: string): CustomBreakpoint {
+  function e(eventName: string, target?: string | string[], title?: string): ICustomBreakpoint {
     const eventTargets =
       target === undefined ? '*' : typeof target === 'string' ? [target] : target;
     return {
       id: 'listener:' + eventName,
       title: title || eventName,
       group: '',
-      details: (data: any): { short: string; long: string } => {
-        const eventTargetName = (data['targetName'] || '*').toLowerCase();
+      details: (data: { targetName?: string }): { short: string; long: string } => {
+        const eventTargetName = (data.targetName || '*').toLowerCase();
         return {
           short: eventTargetName + '.' + eventName,
           long: localize(

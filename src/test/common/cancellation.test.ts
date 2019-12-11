@@ -33,7 +33,7 @@ describe('CancellationToken', () => {
   });
 
   it('cancel happens only once', () => {
-    let source = new CancellationTokenSource();
+    const source = new CancellationTokenSource();
     expect(source.token.isCancellationRequested).to.equal(false);
 
     let cancelCount = 0;
@@ -52,7 +52,7 @@ describe('CancellationToken', () => {
   it('cancel calls all listeners', () => {
     let count = 0;
 
-    let source = new CancellationTokenSource();
+    const source = new CancellationTokenSource();
     source.token.onCancellationRequested(() => {
       count += 1;
     });
@@ -87,7 +87,7 @@ describe('CancellationToken', () => {
   it('dispose calls no listeners', () => {
     let count = 0;
 
-    let source = new CancellationTokenSource();
+    const source = new CancellationTokenSource();
     source.token.onCancellationRequested(() => {
       count += 1;
     });
@@ -100,7 +100,7 @@ describe('CancellationToken', () => {
   it('dispose calls no listeners (unless told to cancel)', () => {
     let count = 0;
 
-    let source = new CancellationTokenSource();
+    const source = new CancellationTokenSource();
     source.token.onCancellationRequested(() => {
       count += 1;
     });
@@ -111,8 +111,8 @@ describe('CancellationToken', () => {
   });
 
   it('parent cancels child', () => {
-    let parent = new CancellationTokenSource();
-    let child = new CancellationTokenSource(parent.token);
+    const parent = new CancellationTokenSource();
+    const child = new CancellationTokenSource(parent.token);
 
     let count = 0;
     child.token.onCancellationRequested(() => (count += 1));

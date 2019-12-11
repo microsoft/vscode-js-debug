@@ -3,8 +3,9 @@
  *--------------------------------------------------------*/
 
 import { CancellationToken } from 'vscode';
-import { EventEmitter, Event } from './events';
+import { EventEmitter, IEvent } from './events';
 import { IDisposable } from './disposable';
+import { getDeferred } from './promiseUtil';
 
 /**
  * Thrown from `cancellableRace` if cancellation is requested.
@@ -24,12 +25,11 @@ export function timeoutPromise<T>(
     return Promise.reject(new TaskCancelledError(message || 'Task cancelled'));
   }
 
-  let didTimeout: () => void;
-  const cancellationPromise = new Promise<void>(resolve => (didTimeout = resolve));
-  const disposable = cancellation.onCancellationRequested(didTimeout!);
+  const didTimeout = getDeferred<void>();
+  const disposable = cancellation.onCancellationRequested(didTimeout.resolve);
 
   return Promise.race([
-    cancellationPromise.then(() => {
+    didTimeout.promise.then(() => {
       throw new TaskCancelledError(message || 'Task cancelled');
     }),
     promise.finally(() => disposable.dispose()),
@@ -63,7 +63,7 @@ const shortcutEvent = Object.freeze(function(callback, context?): IDisposable {
       clearTimeout(handle);
     },
   };
-} as Event<any>);
+} as IEvent<void>);
 
 export const NeverCancelled: CancellationToken = Object.freeze({
   isCancellationRequested: false,
@@ -95,7 +95,7 @@ export class CancellationTokenSource {
     const cts = new CancellationTokenSource(parent);
     const token = (cts._token = new MutableToken());
 
-    let timer = setTimeout(() => token.cancel(), timeout);
+    const timer = setTimeout(() => token.cancel(), timeout);
     token.onCancellationRequested(() => clearTimeout(timer));
 
     return cts;
@@ -122,7 +122,7 @@ export class CancellationTokenSource {
     }
   }
 
-  dispose(cancel: boolean = false): void {
+  dispose(cancel = false): void {
     if (cancel) {
       this.cancel();
     }
@@ -140,10 +140,8 @@ export class CancellationTokenSource {
 }
 
 class MutableToken implements CancellationToken {
-  private _isCancelled: boolean = false;
-  private _emitter: EventEmitter<any> | null = null;
-
-  constructor() {}
+  private _isCancelled = false;
+  private _emitter: EventEmitter<void> | null = null;
 
   public cancel() {
     if (!this._isCancelled) {
@@ -159,12 +157,12 @@ class MutableToken implements CancellationToken {
     return this._isCancelled;
   }
 
-  get onCancellationRequested(): Event<any> {
+  get onCancellationRequested(): IEvent<void> {
     if (this._isCancelled) {
       return shortcutEvent;
     }
     if (!this._emitter) {
-      this._emitter = new EventEmitter<any>();
+      this._emitter = new EventEmitter<void>();
     }
     return this._emitter.event;
   }

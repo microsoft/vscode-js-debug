@@ -1,5 +1,6 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
 import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
@@ -78,6 +79,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
       ts.ScriptTarget.ESNext,
       /*setParentNodes */ true,
     );
+    // eslint-disable-next-line
     body = (sourceFile.statements[0] as any)['expression']['expression']['expression'][
       'body'
     ] as ts.Block;
@@ -125,7 +127,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
         while (skip < s.length && /^\s$/.test(s[skip])) ++skip;
         s = s.substring(skip);
         const dec = s.startsWith('const') ? 'const' : s.substr(0, 3);
-        let vdpos = vd.pos + skip;
+        const vdpos = vd.pos + skip;
 
         if (vd.parent.kind === ts.SyntaxKind.ForOfStatement) break;
         if (!vd.declarations.length) break;
@@ -170,8 +172,8 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
     if (code[last.end - 1] !== ';') changes.push({ text: ')', start: last.end, end: last.end });
     else changes.push({ text: ')', start: last.end - 1, end: last.end - 1 });
   }
-  while (changes.length) {
-    const change = changes.pop()!;
+  for (let i = changes.length - 1; i >= 0; i--) {
+    const change = changes[i];
     code = code.substr(0, change.start) + change.text + code.substr(change.end);
   }
   return code;

@@ -13,6 +13,11 @@
       "activityBar.background": "#105200"
     },
   },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript"
+  ],
   "search.exclude": {
     "**/testdata": true,
     "**/testWorkspace": true
