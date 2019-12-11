@@ -18,7 +18,7 @@ import { startDebugServer } from '../debugServer';
 import { IDisposable } from '../common/disposable';
 import getPort from 'get-port';
 
-let testLaunchProps: IChromeLaunchConfiguration & Dictionary<unknown> | undefined; // TODO@rob i don't know
+let testLaunchProps: (IChromeLaunchConfiguration & Dictionary<unknown>) | undefined; // TODO@rob i don't know
 
 export const isThisV2 = true;
 export const isThisV1 = !isThisV2;

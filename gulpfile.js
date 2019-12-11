@@ -13,6 +13,7 @@ const ts = require('gulp-typescript');
 const rename = require('gulp-rename');
 const merge = require('merge2');
 const tslint = require('gulp-tslint');
+const prettier = require('gulp-prettier');
 const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
@@ -88,6 +89,7 @@ const tslintOptions = {
   formatter: 'prose',
   rulesDirectory: 'node_modules/tslint-microsoft-contrib',
 };
+const prettierOptions = require('./package.json').prettier;
 
 gulp.task('clean', () =>
   del(['out/**', 'dist/**', 'src/*/package.nls.*.json', 'packages/**', '*.vsix']),
@@ -307,21 +309,27 @@ gulp.task(
   ),
 );
 
-gulp.task('format', () =>
-  gulp
+gulp.task('format', () => {
+  const f = filter(tslintFilter, { restore: true });
+
+  return gulp
     .src(sources)
-    .pipe(filter(tslintFilter))
+    .pipe(prettier(prettierOptions))
+    .pipe(f)
     .pipe(tslint({ ...tslintOptions, fix: true }))
     .pipe(tslint.report({ emitError: false }))
-    .pipe(gulp.dest('./src')),
-);
+    .pipe(f.restore)
+    .pipe(gulp.dest('./src'));
+});
 
 gulp.task('lint', () =>
   gulp
     .src(sources)
+    .pipe(prettier.check(prettierOptions))
     .pipe(filter(tslintFilter))
     .pipe(tslint(tslintOptions))
-    .pipe(tslint.report()),
+    .pipe(tslint.report())
+    .pipe(gulp.dest('./src')),
 );
 
 /**

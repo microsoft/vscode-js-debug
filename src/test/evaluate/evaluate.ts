@@ -320,9 +320,11 @@ describe('evaluate', () => {
     p.dap.evaluate({ expression: `window.w.postMessage('pause');`, context: 'repl' });
     const { threadId: pageThreadId } = await p.dap.once('stopped');
     p.log('Paused');
-    const { id: pageFrameId } = (await p.dap.stackTrace({
-      threadId: pageThreadId!,
-    })).stackFrames[0];
+    const { id: pageFrameId } = (
+      await p.dap.stackTrace({
+        threadId: pageThreadId!,
+      })
+    ).stackFrames[0];
     await p.logger.logEvaluateResult(
       await p.dap.evaluate({ expression: 'self', frameId: pageFrameId }),
       { depth: 0 },
@@ -336,9 +338,11 @@ describe('evaluate', () => {
     const worker = await r.worker();
     const { threadId: workerThreadId } = await worker.dap.once('stopped');
     p.log('Paused');
-    const { id: workerFrameId } = (await worker.dap.stackTrace({
-      threadId: workerThreadId!,
-    })).stackFrames[0];
+    const { id: workerFrameId } = (
+      await worker.dap.stackTrace({
+        threadId: workerThreadId!,
+      })
+    ).stackFrames[0];
     await worker.logger.logEvaluateResult(
       await worker.dap.evaluate({ expression: 'self', frameId: workerFrameId }),
       { depth: 0 },
@@ -359,7 +363,10 @@ describe('evaluate', () => {
         params.text.substring(0, params.column - 1) +
         '|' +
         params.text.substring(params.column - 1);
-      p.log(completions.targets.filter(c => c.label.startsWith('cd')), `"${text}": `);
+      p.log(
+        completions.targets.filter(c => c.label.startsWith('cd')),
+        `"${text}": `,
+      );
     }
 
     await logCompletions({ line: 1, column: 1, text: '' });

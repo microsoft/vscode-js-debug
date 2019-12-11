@@ -85,9 +85,14 @@ export class GoldenText {
       .replace(/[^-0-9a-zа-яё]/gi, '');
 
     const testFileBase = path.resolve(
-      __dirname, '..', '..', '..', 'src', 'test',
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'src',
+      'test',
       path.relative(__dirname, path.dirname(testFilePath)),
-      fileFriendlyTestName
+      fileFriendlyTestName,
     );
 
     const platformPath = testFileBase + `.${process.platform}.txt`;
@@ -108,10 +113,7 @@ export class GoldenText {
 
       // Replace it with the ${replacementString} and a forward-slashed version
       // of the rest of the line.
-      value = value.replace(
-        re,
-        (_match, trailing) => replacement + forceForwardSlashes(trailing),
-      );
+      value = value.replace(re, (_match, trailing) => replacement + forceForwardSlashes(trailing));
     };
 
     value = String(value);

@@ -23,8 +23,8 @@ before(async () => {
     servers.map(server => {
       return new Promise((resolve, reject) => {
         let error = '';
-        server.stderr?.on('data', data => error += data.toString());
-        server.stdout?.on('data', data => error += data.toString());
+        server.stderr?.on('data', data => (error += data.toString()));
+        server.stdout?.on('data', data => (error += data.toString()));
         server.once('error', reject);
         server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
         server.once('message', resolve);
@@ -43,7 +43,11 @@ interface IIntegrationState {
   r: TestRoot;
 }
 
-const itIntegratesBasic = (test: string, fn: (s: IIntegrationState) => Promise<void> | void, testFunction: TestFunction | ExclusiveTestFunction = it) =>
+const itIntegratesBasic = (
+  test: string,
+  fn: (s: IIntegrationState) => Promise<void> | void,
+  testFunction: TestFunction | ExclusiveTestFunction = it,
+) =>
   testFunction(test, async function() {
     const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
     const root = new TestRoot(golden, this.test!.fullTitle());
@@ -64,10 +68,14 @@ const itIntegratesBasic = (test: string, fn: (s: IIntegrationState) => Promise<v
     }
   });
 
-itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.only);
-itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) => itIntegratesBasic(test, fn, it.skip);
+itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) =>
+  itIntegratesBasic(test, fn, it.only);
+itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) =>
+  itIntegratesBasic(test, fn, it.skip);
 export const itIntegrates = itIntegratesBasic;
 
 afterEach(async () => {
-  await del([`${forceForwardSlashes(testFixturesDir)}/**`], { force: true /* delete outside cwd */ });
+  await del([`${forceForwardSlashes(testFixturesDir)}/**`], {
+    force: true /* delete outside cwd */,
+  });
 });

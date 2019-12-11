@@ -34,4 +34,4 @@ export interface ISourcePathResolver {
 }
 
 // Script tags in html have line/column numbers offset relative to the actual script start.
-export type InlineScriptOffset = { lineOffset: number, columnOffset: number };
+export type InlineScriptOffset = { lineOffset: number; columnOffset: number };

@@ -18,5 +18,9 @@ export interface IProgramLauncher {
   /**
    * Executes the program.
    */
-  launchProgram(binary: string, args: INodeLaunchConfiguration, context: ILaunchContext): Promise<IProgram>;
+  launchProgram(
+    binary: string,
+    args: INodeLaunchConfiguration,
+    context: ILaunchContext,
+  ): Promise<IProgram>;
 }

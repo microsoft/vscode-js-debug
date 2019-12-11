@@ -10,7 +10,6 @@ import { TelemetryReporter } from '../telemetry/telemetryReporter';
  * An extension of the DAP connection class which publishes all messages which are received
  */
 export class MessageEmitterConnection extends DapConnection {
-
   private readonly _messageEventEmitter = new EventEmitter<Message>();
   public readonly onMessage = this._messageEventEmitter.event;
   public readonly initialized = new EventEmitter<TelemetryReporter>();
@@ -38,7 +37,10 @@ export class MessageEmitterConnection extends DapConnection {
 export class ChildConnection extends DapConnection {
   private _messageSubscription: Disposable;
 
-  constructor(private readonly parentConnection: MessageEmitterConnection, private readonly sessionId: string|undefined) {
+  constructor(
+    private readonly parentConnection: MessageEmitterConnection,
+    private readonly sessionId: string | undefined,
+  ) {
     super();
     this._telemetryReporter = parentConnection.telemetryReporter;
 
@@ -46,8 +48,8 @@ export class ChildConnection extends DapConnection {
       this._telemetryReporter = telemetryReporter;
     });
 
-    this._messageSubscription = parentConnection.onMessage((msg) => {
-      if(msg.sessionId === this.sessionId) {
+    this._messageSubscription = parentConnection.onMessage(msg => {
+      if (msg.sessionId === this.sessionId) {
         super._onMessage(msg, msg.__receivedTime || [0, 0]);
       }
     });

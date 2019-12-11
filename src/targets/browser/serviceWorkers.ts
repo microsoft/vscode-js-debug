@@ -16,7 +16,7 @@ export class ServiceWorkerRegistration {
   }
 }
 
-export class ServiceWorkerVersion  {
+export class ServiceWorkerVersion {
   readonly registration: ServiceWorkerRegistration;
   readonly revisions: Cdp.ServiceWorker.ServiceWorkerVersion[] = [];
   readonly id: string;
@@ -25,7 +25,10 @@ export class ServiceWorkerVersion  {
   private _status: Cdp.ServiceWorker.ServiceWorkerVersionStatus;
   private _runningStatus: Cdp.ServiceWorker.ServiceWorkerVersionRunningStatus;
 
-  constructor(registration: ServiceWorkerRegistration, payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
+  constructor(
+    registration: ServiceWorkerRegistration,
+    payload: Cdp.ServiceWorker.ServiceWorkerVersion,
+  ) {
     this.registration = registration;
     this.id = payload.versionId;
     this.scriptURL = payload.scriptURL;
@@ -37,8 +40,7 @@ export class ServiceWorkerVersion  {
   addRevision(payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
     if (this._targetId && payload.targetId && this._targetId !== payload.targetId)
       console.error(`${this._targetId} !== ${payload.targetId}`);
-    if (payload.targetId)
-      this._targetId = payload.targetId;
+    if (payload.targetId) this._targetId = payload.targetId;
     this._status = payload.status;
     this._runningStatus = payload.runningStatus;
     this.revisions.unshift(payload);
@@ -59,8 +61,7 @@ export class ServiceWorkerVersion  {
   label(): string {
     const parsedURL = new URL(this.registration.scopeURL);
     let path = parsedURL.pathname.substr(1);
-    if (path.endsWith('/'))
-      path = path.substring(0, path.length - 1);
+    if (path.endsWith('/')) path = path.substring(0, path.length - 1);
     let scope = path ? path : `${parsedURL.host}`;
     const status = this._status === 'activated' ? '' : ` ${this._status}`;
     const runningStatus = this._runningStatus === 'running' ? '' : ` ${this._runningStatus}`;
@@ -92,15 +93,17 @@ export class ServiceWorkerModel implements Disposable {
 
   attached(cdp: Cdp.Api) {
     this._targets.add(cdp);
-    if (this._cdp)
-      return;
+    if (this._cdp) return;
     // Use first available target connection.
     this._cdp = cdp;
     cdp.ServiceWorker.enable({});
-    cdp.ServiceWorker.on('workerRegistrationUpdated', event => this._workerRegistrationsUpdated(event.registrations));
-    cdp.ServiceWorker.on('workerVersionUpdated', event => this._workerVersionsUpdated(event.versions));
-    if (ServiceWorkerModel._mode !== 'normal')
-      this.setMode(ServiceWorkerModel._mode);
+    cdp.ServiceWorker.on('workerRegistrationUpdated', event =>
+      this._workerRegistrationsUpdated(event.registrations),
+    );
+    cdp.ServiceWorker.on('workerVersionUpdated', event =>
+      this._workerVersionsUpdated(event.versions),
+    );
+    if (ServiceWorkerModel._mode !== 'normal') this.setMode(ServiceWorkerModel._mode);
   }
 
   async detached(cdp: Cdp.Api) {
@@ -125,7 +128,9 @@ export class ServiceWorkerModel implements Disposable {
     return result;
   }
 
-  registration(registrationId: Cdp.ServiceWorker.RegistrationID): ServiceWorkerRegistration | undefined {
+  registration(
+    registrationId: Cdp.ServiceWorker.RegistrationID,
+  ): ServiceWorkerRegistration | undefined {
     return this._registrations.get(registrationId);
   }
 
@@ -137,12 +142,10 @@ export class ServiceWorkerModel implements Disposable {
         version = new ServiceWorkerVersion(registration, payload);
         registration.versions.set(payload.versionId, version);
       }
-      if (payload.targetId)
-        this._versions.set(payload.targetId, version);
+      if (payload.targetId) this._versions.set(payload.targetId, version);
       version.addRevision(payload);
       if (version.status() === 'redundant' && version.runningStatus() === 'stopped') {
-        if (payload.targetId)
-          this._versions.delete(payload.targetId);
+        if (payload.targetId) this._versions.delete(payload.targetId);
         registration.versions.delete(version.id);
       }
     }
@@ -155,8 +158,7 @@ export class ServiceWorkerModel implements Disposable {
         if (!this._registrations.has(payload.registrationId)) debugger;
         this._registrations.delete(payload.registrationId);
       } else {
-        if (this._registrations.has(payload.registrationId))
-          return;
+        if (this._registrations.has(payload.registrationId)) return;
         this._registrations.set(payload.registrationId, new ServiceWorkerRegistration(payload));
       }
     }
@@ -165,13 +167,11 @@ export class ServiceWorkerModel implements Disposable {
 
   static setModeForAll(mode: ServiceWorkerMode) {
     ServiceWorkerModel._mode = mode;
-    for (const instance of ServiceWorkerModel._instances)
-      instance.setMode(mode);
+    for (const instance of ServiceWorkerModel._instances) instance.setMode(mode);
   }
 
   setMode(mode: ServiceWorkerMode) {
-    if (!this._cdp)
-      return;
+    if (!this._cdp) return;
     this._cdp.ServiceWorker.setForceUpdateOnPageLoad({ forceUpdateOnPageLoad: mode === 'force' });
     for (const cdp of this._targets.values()) {
       if (mode === 'bypass') {
@@ -184,13 +184,11 @@ export class ServiceWorkerModel implements Disposable {
   }
 
   async stopWorker(targetId: Cdp.Target.TargetID) {
-    if (!this._cdp)
-      return;
+    if (!this._cdp) return;
     const version = this.version(targetId);
-    if (!version)
-      return;
+    if (!version) return;
     await this._cdp.ServiceWorker.stopWorker({
-      versionId: version.id
+      versionId: version.id,
     });
   }
 }

@@ -7,12 +7,20 @@ import Cdp from '../cdp/api';
 import { StackFrame } from './stackTrace';
 import { positionToOffset } from '../common/sourceUtils';
 
-export async function completions(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, line: number, column: number): Promise<Dap.CompletionItem[]> {
+export async function completions(
+  cdp: Cdp.Api,
+  executionContextId: number | undefined,
+  stackFrame: StackFrame | undefined,
+  expression: string,
+  line: number,
+  column: number,
+): Promise<Dap.CompletionItem[]> {
   const sourceFile = ts.createSourceFile(
     'test.js',
     expression,
     ts.ScriptTarget.ESNext,
-    /*setParentNodes */ true);
+    /*setParentNodes */ true,
+  );
 
   // Find the last expression to autocomplete, in the form of "foo.bar.x|"
   let prefix: string | undefined;
@@ -24,8 +32,7 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   let length = 0;
 
   function traverse(node: ts.Node) {
-    if (prefix !== undefined)
-      return;
+    if (prefix !== undefined) return;
     if (node.pos < offset && offset <= node.end) {
       switch (node.kind) {
         case ts.SyntaxKind.Identifier: {
@@ -35,7 +42,9 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
         }
         case ts.SyntaxKind.ElementAccessExpression: {
           const ae = node as ts.ElementAccessExpression;
-          prefix = ae.argumentExpression.getText().substring(0, offset - ae.argumentExpression.getStart());
+          prefix = ae.argumentExpression
+            .getText()
+            .substring(0, offset - ae.argumentExpression.getStart());
           if (prefix.startsWith(`'`) || prefix.startsWith(`"`)) {
             quoteBefore = '[' + prefix[0];
             quoteAfter = prefix[0] + ']';
@@ -51,37 +60,44 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
         }
         case ts.SyntaxKind.PropertyAccessExpression: {
           const pe = node as ts.PropertyAccessExpression;
-          if (hasSideEffects(pe.expression))
-            break;
+          if (hasSideEffects(pe.expression)) break;
           prefix = pe.name.getText().substring(0, offset - pe.name.getStart());
           toevaluate = pe.expression.getText();
           break;
         }
       }
     }
-    if (prefix === undefined)
-      ts.forEachChild(node, traverse);
+    if (prefix === undefined) ts.forEachChild(node, traverse);
   }
 
   traverse(sourceFile);
 
   if (toevaluate)
-    return (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!, {
-      length, quoteBefore, quoteAfter
-    })) || [];
+    return (
+      (await completePropertyAccess(cdp, executionContextId, stackFrame, toevaluate, prefix!, {
+        length,
+        quoteBefore,
+        quoteAfter,
+      })) || []
+    );
 
   // No object to autocomplete on, fallback to globals.
   for (const global of ['self', 'global', 'this']) {
-    const items = await completePropertyAccess(cdp, executionContextId, stackFrame, global, prefix || '', {});
-    if (!items)
-      continue;
+    const items = await completePropertyAccess(
+      cdp,
+      executionContextId,
+      stackFrame,
+      global,
+      prefix || '',
+      {},
+    );
+    if (!items) continue;
 
     if (stackFrame) {
       // When evaluating on a call frame, also autocomplete with scope variables.
       const names = new Set(items.map(item => item.label));
       for (const completion of await stackFrame.completions()) {
-        if (names.has(completion.label))
-          continue;
+        if (names.has(completion.label)) continue;
         names.add(completion.label);
         items.push(completion);
       }
@@ -91,9 +107,16 @@ export async function completions(cdp: Cdp.Api, executionContextId: number | und
   return [];
 }
 
-type CompletionOptions = { quoteBefore?: string, quoteAfter?: string, length?: number };
+type CompletionOptions = { quoteBefore?: string; quoteAfter?: string; length?: number };
 
-async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number | undefined, stackFrame: StackFrame | undefined, expression: string, prefix: string, options: CompletionOptions): Promise<Dap.CompletionItem[] | undefined> {
+async function completePropertyAccess(
+  cdp: Cdp.Api,
+  executionContextId: number | undefined,
+  stackFrame: StackFrame | undefined,
+  expression: string,
+  prefix: string,
+  options: CompletionOptions,
+): Promise<Dap.CompletionItem[] | undefined> {
   const params = {
     expression: `
       (() => {
@@ -125,19 +148,22 @@ async function completePropertyAccess(cdp: Cdp.Api, executionContextId: number |
     objectGroup: 'console',
     silent: true,
     includeCommandLineAPI: true,
-    returnByValue: true
+    returnByValue: true,
     // completePropertyAccess has numerous false positive side effects, so we can't use throwOnSideEffect.
   };
-  const response = (stackFrame && stackFrame.callFrameId())
-    ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId: stackFrame.callFrameId()! })
-    : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
-  if (!response || response.exceptionDetails)
-    return;
+  const response =
+    stackFrame && stackFrame.callFrameId()
+      ? await cdp.Debugger.evaluateOnCallFrame({
+          ...params,
+          callFrameId: stackFrame.callFrameId()!,
+        })
+      : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
+  if (!response || response.exceptionDetails) return;
 
   return response.result.value.map((item: Dap.CompletionItem) => ({
     ...item,
     length: options.length ? options.length : undefined,
-    label: (options.quoteBefore || '') + item.label + (options.quoteAfter || '')
+    label: (options.quoteBefore || '') + item.label + (options.quoteAfter || ''),
   }));
 }
 
@@ -146,12 +172,13 @@ function hasSideEffects(node: ts.Node): boolean {
   traverse(node);
 
   function traverse(node: ts.Node) {
-    if (result)
-      return;
-    if (node.kind === ts.SyntaxKind.CallExpression ||
+    if (result) return;
+    if (
+      node.kind === ts.SyntaxKind.CallExpression ||
       node.kind === ts.SyntaxKind.NewExpression ||
       node.kind === ts.SyntaxKind.DeleteExpression ||
-      node.kind === ts.SyntaxKind.ClassExpression) {
+      node.kind === ts.SyntaxKind.ClassExpression
+    ) {
       result = true;
       return;
     }

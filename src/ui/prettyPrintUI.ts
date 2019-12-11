@@ -11,76 +11,92 @@ let isDebugging = false;
 let neverSuggestPrettyPrinting = false;
 let prettyPrintedUris: Set<string> = new Set();
 
-export function registerPrettyPrintActions(context: vscode.ExtensionContext, debugSessionTracker: DebugSessionTracker) {
-  context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()));
-  context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()));
+export function registerPrettyPrintActions(
+  context: vscode.ExtensionContext,
+  debugSessionTracker: DebugSessionTracker,
+) {
+  context.subscriptions.push(
+    vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()),
+  );
+  context.subscriptions.push(
+    vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()),
+  );
 
-  function sourceForUri(uri: vscode.Uri): ({ session?: vscode.DebugSession, source: Dap.Source }) {
+  function sourceForUri(uri: vscode.Uri): { session?: vscode.DebugSession; source: Dap.Source } {
     const query = queryString.parse(uri.query);
     const sessionId = query['session'] as string;
     const source: Dap.Source = {
       path: uri.path,
-      sourceReference: +(query['ref'] as string)
+      sourceReference: +(query['ref'] as string),
     };
     return { session: debugSessionTracker.sessions.get(sessionId), source };
   }
 
-  context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
-    if (!editor || !isDebugging ||
-      editor.document.languageId !== 'javascript' ||
-      editor.document.uri.scheme !== 'debug' ||
-      neverSuggestPrettyPrinting) {
-      return;
-    }
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(async editor => {
+      if (
+        !editor ||
+        !isDebugging ||
+        editor.document.languageId !== 'javascript' ||
+        editor.document.uri.scheme !== 'debug' ||
+        neverSuggestPrettyPrinting
+      ) {
+        return;
+      }
 
-    //const { source } = await factory.sourceForUri(editor.document.uri);
+      //const { source } = await factory.sourceForUri(editor.document.uri);
 
-    // The rest of the code is about suggesting the pretty printing upon editor change.
-    // We only want to do it once per document.
+      // The rest of the code is about suggesting the pretty printing upon editor change.
+      // We only want to do it once per document.
 
-    if (prettyPrintedUris.has(editor.document.uri.toString()) ||
-      !isMinified(editor.document)) {
-      return;
-    }
+      if (prettyPrintedUris.has(editor.document.uri.toString()) || !isMinified(editor.document)) {
+        return;
+      }
 
-    const { session, source } = sourceForUri(editor.document.uri);
-    if (!session)
-      return;
-    const canPrettyPrintResponse = await session.customRequest('canPrettyPrintSource', { source });
-    if (!canPrettyPrintResponse || !canPrettyPrintResponse.canPrettyPrint)
-      return;
+      const { session, source } = sourceForUri(editor.document.uri);
+      if (!session) return;
+      const canPrettyPrintResponse = await session.customRequest('canPrettyPrintSource', {
+        source,
+      });
+      if (!canPrettyPrintResponse || !canPrettyPrintResponse.canPrettyPrint) return;
 
-    prettyPrintedUris.add(editor.document.uri.toString());
-    const response = await vscode.window.showInformationMessage(
-      'This JavaScript file seems to be minified.\nWould you like to pretty print it?',
-      'Yes', 'No', 'Never');
+      prettyPrintedUris.add(editor.document.uri.toString());
+      const response = await vscode.window.showInformationMessage(
+        'This JavaScript file seems to be minified.\nWould you like to pretty print it?',
+        'Yes',
+        'No',
+        'Never',
+      );
 
-    if (response === 'Never') {
-      neverSuggestPrettyPrinting = true;
-      return;
-    }
+      if (response === 'Never') {
+        neverSuggestPrettyPrinting = true;
+        return;
+      }
 
-    if (response === 'Yes')
-      vscode.commands.executeCommand(Contributions.PrettyPrintCommand);
-  }));
+      if (response === 'Yes') vscode.commands.executeCommand(Contributions.PrettyPrintCommand);
+    }),
+  );
 
-  context.subscriptions.push(vscode.commands.registerCommand(Contributions.PrettyPrintCommand, async e => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor)
-      return;
-    const uri = editor.document.uri;
-    if (uri.scheme !== 'debug')
-      return;
-    const { session, source } = sourceForUri(editor.document.uri);
-    if (session)
-      session.customRequest('prettyPrintSource', { source, line: editor.selection.start.line + 1, column: editor.selection.start.character + 1 });
-  }));
+  context.subscriptions.push(
+    vscode.commands.registerCommand(Contributions.PrettyPrintCommand, async e => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      const uri = editor.document.uri;
+      if (uri.scheme !== 'debug') return;
+      const { session, source } = sourceForUri(editor.document.uri);
+      if (session)
+        session.customRequest('prettyPrintSource', {
+          source,
+          line: editor.selection.start.line + 1,
+          column: editor.selection.start.character + 1,
+        });
+    }),
+  );
 }
 
 function updateDebuggingStatus() {
   isDebugging = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'pwa';
-  if (!isDebugging)
-    prettyPrintedUris.clear();
+  if (!isDebugging) prettyPrintedUris.clear();
 }
 
 function isMinified(document: vscode.TextDocument): boolean {
@@ -88,8 +104,7 @@ function isMinified(document: vscode.TextDocument): boolean {
   const linesToCheck = 10;
   for (let i = 0; i < linesToCheck && i < document.lineCount; ++i) {
     const line = document.lineAt(i).text;
-    if (line.length > maxNonMinifiedLength && !line.startsWith('//#'))
-      return true;
+    if (line.length > maxNonMinifiedLength && !line.startsWith('//#')) return true;
   }
   return false;
 }

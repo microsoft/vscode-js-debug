@@ -15,8 +15,8 @@ describe('browser launch', () => {
 
     const p = await r.launchUrlAndLoad('index.html', {
       env: {
-        TZ: 'GMT'
-      }
+        TZ: 'GMT',
+      },
     });
 
     await p.logger.evaluateAndLog(`new Date().getTimezoneOffset()`);
@@ -25,7 +25,7 @@ describe('browser launch', () => {
 
   itIntegrates('runtime args', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html', {
-      runtimeArgs: ['--window-size=678,456']
+      runtimeArgs: ['--window-size=678,456'],
     });
 
     await p.logger.evaluateAndLog(`[window.outerWidth, window.outerHeight]`);
@@ -37,7 +37,7 @@ describe('browser launch', () => {
     expect(readdirSync(testFixturesDir)).to.be.empty;
 
     await r.launchUrlAndLoad('index.html', {
-      userDataDir: testFixturesDir
+      userDataDir: testFixturesDir,
     });
 
     expect(readdirSync(testFixturesDir)).to.not.be.empty;

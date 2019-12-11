@@ -49,7 +49,11 @@ suite('Breakpoints', () => {
       });
 
       expect(result).to.deep.equal({
-        breakpoints: [{ line: 4, column: 9 }, { line: 4, column: 16 }, { line: 4, column: 24 }],
+        breakpoints: [
+          { line: 4, column: 9 },
+          { line: 4, column: 16 },
+          { line: 4, column: 24 },
+        ],
       });
     });
 

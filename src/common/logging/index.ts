@@ -31,7 +31,7 @@ export enum LogTag {
   CdpReceive = 'cdp.receive',
   DapSend = 'dap.send',
   DapReceive = 'dap.receive',
-  Internal = 'internal'
+  Internal = 'internal',
 }
 
 /**

@@ -9,31 +9,27 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { UnmappedReason } from './sources';
 
 export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
-    const uiLocation = await stackFrame.uiLocation();
-    if (!uiLocation)
-      return false;
+  const uiLocation = await stackFrame.uiLocation();
+  if (!uiLocation) return false;
 
-    if (!uiLocation.source._sourceMapUrl)
-      return false;
+  if (!uiLocation.source._sourceMapUrl) return false;
 
-    if (!uiLocation.isMapped && uiLocation.unmappedReason !== UnmappedReason.MapDisabled)
-      return true;
+  if (!uiLocation.isMapped && uiLocation.unmappedReason !== UnmappedReason.MapDisabled) return true;
 
-    return false;
+  return false;
 }
 
 export class SmartStepper {
   private _smartStepCount = 0;
 
-  constructor(private launchConfig: AnyLaunchConfiguration) { }
+  constructor(private launchConfig: AnyLaunchConfiguration) {}
 
   private resetSmartStepCount(): void {
     this._smartStepCount = 0;
   }
 
   async shouldSmartStep(pausedDetails: PausedDetails): Promise<boolean> {
-    if (!this.launchConfig.smartStep)
-      return false;
+    if (!this.launchConfig.smartStep) return false;
 
     const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];
     const should = await shouldSmartStepStackFrame(frame);
@@ -42,7 +38,7 @@ export class SmartStepper {
     } else {
       if (this._smartStepCount > 0) {
         logger.verbose(LogTag.Internal, `smartStep: skipped ${this._smartStepCount} steps`);
-        this.resetSmartStepCount()
+        this.resetSmartStepCount();
       }
     }
 

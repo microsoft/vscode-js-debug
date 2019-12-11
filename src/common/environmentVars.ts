@@ -1,4 +1,9 @@
-import { getCaseInsensitiveProperty, caseInsensitiveMerge, removeUndefined, removeNulls } from './objUtils';
+import {
+  getCaseInsensitiveProperty,
+  caseInsensitiveMerge,
+  removeUndefined,
+  removeNulls,
+} from './objUtils';
 import * as path from 'path';
 
 /**

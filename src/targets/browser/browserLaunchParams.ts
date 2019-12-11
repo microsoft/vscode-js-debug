@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { URL } from "url";
-import { AnyChromeConfiguration } from "../../configuration";
+import { URL } from 'url';
+import { AnyChromeConfiguration } from '../../configuration';
 
 export function baseURL(params: AnyChromeConfiguration): string | undefined {
   if (params.url) {
@@ -11,11 +11,8 @@ export function baseURL(params: AnyChromeConfiguration): string | undefined {
       baseUrl.pathname = '/';
       baseUrl.search = '';
       baseUrl.hash = '';
-      if (baseUrl.protocol === 'data:')
-        return undefined;
+      if (baseUrl.protocol === 'data:') return undefined;
       return baseUrl.href;
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 }
-

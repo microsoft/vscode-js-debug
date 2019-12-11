@@ -143,15 +143,24 @@ describe('urlUtils', () => {
     });
 
     it('ignores the url protocol', () => {
-      testAll('https://localhost', [['https://outlook.com', false], ['http://localhost', true]]);
+      testAll('https://localhost', [
+        ['https://outlook.com', false],
+        ['http://localhost', true],
+      ]);
     });
 
     it('really ignores the url protocol', () => {
-      testAll('localhost', [['https://outlook.com', false], ['http://localhost', true]]);
+      testAll('localhost', [
+        ['https://outlook.com', false],
+        ['http://localhost', true],
+      ]);
     });
 
     it('is case-insensitive', () => {
-      testAll('http://LOCALHOST', [['http://localhost/site', false], ['http://localhost', true]]);
+      testAll('http://LOCALHOST', [
+        ['http://localhost/site', false],
+        ['http://localhost', true],
+      ]);
     });
 
     it('does not return substring fuzzy match as in pre 0.1.9', () => {
@@ -191,11 +200,17 @@ describe('urlUtils', () => {
     });
 
     it('matches an ending slash', () => {
-      testAll('http://localhost', [['http://localhost/', true], ['http://localhost', true]]);
+      testAll('http://localhost', [
+        ['http://localhost/', true],
+        ['http://localhost', true],
+      ]);
     });
 
     it('works with file://', () => {
-      testAll('/foo/bar', [['file:///foo/bar', true], ['http://localhost', false]]);
+      testAll('/foo/bar', [
+        ['file:///foo/bar', true],
+        ['http://localhost', false],
+      ]);
     });
 
     it('works with file:// + query params', () => {

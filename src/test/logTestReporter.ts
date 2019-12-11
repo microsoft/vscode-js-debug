@@ -24,18 +24,14 @@ class LoggingReporter extends mocha.reporters.Spec {
   }
 
   private async dumpLogs(test: mocha.Runnable): Promise<void> {
-    if (!(test instanceof mocha.Test))
-      return;
+    if (!(test instanceof mocha.Test)) return;
 
     const logPath = getLogPathForTest(test.fullTitle());
     try {
       const contents = (await util.promisify(fs.readFile)(logPath)).toString();
       console.log(`##vso[build.uploadlog]${logPath}`);
-      contents
-        .split('\n')
-        .forEach(s => console.error(s.substr(0, 1000)));
-    } catch (e) {
-    }
+      contents.split('\n').forEach(s => console.error(s.substr(0, 1000)));
+    } catch (e) {}
   }
 }
 

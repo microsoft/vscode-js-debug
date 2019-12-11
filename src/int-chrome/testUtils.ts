@@ -81,15 +81,19 @@ export interface IDeferred<T> {
 
 export function getDeferred<T>(): Promise<IDeferred<T>> {
   return new Promise(r => {
-      // Promise callback is called synchronously
-      let resolve: IDeferred<T>['resolve'] = () => { throw new Error('Deferred was resolved before intialization'); };
-      let reject: IDeferred<T>['reject'] = () => { throw new Error('Deferred was rejected before initialization'); };
-      let promise = new Promise<T>((_resolve, _reject) => {
-          resolve = _resolve;
-          reject = _reject;
-      });
+    // Promise callback is called synchronously
+    let resolve: IDeferred<T>['resolve'] = () => {
+      throw new Error('Deferred was resolved before intialization');
+    };
+    let reject: IDeferred<T>['reject'] = () => {
+      throw new Error('Deferred was rejected before initialization');
+    };
+    let promise = new Promise<T>((_resolve, _reject) => {
+      resolve = _resolve;
+      reject = _reject;
+    });
 
-      r({ resolve, reject, promise });
+    r({ resolve, reject, promise });
   });
 }
 

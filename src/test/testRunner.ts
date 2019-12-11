@@ -42,8 +42,11 @@ export async function run(): Promise<void> {
       reporterEnabled: `${reporterPathRelativeToMocha}, mocha-junit-reporter`,
       mochaJunitReporterReporterOptions: {
         testsuitesTitle: `tests ${process.platform}`,
-        mochaFile: join(process.env.BUILD_ARTIFACTSTAGINGDIRECTORY, `test-results/${process.platform}-test-results.xml`)
-      }
+        mochaFile: join(
+          process.env.BUILD_ARTIFACTSTAGINGDIRECTORY,
+          `test-results/${process.platform}-test-results.xml`,
+        ),
+      },
     };
   } else {
     mochaOpts.reporter = reporterPathRelativeToMocha;

@@ -3,15 +3,19 @@
 
 import Dap from '../dap/api';
 import { HighResolutionTime, calculateElapsedTime } from '../utils/performance';
-import { OpsReportBatcher, UnbatchedOpReport, TelemetryOperationProperties } from './opsReportBatch';
+import {
+  OpsReportBatcher,
+  UnbatchedOpReport,
+  TelemetryOperationProperties,
+} from './opsReportBatch';
 import { EventEmitter } from '../common/events';
 
 export type TelemetryEntityProperties = object;
-export type OutcomeAndTime = { time: number, succesful: boolean };
+export type OutcomeAndTime = { time: number; succesful: boolean };
 
 enum RequestOutcome {
   Succesful,
-  Failed
+  Failed,
 }
 
 export interface TelemetryReporterStrategy {
@@ -42,9 +46,18 @@ export class TelemetryReporter {
     this._strategy.report(`${this._strategy.eventsPrefix}/${event}`, data);
   }
 
-  private reportOutcome(receivedTime: [number, number], dapCommand: string, properties: TelemetryEntityProperties, outcome: RequestOutcome) {
+  private reportOutcome(
+    receivedTime: [number, number],
+    dapCommand: string,
+    properties: TelemetryEntityProperties,
+    outcome: RequestOutcome,
+  ) {
     const elapsedTime = calculateElapsedTime(receivedTime);
-    const entityProperties = { ...properties, time: this._strategy.adjustElapsedTime(elapsedTime), succesful: outcome === RequestOutcome.Succesful };
+    const entityProperties = {
+      ...properties,
+      time: this._strategy.adjustElapsedTime(elapsedTime),
+      succesful: outcome === RequestOutcome.Succesful,
+    };
     this._strategy.report(`${this._strategy.eventsPrefix}/` + dapCommand, entityProperties);
   }
 }
@@ -102,10 +115,10 @@ export class RawTelemetryReporterToDap implements RawTelemetryReporter {
       this._dap.output({
         category: 'telemetry',
         output: entityName,
-        data: entityProperties
+        data: entityProperties,
       });
     }
-  };
+  }
 }
 
 // Pattern: The pattern recognizes file paths and captures the file name and the colon at the end.
@@ -114,7 +127,6 @@ export class RawTelemetryReporterToDap implements RawTelemetryReporter {
 //                                C  :     \  foo\ble  \  (fi.ts:)
 const extractFileNamePattern = /(?:[A-z]:)?(?:[\\/][^:]*)+[\\/]([^:]*:)/g;
 
-
 interface ErrorTelemetryProperties {
   message: string | undefined;
   name: string | undefined;
@@ -122,12 +134,11 @@ interface ErrorTelemetryProperties {
 }
 
 export function extractErrorDetails(e: any): { error: ErrorTelemetryProperties } {
-  const message = ("" + e.message) || e.toString();
-  const name = "" + e.name;
+  const message = '' + e.message || e.toString();
+  const name = '' + e.name;
 
-  const stack = typeof e.stack === 'string'
-    ? e.stack.replace(extractFileNamePattern, '$1')
-    : undefined;
+  const stack =
+    typeof e.stack === 'string' ? e.stack.replace(extractFileNamePattern, '$1') : undefined;
 
   return { error: { message, name, stack } };
 }

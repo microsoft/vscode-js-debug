@@ -29,7 +29,7 @@ const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
 class Configurator {
   private _setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
-  private _setBreakpointsParams: {params: Dap.SetBreakpointsParams, ids: number[]}[];
+  private _setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
   private _customBreakpoints = new Set<string>();
 
   constructor(dapPromise: Promise<Dap.Api>) {
@@ -40,9 +40,12 @@ class Configurator {
   _listen(dap: Dap.Api) {
     dap.on('setBreakpoints', async params => {
       const ids = generateBreakpointIds(params);
-      this._setBreakpointsParams.push({params, ids});
-      const breakpoints = ids.map(id => ({ id, verified: false,
-        message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`) })); // TODO: Put a useful message here
+      this._setBreakpointsParams.push({ params, ids });
+      const breakpoints = ids.map(id => ({
+        id,
+        verified: false,
+        message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+      })); // TODO: Put a useful message here
       return { breakpoints };
     });
 
@@ -52,14 +55,12 @@ class Configurator {
     });
 
     dap.on('enableCustomBreakpoints', async params => {
-      for (const id of params.ids)
-        this._customBreakpoints.add(id);
+      for (const id of params.ids) this._customBreakpoints.add(id);
       return {};
     });
 
     dap.on('disableCustomBreakpoints', async params => {
-      for (const id of params.ids)
-        this._customBreakpoints.delete(id);
+      for (const id of params.ids) this._customBreakpoints.delete(id);
       return {};
     });
 
@@ -79,7 +80,7 @@ class Configurator {
   async configure(adapter: DebugAdapter) {
     if (this._setExceptionBreakpointsParams)
       await adapter.setExceptionBreakpoints(this._setExceptionBreakpointsParams);
-    for (const {params, ids} of this._setBreakpointsParams)
+    for (const { params, ids } of this._setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.enableCustomBreakpoints({ ids: Array.from(this._customBreakpoints) });
     await adapter.configurationDone({});
@@ -88,47 +89,51 @@ class Configurator {
 
 export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
-    const server = net.createServer(async socket => {
-      const pathProvider = new NodePathProvider();
-      const launchers = [
-        new ExtensionHostAttacher(pathProvider),
-        new ExtensionHostLauncher(pathProvider),
-        new NodeAttacher(pathProvider),
-        new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-        new BrowserLauncher(storagePath),
-        new BrowserAttacher(),
-      ];
+    const server = net
+      .createServer(async socket => {
+        const pathProvider = new NodePathProvider();
+        const launchers = [
+          new ExtensionHostAttacher(pathProvider),
+          new ExtensionHostLauncher(pathProvider),
+          new NodeAttacher(pathProvider),
+          new NodeLauncher(pathProvider, [
+            new SubprocessProgramLauncher(),
+            new TerminalProgramLauncher(),
+          ]),
+          new BrowserLauncher(storagePath),
+          new BrowserAttacher(),
+        ];
 
-      const binderDelegate: BinderDelegate = {
-        async acquireDap(target: Target): Promise<DapConnection> {
-          // Note: we can make multi-session work through custom dap message:
-          // - spin up a separate server for this session;
-          // - ask ui part to create a session for us and connect to the port;
-          // - marshall target name changes across.
-          return connection;
-        },
+        const binderDelegate: BinderDelegate = {
+          async acquireDap(target: Target): Promise<DapConnection> {
+            // Note: we can make multi-session work through custom dap message:
+            // - spin up a separate server for this session;
+            // - ask ui part to create a session for us and connect to the port;
+            // - marshall target name changes across.
+            return connection;
+          },
 
-        async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
-          await configurator.configure(debugAdapter);
-          return true;
-        },
+          async initAdapter(debugAdapter: DebugAdapter, target: Target): Promise<boolean> {
+            await configurator.configure(debugAdapter);
+            return true;
+          },
 
-        releaseDap(target: Target): void {
-        }
-      };
+          releaseDap(target: Target): void {},
+        };
 
-      const connection = new DapConnection();
-      new Binder(binderDelegate, connection, launchers, 'targetOrigin');
-      const configurator = new Configurator(connection.dap());
+        const connection = new DapConnection();
+        new Binder(binderDelegate, connection, launchers, 'targetOrigin');
+        const configurator = new Configurator(connection.dap());
 
-      connection.init(socket, socket);
-    }).listen(port, () => {
-      console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
-      resolve({
-        dispose: () => {
-          server.close();
-        }
+        connection.init(socket, socket);
+      })
+      .listen(port, () => {
+        console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
+        resolve({
+          dispose: () => {
+            server.close();
+          },
+        });
       });
-    });
   });
 }

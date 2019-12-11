@@ -35,10 +35,14 @@ class ChildSession {
   private _nameChangedSubscription: Disposable;
   public readonly connection: ChildConnection;
 
-  constructor(public readonly sessionId: string, connection: MessageEmitterConnection, target: Target) {
+  constructor(
+    public readonly sessionId: string,
+    connection: MessageEmitterConnection,
+    target: Target,
+  ) {
     this.connection = new ChildConnection(connection, sessionId);
     this._nameChangedSubscription = target.onNameChanged(() => {
-      this.connection.dap().then(dap => dap.process({ name: target.name() }))
+      this.connection.dap().then(dap => dap.process({ name: target.name() }));
     });
   }
 
@@ -49,13 +53,15 @@ class ChildSession {
 }
 
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
-
   const _childSessionsForTarget = new Map<Target, ChildSession>();
   const pathProvider = new NodePathProvider();
   const launchers = [
     new ExtensionHostAttacher(pathProvider),
     new ExtensionHostLauncher(pathProvider),
-    new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
+    new NodeLauncher(pathProvider, [
+      new SubprocessProgramLauncher(),
+      new TerminalProgramLauncher(),
+    ]),
     new NodeAttacher(pathProvider),
     new BrowserLauncher(storagePath),
     new BrowserAttacher(),
@@ -63,24 +69,23 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
 
   const binderDelegate: BinderDelegate = {
     async acquireDap(target: Target): Promise<DapConnection> {
-
       const sessionId = crypto.randomBytes(20).toString('hex');
       const config = {
         type: Contributions.ChromeDebugType,
         name: target.name(),
         request: 'attach',
         __pendingTargetId: target.id(),
-        sessionId
+        sessionId,
       };
 
       // Custom message currently not part of DAP
       connection._send({
         seq: 0,
-        command: "attachedChildSession",
+        command: 'attachedChildSession',
         type: 'request',
         arguments: {
-          config
-        }
+          config,
+        },
       });
 
       const childSession = new ChildSession(sessionId, connection, target);
@@ -94,15 +99,14 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
 
     releaseDap(target: Target): void {
       const childSession = _childSessionsForTarget.get(target);
-      if(childSession !== undefined) {
+      if (childSession !== undefined) {
         childSession.dispose();
       }
       _childSessionsForTarget.delete(target);
-    }
+    },
   };
 
-
-  const connection = new MessageEmitterConnection()
+  const connection = new MessageEmitterConnection();
   // First child uses no sessionId. Could potentially use something predefined that both sides know about, or have it passed with either
   // cmd line args or launch config if we decide that all sessions should definitely have an id
   const firstConnection = new ChildConnection(connection, undefined);
@@ -112,10 +116,12 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
 }
 
 const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : undefined;
-if(debugServerPort !== undefined) {
-  const server = net.createServer(async socket => {
-    main(socket, socket);
-  }).listen(debugServerPort);
+if (debugServerPort !== undefined) {
+  const server = net
+    .createServer(async socket => {
+      main(socket, socket);
+    })
+    .listen(debugServerPort);
   console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
 } else {
   main(process.stdin, process.stdout);

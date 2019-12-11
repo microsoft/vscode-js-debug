@@ -21,11 +21,13 @@ puppeteerSuite('Multiple breakpoints on a React project', reactTestSpecification
 
       const { setStateBreakpoint, setNewValBreakpoint } = await counterBreakpoints.batch(
         async () => ({
-          stepInBreakpoint: await (await counterBreakpoints.unsetHitCountBreakpoint({
-            text: 'this.stepIn();',
-            boundText: 'stepIn()',
-            hitCountCondition: 'bad bad hit count breakpoint condition = 2',
-          })).setWithoutVerifying(), // We want the invalid condition to be first to see that the other 2 breakpoints are actually set
+          stepInBreakpoint: await (
+            await counterBreakpoints.unsetHitCountBreakpoint({
+              text: 'this.stepIn();',
+              boundText: 'stepIn()',
+              hitCountCondition: 'bad bad hit count breakpoint condition = 2',
+            })
+          ).setWithoutVerifying(), // We want the invalid condition to be first to see that the other 2 breakpoints are actually set
 
           setNewValBreakpoint: await counterBreakpoints.breakpoint({
             text: 'const newval = this.state.count + 1',

@@ -2,7 +2,11 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { CustomBreakpoint, CustomBreakpointId, customBreakpoints } from '../adapter/customBreakpoints';
+import {
+  CustomBreakpoint,
+  CustomBreakpointId,
+  customBreakpoints,
+} from '../adapter/customBreakpoints';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
 import { Contributions } from '../common/contributionUtils';
@@ -36,13 +40,12 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
 
   constructor(debugSessionTracker: DebugSessionTracker) {
     this.breakpoints = [];
-    for (const cb of customBreakpoints().values())
-      this.breakpoints.push(new Breakpoint(cb, false));
+    for (const cb of customBreakpoints().values()) this.breakpoints.push(new Breakpoint(cb, false));
 
     this._debugSessionTracker = debugSessionTracker;
     debugSessionTracker.onSessionAdded(session => {
       session.customRequest('enableCustomBreakpoints', {
-        ids: this.breakpoints.filter(b => b.enabled).map(b => b.id)
+        ids: this.breakpoints.filter(b => b.enabled).map(b => b.id),
       });
     });
   }
@@ -52,8 +55,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   }
 
   async getChildren(item?: Breakpoint): Promise<Breakpoint[]> {
-    if (!item)
-      return this.breakpoints.filter(b => b.enabled).sort(Breakpoint.compare);
+    if (!item) return this.breakpoints.filter(b => b.enabled).sort(Breakpoint.compare);
     return [];
   }
 
@@ -62,49 +64,56 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint> {
   }
 
   addBreakpoints(breakpoints: Breakpoint[]) {
-    for (const breakpoint of breakpoints)
-      breakpoint.enabled = true;
+    for (const breakpoint of breakpoints) breakpoint.enabled = true;
     const ids = breakpoints.map(b => b.id);
     for (const session of this._debugSessionTracker.sessions.values())
-      session.customRequest('enableCustomBreakpoints', { ids })
+      session.customRequest('enableCustomBreakpoints', { ids });
     this._onDidChangeTreeData.fire(undefined);
   }
 
   removeBreakpoints(breakpointIds: CustomBreakpointId[]) {
     const ids = new Set(breakpointIds);
     for (const breakpoint of this.breakpoints) {
-      if (ids.has(breakpoint.id))
-        breakpoint.enabled = false;
+      if (ids.has(breakpoint.id)) breakpoint.enabled = false;
     }
     for (const session of this._debugSessionTracker.sessions.values())
-      session.customRequest('disableCustomBreakpoints', { ids: breakpointIds })
+      session.customRequest('disableCustomBreakpoints', { ids: breakpointIds });
     this._onDidChangeTreeData.fire(undefined);
   }
 }
 
-export function registerCustomBreakpointsUI(context: vscode.ExtensionContext, debugSessionTracker: DebugSessionTracker) {
+export function registerCustomBreakpointsUI(
+  context: vscode.ExtensionContext,
+  debugSessionTracker: DebugSessionTracker,
+) {
   const provider = new BreakpointsDataProvider(debugSessionTracker);
 
   vscode.window.createTreeView('pwa.breakpoints', { treeDataProvider: provider });
-  context.subscriptions.push(vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, e => {
-    const quickPick = vscode.window.createQuickPick();
-    const items = provider.breakpoints.filter(b => !b.enabled);
-    quickPick.items = items;
-    quickPick.onDidAccept(e => {
-      provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
-      quickPick.dispose();
-    });
-    quickPick.show();
-  }));
+  context.subscriptions.push(
+    vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, e => {
+      const quickPick = vscode.window.createQuickPick();
+      const items = provider.breakpoints.filter(b => !b.enabled);
+      quickPick.items = items;
+      quickPick.onDidAccept(e => {
+        provider.addBreakpoints(quickPick.selectedItems as Breakpoint[]);
+        quickPick.dispose();
+      });
+      quickPick.show();
+    }),
+  );
 
-  context.subscriptions.push(vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, e => {
-    provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
-  }));
+  context.subscriptions.push(
+    vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, e => {
+      provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
+    }),
+  );
 
-  context.subscriptions.push(vscode.commands.registerCommand(
-    Contributions.RemoveCustomBreakpointCommand,
-    (treeItem: vscode.TreeItem) => {
-      provider.removeBreakpoints([treeItem.id as string]);
-    },
-  ));
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      Contributions.RemoveCustomBreakpointCommand,
+      (treeItem: vscode.TreeItem) => {
+        provider.removeBreakpoints([treeItem.id as string]);
+      },
+    ),
+  );
 }

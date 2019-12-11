@@ -3,13 +3,17 @@
  *--------------------------------------------------------*/
 
 import { ISourceMapMetadata } from './sourceMap';
-import { ISourceMapRepository, createMetadataForFile, IRelativePattern } from './sourceMapRepository';
+import {
+  ISourceMapRepository,
+  createMetadataForFile,
+  IRelativePattern,
+} from './sourceMapRepository';
 import { NodeSourceMapRepository } from './nodeSourceMapRepository';
 import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 
-type FindTextFn = (typeof import('vscode'))['workspace']['findTextInFiles'];
+type FindTextFn = typeof import('vscode')['workspace']['findTextInFiles'];
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -60,11 +64,10 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
       {
         // todo(connor4312): is this correct way to join globs for search?
         include: forceForwardSlashes(relativePatterns.filter(p => !p.startsWith('!')).join(', ')),
-        exclude:
-          relativePatterns
-            .filter(p => p.startsWith('!'))
-            .map(p => forceForwardSlashes(p.slice(1)))
-            .join(','),
+        exclude: relativePatterns
+          .filter(p => p.startsWith('!'))
+          .map(p => forceForwardSlashes(p.slice(1)))
+          .join(','),
         useIgnoreFiles: false,
         useGlobalIgnoreFiles: false,
         followSymlinks: true,

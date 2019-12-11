@@ -33,8 +33,8 @@ export class BreakpointLocation {
 }
 
 export type IScenarioConfiguration =
-  | IChromeLaunchConfiguration & { scenario: 'launch' }
-  | IChromeAttachConfiguration & { scenario: 'attach' };
+  | (IChromeLaunchConfiguration & { scenario: 'launch' })
+  | (IChromeAttachConfiguration & { scenario: 'attach' });
 
 export interface IDebugAdapterCallbacks {
   registerListeners?: (client: DebugClient) => PromiseOrNot<unknown>;

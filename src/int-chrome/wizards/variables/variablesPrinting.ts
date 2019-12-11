@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 export interface IVariableInformation {
-    name: string;
-    value: string;
-    type?: string;
+  name: string;
+  value: string;
+  type?: string;
 }
 
 /**
@@ -12,10 +12,10 @@ export interface IVariableInformation {
  * the expected variables of a test, and the actual variables of the debuggee
  */
 export function printVariables(variables: IVariableInformation[]): string {
-    const variablesPrinted = variables.map(variable => printVariable(variable));
-    return variablesPrinted.join('\n');
+  const variablesPrinted = variables.map(variable => printVariable(variable));
+  return variablesPrinted.join('\n');
 }
 
 function printVariable(variable: IVariableInformation): string {
-    return `${variable.name} = ${variable.value} (${(variable.type)})`;
+  return `${variable.name} = ${variable.value} (${variable.type})`;
 }

@@ -20,16 +20,23 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
   const tokens: FormatToken[] = [];
 
   function addStringToken(str: string) {
-    if (!str)
-      return;
+    if (!str) return;
     if (tokens.length && tokens[tokens.length - 1].type === 'string')
       tokens[tokens.length - 1].value += str;
-    else
-      tokens.push({ type: 'string', value: str });
+    else tokens.push({ type: 'string', value: str });
   }
 
-  function addSpecifierToken(specifier: string, precision: number | undefined, substitutionIndex: number) {
-    tokens.push({ type: 'specifier', specifier: specifier, precision: precision, substitutionIndex });
+  function addSpecifierToken(
+    specifier: string,
+    precision: number | undefined,
+    substitutionIndex: number,
+  ) {
+    tokens.push({
+      type: 'specifier',
+      specifier: specifier,
+      precision: precision,
+      substitutionIndex,
+    });
   }
 
   let textStart = 0;
@@ -37,8 +44,7 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
   const re = new RegExp(`%%|%(?:(\\d+)\\$)?(?:\\.(\\d*))?([${formatterNames.join('')}])`, 'g');
   for (let match = re.exec(format); !!match; match = re.exec(format)) {
     const matchStart = match.index;
-    if (matchStart > textStart)
-      addStringToken(format.substring(textStart, matchStart));
+    if (matchStart > textStart) addStringToken(format.substring(textStart, matchStart));
 
     if (match[0] === '%%') {
       addStringToken('%');
@@ -54,9 +60,13 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
   }
   addStringToken(format.substring(textStart));
   return tokens;
-};
+}
 
-export function formatMessage<T>(format: string, substitutions: any[], formatters: Formatters<T>): string {
+export function formatMessage<T>(
+  format: string,
+  substitutions: any[],
+  formatters: Formatters<T>,
+): string {
   const tokens = tokenizeFormatString(format, Array.from(formatters.keys()));
   const usedSubstitutionIndexes = new Set<number>();
   const defaultFormatter = formatters.get('')!;
@@ -77,19 +87,17 @@ export function formatMessage<T>(format: string, substitutions: any[], formatter
       continue;
     }
     usedSubstitutionIndexes.add(index);
-    if (token.specifier === 'c')
-      cssFormatApplied = true;
+    if (token.specifier === 'c') cssFormatApplied = true;
     const formatter = formatters.get(token.specifier!) || defaultFormatter;
     builder.append(formatter(substitutions[index], builder.budget()));
   }
 
-  if (cssFormatApplied)
-    builder.append('\x1b[0m');  // clear format
+  if (cssFormatApplied) builder.append('\x1b[0m'); // clear format
 
   for (let i = 0; builder.checkBudget() && i < substitutions.length; ++i) {
-    if (usedSubstitutionIndexes.has(i))
-      continue;
-    if (format || i)  // either we are second argument or we had format.
+    if (usedSubstitutionIndexes.has(i)) continue;
+    if (format || i)
+      // either we are second argument or we had format.
       builder.append(' ');
     builder.append(defaultFormatter(substitutions[i], builder.budget()));
   }
@@ -118,26 +126,21 @@ export function formatCssAsAnsi(style: string): string {
       switch (match[1]) {
         case 'color':
           const color = escapeAnsiColor(match[2]);
-          if (color)
-            escapedSequence += `\x1b[38;5;${color}m`;
+          if (color) escapedSequence += `\x1b[38;5;${color}m`;
           break;
         case 'background':
         case 'background-color':
           const background = escapeAnsiColor(match[2]);
-          if (background)
-            escapedSequence += `\x1b[48;5;${background}m`;
+          if (background) escapedSequence += `\x1b[48;5;${background}m`;
           break;
         case 'font-weight':
-          if (match[2] === 'bold')
-            escapedSequence += '\x1b[1m';
+          if (match[2] === 'bold') escapedSequence += '\x1b[1m';
           break;
         case 'font-style':
-          if (match[2] === 'italic')
-            escapedSequence += '\x1b[3m';
+          if (match[2] === 'italic') escapedSequence += '\x1b[3m';
           break;
         case 'text-decoration':
-          if (match[2] === 'underline')
-            escapedSequence += '\x1b[4m';
+          if (match[2] === 'underline') escapedSequence += '\x1b[4m';
           break;
         default:
         // css not mapped, skip

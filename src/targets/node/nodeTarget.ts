@@ -35,7 +35,7 @@ export class NodeTarget implements Target {
   private _onNameChangedEmitter = new EventEmitter<void>();
   private _onDisconnectEmitter = new EventEmitter<void>();
 
-  private _scriptSkipper?: ScriptSkipper
+  private _scriptSkipper?: ScriptSkipper;
 
   public readonly onDisconnect = this._onDisconnectEmitter.event;
   public readonly onNameChanged = this._onNameChangedEmitter.event;

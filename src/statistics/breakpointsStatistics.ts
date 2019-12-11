@@ -17,9 +17,14 @@ export class BreakpointsStatisticsCalculator {
   private readonly _statisticsById = new Map<number, BreakpointStatistic>();
 
   public registerBreakpoints(manyBreakpoints: Dap.Breakpoint[]): void {
-    manyBreakpoints.filter(breakpoint => breakpoint.id !== undefined).forEach(breakpoint => {
-      this._statisticsById.set(breakpoint.id!, new BreakpointStatistic(breakpoint.verified, false));
-    });
+    manyBreakpoints
+      .filter(breakpoint => breakpoint.id !== undefined)
+      .forEach(breakpoint => {
+        this._statisticsById.set(
+          breakpoint.id!,
+          new BreakpointStatistic(breakpoint.verified, false),
+        );
+      });
   }
 
   public registerResolvedBreakpoint(breakpointId: number) {
@@ -47,10 +52,8 @@ export class BreakpointsStatisticsCalculator {
     let hit = 0;
     for (const singleStatistic of this._statisticsById.values()) {
       count++;
-      if (singleStatistic.hit)
-        hit++;
-      if (singleStatistic.verified)
-        verified++;
+      if (singleStatistic.hit) hit++;
+      if (singleStatistic.verified) verified++;
     }
 
     return { set: count, verified, hit };

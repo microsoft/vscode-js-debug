@@ -11,12 +11,14 @@ import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
 
-export async function prettyPrintAsSourceMap(fileName: string, minified: string): Promise<SourceMap | undefined> {
+export async function prettyPrintAsSourceMap(
+  fileName: string,
+  minified: string,
+): Promise<SourceMap | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
   const to = generatePositions(minified);
-  if (from.length !== to.length)
-    return Promise.resolve(undefined);
+  if (from.length !== to.length) return Promise.resolve(undefined);
 
   const generator = new sourceMap.SourceMapGenerator();
   generator.setSourceContent(fileName, source);
@@ -27,7 +29,7 @@ export async function prettyPrintAsSourceMap(fileName: string, minified: string)
     generator.addMapping({
       source: fileName,
       original: { line: from[i], column: from[i + 1] },
-      generated: { line: to[i], column: to[i + 1] }
+      generated: { line: to[i], column: to[i + 1] },
     });
   }
   return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), {
@@ -40,7 +42,8 @@ function generatePositions(text: string) {
     'file.js',
     text,
     ts.ScriptTarget.ESNext,
-    /*setParentNodes */ false);
+    /*setParentNodes */ false,
+  );
 
   const result: number[] = [];
   let index = 0;
@@ -73,13 +76,16 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
       'file.js',
       code,
       ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true);
-    body = (sourceFile.statements[0] as any)['expression']['expression']['expression']['body'] as ts.Block;
-  } catch(e) {
+      /*setParentNodes */ true,
+    );
+    body = (sourceFile.statements[0] as any)['expression']['expression']['expression'][
+      'body'
+    ] as ts.Block;
+  } catch (e) {
     return;
   }
 
-  const changes: {start: number, end: number, text: string}[] = [];
+  const changes: { start: number; end: number; text: string }[] = [];
   let containsAwait = false;
   let containsReturn = false;
 
@@ -89,13 +95,12 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
         // Expose "class Foo" as "Foo=class Foo"
         const cd = node as ts.ClassDeclaration;
         if (cd.parent === body && cd.name)
-          changes.push({text: cd.name.text + '=', start: cd.pos, end: cd.pos});
+          changes.push({ text: cd.name.text + '=', start: cd.pos, end: cd.pos });
         break;
       case ts.SyntaxKind.FunctionDeclaration:
         // Expose "function foo(..." as "foo=function foo(..."
         const fd = node as ts.FunctionDeclaration;
-        if (fd.name)
-          changes.push({text: fd.name.text + '=', start: fd.pos, end: fd.pos});
+        if (fd.name) changes.push({ text: fd.name.text + '=', start: fd.pos, end: fd.pos });
         return;
       case ts.SyntaxKind.FunctionExpression:
       case ts.SyntaxKind.ArrowFunction:
@@ -106,8 +111,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
         containsAwait = true;
         break;
       case ts.SyntaxKind.ForOfStatement:
-        if ((node as ts.ForOfStatement).awaitModifier)
-          containsAwait = true;
+        if ((node as ts.ForOfStatement).awaitModifier) containsAwait = true;
         break;
       case ts.SyntaxKind.ReturnStatement:
         containsReturn = true;
@@ -118,35 +122,36 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
 
         let s = code.substr(vd.pos);
         let skip = 0;
-        while (skip < s.length && /^\s$/.test(s[skip]))
-          ++skip;
+        while (skip < s.length && /^\s$/.test(s[skip])) ++skip;
         s = s.substring(skip);
-        const dec = (s.startsWith('const')) ? 'const' : s.substr(0, 3);
+        const dec = s.startsWith('const') ? 'const' : s.substr(0, 3);
         let vdpos = vd.pos + skip;
 
-        if (vd.parent.kind === ts.SyntaxKind.ForOfStatement)
-          break;
-        if (!vd.declarations.length)
-          break;
+        if (vd.parent.kind === ts.SyntaxKind.ForOfStatement) break;
+        if (!vd.declarations.length) break;
         if (dec !== 'var') {
           // Do not expose "for (const|let foo".
           if (vd.parent.kind !== ts.SyntaxKind.VariableStatement || vd.parent.parent !== body)
             break;
         }
         const onlyOneDeclaration = vd.declarations.length === 1;
-        changes.push({text: onlyOneDeclaration ? 'void' : 'void (', start: vdpos, end: vdpos + dec.length});
+        changes.push({
+          text: onlyOneDeclaration ? 'void' : 'void (',
+          start: vdpos,
+          end: vdpos + dec.length,
+        });
         for (const declaration of vd.declarations) {
           if (!declaration.initializer) {
-            changes.push({text: '(', start: declaration.pos, end: declaration.pos});
-            changes.push({text: '=undefined)', start: declaration.end, end: declaration.end});
+            changes.push({ text: '(', start: declaration.pos, end: declaration.pos });
+            changes.push({ text: '=undefined)', start: declaration.end, end: declaration.end });
             continue;
           }
-          changes.push({text: '(', start: declaration.pos, end: declaration.pos});
-          changes.push({text: ')', start: declaration.end, end: declaration.end});
+          changes.push({ text: '(', start: declaration.pos, end: declaration.pos });
+          changes.push({ text: ')', start: declaration.end, end: declaration.end });
         }
         if (!onlyOneDeclaration) {
           const last = vd.declarations[vd.declarations.length - 1];
-          changes.push({text: ')', start: last.end, end: last.end});
+          changes.push({ text: ')', start: last.end, end: last.end });
         }
         break;
     }
@@ -155,18 +160,15 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   traverse(body);
 
   // Top-level return is not allowed.
-  if (!containsAwait || containsReturn)
-    return;
+  if (!containsAwait || containsReturn) return;
 
   // If we expect the value (last statement is an expression),
   // return it from the inner function.
   const last = body.statements[body.statements.length - 1];
   if (last.kind === ts.SyntaxKind.ExpressionStatement) {
-    changes.push({text: 'return (', start: last.pos, end: last.pos});
-    if (code[last.end - 1] !== ';')
-      changes.push({text: ')', start: last.end, end: last.end});
-    else
-      changes.push({text: ')', start: last.end - 1, end: last.end - 1});
+    changes.push({ text: 'return (', start: last.pos, end: last.pos });
+    if (code[last.end - 1] !== ';') changes.push({ text: ')', start: last.end, end: last.end });
+    else changes.push({ text: ')', start: last.end - 1, end: last.end - 1 });
   }
   while (changes.length) {
     const change = changes.pop()!;
@@ -177,8 +179,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
 
 export function wrapObjectLiteral(code: string): string {
   // Only parenthesize what appears to be an object literal.
-  if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code)))
-    return code;
+  if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code))) return code;
 
   // Function constructor.
   const parse = (async () => 0).constructor;
@@ -194,7 +195,9 @@ export function wrapObjectLiteral(code: string): string {
   }
 }
 
-export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, 'hash'>>): Promise<SourceMap | undefined> {
+export async function loadSourceMap(
+  options: Readonly<Omit<ISourceMapMetadata, 'hash'>>,
+): Promise<SourceMap | undefined> {
   let content: string;
   try {
     content = await urlUtils.fetch(options.sourceMapUrl);
@@ -208,18 +211,14 @@ export async function loadSourceMap(options: Readonly<Omit<ISourceMapMetadata, '
   }
 
   try {
-    return new SourceMap(
-      await new sourceMap.SourceMapConsumer(content),
-      options,
-    );
+    return new SourceMap(await new sourceMap.SourceMapConsumer(content), options);
   } catch (err) {
     logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);
   }
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {
-  if (!content)
-    return;
+  if (!content) return;
   const name = 'sourceMappingURL';
   const length = content.length;
   const nameLength = name.length;
@@ -228,33 +227,30 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   let equalSignPos = 0;
   while (true) {
     pos = content.lastIndexOf(name, pos);
-    if (pos === -1)
-      return;
+    if (pos === -1) return;
     // Check for a /\/[\/*][@#][ \t]/ regexp (length of 4) before found name.
-    if (pos < 4)
-      return;
+    if (pos < 4) return;
     pos -= 4;
-    if (content[pos] !== '/')
-      continue;
-    if (content[pos + 1] !== '/')
-      continue;
-    if (content[pos + 2] !== '#' && content[pos + 2] !== '@')
-      continue;
-    if (content[pos + 3] !== ' ' && content[pos + 3] !== '\t')
-      continue;
+    if (content[pos] !== '/') continue;
+    if (content[pos + 1] !== '/') continue;
+    if (content[pos + 2] !== '#' && content[pos + 2] !== '@') continue;
+    if (content[pos + 3] !== ' ' && content[pos + 3] !== '\t') continue;
     equalSignPos = pos + 4 + nameLength;
-    if (equalSignPos < length && content[equalSignPos] !== '=')
-      continue;
+    if (equalSignPos < length && content[equalSignPos] !== '=') continue;
     break;
   }
 
   let sourceMapUrl = content.substring(equalSignPos + 1);
-  const newLine = sourceMapUrl.indexOf("\n");
-  if (newLine !== -1)
-    sourceMapUrl = sourceMapUrl.substring(0, newLine);
+  const newLine = sourceMapUrl.indexOf('\n');
+  if (newLine !== -1) sourceMapUrl = sourceMapUrl.substring(0, newLine);
   sourceMapUrl = sourceMapUrl.trim();
   for (let i = 0; i < sourceMapUrl.length; ++i) {
-    if (sourceMapUrl[i] === '"' || sourceMapUrl[i] === '\'' || sourceMapUrl[i] === ' ' || sourceMapUrl[i] === '\t')
+    if (
+      sourceMapUrl[i] === '"' ||
+      sourceMapUrl[i] === "'" ||
+      sourceMapUrl[i] === ' ' ||
+      sourceMapUrl[i] === '\t'
+    )
       return;
   }
   return sourceMapUrl;
@@ -271,9 +267,10 @@ export function rewriteLogPoint(code: string): string {
       'file.js',
       code,
       ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true);
+      /*setParentNodes */ true,
+    );
     body = sourceFile.statements;
-  } catch(e) {
+  } catch (e) {
     return `console.log(${code});`;
   }
   if (!body.length) {
@@ -302,12 +299,19 @@ export function rewriteLogPoint(code: string): string {
   return `(function(){${code.substring(0, last.pos)};${logText};return false;})()`;
 }
 
-export async function checkContentHash(absolutePath: string, contentHash?: string, contentOverride?: string): Promise<string | undefined> {
+export async function checkContentHash(
+  absolutePath: string,
+  contentHash?: string,
+  contentOverride?: string,
+): Promise<string | undefined> {
   if (!contentHash) {
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content = (typeof contentOverride === 'string') ? Buffer.from(contentOverride, 'utf8') : await fsUtils.readFileRaw(absolutePath);
+  const content =
+    typeof contentOverride === 'string'
+      ? Buffer.from(contentOverride, 'utf8')
+      : await fsUtils.readFileRaw(absolutePath);
 
   const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;
@@ -316,32 +320,33 @@ export async function checkContentHash(absolutePath: string, contentHash?: strin
 export function positionToOffset(text: string, line: number, column: number): number {
   let offset = 0;
   const lines = text.split('\n');
-  for (let l = 1; l < line; ++l)
-    offset += lines[l - 1].length + 1;
+  for (let l = 1; l < line; ++l) offset += lines[l - 1].length + 1;
   offset += column - 1;
   return offset;
 }
 
 export function pathGlobToBlackboxedRegex(glob: string): string {
-  return escapeRegexSpecialChars(glob, '*')
+  return (
+    escapeRegexSpecialChars(glob, '*')
       .replace(/([^*]|^)\*([^*]|$)/g, '$1.*$2') // * -> .*
-      .replace(/\*\*(\\\/|\\\\)?/g, '(.*\\\/)?') // **/ -> (.*\/)?
+      .replace(/\*\*(\\\/|\\\\)?/g, '(.*\\/)?') // **/ -> (.*\/)?
 
       // Just to simplify
       .replace(/\.\*\\\/\.\*/g, '.*') // .*\/.* -> .*
       .replace(/\.\*\.\*/g, '.*') // .*.* -> .*
 
       // Match either slash direction
-      .replace(/\\\/|\\\\/g, '[\/\\\\]'); // / -> [/|\], \ -> [/|\]
+      .replace(/\\\/|\\\\/g, '[/\\\\]')
+  ); // / -> [/|\], \ -> [/|\]
 }
 
 const regexChars = '/\\.?*()^${}|[]+';
 export function escapeRegexSpecialChars(str: string, except?: string): string {
   const useRegexChars = regexChars
-      .split('')
-      .filter(c => !except || except.indexOf(c) < 0)
-      .join('')
-      .replace(/[\\\]]/g, '\\$&');
+    .split('')
+    .filter(c => !except || except.indexOf(c) < 0)
+    .join('')
+    .replace(/[\\\]]/g, '\\$&');
 
   const r = new RegExp(`[${useRegexChars}]`, 'g');
   return str.replace(r, '\\$&');

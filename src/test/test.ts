@@ -12,7 +12,14 @@ import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
 import { EventEmitter } from '../common/events';
 import * as utils from '../common/urlUtils';
-import { chromeLaunchConfigDefaults, IChromeLaunchConfiguration, INodeAttachConfiguration, INodeLaunchConfiguration, nodeAttachConfigDefaults, nodeLaunchConfigDefaults } from '../configuration';
+import {
+  chromeLaunchConfigDefaults,
+  IChromeLaunchConfiguration,
+  INodeAttachConfiguration,
+  INodeLaunchConfiguration,
+  nodeAttachConfigDefaults,
+  nodeLaunchConfigDefaults,
+} from '../configuration';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
@@ -36,14 +43,24 @@ export const testFixturesDir = path.join(workspaceFolder, testFixturesDirName);
 
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
-    Promise.resolve().then().then().then().then().then().then().then().then().then().then().then(() => {
-      this.push(chunk, encoding);
-      callback();
-    });
+    Promise.resolve()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then()
+      .then(() => {
+        this.push(chunk, encoding);
+        callback();
+      });
   }
 
-  _read(size: number) {
-  }
+  _read(size: number) {}
 }
 
 export type Log = (value: any, title?: string, stabilizeNames?: string[]) => typeof value;
@@ -66,16 +83,16 @@ class Session {
 
   async _init(): Promise<Dap.InitializeResult> {
     await this.adapterConnection.dap();
-    const [r, ] = await Promise.all([
+    const [r] = await Promise.all([
       this.dap.initialize({
         clientID: 'pwa-test',
         adapterID: 'pwa',
         linesStartAt1: true,
         columnsStartAt1: true,
         pathFormat: 'path',
-        supportsVariablePaging: true
+        supportsVariablePaging: true,
       }),
-      this.dap.once('initialized')
+      this.dap.once('initialized'),
     ]);
     return r;
   }
@@ -131,33 +148,36 @@ export class TestP implements ITestHandle {
   async evaluate(expression: string, sourceUrl?: string): Promise<Cdp.Runtime.EvaluateResult> {
     ++this._evaluateCounter;
     this.log(`Evaluating#${this._evaluateCounter}: ${expression}`);
-    if (sourceUrl === undefined)
-      sourceUrl = `//# sourceURL=eval${this._evaluateCounter}.js`;
-    else if (sourceUrl)
-      sourceUrl = `//# sourceURL=${this.completeUrl(sourceUrl)}`;
-    return this._cdp!.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(result => {
-      if (!result) {
-        this.log(expression, 'Error evaluating');
-        debugger;
-        throw new Error('Error evaluating "' + expression + '"');
-      } else if (result.exceptionDetails) {
-        this.log(result.exceptionDetails, 'Error evaluating');
-        debugger;
-        throw new Error('Error evaluating "' + expression + '"');
-      }
-      return result;
-    });
+    if (sourceUrl === undefined) sourceUrl = `//# sourceURL=eval${this._evaluateCounter}.js`;
+    else if (sourceUrl) sourceUrl = `//# sourceURL=${this.completeUrl(sourceUrl)}`;
+    return this._cdp!.Runtime.evaluate({ expression: expression + `\n${sourceUrl}` }).then(
+      result => {
+        if (!result) {
+          this.log(expression, 'Error evaluating');
+          debugger;
+          throw new Error('Error evaluating "' + expression + '"');
+        } else if (result.exceptionDetails) {
+          this.log(result.exceptionDetails, 'Error evaluating');
+          debugger;
+          throw new Error('Error evaluating "' + expression + '"');
+        }
+        return result;
+      },
+    );
   }
 
   async addScriptTag(relativePath: string): Promise<void> {
-    await this._cdp!.Runtime.evaluate({expression: `
+    await this._cdp!.Runtime.evaluate({
+      expression: `
       new Promise(f => {
         var script = document.createElement('script');
         script.src = '${this._root.completeUrl(relativePath)}';
         script.onload = () => f(undefined);
         document.head.appendChild(script);
       })
-    `, awaitPromise: true});
+    `,
+      awaitPromise: true,
+    });
   }
 
   waitForSource(filter?: string): Promise<Dap.LoadedSourceEventParams> {
@@ -187,7 +207,10 @@ export class TestP implements ITestHandle {
     this._connection = this._root._browserLauncher.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
-    const { sessionId } = (await testSession.Target.attachToTarget({ targetId: this._target.id(), flatten: true }))!;
+    const { sessionId } = (await testSession.Target.attachToTarget({
+      targetId: this._target.id(),
+      flatten: true,
+    }))!;
     this._cdp = this._connection.createSession(sessionId);
     await this._session._init();
     if (this._target.parent()) {
@@ -292,7 +315,9 @@ export class TestRoot {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = utils.platformPathToPreferredCase(path.join(__dirname, '..', '..', '..', 'testWorkspace'));
+    this._workspaceRoot = utils.platformPathToPreferredCase(
+      path.join(__dirname, '..', '..', '..', 'testWorkspace'),
+    );
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     this._root = new Session();
@@ -309,22 +334,29 @@ export class TestRoot {
     const storagePath = path.join(__dirname, '..', '..');
     this._browserLauncher = new BrowserLauncher(storagePath);
     const pathProvider = new NodePathProvider();
-    this.binder = new Binder(this, this._root.adapterConnection, [
-      this._browserLauncher,
-      new NodeLauncher(pathProvider, [new SubprocessProgramLauncher(), new TerminalProgramLauncher()]),
-      new NodeAttacher(pathProvider)
-    ], '0');
+    this.binder = new Binder(
+      this,
+      this._root.adapterConnection,
+      [
+        this._browserLauncher,
+        new NodeLauncher(pathProvider, [
+          new SubprocessProgramLauncher(),
+          new TerminalProgramLauncher(),
+        ]),
+        new NodeAttacher(pathProvider),
+      ],
+      '0',
+    );
 
     this.initialize = this._root._init();
 
     this._launchCallback = () => {};
     this._workerCallback = () => {};
-    this._worker = new Promise(f => this._workerCallback = f);
+    this._worker = new Promise(f => (this._workerCallback = f));
   }
 
   public async acquireDap(target: Target): Promise<DapConnection> {
-    if (this._skipFiles)
-      target.skipFiles = () => this._skipFiles;
+    if (this._skipFiles) target.skipFiles = () => this._skipFiles;
 
     const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
     this._targetToP.set(target, p);
@@ -338,10 +370,8 @@ export class TestRoot {
     }
 
     const boot = await p._init(adapter, target);
-    if (target.parent())
-      this._workerCallback(p);
-    else
-      this._launchCallback(p);
+    if (target.parent()) this._workerCallback(p);
+    else this._launchCallback(p);
     this._onSessionCreatedEmitter.fire(p);
     return boot;
   }
@@ -381,11 +411,14 @@ export class TestRoot {
       ...options,
     } as IChromeLaunchConfiguration);
 
-    const result = await new Promise(f => this._launchCallback = f);
+    const result = await new Promise(f => (this._launchCallback = f));
     return result as TestP;
   }
 
-  async runScript(filename: string, options: Partial<INodeLaunchConfiguration> = {}): Promise<NodeTestHandle> {
+  async runScript(
+    filename: string,
+    options: Partial<INodeLaunchConfiguration> = {},
+  ): Promise<NodeTestHandle> {
     await this.initialize;
     this._launchUrl = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
     this._root.dap.launch({
@@ -395,11 +428,14 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       ...options,
     } as INodeLaunchConfiguration);
-    const result = await new Promise(f => this._launchCallback = f);
+    const result = await new Promise(f => (this._launchCallback = f));
     return result as NodeTestHandle;
   }
 
-  async attachNode(processId: number, options: Partial<INodeAttachConfiguration> = {}): Promise<NodeTestHandle> {
+  async attachNode(
+    processId: number,
+    options: Partial<INodeAttachConfiguration> = {},
+  ): Promise<NodeTestHandle> {
     await this.initialize;
     this._launchUrl = `process${processId}`;
     this._root.dap.launch({
@@ -407,7 +443,7 @@ export class TestRoot {
       processId: `inspector${processId}`,
       ...options,
     } as INodeAttachConfiguration);
-    const result = await new Promise(f => this._launchCallback = f);
+    const result = await new Promise(f => (this._launchCallback = f));
     return result as NodeTestHandle;
   }
 
@@ -416,7 +452,10 @@ export class TestRoot {
     return this._launch(url, options);
   }
 
-  async launchAndLoad(content: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
+  async launchAndLoad(
+    content: string,
+    options: Partial<IChromeLaunchConfiguration> = {},
+  ): Promise<TestP> {
     const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     const p = await this._launch(url, options);
     await p.load();
@@ -428,7 +467,10 @@ export class TestRoot {
     return await this._launch(url, options);
   }
 
-  async launchUrlAndLoad(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
+  async launchUrlAndLoad(
+    url: string,
+    options: Partial<IChromeLaunchConfiguration> = {},
+  ): Promise<TestP> {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
     const p = await this._launch(url, options);
     await p.load();

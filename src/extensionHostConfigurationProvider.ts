@@ -15,7 +15,6 @@ import { BaseConfigurationProvider } from './baseConfigurationProvider';
 export class ExtensionHostConfigurationProvider
   extends BaseConfigurationProvider<IExtensionHostConfiguration>
   implements vscode.DebugConfigurationProvider {
-
   protected async resolveDebugConfigurationAsync(
     _folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingExtensionHostConfiguration,

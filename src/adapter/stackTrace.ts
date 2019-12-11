@@ -21,8 +21,7 @@ export class StackTrace {
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
     const callFrames = stack.callFrames;
-    while (callFrames.length && callFrames[0].url === kLogPointUrl)
-      callFrames.splice(0, 1);
+    while (callFrames.length && callFrames[0].url === kLogPointUrl) callFrames.splice(0, 1);
     for (const callFrame of stack.callFrames)
       result._frames.push(StackFrame.fromRuntime(thread, callFrame));
     if (stack.parentId) {
@@ -34,10 +33,14 @@ export class StackTrace {
     return result;
   }
 
-  public static fromDebugger(thread: Thread, frames: Cdp.Debugger.CallFrame[], parent?: Cdp.Runtime.StackTrace, parentId?: Cdp.Runtime.StackTraceId): StackTrace {
+  public static fromDebugger(
+    thread: Thread,
+    frames: Cdp.Debugger.CallFrame[],
+    parent?: Cdp.Runtime.StackTrace,
+    parentId?: Cdp.Runtime.StackTraceId,
+  ): StackTrace {
     const result = new StackTrace(thread);
-    for (const callFrame of frames)
-      result._appendFrame(StackFrame.fromDebugger(thread, callFrame));
+    for (const callFrame of frames) result._appendFrame(StackFrame.fromDebugger(thread, callFrame));
     if (parentId) {
       result._asyncStackTraceId = parentId;
       console.assert(!parent);
@@ -59,10 +62,11 @@ export class StackTrace {
         this._asyncStackTraceId = undefined;
         break;
       }
-      const response = await this._lastFrameThread.cdp().Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
+      const response = await this._lastFrameThread
+        .cdp()
+        .Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
       this._asyncStackTraceId = undefined;
-      if (response)
-        this._appendStackTrace(this._lastFrameThread, response.stackTrace);
+      if (response) this._appendStackTrace(this._lastFrameThread, response.stackTrace);
     }
     return this._frames;
   }
@@ -110,11 +114,13 @@ export class StackTrace {
     const frames = await this.loadFrames(to);
     to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to; index++)
-      result.push(await frames[index].toDap(params));
-    return { stackFrames: result, totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length };
+    for (let index = from; index < to; index++) result.push(await frames[index].toDap(params));
+    return {
+      stackFrames: result,
+      totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length,
+    };
   }
-};
+}
 
 interface Scope {
   chain: Cdp.Debugger.Scope[];
@@ -146,7 +152,7 @@ export class StackFrame {
       thisObject: callFrame.this,
       returnValue: callFrame.returnValue,
       variables: new Array(callFrame.scopeChain.length).fill(undefined),
-      callFrameId: callFrame.callFrameId!
+      callFrameId: callFrame.callFrameId!,
     };
     return result;
   }
@@ -170,8 +176,7 @@ export class StackFrame {
   }
 
   async scopes(): Promise<Dap.ScopesResult> {
-    if (!this._scope)
-      return { scopes: [] };
+    if (!this._scope) return { scopes: [] };
 
     const scopes: Dap.Scope[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
@@ -233,8 +238,7 @@ export class StackFrame {
         const startUiLocation = await this._thread.rawLocationToUiLocation(startRawLocation);
         dap.line = (startUiLocation || startRawLocation).lineNumber;
         dap.column = (startUiLocation || startRawLocation).columnNumber;
-        if (startUiLocation)
-          dap.source = await startUiLocation.source.toDap();
+        if (startUiLocation) dap.source = await startUiLocation.source.toDap();
         if (scope.endLocation) {
           const endRawLocation = this._thread.rawLocation(scope.endLocation);
           const endUiLocation = await this._thread.rawLocationToUiLocation(endRawLocation);
@@ -252,11 +256,13 @@ export class StackFrame {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
-    const presentationHint = this._isAsyncSeparator ? 'label' :
-      isSmartStepped ? 'deemphasize' :
-      'normal';
+    const presentationHint = this._isAsyncSeparator
+      ? 'label'
+      : isSmartStepped
+      ? 'deemphasize'
+      : 'normal';
     if (isSmartStepped && source)
-      source.origin = localize('smartStepSkipLabel', "Skipped by smartStep");
+      source.origin = localize('smartStepSkipLabel', 'Skipped by smartStep');
 
     return <Dap.StackFrame>{
       id: this._id,
@@ -269,14 +275,13 @@ export class StackFrame {
   }
 
   async format(): Promise<string> {
-    if (this._isAsyncSeparator)
-      return `◀ ${this._name} ▶`;
+    if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
     const uiLocation = await this._uiLocation;
-    const prettyName = (uiLocation && await uiLocation.source.prettyName()) || this._rawLocation.url;
+    const prettyName =
+      (uiLocation && (await uiLocation.source.prettyName())) || this._rawLocation.url;
     const anyLocation = uiLocation || this._rawLocation;
     let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
-    if (anyLocation.columnNumber > 1)
-      text += `:${anyLocation.columnNumber}`;
+    if (anyLocation.columnNumber > 1) text += `:${anyLocation.columnNumber}`;
     return text;
   }
 
@@ -290,30 +295,37 @@ export class StackFrame {
       const scopeRef: ScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
       const extraProperties: ExtraProperty[] = [];
       if (scopeNumber === 0) {
-        extraProperties.push({name: 'this', value: scope.thisObject});
+        extraProperties.push({ name: 'this', value: scope.thisObject });
         if (scope.returnValue)
-          extraProperties.push({name: localize('scope.returnValue', 'Return value'), value: scope.returnValue});
+          extraProperties.push({
+            name: localize('scope.returnValue', 'Return value'),
+            value: scope.returnValue,
+          });
       }
-      const variable = await this._thread.pausedVariables()!.createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
+      const variable = await this._thread
+        .pausedVariables()!
+        .createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
       scope.variables[scopeNumber] = variable;
     }
     return scope.variables[scopeNumber]!;
   }
 
   async completions(): Promise<Dap.CompletionItem[]> {
-    if (!this._scope)
-      return [];
+    if (!this._scope) return [];
     const variableStore = this._thread.pausedVariables()!;
     const promises: Promise<Dap.CompletionItem[]>[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
-      promises.push(this._scopeVariable(scopeNumber).then(async scopeVariable => {
-        if (!scopeVariable.variablesReference)
-          return [];
-        const variables = await variableStore.getVariables({ variablesReference: scopeVariable.variablesReference });
-        return variables.map(variable => ({ label: variable.name, type: 'property' }));
-      }));
+      promises.push(
+        this._scopeVariable(scopeNumber).then(async scopeVariable => {
+          if (!scopeVariable.variablesReference) return [];
+          const variables = await variableStore.getVariables({
+            variablesReference: scopeVariable.variablesReference,
+          });
+          return variables.map(variable => ({ label: variable.name, type: 'property' }));
+        }),
+      );
     }
     const completions = await Promise.all(promises);
     return ([] as Dap.CompletionItem[]).concat(...completions);
   }
-};
+}

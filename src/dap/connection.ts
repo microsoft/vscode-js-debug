@@ -46,7 +46,7 @@ export default class Connection {
     this._sequence = 1;
     this._rawData = Buffer.alloc(0);
     this._ready = () => {};
-    this._dap = new Promise<Dap.Api>(f => this._ready = f);
+    this._dap = new Promise<Dap.Api>(f => (this._ready = f));
   }
 
   /**
@@ -64,12 +64,11 @@ export default class Connection {
     inStream.on('data', (data: Buffer) => {
       this._handleData(data);
     });
-    inStream.on('close', () => {
-    });
-    inStream.on('error', (error) => {
+    inStream.on('close', () => {});
+    inStream.on('error', error => {
       // error.message
     });
-    outStream.on('error', (error) => {
+    outStream.on('error', error => {
       // error.message
     });
     inStream.resume();
@@ -89,27 +88,30 @@ export default class Connection {
   _createApi(): Dap.Api {
     const requestSuffix = 'Request';
 
-    return new Proxy({}, {
-      get: (target, methodName: string, receiver) => {
-        if (methodName === 'then')
-          return;
-        if (methodName === 'on') {
-          return (requestName: string, handler: (params: any) => Promise<any>) => {
-            this._requestHandlers.set(requestName, handler);
-            return () => this._requestHandlers.delete(requestName);
+    return new Proxy(
+      {},
+      {
+        get: (target, methodName: string, receiver) => {
+          if (methodName === 'then') return;
+          if (methodName === 'on') {
+            return (requestName: string, handler: (params: any) => Promise<any>) => {
+              this._requestHandlers.set(requestName, handler);
+              return () => this._requestHandlers.delete(requestName);
+            };
           }
-        }
-        if (methodName === 'off')
-          return (requestName: string, handler: () => void) => this._requestHandlers.delete(requestName);
-        return (params?: object) => {
-          if (methodName.endsWith(requestSuffix)) {
-            return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
-          }
+          if (methodName === 'off')
+            return (requestName: string, handler: () => void) =>
+              this._requestHandlers.delete(requestName);
+          return (params?: object) => {
+            if (methodName.endsWith(requestSuffix)) {
+              return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
+            }
 
-          this._send({ seq: 0, type: 'event', event: methodName, body: params });
-        };
-      }
-    }) as Dap.Api;
+            this._send({ seq: 0, type: 'event', event: methodName, body: params });
+          };
+        },
+      },
+    ) as Dap.Api;
   }
 
   createTestApi(): Dap.TestApi {
@@ -123,38 +125,35 @@ export default class Connection {
     };
     const off = (eventName: string, listener: () => void) => {
       const listeners = this._eventListeners.get(eventName);
-      if (listeners)
-        listeners.delete(listener);
+      if (listeners) listeners.delete(listener);
     };
     const once = (eventName: string, filter: (params?: object) => boolean) => {
       return new Promise(cb => {
         const listener = (params?: object) => {
-          if (filter && !filter(params))
-            return;
+          if (filter && !filter(params)) return;
           off(eventName, listener);
           cb(params);
         };
         on(eventName, listener);
       });
     };
-    return new Proxy({}, {
-      get: (_target, methodName: string, _receiver) => {
-        if (methodName === 'on')
-          return on;
-        if (methodName === 'off')
-          return off;
-        if (methodName === 'once')
-          return once;
-        return (params?: object) => this.enqueueRequest(methodName, params);
-      }
-    }) as Dap.TestApi;
+    return new Proxy(
+      {},
+      {
+        get: (_target, methodName: string, _receiver) => {
+          if (methodName === 'on') return on;
+          if (methodName === 'off') return off;
+          if (methodName === 'once') return once;
+          return (params?: object) => this.enqueueRequest(methodName, params);
+        },
+      },
+    ) as Dap.TestApi;
   }
 
   private enqueueRequest(command: string, params?: object) {
     return new Promise(cb => {
       const request: Message = { seq: 0, type: 'request', command };
-      if (params && Object.keys(params).length > 0)
-        request.arguments = params;
+      if (params && Object.keys(params).length > 0) request.arguments = params;
       this._pendingRequests.set(this._sequence, cb);
       this._send(request);
     });
@@ -185,7 +184,13 @@ export default class Connection {
 
   async _onMessage(msg: Message, receivedTime: HighResolutionTime): Promise<void> {
     if (msg.type === 'request') {
-      const response: Message = { seq: 0, type: 'response', request_seq: msg.seq, command: msg.command, success: true };
+      const response: Message = {
+        seq: 0,
+        type: 'response',
+        request_seq: msg.seq,
+        command: msg.command,
+        success: true,
+      };
       try {
         const callback = this._requestHandlers.get(msg.command!);
         if (!callback) {
@@ -195,8 +200,8 @@ export default class Connection {
               id: 9221,
               format: `Unrecognized request: ${msg.command}`,
               showUser: false,
-              sendTelemetry: false
-            }
+              sendTelemetry: false,
+            },
           };
           console.error(`Unknown request: ${msg.command}`);
           // this._send(response);
@@ -220,8 +225,8 @@ export default class Connection {
             id: 9221,
             format: `Error processing ${msg.command}: ${e.stack || e.message}`,
             showUser: false,
-            sendTelemetry: false
-          }
+            sendTelemetry: false,
+          },
         };
         this._send(response);
         this._telemetryReporter!.reportError(msg.command!, receivedTime, e);
@@ -229,8 +234,7 @@ export default class Connection {
     }
     if (msg.type === 'event') {
       const listeners = this._eventListeners.get(msg.event!) || new Set();
-      for (const listener of listeners)
-        listener(msg.body);
+      for (const listener of listeners) listener(msg.body);
     }
     if (msg.type === 'response') {
       const cb = this._pendingRequests.get(msg.request_seq!)!;
@@ -258,12 +262,11 @@ export default class Connection {
               let msg: Message = JSON.parse(message);
               logger.verbose(LogTag.DapReceive, undefined, { message: msg });
               this._onMessage(msg, receivedTime);
-            }
-            catch (e) {
+            } catch (e) {
               console.error('Error handling data: ' + (e && e.message));
             }
           }
-          continue;	// there may be more complete messages to process
+          continue; // there may be more complete messages to process
         }
       } else {
         const idx = this._rawData.indexOf(Connection._TWO_CRLF);

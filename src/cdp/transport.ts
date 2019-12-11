@@ -30,19 +30,24 @@ export class PipeTransport implements Transport {
 
   constructor(pipeWrite: net.Socket | NodeJS.WritableStream, pipeRead?: NodeJS.ReadableStream) {
     this._pipeWrite = pipeWrite as NodeJS.WritableStream;
-    if (!pipeRead)
-      this._socket = pipeWrite as net.Socket;
+    if (!pipeRead) this._socket = pipeWrite as net.Socket;
 
     this._pendingBuffers = [];
     this._eventListeners = [
       addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
       addEventListener(pipeWrite, 'end', () => this._onPipeEnd()),
       // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
-      addEventListener(pipeWrite, 'error', err => logger.error(LogTag.Internal, 'pipeWrite error: ' + err))
+      addEventListener(pipeWrite, 'error', err =>
+        logger.error(LogTag.Internal, 'pipeWrite error: ' + err),
+      ),
     ];
     if (pipeRead) {
       this._eventListeners.push(addEventListener(pipeRead, 'end', () => this._onPipeEnd()));
-      this._eventListeners.push(addEventListener(pipeRead, 'error', err => logger.error(LogTag.Internal, 'pipeRead error: ' + err)));
+      this._eventListeners.push(
+        addEventListener(pipeRead, 'error', err =>
+          logger.error(LogTag.Internal, 'pipeRead error: ' + err),
+        ),
+      );
     }
 
     this.onmessage = undefined;
@@ -52,8 +57,7 @@ export class PipeTransport implements Transport {
   private _onPipeEnd(): void {
     if (this._pipeWrite) {
       this._pipeWrite = undefined;
-      if (this.onend)
-        this.onend.call(null);
+      if (this.onend) this.onend.call(null);
     }
   }
 
@@ -75,8 +79,7 @@ export class PipeTransport implements Transport {
     }
     this._pendingBuffers.push(buffer.slice(0, end));
     const message = Buffer.concat(this._pendingBuffers).toString();
-    if (this.onmessage)
-      this.onmessage.call(null, message, receivedTime);
+    if (this.onmessage) this.onmessage.call(null, message, receivedTime);
 
     let start = end + 1;
     end = buffer.indexOf('\0', start);
@@ -90,8 +93,7 @@ export class PipeTransport implements Transport {
   }
 
   async close() {
-    if (this._socket)
-      this._socket.destroy();
+    if (this._socket) this._socket.destroy();
     this._socket = undefined;
     this._pipeWrite = undefined;
     removeEventListeners(this._eventListeners);
@@ -115,7 +117,7 @@ export class WebSocketTransport implements Transport {
         ws.addEventListener('error', reject);
       }),
       cancellationToken,
-      `Could not open ${url}`
+      `Could not open ${url}`,
     ).catch(err => {
       ws.close();
       throw err;
@@ -125,30 +127,26 @@ export class WebSocketTransport implements Transport {
   constructor(ws: WebSocket, wsUrl: string) {
     this._ws = ws;
     this._ws.addEventListener('message', event => {
-      if (this.onmessage)
-        this.onmessage.call(null, event.data);
+      if (this.onmessage) this.onmessage.call(null, event.data);
     });
     this._ws.addEventListener('close', event => {
-      if (this.onend)
-        this.onend.call(null);
+      if (this.onend) this.onend.call(null);
       this._ws = undefined;
     });
     // Silently ignore all errors - we don't know what to do with them.
-    this._ws.addEventListener('error', () => { });
+    this._ws.addEventListener('error', () => {});
     this.onmessage = undefined;
     this.onend = undefined;
   }
 
   send(message: string) {
-    if (this._ws)
-      this._ws.send(message);
+    if (this._ws) this._ws.send(message);
   }
 
   async close(): Promise<void> {
-    if (!this._ws)
-      return;
+    if (!this._ws) return;
     let callback: () => void;
-    const result = new Promise<void>(f => callback = f);
+    const result = new Promise<void>(f => (callback = f));
     this._ws.addEventListener('close', () => callback());
     this._ws.close();
     return result;
@@ -163,7 +161,11 @@ export interface Listener {
   handler: HandlerFunction;
 }
 
-export function addEventListener(emitter: events.EventEmitter, eventName: string, handler: HandlerFunction): Listener {
+export function addEventListener(
+  emitter: events.EventEmitter,
+  eventName: string,
+  handler: HandlerFunction,
+): Listener {
   emitter.on(eventName, handler);
   return { emitter, eventName, handler };
 }

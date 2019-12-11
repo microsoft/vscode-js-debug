@@ -98,6 +98,7 @@
     "glob": "^7.1.4",
     "gulp": "^4.0.2",
     "gulp-filter": "^6.0.0",
+    "gulp-prettier": "^2.3.0",
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.0.0",
     "gulp-sourcemaps": "^2.6.5",

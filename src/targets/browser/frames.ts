@@ -22,14 +22,18 @@ export class FrameModel {
     cdp.Page.enable({});
     cdp.Page.getResourceTree({}).then(result => {
       this._processCachedResources(cdp, result ? result.frameTree : undefined, targetId);
-    })
+    });
   }
 
   mainFrame(): Frame | undefined {
     return this._mainFrame;
   }
 
-  _processCachedResources(cdp: Cdp.Api, mainFramePayload: Cdp.Page.FrameResourceTree | undefined, targetId: Cdp.Target.TargetID) {
+  _processCachedResources(
+    cdp: Cdp.Api,
+    mainFramePayload: Cdp.Page.FrameResourceTree | undefined,
+    targetId: Cdp.Target.TargetID,
+  ) {
     if (mainFramePayload)
       this._addFramesRecursively(cdp, mainFramePayload, mainFramePayload.frame.parentId, targetId);
     cdp.Page.on('frameAttached', event => {
@@ -46,16 +50,19 @@ export class FrameModel {
   _addFrame(cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId): Frame {
     const frame = new Frame(this, cdp, frameId, parentFrameId);
     this._frames.set(frame.id, frame);
-    if (frame.isMainFrame())
-      this._mainFrame = frame;
+    if (frame.isMainFrame()) this._mainFrame = frame;
     this._onFrameAddedEmitter.fire(frame);
     return frame;
   }
 
-  _frameAttached(cdp: Cdp.Api, targetId: Cdp.Target.TargetID, frameId: Cdp.Page.FrameId, parentFrameId: Cdp.Page.FrameId | undefined): Frame {
+  _frameAttached(
+    cdp: Cdp.Api,
+    targetId: Cdp.Target.TargetID,
+    frameId: Cdp.Page.FrameId,
+    parentFrameId: Cdp.Page.FrameId | undefined,
+  ): Frame {
     let frame = this._frames.get(frameId);
-    if (!frame)
-      frame = this._addFrame(cdp, frameId, parentFrameId);
+    if (!frame) frame = this._addFrame(cdp, frameId, parentFrameId);
     frame._ref(targetId);
     return frame;
   }
@@ -72,8 +79,7 @@ export class FrameModel {
 
   _frameDetached(cdp: Cdp.Api, targetId: Cdp.Target.TargetID, frameId: Cdp.Page.FrameId) {
     const frame = this._frames.get(frameId);
-    if (!frame)
-      return;
+    if (!frame) return;
     frame._unref(targetId);
   }
 
@@ -85,7 +91,12 @@ export class FrameModel {
     return Array.from(this._frames.values());
   }
 
-  _addFramesRecursively(cdp: Cdp.Api, frameTreePayload: Cdp.Page.FrameResourceTree, parentFrameId: Cdp.Page.FrameId | undefined, targetId: Cdp.Target.TargetID) {
+  _addFramesRecursively(
+    cdp: Cdp.Api,
+    frameTreePayload: Cdp.Page.FrameResourceTree,
+    parentFrameId: Cdp.Page.FrameId | undefined,
+    targetId: Cdp.Target.TargetID,
+  ) {
     const framePayload = frameTreePayload.frame;
     let frame = this._frames.get(framePayload.id);
     if (frame) {
@@ -112,7 +123,12 @@ export class Frame {
   private _parentFrameId?: Cdp.Page.FrameId;
   private _targets = new Set<Cdp.Target.TargetID>();
 
-  constructor(model: FrameModel, cdp: Cdp.Api, frameId: Cdp.Page.FrameId, parentFrameId?: Cdp.Page.FrameId) {
+  constructor(
+    model: FrameModel,
+    cdp: Cdp.Api,
+    frameId: Cdp.Page.FrameId,
+    parentFrameId?: Cdp.Page.FrameId,
+  ) {
     this.cdp = cdp;
     this.model = model;
     this._parentFrameId = parentFrameId;
@@ -162,29 +178,25 @@ export class Frame {
   }
 
   _unrefChildFrames(targetId: Cdp.Target.TargetID) {
-    for (const child of this.childFrames())
-      child._unref(targetId);
+    for (const child of this.childFrames()) child._unref(targetId);
   }
 
   _unref(targetId: Cdp.Target.TargetID) {
     this._targets.delete(targetId);
-    if (this._targets.size)
-      return;
+    if (this._targets.size) return;
     this._unrefChildFrames(targetId);
     this.model._frames.delete(this.id);
     this.model._onFrameRemovedEmitter.fire(this);
   }
 
   displayName(): string {
-    if (this._name)
-      return this._name;
+    if (this._name) return this._name;
     return displayName(this._url) || `<iframe ${this.id}>`;
   }
-};
+}
 
 function trimEnd(text: string, maxLength: number) {
-  if (text.length <= maxLength)
-    return text;
+  if (text.length <= maxLength) return text;
   return text.substr(0, maxLength - 1) + '…';
 }
 
@@ -196,18 +208,13 @@ function displayName(urlstring: string): string {
     return trimEnd(urlstring, 20);
   }
 
-  if (url.protocol === 'data')
-    return trimEnd(urlstring, 20);
+  if (url.protocol === 'data') return trimEnd(urlstring, 20);
 
-  if (url.protocol === 'blob')
-    return urlstring;
-  if (urlstring === 'about:blank')
-    return urlstring;
+  if (url.protocol === 'blob') return urlstring;
+  if (urlstring === 'about:blank') return urlstring;
 
   let displayName = path.basename(url.pathname);
-  if (!displayName)
-    displayName = (url.host || '') + '/';
-  if (displayName === '/')
-    displayName = trimEnd(urlstring, 20);
+  if (!displayName) displayName = (url.host || '') + '/';
+  if (displayName === '/') displayName = trimEnd(urlstring, 20);
   return displayName;
 }

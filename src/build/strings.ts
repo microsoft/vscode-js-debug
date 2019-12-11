@@ -74,7 +74,8 @@ const strings = {
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
 
-  'node.pauseForSourceMap.description': 'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
+  'node.pauseForSourceMap.description':
+    'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
   'node.address.description': "TCP/IP address of process to be debugged. Default is 'localhost'.",
   'node.attach.config.name': 'Attach',
   'node.attach.processId.description': 'ID of process to attach to.',

@@ -16,7 +16,7 @@ export interface Message {
   /**
    * An object used as a dictionary for looking up the variables in the format string.
    */
-  variables?: { [key: string]: string; };
+  variables?: { [key: string]: string };
 
   /**
    * If true send to telemetry.

@@ -413,7 +413,9 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
 export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
-export type ResolvingNodeConfiguration = ResolvingNodeAttachConfiguration | ResolvingNodeLaunchConfiguration;
+export type ResolvingNodeConfiguration =
+  | ResolvingNodeAttachConfiguration
+  | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
@@ -460,7 +462,7 @@ export const baseDefaults: IBaseConfiguration = {
     'meteor://💻app/*': '${workspaceFolder}/*',
   },
   // Should always be determined upstream
-  __workspaceFolder: ''
+  __workspaceFolder: '',
 };
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
@@ -546,36 +548,38 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
 
 export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
   return config.request === 'attach'
-      ? { ...nodeAttachConfigDefaults, ...config }
-      : { ...nodeLaunchConfigDefaults, ...config };
+    ? { ...nodeAttachConfigDefaults, ...config }
+    : { ...nodeLaunchConfigDefaults, ...config };
 }
 
 export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyChromeConfiguration {
   return config.request === 'attach'
-      ? { ...chromeAttachConfigDefaults, ...config }
-      : { ...chromeLaunchConfigDefaults, ...config };
+    ? { ...chromeAttachConfigDefaults, ...config }
+    : { ...chromeLaunchConfigDefaults, ...config };
 }
 
-export function applyExtensionHostDefaults(config: ResolvingExtensionHostConfiguration): IExtensionHostConfiguration {
-    return { ...extensionHostConfigDefaults, ...config };
+export function applyExtensionHostDefaults(
+  config: ResolvingExtensionHostConfiguration,
+): IExtensionHostConfiguration {
+  return { ...extensionHostConfigDefaults, ...config };
 }
 
-export function applyTerminalDefaults(config: ResolvingTerminalConfiguration): INodeTerminalConfiguration {
-    return { ...extensionHostConfigDefaults, ...config };
+export function applyTerminalDefaults(
+  config: ResolvingTerminalConfiguration,
+): INodeTerminalConfiguration {
+  return { ...extensionHostConfigDefaults, ...config };
 }
 
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
-  if (config.type === Contributions.NodeDebugType)
-    configWithDefaults = applyNodeDefaults(config);
+  if (config.type === Contributions.NodeDebugType) configWithDefaults = applyNodeDefaults(config);
   else if (config.type === Contributions.ChromeDebugType)
     configWithDefaults = applyChromeDefaults(config);
   else if (config.type === Contributions.ExtensionHostDebugType)
     configWithDefaults = applyExtensionHostDefaults(config);
   else if (config.type === Contributions.TerminalDebugType)
     configWithDefaults = applyTerminalDefaults(config);
-  else
-    throw new Error('Unknown config type: ' + (config as any).type);
+  else throw new Error('Unknown config type: ' + (config as any).type);
 
   resolveWorkspaceRoot(configWithDefaults);
   return configWithDefaults;

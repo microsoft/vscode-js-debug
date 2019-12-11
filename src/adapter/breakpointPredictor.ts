@@ -138,10 +138,13 @@ class DirectoryScanner {
 
     const start = Date.now();
     await this.repo.streamAllChildren(
-      defaultFileMappings.map(m => (<IRelativePattern>{
-        base: absolutePath,
-        pattern: m
-      })),
+      defaultFileMappings.map(
+        m =>
+          <IRelativePattern>{
+            base: absolutePath,
+            pattern: m,
+          },
+      ),
       async metadata => {
         const baseUrl = metadata.sourceMapUrl.startsWith('data:')
           ? metadata.compiledPath

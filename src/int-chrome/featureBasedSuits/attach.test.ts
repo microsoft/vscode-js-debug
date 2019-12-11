@@ -22,7 +22,9 @@ let waitForOutput: testUtils.IDeferred<void>;
       registerListeners: client => {
         // This test tests 2 different things while attaching:
         // 1. We don't get an unhandled error while attaching (due to Runtime.consoleAPICalled being called with a scriptId that hasn't been parsed yet)
-        onUnhandledException(client, exceptionMessage => waitForOutput.reject(new Error(exceptionMessage)));
+        onUnhandledException(client, exceptionMessage =>
+          waitForOutput.reject(new Error(exceptionMessage)),
+        );
 
         client.on('output', (args: DebugProtocol.OutputEvent) => {
           // 2. We eventually see this console.log message, because we attached succesfully to the web-page

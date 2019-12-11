@@ -84,7 +84,11 @@ export interface IStopMetadata {
 }
 
 export interface Launcher extends Disposable {
-  launch(params: AnyLaunchConfiguration, context: ILaunchContext, rawTelemetryReporter: RawTelemetryReporterToDap): Promise<LaunchResult>;
+  launch(
+    params: AnyLaunchConfiguration,
+    context: ILaunchContext,
+    rawTelemetryReporter: RawTelemetryReporterToDap,
+  ): Promise<LaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;
   restart(): Promise<void>;

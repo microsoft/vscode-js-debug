@@ -46,8 +46,7 @@ export class BrowserTargetManager implements Disposable {
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
-    if (!result)
-      return;
+    if (!result) return;
     const browserSession = connection.createSession(result.sessionId);
     return new BrowserTargetManager(
       connection,
@@ -82,8 +81,7 @@ export class BrowserTargetManager implements Disposable {
     this._targetOrigin = targetOrigin;
     this.serviceWorkerModel.onDidChange(() => {
       for (const target of this._targets.values()) {
-        if (target.isServiceWorker())
-          target._onNameChangedEmitter.fire();
+        if (target.isServiceWorker()) target._onNameChangedEmitter.fire();
       }
     });
   }
@@ -93,7 +91,9 @@ export class BrowserTargetManager implements Disposable {
   }
 
   targetList(): Target[] {
-    return Array.from(this._targets.values()).filter(target => jsTypes.has(target._targetInfo.type));
+    return Array.from(this._targets.values()).filter(target =>
+      jsTypes.has(target._targetInfo.type),
+    );
   }
 
   async closeBrowser(): Promise<void> {
@@ -102,10 +102,12 @@ export class BrowserTargetManager implements Disposable {
     }
   }
 
-  waitForMainTarget(filter?: (target: Cdp.Target.TargetInfo) => boolean): Promise<BrowserTarget | undefined> {
+  waitForMainTarget(
+    filter?: (target: Cdp.Target.TargetInfo) => boolean,
+  ): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
-    const promise = new Promise<BrowserTarget | undefined>(f => callback = f);
+    const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
     const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
       if (this._targets.size) {
         return;
@@ -117,7 +119,10 @@ export class BrowserTargetManager implements Disposable {
         return;
       }
 
-      const response = await this._browser.Target.attachToTarget({ targetId: targetInfo.targetId, flatten: true });
+      const response = await this._browser.Target.attachToTarget({
+        targetId: targetInfo.targetId,
+        flatten: true,
+      });
       if (!response) {
         callback(undefined);
         return;
@@ -127,7 +132,7 @@ export class BrowserTargetManager implements Disposable {
     };
 
     const attemptAttach = (info: { targetInfo: Cdp.Target.TargetInfo }) => {
-      attachmentQueue = attachmentQueue.then(() => attachInner(info))
+      attachmentQueue = attachmentQueue.then(() => attachInner(info));
     };
 
     this._browser.Target.setDiscoverTargets({ discover: true });
@@ -140,14 +145,25 @@ export class BrowserTargetManager implements Disposable {
     return promise;
   }
 
-  _attachedToTarget(targetInfo: Cdp.Target.TargetInfo, sessionId: Cdp.Target.SessionID, waitingForDebugger: boolean, parentTarget?: BrowserTarget): BrowserTarget {
+  _attachedToTarget(
+    targetInfo: Cdp.Target.TargetInfo,
+    sessionId: Cdp.Target.SessionID,
+    waitingForDebugger: boolean,
+    parentTarget?: BrowserTarget,
+  ): BrowserTarget {
     const cdp = this._connection.createSession(sessionId);
-    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, waitingForDebugger, target => {
-      this._connection.disposeSession(sessionId);
-    });
+    const target = new BrowserTarget(
+      this,
+      targetInfo,
+      cdp,
+      parentTarget,
+      waitingForDebugger,
+      target => {
+        this._connection.disposeSession(sessionId);
+      },
+    );
     this._targets.set(targetInfo.targetId, target);
-    if (parentTarget)
-      parentTarget._children.set(targetInfo.targetId, target);
+    if (parentTarget) parentTarget._children.set(targetInfo.targetId, target);
 
     cdp.Target.on('attachedToTarget', async event => {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
@@ -157,23 +173,22 @@ export class BrowserTargetManager implements Disposable {
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
-    cdp.Network.setCacheDisabled({ cacheDisabled: this.launchParams.disableNetworkCache })
-      .catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
+    cdp.Network.setCacheDisabled({
+      cacheDisabled: this.launchParams.disableNetworkCache,
+    }).catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
 
     // For the 'top-level' page, gather telemetry.
     if (!parentTarget) {
       this.retrieveBrowserTelemetry(cdp);
     }
 
-    if (domDebuggerTypes.has(targetInfo.type))
-      this.frameModel.attached(cdp, targetInfo.targetId);
+    if (domDebuggerTypes.has(targetInfo.type)) this.frameModel.attached(cdp, targetInfo.targetId);
     this.serviceWorkerModel.attached(cdp);
 
     this._onTargetAddedEmitter.fire(target);
 
     // For targets that we don't report to the system, auto-resume them on our on.
-    if (!jsTypes.has(targetInfo.type))
-      cdp.Runtime.runIfWaitingForDebugger({});
+    if (!jsTypes.has(targetInfo.type)) cdp.Runtime.runIfWaitingForDebugger({});
 
     return target;
   }
@@ -198,10 +213,12 @@ export class BrowserTargetManager implements Disposable {
       logger.verbose(LogTag.RuntimeTarget, 'Retrieved browser information', info);
 
       const parts = (info.product || '').split('/');
-      if (parts.length === 2) { // Currently response.product looks like "Chrome/65.0.3325.162" so we split the project and the actual version number
-        properties['Versions.Target.Project'] =  parts[0];
-        properties['Versions.Target.Version'] =  parts[1];
-      } else { // If for any reason that changes, we submit the entire product as-is
+      if (parts.length === 2) {
+        // Currently response.product looks like "Chrome/65.0.3325.162" so we split the project and the actual version number
+        properties['Versions.Target.Project'] = parts[0];
+        properties['Versions.Target.Version'] = parts[1];
+      } else {
+        // If for any reason that changes, we submit the entire product as-is
         properties['Versions.Target.Product'] = info.product;
       }
 
@@ -233,8 +250,7 @@ export class BrowserTargetManager implements Disposable {
 
   async _detachedFromTarget(targetId: string) {
     const target = this._targets.get(targetId);
-    if (!target)
-      return;
+    if (!target) return;
 
     await Promise.all([...target._children.keys()].map(k => this._detachedFromTarget(k)));
 
@@ -245,8 +261,7 @@ export class BrowserTargetManager implements Disposable {
     }
 
     this._targets.delete(targetId);
-    if (target.parentTarget)
-      target.parentTarget._children.delete(targetId);
+    if (target.parentTarget) target.parentTarget._children.delete(targetId);
 
     this._onTargetRemovedEmitter.fire(target);
 
@@ -261,8 +276,7 @@ export class BrowserTargetManager implements Disposable {
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
     const target = this._targets.get(targetInfo.targetId);
-    if (!target)
-      return;
+    if (!target) return;
     target._updateFromInfo(targetInfo);
   }
 }
@@ -283,7 +297,14 @@ export class BrowserTarget implements Target {
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
-  constructor(targetManager: BrowserTargetManager, targetInfo: Cdp.Target.TargetInfo, cdp: Cdp.Api, parentTarget: BrowserTarget | undefined, waitingForDebugger: boolean, ondispose: (t: BrowserTarget) => void) {
+  constructor(
+    targetManager: BrowserTargetManager,
+    targetInfo: Cdp.Target.TargetInfo,
+    cdp: Cdp.Api,
+    parentTarget: BrowserTarget | undefined,
+    waitingForDebugger: boolean,
+    ondispose: (t: BrowserTarget) => void,
+  ) {
     this._cdp = cdp;
     cdp.pause();
 
@@ -337,10 +358,8 @@ export class BrowserTarget implements Target {
   children(): Target[] {
     const result: Target[] = [];
     for (const target of this._children.values()) {
-      if (jsTypes.has(target.type()))
-        result.push(target);
-      else
-        result.push(...target.children());
+      if (jsTypes.has(target.type())) result.push(target);
+      else result.push(...target.children());
     }
     return result;
   }
@@ -352,8 +371,7 @@ export class BrowserTarget implements Target {
   stop() {
     // Stop both dedicated and parent service worker scopes for present and future browsers.
     this._manager.serviceWorkerModel.stopWorker(this.id());
-    if (!this.parentTarget)
-      return;
+    if (!this.parentTarget) return;
     this._manager.serviceWorkerModel.stopWorker(this.parentTarget.id());
   }
 
@@ -390,16 +408,12 @@ export class BrowserTarget implements Target {
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
     const auxData = description.auxData;
     const contextName = description.name;
-    if (!auxData)
-      return contextName;
+    if (!auxData) return contextName;
     const frameId = auxData['frameId'];
     const frame = frameId ? this._manager.frameModel.frameForId(frameId) : undefined;
-    if (frame && auxData['isDefault'] && !frame.parentFrame())
-      return 'top';
-    if (frame && auxData['isDefault'])
-      return frame.displayName();
-    if (frame)
-      return `${contextName}`;
+    if (frame && auxData['isDefault'] && !frame.parentFrame()) return 'top';
+    if (frame && auxData['isDefault']) return frame.displayName();
+    if (frame) return `${contextName}`;
     return contextName;
   }
 
@@ -441,19 +455,18 @@ export class BrowserTarget implements Target {
   _computeName(): string {
     if (this.isServiceWorker()) {
       const version = this._manager.serviceWorkerModel.version(this.id());
-      if (version)
-        return version.label() + ' [Service Worker]';
+      if (version) return version.label() + ' [Service Worker]';
     }
 
     let threadName = '';
     try {
       const parsedURL = new URL(this._targetInfo.url);
-      if (parsedURL.pathname === '/')
-        threadName += parsedURL.host;
-      else if (parsedURL.protocol === 'data:')
-        threadName = '<data>';
+      if (parsedURL.pathname === '/') threadName += parsedURL.host;
+      else if (parsedURL.protocol === 'data:') threadName = '<data>';
       else
-        threadName += parsedURL ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '') : this._targetInfo.title;
+        threadName += parsedURL
+          ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '')
+          : this._targetInfo.title;
     } catch (e) {
       // todo(connor4312): a test around this occasionally fails on windows, log:
       logger.warn(LogTag.Internal, 'Error creating target name', { e, info: this._targetInfo });

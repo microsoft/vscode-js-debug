@@ -55,7 +55,7 @@ export class StubProgram implements IProgram {
   private stopDefer!: (data: IStopMetadata) => void;
 
   constructor() {
-    this.stopped = new Promise(resolve => this.stopDefer = resolve);
+    this.stopped = new Promise(resolve => (this.stopDefer = resolve));
   }
 
   public gotTelemetery() {
