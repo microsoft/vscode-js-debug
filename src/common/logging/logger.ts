@@ -186,10 +186,10 @@ export const assert = <T>(
   message: string,
 ): assertion is T => {
   if (assertion === false || assertion === undefined || assertion === null) {
+    logger.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
     return false;
   }
 
-  logger.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
   return true;
 };
 
