@@ -140,7 +140,9 @@ export class BrowserTargetManager implements IDisposable {
     this._browser.Target.on('targetCreated', attemptAttach); // new page
     this._browser.Target.on('targetInfoChanged', attemptAttach); // nav on existing page
     this._browser.Target.on('detachedFromTarget', event => {
-      this._detachedFromTarget(event.targetId!);
+      if (event.targetId) {
+        this._detachedFromTarget(event.targetId);
+      }
     });
 
     return promise;
@@ -153,15 +155,8 @@ export class BrowserTargetManager implements IDisposable {
     parentTarget?: BrowserTarget,
   ): BrowserTarget {
     const cdp = this._connection.createSession(sessionId);
-    const target = new BrowserTarget(
-      this,
-      targetInfo,
-      cdp,
-      parentTarget,
-      waitingForDebugger,
-      target => {
-        this._connection.disposeSession(sessionId);
-      },
+    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, waitingForDebugger, () =>
+      this._connection.disposeSession(sessionId),
     );
     this._targets.set(targetInfo.targetId, target);
     if (parentTarget) parentTarget._children.set(targetInfo.targetId, target);
@@ -170,7 +165,9 @@ export class BrowserTargetManager implements IDisposable {
       this._attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
     });
     cdp.Target.on('detachedFromTarget', async event => {
-      this._detachedFromTarget(event.targetId!);
+      if (event.targetId) {
+        this._detachedFromTarget(event.targetId);
+      }
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
 
@@ -317,7 +314,7 @@ export class BrowserTarget implements ITarget {
     this._ondispose = ondispose;
   }
 
-  targetOrigin(): any {
+  targetOrigin() {
     return this._manager._targetOrigin;
   }
 

@@ -11,25 +11,26 @@ import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
 interface IProtocolCommand {
-  id: number;
+  id?: number;
   method: string;
   params: object;
   sessionId?: string;
 }
 
 interface IProtocolError {
-  message: string;
-  data: any;
-}
-
-interface IProtocolResponse {
-  id?: number;
+  id: number;
   method?: string;
-  params?: object;
-  result?: object;
-  error?: IProtocolError;
+  error: { code: number; message: string };
   sessionId?: string;
 }
+
+interface IProtocolSuccess {
+  id: number;
+  result: object;
+  sessionId?: string;
+}
+
+type ProtocolMessage = IProtocolCommand | IProtocolSuccess | IProtocolError;
 
 interface IProtocolCallback {
   resolve: (o: object) => void;
@@ -62,10 +63,6 @@ export default class Connection {
 
   rootSession(): Cdp.Api {
     return this._rootSession.cdp();
-  }
-
-  session(sessionId: string): Cdp.Api {
-    return this._sessions.get(sessionId)!.cdp();
   }
 
   _send(method: string, params: object | undefined = {}, sessionId: string): number {
@@ -138,8 +135,8 @@ class CDPSession {
   private _callbacks: Map<number, IProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
-  private _queue: IProtocolResponse[] = [];
-  private _listeners = new Map<string, Set<(params: any) => void>>();
+  private _queue: ProtocolMessage[] = [];
+  private _listeners = new Map<string, Set<(params: object) => void>>();
   private paused = false;
 
   constructor(connection: Connection, sessionId: string) {
@@ -179,20 +176,20 @@ class CDPSession {
     return new Proxy(
       {},
       {
-        get: (_target, agentName: string, _receiver) => {
+        get: (_target, agentName: string) => {
           if (agentName === 'pause') return () => this.pause();
           if (agentName === 'resume') return () => this.resume();
 
           return new Proxy(
             {},
             {
-              get: (_target, methodName: string, _receiver) => {
+              get: (_target, methodName: string) => {
                 if (methodName === 'then') return;
                 if (methodName === 'on')
-                  return (eventName: string, listener: (params: any) => void) =>
+                  return (eventName: string, listener: (params: object) => void) =>
                     this._on(`${agentName}.${eventName}`, listener);
                 if (methodName === 'off')
-                  return (eventName: string, listener: (params: any) => void) =>
+                  return (eventName: string, listener: (params: object) => void) =>
                     this._off(`${agentName}.${eventName}`, listener);
                 return (params: object | undefined) =>
                   this._send(`${agentName}.${methodName}`, params);
@@ -204,18 +201,23 @@ class CDPSession {
     ) as Cdp.Api;
   }
 
-  _on(method: string, listener: (params: any) => void): void {
-    if (!this._listeners.has(method)) this._listeners.set(method, new Set());
-    this._listeners.get(method)!.add(listener);
+  _on(method: string, listener: (params: object) => void): void {
+    let listenerSet = this._listeners.get(method);
+    if (!listenerSet) {
+      listenerSet = new Set();
+      this._listeners.set(method, listenerSet);
+    }
+
+    listenerSet.add(listener);
   }
 
-  _off(method: string, listener: (params: any) => void): void {
+  _off(method: string, listener: (params: object) => void): void {
     const listeners = this._listeners.get(method);
     if (listeners) listeners.delete(listener);
   }
 
   _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
-    return this._sendOrDie(method, params).catch(e => undefined);
+    return this._sendOrDie(method, params).catch(() => undefined);
   }
 
   _sendOrDie(method: string, params: object | undefined = {}): Promise<object | undefined> {
@@ -231,7 +233,7 @@ class CDPSession {
     });
   }
 
-  _onMessage(object: IProtocolResponse) {
+  _onMessage(object: ProtocolMessage) {
     if (object.id) {
       this._processResponse(object);
     }
@@ -255,11 +257,15 @@ class CDPSession {
 
   _processQueue() {
     setTimeout(() => {
-      if (this.paused || this._queue.length === 0) {
+      if (this.paused) {
         return;
       }
 
-      const object = this._queue.shift()!;
+      const object = this._queue.shift();
+      if (!object) {
+        return;
+      }
+
       this._processResponse(object);
       if (this._queue.length) {
         this._processQueue();
@@ -267,20 +273,31 @@ class CDPSession {
     }, 0);
   }
 
-  _processResponse(object: IProtocolResponse) {
-    if (object.id && this._callbacks.has(object.id)) {
-      const callback = this._callbacks.get(object.id)!;
-      this._callbacks.delete(object.id);
-      if (object.error) {
-        callback.from.message = `Protocol error (${object.method}): ${object.error.message}`;
-        if (object.error) callback.from.message += ` - ${JSON.stringify(object.error)}`;
-        callback.reject(callback.from);
-      } else {
-        callback.resolve(object.result!);
+  _processResponse(object: ProtocolMessage) {
+    if (object.id === undefined) {
+      // for some reason, TS doesn't narrow this even though IProtocolCommand
+      // is the only type of the tuple where id can be undefined.
+      const asCommand = object as IProtocolCommand;
+      const listeners = this._listeners.get(asCommand.method);
+      for (const listener of listeners || []) {
+        listener(asCommand.params);
       }
-    } else {
-      const listeners = this._listeners.get(object.method!);
-      for (const listener of listeners || []) listener(object.params);
+
+      return;
+    }
+
+    const callback = this._callbacks.get(object.id);
+    if (!callback) {
+      return;
+    }
+
+    this._callbacks.delete(object.id);
+    if ('error' in object) {
+      callback.from.message = `Protocol error (${object.method}): ${object.error.message}`;
+      callback.from.message += ` - ${JSON.stringify(object.error)}`;
+      callback.reject(callback.from);
+    } else if ('result' in object) {
+      callback.resolve(object.result);
     }
   }
 

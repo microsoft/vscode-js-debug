@@ -118,15 +118,15 @@ export async function launch(
     env: env.defined(),
     cwd,
     stdio,
-  });
+  }) as childProcess.ChildProcessWithoutNullStreams;
 
   if (browserProcess.pid === undefined) {
     throw new Error('Unable to launch the executable');
   }
 
   if (dumpio) {
-    browserProcess.stderr!.on('data', d => onStderr(d.toString()));
-    browserProcess.stdout!.on('data', d => onStdout(d.toString()));
+    browserProcess.stderr.on('data', d => onStderr(d.toString()));
+    browserProcess.stdout.on('data', d => onStdout(d.toString()));
   }
 
   const exitListener = () => killTree(browserProcess.pid);
@@ -197,11 +197,11 @@ export async function attach(
 }
 
 function waitForWSEndpoint(
-  browserProcess: childProcess.ChildProcess,
+  browserProcess: childProcess.ChildProcessWithoutNullStreams,
   cancellationToken: CancellationToken,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const rl = readline.createInterface({ input: browserProcess.stderr! });
+    const rl = readline.createInterface({ input: browserProcess.stderr });
     let stderr = '';
     const onClose = () => onDone();
     const onExit = () => onDone();

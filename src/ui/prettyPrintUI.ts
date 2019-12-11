@@ -16,11 +16,9 @@ export function registerPrettyPrintActions(
   context: vscode.ExtensionContext,
   debugSessionTracker: DebugSessionTracker,
 ) {
+  context.subscriptions.push(vscode.debug.onDidStartDebugSession(() => updateDebuggingStatus()));
   context.subscriptions.push(
-    vscode.debug.onDidStartDebugSession(session => updateDebuggingStatus()),
-  );
-  context.subscriptions.push(
-    vscode.debug.onDidTerminateDebugSession(session => updateDebuggingStatus()),
+    vscode.debug.onDidTerminateDebugSession(() => updateDebuggingStatus()),
   );
 
   function sourceForUri(uri: vscode.Uri): { session?: vscode.DebugSession; source: Dap.Source } {
@@ -79,7 +77,7 @@ export function registerPrettyPrintActions(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.PrettyPrintCommand, async e => {
+    vscode.commands.registerCommand(Contributions.PrettyPrintCommand, async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       const uri = editor.document.uri;

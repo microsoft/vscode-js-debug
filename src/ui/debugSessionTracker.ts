@@ -47,16 +47,7 @@ export class DebugSessionTracker implements vscode.Disposable {
 
         if (event.event === 'revealLocationRequested') {
           const params = event.body as Dap.RevealLocationRequestedEventParams;
-          let uri: vscode.Uri;
-          if (!params.source.sourceReference) {
-            uri = vscode.Uri.file(params.source.path!);
-          } else {
-            uri = vscode.Uri.parse(
-              `debug:${encodeURIComponent(params.source.path!)}?session=${encodeURIComponent(
-                event.session.id,
-              )}&ref=${params.source.sourceReference}`,
-            );
-          }
+          const uri = vscode.debug.asDebugSourceUri(event.body.source);
           const options: vscode.TextDocumentShowOptions = {};
           if (params.line) {
             const position = new vscode.Position((params.line || 1) - 1, (params.column || 1) - 1);

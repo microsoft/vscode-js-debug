@@ -4,7 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import { delay } from '../common/promiseUtil';
+import { delay, getDeferred } from '../common/promiseUtil';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
@@ -116,6 +116,8 @@ export class Thread implements IVariableStoreDelegate {
   private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
   private _smartStepper: SmartStepper;
   private _expectedPauseReason?: { reason: PausedReason; description?: string };
+  private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
+  private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
 
   constructor(
     sourceContainer: SourceContainer,
@@ -373,7 +375,11 @@ export class Thread implements IVariableStoreDelegate {
       return errors.createSilentError(text);
     }
 
-    const variableStore = callFrameId ? this._pausedVariables! : this.replVariables;
+    const variableStore = callFrameId ? this._pausedVariables : this.replVariables;
+    if (!variableStore) {
+      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+    }
+
     const variable = await variableStore.createVariable(response.result, args.context);
     return {
       type: response.result.type,
@@ -469,12 +475,15 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   refreshStackTrace() {
-    if (this._pausedDetails)
-      this._pausedDetails = this._createPausedDetails(
-        (this._pausedDetails as any)[kPausedEventSymbol],
-      );
-    this._onThreadResumed();
-    this._onThreadPaused();
+    if (this._pausedDetails) {
+      const event = this._pausedDetailsEvent.get(this._pausedDetails);
+      if (event) {
+        this._pausedDetails = this._createPausedDetails(event);
+      }
+
+      this._onThreadResumed();
+      this._onThreadPaused(this._pausedDetails);
+    }
   }
 
   // It is important to produce debug console output in the same order as it happens
@@ -493,7 +502,7 @@ export class Thread implements IVariableStoreDelegate {
     // TODO: should we serialize output between threads? For example, it may be important
     // when using postMessage between page a worker.
     const slot = this._serializedOutput;
-    let callback: () => void;
+    const deferred = getDeferred<void>();
     const result = async (payload?: Dap.OutputEventParams) => {
       await slot;
       if (payload) {
@@ -504,12 +513,13 @@ export class Thread implements IVariableStoreDelegate {
           this._consoleIsDirty = !isClearConsole;
         }
       }
-      callback();
+      deferred.resolve();
     };
-    const p = new Promise<void>(f => (callback = f));
-    this._serializedOutput = slot.then(() => p);
+
+    this._serializedOutput = slot.then(() => deferred.promise);
     // Timeout to avoid blocking future slots if this one does stall.
-    setTimeout(callback!, this._sourceContainer.sourceMapTimeouts().output);
+    setTimeout(deferred.resolve, this._sourceContainer.sourceMapTimeouts().output);
+
     return result;
   }
 
@@ -585,10 +595,10 @@ export class Thread implements IVariableStoreDelegate {
       this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
     }
 
-    (this._pausedDetails as any)[kPausedEventSymbol] = event;
+    this._pausedDetailsEvent.set(this._pausedDetails, event);
     this._pausedVariables = new VariableStore(this._cdp, this);
     scheduledPauseOnAsyncCall = undefined;
-    this._onThreadPaused();
+    this._onThreadPaused(this._pausedDetails);
   }
 
   _onResumed() {
@@ -828,7 +838,7 @@ export class Thread implements IVariableStoreDelegate {
     const id = data ? data['eventName'] || '' : '';
     const breakpoint = customBreakpoints().get(id);
     if (breakpoint) {
-      const details = breakpoint.details(data!);
+      const details = breakpoint.details(data);
       return {
         thread: this,
         stackTrace,
@@ -948,7 +958,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   scriptsFromSource(source: Source): Set<Script> {
-    return (source as any)[kScriptsSymbol] || new Set();
+    return this._sourceScripts.get(source) || new Set();
   }
 
   _removeAllScripts() {
@@ -956,7 +966,7 @@ export class Thread implements IVariableStoreDelegate {
     this._scripts.clear();
     this._scriptSources.clear();
     for (const script of scripts) {
-      const set = (script.source as any)[kScriptsSymbol];
+      const set = this.scriptsFromSource(script.source);
       set.delete(script);
       if (!set.size) this._sourceContainer.removeSource(script.source);
     }
@@ -1005,8 +1015,13 @@ export class Thread implements IVariableStoreDelegate {
 
     const script = { url: event.url, scriptId: event.scriptId, source, hash: event.hash };
     this._scripts.set(event.scriptId, script);
-    if (!(source as any)[kScriptsSymbol]) (source as any)[kScriptsSymbol] = new Set();
-    (source as any)[kScriptsSymbol].add(script);
+
+    let scriptSet = this._sourceScripts.get(source);
+    if (!scriptSet) {
+      scriptSet = new Set();
+      this._sourceScripts.set(source, scriptSet);
+    }
+    scriptSet.add(script);
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
@@ -1057,9 +1072,9 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   async _revealObject(object: Cdp.Runtime.RemoteObject) {
-    if (object.type !== 'function') return;
+    if (object.type !== 'function' || object.objectId === undefined) return;
     const response = await this._cdp.Runtime.getProperties({
-      objectId: object.objectId!,
+      objectId: object.objectId,
       ownProperties: true,
     });
     if (!response) return;
@@ -1142,9 +1157,8 @@ export class Thread implements IVariableStoreDelegate {
     slot(output);
   }
 
-  _onThreadPaused() {
+  _onThreadPaused(details: IPausedDetails) {
     this._expectedPauseReason = undefined;
-    const details = this.pausedDetails()!;
     this._dap.stopped({
       reason: details.reason,
       description: details.description,
@@ -1185,8 +1199,5 @@ export class Thread implements IVariableStoreDelegate {
     return Thread._allThreadsByDebuggerId.get(debuggerId);
   }
 }
-
-const kScriptsSymbol = Symbol('script');
-const kPausedEventSymbol = Symbol('pausedEvent');
 
 let scheduledPauseOnAsyncCall: Cdp.Runtime.StackTraceId | undefined;

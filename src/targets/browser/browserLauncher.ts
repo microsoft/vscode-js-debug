@@ -181,10 +181,10 @@ export class BrowserLauncher implements ILauncher {
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
 
-    this._targetManager.onTargetAdded((target: BrowserTarget) => {
+    this._targetManager.onTargetAdded(() => {
       this._onTargetListChangedEmitter.fire();
     });
-    this._targetManager.onTargetRemoved((target: BrowserTarget) => {
+    this._targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
     });
 
@@ -250,8 +250,8 @@ export class BrowserLauncher implements ILauncher {
 
   async restart(): Promise<void> {
     if (!this._mainTarget) return;
-    if (this._launchParams!.url)
-      await this._mainTarget.cdp().Page.navigate({ url: this._launchParams!.url });
+    if (this._launchParams?.url)
+      await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
     else await this._mainTarget.cdp().Page.reload({});
   }
 

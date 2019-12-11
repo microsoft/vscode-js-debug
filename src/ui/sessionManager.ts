@@ -132,13 +132,17 @@ export class SessionManager
       this._pendingTarget.set(target.id(), target);
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
-      let parentDebugSession: vscode.DebugSession;
+      let parentDebugSession: vscode.DebugSession | undefined;
       const parentTarget = target.parent();
       if (parentTarget) {
         const parentSession = await this._createSession(parentTarget);
         parentDebugSession = parentSession.debugSession;
       } else {
-        parentDebugSession = this._sessions.get(target.targetOrigin() as string)!.debugSession;
+        parentDebugSession = this._sessions.get(target.targetOrigin())?.debugSession;
+      }
+
+      if (!assert(parentDebugSession, 'Expected to get a parent debug session for target')) {
+        return;
       }
 
       const config = {
