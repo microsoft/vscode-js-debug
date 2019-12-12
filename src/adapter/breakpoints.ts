@@ -15,6 +15,7 @@ import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatis
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+import { getDeferred, delay } from '../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -49,6 +50,12 @@ export class Breakpoint {
   private _resolvedBreakpoints = new Set<Cdp.Debugger.BreakpointId>();
   private _resolvedUiLocation?: IUiLocation;
   private _setUrlLocations = new Set<string>();
+  /**
+   * A deferred that resolves once the breakpoint 'set' response has been
+   * returned to the UI. We should wait for this to finish before sending any
+   * notifications about breakpoint changes.
+   */
+  private _completedSet = getDeferred<void>();
 
   constructor(
     manager: BreakpointManager,
@@ -68,7 +75,25 @@ export class Breakpoint {
         : params.condition;
   }
 
-  async toProvisionalDap(): Promise<Dap.Breakpoint> {
+  /**
+   * Returns a promise that resolves once the breakpoint 'set' response
+   */
+  public untilSetCompleted() {
+    return this._completedSet.promise;
+  }
+
+  /**
+   * Marks the breakpoint 'set' as having finished.
+   */
+  public markSetCompleted() {
+    this._completedSet.resolve();
+  }
+
+  /**
+   * Returns a DAP representation of the breakpoint. If the breakpoint is
+   * resolved, this will be fulfilled with the complete source location.
+   */
+  public async toDap(): Promise<Dap.Breakpoint> {
     if (this._resolvedUiLocation) {
       return {
         id: this.dapId,
@@ -86,13 +111,21 @@ export class Breakpoint {
     };
   }
 
-  async _notifyResolved(): Promise<void> {
+  /**
+   * Called the breakpoint manager to notify that the breakpoint is resolved,
+   * used for statistics and notifying the UI.
+   */
+  private async _notifyResolved(): Promise<void> {
     if (this._resolvedUiLocation) {
-      await this._manager.notifyBreakpointResolved(this.dapId, this._resolvedUiLocation);
+      await this._manager.notifyBreakpointResolved(
+        this.dapId,
+        this._resolvedUiLocation,
+        this._completedSet.hasSettled(),
+      );
     }
   }
 
-  async set(thread: Thread, notifyResolved: boolean): Promise<void> {
+  async set(thread: Thread): Promise<void> {
     const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
@@ -115,10 +148,7 @@ export class Breakpoint {
     }
 
     await Promise.all(promises);
-
-    if (notifyResolved) {
-      await this._notifyResolved();
-    }
+    await this._notifyResolved();
   }
 
   async breakpointResolved(
@@ -490,7 +520,7 @@ export class BreakpointManager {
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
-    this._launchBlocker = Promise.all([this._launchBlocker, b.set(thread, true)]);
+    this._launchBlocker = Promise.all([this._launchBlocker, b.set(thread)]);
   }
 
   async setBreakpoints(
@@ -553,30 +583,38 @@ export class BreakpointManager {
     if (thread) {
       await (this._launchBlocker = Promise.all([
         this._launchBlocker,
-        ...result.new.map(b => b.set(thread, false)),
+        ...result.new.map(b => b.set(thread)),
       ]));
     }
 
-    const dapBreakpoints = await Promise.all(result.list.map(b => b.toProvisionalDap()));
+    const dapBreakpoints = await Promise.all(result.list.map(b => b.toDap()));
     this._breakpointsStatisticsCalculator.registerBreakpoints(dapBreakpoints);
+
+    // In the next task after we send the response to the adapter, mark the
+    // breakpoints as having been set.
+    delay(0).then(() => result.new.forEach(bp => bp.markSetCompleted()));
+
     return { breakpoints: dapBreakpoints };
   }
 
   public async notifyBreakpointResolved(
     breakpointId: number,
     location: IUiLocation,
+    emitChange: boolean,
   ): Promise<void> {
     this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpointId);
-    this._dap.breakpoint({
-      reason: 'changed',
-      breakpoint: {
-        id: breakpointId,
-        verified: true,
-        source: await location.source.toDap(),
-        line: location.lineNumber,
-        column: location.columnNumber,
-      },
-    });
+    if (emitChange) {
+      this._dap.breakpoint({
+        reason: 'changed',
+        breakpoint: {
+          id: breakpointId,
+          verified: true,
+          source: await location.source.toDap(),
+          line: location.lineNumber,
+          column: location.columnNumber,
+        },
+      });
+    }
   }
 
   public notifyBreakpointHit(hitBreakpointIds: string[]): void {
