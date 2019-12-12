@@ -178,6 +178,13 @@ export function escapeForRegExp(s: string): string {
 }
 
 /**
+ * Remove a slash of any flavor from the end of the path
+ */
+export function stripTrailingSlash(aPath: string): string {
+  return aPath.replace(/\/$/, '').replace(/\\$/, '');
+}
+
+/**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences
  */
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
@@ -217,7 +224,6 @@ export function isAbsolute(_path: string): boolean {
  */
 export function urlToRegex(aPath: string) {
   const absolutePath = fileUrlToAbsolutePath(aPath);
-
   aPath = escapeRegexSpecialChars(aPath);
   if (absolutePath) {
     aPath += `|${escapeRegexSpecialChars(absolutePath)}`;
