@@ -1,16 +1,13 @@
 Breakpoint resolved: {
-    breakpoint : {
-        column : 5
-        id : <number>
-        line : 36
-        source : {
-            name : bundle.js
-            path : ${workspaceFolder}/web/browserify/bundle.js
-            sourceReference : <number>
-        }
-        verified : true
+    column : 5
+    id : <number>
+    line : 36
+    source : {
+        name : bundle.js
+        path : ${workspaceFolder}/web/browserify/bundle.js
+        sourceReference : <number>
     }
-    reason : changed
+    verified : true
 }
 {
     allThreadsStopped : false

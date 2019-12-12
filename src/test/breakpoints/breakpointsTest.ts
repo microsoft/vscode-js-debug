@@ -5,6 +5,7 @@
 import { TestP } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
+import { expect } from 'chai';
 
 describe('breakpoints', () => {
   async function waitForPause(p: TestP, cb?: () => Promise<void>) {
@@ -194,8 +195,8 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
       };
-      p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
-      await p.dap.once('breakpoint', event => event.breakpoint.verified);
+      const resolved = await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+      expect(resolved.breakpoints[0].verified).to.be.true;
       p.cdp.Runtime.evaluate({
         expression: 'window.callBack(window.pause);\n//# sourceURL=test.js',
       });
@@ -227,10 +228,9 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js'),
       };
-      p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
-      const resolved = await p.dap.once('breakpoint', event => !!event.breakpoint.verified);
-      delete resolved.breakpoint.source!.sources;
-      p.log(resolved, 'Breakpoint resolved: ');
+      const resolved = await p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
+      delete resolved.breakpoints[0].source!.sources;
+      p.log(resolved.breakpoints[0], 'Breakpoint resolved: ');
       p.cdp.Runtime.evaluate({
         expression: 'window.callBack(window.pause);\n//# sourceURL=test.js',
       });
@@ -253,10 +253,9 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/bundle.js'),
       };
-      p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
-      const resolved = await p.dap.once('breakpoint', event => !!event.breakpoint.verified);
-      delete resolved.breakpoint.source!.sources;
-      p.log(resolved, 'Breakpoint resolved: ');
+      const resolved = await p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
+      delete resolved.breakpoints[0].source!.sources;
+      p.log(resolved.breakpoints[0], 'Breakpoint resolved: ');
       p.cdp.Runtime.evaluate({
         expression: 'window.callBack(window.pause);\n//# sourceURL=test.js',
       });
