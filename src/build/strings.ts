@@ -4,7 +4,7 @@
 import { sortKeys } from '../common/objUtils';
 
 const strings = {
-  'attach.node.process': 'Attach to Node Process (PWA)',
+  'attach.node.process': 'Attach to Node Process (js-debug)',
   'extension.description': 'Node.js debugging support (versions < 8.0)',
   'start.with.stop.on.entry': 'Start Debugging and Stop on Entry',
   'toggle.skipping.this.file': 'Toggle Skipping this File',
@@ -18,7 +18,7 @@ const strings = {
   'trace.level.description': 'Configures the level of logs recorded.',
   'trace.console.description': 'Configures whether logs are also returned to the debug console.',
 
-  'extensionHost.label': 'VS Code Extension Development',
+  'extensionHost.label': 'VS Code Extension Development (js-debug)',
   'extensionHost.launch.config.name': 'Launch Extension',
   'extensionHost.launch.env.description': 'Environment variables passed to the extension host.',
   'extensionHost.launch.runtimeExecutable.description': 'Absolute path to VS Code.',
@@ -61,7 +61,7 @@ const strings = {
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
   'chrome.userDataDir.description':
     'By default, Chrome is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
-  'chrome.label': 'NAMESPACE(Chrome)',
+  'chrome.label': 'Chrome (js-debug)',
   'chrome.launch.label': 'Chrome: Launch',
   'chrome.launch.description': 'Launch Chrome to debug a URL',
   'chrome.attach.label': 'Chrome: Attach',
@@ -72,7 +72,7 @@ const strings = {
   'debug.npm.noScripts': 'No npm scripts found in your package.json',
   'debug.npm.parseError': 'Could not read {0}: {1}',
   'debug.npm.edit': 'Edit package.json',
-  'debug.terminal.label': 'Create Javascript Debug Terminal',
+  'debug.terminal.label': 'Create JavaScript Debug Terminal',
   'debug.terminal.program.description':
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
@@ -89,7 +89,7 @@ const strings = {
   'node.console.title': 'Node Debug Console',
   'node.disableOptimisticBPs.description':
     "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
-  'node.label': 'NAMESPACE(Node.js)',
+  'node.label': 'Node.js (js-debug)',
   'node.launch.autoAttachChildProcesses.description':
     'Attach debugger to new child processes automatically.',
   'node.launch.config.name': 'Launch',

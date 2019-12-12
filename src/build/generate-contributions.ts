@@ -533,7 +533,7 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
 const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
   type: Contributions.ExtensionHostDebugType,
   request: 'launch',
-  label: refString('node.label'),
+  label: refString('extensionHost.label'),
   required: ['args'],
   configurationSnippets: [
     {
