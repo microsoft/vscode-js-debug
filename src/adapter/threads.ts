@@ -475,16 +475,18 @@ export class Thread implements IVariableStoreDelegate {
     });
   }
 
-  refreshStackTrace() {
-    if (this._pausedDetails) {
-      const event = this._pausedDetailsEvent.get(this._pausedDetails);
-      if (event) {
-        this._pausedDetails = this._createPausedDetails(event);
-      }
-
-      this._onThreadResumed();
-      this._onThreadPaused(this._pausedDetails);
+  async refreshStackTrace() {
+    if (!this._pausedDetails) {
+      return;
     }
+
+    const event = this._pausedDetailsEvent.get(this._pausedDetails);
+    if (event) {
+      this._pausedDetails = this._createPausedDetails(event);
+    }
+
+    this._onThreadResumed();
+    await this._onThreadPaused(this._pausedDetails);
   }
 
   // It is important to produce debug console output in the same order as it happens
@@ -599,7 +601,7 @@ export class Thread implements IVariableStoreDelegate {
     this._pausedDetailsEvent.set(this._pausedDetails, event);
     this._pausedVariables = new VariableStore(this._cdp, this);
     scheduledPauseOnAsyncCall = undefined;
-    this._onThreadPaused(this._pausedDetails);
+    await this._onThreadPaused(this._pausedDetails);
   }
 
   _onResumed() {

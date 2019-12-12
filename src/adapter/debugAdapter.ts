@@ -246,10 +246,10 @@ export class DebugAdapter {
     return callback(this._thread);
   }
 
-  _refreshStackTrace() {
+  async _refreshStackTrace() {
     if (!this._thread) return;
     const details = this._thread.pausedDetails();
-    if (details) this._thread.refreshStackTrace();
+    if (details) await this._thread.refreshStackTrace();
   }
 
   _threadNotAvailableError(): Dap.Error {
@@ -328,7 +328,7 @@ export class DebugAdapter {
         localize('error.cannotPrettyPrint', 'Unable to pretty print'),
       );
 
-    this._refreshStackTrace();
+    await this._refreshStackTrace();
     if (params.line) {
       const originalUiLocation: IUiLocation = {
         source,
