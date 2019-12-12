@@ -59,6 +59,8 @@ describe('node runtime', () => {
     // the launch request. We just want to test that the lifecycle of a detached
     // process is handled correctly.
     const launch = stub(TerminalProgramLauncher.prototype, 'sendLaunchRequest');
+    after(() => launch.restore());
+
     let receivedRequest: Dap.RunInTerminalParams | undefined;
     launch.callsFake((request: Dap.RunInTerminalParams) => {
       receivedRequest = request;
@@ -70,24 +72,20 @@ describe('node runtime', () => {
       return Promise.resolve({});
     });
 
-    try {
-      createFileTree(testFixturesDir, { 'test.js': '' });
-      const handle = await r.runScript('test.js', {
-        console: 'integratedTerminal',
-        cwd: testFixturesDir,
-        env: { myEnv: 'foo' },
-      });
-      handle.load();
-      await handle.dap.once('terminated');
-      expect(receivedRequest).to.containSubset({
-        title: 'Node Debug Console',
-        kind: 'integrated',
-        cwd: testFixturesDir,
-        env: { myEnv: 'foo' },
-      });
-    } finally {
-      launch.restore();
-    }
+    createFileTree(testFixturesDir, { 'test.js': '' });
+    const handle = await r.runScript('test.js', {
+      console: 'integratedTerminal',
+      cwd: testFixturesDir,
+      env: { myEnv: 'foo' },
+    });
+    handle.load();
+    await handle.dap.once('terminated');
+    expect(receivedRequest).to.containSubset({
+      title: 'Node Debug Console',
+      kind: 'integrated',
+      cwd: testFixturesDir,
+      env: { myEnv: 'foo' },
+    });
   });
 
   describe('attaching', () => {
