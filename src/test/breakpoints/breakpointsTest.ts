@@ -40,7 +40,6 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-
     itIntegrates('query params', async ({ r }) => {
       // Breakpoint in separate script set before launch.
       const p = await r.launchUrl('script-with-query-param.html');

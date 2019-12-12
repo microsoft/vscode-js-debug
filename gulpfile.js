@@ -304,9 +304,9 @@ gulp.task(
   ),
 );
 
-const runPrettier = (fix, callback) => {
+const runPrettier = (onlyStaged, fix, callback) => {
   const child = cp.fork(
-    './node_modules/prettier/bin-prettier.js',
+    './node_modules/@mixer/parallel-prettier/dist/index.js',
     [fix ? '--write' : '--list-different', 'src/**/*.ts', '!src/**/*.d.ts', '*.md'],
     { stdio: 'inherit' },
   );
@@ -324,11 +324,11 @@ const runEslint = (fix, callback) => {
   child.on('exit', code => (code ? callback(`Eslint exited with code ${code}`) : callback()));
 }
 
-gulp.task('format:prettier', callback => runPrettier(true, callback));
+gulp.task('format:prettier', callback => runPrettier(false, true, callback));
 gulp.task('format:eslint', callback => runEslint(true, callback));
 gulp.task('format', gulp.series('format:prettier', 'format:eslint'));
 
-gulp.task('lint:prettier', callback => runPrettier(false, callback));
+gulp.task('lint:prettier', callback => runPrettier(false, false, callback));
 gulp.task('lint:eslint', callback => runEslint(false, callback));
 gulp.task('lint', gulp.parallel('lint:prettier', 'lint:eslint'));
 
