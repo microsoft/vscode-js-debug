@@ -2,12 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP } from '../test';
+import { testWorkspace, ITestHandle } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
+import { join } from 'path';
 
 describe('breakpoints', () => {
-  async function waitForPause(p: TestP, cb?: () => Promise<void>) {
+  async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
     if (cb) await cb();
@@ -265,6 +266,23 @@ describe('breakpoints', () => {
       // Should resume and pause on 'debugger' in module1.ts.
       await waitForPause(p);
       p.assertLog();
+    });
+
+    itIntegrates('sets breakpoints in sourcemapped node_modules', async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'nodeModuleBreakpoint');
+      const handle = await r.runScript(join(cwd, 'index.js'), {
+        resolveSourceMapLocations: ['**/*'],
+      });
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'node_modules', '@c4312', 'foo', 'src', 'index.ts') },
+        breakpoints: [{ line: 2, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
     });
   });
 

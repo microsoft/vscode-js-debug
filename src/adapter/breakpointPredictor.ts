@@ -6,10 +6,9 @@ import * as path from 'path';
 import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
 import * as sourceUtils from '../common/sourceUtils';
-import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
-import { ISourceMapRepository, IRelativePattern } from '../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
@@ -33,7 +32,6 @@ export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetada
 
 export class BreakpointsPredictor {
   _rootPath: string;
-  private _nodeModules: Promise<string | undefined>;
   private _directoryScanners = new Map<string, DirectoryScanner>();
   _predictedLocations: PredictedLocation[] = [];
   _sourcePathResolver?: ISourcePathResolver;
@@ -46,11 +44,6 @@ export class BreakpointsPredictor {
   ) {
     this._rootPath = rootPath;
     this._sourcePathResolver = sourcePathResolver;
-
-    const nodeModules = path.join(this._rootPath, 'node_modules');
-    this._nodeModules = fsUtils
-      .exists(nodeModules)
-      .then(exists => (exists ? nodeModules : undefined));
   }
 
   /**
@@ -64,17 +57,38 @@ export class BreakpointsPredictor {
    * Returns a promise that resolves when breakpoints for the given location
    * are predicted.
    */
-  public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    if (!params.source.path) return;
-    const nodeModules = await this._nodeModules;
-    let root: string;
-    if (nodeModules && params.source.path.startsWith(nodeModules)) {
-      root = path.relative(nodeModules, params.source.path);
-      root = path.join(nodeModules, root.split(path.sep)[0]);
-    } else {
-      root = this._rootPath;
+  public predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+    if (!params.source.path) {
+      return Promise.resolve();
     }
-    await this._directoryScanner(root).predictResolvedLocations(params);
+
+    let root = this._rootPath;
+
+    // fast check to see if we need to take this path:
+    if (params.source.path.includes('node_modules')) {
+      // if we're in a node module, resolve everything in the module folder
+      let moduleRoot = params.source.path;
+      while (true) {
+        const nextDir = path.dirname(moduleRoot);
+
+        // we reached the filesystem root? Use the default root path.
+        if (nextDir === moduleRoot) {
+          break;
+        }
+
+        // if the next directory is node_modules or a @package scope, we
+        // reached the module root.
+        const nextBase = path.basename(nextDir);
+        if (nextBase === 'node_modules' || nextBase.startsWith('@')) {
+          root = moduleRoot;
+          break;
+        }
+
+        moduleRoot = nextDir;
+      }
+    }
+
+    return this._directoryScanner(root).predictResolvedLocations(params);
   }
 
   /**
@@ -138,52 +152,43 @@ class DirectoryScanner {
     };
 
     const start = Date.now();
-    await this.repo.streamAllChildren(
-      defaultFileMappings.map(
-        m =>
-          ({
-            base: absolutePath,
-            pattern: m,
-          } as IRelativePattern),
-      ),
-      async metadata => {
-        const baseUrl = metadata.sourceMapUrl.startsWith('data:')
-          ? metadata.compiledPath
-          : metadata.sourceMapUrl;
+    await this.repo.streamAllChildren(absolutePath, defaultFileMappings, async metadata => {
+      const baseUrl = metadata.sourceMapUrl.startsWith('data:')
+        ? metadata.compiledPath
+        : metadata.sourceMapUrl;
 
-        const cached = cache && (await cache.lookup(metadata.compiledPath, metadata.mtime));
-        if (cached) {
-          cached.forEach(addDiscovery);
-          return;
+      const cached = cache && (await cache.lookup(metadata.compiledPath, metadata.mtime));
+      if (cached) {
+        cached.forEach(addDiscovery);
+        return;
+      }
+
+      const map = await sourceUtils.loadSourceMap(metadata);
+      if (!map) {
+        return;
+      }
+
+      const discovered: DiscoveredMetadata[] = [];
+      for (const url of map.sources) {
+        const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
+        const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
+        const resolvedPath = this._predictor._sourcePathResolver
+          ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
+          : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+
+        if (!resolvedPath) {
+          continue;
         }
 
-        const map = await sourceUtils.loadSourceMap(metadata);
-        if (!map) {
-          return;
-        }
+        const discovery = { ...metadata, resolvedPath, sourceUrl: url };
+        discovered.push(discovery);
+        addDiscovery(discovery);
+      }
 
-        const discovered: DiscoveredMetadata[] = [];
-        for (const url of map.sources) {
-          const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
-          const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
-          const resolvedPath = this._predictor._sourcePathResolver
-            ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
-            : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
-
-          if (!resolvedPath) {
-            continue;
-          }
-
-          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
-          discovered.push(discovery);
-          addDiscovery(discovery);
-        }
-
-        if (cache) {
-          cache.store(metadata.compiledPath, metadata.mtime, discovered);
-        }
-      },
-    );
+      if (cache) {
+        cache.store(metadata.compiledPath, metadata.mtime, discovered);
+      }
+    });
 
     console.log('runtime using', this.repo.constructor.name, Date.now() - start);
     return sourcePathToCompiled;

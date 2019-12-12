@@ -3,11 +3,7 @@
  *--------------------------------------------------------*/
 
 import { ISourceMapMetadata } from './sourceMap';
-import {
-  ISourceMapRepository,
-  createMetadataForFile,
-  IRelativePattern,
-} from './sourceMapRepository';
+import { ISourceMapRepository, createMetadataForFile } from './sourceMapRepository';
 import { NodeSourceMapRepository } from './nodeSourceMapRepository';
 import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
@@ -50,19 +46,19 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
    * Recursively finds all children of the given direcotry.
    */
   public async streamAllChildren<T>(
-    patterns: ReadonlyArray<IRelativePattern>,
+    _base: string,
+    patterns: ReadonlyArray<string>,
     onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
     // TODO@rob should be absolute patterns, see https://github.com/microsoft/vscode/issues/85722
-    const relativePatterns = patterns.map(p => p.pattern);
     await this.findFn(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
         // todo(connor4312): is this correct way to join globs for search?
-        include: forceForwardSlashes(relativePatterns.filter(p => !p.startsWith('!')).join(', ')),
-        exclude: relativePatterns
+        include: forceForwardSlashes(patterns.filter(p => !p.startsWith('!')).join(', ')),
+        exclude: patterns
           .filter(p => p.startsWith('!'))
           .map(p => forceForwardSlashes(p.slice(1)))
           .join(','),

@@ -3,10 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import {
-  ISourceMapRepository,
-  IRelativePattern,
-} from '../../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository } from '../../common/sourceMaps/sourceMapRepository';
 import { join } from 'path';
 import { createFileTree, testFixturesDir, workspaceFolder, testFixturesDirName } from '../test';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
@@ -44,15 +41,10 @@ describe('ISourceMapRepository', () => {
       });
 
       const gather = (dir: string, firstIncludeSegment: string) => {
-        const patterns: IRelativePattern[] = [
-          `${firstIncludeSegment}/**/*.js`,
-          '!**/node_modules/**',
-        ].map(p => ({
-          base: dir,
-          pattern: p,
-        }));
+        const patterns = [`${firstIncludeSegment}/**/*.js`, '!**/node_modules/**'];
+
         return r
-          .streamAllChildren(patterns, async m => {
+          .streamAllChildren(dir, patterns, async m => {
             const { mtime, ...rest } = m;
             expect(mtime).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
             rest.compiledPath = fixDriveLetter(rest.compiledPath);
@@ -77,6 +69,20 @@ describe('ISourceMapRepository', () => {
           },
         ]);
       });
+
+      // todo: better absolute pathing support
+      if (tcase.name !== 'CodeSearchSourceMapRepository') {
+        it('greps inside node_modules explicitly', async () => {
+          expect(await gather(join(testFixturesDir, 'node_modules'), '.')).to.deep.equal([
+            {
+              compiledPath: fixDriveLetter(join(testFixturesDir, 'node_modules', 'e.js')),
+              sourceMapUrl: absolutePathToFileUrl(
+                join(testFixturesDir, 'node_modules', 'e.js.map'),
+              ),
+            },
+          ]);
+        });
+      }
     }),
   );
 });
