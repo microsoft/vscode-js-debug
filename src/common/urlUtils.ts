@@ -224,10 +224,9 @@ export function isAbsolute(_path: string): boolean {
  */
 export function urlToRegex(aPath: string) {
   const absolutePath = fileUrlToAbsolutePath(aPath);
-  const eatQueryString = '(\\?.*)?';
-  aPath = escapeRegexSpecialChars(aPath) + eatQueryString;
+  aPath = escapeRegexSpecialChars(aPath);
   if (absolutePath) {
-    aPath += `|${escapeRegexSpecialChars(absolutePath)}${eatQueryString}`;
+    aPath += `|${escapeRegexSpecialChars(absolutePath)}`;
   }
 
   // If we should resolve paths in a case-sensitive way, we still need to set
