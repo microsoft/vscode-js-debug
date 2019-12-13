@@ -144,6 +144,7 @@
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
+    "onDebugResolve:extensionHost",
     "onDebugResolve:chrome",
     "onDebugResolve:NAMESPACE(node)",
     "onDebugResolve:NAMESPACE(node-terminal)",
