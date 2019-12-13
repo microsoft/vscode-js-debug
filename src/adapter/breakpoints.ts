@@ -16,6 +16,7 @@ import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { getDeferred, delay } from '../common/promiseUtil';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 const localize = nls.loadMessageBundle();
 
@@ -477,7 +478,9 @@ export class Breakpoint {
 }
 
 export class BreakpointManager {
-  private _byPath: Map<string, Breakpoint[]> = new Map();
+  private _byPath: Map<string, Breakpoint[]> = new MapUsingProjection(
+    urlUtils.lowerCaseInsensitivePath,
+  );
   private _byRef: Map<number, Breakpoint[]> = new Map();
 
   _dap: Dap.Api;
