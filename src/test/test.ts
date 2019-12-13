@@ -424,11 +424,14 @@ export class TestRoot {
   ): Promise<NodeTestHandle> {
     await this.initialize;
     this._launchUrl = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
+
+    const tmpLogPath = getLogFileForTest(this._testTitlePath);
     this._root.dap.launch({
       ...nodeLaunchConfigDefaults,
       cwd: path.dirname(testFixturesDir),
       program: this._launchUrl,
       rootPath: this._workspaceRoot,
+      trace: { logFile: tmpLogPath },
       ...options,
     } as INodeLaunchConfiguration);
     const result = await new Promise(f => (this._launchCallback = f));
