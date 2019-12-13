@@ -132,6 +132,7 @@
     "request-promise-native": "^1.0.7",
     "sinon": "^7.5.0",
     "stream-buffers": "^3.0.2",
+    "ts-node": "^8.5.4",
     "vsce": "^1.67.1",
     "vscode-debugadapter-testsupport": "^1.37.1",
     "vscode-debugprotocol": "^1.37.0",

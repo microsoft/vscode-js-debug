@@ -17,6 +17,7 @@ import {
   getCaseSensitivePaths,
   isDataUri,
   isFileUrl,
+  isValidUrl,
 } from '../common/urlUtils';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
@@ -64,7 +65,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     // Be case insensitive for remote URIs--we have no way to know
     // whether the server is case sensitive or not.
-    const caseSensitive = isFileUrl(sourcePath) ? getCaseSensitivePaths() : true;
+    const caseSensitive = isValidUrl(map.metadata.sourceMapUrl) ? false : getCaseSensitivePaths();
     const processMatchInput = (value: string) => {
       value = forceForwardSlashes(value);
       // built-in 'nocase' match option applies only to operand; we need to normalize both

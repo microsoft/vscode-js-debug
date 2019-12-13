@@ -295,6 +295,9 @@ export class Breakpoint {
     // This oft happens with Node.js loaders which rewrite sources on the fly.
     for (const bp of this._cdpBreakpoints) {
       if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url())) {
+        logger.verbose(LogTag.RuntimeSourceMap, 'Adjusted breakpoint due to overlaid sourcemap', {
+          url: source.url(),
+        });
         promises.push(this.removeCdpBreakpoint(bp));
       }
     }

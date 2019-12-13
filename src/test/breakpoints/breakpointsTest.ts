@@ -2,13 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP } from '../test';
+import { testWorkspace, ITestHandle } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 import { expect } from 'chai';
+import { join } from 'path';
 
 describe('breakpoints', () => {
-  async function waitForPause(p: TestP, cb?: () => Promise<void>) {
+  async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
     if (cb) await cb();
@@ -341,6 +342,21 @@ describe('breakpoints', () => {
       p.log(await p.dap.continue({ threadId: event.threadId }));
       p.assertLog();
     });
+  });
+
+  itIntegrates('handles hot-transpiled modules', async ({ r }) => {
+    await r.initialize;
+
+    const cwd = join(testWorkspace, 'tsNode');
+    const handle = await r.runScript(join(cwd, 'index.js'));
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'double.ts') },
+      breakpoints: [{ line: 12, column: 1 }],
+    });
+
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
   });
 
   itIntegrates('restart frame', async ({ r }) => {
