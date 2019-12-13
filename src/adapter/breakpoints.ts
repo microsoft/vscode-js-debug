@@ -39,17 +39,78 @@ interface ISetBreakpointResult {
   list: Breakpoint[];
 }
 
+/**
+ * State of the IBreakpointCdpReference.
+ */
+const enum CdpReferenceState {
+  // We're still working on the initial 'set breakpoint' request for this.
+  Applying,
+  // CDP has resolved this breakpoint to a source location locations.
+  Resolved,
+}
+
+type AnyCdpBreakpointArgs =
+  | Cdp.Debugger.SetBreakpointByUrlParams
+  | Cdp.Debugger.SetBreakpointParams;
+
+const isSetByUrl = (
+  params: AnyCdpBreakpointArgs,
+): params is Cdp.Debugger.SetBreakpointByUrlParams => !('location' in params);
+const isSetByLocation = (
+  params: AnyCdpBreakpointArgs,
+): params is Cdp.Debugger.SetBreakpointParams => 'location' in params;
+
+const breakpointIsForUrl = (params: Cdp.Debugger.SetBreakpointByUrlParams, url: string) =>
+  (params.url && url === params.url) || params.urlRegex === urlUtils.urlToRegex(url);
+
+/**
+ * We're currently working on sending the breakpoint to CDP.
+ */
+interface IBreakpointCdpReferencePending {
+  state: CdpReferenceState.Applying;
+  // If deadletter is true, it indicates we want to invalidate this breakpoint;
+  // this will cause it to be unset as soon as it is applied.
+  deadletter: boolean;
+  // Promise that resolves to the 'applied' state once applied, or void if an
+  // error or deadletter occurred.
+  done: Promise<IBreakpointCdpReferenceApplied | void>;
+  // Arguments used to set the breakpoint.
+  args: AnyCdpBreakpointArgs;
+}
+
+/**
+ * The breakpoint has been acknowledged by CDP and mapped to one or more locations.
+ */
+interface IBreakpointCdpReferenceApplied {
+  state: CdpReferenceState.Resolved;
+  // ID of the breakpoint on CDP.
+  cdpId: Cdp.Debugger.BreakpointId;
+  // Locations where CDP told us the breakpoint has bound.
+  locations: ReadonlyArray<Cdp.Debugger.Location>;
+  // Arguments used to set the breakpoint.
+  args: AnyCdpBreakpointArgs;
+  // A list of UI locations whether this breakpoint was resolved.
+  uiLocations: IUiLocation[];
+}
+
+/**
+ * An entry in the Breakpoint class that references a breakpoint in CDP/the
+ * debug target. A single "Breakpoint" class might resolve to
+ * multiple source locations, so there is a list of these.
+ */
+type BreakpointCdpReference = IBreakpointCdpReferencePending | IBreakpointCdpReferenceApplied;
+
 export class Breakpoint {
   private _manager: BreakpointManager;
   _source: Dap.Source;
   private _condition?: string;
   private _lineColumn: LineColumn;
-  private _disposables: IDisposable[] = [];
-  private _activeSetters = new Set<Promise<void>>();
 
-  private _resolvedBreakpoints = new Set<Cdp.Debugger.BreakpointId>();
-  private _resolvedUiLocation?: IUiLocation;
-  private _setUrlLocations = new Set<string>();
+  /**
+   * A list of the CDP breakpoints that have been set from this one.
+   */
+  private _cdpBreakpoints: BreakpointCdpReference[] = [];
+
   /**
    * A deferred that resolves once the breakpoint 'set' response has been
    * returned to the UI. We should wait for this to finish before sending any
@@ -94,13 +155,14 @@ export class Breakpoint {
    * resolved, this will be fulfilled with the complete source location.
    */
   public async toDap(): Promise<Dap.Breakpoint> {
-    if (this._resolvedUiLocation) {
+    const location = this.getResolvedUiLocation();
+    if (location) {
       return {
         id: this.dapId,
         verified: true,
-        source: await this._resolvedUiLocation.source.toDap(),
-        line: this._resolvedUiLocation.lineNumber,
-        column: this._resolvedUiLocation.columnNumber,
+        source: await location.source.toDap(),
+        line: location.lineNumber,
+        column: location.columnNumber,
       };
     }
 
@@ -112,14 +174,28 @@ export class Breakpoint {
   }
 
   /**
+   * Gets the location whether this breakpoint is resolved, if any.
+   */
+  private getResolvedUiLocation() {
+    for (const bp of this._cdpBreakpoints) {
+      if (bp.state === CdpReferenceState.Resolved && bp.uiLocations.length) {
+        return bp.uiLocations[0];
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Called the breakpoint manager to notify that the breakpoint is resolved,
    * used for statistics and notifying the UI.
    */
-  private async _notifyResolved(): Promise<void> {
-    if (this._resolvedUiLocation) {
+  private async notifyResolved(): Promise<void> {
+    const location = this.getResolvedUiLocation();
+    if (location) {
       await this._manager.notifyBreakpointResolved(
         this.dapId,
-        this._resolvedUiLocation,
+        location,
         this._completedSet.hasSettled(),
       );
     }
@@ -148,36 +224,53 @@ export class Breakpoint {
     }
 
     await Promise.all(promises);
-    await this._notifyResolved();
+    await this.notifyResolved();
   }
 
-  async breakpointResolved(
+  /**
+   * Updates the breakpoint's locations in the UI. Should be called whenever
+   * a breakpoint set completes or a breakpointResolved event is received.
+   */
+  public async updateUiLocations(
     thread: Thread,
-    cdpId: string,
+    cdpId: Cdp.Debugger.BreakpointId,
     resolvedLocations: Cdp.Debugger.Location[],
   ) {
-    // Register cdpId so we can later remove it.
-    this._resolvedBreakpoints.add(cdpId);
-    this._manager._resolvedBreakpoints.set(cdpId, this);
+    const uiLocation = (
+      await Promise.all(
+        resolvedLocations.map(l => thread.rawLocationToUiLocation(thread.rawLocation(l))),
+      )
+    ).find(l => !!l);
 
-    // If this is a first resolved location, we should update the breakpoint as "verified".
-    if (this._resolvedUiLocation || !resolvedLocations.length) return;
-    const uiLocation = await thread.rawLocationToUiLocation(
-      thread.rawLocation(resolvedLocations[0]),
-    );
-    if (this._resolvedUiLocation || !uiLocation) return;
+    if (!uiLocation) {
+      return;
+    }
+
     const source = this._manager._sourceContainer.source(this._source);
-    if (source)
-      this._resolvedUiLocation = this._manager._sourceContainer.currentSiblingUiLocations(
-        uiLocation,
-        source,
-      )[0];
-    this._notifyResolved();
+    if (!source) {
+      return;
+    }
+
+    const hadPreviousLocation = !!this.getResolvedUiLocation();
+    for (const bp of this._cdpBreakpoints) {
+      if (bp.state === CdpReferenceState.Resolved && bp.cdpId === cdpId) {
+        bp.uiLocations = bp.uiLocations.concat(
+          this._manager._sourceContainer.currentSiblingUiLocations(uiLocation, source),
+        );
+      }
+    }
+
+    if (!hadPreviousLocation) {
+      this.notifyResolved();
+    }
   }
 
-  async updateForSourceMap(thread: Thread, script: Script) {
+  public async updateForSourceMap(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this._source);
-    if (!source) return [];
+    if (!source) {
+      return [];
+    }
+
     // Find all locations for this breakpoint in the new script.
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
       {
@@ -187,9 +280,25 @@ export class Breakpoint {
       },
       script.source,
     );
+
+    if (!uiLocations.length) {
+      return [];
+    }
+
     const promises: Promise<void>[] = [];
-    for (const uiLocation of uiLocations)
+    for (const uiLocation of uiLocations) {
       promises.push(this._setByScriptId(thread, script, uiLocation));
+    }
+
+    // If we get a source map that references this script exact URL, then
+    // remove any URL-set breakpoints because they are probably not correct.
+    // This oft happens with Node.js loaders which rewrite sources on the fly.
+    for (const bp of this._cdpBreakpoints) {
+      if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url())) {
+        promises.push(this.removeCdpBreakpoint(bp));
+      }
+    }
+
     await Promise.all(promises);
 
     return uiLocations;
@@ -230,72 +339,123 @@ export class Breakpoint {
     await this._setByUrl(thread, url, lineColumn);
   }
 
-  _urlLocation(url: string, lineColumn: LineColumn): string {
-    return lineColumn.lineNumber + ':' + lineColumn.columnNumber + ':' + url;
+  /**
+   * Returns whether a breakpoint has been set on the given line and column
+   * at the provided URL already. This is used to deduplicate breakpoint
+   * requests--as URLs do not refer explicitly to a single script, there's
+   * not an intrinsic deduplication that happens before this point.
+   */
+  private hasSetOnLocation(urlRegex: string, lineColumn: LineColumn): boolean {
+    return this._cdpBreakpoints.some(
+      bp =>
+        isSetByUrl(bp.args) &&
+        bp.args.urlRegex === urlRegex &&
+        bp.args.lineNumber === lineColumn.lineNumber &&
+        bp.args.columnNumber === lineColumn.columnNumber,
+    );
   }
 
-  async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
-    const urlLocation = this._urlLocation(url, lineColumn);
-    if (this._setUrlLocations.has(urlLocation)) return;
-    this._setUrlLocations.add(urlLocation);
-
-    const location: Cdp.Debugger.SetBreakpointByUrlParams = {
-      urlRegex: urlUtils.urlToRegex(url),
-      condition: this._condition,
-      ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
-    };
-
-    const activeSetter = (async () => {
-      // TODO: add a test for this - breakpoint in node on the first line.
-      const result = await thread.cdp().Debugger.setBreakpointByUrl(location);
-      if (result) this.breakpointResolved(thread, result.breakpointId, result.locations);
-    })();
-    this._activeSetters.add(activeSetter);
-    await activeSetter;
-  }
-
-  async _setByScriptId(thread: Thread, script: Script, lineColumn: LineColumn): Promise<void> {
-    const urlLocation = this._urlLocation(script.url, lineColumn);
-    if (script.url && this._setUrlLocations.has(urlLocation)) return;
-
-    const location = {
-      scriptId: script.scriptId,
-      ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
-    };
-
-    const activeSetter = (async () => {
-      const result = await thread.cdp().Debugger.setBreakpoint({
-        location,
-        condition: this._condition,
-      });
-      if (result) this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
-    })();
-    this._activeSetters.add(activeSetter);
-    await activeSetter;
-  }
-
-  async remove(): Promise<void> {
-    // This prevent any new setters from running.
-    for (const disposable of this._disposables) disposable.dispose();
-    this._disposables = [];
-    this._resolvedUiLocation = undefined;
-
-    // Let all setters finish, so that we can remove all breakpoints including
-    // ones being set right now.
-    await Promise.all(Array.from(this._activeSetters));
-
-    if (!assert(this._manager._thread, 'Expected thread to be set for Breakpoint.remove()')) {
+  private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
+    const urlRegex = urlUtils.urlToRegex(url);
+    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
+    if (this.hasSetOnLocation(urlRegex, lineColumn)) {
       return;
     }
 
-    const promises: Promise<unknown>[] = [];
-    for (const id of this._resolvedBreakpoints) {
-      this._manager._resolvedBreakpoints.delete(id);
-      promises.push(this._manager._thread.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
+    return this._setAny(thread, {
+      urlRegex,
+      condition: this._condition,
+      ...lineColumn,
+    });
+  }
+
+  private async _setByScriptId(
+    thread: Thread,
+    script: Script,
+    lineColumn: LineColumn,
+  ): Promise<void> {
+    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
+    if (script.url && this.hasSetOnLocation(urlUtils.urlToRegex(script.url), lineColumn)) {
+      return;
     }
-    this._resolvedBreakpoints.clear();
-    this._setUrlLocations.clear();
+
+    return this._setAny(thread, { location: { scriptId: script.scriptId, ...lineColumn } });
+  }
+
+  /**
+   * Sets a breakpoint on the thread using the given set of arguments
+   * to Debugger.setBreakpoint or Debugger.setBreakpointByUrl.
+   */
+  private async _setAny(thread: Thread, args: AnyCdpBreakpointArgs) {
+    const state: Partial<IBreakpointCdpReferencePending> = {
+      state: CdpReferenceState.Applying,
+      args,
+      deadletter: false,
+    };
+
+    state.done = (async () => {
+      const result = isSetByLocation(args)
+        ? await thread.cdp().Debugger.setBreakpoint(args)
+        : await thread.cdp().Debugger.setBreakpointByUrl(args);
+      if (!result) {
+        return;
+      }
+
+      if (state.deadletter) {
+        await thread.cdp().Debugger.removeBreakpoint({ breakpointId: result.breakpointId });
+        return;
+      }
+
+      const locations = 'actualLocation' in result ? [result.actualLocation] : result.locations;
+      this._manager._resolvedBreakpoints.set(result.breakpointId, this);
+
+      // Note that we add the record after calling breakpointResolved()
+      // to avoid duplicating locations.
+      const next: IBreakpointCdpReferenceApplied = {
+        state: CdpReferenceState.Resolved,
+        cdpId: result.breakpointId,
+        args,
+        locations,
+        uiLocations: [],
+      };
+      this._cdpBreakpoints = this._cdpBreakpoints.map(r => (r === state ? next : r));
+
+      this.updateUiLocations(thread, result.breakpointId, locations);
+      return next;
+    })();
+
+    this._cdpBreakpoints.push(state as IBreakpointCdpReferencePending);
+    await state.done;
+  }
+
+  async remove(): Promise<void> {
+    const promises: Promise<unknown>[] = this._cdpBreakpoints.map(bp =>
+      this.removeCdpBreakpoint(bp, false),
+    );
+    this._cdpBreakpoints = [];
     await Promise.all(promises);
+  }
+
+  /**
+   * Removes a CDP breakpoint attached to this one. Deadletters it if it
+   * hasn't been applied yet, deletes it immediately otherwise.
+   */
+  private async removeCdpBreakpoint(breakpoint: BreakpointCdpReference, notify = true) {
+    const previousLocation = this.getResolvedUiLocation();
+    this._cdpBreakpoints = this._cdpBreakpoints.filter(bp => bp !== breakpoint);
+    if (breakpoint.state === CdpReferenceState.Applying) {
+      breakpoint.deadletter = true;
+      await breakpoint.done;
+    } else {
+      this._manager._resolvedBreakpoints.delete(breakpoint.cdpId);
+      await this._manager._thread
+        ?.cdp()
+        .Debugger.removeBreakpoint({ breakpointId: breakpoint.cdpId });
+    }
+
+    if (notify && previousLocation !== this.getResolvedUiLocation()) {
+      this.notifyResolved();
+    }
   }
 
   /**
@@ -471,8 +631,11 @@ export class BreakpointManager {
     this._thread = thread;
     this._thread.cdp().Debugger.on('breakpointResolved', event => {
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
-      if (breakpoint) breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
+      if (breakpoint) {
+        breakpoint.updateUiLocations(thread, event.breakpointId, [event.location]);
+      }
     });
+
     this._thread.setSourceMapDisabler(breakpointIds => {
       const sources: Source[] = [];
       for (const id of breakpointIds) {

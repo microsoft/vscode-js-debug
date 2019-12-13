@@ -220,6 +220,13 @@ export function isAbsolute(_path: string): boolean {
 }
 
 /**
+ * Returns whether the uri looks like a data URI.
+ */
+export function isDataUri(uri: string): boolean {
+  return /^data:[a-z]+\/[a-z]/.test(uri);
+}
+
+/**
  * Converts and escape the file URL to a regular expression.
  */
 export function urlToRegex(aPath: string) {

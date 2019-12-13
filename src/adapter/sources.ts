@@ -502,7 +502,10 @@ export class SourceContainer {
     this._sourceMaps.set(sourceMapUrl, sourceMap);
 
     // will log any errors internally:
-    const loaded = await sourceUtils.loadSourceMap({ sourceMapUrl });
+    const loaded = await sourceUtils.loadSourceMap({
+      sourceMapUrl,
+      compiledPath: source.absolutePath(),
+    });
     if (loaded) {
       sourceMap.map = loaded;
     } else {

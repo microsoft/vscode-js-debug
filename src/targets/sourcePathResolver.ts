@@ -12,7 +12,12 @@ import {
   properJoin,
 } from '../common/pathUtils';
 import * as path from 'path';
-import { isFileUrl, fileUrlToAbsolutePath, getCaseSensitivePaths } from '../common/urlUtils';
+import {
+  fileUrlToAbsolutePath,
+  getCaseSensitivePaths,
+  isDataUri,
+  isFileUrl,
+} from '../common/urlUtils';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -47,13 +52,19 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return true;
     }
 
-    const isFile = isFileUrl(map.metadata.sourceMapUrl);
     const sourcePath =
-      (isFile && fileUrlToAbsolutePath(map.metadata.sourceMapUrl)) || map.metadata.sourceMapUrl;
+      // If the source map refers to an absolute path, that's what we're after
+      fileUrlToAbsolutePath(map.metadata.sourceMapUrl) ||
+      // If it's a data URI, use the compiled path as a stand-in. It should
+      // be quite rare that ignored files (i.e. node_modules) reference
+      // source modules and vise versa.
+      (isDataUri(map.metadata.sourceMapUrl) && map.metadata.compiledPath) ||
+      // Fall back to the raw URL if those fail.
+      map.metadata.sourceMapUrl;
 
     // Be case insensitive for remote URIs--we have no way to know
     // whether the server is case sensitive or not.
-    const caseSensitive = isFileUrl ? getCaseSensitivePaths() : true;
+    const caseSensitive = isFileUrl(sourcePath) ? getCaseSensitivePaths() : true;
     const processMatchInput = (value: string) => {
       value = forceForwardSlashes(value);
       // built-in 'nocase' match option applies only to operand; we need to normalize both

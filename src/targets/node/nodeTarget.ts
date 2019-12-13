@@ -124,8 +124,8 @@ export class NodeTarget implements ITarget {
   }
 
   shouldCheckContentHash(): boolean {
-    // Node executes files directly from disk, there is no need to check the content.
-    return false;
+    // todo(connor4312): all targets need content hashing, remove dead code
+    return true;
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
