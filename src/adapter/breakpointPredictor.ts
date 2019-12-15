@@ -13,6 +13,8 @@ import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -122,6 +124,7 @@ type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
 const defaultFileMappings = ['**/*.js', '!**/node_modules/**'];
+const longPredictionWarning = 10 * 1000;
 
 class DirectoryScanner {
   private _predictor: BreakpointsPredictor;
@@ -150,6 +153,13 @@ class DirectoryScanner {
 
       set.add(discovery);
     };
+
+    const warnLongRuntime = setTimeout(() => {
+      logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
+        longPredictionWarning,
+        absolutePath,
+      });
+    }, longPredictionWarning);
 
     const start = Date.now();
     await this.repo.streamAllChildren(absolutePath, defaultFileMappings, async metadata => {
@@ -190,7 +200,13 @@ class DirectoryScanner {
       }
     });
 
-    console.log('runtime using', this.repo.constructor.name, Date.now() - start);
+    clearTimeout(warnLongRuntime);
+    logger.verbose(LogTag.SourceMapParsing, 'Breakpoint prediction completed', {
+      type: this.repo.constructor.name,
+      duration: Date.now() - start,
+      absolutePath,
+    });
+
     return sourcePathToCompiled;
   }
 
