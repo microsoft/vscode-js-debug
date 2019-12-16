@@ -24,6 +24,7 @@ import {
   Source,
   SourceContainer,
   IUiLocation,
+  base1To0,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
@@ -81,7 +82,8 @@ export interface IThreadDelegate {
 export type ScriptWithSourceMapHandler = (
   script: Script,
   sources: Source[],
-) => Promise<{ remainPaused: boolean }>;
+  brokenOn?: Cdp.Debugger.Location,
+) => Promise<IUiLocation[]>;
 export type SourceMapDisabler = (hitBreakpoints: string[]) => Source[];
 
 export type RawLocation = {
@@ -114,7 +116,7 @@ export class Thread implements IVariableStoreDelegate {
   private _sourceMapDisabler?: SourceMapDisabler;
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
-  private _sourceMapLoads = new Map<string, Promise<{ remainPaused: boolean }>>();
+  private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   private _smartStepper: SmartStepper;
   private _expectedPauseReason?: { reason: PausedReason; description?: string };
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
@@ -557,8 +559,14 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    if (event.reason === 'instrumentation' && event.data && event.data['scriptId']) {
-      const remainPaused = await this._handleSourceMapPause(event.data['scriptId'] as string);
+    const isSourceMapPause =
+      (event.reason === 'instrumentation' && event.data?.scriptId) ||
+      event.hitBreakpoints?.some(b => this._breakpointManager.isModuleEntryBreakpoint(b));
+
+    if (isSourceMapPause) {
+      const location = event.callFrames[0].location;
+      const scriptId = event.data?.scriptId || location.scriptId;
+      const remainPaused = await this._handleSourceMapPause(scriptId, location);
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -572,7 +580,9 @@ export class Thread implements IVariableStoreDelegate {
         // If should stay paused, that means the user set a breakpoint on
         // the first line (which we are already on!), so pretend it's
         // a breakpoint and let it bubble up.
-        event.data.__rewriteAsBreakpoint = true;
+        if (event.data) {
+          event.data.__rewriteAsBreakpoint = true;
+        }
       } else {
         await this._pauseOnScheduledAsyncCall();
         this.resume();
@@ -1029,14 +1039,17 @@ export class Thread implements IVariableStoreDelegate {
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
-      // map and set breakpoints as soon as possible. This is racy against the
-      // script execution, but better than nothing.
+      // map and set breakpoints as soon as possible. We pause on the first line
+      // (the "module entry breakpoint") to ensure this resolves.
       this._getOrStartLoadingSourceMaps(script);
     }
   }
 
-  // Wait for source map to load and set all breakpoints in this particular script.
-  async _handleSourceMapPause(scriptId: string): Promise<boolean> {
+  /**
+   * Wait for source map to load and set all breakpoints in this particular
+   * script. Returns true if the debugger should remain paused.
+   */
+  async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
     const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
     const script = this._scripts.get(scriptId);
@@ -1045,11 +1058,27 @@ export class Thread implements IVariableStoreDelegate {
       return false;
     }
 
-    const result = await Promise.race([this._getOrStartLoadingSourceMaps(script), delay(timeout)]);
+    const result = await Promise.race([
+      this._getOrStartLoadingSourceMaps(script, brokenOn),
+      delay(timeout),
+    ]);
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
-    return result ? result.remainPaused : false;
+    return (
+      !!result &&
+      result.map(base1To0).some(b => {
+        if (b.lineNumber < brokenOn.lineNumber) {
+          return true;
+        }
+
+        if (b.lineNumber === brokenOn.lineNumber) {
+          return b.columnNumber <= (brokenOn.columnNumber || 0);
+        }
+
+        return false;
+      })
+    );
   }
 
   /**
@@ -1057,7 +1086,7 @@ export class Thread implements IVariableStoreDelegate {
    * haven't already done so. Returns a promise that resolves with the
    * handler's results.
    */
-  private _getOrStartLoadingSourceMaps(script: Script) {
+  private _getOrStartLoadingSourceMaps(script: Script, brokenOn?: Cdp.Debugger.Location) {
     const existing = this._sourceMapLoads.get(script.scriptId);
     if (existing) {
       return existing;
@@ -1067,8 +1096,8 @@ export class Thread implements IVariableStoreDelegate {
       .waitForSourceMapSources(script.source)
       .then(sources =>
         sources.length && this._scriptWithSourceMapHandler
-          ? this._scriptWithSourceMapHandler(script, sources)
-          : { remainPaused: false },
+          ? this._scriptWithSourceMapHandler(script, sources, brokenOn)
+          : [],
       );
 
     this._sourceMapLoads.set(script.scriptId, result);

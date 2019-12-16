@@ -45,9 +45,9 @@ interface ISetBreakpointResult {
  */
 const enum CdpReferenceState {
   // We're still working on the initial 'set breakpoint' request for this.
-  Applying,
+  Pending,
   // CDP has resolved this breakpoint to a source location locations.
-  Resolved,
+  Applied,
 }
 
 type AnyCdpBreakpointArgs =
@@ -68,7 +68,7 @@ const breakpointIsForUrl = (params: Cdp.Debugger.SetBreakpointByUrlParams, url: 
  * We're currently working on sending the breakpoint to CDP.
  */
 interface IBreakpointCdpReferencePending {
-  state: CdpReferenceState.Applying;
+  state: CdpReferenceState.Pending;
   // If deadletter is true, it indicates we want to invalidate this breakpoint;
   // this will cause it to be unset as soon as it is applied.
   deadletter: boolean;
@@ -83,7 +83,7 @@ interface IBreakpointCdpReferencePending {
  * The breakpoint has been acknowledged by CDP and mapped to one or more locations.
  */
 interface IBreakpointCdpReferenceApplied {
-  state: CdpReferenceState.Resolved;
+  state: CdpReferenceState.Applied;
   // ID of the breakpoint on CDP.
   cdpId: Cdp.Debugger.BreakpointId;
   // Locations where CDP told us the breakpoint has bound.
@@ -101,11 +101,13 @@ interface IBreakpointCdpReferenceApplied {
  */
 type BreakpointCdpReference = IBreakpointCdpReferencePending | IBreakpointCdpReferenceApplied;
 
+const isApplied = (bp: BreakpointCdpReference): bp is IBreakpointCdpReferenceApplied =>
+  bp.state === CdpReferenceState.Applied;
+
 export class Breakpoint {
   private _manager: BreakpointManager;
   _source: Dap.Source;
   private _condition?: string;
-  private _lineColumn: LineColumn;
 
   /**
    * A list of the CDP breakpoints that have been set from this one.
@@ -119,6 +121,18 @@ export class Breakpoint {
    */
   private _completedSet = getDeferred<void>();
 
+  /**
+   * Gets all CDP breakpoint IDs under which this breakpoint currently exists.
+   */
+  public get cdpIds() {
+    return this._cdpBreakpoints.filter(isApplied).map(bp => bp.cdpId);
+  }
+
+  /**
+   * The position in the UI this breakpoint was placed at.
+   */
+  public readonly originalPosition: LineColumn;
+
   constructor(
     manager: BreakpointManager,
     public readonly dapId: number,
@@ -128,7 +142,7 @@ export class Breakpoint {
     this._manager = manager;
     this.dapId = dapId;
     this._source = source;
-    this._lineColumn = { lineNumber: params.line, columnNumber: params.column || 1 };
+    this.originalPosition = { lineNumber: params.line, columnNumber: params.column || 1 };
     if (params.logMessage)
       this._condition = rewriteLogPoint(params.logMessage) + `\n//# sourceURL=${kLogPointUrl}`;
     if (params.condition)
@@ -179,7 +193,7 @@ export class Breakpoint {
    */
   private getResolvedUiLocation() {
     for (const bp of this._cdpBreakpoints) {
-      if (bp.state === CdpReferenceState.Resolved && bp.uiLocations.length) {
+      if (bp.state === CdpReferenceState.Applied && bp.uiLocations.length) {
         return bp.uiLocations[0];
       }
     }
@@ -208,7 +222,7 @@ export class Breakpoint {
       // a source map source. To make them work, we always set by url to not miss compiled.
       // Additionally, if we have two sources with the same url, but different path (or no path),
       // this will make breakpoint work in all of them.
-      this._setByPath(thread, this._lineColumn),
+      this._setByPath(thread, this.originalPosition),
 
       // Also use predicted locations if available.
       this._setPredicted(thread),
@@ -217,8 +231,8 @@ export class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
     if (source) {
       const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
-        lineNumber: this._lineColumn.lineNumber,
-        columnNumber: this._lineColumn.columnNumber,
+        lineNumber: this.originalPosition.lineNumber,
+        columnNumber: this.originalPosition.columnNumber,
         source,
       });
       promises.push(...uiLocations.map(uiLocation => this._setByUiLocation(thread, uiLocation)));
@@ -254,7 +268,7 @@ export class Breakpoint {
 
     const hadPreviousLocation = !!this.getResolvedUiLocation();
     for (const bp of this._cdpBreakpoints) {
-      if (bp.state === CdpReferenceState.Resolved && bp.cdpId === cdpId) {
+      if (bp.state === CdpReferenceState.Applied && bp.cdpId === cdpId) {
         bp.uiLocations = bp.uiLocations.concat(
           this._manager._sourceContainer.currentSiblingUiLocations(uiLocation, source),
         );
@@ -275,8 +289,8 @@ export class Breakpoint {
     // Find all locations for this breakpoint in the new script.
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
       {
-        lineNumber: this._lineColumn.lineNumber,
-        columnNumber: this._lineColumn.columnNumber,
+        lineNumber: this.originalPosition.lineNumber,
+        columnNumber: this.originalPosition.columnNumber,
         source,
       },
       script.source,
@@ -312,8 +326,8 @@ export class Breakpoint {
     if (!this._source.path || !this._manager._breakpointsPredictor) return;
     const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this._source.path,
-      lineNumber: this._lineColumn.lineNumber,
-      columnNumber: this._lineColumn.columnNumber,
+      lineNumber: this.originalPosition.lineNumber,
+      columnNumber: this.originalPosition.columnNumber,
     });
     const promises: Promise<void>[] = [];
     for (const workspaceLocation of workspaceLocations) {
@@ -333,7 +347,21 @@ export class Breakpoint {
   }
 
   async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
+    const sourceByPath = this._manager._sourceContainer.source({ path: this._source.path });
+
+    // If the source has been mapped in-place, don't set anything by path,
+    // we'll depend only on the mapped locations.
+    if (sourceByPath?._compiledToSourceUrl) {
+      const mappedInPlace = [...sourceByPath._compiledToSourceUrl.keys()].some(
+        s => s.absolutePath() === this._source.path,
+      );
+
+      if (mappedInPlace) {
+        return;
+      }
+    }
     const source = this._manager._sourceContainer.source(this._source);
+
     const url = source
       ? source.url()
       : this._source.path
@@ -392,7 +420,7 @@ export class Breakpoint {
    */
   private async _setAny(thread: Thread, args: AnyCdpBreakpointArgs) {
     const state: Partial<IBreakpointCdpReferencePending> = {
-      state: CdpReferenceState.Applying,
+      state: CdpReferenceState.Pending,
       args,
       deadletter: false,
     };
@@ -416,7 +444,7 @@ export class Breakpoint {
       // Note that we add the record after calling breakpointResolved()
       // to avoid duplicating locations.
       const next: IBreakpointCdpReferenceApplied = {
-        state: CdpReferenceState.Resolved,
+        state: CdpReferenceState.Applied,
         cdpId: result.breakpointId,
         args,
         locations,
@@ -447,7 +475,7 @@ export class Breakpoint {
   private async removeCdpBreakpoint(breakpoint: BreakpointCdpReference, notify = true) {
     const previousLocation = this.getResolvedUiLocation();
     this._cdpBreakpoints = this._cdpBreakpoints.filter(bp => bp !== breakpoint);
-    if (breakpoint.state === CdpReferenceState.Applying) {
+    if (breakpoint.state === CdpReferenceState.Pending) {
       breakpoint.deadletter = true;
       await breakpoint.done;
     } else {
@@ -469,8 +497,8 @@ export class Breakpoint {
    *  - a positive number if this breakpoint is after the other one
    */
   public compare(other: Breakpoint) {
-    const lca = this._lineColumn;
-    const lcb = other._lineColumn;
+    const lca = this.originalPosition;
+    const lcb = other.originalPosition;
     return lca.lineNumber !== lcb.lineNumber
       ? lca.lineNumber - lcb.lineNumber
       : lca.columnNumber - lcb.columnNumber;
@@ -494,6 +522,13 @@ export class BreakpointManager {
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
 
+  /**
+   * Mapping of source paths to entrypoint breakpoint IDs we set there.
+   */
+  private readonly moduleEntryBreakpoints: Map<string, Breakpoint> = new MapUsingProjection(
+    urlUtils.lowerCaseInsensitivePath,
+  );
+
   constructor(
     dap: Dap.Api,
     sourceContainer: SourceContainer,
@@ -504,13 +539,13 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<IUiLocation[]>[] = [];
-
       if (
         !assert(this._thread, 'Expected thread to be set for the breakpoint source map handler')
       ) {
-        return { remainPaused: false };
+        return [];
       }
+
+      const todo: Promise<IUiLocation[]>[] = [];
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -525,12 +560,22 @@ export class BreakpointManager {
           todo.push(breakpoint.updateForSourceMap(this._thread, script));
       }
 
-      const result = await Promise.all(todo);
-
-      return {
-        remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1)),
-      };
+      return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
     };
+  }
+
+  /**
+   * Gets whether the breakpoint ID was an automatically set 'instrumentation'
+   * breakpoint.
+   */
+  public isModuleEntryBreakpoint(breakpointId: Cdp.Debugger.BreakpointId) {
+    for (const b of this.moduleEntryBreakpoints.values()) {
+      if (b.cdpIds.includes(breakpointId)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -653,10 +698,16 @@ export class BreakpointManager {
       }
       return sources;
     });
-    for (const breakpoints of this._byPath.values())
+
+    for (const breakpoints of this._byPath.values()) {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
-    for (const breakpoints of this._byRef.values())
+      this.ensureModuleEntryBreakpoint(thread, breakpoints[0]?._source);
+    }
+
+    for (const breakpoints of this._byRef.values()) {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
+    }
+
     this._updateSourceMapHandler(this._thread);
   }
 
@@ -749,7 +800,10 @@ export class BreakpointManager {
     this._totalBreakpointsCount += result.new.length;
 
     const thread = this._thread;
-    if (thread) {
+    if (thread && result.new.length) {
+      // This will add itself to the launch blocker if needed:
+      this.ensureModuleEntryBreakpoint(thread, params.source);
+
       await (this._launchBlocker = Promise.all([
         this._launchBlocker,
         ...result.new.map(b => b.set(thread)),
@@ -798,6 +852,24 @@ export class BreakpointManager {
 
   public statisticsForTelemetry(): TelemetryEntityProperties {
     return this._breakpointsStatisticsCalculator.statistics();
+  }
+
+  /**
+   * Ensures an entry breakpoint is present for the given source, creating
+   * one if there's not already one.
+   */
+  private ensureModuleEntryBreakpoint(thread: Thread, source: Dap.Source) {
+    if (!source.path || this.moduleEntryBreakpoints.has(source.path)) {
+      return;
+    }
+
+    const bp = new Breakpoint(this, 0, source, {
+      line: 1,
+      column: 1,
+    });
+
+    this.moduleEntryBreakpoints.set(source.path, bp);
+    this._setBreakpoint(bp, thread);
   }
 }
 

@@ -16,7 +16,7 @@ class KeyAndValue<K, V> {
  * A map which uses a projection of the key to compare its elements (This is
  * equivalent to define a custom comparison criteria in other languages)
  */
-export class MapUsingProjection<K, V, P> implements Map<K, V> {
+export class MapUsingProjection<K, V, P = K> implements Map<K, V> {
   private readonly projectionToKeyAndvalue: Map<P, KeyAndValue<K, V>>;
 
   constructor(
