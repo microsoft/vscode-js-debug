@@ -80,8 +80,10 @@ export class DebugAdapter {
       ? new CorrelatedCache(join(launchConfig.__workspaceCachePath, 'bp-predict.json'))
       : undefined;
     const bpPredictor = rootPath
-      ? new BreakpointsPredictor(rootPath, sourceMapRepo, sourcePathResolver, bpCache)
+      ? new BreakpointsPredictor(rootPath, launchConfig, sourceMapRepo, sourcePathResolver, bpCache)
       : undefined;
+
+    bpPredictor?.onLongParse(() => dap.longPrediction({}));
 
     this.sourceContainer = new SourceContainer(
       this.dap,

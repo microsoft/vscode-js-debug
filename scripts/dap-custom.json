@@ -217,6 +217,24 @@
 				},
 				"required": [ "event", "body" ]
 			}]
+		},
+
+		"LongPredictionEvent": {
+			"allOf": [ { "$ref": "#/definitions/Event" }, {
+				"type": "object",
+				"description": "An event sent when breakpoint prediction takes a significant amount of time.",
+				"properties": {
+					"event": {
+						"type": "string",
+						"enum": [ "longPrediction" ]
+					},
+					"body": {
+						"type": "object",
+						"properties": {}
+					}
+				},
+				"required": [ "event", "body" ]
+			}]
 		}
   }
 }

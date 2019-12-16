@@ -238,7 +238,7 @@ export class Binder implements IDisposable {
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(
       dap,
-      (this._launchParams && this._launchParams.rootPath) || undefined,
+      this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
       this._launchParams!,
       this._rawTelemetryReporter!,

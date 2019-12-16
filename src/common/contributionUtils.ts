@@ -20,4 +20,6 @@ export const enum Contributions {
   ChromeDebugType = 'NAMESPACE(chrome)',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
+  ConfigSection = 'debug.javascript',
+  WarnOnLongPredictionConfig = 'warnOnLongPrediction',
 }
