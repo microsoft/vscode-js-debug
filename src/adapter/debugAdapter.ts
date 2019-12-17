@@ -267,6 +267,7 @@ export class DebugAdapter {
       delegate,
       this.launchConfig,
       this.breakpointManager,
+      this.launchConfig.__enableInstrumentationBp !== false,
     );
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);

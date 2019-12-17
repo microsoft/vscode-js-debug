@@ -40,14 +40,12 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   ): vscode.ProviderResult<T> {
     // We can't make the entire method async, as TS complains that it must
     // return a Promise rather than a ProviderResult.
+    const castConfig = config as ResolvingConfiguration<T>;
     return (async () => {
       try {
-        const resolved = await this.resolveDebugConfigurationAsync(
-          folder,
-          config as ResolvingConfiguration<T>,
-          token,
-        );
-        return resolved && (await this.commonResolution(resolved));
+        const originalConfig = { ...castConfig };
+        const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
+        return resolved && (await this.commonResolution(resolved, originalConfig));
       } catch (err) {
         vscode.window.showErrorMessage(err.message, { modal: true });
       }
@@ -100,9 +98,10 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   /**
    * Fulfills resolution common between all resolver configs.
    */
-  protected commonResolution(config: T): T {
+  protected commonResolution(config: T, rawConfig: ResolvingConfiguration<T>): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
+    config.__enableInstrumentationBp = rawConfig.outFiles === undefined;
 
     // The "${webRoot}" is not a standard vscode thing--replace it appropriately.
     config.sourceMapPathOverrides = mapValues(config.sourceMapPathOverrides, value =>

@@ -52,8 +52,10 @@ async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
 
 export function registerLongBreakpointUI(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.debug.onDidReceiveDebugSessionCustomEvent(event =>
-      promptLongBreakpoint(event.session.workspaceFolder),
-    ),
+    vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+      if (event.event === 'longPrediction') {
+        promptLongBreakpoint(event.session.workspaceFolder);
+      }
+    }),
   );
 }
