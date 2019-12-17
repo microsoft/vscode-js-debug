@@ -11,15 +11,21 @@ import { ProtocolError, ErrorCodes } from '../../dap/errors';
 
 describe('NodePathProvider', () => {
   let p: NodePathProvider;
-  const env = EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider'));
+  const env = (name: string) =>
+    EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider', name));
   const binaryLocation = (name: string) =>
-    join(testWorkspace, 'nodePathProvider', name + (process.platform === 'win32' ? '.exe' : ''));
+    join(
+      testWorkspace,
+      'nodePathProvider',
+      name,
+      process.platform === 'win32' ? 'node.exe' : 'node',
+    );
 
   beforeEach(() => (p = new NodePathProvider()));
 
   it('rejects not found', async () => {
     try {
-      await p.resolveAndValidate(env, 'not-found');
+      await p.resolveAndValidate(env('not-found'), 'node');
       throw new Error('expected to throw');
     } catch (err) {
       expect(err).to.be.an.instanceOf(ProtocolError);
@@ -29,7 +35,7 @@ describe('NodePathProvider', () => {
 
   it('rejects outdated', async () => {
     try {
-      await p.resolveAndValidate(env, 'outdated');
+      await p.resolveAndValidate(env('outdated'), 'node');
       throw new Error('expected to throw');
     } catch (err) {
       expect(err).to.be.an.instanceOf(ProtocolError);
@@ -44,8 +50,8 @@ describe('NodePathProvider', () => {
   });
 
   it('works if up to date', async () => {
-    expect(await p.resolveAndValidate(env, 'up-to-date')).to.equal(binaryLocation('up-to-date'));
+    expect(await p.resolveAndValidate(env('up-to-date'))).to.equal(binaryLocation('up-to-date'));
     // hit the cached path:
-    await p.resolveAndValidate(env, 'up-to-date');
+    await p.resolveAndValidate(env('up-to-date'));
   });
 });

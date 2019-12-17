@@ -565,12 +565,16 @@ export class BreakpointManager {
   }
 
   /**
-   * Gets whether the breakpoint ID was an automatically set 'instrumentation'
-   * breakpoint.
+   * Notifies the breakpoint manager that a breakpoint was hit. If the
+   * breakpoint ID was an entry breakpoint, this'll return `true`.
    */
-  public isModuleEntryBreakpoint(breakpointId: Cdp.Debugger.BreakpointId) {
-    for (const b of this.moduleEntryBreakpoints.values()) {
-      if (b.cdpIds.includes(breakpointId)) {
+  public tryResolveModuleEntryBreakpoint(breakpointId: Cdp.Debugger.BreakpointId) {
+    for (const bp of this.moduleEntryBreakpoints.values()) {
+      if (bp.cdpIds.includes(breakpointId)) {
+        // we intentionally don't remove the record from the map; it's kept as
+        // an indicator that it did exist and was hit, so that if further
+        // breakpoints are set in the file it doesn't get re-applied.
+        bp.remove();
         return true;
       }
     }
@@ -863,11 +867,7 @@ export class BreakpointManager {
       return;
     }
 
-    const bp = new Breakpoint(this, 0, source, {
-      line: 1,
-      column: 1,
-    });
-
+    const bp = new Breakpoint(this, 0, source, { line: 1 });
     this.moduleEntryBreakpoints.set(source.path, bp);
     this._setBreakpoint(bp, thread);
   }

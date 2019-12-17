@@ -28,6 +28,7 @@ import {
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
+import { bisectArray } from '../common/objUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -559,14 +560,23 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    const isSourceMapPause =
-      (event.reason === 'instrumentation' && event.data?.scriptId) ||
-      event.hitBreakpoints?.some(b => this._breakpointManager.isModuleEntryBreakpoint(b));
+    let isSourceMapPause = event.reason === 'instrumentation' && event.data?.scriptId;
+    if (event.hitBreakpoints) {
+      let entryBps: string[];
+      [entryBps, event.hitBreakpoints] = bisectArray(event.hitBreakpoints, b =>
+        this._breakpointManager.tryResolveModuleEntryBreakpoint(b),
+      );
+      isSourceMapPause = isSourceMapPause || entryBps.length > 0;
+    }
 
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
-      const remainPaused = await this._handleSourceMapPause(scriptId, location);
+      let remainPaused = await this._handleSourceMapPause(scriptId, location);
+
+      if (event.hitBreakpoints?.length) {
+        remainPaused = true;
+      }
 
       if (
         scheduledPauseOnAsyncCall &&
