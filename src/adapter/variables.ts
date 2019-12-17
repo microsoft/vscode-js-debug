@@ -22,17 +22,49 @@ class RemoteObject {
   // So, we cache variables here and update locally.
   scopeVariables?: Dap.Variable[];
 
-  constructor(cdp: Cdp.Api, object: Cdp.Runtime.RemoteObject) {
+  constructor(
+    private name: string | number,
+    cdp: Cdp.Api,
+    object: Cdp.Runtime.RemoteObject,
+    private readonly parent?: RemoteObject,
+  ) {
     this.o = object;
     // eslint-disable-next-line
     this.objectId = object.objectId!;
     this.cdp = cdp;
   }
 
-  wrap(object: Cdp.Runtime.RemoteObject): RemoteObject;
-  wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined;
-  wrap(object?: Cdp.Runtime.RemoteObject): RemoteObject | undefined {
-    return object ? new RemoteObject(this.cdp, object) : undefined;
+  /**
+   * Gets the accessor though which this object can be read.
+   */
+  public get accessor(): string {
+    if (!this.parent || !this.parent.accessor) {
+      return String(this.name);
+    }
+
+    if (typeof this.name === 'number' || /^[0-9]+$/.test(this.name)) {
+      return `${this.parent.accessor}[${this.name}]`;
+    }
+
+    // If the object property looks like a valid identifer, don't use the
+    // bracket syntax -- it's ugly!
+    if (/^[$a-z_][0-9a-z_$]*$/i.test(this.name)) {
+      return `${this.parent.accessor}.${this.name}`;
+    }
+
+    return `${this.parent.accessor}[${JSON.stringify(this.name)}]`;
+  }
+
+  public wrap(property: string | number, object: Cdp.Runtime.RemoteObject): RemoteObject;
+  public wrap(
+    property: string | number,
+    object?: Cdp.Runtime.RemoteObject,
+  ): RemoteObject | undefined;
+  public wrap(
+    property: string | number,
+    object?: Cdp.Runtime.RemoteObject,
+  ): RemoteObject | undefined {
+    return object ? new RemoteObject(property, this.cdp, object, this) : undefined;
   }
 }
 
@@ -92,7 +124,7 @@ export class VariableStore {
         variables.push(
           this._createVariable(
             extraProperty.name,
-            object.wrap(extraProperty.value),
+            object.wrap(extraProperty.name, extraProperty.value),
             'propertyValue',
           ),
         );
@@ -174,7 +206,7 @@ export class VariableStore {
 
     const variable = await this._createVariable(
       params.name,
-      new RemoteObject(object.cdp, evaluateResponse.result),
+      new RemoteObject(params.name, object.cdp, evaluateResponse.result),
     );
     const result = {
       value: variable.value,
@@ -191,7 +223,7 @@ export class VariableStore {
   }
 
   async createVariable(value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
-    return this._createVariable('', new RemoteObject(this._cdp, value), context);
+    return this._createVariable('', new RemoteObject('', this._cdp, value), context);
   }
 
   async createScope(
@@ -199,7 +231,7 @@ export class VariableStore {
     scopeRef: IScopeRef,
     extraProperties: IExtraProperty[],
   ): Promise<Dap.Variable> {
-    const object = new RemoteObject(this._cdp, value);
+    const object = new RemoteObject('', this._cdp, value);
     object.scopeRef = scopeRef;
     object.extraProperties = extraProperties;
     return this._createVariable('', object);
@@ -212,7 +244,7 @@ export class VariableStore {
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
     if (args.length === 1 && objectPreview.isObject(args[0]) && !stackTrace) {
-      rootObjectVariable = this._createVariable('', new RemoteObject(this._cdp, args[0]));
+      rootObjectVariable = this._createVariable('', new RemoteObject('', this._cdp, args[0]));
       rootObjectVariable.value = text;
     } else {
       const rootObjectReference =
@@ -242,7 +274,9 @@ export class VariableStore {
 
     for (let i = 0; i < args.length; ++i) {
       if (!objectPreview.isObject(args[i])) continue;
-      params.push(this._createVariable(`arg${i}`, new RemoteObject(this._cdp, args[i]), 'repl'));
+      params.push(
+        this._createVariable(`arg${i}`, new RemoteObject(`arg${i}`, this._cdp, args[i]), 'repl'),
+      );
     }
 
     if (stackTrace) {
@@ -262,16 +296,19 @@ export class VariableStore {
     this._referenceToObject.clear();
   }
 
-  private async _getObjectProperties(object: RemoteObject): Promise<Dap.Variable[]> {
+  private async _getObjectProperties(
+    object: RemoteObject,
+    objectId = object.objectId,
+  ): Promise<Dap.Variable[]> {
     const [accessorsProperties, ownProperties] = await Promise.all([
       object.cdp.Runtime.getProperties({
-        objectId: object.objectId,
+        objectId,
         accessorPropertiesOnly: true,
         ownProperties: false,
         generatePreview: true,
       }),
       object.cdp.Runtime.getProperties({
-        objectId: object.objectId,
+        objectId,
         ownProperties: true,
         generatePreview: true,
       }),
@@ -308,7 +345,7 @@ export class VariableStore {
     // Push private properties
     for (const p of ownProperties.privateProperties || []) {
       const weight = objectPreview.privatePropertyWeight(p);
-      properties.push({ v: this._createVariable(p.name, object.wrap(p.value)), weight });
+      properties.push({ v: this._createVariable(p.name, object.wrap(p.name, p.value)), weight });
     }
 
     // Push internal properties
@@ -367,7 +404,7 @@ export class VariableStore {
       generatePreview: true,
     });
     if (!response) return [];
-    return this._getObjectProperties(object.wrap(response.result));
+    return this._getObjectProperties(object, response.result.objectId);
   }
 
   private async _getArraySlots(
@@ -395,7 +432,7 @@ export class VariableStore {
       arguments: [{ value: start }, { value: count }],
     });
     if (!response || !response.result || !response.result.objectId) return [];
-    const result = (await this._getObjectProperties(object.wrap(response.result))).filter(
+    const result = (await this._getObjectProperties(object, response.result.objectId)).filter(
       p => p.name !== '__proto__',
     );
     await this._cdp.Runtime.releaseObject({ objectId: response.result.objectId });
@@ -415,11 +452,15 @@ export class VariableStore {
   ): Dap.Variable[] {
     const result: Dap.Variable[] = [];
     if ('value' in p)
-      result.push(this._createVariable(p.name, owner.wrap(p.value), 'propertyValue'));
+      result.push(this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
     if (p.get && p.get.type !== 'undefined')
-      result.push(this._createVariable(`get ${p.name}`, owner.wrap(p.get), 'propertyValue'));
+      result.push(
+        this._createVariable(`get ${p.name}`, owner.wrap(p.name, p.get), 'propertyValue'),
+      );
     if (p.set && p.set.type !== 'undefined')
-      result.push(this._createVariable(`set ${p.name}`, owner.wrap(p.set), 'propertyValue'));
+      result.push(
+        this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
+      );
     return result;
   }
 
@@ -432,9 +473,14 @@ export class VariableStore {
       };
     }
 
-    if (objectPreview.isArray(value.o)) return this._createArrayVariable(name, value, context);
-    if (value.objectId && !objectPreview.primitiveSubtypes.has(value.o.subtype))
+    if (objectPreview.isArray(value.o)) {
+      return this._createArrayVariable(name, value, context);
+    }
+
+    if (value.objectId && !objectPreview.primitiveSubtypes.has(value.o.subtype)) {
       return this._createObjectVariable(name, value, context);
+    }
+
     return this._createPrimitiveVariable(name, value, context);
   }
 
@@ -446,6 +492,7 @@ export class VariableStore {
     return {
       name,
       value: objectPreview.previewRemoteObject(value.o, context),
+      evaluateName: value.accessor,
       type: value.o.type,
       variablesReference: 0,
     };
@@ -459,6 +506,7 @@ export class VariableStore {
       value:
         (name === '__proto__' && object.description) ||
         objectPreview.previewRemoteObject(object, context),
+      evaluateName: value.accessor,
       type: object.subtype || object.type,
       variablesReference,
     };
@@ -478,6 +526,7 @@ export class VariableStore {
         objectPreview.previewRemoteObject(object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
+      evaluateName: value.accessor,
       indexedVariables: arrayLength > 100 ? arrayLength : undefined,
       namedVariables: arrayLength > 100 ? 1 : undefined, // do not count properties proactively
     };

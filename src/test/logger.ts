@@ -11,6 +11,57 @@ interface ILogOptions {
   logInternalInfo?: boolean;
 }
 
+/**
+ * Runs the 'walker' function over the tree of variables, iterating in a depth-
+ * first-search until walker returns false.
+ */
+export const walkVariables = async (
+  dap: Dap.TestApi,
+  variable: Dap.Variable,
+  walker: (v: Dap.Variable, depth: number) => Promise<boolean> | boolean,
+  depth = 0,
+): Promise<void> => {
+  if (!(await walker(variable, depth))) {
+    return;
+  }
+
+  if (variable.variablesReference === undefined) {
+    return;
+  }
+
+  const hasHints =
+    typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
+  if (hasHints) {
+    if (variable.namedVariables) {
+      const named = await dap.variables({
+        variablesReference: variable.variablesReference,
+        filter: 'named',
+      });
+      for (const variable of named.variables) {
+        await walkVariables(dap, variable, walker, depth + 1);
+      }
+    }
+    if (variable.indexedVariables) {
+      const indexed = await dap.variables({
+        variablesReference: variable.variablesReference,
+        filter: 'indexed',
+        start: 0,
+        count: variable.indexedVariables,
+      });
+      for (const variable of indexed.variables) {
+        await walkVariables(dap, variable, walker, depth + 1);
+      }
+    }
+  } else {
+    const all = await dap.variables({
+      variablesReference: variable.variablesReference,
+    });
+    for (const variable of all.variables) {
+      await walkVariables(dap, variable, walker, depth + 1);
+    }
+  }
+};
+
 export class Logger {
   private _dap: Dap.TestApi;
   private _log: Log;
@@ -26,70 +77,31 @@ export class Logger {
     this._log(text);
   }
 
-  async logVariable(variable: Dap.Variable, options?: ILogOptions, indent?: string) {
-    options = options || {};
-    if (typeof options.depth !== 'number') options.depth = 1;
-    if (options.depth < 0) return;
-    indent = indent || '';
-    const name = variable.name ? `${variable.name}: ` : '';
-    let value = variable.value || '';
-    if (value.endsWith('\n')) value = value.substring(0, value.length - 1);
-    const type = variable.type ? `type=${variable.type}` : '';
-    const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
-    const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
+  public logVariable(
+    rootVariable: Dap.Variable,
+    options: ILogOptions = {},
+    baseIndent: string = '',
+  ): Promise<void> {
+    return walkVariables(this._dap, rootVariable, (variable, depth) => {
+      const name = variable.name ? `${variable.name}: ` : '';
+      let value = variable.value || '';
+      if (value.endsWith('\n')) value = value.substring(0, value.length - 1);
+      const type = variable.type ? `type=${variable.type}` : '';
+      const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
+      const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
+      const indent = baseIndent + '    '.repeat(depth);
 
-    const expanded = variable.variablesReference ? '> ' : '';
-    let suffix = options.logInternalInfo ? `${type}${namedCount}${indexedCount}` : '';
-    if (suffix) suffix = '  // ' + suffix;
-    let line = `${expanded}${name}${value}`;
-    if (line) {
-      if (line.includes('\n')) line = '\n' + line;
-      this.logAsConsole(`${indent}${line}${suffix}`);
-    }
-
-    if (variable.variablesReference) {
-      const hasHints =
-        typeof variable.namedVariables === 'number' ||
-        typeof variable.indexedVariables === 'number';
-      if (hasHints) {
-        if (variable.namedVariables) {
-          const named = await this._dap.variables({
-            variablesReference: variable.variablesReference,
-            filter: 'named',
-          });
-          for (const variable of named.variables)
-            await this.logVariable(
-              variable,
-              { ...options, depth: options.depth - 1 },
-              indent + '    ',
-            );
-        }
-        if (variable.indexedVariables) {
-          const indexed = await this._dap.variables({
-            variablesReference: variable.variablesReference,
-            filter: 'indexed',
-            start: 0,
-            count: variable.indexedVariables,
-          });
-          for (const variable of indexed.variables)
-            await this.logVariable(
-              variable,
-              { ...options, depth: options.depth - 1 },
-              indent + '    ',
-            );
-        }
-      } else {
-        const all = await this._dap.variables({
-          variablesReference: variable.variablesReference,
-        });
-        for (const variable of all.variables)
-          await this.logVariable(
-            variable,
-            { ...options, depth: options.depth - 1 },
-            indent + '    ',
-          );
+      const expanded = variable.variablesReference ? '> ' : '';
+      let suffix = options.logInternalInfo ? `${type}${namedCount}${indexedCount}` : '';
+      if (suffix) suffix = '  // ' + suffix;
+      let line = `${expanded}${name}${value}`;
+      if (line) {
+        if (line.includes('\n')) line = '\n' + line;
+        this.logAsConsole(`${indent}${line}${suffix}`);
       }
-    }
+
+      return depth < (options.depth || 1);
+    });
   }
 
   async logOutput(params: Dap.OutputEventParams, options?: ILogOptions) {

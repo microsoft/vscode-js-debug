@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import Dap from '../../dap/api';
-import { Logger } from '../logger';
+import { Logger, walkVariables } from '../logger';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('variables', () => {
@@ -187,6 +187,41 @@ describe('variables', () => {
 
       p.log(`\nOriginal`);
       await p.logger.logVariable(v);
+
+      p.assertLog();
+    });
+
+    itIntegrates('evaluateName', async ({ r }) => {
+      const p = await r.launchAndLoad('blank');
+      p.cdp.Runtime.evaluate({
+        expression: `
+        (function foo() {
+          let a = 'some string';
+          let b = [1, 2, 3, 4];
+          b.prop = '';
+          let c = { $a: 1, _b: 2, c: 3, 'd d': 4, [42]: 5,
+            e: { nested: [{ obj: true }]}, [Symbol('wut')]: 'wut' };
+          debugger;
+        })();
+      `,
+      });
+
+      const paused = p.log(await p.dap.once('stopped'), 'stopped: ');
+      const stack = await p.dap.stackTrace({ threadId: paused.threadId });
+      const scopes = await p.dap.scopes({ frameId: stack.stackFrames[0].id });
+      const scope = scopes.scopes[0];
+      const v: Dap.Variable = {
+        name: 'scope',
+        value: scope.name,
+        variablesReference: scope.variablesReference,
+        namedVariables: scope.namedVariables,
+        indexedVariables: scope.indexedVariables,
+      };
+
+      await walkVariables(p.dap, v, (variable, depth) => {
+        p.log('  '.repeat(depth) + variable.evaluateName);
+        return variable.name !== '__proto__' && variable.name !== 'this';
+      });
 
       p.assertLog();
     });

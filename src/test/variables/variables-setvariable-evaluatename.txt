@@ -1,0 +1,33 @@
+stopped: {
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+undefined
+  a
+  b
+    b[0]
+    b[1]
+    b[2]
+    b[3]
+    b.length
+    b.prop
+    b.__proto__
+  c
+    c._b
+    c.$a
+    c[42]
+    c.c
+    c["d d"]
+    c.e
+      c.e.nested
+        c.e.nested[0]
+          c.e.nested[0].obj
+          c.e.nested[0].__proto__
+        c.e.nested.length
+        c.e.nested.__proto__
+      c.e.__proto__
+    c["Symbol(wut)"]
+    c.__proto__
+  this
