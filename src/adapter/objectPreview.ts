@@ -46,12 +46,24 @@ export function isArray(
   return object.subtype === 'array' || object.subtype === 'typedarray';
 }
 
+const getPreviewBudget = (context: string | undefined) => {
+  switch (context) {
+    case 'repl':
+      return 1000;
+    case 'hover':
+      return 500;
+    case 'copy':
+      return Infinity;
+    default:
+      return 100;
+  }
+};
+
 export function previewRemoteObject(
   object: Cdp.Runtime.RemoteObject,
   context: string | undefined,
 ): string {
-  const characterBudget = context === 'repl' ? 1000 : context === 'copy' ? Infinity : 100;
-  const result = previewRemoteObjectInternal(object, characterBudget, context !== 'copy');
+  const result = previewRemoteObjectInternal(object, getPreviewBudget(context), context !== 'copy');
   return result;
 }
 
@@ -201,6 +213,10 @@ function valueOrEllipsis(value: string, characterBudget: number): string {
   return value.length <= characterBudget ? value : '…';
 }
 
+function truncateValue(value: string, characterBudget: number): string {
+  return value.length >= characterBudget ? value.slice(0, characterBudget - 1) + '…' : value;
+}
+
 function renderPrimitivePreview(
   preview: Cdp.Runtime.ObjectPreview,
   characterBudget: number,
@@ -209,7 +225,7 @@ function renderPrimitivePreview(
   if (preview.type === 'undefined') return valueOrEllipsis('undefined', characterBudget);
   if (preview.type === 'string')
     return stringUtils.trimMiddle(preview.description!, characterBudget);
-  return valueOrEllipsis(preview.description || '', characterBudget);
+  return truncateValue(preview.description || '', characterBudget);
 }
 
 function appendKeyValue(
