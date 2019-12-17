@@ -48,3 +48,9 @@ steps:
     testResultsFiles: '*-results.xml'
     searchFolder: '$(Build.ArtifactStagingDirectory)/test-results'
   condition: and(succeededOrFailed(), eq(${{ parameters.runTests }}, true))
+
+- bash: |
+    rm -rf testdata
+    rm -rf demos
+    rm -rf .vscode-test
+  displayName: cleanup
