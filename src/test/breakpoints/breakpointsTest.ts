@@ -272,7 +272,7 @@ describe('breakpoints', () => {
 
       const cwd = join(testWorkspace, 'nodeModuleBreakpoint');
       const handle = await r.runScript(join(cwd, 'index.js'), {
-        resolveSourceMapLocations: ['**/*'],
+        outFiles: [`${cwd}/**/*.js`],
       });
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'node_modules', '@c4312', 'foo', 'src', 'index.ts') },

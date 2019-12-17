@@ -87,6 +87,14 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
       type: 'string',
     },
   },
+  outFiles: {
+    type: ['array'],
+    description: refString('outFiles.description'),
+    default: baseDefaults.outFiles,
+    items: {
+      type: 'string',
+    },
+  },
   pauseForSourceMap: {
     type: 'boolean',
     markdownDescription: refString('node.pauseForSourceMap.description'),
@@ -177,14 +185,6 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     type: 'string',
     description: refString('node.launch.cwd.description'),
     default: '${workspaceFolder}',
-  },
-  outFiles: {
-    type: 'array',
-    markdownDescription: refString('outFiles.description'),
-    items: {
-      type: 'string',
-    },
-    default: [],
   },
   localRoot: {
     type: ['string', 'null'],

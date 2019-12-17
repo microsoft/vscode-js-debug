@@ -128,6 +128,7 @@ export class Thread implements IVariableStoreDelegate {
     delegate: IThreadDelegate,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
+    private readonly enableInstrumentationBp: boolean,
   ) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
@@ -1198,7 +1199,11 @@ export class Thread implements IVariableStoreDelegate {
   async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
     if (this._scriptWithSourceMapHandler === handler) return;
     this._scriptWithSourceMapHandler = handler;
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
+    const needsPause =
+      this.enableInstrumentationBp &&
+      this._sourceContainer.sourceMapTimeouts().scriptPaused &&
+      handler;
+
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',

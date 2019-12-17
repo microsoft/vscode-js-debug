@@ -81,6 +81,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   resolveSourceMapLocations: ReadonlyArray<string> | null;
 
   /**
+   * Locations that should be scanned while looking for sourcemaps. Patterns
+   * can be prefixed with "!" to exclude them.
+   */
+  outFiles: ReadonlyArray<string>;
+
+  /**
    * Whether to pause when sourcemapped scripts are loaded to load their
    * sourcemap and ensure breakpoints are set.
    */
@@ -141,6 +147,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * Cache directory for workspace-related configuration.
    */
   __workspaceCachePath?: string;
+
+  /**
+   * Whether to enable the sourcemap instrumentation breakpoint, defaults to true.
+   */
+  __enableInstrumentationBp?: boolean;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
@@ -461,6 +472,7 @@ export const baseDefaults: IBaseConfiguration = {
   pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
+  outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: {
     'webpack://?:*/*': '*',
@@ -475,10 +487,8 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   ...baseDefaults,
   cwd: '${workspaceFolder}',
   sourceMaps: true,
-  outFiles: [],
   localRoot: null,
   remoteRoot: null,
-  resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
 };
 
@@ -495,11 +505,12 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   name: 'Debug Extension',
   request: 'launch',
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
-  runtimeExecutable: '${execPath}',
   env: {},
   envFile: null,
-  port: 0,
   outFiles: ['${workspaceFolder}/out/**/*.js'],
+  port: 0,
+  resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
+  runtimeExecutable: '${execPath}',
 };
 
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {

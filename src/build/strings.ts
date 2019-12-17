@@ -156,6 +156,14 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
+
+  'configuration.warnOnLongPrediction':
+    'Whether a loading prompt should be shown if breakpoint prediction takes a while.',
+  'longPredictionWarning.message':
+    "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
+  'longPredictionWarning.open': 'Open launch.json',
+  'longPredictionWarning.disable': "Don't show again",
+  'longPredictionWarning.noFolder': 'No workspace folder open.',
   'open.loaded.script': 'Open Loaded Script',
   'outFiles.description':
     'If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with `!` the files are excluded. If not specified, the generated code is expected in the same directory as its source.',
