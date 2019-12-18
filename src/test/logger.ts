@@ -100,7 +100,7 @@ export class Logger {
         this.logAsConsole(`${indent}${line}${suffix}`);
       }
 
-      return depth < (options.depth || 1);
+      return depth < (options.depth ?? 1);
     });
   }
 

@@ -145,8 +145,9 @@ describe('breakpoints', () => {
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
-      p.evaluate('foo();');
+      const evaluation = p.evaluate('foo();');
       await waitForPause(p);
+      await evaluation;
       p.assertLog();
     });
 
