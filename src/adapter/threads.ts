@@ -290,14 +290,14 @@ export class Thread implements IVariableStoreDelegate {
     )
       return { targets: contexts };
     const line = params.line === undefined ? 0 : params.line - 1;
-    const targets = await completions.completions(
-      this._cdp,
-      this._selectedContext ? this._selectedContext.description.id : undefined,
+    const targets = await completions.completions({
+      cdp: this._cdp,
+      executionContextId: this._selectedContext ? this._selectedContext.description.id : undefined,
       stackFrame,
-      params.text,
+      expression: params.text,
       line,
-      params.column,
-    );
+      column: params.column,
+    });
     if (
       params.line === 1 &&
       params.column === params.text.length + 1 &&
