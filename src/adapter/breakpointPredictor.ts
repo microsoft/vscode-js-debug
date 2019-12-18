@@ -5,7 +5,6 @@
 import * as path from 'path';
 import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
-import * as sourceUtils from '../common/sourceUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
@@ -17,6 +16,7 @@ import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
+import { SourceMapCache } from './sourceMapCache';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -54,6 +54,7 @@ export class BreakpointsPredictor {
     private readonly rootPath: string,
     launchConfig: AnyLaunchConfiguration,
     private readonly repo: ISourceMapRepository,
+    private readonly sourceMapCache: SourceMapCache,
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
     private readonly cache: BreakpointPredictionCache | undefined,
   ) {
@@ -101,7 +102,7 @@ export class BreakpointsPredictor {
         return;
       }
 
-      const map = await sourceUtils.loadSourceMap(metadata);
+      const map = await this.sourceMapCache.load(metadata);
       if (!map) {
         return;
       }
@@ -172,7 +173,7 @@ export class BreakpointsPredictor {
         return;
       }
 
-      const map = await sourceUtils.loadSourceMap(metadata);
+      const map = await this.sourceMapCache.load(metadata);
       if (!map) {
         continue;
       }
