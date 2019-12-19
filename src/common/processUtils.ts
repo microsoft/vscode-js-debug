@@ -48,7 +48,7 @@ export function spawnAsync(
       );
 
     process.on('error', err => rejectWithError(undefined, err));
-    process.on('exit', code =>
+    process.on('close', code =>
       code
         ? rejectWithError(code)
         : resolve({
