@@ -5,15 +5,18 @@
 import * as path from 'path';
 import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
-import * as sourceUtils from '../common/sourceUtils';
-import * as fsUtils from '../common/fsUtils';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { uiToRawOffset } from './sources';
-import { ISourceMapRepository, IRelativePattern } from '../common/sourceMaps/sourceMapRepository';
+import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
+import { AnyLaunchConfiguration } from '../configuration';
+import { EventEmitter } from '../common/events';
+import { SourceMapCache } from './sourceMapCache';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -29,101 +32,42 @@ type PredictedLocation = {
   compiled: IWorkspaceLocation;
 };
 
-export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetadata[]>;
-
-export class BreakpointsPredictor {
-  _rootPath: string;
-  private _nodeModules: Promise<string | undefined>;
-  private _directoryScanners = new Map<string, DirectoryScanner>();
-  _predictedLocations: PredictedLocation[] = [];
-  _sourcePathResolver?: ISourcePathResolver;
-
-  constructor(
-    rootPath: string,
-    private readonly repo: ISourceMapRepository,
-    sourcePathResolver: ISourcePathResolver | undefined,
-    private readonly cache: BreakpointPredictionCache | undefined,
-  ) {
-    this._rootPath = rootPath;
-    this._sourcePathResolver = sourcePathResolver;
-
-    const nodeModules = path.join(this._rootPath, 'node_modules');
-    this._nodeModules = fsUtils
-      .exists(nodeModules)
-      .then(exists => (exists ? nodeModules : undefined));
-  }
-
-  /**
-   * Returns a promise that resolves once maps in the root are predicted.
-   */
-  public async prepareToPredict(): Promise<void> {
-    await this._directoryScanner(this._rootPath).waitForLoad();
-  }
-
-  /**
-   * Returns a promise that resolves when breakpoints for the given location
-   * are predicted.
-   */
-  public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    if (!params.source.path) return;
-    const nodeModules = await this._nodeModules;
-    let root: string;
-    if (nodeModules && params.source.path.startsWith(nodeModules)) {
-      root = path.relative(nodeModules, params.source.path);
-      root = path.join(nodeModules, root.split(path.sep)[0]);
-    } else {
-      root = this._rootPath;
-    }
-    await this._directoryScanner(root).predictResolvedLocations(params);
-  }
-
-  /**
-   * Returns predicted breakpoint locations for the provided source.
-   */
-  public predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[] {
-    const result: IWorkspaceLocation[] = [];
-    for (const p of this._predictedLocations) {
-      if (
-        p.source.absolutePath === location.absolutePath &&
-        p.source.lineNumber === location.lineNumber &&
-        p.source.columnNumber === location.columnNumber
-      ) {
-        result.push(p.compiled);
-      }
-    }
-    return result;
-  }
-
-  private _directoryScanner(root: string): DirectoryScanner {
-    let result = this._directoryScanners.get(root);
-    if (!result) {
-      result = new DirectoryScanner(this, this.repo, root, this.cache);
-      this._directoryScanners.set(root, result);
-    }
-    return result;
-  }
-}
-
 type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
-const defaultFileMappings = ['**/*.js', '!**/node_modules/**'];
+const longPredictionWarning = 10 * 1000;
 
-class DirectoryScanner {
-  private _predictor: BreakpointsPredictor;
-  private _sourcePathToCompiled: Promise<MetadataMap>;
+export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetadata[]>;
+
+export class BreakpointsPredictor {
+  private readonly predictedLocations: PredictedLocation[] = [];
+  private readonly patterns: string[];
+  private readonly longParseEmitter = new EventEmitter<void>();
+  private sourcePathToCompiled?: Promise<MetadataMap>;
+
+  /**
+   * Event that fires if it takes a long time to predict sourcemaps.
+   */
+  public readonly onLongParse = this.longParseEmitter.event;
 
   constructor(
-    predictor: BreakpointsPredictor,
+    private readonly rootPath: string,
+    launchConfig: AnyLaunchConfiguration,
     private readonly repo: ISourceMapRepository,
-    root: string,
-    cache?: BreakpointPredictionCache,
+    private readonly sourceMapCache: SourceMapCache,
+    private readonly sourcePathResolver: ISourcePathResolver | undefined,
+    private readonly cache: BreakpointPredictionCache | undefined,
   ) {
-    this._predictor = predictor;
-    this._sourcePathToCompiled = this._createInitialMapping(root, cache);
+    this.patterns = launchConfig.outFiles.map(p =>
+      path.isAbsolute(p) ? path.relative(rootPath, p) : p,
+    );
   }
 
-  private async _createInitialMapping(absolutePath: string, cache?: BreakpointPredictionCache) {
+  private async createInitialMapping(): Promise<MetadataMap> {
+    if (this.patterns.length === 0) {
+      return new Map();
+    }
+
     const sourcePathToCompiled: MetadataMap = new MapUsingProjection(
       urlUtils.lowerCaseInsensitivePath,
     );
@@ -137,68 +81,85 @@ class DirectoryScanner {
       set.add(discovery);
     };
 
+    const warnLongRuntime = setTimeout(() => {
+      this.longParseEmitter.fire();
+      logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
+        type: this.repo.constructor.name,
+        longPredictionWarning,
+        patterns: this.patterns,
+      });
+    }, longPredictionWarning);
+
     const start = Date.now();
-    await this.repo.streamAllChildren(
-      defaultFileMappings.map(
-        m =>
-          ({
-            base: absolutePath,
-            pattern: m,
-          } as IRelativePattern),
-      ),
-      async metadata => {
-        const baseUrl = metadata.sourceMapUrl.startsWith('data:')
-          ? metadata.compiledPath
-          : metadata.sourceMapUrl;
+    await this.repo.streamAllChildren(this.rootPath, this.patterns, async metadata => {
+      const baseUrl = metadata.sourceMapUrl.startsWith('data:')
+        ? metadata.compiledPath
+        : metadata.sourceMapUrl;
 
-        const cached = cache && (await cache.lookup(metadata.compiledPath, metadata.mtime));
-        if (cached) {
-          cached.forEach(addDiscovery);
-          return;
+      const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
+      if (cached) {
+        cached.forEach(addDiscovery);
+        return;
+      }
+
+      const map = await this.sourceMapCache.load(metadata);
+      if (!map) {
+        return;
+      }
+
+      const discovered: DiscoveredMetadata[] = [];
+      for (const url of map.sources) {
+        const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this.rootPath, url);
+        const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
+        const resolvedPath = this.sourcePathResolver
+          ? this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
+          : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+
+        if (!resolvedPath) {
+          continue;
         }
 
-        const map = await sourceUtils.loadSourceMap(metadata);
-        if (!map) {
-          return;
-        }
+        const discovery = { ...metadata, resolvedPath, sourceUrl: url };
+        discovered.push(discovery);
+        addDiscovery(discovery);
+      }
 
-        const discovered: DiscoveredMetadata[] = [];
-        for (const url of map.sources) {
-          const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this._predictor._rootPath, url);
-          const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
-          const resolvedPath = this._predictor._sourcePathResolver
-            ? this._predictor._sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
-            : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+      this.cache?.store(metadata.compiledPath, metadata.mtime, discovered);
+    });
 
-          if (!resolvedPath) {
-            continue;
-          }
+    clearTimeout(warnLongRuntime);
+    logger.verbose(LogTag.SourceMapParsing, 'Breakpoint prediction completed', {
+      type: this.repo.constructor.name,
+      duration: Date.now() - start,
+    });
 
-          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
-          discovered.push(discovery);
-          addDiscovery(discovery);
-        }
-
-        if (cache) {
-          cache.store(metadata.compiledPath, metadata.mtime, discovered);
-        }
-      },
-    );
-
-    console.log('runtime using', this.repo.constructor.name, Date.now() - start);
     return sourcePathToCompiled;
   }
 
   /**
-   * Returns a promise that resolves when the sourcemaps predictions are
-   * successfully prepared.
+   * Returns a promise that resolves once maps in the root are predicted.
    */
-  public async waitForLoad() {
-    await this._sourcePathToCompiled;
+  public async prepareToPredict(): Promise<void> {
+    if (!this.sourcePathToCompiled) {
+      this.sourcePathToCompiled = this.createInitialMapping();
+    }
+
+    await this.sourcePathToCompiled;
   }
 
-  public async predictResolvedLocations(params: Dap.SetBreakpointsParams) {
-    const sourcePathToCompiled = await this._sourcePathToCompiled;
+  /**
+   * Returns a promise that resolves when breakpoints for the given location
+   * are predicted.
+   */
+  public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
+    if (!params.source.path) {
+      return Promise.resolve();
+    }
+    if (!this.sourcePathToCompiled) {
+      this.sourcePathToCompiled = this.createInitialMapping();
+    }
+
+    const sourcePathToCompiled = await this.sourcePathToCompiled;
     const absolutePath = params.source.path;
     if (!absolutePath) {
       return;
@@ -212,7 +173,7 @@ class DirectoryScanner {
         return;
       }
 
-      const map = await sourceUtils.loadSourceMap(metadata);
+      const map = await this.sourceMapCache.load(metadata);
       if (!map) {
         continue;
       }
@@ -244,8 +205,25 @@ class DirectoryScanner {
             columnNumber,
           },
         };
-        this._predictor._predictedLocations.push(predicted);
+        this.predictedLocations.push(predicted);
       }
     }
+  }
+
+  /**
+   * Returns predicted breakpoint locations for the provided source.
+   */
+  public predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[] {
+    const result: IWorkspaceLocation[] = [];
+    for (const p of this.predictedLocations) {
+      if (
+        p.source.absolutePath === location.absolutePath &&
+        p.source.lineNumber === location.lineNumber &&
+        p.source.columnNumber === location.columnNumber
+      ) {
+        result.push(p.compiled);
+      }
+    }
+    return result;
   }
 }

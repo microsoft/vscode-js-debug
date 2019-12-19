@@ -138,13 +138,14 @@
     "vscode-debugprotocol": "^1.37.0",
     "vscode-nls-dev": "^3.3.1",
     "vscode-test": "^1.0.0",
-    "webpack": "^4.41.2"
+    "webpack": "^4.41.3"
   },
   "main": "./src/extension.js",
   "enableProposedApi": true,
   "activationEvents": [
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
+    "onDebugResolve:extensionHost",
     "onDebugResolve:chrome",
     "onDebugResolve:NAMESPACE(node)",
     "onDebugResolve:NAMESPACE(node-terminal)",

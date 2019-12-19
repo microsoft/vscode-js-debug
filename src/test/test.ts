@@ -411,6 +411,7 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
       trace: { logFile: tmpLogPath },
+      outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       ...options,
     } as IChromeLaunchConfiguration);
 

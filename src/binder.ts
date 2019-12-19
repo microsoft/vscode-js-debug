@@ -98,6 +98,7 @@ export class Binder implements IDisposable {
       dap.on('configurationDone', async () => ({}));
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
+      dap.on('breakpointLocations', () => Promise.resolve({ breakpoints: [] }));
       dap.on('attach', params =>
         this._boot(applyDefaults(params as AnyResolvingConfiguration), dap),
       );
@@ -238,7 +239,7 @@ export class Binder implements IDisposable {
     const dap = await connection.dap();
     const debugAdapter = new DebugAdapter(
       dap,
-      (this._launchParams && this._launchParams.rootPath) || undefined,
+      this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
       this._launchParams!,
       this._rawTelemetryReporter!,

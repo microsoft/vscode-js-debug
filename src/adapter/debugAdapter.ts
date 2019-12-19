@@ -21,6 +21,7 @@ import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPre
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { join } from 'path';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
+import { SourceMapCache } from './sourceMapCache';
 
 const localize = nls.loadMessageBundle();
 
@@ -79,12 +80,24 @@ export class DebugAdapter {
     const bpCache: BreakpointPredictionCache | undefined = launchConfig.__workspaceCachePath
       ? new CorrelatedCache(join(launchConfig.__workspaceCachePath, 'bp-predict.json'))
       : undefined;
+    const sourceMapCache = new SourceMapCache();
+    this._disposables.push(sourceMapCache);
     const bpPredictor = rootPath
-      ? new BreakpointsPredictor(rootPath, sourceMapRepo, sourcePathResolver, bpCache)
+      ? new BreakpointsPredictor(
+          rootPath,
+          launchConfig,
+          sourceMapRepo,
+          sourceMapCache,
+          sourcePathResolver,
+          bpCache,
+        )
       : undefined;
+
+    bpPredictor?.onLongParse(() => dap.longPrediction({}));
 
     this.sourceContainer = new SourceContainer(
       this.dap,
+      sourceMapCache,
       rootPath,
       sourcePathResolver,
       sourceMapRepo,
@@ -265,6 +278,7 @@ export class DebugAdapter {
       delegate,
       this.launchConfig,
       this.breakpointManager,
+      this.launchConfig.__enableInstrumentationBp !== false,
     );
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);

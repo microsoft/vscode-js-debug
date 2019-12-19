@@ -16,6 +16,7 @@ import { ExtensionHostConfigurationProvider } from './extensionHostConfiguration
 import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
+import { registerLongBreakpointUI } from './ui/longPredictionUI';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -76,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
   const debugSessionTracker = new DebugSessionTracker();
   debugSessionTracker.attach();
 
+  registerLongBreakpointUI(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
   registerDebugScriptActions(context);

@@ -22,7 +22,8 @@ export interface ISourceMapRepository {
    * children have been discovered.
    */
   streamAllChildren<T>(
-    patterns: ReadonlyArray<IRelativePattern>,
+    base: string,
+    patterns: ReadonlyArray<string>,
     onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
   ): Promise<T[]>;
 }

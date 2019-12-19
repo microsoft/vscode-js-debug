@@ -145,8 +145,9 @@ describe('breakpoints', () => {
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
-      p.evaluate('foo();');
+      const evaluation = p.evaluate('foo();');
       await waitForPause(p);
+      await evaluation;
       p.assertLog();
     });
 
@@ -265,6 +266,23 @@ describe('breakpoints', () => {
       // Should resume and pause on 'debugger' in module1.ts.
       await waitForPause(p);
       p.assertLog();
+    });
+
+    itIntegrates('sets breakpoints in sourcemapped node_modules', async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'nodeModuleBreakpoint');
+      const handle = await r.runScript(join(cwd, 'index.js'), {
+        outFiles: [`${cwd}/**/*.js`],
+      });
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'node_modules', '@c4312', 'foo', 'src', 'index.ts') },
+        breakpoints: [{ line: 2, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
     });
   });
 

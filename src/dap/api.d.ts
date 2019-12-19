@@ -726,6 +726,11 @@ export namespace Dap {
      * A request to copy a certain string to clipboard.
      */
     copyRequested(params: CopyRequestedEventParams): void;
+
+    /**
+     * An event sent when breakpoint prediction takes a significant amount of time.
+     */
+    longPrediction(params: LongPredictionEventParams): void;
   }
 
   export interface TestApi {
@@ -1159,6 +1164,16 @@ export namespace Dap {
       request: 'copyRequested',
       filter?: (event: CopyRequestedEventParams) => boolean,
     ): Promise<CopyRequestedEventParams>;
+
+    /**
+     * An event sent when breakpoint prediction takes a significant amount of time.
+     */
+    on(request: 'longPrediction', handler: (params: LongPredictionEventParams) => void): void;
+    off(request: 'longPrediction', handler: (params: LongPredictionEventParams) => void): void;
+    once(
+      request: 'longPrediction',
+      filter?: (event: LongPredictionEventParams) => boolean,
+    ): Promise<LongPredictionEventParams>;
   }
 
   export interface AttachParams {
@@ -1808,6 +1823,8 @@ export namespace Dap {
      */
     sources: Source[];
   }
+
+  export interface LongPredictionEventParams {}
 
   export interface ModuleEventParams {
     /**

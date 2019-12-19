@@ -17,6 +17,7 @@ import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { assert } from '../common/logging/logger';
+import { SourceMapCache } from './sourceMapCache';
 
 const localize = nls.loadMessageBundle();
 
@@ -277,6 +278,7 @@ export class SourceContainer {
 
   constructor(
     dap: Dap.Api,
+    private readonly sourceMapCache: SourceMapCache,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
@@ -502,7 +504,7 @@ export class SourceContainer {
     this._sourceMaps.set(sourceMapUrl, sourceMap);
 
     // will log any errors internally:
-    const loaded = await sourceUtils.loadSourceMap({
+    const loaded = await this.sourceMapCache.load({
       sourceMapUrl,
       compiledPath: source.absolutePath(),
     });

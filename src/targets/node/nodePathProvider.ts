@@ -4,7 +4,7 @@
 
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findInPath } from '../../common/pathUtils';
-import { isAbsolute } from 'path';
+import { isAbsolute, basename } from 'path';
 import { cannotFindNodeBinary, nodeBinaryOutOfDate, ProtocolError } from '../../dap/errors';
 import { spawnAsync } from '../../common/processUtils';
 
@@ -28,6 +28,12 @@ export class NodePathProvider {
       executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable));
+    }
+
+    // If the runtime executable doesn't look like Node.js (could be a shell
+    // script that boots Node by itself, for instance) skip further validation.
+    if (basename(location) !== 'node' && basename(location) !== 'node.exe') {
+      return location;
     }
 
     const knownGood = this.knownGoodMappings.has(location);
