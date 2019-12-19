@@ -31,6 +31,7 @@ import { VariableStore, IVariableStoreDelegate } from './variables';
 import { bisectArray } from '../common/objUtils';
 import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
+import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 
 const localize = nls.loadMessageBundle();
 
@@ -612,13 +613,16 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._pausedDetails = this._createPausedDetails(event);
+    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
+      if (!this._breakpointManager.onBreakpointHit(event.hitBreakpoints).remainPaused) {
+        this.resume();
+        return;
+      }
+    }
+
     if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
       this.stepInto();
       return;
-    }
-
-    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-      this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
     }
 
     this._pausedDetailsEvent.set(this._pausedDetails, event);
@@ -1210,9 +1214,10 @@ export class Thread implements IVariableStoreDelegate {
       await Promise.race([
         delay(1000),
         Promise.all(
-          details.hitBreakpoints.map(bp =>
-            this._breakpointManager._resolvedBreakpoints.get(bp)?.untilSetCompleted(),
-          ),
+          details.hitBreakpoints
+            .map(bp => this._breakpointManager._resolvedBreakpoints.get(bp))
+            .filter((bp): bp is UserDefinedBreakpoint => bp instanceof UserDefinedBreakpoint)
+            .map(r => r.untilSetCompleted()),
         ),
       ]);
     }
