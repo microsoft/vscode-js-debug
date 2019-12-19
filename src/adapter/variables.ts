@@ -8,6 +8,8 @@ import Dap from '../dap/api';
 import { StackTrace } from './stackTrace';
 import * as errors from '../dap/errors';
 import * as nls from 'vscode-nls';
+import { getArrayProperties } from './templates/getArrayProperties';
+import { getArraySlots } from './templates/getArraySlots';
 
 const localize = nls.loadMessageBundle();
 
@@ -384,27 +386,18 @@ export class VariableStore {
   }
 
   private async _getArrayProperties(object: RemoteObject): Promise<Dap.Variable[]> {
-    const response = await object.cdp.Runtime.callFunctionOn({
-      objectId: object.objectId,
-      functionDeclaration: `
-        function() {
-          const result = {__proto__: this.__proto__};
-          const names = Object.getOwnPropertyNames(this);
-          for (let i = 0; i < names.length; ++i) {
-            const name = names[i];
-            // Array index check according to the ES5-15.4.
-            if (String(name >>> 0) === name && name >>> 0 !== 0xffffffff)
-              continue;
-            const descriptor = Object.getOwnPropertyDescriptor(this, name);
-            if (descriptor)
-              Object.defineProperty(result, name, descriptor);
-          }
-          return result;
-        }`,
-      generatePreview: true,
-    });
-    if (!response) return [];
-    return this._getObjectProperties(object, response.result.objectId);
+    try {
+      const { objectId } = await getArrayProperties({
+        cdp: object.cdp,
+        args: [],
+        objectId: object.objectId,
+        generatePreview: true,
+      });
+
+      return this._getObjectProperties(object, objectId);
+    } catch (e) {
+      return [];
+    }
   }
 
   private async _getArraySlots(
@@ -413,29 +406,24 @@ export class VariableStore {
   ): Promise<Dap.Variable[]> {
     const start = params && typeof params.start !== 'undefined' ? params.start : -1;
     const count = params && typeof params.count !== 'undefined' ? params.count : -1;
-    const response = await object.cdp.Runtime.callFunctionOn({
-      objectId: object.objectId,
-      functionDeclaration: `
-        function(start, count) {
-          const result = {};
-          const from = start === -1 ? 0 : start;
-          const to = count === -1 ? this.length : start + count;
-          for (let i = from; i < to && i < this.length; ++i) {
-            const descriptor = Object.getOwnPropertyDescriptor(this, i);
-            if (descriptor)
-              Object.defineProperty(result, i, descriptor);
-          }
-          return result;
-        }
-      `,
-      generatePreview: false,
-      arguments: [{ value: start }, { value: count }],
-    });
-    if (!response || !response.result || !response.result.objectId) return [];
-    const result = (await this._getObjectProperties(object, response.result.objectId)).filter(
+    let objectId: string;
+    try {
+      const response = await getArraySlots({
+        cdp: object.cdp,
+        generatePreview: false,
+        args: [start, count],
+        objectId: object.objectId,
+      });
+
+      objectId = response.objectId;
+    } catch (e) {
+      return [];
+    }
+
+    const result = (await this._getObjectProperties(object, objectId)).filter(
       p => p.name !== '__proto__',
     );
-    await this._cdp.Runtime.releaseObject({ objectId: response.result.objectId });
+    await this._cdp.Runtime.releaseObject({ objectId });
     return result;
   }
 
