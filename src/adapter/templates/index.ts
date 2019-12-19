@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
+import Cdp from '../../cdp/api';
 
 /**
  * Creates a template for the given function that replaces its arguments
@@ -99,4 +100,65 @@ export function templateFunction<Args extends unknown[]>(
     ${args.map((a, i) => `let __args${i} = ${a}`).join('; ')};
     ${body}
   })();`;
+}
+
+/**
+ * Exception thrown from the {@link remoteFunction} on an error.
+ */
+export class RemoteException extends Error {
+  constructor(public readonly details: Cdp.Runtime.ExceptionDetails) {
+    super(details.text);
+  }
+}
+
+// We need to omit and then intersect the value type, otherwise
+// R gets polluted by the `any`.
+type RemoteObjectWithType<R, ByValue> = ByValue extends true
+  ? Omit<Cdp.Runtime.RemoteObject, 'value'> & { value: R }
+  : Omit<Cdp.Runtime.RemoteObject, 'value'> & { objectId: string };
+
+/**
+ * Wraps the function such that it can be invoked over CDP. Returns a function
+ * that takes the CDP and arguments with which to invoke the function. The
+ * arguments should be simple objects.
+ */
+export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) => R) {
+  const stringified = '' + fn;
+
+  // Some ugly typing here, but it gets us type safety. Mainly we want to:
+  //  1. Have args that extend the function arg and omit the args we provide (easy)
+  //  2. If and only if returnByValue is set to true, have that type in our return
+  //  3. If and only if it's not set, then return an object ID.
+  return async <ByValue extends boolean = false>({
+    cdp,
+    args,
+    ...options
+  }: { cdp: Cdp.Api; args: Args } & Omit<
+    Cdp.Runtime.CallFunctionOnParams,
+    'functionDeclaration' | 'arguments' | 'returnByValue'
+  > &
+    (ByValue extends true ? { returnByValue: ByValue } : {})): Promise<
+    RemoteObjectWithType<R, ByValue>
+  > => {
+    const result = await cdp.Runtime.callFunctionOn({
+      functionDeclaration: stringified,
+      arguments: args.map(value => ({ value })),
+      ...options,
+    });
+
+    if (!result) {
+      throw new RemoteException({
+        exceptionId: 0,
+        text: 'No response from CDP',
+        lineNumber: 0,
+        columnNumber: 0,
+      });
+    }
+
+    if (result.exceptionDetails) {
+      throw new RemoteException(result.exceptionDetails);
+    }
+
+    return result.result as RemoteObjectWithType<R, ByValue>;
+  };
 }

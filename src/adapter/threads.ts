@@ -27,6 +27,8 @@ import {
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
+import { toStringForClipboard } from './templates/toStringForClipboard';
+import { previewThis } from './templates/previewThis';
 
 const localize = nls.loadMessageBundle();
 
@@ -1104,30 +1106,23 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    const toStringForClipboard = `
-      function toStringForClipboard(subtype) {
-        if (subtype === 'node')
-          return this.outerHTML;
-        if (subtype && typeof this === 'undefined')
-          return subtype + '';
-        try {
-          return JSON.stringify(this, null, '  ');
-        } catch (e) {
-          return '' + this;
-        }
-      }
-    `;
+    try {
+      const result = await toStringForClipboard({
+        cdp: this.cdp(),
+        objectId: object.objectId,
+        args: [object.subtype],
+        silent: true,
+        returnByValue: true,
+      });
 
-    const response = await this.cdp().Runtime.callFunctionOn({
-      objectId: object.objectId,
-      functionDeclaration: toStringForClipboard,
-      arguments: [{ value: object.subtype }],
-      silent: true,
-      returnByValue: true,
-    });
-    if (response && response.result)
-      this._dap.copyRequested({ text: String(response.result.value) });
-    this.cdp().Runtime.releaseObject({ objectId: object.objectId });
+      this._dap.copyRequested({ text: result.value });
+    } catch (e) {
+      // ignored
+    } finally {
+      this.cdp()
+        .Runtime.releaseObject({ objectId: object.objectId })
+        .catch(() => undefined);
+    }
   }
 
   async _queryObjects(prototype: Cdp.Runtime.RemoteObject) {
@@ -1140,20 +1135,23 @@ export class Thread implements IVariableStoreDelegate {
     await this.cdp().Runtime.releaseObject({ objectId: prototype.objectId });
     if (!response) return slot();
 
-    const withPreview = await this.cdp().Runtime.callFunctionOn({
-      functionDeclaration: 'function() { return this; }',
-      objectId: response.objects.objectId,
-      objectGroup: 'console',
-      generatePreview: true,
-    });
-    if (!withPreview) return slot();
+    let withPreview: Cdp.Runtime.RemoteObject;
+    try {
+      withPreview = await previewThis({
+        cdp: this.cdp(),
+        args: [],
+        objectId: response.objects.objectId,
+        objectGroup: 'console',
+        generatePreview: true,
+      });
+    } catch (e) {
+      return slot();
+    }
 
     const text =
-      '\x1b[32mobjects: ' +
-      objectPreview.previewRemoteObject(withPreview.result, 'repl') +
-      '\x1b[0m';
+      '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview, 'repl') + '\x1b[0m';
     const variablesReference =
-      (await this.replVariables.createVariableForOutput(text, [withPreview.result])) || 0;
+      (await this.replVariables.createVariableForOutput(text, [withPreview])) || 0;
     const output = {
       category: 'stdout' as 'stdout',
       output: '',
