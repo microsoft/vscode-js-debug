@@ -10,6 +10,7 @@ import { EventEmitter } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { basename } from 'path';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
+import { IThreadDelegate } from '../../adapter/threads';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -23,7 +24,7 @@ export interface INodeTargetLifecycleHooks {
   close?(target: NodeTarget): void;
 }
 
-export class NodeTarget implements ITarget {
+export class NodeTarget implements ITarget, IThreadDelegate {
   private _cdp: Cdp.Api;
   private _parent: NodeTarget | undefined;
   private _children: NodeTarget[] = [];

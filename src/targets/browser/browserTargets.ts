@@ -19,6 +19,7 @@ import { LogTag } from '../../common/logging';
 import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ChildProcess } from 'child_process';
 import { killTree } from '../node/killTree';
+import { IThreadDelegate } from '../../adapter/threads';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -282,7 +283,7 @@ export class BrowserTargetManager implements IDisposable {
 const jsTypes = new Set(['page', 'iframe', 'worker', 'service_worker']);
 const domDebuggerTypes = new Set(['page', 'iframe']);
 
-export class BrowserTarget implements ITarget {
+export class BrowserTarget implements ITarget, IThreadDelegate {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;

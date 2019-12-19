@@ -323,12 +323,8 @@ export class Thread implements IVariableStoreDelegate {
       for (const ec of this._executionContexts.values()) {
         if (this._delegate.executionContextName(ec.description) === contextName) {
           this._selectedContext = ec;
-          const outputSlot = this._claimOutputSlot();
-          outputSlot({
-            output: `\x1b[33m↳[${contextName}]\x1b[0m `,
-          });
           return {
-            result: '',
+            result: `[${contextName}]`,
             variablesReference: 0,
           };
         }
@@ -362,8 +358,7 @@ export class Thread implements IVariableStoreDelegate {
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
-      this._evaluateAndOutput(responsePromise);
-      return { result: '', variablesReference: 0 };
+      return await this._evaluateRepl(responsePromise);
     }
 
     const response = await responsePromise;
@@ -392,35 +387,27 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  async _evaluateAndOutput(
+  async _evaluateRepl(
     responsePromise:
       | Promise<Cdp.Runtime.EvaluateResult | undefined>
       | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>,
-  ) {
+  ): Promise<Dap.EvaluateResult | Dap.Error> {
     const response = await responsePromise;
-    if (!response) return;
+    if (!response) return { result: '', variablesReference: 0 };
 
-    const outputSlot = this._claimOutputSlot();
     if (response.exceptionDetails) {
-      outputSlot(await this._formatException(response.exceptionDetails, '↳ '));
+      const formattedException = await this._formatException(response.exceptionDetails);
+      throw new errors.ExternalError(formattedException.output);
     } else {
       const contextName =
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
           ? `\x1b[33m[${this._delegate.executionContextName(this._selectedContext.description)}] `
           : '';
-      const text = `${contextName}\x1b[32m↳ ${objectPreview.previewRemoteObject(
-        response.result,
-        'repl',
-      )}\x1b[0m`;
-      const variablesReference = await this.replVariables.createVariableForOutput(text, [
-        response.result,
-      ]);
-      const output = {
-        category: 'stdout',
-        output: '',
-        variablesReference,
-      } as Dap.OutputEventParams;
-      outputSlot(output);
+      const resultVar = await this.replVariables.createVariable(response.result, 'repl');
+      return {
+        variablesReference: resultVar.variablesReference,
+        result: `${contextName}${resultVar.value}`,
+      };
     }
   }
 
@@ -927,7 +914,7 @@ export class Thread implements IVariableStoreDelegate {
   async _formatException(
     details: Cdp.Runtime.ExceptionDetails,
     prefix?: string,
-  ): Promise<Dap.OutputEventParams | undefined> {
+  ): Promise<Dap.OutputEventParams> {
     const preview = details.exception
       ? objectPreview.previewException(details.exception)
       : { title: '' };
