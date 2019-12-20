@@ -57,78 +57,71 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates.skip('repl', async ({ r }) => {
+  itIntegrates('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
-    p.dap.evaluate({ expression: `42`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog('42', undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `'foo'`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`'foo'`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `1234567890n`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`1234567890n`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `throw new Error('foo')`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`throw new Error('foo')`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `throw {foo: 3, bar: 'baz'};`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`throw {foo: 3, bar: 'baz'};`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `throw 42;`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`throw 42;`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `{foo: 3}`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`{foo: 3}`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `baz();`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`baz();`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({
-      expression: `setTimeout(() => { throw new Error('bar')}, 0); 42`,
-      context: 'repl',
-    });
-    const r1 = await p.dap.once('output');
-    const e1 = await p.dap.once('output');
-    await p.logger.logOutput(r1);
+    const [, e1] = await Promise.all([
+      p.logger.evaluateAndLog(
+        `setTimeout(() => { throw new Error('bar')}, 0); 42`,
+        undefined,
+        'repl',
+      ),
+      p.dap.once('output'),
+    ]);
     await p.logger.logOutput(e1);
     p.log('');
 
-    p.dap.evaluate({
-      expression: `setTimeout(() => { throw new Error('baz')}, 0); 42`,
-      context: 'repl',
-    });
-    const r2 = await p.dap.once('output');
-    const e2 = await p.dap.once('output');
-    await p.logger.logOutput(r2);
+    const [, e2] = await Promise.all([
+      p.logger.evaluateAndLog(
+        `setTimeout(() => { throw new Error('baz')}, 0); 42`,
+        undefined,
+        'repl',
+      ),
+      p.dap.once('output'),
+    ]);
     await p.logger.logOutput(e2);
     p.log('');
 
     await p.addScriptTag('browserify/bundle.js');
 
-    p.dap.evaluate({ expression: `window.throwError('error1')`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`window.throwError('error1')`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({ expression: `window.throwValue({foo: 3, bar: 'baz'})`, context: 'repl' });
-    await p.logger.logOutput(await p.dap.once('output'));
+    await p.logger.evaluateAndLog(`window.throwValue({foo: 3, bar: 'baz'})`, undefined, 'repl');
     p.log('');
 
-    p.dap.evaluate({
-      expression: `setTimeout(() => { window.throwError('error2')}, 0); 42`,
-      context: 'repl',
-    });
-    const r3 = await p.dap.once('output');
-    const e3 = await p.dap.once('output');
-    await p.logger.logOutput(r3);
+    const [, e3] = await Promise.all([
+      p.logger.evaluateAndLog(
+        `setTimeout(() => { window.throwError('error2')}, 0); 42`,
+        undefined,
+        'repl',
+      ),
+      p.dap.once('output'),
+    ]);
     await p.logger.logOutput(e3);
     p.log('');
 
@@ -355,7 +348,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates.skip('cd', async ({ r }) => {
+  itIntegrates('cd', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     async function logCompletions(params: Dap.CompletionsParams) {
