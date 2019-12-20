@@ -108,10 +108,10 @@ describe('evaluate', () => {
 
     await p.addScriptTag('browserify/bundle.js');
 
-    p.logger.evaluateAndLog(`window.throwError('error1')`, undefined, 'repl');
+    await p.logger.evaluateAndLog(`window.throwError('error1')`, undefined, 'repl');
     p.log('');
 
-    p.logger.evaluateAndLog(`window.throwValue({foo: 3, bar: 'baz'})`, undefined, 'repl');
+    await p.logger.evaluateAndLog(`window.throwValue({foo: 3, bar: 'baz'})`, undefined, 'repl');
     p.log('');
 
     const [, e3] = await Promise.all([

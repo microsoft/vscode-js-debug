@@ -32,11 +32,11 @@ stderr>
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
 
-
-
 <error>: Uncaught Error: error1
-result: 42
+
 <error>: Uncaught Object
+
+result: 42
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
 stderr>     
