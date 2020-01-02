@@ -23,11 +23,12 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
-    const { executable, args, shell } = formatArguments(binary, [
-      ...config.runtimeArgs,
-      config.program,
-      ...config.args,
-    ]);
+    let execArgs = [...config.runtimeArgs, ...config.args];
+    if (config.program) {
+      execArgs = [...config.runtimeArgs, config.program, ...config.args];
+    }
+
+    const { executable, args, shell } = formatArguments(binary, execArgs);
 
     // Send an appoximation of the command we're running to
     // the terminal, for cosmetic purposes.
