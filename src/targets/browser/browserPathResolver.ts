@@ -4,6 +4,7 @@
 
 import * as path from 'path';
 import * as utils from '../../common/urlUtils';
+import * as fs from 'fs';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import { properResolve } from '../../common/pathUtils';
@@ -54,7 +55,15 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
     const unmappedPath = this.sourceMapOverrides.apply(url);
     if (unmappedPath !== url) {
-      return properResolve(webRoot, unmappedPath);
+      const webRootPath = properResolve(webRoot, unmappedPath);
+
+      // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
+      const clientAppPath = properResolve(webRoot, '..', 'ClientApp', unmappedPath);
+      if (!fs.existsSync(webRootPath) && fs.existsSync(clientAppPath)) {
+        return clientAppPath;
+      } else {
+        return webRootPath;
+      }
     }
 
     if (!baseUrl || !url.startsWith(baseUrl)) return '';
