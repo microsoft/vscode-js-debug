@@ -12,6 +12,7 @@ import { properResolve } from '../../common/pathUtils';
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
   webRoot?: string;
+  clientID: string | undefined;
 }
 
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
@@ -59,7 +60,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
       // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
       const clientAppPath = properResolve(webRoot, '..', 'ClientApp', unmappedPath);
-      if (!(await fsUtils.exists(webRootPath)) && (await fsUtils.exists(clientAppPath))) {
+      if (
+        this.options.clientID === 'visualstudio' &&
+        !(await fsUtils.exists(webRootPath)) &&
+        (await fsUtils.exists(clientAppPath))
+      ) {
         return clientAppPath;
       } else {
         return webRootPath;

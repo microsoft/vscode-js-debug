@@ -89,6 +89,7 @@ export interface ILauncher extends IDisposable {
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
     rawTelemetryReporter: RawTelemetryReporterToDap,
+    clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult>;
   terminate(): Promise<void>;
   disconnect(): Promise<void>;

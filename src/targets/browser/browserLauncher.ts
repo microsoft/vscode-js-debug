@@ -138,6 +138,7 @@ export class BrowserLauncher implements ILauncher {
     params: IChromeLaunchConfiguration,
     { dap, targetOrigin, cancellationToken }: ILaunchContext,
     rawTelemetryReporter: IRawTelemetryReporter,
+    clientCapabilities: Dap.InitializeParams,
   ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
     try {
@@ -163,6 +164,7 @@ export class BrowserLauncher implements ILauncher {
       remoteRoot: null,
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
+      clientID: clientCapabilities.clientID,
     });
     this._targetManager = await BrowserTargetManager.connect(
       launched.cdp,
@@ -229,12 +231,18 @@ export class BrowserLauncher implements ILauncher {
     params: AnyChromeConfiguration,
     context: ILaunchContext,
     telemetryReporter: RawTelemetryReporterToDap,
+    clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(params, context, telemetryReporter);
+    const targetOrError = await this.prepareLaunch(
+      params,
+      context,
+      telemetryReporter,
+      clientCapabilities,
+    );
     if (typeof targetOrError === 'string') return { error: targetOrError };
     await this.finishLaunch(targetOrError, params);
     return { blockSessionTermination: true };
