@@ -21,6 +21,7 @@ export const enum LogLevel {
 
 export enum LogTag {
   Runtime = 'runtime',
+  RuntimeSourceCreate = 'runtime.sourcecreate',
   RuntimeAssertion = 'runtime.assertion',
   RuntimeLaunch = 'runtime.launch',
   RuntimeTarget = 'runtime.target',

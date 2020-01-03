@@ -16,8 +16,9 @@ import { SourceMapConsumer } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { assert } from '../common/logging/logger';
+import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
+import { LogTag } from '../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -466,6 +467,11 @@ export class SourceContainer {
     contentHash?: string,
   ): Source {
     const absolutePath = this.sourcePathResolver.urlToAbsolutePath({ url });
+    logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
+      inputUrl: url,
+      absolutePath,
+    });
+
     const source = new Source(
       this,
       url,
@@ -566,6 +572,13 @@ export class SourceContainer {
       const isNew = !source;
       if (!source) {
         const absolutePath = this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map });
+        logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
+          inputUrl: resolvedUrl,
+          absolutePath,
+          compiledUrl: compiled.url(),
+          sourceMapSources: map.sources,
+        });
+
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
         source = new Source(
           this,
