@@ -113,7 +113,7 @@ export class BreakpointsPredictor {
         const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this.rootPath, url);
         const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = this.sourcePathResolver
-          ? this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
+          ? await this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
           : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
 
         if (!resolvedPath) {

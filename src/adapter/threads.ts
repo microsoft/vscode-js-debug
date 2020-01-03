@@ -983,7 +983,7 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+  async _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     if (event.url) event.url = this._delegate.scriptUrlToUrl(event.url);
 
     let urlHashMap = this._scriptSources.get(event.url);
@@ -1014,7 +1014,7 @@ export class Thread implements IVariableStoreDelegate {
       }
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
-      source = this._sourceContainer.addSource(
+      source = await this._sourceContainer.addSource(
         event.url,
         contentGetter,
         resolvedSourceMapUrl,

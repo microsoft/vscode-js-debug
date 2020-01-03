@@ -37,7 +37,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
   protected readonly sourceMapOverrides = new SourceMapOverrides(this.options.sourceMapOverrides);
   constructor(protected readonly options: T) {}
 
-  public abstract urlToAbsolutePath(request: IUrlResolution): string | undefined;
+  public abstract urlToAbsolutePath(request: IUrlResolution): Promise<string | undefined>;
 
   public abstract absolutePathToUrl(absolutePath: string): string | undefined;
 

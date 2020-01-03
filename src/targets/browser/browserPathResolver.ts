@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import * as utils from '../../common/urlUtils';
-import * as fs from 'fs';
+import * as fsUtils from '../../common/fsUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import { properResolve } from '../../common/pathUtils';
@@ -35,7 +35,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     return utils.completeUrlEscapingRoot(baseUrl, utils.platformPathToUrlPath(relative));
   }
 
-  urlToAbsolutePath({ url, map }: IUrlResolution): string | undefined {
+  async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
     if (map && !this.shouldResolveSourceMap(map)) {
       return undefined;
     }
@@ -59,7 +59,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
       // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
       const clientAppPath = properResolve(webRoot, '..', 'ClientApp', unmappedPath);
-      if (!fs.existsSync(webRootPath) && fs.existsSync(clientAppPath)) {
+      if (!(await fsUtils.exists(webRootPath)) && (await fsUtils.exists(clientAppPath))) {
         return clientAppPath;
       } else {
         return webRootPath;
