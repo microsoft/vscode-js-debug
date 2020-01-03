@@ -62,6 +62,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       const clientAppPath = properResolve(webRoot, '..', 'ClientApp', unmappedPath);
       if (
         this.options.clientID === 'visualstudio' &&
+        url.startsWith('webpack:///') &&
         !(await fsUtils.exists(webRootPath)) &&
         (await fsUtils.exists(clientAppPath))
       ) {
