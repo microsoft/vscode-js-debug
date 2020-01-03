@@ -13,6 +13,9 @@ import { urlToRegex } from '../../common/urlUtils';
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
+const lcEqual = (a: Partial<LineColumn>, b: Partial<LineColumn>) =>
+  a.lineNumber === b.lineNumber && a.columnNumber === b.columnNumber;
+
 /**
  * State of the IBreakpointCdpReference.
  */
@@ -35,7 +38,7 @@ const isSetByLocation = (
 ): params is Cdp.Debugger.SetBreakpointParams => 'location' in params;
 
 const breakpointIsForUrl = (params: Cdp.Debugger.SetBreakpointByUrlParams, url: string) =>
-  (params.url && url === params.url) || params.urlRegex === urlToRegex(url);
+  (params.url && url === params.url) || (params.urlRegex && new RegExp(params.urlRegex).test(url));
 
 /**
  * We're currently working on sending the breakpoint to CDP.
@@ -311,29 +314,32 @@ export abstract class Breakpoint {
 
   /**
    * Returns whether a breakpoint has been set on the given line and column
-   * at the provided URL already. This is used to deduplicate breakpoint
-   * requests--as URLs do not refer explicitly to a single script, there's
-   * not an intrinsic deduplication that happens before this point.
+   * at the provided script already. This is used to deduplicate breakpoint
+   * requests to avoid triggering any logpoint breakpoints multiple times,
+   * as would happen if we set a breakpoint both by script and URL.
    */
-  private hasSetOnLocation(urlRegex: string, lineColumn: LineColumn): boolean {
+  private hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn): boolean {
     return this.cdpBreakpoints.some(
       bp =>
-        isSetByUrl(bp.args) &&
-        bp.args.urlRegex === urlRegex &&
-        bp.args.lineNumber === lineColumn.lineNumber &&
-        bp.args.columnNumber === lineColumn.columnNumber,
+        (script.url &&
+          isSetByUrl(bp.args) &&
+          bp.args.urlRegex === urlToRegex(script.url) &&
+          lcEqual(bp.args, lineColumn)) ||
+        (script.scriptId &&
+          isSetByLocation(bp.args) &&
+          bp.args.location.scriptId === script.scriptId &&
+          lcEqual(bp.args.location, lineColumn)),
     );
   }
 
   private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
-    const urlRegex = urlToRegex(url);
     lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
-    if (this.hasSetOnLocation(urlRegex, lineColumn)) {
+    if (this.hasSetOnLocation({ url }, lineColumn)) {
       return;
     }
 
     return this._setAny(thread, {
-      urlRegex,
+      urlRegex: urlToRegex(url),
       condition: this.getBreakCondition(),
       ...lineColumn,
     });
@@ -344,6 +350,11 @@ export abstract class Breakpoint {
     script: Script,
     lineColumn: LineColumn,
   ): Promise<void> {
+    // Avoid setting duplicate breakpoints
+    if (this.hasSetOnLocation(script, lineColumn)) {
+      return;
+    }
+
     return this._setAny(thread, {
       location: {
         scriptId: script.scriptId,
