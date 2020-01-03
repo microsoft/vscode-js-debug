@@ -39,6 +39,9 @@ interface ISetBreakpointResult {
   list: UserDefinedBreakpoint[];
 }
 
+const isSetAtEntry = (bp: Breakpoint) =>
+  bp.originalPosition.columnNumber === 1 && bp.originalPosition.lineNumber === 1;
+
 export class BreakpointManager {
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
@@ -103,24 +106,6 @@ export class BreakpointManager {
 
       return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
     };
-  }
-
-  /**
-   * Notifies the breakpoint manager that a breakpoint was hit. If the
-   * breakpoint ID was an entry breakpoint, this'll return `true`.
-   */
-  public tryResolveModuleEntryBreakpoint(breakpointId: Cdp.Debugger.BreakpointId) {
-    for (const bp of this.moduleEntryBreakpoints.values()) {
-      if (bp.cdpIds.has(breakpointId)) {
-        // we intentionally don't remove the record from the map; it's kept as
-        // an indicator that it did exist and was hit, so that if further
-        // breakpoints are set in the file it doesn't get re-applied.
-        bp.remove();
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -406,7 +391,9 @@ export class BreakpointManager {
   }
 
   /**
-   * Function that should be called when breakpoints are hit.
+   * Function that should be called when breakpoints are hit. Returns whether
+   * we'd like to remain paused at this point in the source, and any
+   * entrypoint breakpoints that were hit.
    */
   public onBreakpointHit(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
     // We do two things here--notify that we hit BPs for statistical purposes,
@@ -416,23 +403,41 @@ export class BreakpointManager {
     // for more details here.
     let votesForPause = 0;
     let votesForContinue = 0;
+    const entrypointBps: Breakpoint[] = [];
 
     for (const breakpointId of hitBreakpointIds) {
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-      if (!breakpoint || !(breakpoint instanceof UserDefinedBreakpoint)) {
+      if (breakpoint instanceof EntryBreakpoint) {
+        // we intentionally don't remove the record from the map; it's kept as
+        // an indicator that it did exist and was hit, so that if further
+        // breakpoints are set in the file it doesn't get re-applied.
+        entrypointBps.push(breakpoint);
+        breakpoint.remove();
+        votesForContinue++;
+        continue;
+      }
+
+      if (!(breakpoint instanceof UserDefinedBreakpoint)) {
         continue;
       }
 
       const id = breakpoint.dapId;
       this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
       if (breakpoint.testHitCondition()) {
-        votesForContinue++;
-      } else {
         votesForPause++;
+      } else {
+        votesForContinue++;
+      }
+
+      if (isSetAtEntry(breakpoint)) {
+        entrypointBps.push(breakpoint);
       }
     }
 
-    return { remainPaused: votesForPause === 0 || votesForContinue > 0 };
+    return {
+      entrypointBps,
+      remainPaused: votesForPause > 0 || votesForContinue === 0,
+    };
   }
 
   public statisticsForTelemetry(): TelemetryEntityProperties {
@@ -445,6 +450,12 @@ export class BreakpointManager {
    */
   private ensureModuleEntryBreakpoint(thread: Thread, source: Dap.Source) {
     if (!source.path || this.moduleEntryBreakpoints.has(source.path)) {
+      return;
+    }
+
+    // Don't apply a custom breakpoint here if the user already has one.
+    const byPath = this._byPath.get(source.path) ?? [];
+    if (byPath.some(isSetAtEntry)) {
       return;
     }
 

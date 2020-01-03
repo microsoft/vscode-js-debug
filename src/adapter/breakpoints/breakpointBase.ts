@@ -344,12 +344,12 @@ export abstract class Breakpoint {
     script: Script,
     lineColumn: LineColumn,
   ): Promise<void> {
-    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
-    if (script.url && this.hasSetOnLocation(urlToRegex(script.url), lineColumn)) {
-      return;
-    }
-
-    return this._setAny(thread, { location: { scriptId: script.scriptId, ...lineColumn } });
+    return this._setAny(thread, {
+      location: {
+        scriptId: script.scriptId,
+        ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
+      },
+    });
   }
 
   /**

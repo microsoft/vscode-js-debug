@@ -102,7 +102,7 @@ export class NodeTarget implements ITarget {
   }
 
   defaultScriptOffset(): InlineScriptOffset {
-    return { lineOffset: 0, columnOffset: 62 };
+    return { lineOffset: 0, columnOffset: 0 };
   }
 
   skipFiles(): ScriptSkipper | undefined {

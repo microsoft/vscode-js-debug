@@ -28,7 +28,6 @@ import {
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
-import { bisectArray } from '../common/objUtils';
 import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
@@ -564,23 +563,17 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    let isSourceMapPause = event.reason === 'instrumentation' && event.data?.scriptId;
-    if (event.hitBreakpoints) {
-      let entryBps: string[];
-      [entryBps, event.hitBreakpoints] = bisectArray(event.hitBreakpoints, b =>
-        this._breakpointManager.tryResolveModuleEntryBreakpoint(b),
-      );
-      isSourceMapPause = isSourceMapPause || entryBps.length > 0;
-    }
+    const hitData = event.hitBreakpoints?.length
+      ? this._breakpointManager.onBreakpointHit(event.hitBreakpoints)
+      : undefined;
+    const isSourceMapPause =
+      (event.reason === 'instrumentation' && event.data?.scriptId) || hitData?.entrypointBps.length;
 
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
-      let remainPaused = await this._handleSourceMapPause(scriptId, location);
-
-      if (event.hitBreakpoints?.length) {
-        remainPaused = true;
-      }
+      const remainPaused =
+        (await this._handleSourceMapPause(scriptId, location)) || hitData?.remainPaused;
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -614,7 +607,7 @@ export class Thread implements IVariableStoreDelegate {
 
     this._pausedDetails = this._createPausedDetails(event);
     if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-      if (!this._breakpointManager.onBreakpointHit(event.hitBreakpoints).remainPaused) {
+      if (hitData?.remainPaused === false) {
         this.resume();
         return;
       }
