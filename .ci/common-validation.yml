@@ -34,6 +34,7 @@ steps:
   timeoutInMinutes: 10
   condition: and(eq(${{ parameters.runTests }}, true), ne(variables['Agent.OS'], 'Darwin'))
   env:
+    IS_CI: '1'
     DISPLAY: ':99.0'
 
 - task: Gulp@0
