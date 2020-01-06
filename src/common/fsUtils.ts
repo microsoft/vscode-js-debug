@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import * as util from 'util';
 const readFileAsync = util.promisify(fs.readFile);
 
+export const fsModule = fs;
+
 export function stat(path: string): Promise<fs.Stats | undefined> {
   return new Promise(cb => {
     fs.stat(path, (err, stat) => {
