@@ -28,9 +28,9 @@ import {
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
-import { bisectArray } from '../common/objUtils';
 import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
+import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 
 const localize = nls.loadMessageBundle();
 
@@ -563,23 +563,17 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    let isSourceMapPause = event.reason === 'instrumentation' && event.data?.scriptId;
-    if (event.hitBreakpoints) {
-      let entryBps: string[];
-      [entryBps, event.hitBreakpoints] = bisectArray(event.hitBreakpoints, b =>
-        this._breakpointManager.tryResolveModuleEntryBreakpoint(b),
-      );
-      isSourceMapPause = isSourceMapPause || entryBps.length > 0;
-    }
+    const hitData = event.hitBreakpoints?.length
+      ? this._breakpointManager.onBreakpointHit(event.hitBreakpoints)
+      : undefined;
+    const isSourceMapPause =
+      (event.reason === 'instrumentation' && event.data?.scriptId) || hitData?.entrypointBps.length;
 
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
-      let remainPaused = await this._handleSourceMapPause(scriptId, location);
-
-      if (event.hitBreakpoints?.length) {
-        remainPaused = true;
-      }
+      const remainPaused =
+        (await this._handleSourceMapPause(scriptId, location)) || hitData?.remainPaused;
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -612,13 +606,16 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._pausedDetails = this._createPausedDetails(event);
+    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
+      if (hitData?.remainPaused === false) {
+        this.resume();
+        return;
+      }
+    }
+
     if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
       this.stepInto();
       return;
-    }
-
-    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-      this._breakpointManager.notifyBreakpointHit(event.hitBreakpoints);
     }
 
     this._pausedDetailsEvent.set(this._pausedDetails, event);
@@ -1210,9 +1207,10 @@ export class Thread implements IVariableStoreDelegate {
       await Promise.race([
         delay(1000),
         Promise.all(
-          details.hitBreakpoints.map(bp =>
-            this._breakpointManager._resolvedBreakpoints.get(bp)?.untilSetCompleted(),
-          ),
+          details.hitBreakpoints
+            .map(bp => this._breakpointManager._resolvedBreakpoints.get(bp))
+            .filter((bp): bp is UserDefinedBreakpoint => bp instanceof UserDefinedBreakpoint)
+            .map(r => r.untilSetCompleted()),
         ),
       ]);
     }

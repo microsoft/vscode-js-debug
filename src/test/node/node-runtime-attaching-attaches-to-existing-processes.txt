@@ -4,6 +4,4 @@
     reason : pause
     threadId : <number>
 }
-<anonymous> @ ${fixturesDir}/test.js:1:1
-listOnTimeout @ internal/timers.js:531:17
-processTimers @ internal/timers.js:475:7
+<anonymous> @ ${fixturesDir}/test.js:1:21
