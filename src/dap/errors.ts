@@ -16,6 +16,7 @@ export const enum ErrorCodes {
   CannotLoadEnvironmentVariables,
   CannotFindNodeBinary,
   NodeBinaryOutOfDate,
+  InvalidHitCondition,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -107,6 +108,16 @@ export const nodeBinaryOutOfDate = (readVersion: string, attemptedPath: string) 
       readVersion,
     ),
     ErrorCodes.NodeBinaryOutOfDate,
+  );
+
+export const invalidHitCondition = (expression: string) =>
+  createUserError(
+    localize(
+      'invalidHitCondition',
+      'Invalid hit condition "{0}". Expected an expression like "> 42" or "== 2".',
+      expression,
+    ),
+    ErrorCodes.InvalidHitCondition,
   );
 
 export class ProtocolError extends Error {

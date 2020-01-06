@@ -103,7 +103,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   }
 
   defaultScriptOffset(): InlineScriptOffset {
-    return { lineOffset: 0, columnOffset: 62 };
+    return { lineOffset: 0, columnOffset: 0 };
   }
 
   skipFiles(): ScriptSkipper | undefined {
@@ -125,8 +125,8 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   }
 
   shouldCheckContentHash(): boolean {
-    // Node executes files directly from disk, there is no need to check the content.
-    return false;
+    // todo(connor4312): all targets need content hashing, remove dead code
+    return true;
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {

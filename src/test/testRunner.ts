@@ -58,7 +58,9 @@ export async function run(): Promise<void> {
   runner.useColors(true);
 
   // todo: retry failing tests https://github.com/microsoft/vscode-pwa/issues/28
-  runner.retries(2);
+  if (process.env.IS_CI) {
+    runner.retries(2);
+  }
 
   runner.addFile(join(__dirname, 'testIntegrationUtils'));
   runner.addFile(join(__dirname, 'infra/infra'));

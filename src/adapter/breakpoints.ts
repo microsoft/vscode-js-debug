@@ -2,24 +2,24 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IUiLocation, SourceContainer, Source, uiToRawOffset, base1To0 } from './sources';
-import * as nls from 'vscode-nls';
+import { IUiLocation, SourceContainer, Source, base1To0 } from './sources';
 import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
 import { IDisposable } from '../common/events';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
-import { rewriteLogPoint } from '../common/sourceUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
-import { getDeferred, delay } from '../common/promiseUtil';
-
-const localize = nls.loadMessageBundle();
-
-type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
+import { delay } from '../common/promiseUtil';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
+import { Breakpoint } from './breakpoints/breakpointBase';
+import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { HitCondition } from './breakpoints/hitCondition';
+import { ProtocolError } from '../dap/errors';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -28,295 +28,21 @@ interface ISetBreakpointResult {
   /**
    * Breakpoints that previous existed which can be destroyed.
    */
-  unbound: Breakpoint[];
+  unbound: UserDefinedBreakpoint[];
   /**
    * Newly created breakpoints;
    */
-  new: Breakpoint[];
+  new: UserDefinedBreakpoint[];
   /**
    * All old and new breakpoints.
    */
-  list: Breakpoint[];
+  list: UserDefinedBreakpoint[];
 }
 
-export class Breakpoint {
-  private _manager: BreakpointManager;
-  _source: Dap.Source;
-  private _condition?: string;
-  private _lineColumn: LineColumn;
-  private _disposables: IDisposable[] = [];
-  private _activeSetters = new Set<Promise<void>>();
-
-  private _resolvedBreakpoints = new Set<Cdp.Debugger.BreakpointId>();
-  private _resolvedUiLocation?: IUiLocation;
-  private _setUrlLocations = new Set<string>();
-  /**
-   * A deferred that resolves once the breakpoint 'set' response has been
-   * returned to the UI. We should wait for this to finish before sending any
-   * notifications about breakpoint changes.
-   */
-  private _completedSet = getDeferred<void>();
-
-  constructor(
-    manager: BreakpointManager,
-    public readonly dapId: number,
-    source: Dap.Source,
-    params: Dap.SourceBreakpoint,
-  ) {
-    this._manager = manager;
-    this.dapId = dapId;
-    this._source = source;
-    this._lineColumn = { lineNumber: params.line, columnNumber: params.column || 1 };
-    if (params.logMessage)
-      this._condition = rewriteLogPoint(params.logMessage) + `\n//# sourceURL=${kLogPointUrl}`;
-    if (params.condition)
-      this._condition = this._condition
-        ? `(${params.condition}) && ${this._condition}`
-        : params.condition;
-  }
-
-  /**
-   * Returns a promise that resolves once the breakpoint 'set' response
-   */
-  public untilSetCompleted() {
-    return this._completedSet.promise;
-  }
-
-  /**
-   * Marks the breakpoint 'set' as having finished.
-   */
-  public markSetCompleted() {
-    this._completedSet.resolve();
-  }
-
-  /**
-   * Returns a DAP representation of the breakpoint. If the breakpoint is
-   * resolved, this will be fulfilled with the complete source location.
-   */
-  public async toDap(): Promise<Dap.Breakpoint> {
-    if (this._resolvedUiLocation) {
-      return {
-        id: this.dapId,
-        verified: true,
-        source: await this._resolvedUiLocation.source.toDap(),
-        line: this._resolvedUiLocation.lineNumber,
-        column: this._resolvedUiLocation.columnNumber,
-      };
-    }
-
-    return {
-      id: this.dapId,
-      verified: false,
-      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`), // TODO: Put a useful message here
-    };
-  }
-
-  /**
-   * Called the breakpoint manager to notify that the breakpoint is resolved,
-   * used for statistics and notifying the UI.
-   */
-  private async _notifyResolved(): Promise<void> {
-    if (this._resolvedUiLocation) {
-      await this._manager.notifyBreakpointResolved(
-        this.dapId,
-        this._resolvedUiLocation,
-        this._completedSet.hasSettled(),
-      );
-    }
-  }
-
-  async set(thread: Thread): Promise<void> {
-    const promises: Promise<void>[] = [
-      // For breakpoints set before launch, we don't know whether they are in a compiled or
-      // a source map source. To make them work, we always set by url to not miss compiled.
-      // Additionally, if we have two sources with the same url, but different path (or no path),
-      // this will make breakpoint work in all of them.
-      this._setByPath(thread, this._lineColumn),
-
-      // Also use predicted locations if available.
-      this._setPredicted(thread),
-    ];
-
-    const source = this._manager._sourceContainer.source(this._source);
-    if (source) {
-      const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
-        lineNumber: this._lineColumn.lineNumber,
-        columnNumber: this._lineColumn.columnNumber,
-        source,
-      });
-      promises.push(...uiLocations.map(uiLocation => this._setByUiLocation(thread, uiLocation)));
-    }
-
-    await Promise.all(promises);
-    await this._notifyResolved();
-  }
-
-  async breakpointResolved(
-    thread: Thread,
-    cdpId: string,
-    resolvedLocations: Cdp.Debugger.Location[],
-  ) {
-    // Register cdpId so we can later remove it.
-    this._resolvedBreakpoints.add(cdpId);
-    this._manager._resolvedBreakpoints.set(cdpId, this);
-
-    // If this is a first resolved location, we should update the breakpoint as "verified".
-    if (this._resolvedUiLocation || !resolvedLocations.length) return;
-    const uiLocation = await thread.rawLocationToUiLocation(
-      thread.rawLocation(resolvedLocations[0]),
-    );
-    if (this._resolvedUiLocation || !uiLocation) return;
-    const source = this._manager._sourceContainer.source(this._source);
-    if (source)
-      this._resolvedUiLocation = this._manager._sourceContainer.currentSiblingUiLocations(
-        uiLocation,
-        source,
-      )[0];
-    this._notifyResolved();
-  }
-
-  async updateForSourceMap(thread: Thread, script: Script) {
-    const source = this._manager._sourceContainer.source(this._source);
-    if (!source) return [];
-    // Find all locations for this breakpoint in the new script.
-    const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
-      {
-        lineNumber: this._lineColumn.lineNumber,
-        columnNumber: this._lineColumn.columnNumber,
-        source,
-      },
-      script.source,
-    );
-    const promises: Promise<void>[] = [];
-    for (const uiLocation of uiLocations)
-      promises.push(this._setByScriptId(thread, script, uiLocation));
-    await Promise.all(promises);
-
-    return uiLocations;
-  }
-
-  async _setPredicted(thread: Thread): Promise<void> {
-    if (!this._source.path || !this._manager._breakpointsPredictor) return;
-    const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
-      absolutePath: this._source.path,
-      lineNumber: this._lineColumn.lineNumber,
-      columnNumber: this._lineColumn.columnNumber,
-    });
-    const promises: Promise<void>[] = [];
-    for (const workspaceLocation of workspaceLocations) {
-      const url = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(
-        workspaceLocation.absolutePath,
-      );
-      if (url) promises.push(this._setByUrl(thread, url, workspaceLocation));
-    }
-    await Promise.all(promises);
-  }
-
-  async _setByUiLocation(thread: Thread, uiLocation: IUiLocation): Promise<void> {
-    const promises: Promise<void>[] = [];
-    const scripts = thread.scriptsFromSource(uiLocation.source);
-    for (const script of scripts) promises.push(this._setByScriptId(thread, script, uiLocation));
-    await Promise.all(promises);
-  }
-
-  async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
-    const source = this._manager._sourceContainer.source(this._source);
-    const url = source
-      ? source.url()
-      : this._source.path
-      ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this._source.path)
-      : undefined;
-    if (!url) return;
-    await this._setByUrl(thread, url, lineColumn);
-  }
-
-  _urlLocation(url: string, lineColumn: LineColumn): string {
-    return lineColumn.lineNumber + ':' + lineColumn.columnNumber + ':' + url;
-  }
-
-  async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
-    const urlLocation = this._urlLocation(url, lineColumn);
-    if (this._setUrlLocations.has(urlLocation)) return;
-    this._setUrlLocations.add(urlLocation);
-
-    const location: Cdp.Debugger.SetBreakpointByUrlParams = {
-      urlRegex: urlUtils.urlToRegex(url),
-      condition: this._condition,
-      ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
-    };
-
-    const activeSetter = (async () => {
-      // TODO: add a test for this - breakpoint in node on the first line.
-      const result = await thread.cdp().Debugger.setBreakpointByUrl(location);
-      if (result) this.breakpointResolved(thread, result.breakpointId, result.locations);
-    })();
-    this._activeSetters.add(activeSetter);
-    await activeSetter;
-  }
-
-  async _setByScriptId(thread: Thread, script: Script, lineColumn: LineColumn): Promise<void> {
-    const urlLocation = this._urlLocation(script.url, lineColumn);
-    if (script.url && this._setUrlLocations.has(urlLocation)) return;
-
-    const location = {
-      scriptId: script.scriptId,
-      ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
-    };
-
-    const activeSetter = (async () => {
-      const result = await thread.cdp().Debugger.setBreakpoint({
-        location,
-        condition: this._condition,
-      });
-      if (result) this.breakpointResolved(thread, result.breakpointId, [result.actualLocation]);
-    })();
-    this._activeSetters.add(activeSetter);
-    await activeSetter;
-  }
-
-  async remove(): Promise<void> {
-    // This prevent any new setters from running.
-    for (const disposable of this._disposables) disposable.dispose();
-    this._disposables = [];
-    this._resolvedUiLocation = undefined;
-
-    // Let all setters finish, so that we can remove all breakpoints including
-    // ones being set right now.
-    await Promise.all(Array.from(this._activeSetters));
-
-    if (!assert(this._manager._thread, 'Expected thread to be set for Breakpoint.remove()')) {
-      return;
-    }
-
-    const promises: Promise<unknown>[] = [];
-    for (const id of this._resolvedBreakpoints) {
-      this._manager._resolvedBreakpoints.delete(id);
-      promises.push(this._manager._thread.cdp().Debugger.removeBreakpoint({ breakpointId: id }));
-    }
-    this._resolvedBreakpoints.clear();
-    this._setUrlLocations.clear();
-    await Promise.all(promises);
-  }
-
-  /**
-   * Compares this breakpoint with the other. String comparison-style return:
-   *  - a negative number if this breakpoint is before the other one
-   *  - zero if they're the same location
-   *  - a positive number if this breakpoint is after the other one
-   */
-  public compare(other: Breakpoint) {
-    const lca = this._lineColumn;
-    const lcb = other._lineColumn;
-    return lca.lineNumber !== lcb.lineNumber
-      ? lca.lineNumber - lcb.lineNumber
-      : lca.columnNumber - lcb.columnNumber;
-  }
-}
+const isSetAtEntry = (bp: Breakpoint) =>
+  bp.originalPosition.columnNumber === 1 && bp.originalPosition.lineNumber === 1;
 
 export class BreakpointManager {
-  private _byPath: Map<string, Breakpoint[]> = new Map();
-  private _byRef: Map<number, Breakpoint[]> = new Map();
-
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
   _thread: Thread | undefined;
@@ -328,6 +54,25 @@ export class BreakpointManager {
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
 
+  /**
+   * User-defined breakpoints by path on disk.
+   */
+  private _byPath: Map<string, UserDefinedBreakpoint[]> = new MapUsingProjection(
+    urlUtils.lowerCaseInsensitivePath,
+  );
+
+  /**
+   * User-defined breakpoints by `sourceReference`.
+   */
+  private _byRef: Map<number, UserDefinedBreakpoint[]> = new Map();
+
+  /**
+   * Mapping of source paths to entrypoint breakpoint IDs we set there.
+   */
+  private readonly moduleEntryBreakpoints: Map<string, EntryBreakpoint> = new MapUsingProjection(
+    urlUtils.lowerCaseInsensitivePath,
+  );
+
   constructor(
     dap: Dap.Api,
     sourceContainer: SourceContainer,
@@ -338,13 +83,13 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
 
     this._scriptSourceMapHandler = async (script, sources) => {
-      const todo: Promise<IUiLocation[]>[] = [];
-
       if (
         !assert(this._thread, 'Expected thread to be set for the breakpoint source map handler')
       ) {
-        return { remainPaused: false };
+        return [];
       }
+
+      const todo: Promise<IUiLocation[]>[] = [];
 
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
@@ -359,11 +104,7 @@ export class BreakpointManager {
           todo.push(breakpoint.updateForSourceMap(this._thread, script));
       }
 
-      const result = await Promise.all(todo);
-
-      return {
-        remainPaused: result.some(r => r.some(l => l.columnNumber <= 1 && l.lineNumber <= 1)),
-      };
+      return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
     };
   }
 
@@ -471,8 +212,11 @@ export class BreakpointManager {
     this._thread = thread;
     this._thread.cdp().Debugger.on('breakpointResolved', event => {
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
-      if (breakpoint) breakpoint.breakpointResolved(thread, event.breakpointId, [event.location]);
+      if (breakpoint) {
+        breakpoint.updateUiLocations(thread, event.breakpointId, [event.location]);
+      }
     });
+
     this._thread.setSourceMapDisabler(breakpointIds => {
       const sources: Source[] = [];
       for (const id of breakpointIds) {
@@ -484,10 +228,16 @@ export class BreakpointManager {
       }
       return sources;
     });
-    for (const breakpoints of this._byPath.values())
+
+    for (const breakpoints of this._byPath.values()) {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
-    for (const breakpoints of this._byRef.values())
+      this.ensureModuleEntryBreakpoint(thread, breakpoints[0]?._source);
+    }
+
+    for (const breakpoints of this._byRef.values()) {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
+    }
+
     this._updateSourceMapHandler(this._thread);
   }
 
@@ -539,14 +289,34 @@ export class BreakpointManager {
 
     // Creates new breakpoints for the parameters, unsetting any previous
     // breakpoints that don't still exist in the params.
-    const mergeInto = (previous: Breakpoint[]): ISetBreakpointResult => {
+    const mergeInto = (previous: UserDefinedBreakpoint[]): ISetBreakpointResult => {
       const result: ISetBreakpointResult = { unbound: previous.slice(), new: [], list: [] };
       if (!params.breakpoints) {
         return result;
       }
 
       for (let index = 0; index < params.breakpoints.length; index++) {
-        const created = new Breakpoint(this, ids[index], params.source, params.breakpoints[index]);
+        const bpParams = params.breakpoints[index];
+
+        let hitCondition: HitCondition | undefined;
+        try {
+          if (bpParams.hitCondition) {
+            hitCondition = HitCondition.parse(bpParams.hitCondition);
+          }
+        } catch (e) {
+          if (e instanceof ProtocolError) {
+            this._dap.output({ category: 'stderr', output: e.message });
+            continue;
+          }
+        }
+
+        const created = new UserDefinedBreakpoint(
+          this,
+          ids[index],
+          params.source,
+          params.breakpoints[index],
+          hitCondition,
+        );
         const existingIndex = result.unbound.findIndex(p => p.compare(created) === 0);
         if (existingIndex === -1) {
           result.new.push(created);
@@ -580,7 +350,10 @@ export class BreakpointManager {
     this._totalBreakpointsCount += result.new.length;
 
     const thread = this._thread;
-    if (thread) {
+    if (thread && result.new.length) {
+      // This will add itself to the launch blocker if needed:
+      this.ensureModuleEntryBreakpoint(thread, params.source);
+
       await (this._launchBlocker = Promise.all([
         this._launchBlocker,
         ...result.new.map(b => b.set(thread)),
@@ -617,18 +390,78 @@ export class BreakpointManager {
     }
   }
 
-  public notifyBreakpointHit(hitBreakpointIds: string[]): void {
-    hitBreakpointIds.forEach(breakpointId => {
+  /**
+   * Function that should be called when breakpoints are hit. Returns whether
+   * we'd like to remain paused at this point in the source, and any
+   * entrypoint breakpoints that were hit.
+   */
+  public onBreakpointHit(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+    // We do two things here--notify that we hit BPs for statistical purposes,
+    // and see if we should automatically continue based on hit conditions. To
+    // automatically continue, we need *no* breakpoints to want to continue and
+    // at least one breakpoint who wants to continue. See {@link HitCondition}
+    // for more details here.
+    let votesForPause = 0;
+    let votesForContinue = 0;
+    const entrypointBps: Breakpoint[] = [];
+
+    for (const breakpointId of hitBreakpointIds) {
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-      if (breakpoint) {
-        const id = breakpoint.dapId;
-        this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
+      if (breakpoint instanceof EntryBreakpoint) {
+        // we intentionally don't remove the record from the map; it's kept as
+        // an indicator that it did exist and was hit, so that if further
+        // breakpoints are set in the file it doesn't get re-applied.
+        entrypointBps.push(breakpoint);
+        breakpoint.remove();
+        votesForContinue++;
+        continue;
       }
-    });
+
+      if (!(breakpoint instanceof UserDefinedBreakpoint)) {
+        continue;
+      }
+
+      const id = breakpoint.dapId;
+      this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
+      if (breakpoint.testHitCondition()) {
+        votesForPause++;
+      } else {
+        votesForContinue++;
+      }
+
+      if (isSetAtEntry(breakpoint)) {
+        entrypointBps.push(breakpoint);
+      }
+    }
+
+    return {
+      entrypointBps,
+      remainPaused: votesForPause > 0 || votesForContinue === 0,
+    };
   }
 
   public statisticsForTelemetry(): TelemetryEntityProperties {
     return this._breakpointsStatisticsCalculator.statistics();
+  }
+
+  /**
+   * Ensures an entry breakpoint is present for the given source, creating
+   * one if there's not already one.
+   */
+  private ensureModuleEntryBreakpoint(thread: Thread, source: Dap.Source) {
+    if (!source.path || this.moduleEntryBreakpoints.has(source.path)) {
+      return;
+    }
+
+    // Don't apply a custom breakpoint here if the user already has one.
+    const byPath = this._byPath.get(source.path) ?? [];
+    if (byPath.some(isSetAtEntry)) {
+      return;
+    }
+
+    const bp = new EntryBreakpoint(this, source);
+    this.moduleEntryBreakpoints.set(source.path, bp);
+    this._setBreakpoint(bp, thread);
   }
 }
 
