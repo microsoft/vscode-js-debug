@@ -164,15 +164,6 @@
     "onDebugResolve:NAMESPACE(extensionHost)"
   ],
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "pwa",
-          "title": "PWA",
-          "icon": "resources/logo.svg"
-        }
-      ]
-    },
     "views": {
       "debug": [
         {
