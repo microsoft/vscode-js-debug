@@ -241,12 +241,15 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
   /**
    * Program to use to launch the debugger.
    */
-  program: string;
+  program?: string;
 
   /**
-   * Automatically stop program after launch.
+   * Automatically stop program after launch. It can be set to a boolean, or
+   * the absolute filepath to stop in. Setting a path for stopOnEntry should
+   * only be needed in esoteric scenarios where it cannot be inferred
+   * from the run args.
    */
-  stopOnEntry: boolean;
+  stopOnEntry: boolean | string;
 
   /**
    * Where to launch the debug target.
