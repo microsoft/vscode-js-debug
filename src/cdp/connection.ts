@@ -240,23 +240,27 @@ class CDPSession {
   }
 
   _onMessage(object: ProtocolMessage) {
-    if (object.id) {
+    // If we're paused, queue events but still process responses to avoid hanging.
+    if (this.paused && object.id) {
       this._processResponse(object);
+      return;
     }
 
-    // If we're paused, queue events but still process responses to avoid hanging.
-    if (this.paused) {
+    // either replaying a paused queue, or needs reordering, if there's a queue
+    if (this._queue.length > 0) {
       this._queue.push(object);
       return;
     }
 
-    if (!needsReordering) {
+    // otherwise, if we don't need reordering and aren't paused, process it now
+    if (!needsReordering && !this.paused) {
       this._processResponse(object);
       return;
     }
 
+    // we know now that we have no existing queue but need to queue an item. Do so.
     this._queue.push(object);
-    if (this._queue.length === 1) {
+    if (!this.paused) {
       this._processQueue();
     }
   }

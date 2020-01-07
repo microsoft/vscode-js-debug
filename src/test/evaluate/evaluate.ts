@@ -5,6 +5,7 @@
 import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
+import { delay } from '../../common/promiseUtil';
 
 describe('evaluate', () => {
   itIntegrates('default', async ({ r }) => {
@@ -363,6 +364,7 @@ describe('evaluate', () => {
       );
     }
 
+    await delay(50); // todo(connor4312): there's some race here on the first resolution
     await logCompletions({ line: 1, column: 1, text: '' });
     await logCompletions({ line: 1, column: 3, text: 'cd' });
     await logCompletions({ line: 1, column: 4, text: 'cd ' });

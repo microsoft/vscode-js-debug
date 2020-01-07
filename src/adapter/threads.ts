@@ -272,7 +272,9 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  async completions(params: Dap.CompletionsParams): Promise<Dap.CompletionsResult | Dap.Error> {
+  public async completions(
+    params: Dap.CompletionsParams,
+  ): Promise<Dap.CompletionsResult | Dap.Error> {
     let stackFrame: StackFrame | undefined;
     if (params.frameId !== undefined) {
       stackFrame = this._pausedDetails
@@ -281,19 +283,12 @@ export class Thread implements IVariableStoreDelegate {
       if (!stackFrame) return this._stackFrameNotFoundError();
       if (!stackFrame.callFrameId()) return this._evaluateOnAsyncFrameError();
     }
-    const contexts: Dap.CompletionItem[] = [];
-    for (const c of this._executionContexts.values()) {
-      const text = `cd ${this._delegate.executionContextName(c.description)}`;
-      if (text.startsWith(params.text)) {
-        contexts.push({ label: text, start: 0, length: params.text.length });
-      }
+
+    // If we're changing an execution context, don't bother with JS completion.
+    if (params.line === 1 && params.text.startsWith('cd ')) {
+      return { targets: this.getExecutionContextCompletions(params) };
     }
-    if (
-      params.line === 1 &&
-      params.column === params.text.length + 1 &&
-      params.text.startsWith('cd ')
-    )
-      return { targets: contexts };
+
     const line = params.line === undefined ? 0 : params.line - 1;
     const targets = await completions.completions({
       cdp: this._cdp,
@@ -303,13 +298,21 @@ export class Thread implements IVariableStoreDelegate {
       line,
       column: params.column,
     });
-    if (
-      params.line === 1 &&
-      params.column === params.text.length + 1 &&
-      'cd '.startsWith(params.text)
-    )
-      return { targets: contexts.concat(targets) };
-    return { targets };
+
+    // Merge the actual completion items with the synthetic target changing items.
+    return { targets: [...this.getExecutionContextCompletions(params), ...targets] };
+  }
+
+  private getExecutionContextCompletions(params: Dap.CompletionsParams): Dap.CompletionItem[] {
+    if (params.line && params.line > 1) {
+      return [];
+    }
+
+    const prefix = params.text.slice(0, params.column).trim();
+    return [...this._executionContexts.values()]
+      .map(c => `cd ${this._delegate.executionContextName(c.description)}`)
+      .filter(label => label.startsWith(prefix))
+      .map(label => ({ label, start: 0, length: params.text.length }));
   }
 
   async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
@@ -524,7 +527,7 @@ export class Thread implements IVariableStoreDelegate {
     await this._cdp.Debugger.pauseOnAsyncCall({ parentStackTraceId: scheduledPauseOnAsyncCall });
   }
 
-  _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
+  private _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
     const context = new ExecutionContext(this, description);
     this._executionContexts.set(description.id, context);
   }
