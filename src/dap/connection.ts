@@ -29,11 +29,13 @@ export type Message = (
 };
 
 let isFirstDapConnectionEver = true;
+let connectionId = 0;
 
 export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
   private static readonly logOmittedCalls = new WeakSet<object>();
 
+  private _connectionId = connectionId++;
   private _writableStream?: NodeJS.WritableStream;
   private _rawData: Buffer;
   private _contentLength = -1;
@@ -178,7 +180,7 @@ export default class Connection {
     const json = JSON.stringify(message);
 
     if (message.type !== 'event' || !Connection.logOmittedCalls.has(message.body)) {
-      logger.verbose(LogTag.DapSend, undefined, { message });
+      logger.verbose(LogTag.DapSend, undefined, { connectionId: this._connectionId, message });
     }
 
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
@@ -272,7 +274,10 @@ export default class Connection {
           if (message.length > 0) {
             try {
               const msg: Message = JSON.parse(message);
-              logger.verbose(LogTag.DapReceive, undefined, { message: msg });
+              logger.verbose(LogTag.DapReceive, undefined, {
+                connectionId: this._connectionId,
+                message: msg,
+              });
               this._onMessage(msg, receivedTime);
             } catch (e) {
               console.error('Error handling data: ' + (e && e.message));

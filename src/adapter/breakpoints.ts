@@ -20,6 +20,7 @@ import { Breakpoint } from './breakpoints/breakpointBase';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { HitCondition } from './breakpoints/hitCondition';
 import { ProtocolError } from '../dap/errors';
+import { logPerf } from '../telemetry/performance';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -241,6 +242,7 @@ export class BreakpointManager {
     this._updateSourceMapHandler(this._thread);
   }
 
+  @logPerf()
   async launchBlocker(): Promise<void> {
     if (!this._predictorDisabledForTest) {
       await this._launchBlocker;

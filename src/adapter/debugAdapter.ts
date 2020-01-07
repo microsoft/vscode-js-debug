@@ -22,6 +22,7 @@ import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { join } from 'path';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { SourceMapCache } from './sourceMapCache';
+import { logPerf } from '../telemetry/performance';
 
 const localize = nls.loadMessageBundle();
 
@@ -117,6 +118,7 @@ export class DebugAdapter {
     });
   }
 
+  @logPerf()
   public async launchBlocker(): Promise<void> {
     await this._configurationDoneDeferred.promise;
     await this.breakpointManager.launchBlocker();

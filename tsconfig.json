@@ -9,6 +9,7 @@
     "outDir": "./out/src",
     "strict": true,
     "noUnusedLocals": true,
+    "experimentalDecorators": true,
     "alwaysStrict": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,

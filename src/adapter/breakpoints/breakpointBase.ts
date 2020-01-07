@@ -10,6 +10,7 @@ import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { IUiLocation, base1To0, uiToRawOffset } from '../sources';
 import { urlToRegex } from '../../common/urlUtils';
+import { logPerf } from '../../telemetry/performance';
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -109,6 +110,7 @@ export abstract class Breakpoint {
   /**
    * Sets the breakpoint in the provided thread.
    */
+  @logPerf()
   public async set(thread: Thread): Promise<void> {
     const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or

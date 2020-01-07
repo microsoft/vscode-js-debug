@@ -29,6 +29,7 @@ export enum LogTag {
   RuntimeException = 'runtime.exception',
   RuntimeSourceMap = 'runtime.sourcemap',
   SourceMapParsing = 'sourcemap.parsing',
+  PerfFunction = 'perf.function',
   CdpSend = 'cdp.send',
   CdpReceive = 'cdp.receive',
   DapSend = 'dap.send',

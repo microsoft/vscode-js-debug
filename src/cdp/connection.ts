@@ -39,7 +39,10 @@ interface IProtocolCallback {
   method: string;
 }
 
+let connectionId = 0;
+
 export default class Connection {
+  private _connectionId = connectionId++;
   private _lastId: number;
   private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
@@ -70,14 +73,17 @@ export default class Connection {
     const message: IProtocolCommand = { id, method, params };
     if (sessionId) message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    logger.verbose(LogTag.CdpSend, undefined, { message });
+    logger.verbose(LogTag.CdpSend, undefined, { connectionId: this._connectionId, message });
     this._transport.send(messageString);
     return id;
   }
 
   async _onMessage(message: string, receivedTime: HighResolutionTime) {
     const object = JSON.parse(message);
-    logger.verbose(LogTag.CdpReceive, undefined, { message: object });
+    logger.verbose(LogTag.CdpReceive, undefined, {
+      connectionId: this._connectionId,
+      message: object,
+    });
 
     const session = this._sessions.get(object.sessionId || '');
     if (session) {

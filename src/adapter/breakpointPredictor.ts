@@ -17,6 +17,7 @@ import { LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
 import { SourceMapCache } from './sourceMapCache';
+import { logPerf } from '../telemetry/performance';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
 const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
@@ -63,6 +64,7 @@ export class BreakpointsPredictor {
     );
   }
 
+  @logPerf<BreakpointsPredictor>(m => ({ type: m.repo.constructor.name }))
   private async createInitialMapping(): Promise<MetadataMap> {
     if (this.patterns.length === 0) {
       return new Map();
@@ -90,7 +92,6 @@ export class BreakpointsPredictor {
       });
     }, longPredictionWarning);
 
-    const start = Date.now();
     await this.repo.streamAllChildren(this.rootPath, this.patterns, async metadata => {
       const baseUrl = metadata.sourceMapUrl.startsWith('data:')
         ? metadata.compiledPath
@@ -128,11 +129,6 @@ export class BreakpointsPredictor {
     });
 
     clearTimeout(warnLongRuntime);
-    logger.verbose(LogTag.SourceMapParsing, 'Breakpoint prediction completed', {
-      type: this.repo.constructor.name,
-      duration: Date.now() - start,
-    });
-
     return sourcePathToCompiled;
   }
 
