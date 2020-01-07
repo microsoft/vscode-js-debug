@@ -88,6 +88,47 @@ describe('node runtime', () => {
     });
   });
 
+  describe('stopOnEntry', () => {
+    beforeEach(() =>
+      createFileTree(testFixturesDir, { 'test.js': '', 'bar.js': 'require("./test")' }),
+    );
+
+    itIntegrates('stops with a program provided', async ({ r }) => {
+      const handle = await r.runScript('test.js', {
+        cwd: testFixturesDir,
+        stopOnEntry: true,
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      r.assertLog({ substring: true });
+    });
+
+    itIntegrates('launches and infers entry from args', async ({ r }) => {
+      const handle = await r.runScript('test.js', {
+        cwd: testFixturesDir,
+        args: ['--max-old-space-size=1024', 'test.js', '--not-a-file'],
+        program: undefined,
+        stopOnEntry: true,
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      r.assertLog({ substring: true });
+    });
+
+    itIntegrates('sets an explicit stop on entry point', async ({ r }) => {
+      const handle = await r.runScript('bar.js', {
+        cwd: testFixturesDir,
+        stopOnEntry: join(testFixturesDir, 'test.js'),
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      r.assertLog({ substring: true });
+    });
+  });
+
   describe('attaching', () => {
     let child: ChildProcess | undefined;
 

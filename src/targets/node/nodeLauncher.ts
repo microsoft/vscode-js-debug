@@ -10,10 +10,42 @@ import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
-import { absolutePathToFileUrl } from '../../common/urlUtils';
+import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { resolve } from 'path';
 import Cdp from '../../cdp/api';
 import { NodePathProvider } from './nodePathProvider';
+import { exists } from '../../common/fsUtils';
+import { logger } from '../../common/logging/logger';
+import { LogTag } from '../../common/logging';
+
+/**
+ * Tries to get the "program" entrypoint from the config. It a program
+ * is explicitly provided, it grabs that, otherwise it looks for the first
+ * existent path within the launch arguments.
+ */
+const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
+  if (typeof config.stopOnEntry === 'string') {
+    return resolve(config.cwd, config.stopOnEntry);
+  }
+
+  if (config.program) {
+    return resolve(config.cwd, config.program);
+  }
+
+  for (const arg of config.args) {
+    if (arg.startsWith('-')) {
+      // looks like a flag
+      continue;
+    }
+
+    const candidate = resolve(config.cwd, arg);
+    if (await exists(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+};
 
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
@@ -118,15 +150,26 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   ): INodeTargetLifecycleHooks {
     return {
       initialized: async () => {
-        if (run.params.stopOnEntry) {
-          const params = {
-            url: absolutePathToFileUrl(resolve(run.params.cwd, run.params.program)),
-            lineNumber: 0,
-            columnNumber: 0,
-          };
-
-          await cdp.Debugger.setBreakpointByUrl(params);
+        if (!run.params.stopOnEntry) {
+          return;
         }
+
+        // This is not an ideal stop-on-entry setup. The previous debug adapter
+        // had life easier because it could ask the Node process to stop from
+        // the get-go, but in our scenario the bootloader is the first thing
+        // which is run and something we don't want to break in. We just
+        // do our best to find the entrypoint from the run params.
+        const program = await tryGetProgramFromArgs(run.params);
+        if (!program) {
+          logger.warn(LogTag.Runtime, 'Could not resolve program entrypointfrom args');
+          return;
+        }
+
+        await cdp.Debugger.setBreakpointByUrl({
+          urlRegex: urlToRegex(absolutePathToFileUrl(program) ?? program),
+          lineNumber: 0,
+          columnNumber: 0,
+        });
       },
       close: () => {
         const processId = Number(targetId);

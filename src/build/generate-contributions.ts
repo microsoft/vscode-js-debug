@@ -381,7 +381,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       default: '',
     },
     stopOnEntry: {
-      type: 'boolean',
+      type: ['boolean', 'string'],
       description: refString('node.stopOnEntry.description'),
       default: true,
     },

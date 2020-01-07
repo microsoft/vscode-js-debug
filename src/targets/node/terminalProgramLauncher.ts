@@ -31,7 +31,9 @@ export class TerminalProgramLauncher implements IProgramLauncher {
       kind: config.console === 'integratedTerminal' ? 'integrated' : 'external',
       title: localize('node.console.title', 'Node Debug Console'),
       cwd: config.cwd,
-      args: [binary, ...config.runtimeArgs, config.program, ...config.args],
+      args: config.program
+        ? [binary, ...config.runtimeArgs, config.program, ...config.args]
+        : [binary, ...config.runtimeArgs, ...config.args],
       env: removeNulls(config.env),
     };
 
