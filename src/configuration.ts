@@ -562,7 +562,7 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   processId: '',
 };
 
-export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string; } {
+export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string } {
   return {
     'webpack://?:*/*': '*',
     'webpack:///./~/*': `${webRoot}/node_modules/*`,

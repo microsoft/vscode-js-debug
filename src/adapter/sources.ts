@@ -577,7 +577,10 @@ export class SourceContainer {
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
-        const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map });
+        const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({
+          url: resolvedUrl,
+          map,
+        });
         logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
           inputUrl: resolvedUrl,
           absolutePath,
