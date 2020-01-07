@@ -7,6 +7,7 @@ import { stub, SinonStub } from 'sinon';
 import { expect } from 'chai';
 import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
 import { fsModule } from '../../common/fsUtils';
+import { defaultSourceMapPathOverrides } from '../../configuration';
 
 describe('browserPathResolver.urlToAbsolutePath', () => {
   let fsExistStub: SinonStub<[fs.PathLike, (cb: boolean) => void], void>;
@@ -27,20 +28,14 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
     ['visualstudio', 'ClientApp'],
     ['vscode', 'wwwroot'],
   ].forEach(([client, folder]) => {
-    it.only(`returns ${folder} for ${client} if the webroot path doesn't exist and the modified path does`, async () => {
+    it(`returns ${folder} for ${client} if the webroot path doesn't exist and the modified path does`, async () => {
       const webRoot = 'C:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot';
-
-      const defaultSourceMapOverrides = {
-        'meteor://💻app/*': '/*',
-        'webpack://?:*/*': '*',
-        'webpack:///./~/*': '/node_modules/*',
-      };
 
       const resolver = new BrowserSourcePathResolver({
         webRoot,
         clientID: client,
         baseUrl: 'http://localhost:60318/',
-        sourceMapOverrides: defaultSourceMapOverrides,
+        sourceMapOverrides: defaultSourceMapPathOverrides(webRoot),
         localRoot: null,
         remoteRoot: null,
         resolveSourceMapLocations: null,

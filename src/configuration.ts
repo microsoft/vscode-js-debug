@@ -477,11 +477,7 @@ export const baseDefaults: IBaseConfiguration = {
   rootPath: '${workspaceFolder}',
   outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   // keep in sync with sourceMapPathOverrides in package.json
-  sourceMapPathOverrides: {
-    'webpack://?:*/*': '*',
-    'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
-    'meteor://💻app/*': '${workspaceFolder}/*',
-  },
+  sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   // Should always be determined upstream
   __workspaceFolder: '',
 };
@@ -565,6 +561,14 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   request: 'attach',
   processId: '',
 };
+
+export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string; } {
+  return {
+    'webpack://?:*/*': '*',
+    'webpack:///./~/*': `${webRoot}/node_modules/*`,
+    'meteor://💻app/*': `${webRoot}/*`,
+  };
+}
 
 export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
   return config.request === 'attach'
