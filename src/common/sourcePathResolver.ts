@@ -24,6 +24,12 @@ export interface IUrlResolution {
  */
 export interface ISourcePathResolver {
   /**
+   * Returns whether the source map should be used to resolve a local path,
+   * following the `resolveSourceMapPaths`
+   */
+  shouldResolveSourceMap(map: SourceMap): boolean;
+
+  /**
    * Attempts to convert a URL received from CDP to a local file path.
    */
   urlToAbsolutePath(request: IUrlResolution): string | undefined;

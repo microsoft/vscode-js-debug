@@ -45,7 +45,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * Returns whether the source map should be used to resolve a local path,
    * following the `resolveSourceMapPaths`
    */
-  protected shouldResolveSourceMap(map: SourceMap) {
+  public shouldResolveSourceMap(map: SourceMap) {
     if (
       !this.options.resolveSourceMapLocations ||
       this.options.resolveSourceMapLocations.length === 0

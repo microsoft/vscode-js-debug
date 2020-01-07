@@ -560,6 +560,9 @@ export class SourceContainer {
 
   async _addSourceMapSources(compiled: Source, map: SourceMap, sourceMapUrl: string) {
     compiled._sourceMapSourceByUrl = new Map();
+    if (!this.sourcePathResolver.shouldResolveSourceMap(map)) {
+      return;
+    }
 
     const todo: Promise<void>[] = [];
     for (const url of map.sources) {
