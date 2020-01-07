@@ -323,7 +323,7 @@ export abstract class Breakpoint {
       bp =>
         (script.url &&
           isSetByUrl(bp.args) &&
-          bp.args.urlRegex === urlToRegex(script.url) &&
+          new RegExp(bp.args.urlRegex ?? '').test(script.url) &&
           lcEqual(bp.args, lineColumn)) ||
         (script.scriptId &&
           isSetByLocation(bp.args) &&
@@ -350,15 +350,18 @@ export abstract class Breakpoint {
     script: Script,
     lineColumn: LineColumn,
   ): Promise<void> {
+    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
+
     // Avoid setting duplicate breakpoints
     if (this.hasSetOnLocation(script, lineColumn)) {
       return;
     }
 
     return this._setAny(thread, {
+      condition: this.getBreakCondition(),
       location: {
         scriptId: script.scriptId,
-        ...base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset())),
+        ...lineColumn,
       },
     });
   }
