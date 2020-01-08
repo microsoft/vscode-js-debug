@@ -13,15 +13,18 @@ const newLineRegex = /\r?\n/;
 
 function darwin(): Executable[] {
   const suffixes = ['/Contents/MacOS/Google Chrome Canary', '/Contents/MacOS/Google Chrome'];
+  const defaultPaths = ['/Applications/Google Chrome.app'];
   const LSREGISTER =
     '/System/Library/Frameworks/CoreServices.framework' +
     '/Versions/A/Frameworks/LaunchServices.framework' +
     '/Versions/A/Support/lsregister';
 
-  const installations: string[] = [];
+  const installations = new Set<string>();
 
   const customChromePath = resolveChromePath();
-  if (customChromePath) installations.push(customChromePath);
+  if (customChromePath) {
+    installations.add(customChromePath);
+  }
 
   execSync(
     `${LSREGISTER} -dump` +
@@ -30,11 +33,12 @@ function darwin(): Executable[] {
   )
     .toString()
     .split(newLineRegex)
+    .concat(defaultPaths)
     .forEach(inst => {
       suffixes.forEach(suffix => {
         const execPath = path.join(inst.trim(), suffix);
         if (canAccess(execPath)) {
-          installations.push(execPath);
+          installations.add(execPath);
         }
       });
     });
@@ -64,15 +68,13 @@ function darwin(): Executable[] {
     });
   }
 
-  // clang-format on
   return sort(installations, priorities);
 }
 
-function resolveChromePath() {
+function resolveChromePath(): string | undefined {
   if (canAccess(`${process.env.CHROME_PATH}`)) {
     return process.env.CHROME_PATH;
   }
-  return '';
 }
 
 /**
@@ -82,12 +84,12 @@ function resolveChromePath() {
  * 3. Look for google-chrome{,-stable,-unstable} and chromium{-browser} executables by using the which command
  */
 function linux(): Executable[] {
-  let installations: string[] = [];
+  const installations = new Set<string>();
 
   // 1. Look into CHROME_PATH env variable
   const customChromePath = resolveChromePath();
   if (customChromePath) {
-    installations.push(customChromePath);
+    installations.add(customChromePath);
   }
 
   // 2. Look into the directories where .desktop are saved on gnome based distro's
@@ -97,7 +99,9 @@ function linux(): Executable[] {
     '/usr/bin',
   ];
   desktopInstallationFolders.forEach(folder => {
-    installations = installations.concat(findChromeExecutables(folder));
+    for (const bin in findChromeExecutables(folder)) {
+      installations.add(bin);
+    }
   });
 
   // 3. Look for google-chrome & chromium executables by using the which command
@@ -115,14 +119,14 @@ function linux(): Executable[] {
         .split(newLineRegex)[0];
 
       if (canAccess(chromePath)) {
-        installations.push(chromePath);
+        installations.add(chromePath);
       }
     } catch (e) {
       // Not installed.
     }
   });
 
-  if (!installations.length) {
+  if (!installations.size) {
     throw new Error(
       'The environment variable CHROME_PATH must be set to executable of a build of Chromium version 54.0 or later.',
     );
@@ -145,7 +149,7 @@ function linux(): Executable[] {
     });
   }
 
-  return sort(uniq(installations.filter(Boolean)), priorities);
+  return sort(installations, priorities);
 }
 
 function win32(): Executable[] {
@@ -160,11 +164,11 @@ function win32(): Executable[] {
       type: 'stable',
     },
   ];
-  const prefixes: string[] = [
+  const prefixes = [
     process.env.LOCALAPPDATA,
     process.env.PROGRAMFILES,
     process.env['PROGRAMFILES(X86)'],
-  ].filter(Boolean) as string[];
+  ].filter((p): p is string => !!p);
 
   const customChromePath = resolveChromePath();
   if (customChromePath) {
@@ -179,16 +183,18 @@ function win32(): Executable[] {
       }
     }),
   );
+
   return installations;
 }
 
 function sort(
-  installations: string[],
+  installations: Iterable<string>,
   priorities: { regex: RegExp; weight: number; type: string }[],
 ): Executable[] {
   const defaultPriority = 10;
   return (
-    installations
+    [...installations]
+      .filter(inst => !!inst)
       // assign weights
       .map(inst => {
         for (const p of priorities) {
@@ -216,10 +222,6 @@ function canAccess(file: string) {
   } catch (e) {
     return false;
   }
-}
-
-function uniq(arr: string[]) {
-  return Array.from(new Set(arr));
 }
 
 function findChromeExecutables(folder: string) {
