@@ -2,11 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testWorkspace, ITestHandle } from '../test';
+import { testWorkspace, ITestHandle, createFileTree } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 import { expect } from 'chai';
 import { join } from 'path';
+import { readfile } from '../../common/fsUtils';
+import { forceForwardSlashes } from '../../common/pathUtils';
+import del = require('del');
 
 describe('breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
@@ -80,6 +83,39 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
       };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('absolute paths in source maps', async ({ r }) => {
+      // Some builds create absolute disk paths in sourcemaps. This test
+      // swaps relative paths with absolute paths in the browserify test
+      // and makes sure it works identically.
+      const cwd = r.workspacePath('web/tmp');
+
+      after(() =>
+        del([`${forceForwardSlashes(cwd)}/**`], {
+          force: true /* delete outside cwd */,
+        }),
+      );
+
+      createFileTree(cwd, {
+        'pause.js': await readfile(r.workspacePath('web/browserify/pause.js')),
+        'pause.html': await readfile(r.workspacePath('web/browserify/pause.html')),
+        'pause.js.map': (await readfile(r.workspacePath('web/browserify/pause.js.map'))).replace(
+          /"([a-z0-9]+.ts)"/g,
+          `"${forceForwardSlashes(r.workspacePath('web/browserify'))}/$1"`,
+        ),
+      });
+
+      const p = await r.launchUrl('tmp/pause.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/module2.ts'),
+      };
+
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
       p.load();
       await waitForPause(p);
