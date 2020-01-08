@@ -1,7 +1,7 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { Contributions } from '../common/contributionUtils';
+import { Contributions, IConfigurationTypes, Configuration } from '../common/contributionUtils';
 import {
   AnyLaunchConfiguration,
   ResolvingConfiguration,
@@ -33,6 +33,7 @@ type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
     Described & {
       default: T[K];
+      enum?: Array<T[K]>;
     };
 };
 type Described =
@@ -166,7 +167,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     ],
   },
   outputCapture: {
-    enum: ['console', 'std'],
+    enum: [OutputSource.Console, OutputSource.Stdio],
     description: refString('node.launch.outputCapture.description'),
     default: OutputSource.Console,
   },
@@ -694,8 +695,25 @@ function buildDebuggers() {
   return walkObject(output, sortKeys);
 }
 
+const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
+  [Configuration.NpmScriptLens]: {
+    enum: ['top', 'all', 'never'],
+    default: 'top',
+    description: refString('configuration.npmScriptLensLocation'),
+  },
+  [Configuration.WarnOnLongPrediction]: {
+    type: 'boolean',
+    default: true,
+    description: refString('configuration.warnOnLongPrediction'),
+  },
+};
+
 process.stdout.write(
   JSON.stringify({
     debuggers: buildDebuggers(),
+    configuration: {
+      title: 'JavaScript Debugger',
+      properties: configurationSchema,
+    },
   }),
 );

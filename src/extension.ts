@@ -17,6 +17,7 @@ import { TerminalDebugConfigurationProvider } from './terminalDebugConfiguration
 import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerLongBreakpointUI } from './ui/longPredictionUI';
+import { registerNpmScriptLens } from './ui/npmScriptLens';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -81,6 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
   registerDebugScriptActions(context);
+  registerNpmScriptLens(context);
 }
 
 export function deactivate() {

@@ -61,7 +61,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     else this._targetName = `[${targetInfo.targetId}]`;
 
     cdp.Target.on('targetDestroyed', () => this.connection.close());
-    connection.onDisconnected(_ => this._disconnected());
+    connection.onDisconnected(() => this._disconnected());
   }
 
   id(): string {

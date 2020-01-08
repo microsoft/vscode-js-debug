@@ -20,9 +20,10 @@ type ScriptPickItem = vscode.QuickPickItem & { script: IScript };
 
 /**
  * Opens a quickpick and them subsequently debugs a configured npm script.
+ * @param inFolder - Optionally scopes lookups to the given workspace folder
  */
-export async function debugNpmScript() {
-  const scripts = await findScripts();
+export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
+  const scripts = await findScripts(inFolder);
   if (!scripts) {
     return; // cancelled
   }
@@ -39,7 +40,7 @@ export async function debugNpmScript() {
 
   quickPick.onDidAccept(() => {
     const { script } = quickPick.selectedItems[0];
-    vscode.debug.startDebugging(vscode.workspace.workspaceFolders![0], {
+    vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], {
       type: Contributions.TerminalDebugType,
       name: quickPick.selectedItems[0].label,
       request: 'launch',
@@ -64,8 +65,8 @@ const updateEditCandidate = (existing: IEditCandidate, updated: IEditCandidate) 
 /**
  * Finds configured npm scripts in the workspace.
  */
-async function findScripts(): Promise<IScript[] | void> {
-  const folders = vscode.workspace.workspaceFolders;
+async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[] | void> {
+  const folders = inFolder ? [inFolder] : vscode.workspace.workspaceFolders;
 
   // 1. If there are no open folders, show an error and abort.
   if (!folders || folders.length === 0) {
