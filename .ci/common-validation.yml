@@ -32,7 +32,7 @@ steps:
     verbose: false
     customCommand: test
   timeoutInMinutes: 10
-  condition: and(eq(${{ parameters.runTests }}, true), ne(variables['Agent.OS'], 'Darwin'))
+  condition: eq(${{ parameters.runTests }}, true)
   env:
     DISPLAY: ':99.0'
 
