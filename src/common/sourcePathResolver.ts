@@ -32,7 +32,7 @@ export interface ISourcePathResolver {
   /**
    * Attempts to convert a URL received from CDP to a local file path.
    */
-  urlToAbsolutePath(request: IUrlResolution): string | undefined;
+  urlToAbsolutePath(request: IUrlResolution): Promise<string | undefined>;
 
   /**
    * Attempts to convert an absolute path on disk to a URL for CDP.

@@ -13,7 +13,7 @@ interface IOptions extends ISourcePathResolverOptions {
 }
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
-  urlToAbsolutePath({ url, map }: IUrlResolution): string | undefined {
+  async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
     if (map && !this.shouldResolveSourceMap(map)) {
       return undefined;
     }

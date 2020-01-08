@@ -17,6 +17,7 @@ import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
+import { Dap } from '../../dap/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -47,6 +48,7 @@ export class BrowserAttacher implements ILauncher {
     params: AnyLaunchConfiguration,
     { targetOrigin, cancellationToken }: ILaunchContext,
     rawTelemetryReporter: RawTelemetryReporterToDap,
+    clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach') {
       return { blockSessionTermination: false };
@@ -55,19 +57,27 @@ export class BrowserAttacher implements ILauncher {
     this._launchParams = params;
     this._targetOrigin = targetOrigin;
 
-    const error = await this._attemptToAttach(rawTelemetryReporter, cancellationToken);
+    const error = await this._attemptToAttach(
+      rawTelemetryReporter,
+      clientCapabilities,
+      cancellationToken,
+    );
     return error ? { error } : { blockSessionTermination: false };
   }
 
-  _scheduleAttach(rawTelemetryReporter: RawTelemetryReporterToDap) {
+  _scheduleAttach(
+    rawTelemetryReporter: RawTelemetryReporterToDap,
+    clientCapabilities: Dap.InitializeParams,
+  ) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
-      this._attemptToAttach(rawTelemetryReporter, NeverCancelled);
+      this._attemptToAttach(rawTelemetryReporter, clientCapabilities, NeverCancelled);
     }, 1000);
   }
 
   async _attemptToAttach(
     rawTelemetryReporter: RawTelemetryReporterToDap,
+    clientCapabilities: Dap.InitializeParams,
     cancellationToken: CancellationToken,
   ) {
     const params = this._launchParams!;
@@ -90,7 +100,7 @@ export class BrowserAttacher implements ILauncher {
           this._onTargetListChangedEmitter.fire();
         }
         if (this._launchParams === params) {
-          this._scheduleAttach(rawTelemetryReporter);
+          this._scheduleAttach(rawTelemetryReporter, clientCapabilities);
         }
       },
       undefined,
@@ -104,6 +114,7 @@ export class BrowserAttacher implements ILauncher {
       remoteRoot: null,
       webRoot: params.webRoot || params.rootPath,
       sourceMapOverrides: params.sourceMapPathOverrides,
+      clientID: clientCapabilities.clientID,
     });
     this._targetManager = await BrowserTargetManager.connect(
       connection,

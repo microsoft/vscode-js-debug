@@ -46,6 +46,7 @@ export class Binder implements IDisposable {
   private _targetOrigin: any;
   private _launchParams?: AnyLaunchConfiguration;
   private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
+  private _clientCapabilities: Dap.InitializeParams | undefined;
 
   constructor(
     delegate: IBinderDelegate,
@@ -75,6 +76,7 @@ export class Binder implements IDisposable {
     this._dap.then(dap => {
       this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
       dap.on('initialize', async clientCapabilities => {
+        this._clientCapabilities = clientCapabilities;
         const capabilities = DebugAdapter.capabilities();
         if (clientCapabilities.clientID === 'vscode') {
           filterErrorsReportedToTelemetry();
@@ -187,6 +189,7 @@ export class Binder implements IDisposable {
         params,
         { cancellationToken, targetOrigin: this._targetOrigin, dap: await this._dap },
         this._rawTelemetryReporter!,
+        this._clientCapabilities!,
       );
     } catch (e) {
       if (e instanceof TaskCancelledError) {

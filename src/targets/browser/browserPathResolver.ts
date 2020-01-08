@@ -4,6 +4,7 @@
 
 import * as path from 'path';
 import * as utils from '../../common/urlUtils';
+import * as fsUtils from '../../common/fsUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import { properResolve } from '../../common/pathUtils';
@@ -11,6 +12,7 @@ import { properResolve } from '../../common/pathUtils';
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
   webRoot?: string;
+  clientID: string | undefined;
 }
 
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
@@ -34,7 +36,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     return utils.completeUrlEscapingRoot(baseUrl, utils.platformPathToUrlPath(relative));
   }
 
-  urlToAbsolutePath({ url, map }: IUrlResolution): string | undefined {
+  async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
     if (map && !this.shouldResolveSourceMap(map)) {
       return undefined;
     }
@@ -54,7 +56,20 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
     const unmappedPath = this.sourceMapOverrides.apply(url);
     if (unmappedPath !== url) {
-      return properResolve(webRoot, unmappedPath);
+      const webRootPath = properResolve(webRoot, unmappedPath);
+
+      // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
+      const clientAppPath = properResolve(webRoot, '..', 'ClientApp', unmappedPath);
+      if (
+        this.options.clientID === 'visualstudio' &&
+        url.startsWith('webpack:///') &&
+        !(await fsUtils.exists(webRootPath)) &&
+        (await fsUtils.exists(clientAppPath))
+      ) {
+        return clientAppPath;
+      } else {
+        return webRootPath;
+      }
     }
 
     if (!baseUrl || !url.startsWith(baseUrl)) return '';
