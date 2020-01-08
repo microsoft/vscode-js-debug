@@ -43,9 +43,8 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     const castConfig = config as ResolvingConfiguration<T>;
     return (async () => {
       try {
-        const originalConfig = { ...castConfig };
         const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
-        return resolved && (await this.commonResolution(resolved, originalConfig));
+        return resolved && this.commonResolution(resolved);
       } catch (err) {
         vscode.window.showErrorMessage(err.message, { modal: true });
       }
@@ -98,10 +97,9 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   /**
    * Fulfills resolution common between all resolver configs.
    */
-  protected commonResolution(config: T, rawConfig: ResolvingConfiguration<T>): T {
+  protected commonResolution(config: T): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
-    config.__enableInstrumentationBp = rawConfig.outFiles === undefined;
 
     // The "${webRoot}" is not a standard vscode thing--replace it appropriately.
     config.sourceMapPathOverrides = mapValues(config.sourceMapPathOverrides, value =>

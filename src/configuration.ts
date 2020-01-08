@@ -147,11 +147,6 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
    * Cache directory for workspace-related configuration.
    */
   __workspaceCachePath?: string;
-
-  /**
-   * Whether to enable the sourcemap instrumentation breakpoint, defaults to true.
-   */
-  __enableInstrumentationBp?: boolean;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
