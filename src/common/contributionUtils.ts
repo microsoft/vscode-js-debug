@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { WorkspaceConfiguration } from 'vscode';
+
 export const enum Contributions {
   PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
   ToggleSkippingCommand = 'extension.NAMESPACE(node-debug).toggleSkippingFile',
@@ -20,6 +22,34 @@ export const enum Contributions {
   ChromeDebugType = 'NAMESPACE(chrome)',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
-  ConfigSection = 'debug.javascript',
-  WarnOnLongPredictionConfig = 'warnOnLongPrediction',
 }
+
+export const enum Configuration {
+  NpmScriptLens = 'debug.javascript.codelens.npmScripts',
+  WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
+}
+
+/**
+ * Type map for {@link Configuration} properties.
+ */
+export interface IConfigurationTypes {
+  [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
+  [Configuration.WarnOnLongPrediction]: boolean;
+}
+
+/**
+ * Typed guard for reading a contributed config.
+ */
+export const readConfig = <K extends keyof IConfigurationTypes>(
+  config: WorkspaceConfiguration,
+  key: K,
+) => config.get<IConfigurationTypes[K]>(key);
+
+/**
+ * Typed guard for updating a contributed config.
+ */
+export const writeConfig = <K extends keyof IConfigurationTypes>(
+  config: WorkspaceConfiguration,
+  key: K,
+  value: IConfigurationTypes[K],
+) => config.update(key, value);

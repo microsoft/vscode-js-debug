@@ -4,15 +4,14 @@
 
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Contributions } from '../common/contributionUtils';
+import { Configuration, readConfig, writeConfig } from '../common/contributionUtils';
 import { join } from 'path';
 
 const localize = nls.loadMessageBundle();
 
 async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
-  const extConfig = vscode.workspace.getConfiguration(Contributions.ConfigSection);
-  const shouldWarn = extConfig.get<boolean>(Contributions.WarnOnLongPredictionConfig);
-  if (shouldWarn === false) {
+  const config = vscode.workspace.getConfiguration();
+  if (!readConfig(config, Configuration.WarnOnLongPrediction)) {
     return;
   }
 
@@ -25,7 +24,7 @@ async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
   const result = await vscode.window.showWarningMessage(message, dontShow, openLaunch);
 
   if (result === dontShow) {
-    await extConfig.update(Contributions.WarnOnLongPredictionConfig, false);
+    await writeConfig(config, Configuration.WarnOnLongPrediction, false);
     return;
   }
 

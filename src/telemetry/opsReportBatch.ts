@@ -92,19 +92,19 @@ export class OpsReportBatcher {
   }
 }
 
-function extractAllPropertyNames(objects: object[]): string[] {
+function extractAllPropertyNames<T>(objects: T[]): (keyof T)[] {
   return _.uniq(_.flatten(objects.map(object => Object.keys(object))));
 }
 
-function aggregateIntoSingleObject(
-  objectsToAggregate: object[],
+function aggregateIntoSingleObject<T>(
+  objectsToAggregate: T[],
 ): { [propertyName: string]: unknown[] } {
   const manyPropertyNames = extractAllPropertyNames(objectsToAggregate);
   return _.fromPairs(
-    manyPropertyNames.map((propertyName: string) => {
+    manyPropertyNames.map(propertyName => {
       return [
         propertyName,
-        objectsToAggregate.map((objectToAggregate: any) => objectToAggregate[propertyName]),
+        objectsToAggregate.map(objectToAggregate => objectToAggregate[propertyName]),
       ];
     }),
   );
