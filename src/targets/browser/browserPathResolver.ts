@@ -7,7 +7,7 @@ import * as utils from '../../common/urlUtils';
 import * as fsUtils from '../../common/fsUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
-import { properResolve } from '../../common/pathUtils';
+import { properResolve, fixDriveLetterAndSlashes } from '../../common/pathUtils';
 
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
@@ -47,8 +47,8 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     }
 
     const { baseUrl, webRoot } = this.options;
-    const absolutePath = utils.fileUrlToAbsolutePath(url);
-    if (absolutePath) return absolutePath;
+    const absolutePath = utils.isAbsolute(url) ? url : utils.fileUrlToAbsolutePath(url);
+    if (absolutePath) return fixDriveLetterAndSlashes(absolutePath);
 
     if (!webRoot) {
       return '';
