@@ -20,6 +20,10 @@ import { TaskCancelledError } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
 import { delay } from '../../common/promiseUtil';
 import { killTree } from '../node/killTree';
+import { launchUnelevatedChrome } from './unelevatedChome';
+import { IBrowserProcess, BrowserProcessByPid } from './browserProcess';
+import Dap from '../../dap/api';
+import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -49,6 +53,7 @@ interface ILaunchOptions {
   ignoreDefaultArgs?: boolean;
   connection?: 'pipe' | number; // pipe or port number
   userDataDir?: string;
+  launchUnelevatedFlag?: boolean;
 }
 
 const suggestedPortArg = '--remote-debugging-';
@@ -65,12 +70,14 @@ const findSuggestedPort = (args: ReadonlyArray<string>): number | undefined => {
 
 export interface ILaunchResult {
   cdp: CdpConnection;
-  process: childProcess.ChildProcess;
+  process: IBrowserProcess;
 }
 
 export async function launch(
+  dap: Dap.Api,
   executablePath: string,
   rawTelemetryReporter: IRawTelemetryReporter,
+  clientCapabilities: IDapInitializeParamsWithExtensions,
   cancellationToken: CancellationToken,
   options: ILaunchOptions | undefined = {},
 ): Promise<ILaunchResult> {
@@ -86,13 +93,6 @@ export async function launch(
   } = options;
 
   const browserArguments: string[] = [];
-  if (!ignoreDefaultArgs) {
-    browserArguments.push(...defaultArgs(options));
-  } else if (Array.isArray(ignoreDefaultArgs)) {
-    browserArguments.push(...defaultArgs(options).filter(arg => !ignoreDefaultArgs.includes(arg)));
-  } else {
-    browserArguments.push(...args);
-  }
 
   let suggestedPort = findSuggestedPort(args);
   if (suggestedPort === undefined) {
@@ -104,21 +104,39 @@ export async function launch(
     }
   }
 
+  if (!ignoreDefaultArgs) {
+    browserArguments.push(...defaultArgs(options));
+  } else if (Array.isArray(ignoreDefaultArgs)) {
+    browserArguments.push(...defaultArgs(options).filter(arg => !ignoreDefaultArgs.includes(arg)));
+  } else {
+    browserArguments.push(...args);
+  }
+
   const usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
   if (usePipe) {
     if (dumpio) stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
     else stdio = ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'];
   }
-  const browserProcess = childProcess.spawn(executablePath, browserArguments, {
-    // On non-windows platforms, `detached: false` makes child process a leader of a new
-    // process group, making it possible to kill child process tree with `.kill(-pid)` command.
-    // @see https://nodejs.org/api/child_process.html#child_process_options_detached
-    detached: process.platform !== 'win32',
-    env: env.defined(),
-    cwd,
-    stdio,
-  }) as childProcess.ChildProcessWithoutNullStreams;
+
+  let browserProcess: IBrowserProcess;
+  const launchUnelevated = !!(
+    clientCapabilities.supportsLaunchUnelevatedProcessRequest && options.launchUnelevatedFlag
+  );
+  if (launchUnelevated && !usePipe && suggestedPort && suggestedPort !== 0) {
+    const pid = await launchUnelevatedChrome(dap, executablePath, browserArguments);
+    browserProcess = new BrowserProcessByPid(pid);
+  } else {
+    browserProcess = childProcess.spawn(executablePath, browserArguments, {
+      // On non-windows platforms, `detached: false` makes child process a leader of a new
+      // process group, making it possible to kill child process tree with `.kill(-pid)` command.
+      // @see https://nodejs.org/api/child_process.html#child_process_options_detached
+      detached: process.platform !== 'win32',
+      env: env.defined(),
+      cwd,
+      stdio,
+    }) as childProcess.ChildProcessWithoutNullStreams;
+  }
 
   if (browserProcess.pid === undefined) {
     throw new Error('Unable to launch the executable');
@@ -197,7 +215,7 @@ export async function attach(
 }
 
 function waitForWSEndpoint(
-  browserProcess: childProcess.ChildProcessWithoutNullStreams,
+  browserProcess: IBrowserProcess,
   cancellationToken: CancellationToken,
 ): Promise<string> {
   return new Promise((resolve, reject) => {

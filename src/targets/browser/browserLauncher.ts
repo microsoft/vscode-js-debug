@@ -39,6 +39,10 @@ const localize = nls.loadMessageBundle();
  */
 const chromeVersions = new Set<string>(['canary', 'stable', 'custom']);
 
+export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
+  supportsLaunchUnelevatedProcessRequest?: boolean;
+}
+
 export class BrowserLauncher implements ILauncher {
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
@@ -74,10 +78,12 @@ export class BrowserLauncher implements ILauncher {
       port,
       url,
       webRoot,
+      launchUnelevatedFlag,
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
     rawTelemetryReporter: IRawTelemetryReporter,
+    clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<launcher.ILaunchResult> {
     let executablePath: string | undefined;
     if (executable && !chromeVersions.has(executable)) {
@@ -122,27 +128,41 @@ export class BrowserLauncher implements ILauncher {
       fs.mkdirSync(this._storagePath);
     } catch (e) {}
 
-    return await launcher.launch(executablePath, rawTelemetryReporter, cancellationToken, {
-      onStdout: output => dap.output({ category: 'stdout', output }),
-      onStderr: output => dap.output({ category: 'stderr', output }),
-      hasUserNavigation: !!url,
-      cwd: cwd || webRoot || undefined,
-      env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
-      args: runtimeArgs || [],
-      userDataDir: resolvedDataDir,
-      connection: port || 'pipe',
-    });
+    return await launcher.launch(
+      dap,
+      executablePath,
+      rawTelemetryReporter,
+      clientCapabilities,
+      cancellationToken,
+      {
+        onStdout: output => dap.output({ category: 'stdout', output }),
+        onStderr: output => dap.output({ category: 'stderr', output }),
+        hasUserNavigation: !!url,
+        cwd: cwd || webRoot || undefined,
+        env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
+        args: runtimeArgs || [],
+        userDataDir: resolvedDataDir,
+        connection: port || 12345 || 'pipe',
+        launchUnelevatedFlag,
+      },
+    );
   }
 
   async prepareLaunch(
     params: IChromeLaunchConfiguration,
     { dap, targetOrigin, cancellationToken }: ILaunchContext,
     rawTelemetryReporter: IRawTelemetryReporter,
-    clientCapabilities: Dap.InitializeParams,
+    clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
     try {
-      launched = await this._launchBrowser(params, dap, cancellationToken, rawTelemetryReporter);
+      launched = await this._launchBrowser(
+        params,
+        dap,
+        cancellationToken,
+        rawTelemetryReporter,
+        clientCapabilities,
+      );
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
