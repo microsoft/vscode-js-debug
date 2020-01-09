@@ -78,7 +78,7 @@ export class BrowserLauncher implements ILauncher {
       port,
       url,
       webRoot,
-      launchUnelevatedFlag,
+      launchUnelevated: launchUnelevatedFlag,
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
