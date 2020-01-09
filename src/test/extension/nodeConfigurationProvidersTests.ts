@@ -10,6 +10,7 @@ import { NodeDebugConfigurationProvider } from '../../nodeDebugConfigurationProv
 import { createFileTree, testFixturesDir } from '../test';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { INodeLaunchConfiguration } from '../../configuration';
 
 describe('NodeDebugConfigurationProvider', () => {
   let provider: NodeDebugConfigurationProvider;
@@ -202,6 +203,35 @@ describe('NodeDebugConfigurationProvider', () => {
         hello: 'world',
         PATH: '/usr/bin:/my/node/location',
       },
+    });
+  });
+
+  describe('inspect flags', () => {
+    it('demaps', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: Contributions.NodeDebugType,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        runtimeArgs: ['--inspect=8080', '-a', '--inspect-brk', '--b'],
+      })) as INodeLaunchConfiguration;
+
+      expect(result.runtimeArgs).to.deep.equal(['-a', '--b']);
+      expect(result.stopOnEntry).to.be.true;
+    });
+
+    it('does not overwrite existing stop on entry', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: Contributions.NodeDebugType,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        stopOnEntry: 'hello.js',
+        runtimeArgs: ['--inspect=8080', '-a', '--inspect-brk', '--b'],
+      })) as INodeLaunchConfiguration;
+
+      expect(result.runtimeArgs).to.deep.equal(['-a', '--b']);
+      expect(result.stopOnEntry).to.equal('hello.js');
     });
   });
 });
