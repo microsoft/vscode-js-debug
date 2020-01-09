@@ -5,7 +5,7 @@
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
 
-interface IMandatedConfiguration {
+export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
    * The type of the debug session.
    */
@@ -25,6 +25,11 @@ interface IMandatedConfiguration {
    * VS Code pre-launch task to run.
    */
   preLaunchTask?: string;
+
+  /**
+   * Options that configure when the VS Code debug console opens.
+   */
+  internalConsoleOptions?: 'neverOpen' | 'openOnSessionStart' | 'openOnFirstSessionStart';
 }
 
 export const enum OutputSource {
@@ -59,7 +64,7 @@ export interface ILoggingConfiguration {
   tags: ReadonlyArray<string>;
 }
 
-export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
+export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
    * Default is 'localhost'.
@@ -149,7 +154,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   __workspaceCachePath?: string;
 }
 
-export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
+export interface IExtensionHostConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
   type: Contributions.ExtensionHostDebugType;
   request: 'attach' | 'launch';
 
@@ -193,11 +198,6 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
  */
 export interface INodeBaseConfiguration extends IBaseConfiguration {
   /**
-   * @internal
-   */
-  internalConsoleOptions?: string;
-
-  /**
    * Absolute path to the working directory of the program being debugged.
    */
   cwd: string;
@@ -226,10 +226,23 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
   autoAttachChildProcesses: boolean;
 }
 
+export interface IConfigurationWithEnv {
+  /**
+   * Environment variables passed to the program. The value `null` removes the
+   * variable from the environment.
+   */
+  env: Readonly<{ [key: string]: string | null }>;
+
+  /**
+   * Absolute path to a file containing environment variable definitions.
+   */
+  envFile: string | null;
+}
+
 /**
  * Configuration for a launch request.
  */
-export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
+export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
   type: Contributions.NodeDebugType;
   request: 'launch';
 
@@ -276,17 +289,6 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
    * Optional arguments passed to the runtime executable.
    */
   runtimeArgs: ReadonlyArray<string>;
-
-  /**
-   * Environment variables passed to the program. The value `null` removes the
-   * variable from the environment.
-   */
-  env: Readonly<{ [key: string]: string | null }>;
-
-  /**
-   * Absolute path to a file containing environment variable definitions.
-   */
-  envFile: string | null;
 }
 
 export interface IChromeBaseConfiguration extends IBaseConfiguration {
@@ -409,13 +411,25 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
   request: 'attach';
 }
 
+/**
+ * Attach request used internally to inject a pre-built target into the lifecycle.
+ */
+export interface IDelegateConfiguration extends IBaseConfiguration {
+  type: Contributions.DelegateDebugType;
+  request: 'launch';
+  delegateId: number;
+}
+
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
   | INodeTerminalConfiguration
   | IExtensionHostConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
-export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
+export type AnyLaunchConfiguration =
+  | AnyChromeConfiguration
+  | AnyNodeConfiguration
+  | IDelegateConfiguration;
 
 /**
  * Where T subtypes AnyLaunchConfiguration, gets the resolving version of T.
@@ -432,12 +446,14 @@ export type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
+export type ResolvingDelegateConfiguration = ResolvingConfiguration<IDelegateConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
-  | ResolvingTerminalConfiguration;
+  | ResolvingTerminalConfiguration
+  | ResolvingDelegateConfiguration;
 
 /**
  * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
@@ -492,6 +508,14 @@ export const terminalBaseDefaults: INodeTerminalConfiguration = {
   type: Contributions.TerminalDebugType,
   request: 'launch',
   name: 'Debugger Terminal',
+};
+
+export const delegateDefaults: IDelegateConfiguration = {
+  ...baseDefaults,
+  type: Contributions.DelegateDebugType,
+  request: 'launch',
+  name: 'Debugger Terminal',
+  delegateId: -1,
 };
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
@@ -590,6 +614,15 @@ export function applyTerminalDefaults(
   return { ...extensionHostConfigDefaults, ...config };
 }
 
+export function applyDelegateDefaults(
+  config: ResolvingDelegateConfiguration,
+): IDelegateConfiguration {
+  return { ...delegateDefaults, ...config };
+}
+
+export const isConfigurationWithEnv = (config: unknown): config is IConfigurationWithEnv =>
+  typeof config === 'object' && !!config && 'env' in config && 'envFile' in config;
+
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
   if (config.type === Contributions.NodeDebugType) configWithDefaults = applyNodeDefaults(config);
@@ -599,6 +632,8 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
     configWithDefaults = applyExtensionHostDefaults(config);
   else if (config.type === Contributions.TerminalDebugType)
     configWithDefaults = applyTerminalDefaults(config);
+  else if (config.type === Contributions.DelegateDebugType)
+    configWithDefaults = applyDelegateDefaults(config);
   else throw new Error(`Unknown config: ${JSON.stringify(config)}`);
 
   resolveWorkspaceRoot(configWithDefaults);

@@ -8,9 +8,11 @@ import { EventEmitter } from '../common/events';
  * A wrapper around map that fires an event emitter when it's mutated. Used
  * for manging lists of targets.
  */
-export class ObservableMap<T> {
+export class ObservableMap<K, V> {
   private readonly changeEmitter = new EventEmitter<void>();
-  private readonly targetMap = new Map<string, T>();
+  private readonly addEmitter = new EventEmitter<V>();
+  private readonly removeEmitter = new EventEmitter<[K, V]>();
+  private readonly targetMap = new Map<K, V>();
 
   /**
    * Event emitter that fires when the list of targets changes.
@@ -18,32 +20,58 @@ export class ObservableMap<T> {
   public readonly onChanged = this.changeEmitter.event;
 
   /**
+   * Event emitter that fires when the list of targets is added to.
+   */
+  public readonly onAdd = this.addEmitter.event;
+
+  /**
+   * Event emitter that fires when the list of targets is removed from.
+   */
+  public readonly onRemove = this.removeEmitter.event;
+
+  /**
+   * Gets the number of elements in the map.
+   */
+  public get size() {
+    return this.targetMap.size;
+  }
+
+  /**
    * Adds a new target to the list
    */
-  public add(openerId: string, target: T) {
-    this.targetMap.set(openerId, target);
+  public add(key: K, target: V) {
+    this.targetMap.set(key, target);
+    this.addEmitter.fire(target);
     this.changeEmitter.fire();
   }
 
   /**
    * Gets a target by opener ID.
    */
-  public get(openerId: string): T | undefined {
-    return this.targetMap.get(openerId);
+  public get(key: K): V | undefined {
+    return this.targetMap.get(key);
   }
 
   /**
    * Removes a target by opener ID.
+   * @returns true if a value was removed
    */
-  public remove(openerId: string) {
-    this.targetMap.delete(openerId);
+  public remove(key: K): boolean {
+    const previous = this.targetMap.get(key);
+    if (previous === undefined) {
+      return false;
+    }
+
+    this.targetMap.delete(key);
+    this.removeEmitter.fire([key, previous]);
     this.changeEmitter.fire();
+    return true;
   }
 
   /**
    * Returns a list of known targets.
    */
   public value() {
-    return Array.from(this.targetMap.values());
+    return this.targetMap.values();
   }
 }

@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 import { Contributions, IConfigurationTypes, Configuration } from '../common/contributionUtils';
 import {
+  IMandatedConfiguration,
   AnyLaunchConfiguration,
   ResolvingConfiguration,
   INodeAttachConfiguration,
@@ -22,12 +23,10 @@ import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
 type OmittedKeysFromAttributes =
-  | 'type'
-  | 'request'
-  | 'internalConsoleOptions'
-  | 'name'
+  | keyof IMandatedConfiguration
   | 'rootPath'
-  | '__workspaceFolder';
+  | '__workspaceFolder'
+  | '__workspaceCachePath';
 
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
@@ -692,6 +691,14 @@ function buildDebuggers() {
     };
   }
 
+  // Add fake delegate type:
+  output.push({
+    type: Contributions.DelegateDebugType,
+    label: 'a',
+    languages: [],
+    configurationAttributes: { launch: {} },
+  });
+
   return walkObject(output, sortKeys);
 }
 
@@ -705,6 +712,12 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     type: 'boolean',
     default: true,
     description: refString('configuration.warnOnLongPrediction'),
+  },
+  [Configuration.TerminalDebugConfig]: {
+    type: 'object',
+    description: refString('configuration.terminalOptions'),
+    default: {},
+    properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
   },
 };
 

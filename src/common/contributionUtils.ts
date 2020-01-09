@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { WorkspaceConfiguration } from 'vscode';
+import { Command, WorkspaceConfiguration, WorkspaceFolder, commands } from 'vscode';
+import { INodeTerminalConfiguration } from '../configuration';
 
 export const enum Contributions {
   PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
@@ -20,6 +21,7 @@ export const enum Contributions {
   TerminalDebugType = 'NAMESPACE(node-terminal)',
   NodeDebugType = 'NAMESPACE(node)',
   ChromeDebugType = 'NAMESPACE(chrome)',
+  DelegateDebugType = 'NAMESPACE(js-debug-delegate)',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
@@ -27,6 +29,7 @@ export const enum Contributions {
 export const enum Configuration {
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
   WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
+  TerminalDebugConfig = 'debug.javascript.terminalOptions',
 }
 
 /**
@@ -35,7 +38,43 @@ export const enum Configuration {
 export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
+  [Configuration.TerminalDebugConfig]: Partial<INodeTerminalConfiguration>;
 }
+
+export interface ICommandTypes {
+  [Contributions.DebugNpmScript]: { args: [WorkspaceFolder?]; out: void };
+  [Contributions.PickProcessCommand]: { args: []; out: string | null };
+  [Contributions.AttachProcessCommand]: { args: []; out: void };
+  [Contributions.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
+}
+
+/**
+ * Typed guard for registering a command.
+ */
+export const registerCommand = <K extends keyof ICommandTypes>(
+  ns: typeof commands,
+  key: K,
+  fn: (...args: ICommandTypes[K]['args']) => Promise<ICommandTypes[K]['out']>,
+) => ns.registerCommand(key, fn);
+
+/**
+ * Typed guard for running a command.
+ */
+export const runCommand = async <K extends keyof ICommandTypes>(
+  ns: typeof commands,
+  key: K,
+  ...args: ICommandTypes[K]['args']
+): Promise<ICommandTypes[K]['out']> => await ns.executeCommand(key, ...args);
+
+/**
+ * Typed guard for creating a {@link Command} interface.
+ */
+export const asCommand = <K extends keyof ICommandTypes>(command: {
+  title: string;
+  command: K;
+  tooltip?: string;
+  arguments: ICommandTypes[K]['args'];
+}): Command => command;
 
 /**
  * Typed guard for reading a contributed config.
