@@ -2,8 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import Long from 'long';
+import { readFileRaw } from '../fsUtils';
 
-export function calculateHash(input: Buffer): string {
+/**
+ * An implementation of the Chrome content hashing algorithm used to verify
+ * whether files on disk are the same as those in the debug session.
+ */
+function calculateHash(input: Buffer): string {
   const prime = [
     new Long(0x3fb75161, 0, true),
     new Long(0xab1f4e4f, 0, true),
@@ -98,4 +103,34 @@ function normalize(buffer: Buffer): Buffer {
 
 function utf8ToUtf16(buffer: Buffer) {
   return Buffer.from(buffer.toString('utf8'), 'utf16le');
+}
+
+/**
+ * Message sent to the hash worker.
+ */
+export type HashRequest = { id: number; file: string } | { id: number; data: string | Buffer };
+
+/**
+ * Message received in the hash response.
+ */
+export type HashResponse = { id: number; hash?: string };
+
+function startWorker(send: (message: HashResponse) => void) {
+  process.on('message', (msg: HashRequest) => {
+    if ('file' in msg) {
+      const file = msg.file;
+      readFileRaw(file)
+        .then(data => send({ id: msg.id, hash: calculateHash(data) }))
+        .catch(() => send({ id: msg.id }));
+    } else if ('data' in msg) {
+      send({
+        id: msg.id,
+        hash: calculateHash(msg.data instanceof Buffer ? msg.data : Buffer.from(msg.data, 'utf-8')),
+      });
+    }
+  });
+}
+
+if (process.send) {
+  startWorker(process.send.bind(process));
 }

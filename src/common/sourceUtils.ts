@@ -7,10 +7,10 @@ import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
-import { calculateHash } from './hash';
 import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
+import { hashBytes, hashFile } from './hash';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -310,12 +310,11 @@ export async function checkContentHash(
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content =
+  const hash =
     typeof contentOverride === 'string'
-      ? Buffer.from(contentOverride, 'utf8')
-      : await fsUtils.readFileRaw(absolutePath);
+      ? await hashBytes(contentOverride)
+      : await hashFile(absolutePath);
 
-  const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;
 }
 

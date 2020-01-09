@@ -172,7 +172,7 @@ export function debounce(duration: number, fn: () => void): (() => void) & { cle
   let timeout: NodeJS.Timer | void;
   const debounced = () => {
     if (timeout !== undefined) {
-      return;
+      clearTimeout(timeout);
     }
 
     timeout = setTimeout(() => {
