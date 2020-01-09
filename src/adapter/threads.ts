@@ -455,7 +455,9 @@ export class Thread implements IVariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
-    this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
+    if (this.launchConfig.showAsyncStacks) {
+      this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
+    }
     const scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
@@ -553,7 +555,10 @@ export class Thread implements IVariableStoreDelegate {
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
     const hitData = event.hitBreakpoints?.length
-      ? this._breakpointManager.onBreakpointHit(event.hitBreakpoints)
+      ? this._breakpointManager.onBreakpointHit(
+          event.hitBreakpoints,
+          this._pauseOnSourceMapBreakpointId,
+        )
       : undefined;
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) || hitData?.entrypointBps.length;
@@ -731,14 +736,13 @@ export class Thread implements IVariableStoreDelegate {
         this._sourceContainer.disableSourceMapForSource(sourceToDisable);
     }
 
-    const stackTrace = this.launchConfig.showAsyncStacks
-      ? StackTrace.fromDebugger(
-          this,
-          event.callFrames,
-          event.asyncStackTrace,
-          event.asyncStackTraceId,
-        )
-      : StackTrace.fromDebugger(this, event.callFrames);
+    const stackTrace = StackTrace.fromDebugger(
+      this,
+      event.callFrames,
+      event.asyncStackTrace,
+      event.asyncStackTraceId,
+    );
+
     switch (event.reason) {
       case 'assert':
         return {
@@ -1220,10 +1224,13 @@ export class Thread implements IVariableStoreDelegate {
     });
   }
 
-  async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
-    if (this._scriptWithSourceMapHandler === handler) return;
+  async setScriptSourceMapHandler(
+    pause: boolean,
+    handler?: ScriptWithSourceMapHandler,
+  ): Promise<void> {
     this._scriptWithSourceMapHandler = handler;
-    const needsPause = this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
+
+    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',
