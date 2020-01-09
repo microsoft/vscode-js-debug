@@ -480,6 +480,7 @@ export const baseDefaults: IBaseConfiguration = {
 const nodeBaseDefaults: INodeBaseConfiguration = {
   ...baseDefaults,
   cwd: '${workspaceFolder}',
+  pauseForSourceMap: false,
   sourceMaps: true,
   localRoot: null,
   remoteRoot: null,
