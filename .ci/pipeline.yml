@@ -9,14 +9,3 @@ jobs:
   steps:
   - template: common-validation.yml
 
-- job: Linux
-  pool:
-    vmImage: 'ubuntu-16.04'
-  steps:
-  - template: common-validation.yml
-
-- job: Windows
-  pool:
-    vmImage: 'vs2017-win2016'
-  steps:
-  - template: common-validation.yml
