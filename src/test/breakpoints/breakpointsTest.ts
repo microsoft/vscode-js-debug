@@ -400,7 +400,7 @@ describe('breakpoints', () => {
   });
 
   describe('first line', () => {
-    itIntegrates.only('breaks if requested', async ({ r }) => {
+    itIntegrates('breaks if requested', async ({ r }) => {
       await r.initialize;
 
       const cwd = join(testWorkspace, 'simpleNode');
