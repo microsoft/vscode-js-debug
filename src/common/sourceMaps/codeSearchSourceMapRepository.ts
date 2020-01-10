@@ -2,21 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ISourceMapMetadata } from './sourceMap';
-import { ISourceMapRepository, createMetadataForFile } from './sourceMapRepository';
-import { NodeSourceMapRepository } from './nodeSourceMapRepository';
-import { logger } from '../logging/logger';
 import { LogTag } from '../logging';
+import { logger } from '../logging/logger';
 import { forceForwardSlashes } from '../pathUtils';
+import { NodeSourceMapRepository } from './nodeSourceMapRepository';
+import { ISourceMapMetadata } from './sourceMap';
+import { createMetadataForFile, ISourceMapRepository } from './sourceMapRepository';
 
-type FindTextFn = typeof import('vscode')['workspace']['findTextInFiles'];
+type vscode = typeof import('vscode');
 
 /**
  * A source map repository that uses VS Code's proposed search API to
  * look for candidate files.
  */
 export class CodeSearchSourceMapRepository implements ISourceMapRepository {
-  constructor(private readonly findFn: FindTextFn) {}
+  constructor(private readonly _vscode: vscode) {}
 
   public static createOrFallback() {
     /*
@@ -46,18 +46,22 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
    * Recursively finds all children of the given direcotry.
    */
   public async streamAllChildren<T>(
-    _base: string,
+    base: string,
     patterns: ReadonlyArray<string>,
     onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
     // TODO@rob should be absolute patterns, see https://github.com/microsoft/vscode/issues/85722
-    await this.findFn(
+    const findTextFn = this._vscode['workspace']['findTextInFiles'].bind(this._vscode['workspace']);
+    const relativePattern = this._vscode['RelativePattern'];
+    await findTextFn(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
-        // todo(connor4312): is this correct way to join globs for search?
-        include: forceForwardSlashes(patterns.filter(p => !p.startsWith('!')).join(', ')),
+        include: new relativePattern(
+          base,
+          forceForwardSlashes(patterns.filter(p => !p.startsWith('!')).join(', ')),
+        ),
         exclude: patterns
           .filter(p => p.startsWith('!'))
           .map(p => forceForwardSlashes(p.slice(1)))
