@@ -10,7 +10,7 @@ import { debounce } from '../objUtils';
 let instance: ChildProcess | undefined;
 let messageId = 0;
 
-const cleanup = debounce(30 * 1000, () => {
+const deferCleanup = debounce(30 * 1000, () => {
   instance?.kill();
   instance = undefined;
 });
@@ -27,7 +27,7 @@ const create = () => {
 
 const send = (req: HashRequest): Promise<string | undefined> => {
   const cp = create();
-  cleanup();
+  deferCleanup();
 
   return new Promise(resolve => {
     const listener = (res: HashResponse) => {
