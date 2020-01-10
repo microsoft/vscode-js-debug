@@ -99,8 +99,10 @@ export class BrowserTargetManager implements IDisposable {
   }
 
   async closeBrowser(): Promise<void> {
-    if (!this.process || !killTree(this.process.pid)) {
-      await this._browser.Browser.close({});
+    await this._browser.Browser.close({});
+
+    if (this.process && this.process.pid) {
+      killTree(this.process.pid);
     }
   }
 

@@ -21,7 +21,7 @@ import { IDisposable } from '../../common/disposable';
 import { delay } from '../../common/promiseUtil';
 import { killTree } from '../node/killTree';
 import { launchUnelevatedChrome } from './unelevatedChome';
-import { IBrowserProcess, BrowserProcessByPid } from './browserProcess';
+import { IBrowserProcess, NonTrackedBrowserProcess } from './browserProcess';
 import Dap from '../../dap/api';
 import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 
@@ -124,8 +124,8 @@ export async function launch(
     clientCapabilities.supportsLaunchUnelevatedProcessRequest && options.launchUnelevatedFlag
   );
   if (launchUnelevated && !usePipe && suggestedPort && suggestedPort !== 0) {
-    const pid = await launchUnelevatedChrome(dap, executablePath, browserArguments);
-    browserProcess = new BrowserProcessByPid(pid);
+    await launchUnelevatedChrome(dap, executablePath, browserArguments);
+    browserProcess = new NonTrackedBrowserProcess();
   } else {
     browserProcess = childProcess.spawn(executablePath, browserArguments, {
       // On non-windows platforms, `detached: false` makes child process a leader of a new
@@ -136,10 +136,10 @@ export async function launch(
       cwd,
       stdio,
     }) as childProcess.ChildProcessWithoutNullStreams;
-  }
 
-  if (browserProcess.pid === undefined) {
-    throw new Error('Unable to launch the executable');
+    if (browserProcess.pid === undefined) {
+      throw new Error('Unable to launch the executable');
+    }
   }
 
   if (dumpio) {
@@ -147,7 +147,9 @@ export async function launch(
     browserProcess.stdout.on('data', d => onStdout(d.toString()));
   }
 
-  const exitListener = () => killTree(browserProcess.pid);
+  let exitListener: () => void = () => {
+    if (browserProcess.pid) killTree(browserProcess.pid);
+  };
   process.on('exit', exitListener);
   browserProcess.on('exit', () => process.removeListener('exit', exitListener));
 
@@ -169,7 +171,14 @@ export async function launch(
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
 
-    return { cdp: new CdpConnection(transport, rawTelemetryReporter), process: browserProcess };
+    const cdp = new CdpConnection(transport, rawTelemetryReporter);
+    exitListener = async () => {
+      await cdp.rootSession().Browser.close({});
+      if (browserProcess.pid) {
+        killTree(browserProcess.pid);
+      }
+    };
+    return { cdp: cdp, process: browserProcess };
   } catch (e) {
     exitListener();
     throw e;
