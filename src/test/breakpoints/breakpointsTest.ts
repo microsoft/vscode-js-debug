@@ -11,7 +11,7 @@ import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
 
-describe('breakpoints', () => {
+describe.only('breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
