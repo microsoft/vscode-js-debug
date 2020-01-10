@@ -27,6 +27,8 @@ import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
 import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider } from './nodePathProvider';
+import { logger } from '../../common/logging/logger';
+import { LogTag } from '../../common/logging';
 
 /**
  * Telemetry received from the nested process.
@@ -209,6 +211,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * the params.
    */
   protected resolveNodePath(params: T, executable = 'node') {
+    logger.info(LogTag.Internal, 'process.env: ' + JSON.stringify(process.env));
     return this.pathProvider.resolveAndValidate(
       EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
       executable,

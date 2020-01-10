@@ -404,9 +404,7 @@ describe('breakpoints', () => {
       await r.initialize;
 
       const cwd = join(testWorkspace, 'simpleNode');
-      const handle = await r.runScript(join(cwd, 'index.js'), {
-        runtimeExecutable: '/Users/runner/hostedtoolcache/node/12.13.0/x64/bin/node',
-      });
+      const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'index.js') },
         breakpoints: [{ line: 1, column: 1 }],

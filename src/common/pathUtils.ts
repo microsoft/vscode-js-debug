@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as childProcess from 'child_process';
 import { removeNulls } from './objUtils';
+import { LogTag } from './logging';
+import { logger } from './logging/logger';
 
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
@@ -23,11 +25,13 @@ export function findInPath(
   }
 
   try {
+    logger.info(LogTag.Internal, 'trying ' + locator);
     if (fs.existsSync(locator)) {
       const lines = childProcess
         .execSync(`${locator} ${program}`, { env: removeNulls(env) })
         .toString()
         .split(/\r?\n/);
+      logger.info(LogTag.Internal, 'got ' + JSON.stringify(lines));
 
       if (process.platform === 'win32') {
         // return the first path that has a executable extension
