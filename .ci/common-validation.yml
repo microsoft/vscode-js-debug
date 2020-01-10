@@ -9,8 +9,8 @@ steps:
     checkLatest: true
 
 - bash: |
-    lsof -i :8001
-    lsof -i :8002
+    curl localhost:8001
+    curl localhost:8002
   displayName: check port
 
 - bash: |
