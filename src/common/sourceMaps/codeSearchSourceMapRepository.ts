@@ -52,9 +52,8 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
-    // TODO@rob should be absolute patterns, see https://github.com/microsoft/vscode/issues/85722
-    const findTextFn = this._vscode['workspace']['findTextInFiles'].bind(this._vscode['workspace']);
-    const relativePattern = this._vscode['RelativePattern'];
+    const findTextFn = this._vscode.workspace.findTextInFiles.bind(this._vscode['workspace']);
+    const relativePattern = this._vscode.RelativePattern;
     await findTextFn(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
