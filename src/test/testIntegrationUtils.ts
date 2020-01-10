@@ -28,10 +28,7 @@ before(async () => {
         server.stdout?.on('data', data => (error += data.toString()));
         server.once('error', reject);
         server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
-        server.once('message', m => {
-          // reject(new Error('server started' + m));
-          resolve(m);
-        });
+        server.once('message', resolve);
         setTimeout(() => {
           reject(new Error('failed to start server'));
         }, 4000)
