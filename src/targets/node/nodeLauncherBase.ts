@@ -211,7 +211,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * the params.
    */
   protected resolveNodePath(params: T, executable = 'node') {
-    logger.info(LogTag.Internal, 'process.env: ' + JSON.stringify(process.env));
+    logger.info(LogTag.Internal, 'process.env: ' + JSON.stringify(Object.keys(process.env)));
+    logger.info(LogTag.Internal, 'process.env.PATH: ' + JSON.stringify(process.env.PATH));
     return this.pathProvider.resolveAndValidate(
       EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
       executable,

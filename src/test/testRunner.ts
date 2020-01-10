@@ -29,6 +29,9 @@ function setupCoverage() {
 }
 
 export async function run(): Promise<void> {
+  console.log('testRunner process.env: ' + JSON.stringify(process.env));
+  console.log('testRunner process.env.path: ' + JSON.stringify(process.env.PATH));
+
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
   const mochaOpts = {
