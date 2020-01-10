@@ -16,8 +16,8 @@ let servers: child_process.ChildProcess[];
 
 before(async () => {
   servers = [
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['9877'], { stdio: 'pipe' }),
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['9876'], { stdio: 'pipe' }),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001'], { stdio: 'pipe' }),
+    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'], { stdio: 'pipe' }),
   ];
 
   await Promise.all(
@@ -30,6 +30,7 @@ before(async () => {
         server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
         server.once('message', m => {
           reject(new Error('server started' + m));
+          // resolve(m);
         });
         setTimeout(() => {
           reject(new Error('failed to start server'));
