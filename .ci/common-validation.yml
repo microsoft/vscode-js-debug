@@ -9,13 +9,9 @@ steps:
     checkLatest: true
 
 - bash: |
-    curl localhost:8001
-    curl localhost:8002
   displayName: check port
 
 - bash: |
-    lsof -i :8001
-    lsof -i :8002
     /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
     echo ">>> Started xvfb"
   displayName: Start xvfb

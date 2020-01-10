@@ -5,10 +5,9 @@
 import * as child_process from 'child_process';
 import del from 'del';
 import { ExclusiveTestFunction, TestFunction } from 'mocha';
-import * as path from 'path';
+import { forceForwardSlashes } from '../common/pathUtils';
 import { GoldenText } from './goldenText';
 import { testFixturesDir, TestRoot, testWorkspace } from './test';
-import { forceForwardSlashes } from '../common/pathUtils';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -16,8 +15,8 @@ let servers: child_process.ChildProcess[];
 
 before(async () => {
   servers = [
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8001'], { stdio: 'pipe' }),
-    child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'], { stdio: 'pipe' }),
+    // child_process.fork(path.join(__dirname, 'testServer.js'), ['8001'], { stdio: 'pipe' }),
+    // child_process.fork(path.join(__dirname, 'testServer.js'), ['8002'], { stdio: 'pipe' }),
   ];
 
   await Promise.all(
@@ -28,7 +27,8 @@ before(async () => {
         server.stdout?.on('data', data => (error += data.toString()));
         server.once('error', reject);
         server.once('close', code => reject(new Error(`Exited with ${code}, stderr=${error}`)));
-        server.once('message', resolve);
+        // server.once('message', resolve);
+        resolve();
       });
     }),
   );

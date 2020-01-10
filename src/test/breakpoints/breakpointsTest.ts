@@ -478,7 +478,7 @@ describe('breakpoints', () => {
     });
   });
 
-  itIntegrates('restart frame', async ({ r }) => {
+  itIntegrates.only('restart frame', async ({ r }) => {
     const p = await r.launchUrl('restart.html');
     const source: Dap.Source = {
       path: p.workspacePath('web/restart.js'),
