@@ -93,6 +93,24 @@ export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<An
       if (config.console === 'integratedTerminal' && !config.internalConsoleOptions) {
         config.internalConsoleOptions = 'neverOpen';
       }
+
+      // remove manual --inspect flags, which are no longer needed and interfere
+      if (config.runtimeArgs) {
+        const resolved: string[] = [];
+        for (const arg of config.runtimeArgs) {
+          const flags = /^--inspect(-brk)?(=|$)/.exec(arg);
+          if (!flags) {
+            resolved.push(arg);
+          } else if (flags[1]) {
+            // --inspect-brk
+            config.stopOnEntry = config.stopOnEntry ?? true;
+          } else {
+            // simple --inspect, ignored
+          }
+        }
+
+        config.runtimeArgs = resolved;
+      }
     }
 
     // "attach to process via picker" support

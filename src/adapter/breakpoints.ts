@@ -258,7 +258,7 @@ export class BreakpointManager {
   }
 
   async _updateSourceMapHandler(thread: Thread) {
-    await thread.setScriptSourceMapHandler(this._scriptSourceMapHandler);
+    await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
 
     if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
       return;
@@ -268,7 +268,7 @@ export class BreakpointManager {
     // for the predictor to finish running. Uninstall the sourcemap handler
     // once we see the predictor is ready to roll.
     await this._breakpointsPredictor.prepareToPredict();
-    thread.setScriptSourceMapHandler(undefined);
+    thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
@@ -397,7 +397,10 @@ export class BreakpointManager {
    * we'd like to remain paused at this point in the source, and any
    * entrypoint breakpoints that were hit.
    */
-  public onBreakpointHit(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+  public onBreakpointHit(
+    hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
+    instrumentationId?: string,
+  ) {
     // We do two things here--notify that we hit BPs for statistical purposes,
     // and see if we should automatically continue based on hit conditions. To
     // automatically continue, we need *no* breakpoints to want to continue and
@@ -408,6 +411,11 @@ export class BreakpointManager {
     const entrypointBps: Breakpoint[] = [];
 
     for (const breakpointId of hitBreakpointIds) {
+      if (breakpointId === instrumentationId) {
+        votesForContinue++;
+        continue;
+      }
+
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
       if (breakpoint instanceof EntryBreakpoint) {
         // we intentionally don't remove the record from the map; it's kept as

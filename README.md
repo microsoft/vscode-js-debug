@@ -13,10 +13,11 @@ You can use this extension from the marketplace by:
 Or alternatively by self-hosting:
 
 1. Clone this repository and run `npm install`,
-2. Then either:
+1. Clone this repository and run `npm install`,
+1. Then either:
    - Run `gulp package` to package a `.vsix` you can install manually, or
    - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
-3. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
+1. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
 
 ## Features
 

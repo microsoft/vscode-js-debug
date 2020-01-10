@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP } from '../test';
+import { TestP, createFileTree, testFixturesDir } from '../test';
 import Dap from '../../dap/api';
-import { calculateHash } from '../../common/hash';
+import { hashBytes, hashFile } from '../../common/hash';
 import { itIntegrates } from '../testIntegrationUtils';
+import { join } from 'path';
 
 describe('sources', () => {
   async function dumpSource(p: TestP, event: Dap.LoadedSourceEventParams, name: string) {
@@ -149,10 +150,25 @@ describe('sources', () => {
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22, 0x00]);
 
   itIntegrates('hash bom', async ({ r }) => {
-    r.log(calculateHash(utf8NoBOM));
-    r.log(calculateHash(utf8BOM));
-    r.log(calculateHash(utf16BigEndianBOM));
-    r.log(calculateHash(utf16LittleEndianBOM));
+    r.log(await hashBytes(utf8NoBOM));
+    r.log(await hashBytes(utf8BOM));
+    r.log(await hashBytes(utf16BigEndianBOM));
+    r.log(await hashBytes(utf16LittleEndianBOM));
+    r.assertLog();
+  });
+
+  itIntegrates('hash from file', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      utf8NoBOM,
+      utf8BOM,
+      utf16BigEndianBOM,
+      utf16LittleEndianBOM,
+    });
+
+    r.log(await hashFile(join(testFixturesDir, 'utf8NoBOM')));
+    r.log(await hashFile(join(testFixturesDir, 'utf8BOM')));
+    r.log(await hashFile(join(testFixturesDir, 'utf16BigEndianBOM')));
+    r.log(await hashFile(join(testFixturesDir, 'utf16LittleEndianBOM')));
     r.assertLog();
   });
 
@@ -173,7 +189,7 @@ describe('sources', () => {
   0x75, 0x72, 0x6E, 0x20, 0x32, 0x35, 0x3B, 0x0D, 0x0A, 0x7D]);
 
   itIntegrates('hash code points', async ({ r }) => {
-    r.log(calculateHash(multiByteCodePoints));
+    r.log(await hashBytes(multiByteCodePoints.toString('utf-8')));
     r.assertLog();
   });
 });
