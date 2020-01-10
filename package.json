@@ -43,7 +43,7 @@
     "fmt": "gulp format",
     "package": "gulp package",
     "publish": "gulp publish",
-    "test": "gulp && npm-run-all --parallel test:golden test:lint",
+    "test": "gulp",
     "test:golden": "node ./out/src/test/runTest.js",
     "test:lint": "gulp lint",
     "intTest": "mocha --exit --timeout 20000 -s 3500 -u tdd --colors --reporter out/src/int-chrome/testSupport/loggingReporter.js \"./out/src/int-chrome/**/*.test.js\""
