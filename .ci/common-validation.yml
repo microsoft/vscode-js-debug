@@ -9,7 +9,8 @@ steps:
     checkLatest: true
 
 - bash: |
-    /usr/bin/which node
+    export PATH="/foo:$PATH"
+    npm run something
   displayName: find node
 
 - bash: |

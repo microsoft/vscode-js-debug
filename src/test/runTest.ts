@@ -18,7 +18,6 @@ async function main() {
 
     process.env.PWA_TEST_OPTIONS = JSON.stringify(minimist(process.argv.slice(2)));
 
-    console.log('runTest process.env: ' + JSON.stringify(process.env));
     console.log('runTest process.env.path: ' + JSON.stringify(process.env.PATH));
 
     // Download VS Code, unzip it and run the integration test
