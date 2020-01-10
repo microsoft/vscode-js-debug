@@ -11,7 +11,7 @@ import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
 
-describe.only('breakpoints', () => {
+describe('breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
@@ -400,11 +400,11 @@ describe.only('breakpoints', () => {
   });
 
   describe('first line', () => {
-    itIntegrates('breaks if requested', async ({ r }) => {
+    itIntegrates.only('breaks if requested', async ({ r }) => {
       await r.initialize;
 
       const cwd = join(testWorkspace, 'simpleNode');
-      const handle = await r.runScript(join(cwd, 'index.js'));
+      const handle = await r.runScript(join(cwd, 'index.js'), { runtimeExecutable: '/Users/runner/hostedtoolcache/node/12.13.0/x64/bin/node' });
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'index.js') },
         breakpoints: [{ line: 1, column: 1 }],
