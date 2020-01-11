@@ -32,7 +32,7 @@ steps:
     verbose: false
     customCommand: test
   timeoutInMinutes: 10
-  condition: and(eq(${{ parameters.runTests }}, true), ne(variables['Agent.OS'], 'Darwin'))
+  condition: eq(${{ parameters.runTests }}, true)
   env:
     DISPLAY: ':99.0'
 
@@ -40,7 +40,7 @@ steps:
   displayName: gulp lint
   inputs:
     targets: lint
-  condition: and(eq(${{ parameters.runTests }}, true), eq(variables['Agent.OS'], 'Darwin'))
+  condition: eq(${{ parameters.runTests }}, true)
 
 - task: PublishTestResults@2
   displayName: Publish Tests Results
