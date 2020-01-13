@@ -154,7 +154,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates('cross thread constructor source map', async ({ r }) => {
+    itIntegrates.skip('cross thread constructor source map', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
 
       p.cdp.Runtime.evaluate({
