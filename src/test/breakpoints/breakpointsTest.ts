@@ -329,24 +329,29 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js'),
       };
+      const breakpoints = [
+        { line: 6, column: 0, logMessage: '123' },
+        // Logpoint limitations: #226
+        // { line: 7, column: 0, logMessage: "{foo: 'bar'}" },
+        // { line: 8, column: 0, logMessage: '`bar`' },
+        // { line: 9, column: 0, logMessage: '`${bar}`' },
+        { line: 7, column: 0, logMessage: '{foo}' },
+        { line: 8, column: 0, logMessage: 'foo {foo} bar' },
+        { line: 9, column: 0, logMessage: 'foo {bar + baz}' },
+        // { line: 10, column: 0, logMessage: '`${bar} ${foo}`' },
+        // { line: 11, column: 0, logMessage: '{const a = bar + baz; a}' },
+        // { line: 12, column: 0, logMessage: 'const a = bar + baz; `a=${a}`' },
+        { line: 13, column: 0, logMessage: '{(x=>x+baz)(bar)}' },
+        // { line: 14, column: 0, logMessage: 'const b=(x=>x+baz)(bar); `b=${b}`' },
+        { line: 15, column: 0, logMessage: "{'hi'}" },
+      ];
       await p.dap.setBreakpoints({
         source,
-        breakpoints: [
-          { line: 6, column: 0, logMessage: '123' },
-          { line: 7, column: 0, logMessage: "{foo: 'bar'}" },
-          { line: 8, column: 0, logMessage: '`bar`' },
-          { line: 9, column: 0, logMessage: '`${bar}`' },
-          { line: 10, column: 0, logMessage: '`${bar} ${foo}`' },
-          { line: 11, column: 0, logMessage: 'const a = bar + baz; a' },
-          { line: 12, column: 0, logMessage: 'const a = bar + baz; `a=${a}`' },
-          { line: 13, column: 0, logMessage: '(x=>x+baz)(bar)' },
-          { line: 14, column: 0, logMessage: 'const b=(x=>x+baz)(bar); `b=${b}`' },
-          { line: 15, column: 0, logMessage: "'hi'" },
-        ],
+        breakpoints,
       });
       p.load();
       const outputs: Dap.OutputEventParams[] = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < breakpoints.length; i++) {
         outputs.push(await p.dap.once('output'));
       }
       for (const o of outputs) {
@@ -366,7 +371,7 @@ describe('breakpoints', () => {
           {
             line: 28,
             column: 0,
-            logMessage: "window.logValue = (window.logValue || 0) + 1; 'LOG' + window.logValue",
+            logMessage: "{'LOG' + (window.logValue = (window.logValue || 0) + 1)}",
           },
         ],
       });

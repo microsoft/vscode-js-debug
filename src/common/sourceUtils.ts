@@ -258,47 +258,25 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   return sourceMapUrl;
 }
 
-export function rewriteLogPoint(code: string): string {
-  function text(node: ts.Node) {
-    return code.substring(node.pos, node.end);
-  }
+const LOGMESSAGE_VARIABLE_REGEXP = /{(.*?)}/g;
+export function logMessageToExpression(msg: string): string {
+  msg = msg.replace('%', '%%');
 
-  let body: ReadonlyArray<ts.Statement>;
-  try {
-    const sourceFile = ts.createSourceFile(
-      'file.js',
-      code,
-      ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true,
-    );
-    body = sourceFile.statements;
-  } catch (e) {
-    return `console.log(${code});`;
-  }
-  if (!body.length) {
-    return `console.log(${code});`;
-  }
-
-  const last = body[body.length - 1] as ts.Node;
-  let logText = `console.log(${text(last)})`;
-  if (last.kind === ts.SyntaxKind.ExpressionStatement) {
-    const expression = (last as ts.ExpressionStatement).expression;
-    if (expression.kind === ts.SyntaxKind.TemplateExpression) {
-      const template = expression as ts.TemplateExpression;
-      const args: string[] = [];
-      const texts: string[] = [];
-      texts.push(template.head.text.replace('%', '%%'));
-      for (const span of template.templateSpans) {
-        texts.push('%O');
-        texts.push(span.literal.text.replace('%', '%%'));
-        args.push(text(span.expression));
-      }
-      args.unshift('`' + texts.join('') + '`');
-      logText = `console.log(${args.map(s => `(${s})`).join(',')})`;
+  const args: string[] = [];
+  let format = msg.replace(LOGMESSAGE_VARIABLE_REGEXP, (_match, group) => {
+    const a = group.trim();
+    if (a) {
+      args.push(`(${a})`);
+      return '%O';
+    } else {
+      return '';
     }
-  }
+  });
 
-  return `(function(){${code.substring(0, last.pos)};${logText};return false;})()`;
+  format = format.replace("'", "\\'");
+
+  const argStr = args.length ? `, ${args.join(', ')}` : '';
+  return `console.log('${format}'${argStr});`;
 }
 
 export async function checkContentHash(
