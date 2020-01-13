@@ -53,7 +53,7 @@ interface ILaunchOptions {
   ignoreDefaultArgs?: boolean;
   connection?: 'pipe' | number; // pipe or port number
   userDataDir?: string;
-  launchUnelevatedFlag?: boolean;
+  launchUnelevated?: boolean;
 }
 
 const suggestedPortArg = '--remote-debugging-';
@@ -121,10 +121,10 @@ export async function launch(
 
   let browserProcess: IBrowserProcess;
   const launchUnelevated = !!(
-    clientCapabilities.supportsLaunchUnelevatedProcessRequest && options.launchUnelevatedFlag
+    clientCapabilities.supportsLaunchUnelevatedProcessRequest && options.launchUnelevated
   );
   if (launchUnelevated && !usePipe && suggestedPort && suggestedPort !== 0) {
-    await launchUnelevatedChrome(dap, executablePath, browserArguments);
+    await launchUnelevatedChrome(dap, executablePath, browserArguments, cancellationToken);
     browserProcess = new NonTrackedBrowserProcess();
   } else {
     browserProcess = childProcess.spawn(executablePath, browserArguments, {

@@ -78,7 +78,7 @@ export class BrowserLauncher implements ILauncher {
       port,
       url,
       webRoot,
-      launchUnelevated: launchUnelevatedFlag,
+      launchUnelevated: launchUnelevated,
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
@@ -142,8 +142,8 @@ export class BrowserLauncher implements ILauncher {
         env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
-        connection: port || 12345 || 'pipe',
-        launchUnelevatedFlag,
+        connection: port || 'pipe',
+        launchUnelevated: launchUnelevated,
       },
     );
   }

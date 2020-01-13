@@ -2,17 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import Dap from '../../dap/api';
-import { promiseTimeout } from '../../int-chrome/testUtils';
+import { CancellationToken } from 'vscode';
+import { timeoutPromise } from '../../common/cancellation';
 
 export async function launchUnelevatedChrome(
   dap: Dap.Api,
   chromePath: string,
   chromeArgs: string[],
-): Promise<number> {
+  cancellationToken: CancellationToken,
+): Promise<void> {
   const response: any = (dap as any).launchUnelevatedRequest({
     process: chromePath,
     args: chromeArgs,
   });
 
-  return (await promiseTimeout(response, 10000 /* 10 seconds */)).processId;
+  await timeoutPromise(response, cancellationToken, 'Could not launch browser unelevated');
 }
