@@ -6,7 +6,7 @@ import * as mocha from 'mocha';
 import { IGoldenReporterTextTest } from './goldenTextReporterUtils';
 
 class GoldenTextReporter extends mocha.reporters.Spec {
-  static alwaysDumpGoldenText = false;
+  static alwaysDumpGoldenText = process.env['DUMP_GOLDEN_TEXT'];
 
   constructor(runner: any) {
     super(runner);
