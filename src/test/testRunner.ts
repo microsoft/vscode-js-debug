@@ -48,12 +48,12 @@ export async function run(): Promise<void> {
   };
   if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY) {
     mochaOpts.reporterOptions = {
-      reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}`,
+      reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}, mocha-junit-reporter`,
       mochaJunitReporterReporterOptions: {
         testsuitesTitle: `tests ${process.platform}`,
         mochaFile: join(
           process.env.BUILD_ARTIFACTSTAGINGDIRECTORY,
-          `test-results/${process.platform}-test-results.xml`,
+          `test-results/TEST-${process.platform}-test-results.xml`,
         ),
       },
     };
