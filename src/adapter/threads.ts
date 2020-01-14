@@ -629,12 +629,14 @@ export class Thread implements IVariableStoreDelegate {
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
+
+    this._executionContextsCleared();
+
+    // Send 'exited' after all other thread-releated events
     this._dap.thread({
       reason: 'exited',
       threadId: this.id,
     });
-
-    this._executionContextsCleared();
   }
 
   rawLocation(
