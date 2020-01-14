@@ -393,35 +393,35 @@ export class BreakpointManager {
   }
 
   /**
-   * Function that should be called when breakpoints are hit. Returns whether
-   * we'd like to remain paused at this point in the source, and any
-   * entrypoint breakpoints that were hit.
+   * Rreturns whether any of the given breakpoints are an entrypoint breakpoint.
    */
-  public onBreakpointHit(
+  public isEntrypointBreak(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+    return hitBreakpointIds.some(id => {
+      const bp = this._resolvedBreakpoints.get(id);
+      return bp && (bp instanceof EntryBreakpoint || isSetAtEntry(bp));
+    });
+  }
+
+  /**
+   * Handler that should be called *after* source map resolution on an entry
+   * breakpoint. Returns whether the debugger should remain paused.
+   */
+  public shouldPauseAt(
     hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
-    instrumentationId?: string,
+    continueByDefault = false,
   ) {
-    // We do two things here--notify that we hit BPs for statistical purposes,
-    // and see if we should automatically continue based on hit conditions. To
-    // automatically continue, we need *no* breakpoints to want to continue and
-    // at least one breakpoint who wants to continue. See {@link HitCondition}
-    // for more details here.
+    // To automatically continue, we need *no* breakpoints to want to pause and
+    // at least one breakpoint who wants to continue. See
+    // {@link HitCondition} for more details here.
     let votesForPause = 0;
-    let votesForContinue = 0;
-    const entrypointBps: Breakpoint[] = [];
+    let votesForContinue = continueByDefault ? 1 : 0;
 
     for (const breakpointId of hitBreakpointIds) {
-      if (breakpointId === instrumentationId) {
-        votesForContinue++;
-        continue;
-      }
-
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
       if (breakpoint instanceof EntryBreakpoint) {
         // we intentionally don't remove the record from the map; it's kept as
         // an indicator that it did exist and was hit, so that if further
         // breakpoints are set in the file it doesn't get re-applied.
-        entrypointBps.push(breakpoint);
         breakpoint.remove();
         votesForContinue++;
         continue;
@@ -431,23 +431,26 @@ export class BreakpointManager {
         continue;
       }
 
-      const id = breakpoint.dapId;
-      this._breakpointsStatisticsCalculator.registerBreakpointHit(id);
       if (breakpoint.testHitCondition()) {
         votesForPause++;
       } else {
         votesForContinue++;
       }
-
-      if (isSetAtEntry(breakpoint)) {
-        entrypointBps.push(breakpoint);
-      }
     }
 
-    return {
-      entrypointBps,
-      remainPaused: votesForPause > 0 || votesForContinue === 0,
-    };
+    return votesForPause > 0 || votesForContinue === 0;
+  }
+
+  /**
+   * Registers that the given breakpoints were hit for statistics.
+   */
+  public registerBreakpointsHit(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+    for (const breakpointId of hitBreakpointIds) {
+      const breakpoint = this._resolvedBreakpoints.get(breakpointId);
+      if (breakpoint instanceof UserDefinedBreakpoint) {
+        this._breakpointsStatisticsCalculator.registerBreakpointHit(breakpoint.dapId);
+      }
+    }
   }
 
   public statisticsForTelemetry(): TelemetryEntityProperties {

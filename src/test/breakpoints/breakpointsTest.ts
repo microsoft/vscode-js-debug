@@ -452,6 +452,24 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('user defined bp on first line', async ({ r }) => {
+      // The scenario is if a user-defined breakpoint is hit on the first line
+      // of the script, even if in the transpiled code it should have been
+      // on a different line. This tests that we run a hit-check after source maps.
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'tsNode');
+      const handle = await r.runScript(join(cwd, 'index.js'));
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'log.ts') },
+        breakpoints: [{ line: 2, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('adjusts breakpoints', async ({ r }) => {
       await r.initialize;
 
