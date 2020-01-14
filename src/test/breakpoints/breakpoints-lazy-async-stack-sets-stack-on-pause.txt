@@ -1,0 +1,16 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/asyncStack.js:2:3
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/asyncStack.js:5:5
+----setTimeout----
+<anonymous> @ ${workspaceFolder}/web/asyncStack.js:4:3

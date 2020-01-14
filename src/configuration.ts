@@ -59,6 +59,16 @@ export interface ILoggingConfiguration {
   tags: ReadonlyArray<string>;
 }
 
+/**
+ * Configuration for async stacks. See {@link IAsyncStackPolicy} for reasoning.
+ *  - `true` aliases { onBoot: 32 }
+ *  - `false` disables async stacks
+ *  - `{ onBoot: N }` enables N async stacks when a target attaches
+ *  - `{ onceBreakpointResolved: N }` enables N async stacks the first time a
+ *    breakpoint is verified or hit.
+ */
+export type AsyncStackMode = boolean | { onAttach: number } | { onceBreakpointResolved: number };
+
 export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
@@ -95,7 +105,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   /**
    * Show the async calls that led to the current call stack.
    */
-  showAsyncStacks: boolean;
+  showAsyncStacks: AsyncStackMode;
 
   /**
    * An array of glob patterns for files to skip when debugging.
@@ -494,6 +504,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
 
 export const terminalBaseDefaults: INodeTerminalConfiguration = {
   ...nodeBaseDefaults,
+  showAsyncStacks: { onceBreakpointResolved: 16 },
   type: Contributions.TerminalDebugType,
   request: 'launch',
   name: 'Debugger Terminal',

@@ -9,6 +9,7 @@ import { IRawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetry
 import { HighResolutionTime } from '../utils/performance';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
+import { IDisposable } from '../common/disposable';
 
 interface IProtocolCommand {
   id?: number;
@@ -207,7 +208,7 @@ class CDPSession {
     ) as Cdp.Api;
   }
 
-  _on(method: string, listener: (params: object) => void): void {
+  _on(method: string, listener: (params: object) => void): IDisposable {
     let listenerSet = this._listeners.get(method);
     if (!listenerSet) {
       listenerSet = new Set();
@@ -215,6 +216,7 @@ class CDPSession {
     }
 
     listenerSet.add(listener);
+    return { dispose: () => this._off(method, listener) };
   }
 
   _off(method: string, listener: (params: object) => void): void {

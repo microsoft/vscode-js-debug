@@ -515,4 +515,32 @@ describe('breakpoints', () => {
     await waitForPause(p);
     p.assertLog();
   });
+
+  describe('lazy async stack', () => {
+    itIntegrates('sets stack on pause', async ({ r }) => {
+      // First debugger; hit will have no async stack, the second (after turning on) will
+      const p = await r.launchUrl('asyncStack.html', {
+        showAsyncStacks: { onceBreakpointResolved: 32 },
+      });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('sets eagerly on bp', async ({ r }) => {
+      // Both debugger; hits will have async stacks since we had a resolved BP
+      const p = await r.launchUrl('asyncStack.html', {
+        showAsyncStacks: { onceBreakpointResolved: 32 },
+      });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/asyncStack.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+  });
 });
