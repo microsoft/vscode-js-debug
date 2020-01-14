@@ -81,6 +81,16 @@ export class ScriptSkipper {
     this._sendBlackboxPatterns(blackboxPatterns);
   }
 
+  private _updateAllScriptsToBeSkipped(): void {
+    const urlsToSkip: string[] = [];
+    for (const entry of this._isUrlSkippedMap.entries()) {
+      if (entry[1]) {
+        urlsToSkip.push(entry[0]);
+      }
+    }
+    this._updateBlackboxedUrls(urlsToSkip);
+  }
+
   private _sendBlackboxPatterns(patterns: string[]) {
     for (const blackboxSender of this._blackboxSenders) {
       blackboxSender.sendPatterns(patterns);
@@ -114,14 +124,7 @@ export class ScriptSkipper {
       this._setUrlToSkip(url, skipValue);
     });
 
-    const urlsToSkip: string[] = [];
-    for (const entry of this._isUrlSkippedMap.entries()) {
-      if (entry[1]) {
-        urlsToSkip.push(entry[0]);
-      }
-    }
-    this._updateBlackboxedUrls(urlsToSkip);
-    this._updateSourceContainers(urls, skipValue);
+    this._updateAllScriptsToBeSkipped();
   }
 
   public isScriptSkipped(url: string): boolean {
@@ -156,7 +159,9 @@ export class ScriptSkipper {
           this._setUrlToSkip(url, this._testRegex(this._nonNodeInternalRegex, url));
         }
       }
-      if (this.isScriptSkipped(url)) this._updateBlackboxedUrls([url]);
+      if (this.isScriptSkipped(url)) {
+        this._updateAllScriptsToBeSkipped();
+      }
     }
   }
 
@@ -202,7 +207,7 @@ export class ScriptSkipper {
     }
 
     if (!source) {
-      return Error;
+      return {};
     }
 
     const newSkipValue = !source._blackboxed;
@@ -220,6 +225,7 @@ export class ScriptSkipper {
     }
 
     this.setSkippingValueForScripts(urlsToSkip, newSkipValue);
+    this._updateSourceContainers(urlsToSkip, newSkipValue);
     return {};
   }
 }

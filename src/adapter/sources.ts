@@ -349,10 +349,6 @@ export class SourceContainer {
     return this._sourceByUrl.get(url);
   }
 
-  isScriptSkipped(url: string): boolean {
-    return this._scriptSkipper.isScriptSkipped(url);
-  }
-
   // This method returns a "preferred" location. This usually means going through a source map
   // and showing the source map source instead of a compiled one. We use timeout to avoid
   // waiting for the source map for too long.
@@ -514,13 +510,13 @@ export class SourceContainer {
       inlineSourceRange,
       contentHash,
     );
+    await this._scriptSkipper.updateSkippingValueForScript(source);
+    source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
     this._addSource(source);
     return source;
   }
 
   async _addSource(source: Source) {
-    await this._scriptSkipper.updateSkippingValueForScript(source);
-    source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
     this._sourceByReference.set(source.sourceReference(), source);
     this._sourceByUrl.set(source._url, source);
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.set(source._url, source);
@@ -637,9 +633,18 @@ export class SourceContainer {
           undefined,
           undefined,
         );
+        await this._scriptSkipper.updateSkippingValueForScript(source);
+        source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
         source._compiledToSourceUrl = new Map();
       }
       // eslint-disable-next-line
+      if (compiled._blackboxed || source._blackboxed) {
+        this._scriptSkipper.setSkippingValueForScripts([source._url, compiled._url], true);
+        source._blackboxed = compiled._blackboxed = true;
+      } else {
+        this._scriptSkipper.setSkippingValueForScripts([source._url, compiled._url], false);
+        source._blackboxed = compiled._blackboxed = false;
+      }
       source._compiledToSourceUrl!.set(compiled, url);
       compiled._sourceMapSourceByUrl.set(url, source);
       if (isNew) todo.push(this._addSource(source));

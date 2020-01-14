@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import { fileURLToPath } from 'url';
 import { isFileUrl } from '../common/urlUtils';
 
-export function toggleSkippingFile(aPath: string): void {
+export function toggleSkippingFile(aPath: string | number): void {
   if (!aPath) {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) return;
