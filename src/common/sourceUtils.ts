@@ -191,15 +191,15 @@ export function wrapObjectLiteral(code: string): string {
   } catch {
     return code;
   }
-
-  const diagnostics = ts.createProgram(['file.js'], {}).getSyntacticDiagnostics(src);
-  if (diagnostics.some(d => d.category === ts.DiagnosticCategory.Error)) {
-    return code; // abort on parse errors
-  }
-
   const returnStmt = src.statements[0];
   if (!ts.isReturnStatement(returnStmt) || !returnStmt.expression) {
     return code; // should never happen, maybe if there's a bizarre parse error
+  }
+
+  const diagnostics = ((src as unknown) as { parseDiagnostics?: ts.DiagnosticMessage[] })
+    .parseDiagnostics;
+  if (diagnostics?.some(d => d.category === ts.DiagnosticCategory.Error)) {
+    return code; // abort on parse errors
   }
 
   return ts.isObjectLiteralExpression(returnStmt.expression) ? `(${code})` : code;
