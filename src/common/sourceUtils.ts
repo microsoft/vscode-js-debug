@@ -179,22 +179,30 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   return code;
 }
 
+/**
+ * If the given code is an object literal expression, like `{ foo: true }`,
+ * wraps it with parens like `({ foo: true })`. Will return the input code
+ * for other expression or invalid code.
+ */
 export function wrapObjectLiteral(code: string): string {
-  // Only parenthesize what appears to be an object literal.
-  if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code))) return code;
-
-  // Function constructor.
-  const parse = (async () => 0).constructor;
+  let src: ts.SourceFile;
   try {
-    // Check if the code can be interpreted as an expression.
-    parse('return ' + code + ';');
-    // No syntax error! Does it work parenthesized?
-    const wrappedCode = '(' + code + ')';
-    parse(wrappedCode);
-    return wrappedCode;
-  } catch (e) {
+    src = ts.createSourceFile('file.js', `return ${code};`, ts.ScriptTarget.ESNext, true);
+  } catch {
     return code;
   }
+
+  const diagnostics = ts.createProgram(['file.js'], {}).getSyntacticDiagnostics(src);
+  if (diagnostics.some(d => d.category === ts.DiagnosticCategory.Error)) {
+    return code; // abort on parse errors
+  }
+
+  const returnStmt = src.statements[0];
+  if (!ts.isReturnStatement(returnStmt) || !returnStmt.expression) {
+    return code; // should never happen, maybe if there's a bizarre parse error
+  }
+
+  return ts.isObjectLiteralExpression(returnStmt.expression) ? `(${code})` : code;
 }
 
 export async function loadSourceMap(
