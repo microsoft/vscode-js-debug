@@ -400,6 +400,11 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * with your default user profile.
    */
   userDataDir: string | boolean;
+
+  /**
+   * The debug adapter is running elevated. Launch Chrome unelevated to avoid the security restrictions of running Chrome elevated
+   */
+  launchUnelevated?: boolean;
 }
 
 /**

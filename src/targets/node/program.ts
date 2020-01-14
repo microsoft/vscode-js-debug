@@ -128,10 +128,7 @@ export class TerminalProcess implements IProgram {
     const loop = {
       processId,
       timer: setInterval(() => {
-        try {
-          // kill with signal=0 just test for whether the proc is alive. It throws if not.
-          process.kill(processId, 0);
-        } catch {
+        if (!IsProcessAlive(processId)) {
           clearInterval(loop.timer);
           this.onStopped(true);
         }
@@ -139,5 +136,15 @@ export class TerminalProcess implements IProgram {
     };
 
     this.loop = loop;
+  }
+}
+
+function IsProcessAlive(processId: number) {
+  try {
+    // kill with signal=0 just test for whether the proc is alive. It throws if not.
+    process.kill(processId, 0);
+    return true;
+  } catch {
+    return false;
   }
 }
