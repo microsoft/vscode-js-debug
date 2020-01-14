@@ -6,7 +6,7 @@ import { CdpReferenceState, Breakpoint, BreakpointCdpReference } from './breakpo
 import * as nls from 'vscode-nls';
 import { BreakpointManager, kLogPointUrl } from '../breakpoints';
 import Dap from '../../dap/api';
-import { rewriteLogPoint } from '../../common/sourceUtils';
+import { logMessageToExpression } from '../../common/sourceUtils';
 import { getDeferred } from '../../common/promiseUtil';
 import { HitCondition } from './hitCondition';
 import { Thread } from '../threads';
@@ -104,7 +104,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
 
     const expressions: string[] = [];
     if (logMessage) {
-      expressions.push(rewriteLogPoint(logMessage) + `\n//# sourceURL=${kLogPointUrl}`);
+      expressions.push(logMessageToExpression(logMessage) + `\n//# sourceURL=${kLogPointUrl}`);
     }
 
     if (condition) {
