@@ -902,26 +902,38 @@ export class Thread implements IVariableStoreDelegate {
       event.args[0].value = localize('console.assert', 'Assertion failed');
 
     let messageText: string;
+    let usedAllArgs = false;
     if (event.type === 'table' && event.args.length && event.args[0].preview) {
       messageText = objectPreview.formatAsTable(event.args[0].preview);
     } else {
       const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
       const formatString = useMessageFormat ? (event.args[0].value as string) : '';
-      messageText = messageFormat.formatMessage(
+      const formatResult = messageFormat.formatMessage(
         formatString,
         useMessageFormat ? event.args.slice(1) : event.args,
         objectPreview.messageFormatters,
       );
+      messageText = formatResult.result;
+      usedAllArgs = formatResult.usedAllSubs;
     }
 
-    const variablesReference = await this.replVariables.createVariableForOutput(
-      messageText + '\n',
-      event.args,
-      stackTrace,
-    );
+    let output: string;
+    let variablesReference: number | undefined;
+    if (!usedAllArgs || event.args.some(arg => objectPreview.isObject(arg))) {
+      output = '';
+      variablesReference = await this.replVariables.createVariableForOutput(
+        messageText + '\n',
+        event.args,
+        stackTrace,
+      );
+    } else {
+      output = messageText;
+      variablesReference = undefined;
+    }
+
     return {
       category,
-      output: '',
+      output,
       variablesReference,
       source: uiLocation ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
