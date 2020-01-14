@@ -135,7 +135,7 @@ export class ScriptSkipper {
   private _isNodeInternal(url: string): boolean {
     return (
       (this._allNodeInternals && this._allNodeInternals.includes(url)) ||
-      this._testRegex('^internal/.+.js$', url)
+      this._testRegex('^internal/.+\\.js$', url)
     );
   }
 
