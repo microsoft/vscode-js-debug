@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
-import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath, properResolve } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
@@ -154,6 +154,16 @@ export function isValidUrl(url: string): boolean {
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+export function properlyResolveFileUrl(url: string): string {
+  const absPath = fileUrlToAbsolutePath(url);
+  let resolved: string | undefined;
+  if (absPath && (resolved = absolutePathToFileUrl(properResolve(absPath)))) {
+    return resolved;
+  } else {
+    throw new Error;
   }
 }
 

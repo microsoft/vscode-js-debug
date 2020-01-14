@@ -10,6 +10,7 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
+import * as pathUtils from '../common/pathUtils';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay, getDeferred } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
@@ -67,6 +68,35 @@ const defaultTimeouts: SourceMapTimeouts = {
   scriptPaused: 1000,
   output: 1000,
 };
+
+export class UrlToSourceMap {
+  private _urlToSourceMap = new Map();
+
+  public get(key: string): Source | undefined {
+    return this._urlToSourceMap.get(this.normalizeKey(key));
+  }
+
+  public clear(): void {
+    this._urlToSourceMap.clear();
+  }
+
+  public delete(key: string): boolean {
+    return this._urlToSourceMap.delete(this.normalizeKey(key));
+  }
+
+  public has(key: string): boolean {
+    return this._urlToSourceMap.has(this.normalizeKey(key));
+  }
+
+  public set(key: string, value: Source): this {
+    this._urlToSourceMap.set(this.normalizeKey(key), value);
+    return this;
+  }
+
+  private normalizeKey(key: string): string {
+    return pathUtils.forceForwardSlashes(key.toLowerCase());
+  }
+}
 
 // Represents a text source visible to the user.
 //
@@ -135,11 +165,6 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._absolutePath = absolutePath || '';
-
-    if (container.scriptSkipper) {
-      container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
-      this._blackboxed = container.scriptSkipper.isScriptSkipped(url);
-    }
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset) contentHash = undefined;
@@ -266,6 +291,7 @@ export class SourceContainer {
   private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(
     utils.lowerCaseInsensitivePath,
   );
+  private _sourceByUrl: UrlToSourceMap = new UrlToSourceMap();
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
@@ -275,7 +301,7 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
-  private _scriptSkipper?: ScriptSkipper;
+  private _scriptSkipper: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -283,8 +309,11 @@ export class SourceContainer {
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
+    scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
+    this._scriptSkipper = scriptSkipper;
+    scriptSkipper.addNewSourceContainer(this);
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -300,14 +329,6 @@ export class SourceContainer {
     else this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  initializeScriptSkipper(scriptSkipper: ScriptSkipper) {
-    this._scriptSkipper = scriptSkipper;
-  }
-
-  get scriptSkipper(): ScriptSkipper | undefined {
-    return this._scriptSkipper;
-  }
-
   async loadedSources(): Promise<Dap.Source[]> {
     const promises: Promise<Dap.Source>[] = [];
     for (const source of this._sourceByReference.values()) promises.push(source.toDap());
@@ -318,6 +339,18 @@ export class SourceContainer {
     if (ref.sourceReference) return this._sourceByReference.get(ref.sourceReference);
     if (ref.path) return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
+  }
+
+  sourceByReference(refNum: number): Source | undefined {
+    return this._sourceByReference.get(refNum);
+  }
+
+  sourceByUrl(url: string): Source | undefined {
+    return this._sourceByUrl.get(url);
+  }
+
+  isScriptSkipped(url: string): boolean {
+    return this._scriptSkipper.isScriptSkipped(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -486,7 +519,10 @@ export class SourceContainer {
   }
 
   async _addSource(source: Source) {
+    await this._scriptSkipper.updateSkippingValueForScript(source);
+    source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
     this._sourceByReference.set(source.sourceReference(), source);
+    this._sourceByUrl.set(source._url, source);
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.set(source._url, source);
     this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
@@ -535,6 +571,7 @@ export class SourceContainer {
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
+    this._sourceByUrl.delete(source._url);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
@@ -571,7 +608,7 @@ export class SourceContainer {
       // whether |sourceUrl| looks like a path and belongs to the workspace.
       const sourceUrl = utils.maybeAbsolutePathToFileUrl(this.rootPath, url);
       const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
-      const resolvedUrl = utils.completeUrlEscapingRoot(baseUrl, sourceUrl);
+      const resolvedUrl = utils.properlyResolveFileUrl(utils.completeUrlEscapingRoot(baseUrl, sourceUrl));
       const contentOrNull = map.sourceContentFor(url);
       const content = contentOrNull === null ? undefined : contentOrNull;
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);

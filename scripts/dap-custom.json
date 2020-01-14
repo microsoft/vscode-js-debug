@@ -163,6 +163,44 @@
 			}]
     },
 
+    "ToggleSkipFileStatusRequest": {
+			"allOf": [ { "$ref": "#/definitions/Request" }, {
+				"type": "object",
+				"description": "Toggle skip status of file.",
+				"properties": {
+					"command": {
+						"type": "string",
+						"enum": [ "toggleSkipFileStatus" ]
+          },
+					"arguments": {
+						"$ref": "#/definitions/ToggleSkipFileStatusArguments"
+					}
+				},
+				"required": [ "command", "arguments" ]
+			}]
+    },
+    "ToggleSkipFileStatusArguments": {
+			"type": "object",
+			"description": "Arguments for 'toggleSkipFileStatus' request.",
+			"properties": {
+				"resource": {
+					"type": "string",
+					"description": "Url of file to be skipped."
+        },
+        "sourceReference": {
+          "type": "number",
+          "description": "Source reference number of file."
+        }
+			},
+			"required": [ ]
+    },
+    "ToggleSkipFileStatusResponse": {
+			"allOf": [ { "$ref": "#/definitions/Response" }, {
+				"type": "object",
+				"description": "Response to 'toggleSkipFileStatus' request."
+			}]
+    },
+
 		"RevealLocationRequestedEvent": {
 			"allOf": [ { "$ref": "#/definitions/Event" }, {
 				"type": "object",

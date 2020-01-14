@@ -17,12 +17,14 @@ import { TerminalDebugConfigurationProvider } from './terminalDebugConfiguration
 import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerLongBreakpointUI } from './ui/longPredictionUI';
+import { toggleSkippingFile } from './ui/toggleSkippingFile';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
     vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
     vscode.commands.registerCommand(Contributions.DebugNpmScript, debugNpmScript),
+    vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile)
   );
 
   const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);

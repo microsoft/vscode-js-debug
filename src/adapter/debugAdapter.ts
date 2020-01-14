@@ -23,6 +23,7 @@ import { join } from 'path';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { SourceMapCache } from './sourceMapCache';
 import { logPerf } from '../telemetry/performance';
+import { ScriptSkipper } from './scriptSkipper';
 
 const localize = nls.loadMessageBundle();
 
@@ -42,6 +43,7 @@ export class DebugAdapter {
     dap: Dap.Api,
     rootPath: string | undefined,
     sourcePathResolver: ISourcePathResolver,
+    private scriptSkipper: ScriptSkipper,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: IRawTelemetryReporter,
   ) {
@@ -68,6 +70,7 @@ export class DebugAdapter {
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', () => this._withThread(thread => thread.exceptionInfo()));
     this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
+    this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
@@ -102,6 +105,7 @@ export class DebugAdapter {
       rootPath,
       sourcePathResolver,
       sourceMapRepo,
+      scriptSkipper,
     );
     this.breakpointManager = new BreakpointManager(
       this.dap,
@@ -310,6 +314,17 @@ export class DebugAdapter {
       if (this._thread) promises.push(this._thread.updateCustomBreakpoint(id, false));
     }
     await Promise.all(promises);
+    return {};
+  }
+
+  async _toggleSkipFileStatus(
+    params: Dap.ToggleSkipFileStatusParams
+  ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error > {
+    if (!this._thread?.pausedDetails()) {
+      return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
+    }
+    await this.scriptSkipper.toggleSkippingFile(params, this.sourceContainer);
+    await this._refreshStackTrace();
     return {};
   }
 

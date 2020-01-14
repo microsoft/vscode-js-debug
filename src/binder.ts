@@ -24,6 +24,8 @@ import * as errors from './dap/errors';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
+import { ScriptSkipper } from './adapter/scriptSkipper';
+import Cdp from './cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -47,6 +49,7 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
   private _clientCapabilities: Dap.InitializeParams | undefined;
+  private _scriptSkipper?: ScriptSkipper;
 
   constructor(
     delegate: IBinderDelegate,
@@ -130,6 +133,7 @@ export class Binder implements IDisposable {
 
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
+    this._scriptSkipper = new ScriptSkipper(this._launchParams.skipFiles);
     let results = await Promise.all(
       [...this._launchers].map(l => this._launch(l, params, cts.token)),
     );
@@ -234,6 +238,10 @@ export class Binder implements IDisposable {
     return result;
   }
 
+  async attachScriptSkipper(target: ITarget, cdp: Cdp.Api, dap: Dap.Api): Promise<void> {
+    this._scriptSkipper!.initNewTarget(target, cdp.Runtime, cdp.Debugger);
+  }
+
   async attach(target: ITarget) {
     if (!target.canAttach()) return;
     const cdp = await target.attach();
@@ -244,9 +252,11 @@ export class Binder implements IDisposable {
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
+      this._scriptSkipper!,
       this._launchParams!,
       this._rawTelemetryReporter!,
     );
+    await this.attachScriptSkipper(target, cdp, dap);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
     const startThread = async () => {
