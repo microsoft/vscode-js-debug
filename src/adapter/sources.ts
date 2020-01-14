@@ -608,7 +608,9 @@ export class SourceContainer {
       // whether |sourceUrl| looks like a path and belongs to the workspace.
       const sourceUrl = utils.maybeAbsolutePathToFileUrl(this.rootPath, url);
       const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
-      const resolvedUrl = utils.properlyResolveFileUrl(utils.completeUrlEscapingRoot(baseUrl, sourceUrl));
+      const resolvedUrl = utils.properlyResolveFileUrl(
+        utils.completeUrlEscapingRoot(baseUrl, sourceUrl),
+      );
       const contentOrNull = map.sourceContentFor(url);
       const content = contentOrNull === null ? undefined : contentOrNull;
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);

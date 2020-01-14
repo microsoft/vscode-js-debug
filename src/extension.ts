@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
     vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
     vscode.commands.registerCommand(Contributions.DebugNpmScript, debugNpmScript),
-    vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile)
+    vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile),
   );
 
   const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);

@@ -246,7 +246,7 @@
         {
           "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
           "group": "navigation",
-          "when": "inDebugMode && debugType == 'node' && callStackItemType == 'stackFrame'"
+          "when": "inDebugMode && debugType == 'NAMESPACE(node-debug)' && callStackItemType == 'stackFrame'"
         }
       ],
       "view/title": [

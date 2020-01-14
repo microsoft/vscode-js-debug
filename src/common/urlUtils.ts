@@ -163,7 +163,7 @@ export function properlyResolveFileUrl(url: string): string {
   if (absPath && (resolved = absolutePathToFileUrl(properResolve(absPath)))) {
     return resolved;
   } else {
-    throw new Error;
+    throw new Error();
   }
 }
 
