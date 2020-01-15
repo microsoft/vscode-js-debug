@@ -543,4 +543,44 @@ describe('breakpoints', () => {
       p.assertLog();
     });
   });
+
+  describe('breakpoint placement', () => {
+    const cwd = join(testWorkspace, 'sourceMapLocations');
+
+    describe('first function stmt', () => {
+      ['tsc', 'babel'].forEach(tcase =>
+        itIntegrates(tcase, async ({ r }) => {
+          await r.initialize;
+
+          const handle = await r.runScript(join(cwd, `${tcase}.js`));
+          await handle.dap.setBreakpoints({
+            source: { path: join(cwd, 'test.ts') },
+            breakpoints: [{ line: 4, column: 1 }],
+          });
+
+          handle.load();
+          await waitForPause(handle);
+          handle.assertLog({ substring: true });
+        }),
+      );
+    });
+
+    describe('end function stmt', () => {
+      ['tsc', 'babel'].forEach(tcase =>
+        itIntegrates(tcase, async ({ r }) => {
+          await r.initialize;
+
+          const handle = await r.runScript(join(cwd, `${tcase}.js`));
+          await handle.dap.setBreakpoints({
+            source: { path: join(cwd, 'test.ts') },
+            breakpoints: [{ line: 6, column: 1 }],
+          });
+
+          handle.load();
+          await waitForPause(handle);
+          handle.assertLog({ substring: true });
+        }),
+      );
+    });
+  });
 });

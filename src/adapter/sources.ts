@@ -433,7 +433,7 @@ export class SourceContainer {
         source: sourceUrl,
         line: uiLocation.lineNumber,
         column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
-        bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+        bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
       });
 
       if (entry.line === null) {
