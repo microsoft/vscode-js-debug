@@ -223,23 +223,62 @@ export class Source {
     return this._fqname;
   }
 
+  /**
+   * Returns a pretty name for the script. This is the name displayed in
+   * stack traces and returned through DAP if the file does not verifiably
+   * exist on disk.
+   */
   _fullyQualifiedName(): string {
-    if (!this._url) return '<eval>/VM' + this._sourceReference;
+    if (!this._url) {
+      return '<eval>/VM' + this._sourceReference;
+    }
+
+    if (utils.isAbsolute(this._url)) {
+      return this._url;
+    }
+
+    const parsedAbsolute = utils.fileUrlToAbsolutePath(this._url);
+    if (parsedAbsolute) {
+      return parsedAbsolute;
+    }
+
     let fqname = this._url;
     try {
       const tokens: string[] = [];
       const url = new URL(this._url);
-      if (url.protocol === 'data:') return '<eval>/VM' + this._sourceReference;
-      if (url.hostname) tokens.push(url.hostname);
-      if (url.port) tokens.push('\uA789' + url.port); // : in unicode
-      if (url.pathname) tokens.push(url.pathname);
-      if (url.searchParams) tokens.push(url.searchParams.toString());
+      if (url.protocol === 'data:') {
+        return '<eval>/VM' + this._sourceReference;
+      }
+
+      if (url.hostname) {
+        tokens.push(url.hostname);
+      }
+
+      if (url.port) {
+        tokens.push('\uA789' + url.port); // : in unicode
+      }
+
+      if (url.pathname) {
+        tokens.push(/^\/[a-z]:/.test(url.pathname) ? url.pathname.slice(1) : url.pathname);
+      }
+
+      if (url.searchParams) {
+        tokens.push(url.searchParams.toString());
+      }
+
       fqname = tokens.join('');
-    } catch (e) {}
-    if (fqname.endsWith('/')) fqname += '(index)';
-    if (this._inlineScriptOffset)
-      fqname = `${fqname}\uA789${this._inlineScriptOffset.lineOffset + 1}:${this._inlineScriptOffset
+    } catch (e) {
+      // ignored
+    }
+
+    if (fqname.endsWith('/')) {
+      fqname += '(index)';
+    }
+
+    if (this._inlineScriptOffset) {
+      fqname += `\uA789${this._inlineScriptOffset.lineOffset + 1}:${this._inlineScriptOffset
         .columnOffset + 1}`;
+    }
     return fqname;
   }
 }
