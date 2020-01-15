@@ -12,7 +12,7 @@ import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay, getDeferred } from '../common/promiseUtil';
-import { SourceMapConsumer } from 'source-map';
+import { SourceMapConsumer, Position, NullablePosition } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
@@ -468,14 +468,8 @@ export class SourceContainer {
         continue;
       }
 
-      const entry = sourceMap.map.generatedPositionFor({
-        source: sourceUrl,
-        line: uiLocation.lineNumber,
-        column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
-        bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
-      });
-
-      if (entry.line === null) {
+      const entry = this.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map);
+      if (!entry) {
         continue;
       }
 
@@ -497,6 +491,48 @@ export class SourceContainer {
     }
 
     return output;
+  }
+
+  /**
+   * When calling `generatedPositionFor`, we may find non-exact matches. The
+   * bias passed to the method controls which of the matches we choose.
+   * Here, we will try to pick the position that maps back as closely as
+   * possible to the source line if we get an approximate match,
+   */
+  private getOptimalCompiledPosition(
+    sourceUrl: string,
+    uiLocation: IUiLocation,
+    sourceMap: SourceMapConsumer,
+  ): NullablePosition | undefined {
+    const nextLocation = sourceMap.generatedPositionFor({
+      source: sourceUrl,
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+      bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+    });
+
+    const getVariance = (position: NullablePosition) => {
+      if (nextLocation.line === null || nextLocation.column === null) {
+        return 10e10;
+      }
+
+      const original = sourceMap.originalPositionFor(position as Position);
+      return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
+    };
+
+    const nextVariance = getVariance(nextLocation);
+    if (nextVariance === 0) {
+      return nextLocation; // exact match, no need to work harder
+    }
+
+    const prevLocation = sourceMap.generatedPositionFor({
+      source: sourceUrl,
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+      bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+    });
+
+    return getVariance(prevLocation) < nextVariance ? prevLocation : nextLocation;
   }
 
   async addSource(
