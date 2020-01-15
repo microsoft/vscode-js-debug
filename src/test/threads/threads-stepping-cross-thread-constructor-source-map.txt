@@ -32,7 +32,7 @@ step in
     reason : step
     threadId : <number>
 }
-<anonymous> @ ${workspaceFolder}/web/workerSourceMap.ts:1:1
+<anonymous> @ ${workspaceFolder}/web/workerSourceMap.ts:1:2
 ----Worker Created----
 <anonymous> @ localhost꞉8001/test.js:2:12
 

@@ -408,7 +408,7 @@ export class SourceContainer {
 
     return {
       lineNumber: entry.line || 1,
-      columnNumber: entry.column || 1,
+      columnNumber: entry.column ? entry.column + 1 : 1, // adjust for 0-based columns
       source: source,
     };
   }

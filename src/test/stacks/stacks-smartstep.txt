@@ -1,13 +1,13 @@
-<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:8:12
+<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:8:13
 <anonymous> @ ${workspaceFolder}/web/async-ts/test.js:7:71
 __awaiter @ ${workspaceFolder}/web/async-ts/test.js:3:12
 main @ ${workspaceFolder}/web/async-ts/test.js:17:12
 <anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:11:1
-<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:2:11
+<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:2:12
 <anonymous> @ ${workspaceFolder}/web/async-ts/test.js:7:71
 __awaiter @ ${workspaceFolder}/web/async-ts/test.js:3:12
 foo @ ${workspaceFolder}/web/async-ts/test.js:11:12
-<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:8:18
+<anonymous> @ ${workspaceFolder}/web/async-ts/test.ts:8:19
 <anonymous> @ ${workspaceFolder}/web/async-ts/test.js:7:71
 __awaiter @ ${workspaceFolder}/web/async-ts/test.js:3:12
 main @ ${workspaceFolder}/web/async-ts/test.js:17:12
