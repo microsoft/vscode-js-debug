@@ -101,9 +101,33 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     default: false,
   },
   showAsyncStacks: {
-    type: 'boolean',
     description: refString('node.showAsyncStacks.description'),
     default: true,
+    oneOf: [
+      {
+        type: 'boolean',
+      },
+      {
+        type: 'object',
+        required: ['onAttach'],
+        properties: {
+          onAttach: {
+            type: 'number',
+            default: 32,
+          },
+        },
+      },
+      {
+        type: 'object',
+        required: ['onceBreakpointResolved'],
+        properties: {
+          onceBreakpointResolved: {
+            type: 'number',
+            default: 32,
+          },
+        },
+      },
+    ],
   },
   skipFiles: {
     type: 'array',

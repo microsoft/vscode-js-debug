@@ -36,21 +36,27 @@ export async function run(): Promise<void> {
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   };
 
-  const reporterPathRelativeToMocha = '../../../out/src/test/logTestReporter'; // yikes
+  const logTestReporterPathRelativeToMocha = '../../../out/src/test/reporters/logTestReporter'; // yikes
+  const goldenTextReporterPathRelativeToMocha =
+    '../../../out/src/test/reporters/goldenTextReporter';
+
+  mochaOpts.reporter = 'mocha-multi-reporters';
+  mochaOpts.reporterOptions = {
+    reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}`,
+    // reporterEnabled: goldenTextReporterPathRelativeToMocha
+    // reporterEnabled: logTestReporterPathRelativeToMocha
+  };
   if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY) {
-    mochaOpts.reporter = 'mocha-multi-reporters';
     mochaOpts.reporterOptions = {
-      reporterEnabled: `${reporterPathRelativeToMocha}, mocha-junit-reporter`,
+      reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}, mocha-junit-reporter`,
       mochaJunitReporterReporterOptions: {
         testsuitesTitle: `tests ${process.platform}`,
         mochaFile: join(
           process.env.BUILD_ARTIFACTSTAGINGDIRECTORY,
-          `test-results/${process.platform}-test-results.xml`,
+          `test-results/TEST-${process.platform}-test-results.xml`,
         ),
       },
     };
-  } else {
-    mochaOpts.reporter = reporterPathRelativeToMocha;
   }
 
   const runner = new Mocha(mochaOpts);

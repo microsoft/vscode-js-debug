@@ -25,6 +25,7 @@ import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 import { ITargetOrigin } from './targets/targetOrigin';
+import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
 
 const localize = nls.loadMessageBundle();
 
@@ -48,6 +49,7 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
   private _clientCapabilities: Dap.InitializeParams | undefined;
+  private _asyncStackPolicy?: IAsyncStackPolicy;
 
   constructor(
     delegate: IBinderDelegate,
@@ -241,10 +243,16 @@ export class Binder implements IDisposable {
     if (!cdp) return;
     const connection = await this._delegate.acquireDap(target);
     const dap = await connection.dap();
+
+    if (!this._asyncStackPolicy) {
+      this._asyncStackPolicy = getAsyncStackPolicy(this._launchParams!.showAsyncStacks);
+    }
+
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
+      this._asyncStackPolicy,
       this._launchParams!,
       this._rawTelemetryReporter!,
     );

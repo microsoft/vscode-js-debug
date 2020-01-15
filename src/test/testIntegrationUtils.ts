@@ -9,6 +9,7 @@ import * as path from 'path';
 import { GoldenText } from './goldenText';
 import { testFixturesDir, TestRoot, testWorkspace } from './test';
 import { forceForwardSlashes } from '../common/pathUtils';
+import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -55,6 +56,8 @@ const itIntegratesBasic = (
     await root.initialize;
 
     try {
+      (this.test as IGoldenReporterTextTest).goldenText = golden;
+
       await fn({ golden, r: root });
     } finally {
       try {

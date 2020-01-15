@@ -17,10 +17,10 @@ import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
-import { ChildProcess } from 'child_process';
 import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
+import { IBrowserProcess } from './browserProcess';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -41,7 +41,7 @@ export class BrowserTargetManager implements IDisposable {
 
   static async connect(
     connection: CdpConnection,
-    process: undefined | ChildProcess,
+    process: undefined | IBrowserProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
     telemetry: IRawTelemetryReporter,
@@ -68,7 +68,7 @@ export class BrowserTargetManager implements IDisposable {
 
   constructor(
     connection: CdpConnection,
-    private readonly process: ChildProcess | undefined,
+    private readonly process: IBrowserProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
     private readonly telemetry: IRawTelemetryReporter,
@@ -100,8 +100,10 @@ export class BrowserTargetManager implements IDisposable {
   }
 
   async closeBrowser(): Promise<void> {
-    if (!this.process || !killTree(this.process.pid)) {
-      await this._browser.Browser.close({});
+    await this._browser.Browser.close({});
+
+    if (this.process && this.process.pid) {
+      killTree(this.process.pid);
     }
   }
 

@@ -17,8 +17,7 @@ describe('ISourceMapRepository', () => {
     { name: 'NodeSourceMapRepository', create: () => new NodeSourceMapRepository() },
     {
       name: 'CodeSearchSourceMapRepository',
-      create: () =>
-        new CodeSearchSourceMapRepository(vscode.workspace.findTextInFiles.bind(vscode.workspace)),
+      create: () => new CodeSearchSourceMapRepository(vscode),
     },
   ].forEach(tcase =>
     describe(tcase.name, () => {

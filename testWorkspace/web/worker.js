@@ -9,3 +9,4 @@ self.addEventListener('message', e => {
   else
     postMessage({foo: {bar: 'to page'}});
 });
+self.isWorker = true;

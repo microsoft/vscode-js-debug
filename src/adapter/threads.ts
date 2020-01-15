@@ -455,9 +455,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
-    if (this.launchConfig.showAsyncStacks) {
-      this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    }
     const scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
@@ -554,20 +551,24 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    const hitData = event.hitBreakpoints?.length
-      ? this._breakpointManager.onBreakpointHit(
-          event.hitBreakpoints,
-          this._pauseOnSourceMapBreakpointId,
-        )
-      : undefined;
+    const hitBreakpoints = (event.hitBreakpoints ?? []).filter(
+      bp => bp !== this._pauseOnSourceMapBreakpointId,
+    );
     const isSourceMapPause =
-      (event.reason === 'instrumentation' && event.data?.scriptId) || hitData?.entrypointBps.length;
+      (event.reason === 'instrumentation' && event.data?.scriptId) ||
+      this._breakpointManager.isEntrypointBreak(hitBreakpoints);
 
+    let shouldPause: boolean;
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
-      const remainPaused =
-        (await this._handleSourceMapPause(scriptId, location)) || hitData?.remainPaused;
+
+      // Set shouldPause=true if we just resolved a breakpoint that's on this
+      // location; this won't have existed before now.
+      shouldPause = await this._handleSourceMapPause(scriptId, location);
+      // Set shouldPause=true if there's a non-entry, user defined breakpoint
+      // among the remaining points.
+      shouldPause = shouldPause || this._breakpointManager.shouldPauseAt(hitBreakpoints, true);
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -577,7 +578,7 @@ export class Thread implements IVariableStoreDelegate {
       ) {
         // Paused on the script which is run as a task for scheduled async call.
         // We are waiting for this pause, no need to resume.
-      } else if (remainPaused) {
+      } else if (shouldPause) {
         // If should stay paused, that means the user set a breakpoint on
         // the first line (which we are already on!), so pretend it's
         // a breakpoint and let it bubble up.
@@ -589,6 +590,8 @@ export class Thread implements IVariableStoreDelegate {
         this.resume();
         return;
       }
+    } else {
+      shouldPause = this._breakpointManager.shouldPauseAt(hitBreakpoints, false);
     }
 
     if (event.asyncCallStackTraceId) {
@@ -600,11 +603,9 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._pausedDetails = this._createPausedDetails(event);
-    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-      if (hitData?.remainPaused === false) {
-        this.resume();
-        return;
-      }
+    if (!shouldPause) {
+      this.resume();
+      return;
     }
 
     if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
@@ -629,12 +630,14 @@ export class Thread implements IVariableStoreDelegate {
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
+
+    this._executionContextsCleared();
+
+    // Send 'exited' after all other thread-releated events
     this._dap.thread({
       reason: 'exited',
       threadId: this.id,
     });
-
-    this._executionContextsCleared();
   }
 
   rawLocation(
@@ -902,26 +905,38 @@ export class Thread implements IVariableStoreDelegate {
       event.args[0].value = localize('console.assert', 'Assertion failed');
 
     let messageText: string;
+    let usedAllArgs = false;
     if (event.type === 'table' && event.args.length && event.args[0].preview) {
       messageText = objectPreview.formatAsTable(event.args[0].preview);
     } else {
       const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
       const formatString = useMessageFormat ? (event.args[0].value as string) : '';
-      messageText = messageFormat.formatMessage(
+      const formatResult = messageFormat.formatMessage(
         formatString,
         useMessageFormat ? event.args.slice(1) : event.args,
         objectPreview.messageFormatters,
       );
+      messageText = formatResult.result;
+      usedAllArgs = formatResult.usedAllSubs;
     }
 
-    const variablesReference = await this.replVariables.createVariableForOutput(
-      messageText + '\n',
-      event.args,
-      stackTrace,
-    );
+    let output: string;
+    let variablesReference: number | undefined;
+    if (!usedAllArgs || event.args.some(arg => objectPreview.isObject(arg))) {
+      output = '';
+      variablesReference = await this.replVariables.createVariableForOutput(
+        messageText + '\n',
+        event.args,
+        stackTrace,
+      );
+    } else {
+      output = messageText;
+      variablesReference = undefined;
+    }
+
     return {
       category,
-      output: '',
+      output,
       variablesReference,
       source: uiLocation ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,

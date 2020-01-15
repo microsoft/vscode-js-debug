@@ -64,6 +64,16 @@ export interface ILoggingConfiguration {
   tags: ReadonlyArray<string>;
 }
 
+/**
+ * Configuration for async stacks. See {@link IAsyncStackPolicy} for reasoning.
+ *  - `true` aliases { onBoot: 32 }
+ *  - `false` disables async stacks
+ *  - `{ onBoot: N }` enables N async stacks when a target attaches
+ *  - `{ onceBreakpointResolved: N }` enables N async stacks the first time a
+ *    breakpoint is verified or hit.
+ */
+export type AsyncStackMode = boolean | { onAttach: number } | { onceBreakpointResolved: number };
+
 export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
@@ -100,7 +110,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
    * Show the async calls that led to the current call stack.
    */
-  showAsyncStacks: boolean;
+  showAsyncStacks: AsyncStackMode;
 
   /**
    * An array of glob patterns for files to skip when debugging.
@@ -402,6 +412,11 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * with your default user profile.
    */
   userDataDir: string | boolean;
+
+  /**
+   * The debug adapter is running elevated. Launch Chrome unelevated to avoid the security restrictions of running Chrome elevated
+   */
+  launchUnelevated?: boolean;
 }
 
 /**
@@ -505,6 +520,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
 
 export const terminalBaseDefaults: INodeTerminalConfiguration = {
   ...nodeBaseDefaults,
+  showAsyncStacks: { onceBreakpointResolved: 16 },
   type: Contributions.TerminalDebugType,
   request: 'launch',
   name: 'Debugger Terminal',

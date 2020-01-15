@@ -164,8 +164,8 @@ export default class Connection {
   private enqueueRequest(command: string, params?: object) {
     return new Promise(cb => {
       const request: Message = { seq: 0, type: 'request', command, arguments: params || {} };
-      this._pendingRequests.set(this._sequence, cb);
-      this._send(request);
+      this._send(request); // this updates request.seq
+      this._pendingRequests.set(request.seq, cb);
     });
   }
 

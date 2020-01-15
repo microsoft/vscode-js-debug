@@ -31,7 +31,7 @@ import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher
 import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
-import { getLogFileForTest } from './logReporterUtils';
+import { getLogFileForTest } from './reporters/logReporterUtils';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { TargetOrigin } from '../targets/targetOrigin';
 

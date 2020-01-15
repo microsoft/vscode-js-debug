@@ -321,7 +321,7 @@ describe('evaluate', () => {
       })
     ).stackFrames[0];
     await p.logger.logEvaluateResult(
-      await p.dap.evaluate({ expression: 'self', frameId: pageFrameId }),
+      await p.dap.evaluate({ expression: 'isWorker', frameId: pageFrameId }),
       { depth: 0 },
     );
     p.dap.continue({ threadId: pageThreadId! });
@@ -339,7 +339,7 @@ describe('evaluate', () => {
       })
     ).stackFrames[0];
     await worker.logger.logEvaluateResult(
-      await worker.dap.evaluate({ expression: 'self', frameId: workerFrameId }),
+      await worker.dap.evaluate({ expression: 'isWorker', frameId: workerFrameId }),
       { depth: 0 },
     );
     worker.dap.continue({ threadId: workerThreadId! });

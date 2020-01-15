@@ -6,4 +6,6 @@ window.w.addEventListener('message', e => {
     debugger;
 });
 window.w.postMessage({foo: { bar: 'to worker'}});
+window.isWorker = false;
+
 </script>
