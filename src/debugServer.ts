@@ -22,6 +22,7 @@ import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import * as nls from 'vscode-nls';
 import { NodePathProvider } from './targets/node/nodePathProvider';
+import { TargetOrigin } from './targets/targetOrigin';
 
 const localize = nls.loadMessageBundle();
 
@@ -124,7 +125,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         };
 
         const connection = new DapConnection();
-        new Binder(binderDelegate, connection, launchers, 'targetOrigin');
+        new Binder(binderDelegate, connection, launchers, new TargetOrigin('targetOrigin'));
         const configurator = new Configurator(connection.dap());
 
         connection.init(socket, socket);

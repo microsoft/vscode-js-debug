@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import {
   ResolvedConfiguration,
   terminalBaseDefaults,
-  INodeTerminalConfiguration,
+  ITerminalLaunchConfiguration,
 } from './configuration';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
@@ -17,12 +17,12 @@ import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
 export class TerminalDebugConfigurationProvider
-  extends BaseConfigurationProvider<INodeTerminalConfiguration>
+  extends BaseConfigurationProvider<ITerminalLaunchConfiguration>
   implements vscode.DebugConfigurationProvider {
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
-    config: ResolvedConfiguration<INodeTerminalConfiguration>,
-  ): Promise<INodeTerminalConfiguration | undefined> {
+    config: ResolvedConfiguration<ITerminalLaunchConfiguration>,
+  ): Promise<ITerminalLaunchConfiguration | undefined> {
     if (!config.cwd) {
       config.cwd = guessWorkingDirectory(undefined, folder);
     }

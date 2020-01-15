@@ -187,6 +187,7 @@ export const assert = <T>(
 ): assertion is T => {
   if (assertion === false || assertion === undefined || assertion === null) {
     logger.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
+    debugger; // break when running in development
     return false;
   }
 

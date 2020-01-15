@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, INodeTerminalConfiguration } from '../../configuration';
+import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import * as vscode from 'vscode';
 import { Contributions } from '../../common/contributionUtils';
 import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
@@ -38,11 +38,13 @@ class VSCodeTerminalProcess implements IProgram {
  * A special launcher which only opens a vscode terminal. Used for the
  * "debugger terminal" in the extension.
  */
-export class TerminalNodeLauncher extends NodeLauncherBase<INodeTerminalConfiguration> {
+export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfiguration> {
   /**
    * @inheritdoc
    */
-  protected resolveParams(params: AnyLaunchConfiguration): INodeTerminalConfiguration | undefined {
+  protected resolveParams(
+    params: AnyLaunchConfiguration,
+  ): ITerminalLaunchConfiguration | undefined {
     if (params.type === Contributions.TerminalDebugType && params.request === 'launch') {
       return params;
     }
@@ -61,7 +63,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<INodeTerminalConfigur
   /**
    * Launches the program.
    */
-  protected async launchProgram(runData: IRunData<INodeTerminalConfiguration>): Promise<void> {
+  protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
     // Make sure that, if we can _find_ a in their path, it's the right
     // version so that we don't mysteriously never connect fail.
     try {

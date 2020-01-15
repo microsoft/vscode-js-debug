@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 import { Contributions, IConfigurationTypes, Configuration } from '../common/contributionUtils';
 import {
+  IMandatedConfiguration,
   AnyLaunchConfiguration,
   ResolvingConfiguration,
   INodeAttachConfiguration,
@@ -14,7 +15,7 @@ import {
   IChromeBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
-  INodeTerminalConfiguration,
+  ITerminalLaunchConfiguration,
   baseDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
@@ -22,12 +23,10 @@ import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
 type OmittedKeysFromAttributes =
-  | 'type'
-  | 'request'
-  | 'internalConsoleOptions'
-  | 'name'
+  | keyof IMandatedConfiguration
   | 'rootPath'
-  | '__workspaceFolder';
+  | '__workspaceFolder'
+  | '__workspaceCachePath';
 
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
@@ -468,7 +467,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
   },
 };
 
-const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
+const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
   type: Contributions.TerminalDebugType,
   request: 'launch',
   label: refString('debug.terminal.label'),
@@ -729,6 +728,12 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     type: 'boolean',
     default: true,
     description: refString('configuration.warnOnLongPrediction'),
+  },
+  [Configuration.TerminalDebugConfig]: {
+    type: 'object',
+    description: refString('configuration.terminalOptions'),
+    default: {},
+    properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
   },
 };
 

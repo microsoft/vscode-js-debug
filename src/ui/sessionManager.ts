@@ -11,7 +11,6 @@ import { NodeLauncher } from '../targets/node/nodeLauncher';
 import { BrowserAttacher } from '../targets/browser/browserAttacher';
 import { ITarget } from '../targets/targets';
 import { IDisposable } from '../common/events';
-import { checkVersion } from './version';
 import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { Contributions } from '../common/contributionUtils';
 import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
@@ -21,6 +20,8 @@ import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { assert } from '../common/logging/logger';
+import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
+import { TargetOrigin } from '../targets/targetOrigin';
 
 export class Session implements IDisposable {
   public readonly debugSession: vscode.DebugSession;
@@ -40,13 +41,16 @@ export class Session implements IDisposable {
   }
 
   listenToTarget(target: ITarget) {
-    if (checkVersion('1.39.0'))
-      this._onTargetNameChanged = target.onNameChanged(() => {
-        this.debugSession.name = target.name();
-      });
+    this._onTargetNameChanged = target.onNameChanged(() => {
+      this.debugSession.name = target.name();
+    });
   }
 
-  createBinder(context: vscode.ExtensionContext, delegate: IBinderDelegate) {
+  createBinder(
+    context: vscode.ExtensionContext,
+    delegateLauncher: DelegateLauncherFactory,
+    delegate: IBinderDelegate,
+  ) {
     const pathProvider = new NodePathProvider();
     const launchers = [
       new ExtensionHostAttacher(pathProvider),
@@ -59,8 +63,14 @@ export class Session implements IDisposable {
       new NodeAttacher(pathProvider),
       new BrowserLauncher(context.storagePath || context.extensionPath),
       new BrowserAttacher(),
+      delegateLauncher.createLauncher(),
     ];
-    this._binder = new Binder(delegate, this.connection, launchers, this.debugSession.id);
+    this._binder = new Binder(
+      delegate,
+      this.connection,
+      launchers,
+      new TargetOrigin(this.debugSession.id),
+    );
   }
 
   descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
@@ -86,7 +96,10 @@ export class SessionManager
     { fulfill: (session: Session) => void; reject: (error: Error) => void }
   >();
 
-  constructor(private readonly _context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly _context: vscode.ExtensionContext,
+    private readonly launcherDelegate: DelegateLauncherFactory,
+  ) {}
 
   public terminate(debugSession: vscode.DebugSession) {
     const session = this._sessions.get(debugSession.id);
@@ -94,12 +107,15 @@ export class SessionManager
     if (session) session.dispose();
   }
 
-  createDebugAdapterDescriptor(
+  /**
+   * @inheritdoc
+   */
+  public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const session = new Session(debugSession);
-    if (debugSession.configuration['__pendingTargetId']) {
-      const pendingTargetId = debugSession.configuration['__pendingTargetId'] as string;
+    const pendingTargetId: string | undefined = debugSession.configuration.__pendingTargetId;
+    if (pendingTargetId) {
       const target = this._pendingTarget.get(pendingTargetId);
       if (!assert(target, `Cannot find target ${pendingTargetId}`)) {
         return;
@@ -111,18 +127,24 @@ export class SessionManager
       this._sessionForTargetCallbacks.delete(target);
       if (callbacks) callbacks.fulfill(session);
     } else {
-      session.createBinder(this._context, this);
+      session.createBinder(this._context, this.launcherDelegate, this);
     }
     this._sessions.set(debugSession.id, session);
     return session.descriptor();
   }
 
-  async acquireDap(target: ITarget): Promise<DapConnection> {
-    const session = await this._createSession(target);
+  /**
+   * @inheritdoc
+   */
+  public async acquireDap(target: ITarget): Promise<DapConnection> {
+    const session = await this.createSession(target);
     return session.connection;
   }
 
-  _createSession(target: ITarget): Promise<Session> {
+  /**
+   * Creates a debug session for the given target.
+   */
+  public createSession(target: ITarget): Promise<Session> {
     const existingSession = this._sessionForTarget.get(target);
     if (existingSession) {
       return existingSession;
@@ -135,10 +157,10 @@ export class SessionManager
       let parentDebugSession: vscode.DebugSession | undefined;
       const parentTarget = target.parent();
       if (parentTarget) {
-        const parentSession = await this._createSession(parentTarget);
+        const parentSession = await this.createSession(parentTarget);
         parentDebugSession = parentSession.debugSession;
       } else {
-        parentDebugSession = this._sessions.get(target.targetOrigin())?.debugSession;
+        parentDebugSession = this._sessions.get(target.targetOrigin().id)?.debugSession;
       }
 
       if (!assert(parentDebugSession, 'Expected to get a parent debug session for target')) {
@@ -152,32 +174,37 @@ export class SessionManager
         __pendingTargetId: target.id(),
       };
 
-      if (checkVersion('1.39.0')) {
-        vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
-          parentSession: parentDebugSession,
-          consoleMode: vscode.DebugConsoleMode.MergeWithParent,
-        });
-      } else {
-        vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, parentDebugSession);
-      }
+      vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
+        parentSession: parentDebugSession,
+        consoleMode: vscode.DebugConsoleMode.MergeWithParent,
+      });
     });
 
     this._sessionForTarget.set(target, newSession);
     return newSession;
   }
 
-  initAdapter(): Promise<boolean> {
+  /**
+   * @inheritdoc
+   */
+  public initAdapter(): Promise<boolean> {
     return Promise.resolve(false);
   }
 
-  releaseDap(target: ITarget) {
+  /**
+   * @inheritdoc
+   */
+  public releaseDap(target: ITarget) {
     this._sessionForTarget.delete(target);
     const callbacks = this._sessionForTargetCallbacks.get(target);
     if (callbacks) callbacks.reject(new Error('Target gone'));
     this._sessionForTargetCallbacks.delete(target);
   }
 
-  dispose() {
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
     for (const session of this._sessions.values()) session.dispose();
     this._sessions.clear();
     this._pendingTarget.clear();

@@ -24,6 +24,7 @@ import * as errors from './dap/errors';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
+import { ITargetOrigin } from './targets/targetOrigin';
 import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
 
 const localize = nls.loadMessageBundle();
@@ -44,7 +45,7 @@ export class Binder implements IDisposable {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
-  private _targetOrigin: any;
+  private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
   private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
   private _clientCapabilities: Dap.InitializeParams | undefined;
@@ -54,7 +55,7 @@ export class Binder implements IDisposable {
     delegate: IBinderDelegate,
     connection: DapConnection,
     launchers: ILauncher[],
-    targetOrigin: any,
+    targetOrigin: ITargetOrigin,
   ) {
     this._delegate = delegate;
     this._dap = connection.dap();

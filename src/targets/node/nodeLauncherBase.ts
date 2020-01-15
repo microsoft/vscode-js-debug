@@ -17,7 +17,11 @@ import {
   ILaunchContext,
   IStopMetadata,
 } from '../../targets/targets';
-import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
+import {
+  AnyLaunchConfiguration,
+  AnyNodeConfiguration,
+  isConfigurationWithEnv,
+} from '../../configuration';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
@@ -78,7 +82,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Target list.
    */
-  private readonly targets = new ObservableMap<NodeTarget>();
+  private readonly targets = new ObservableMap<string, NodeTarget>();
 
   /**
    * Underlying emitter fired when sessions terminate. Listened to by the
@@ -173,7 +177,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   public targetList(): ITarget[] {
-    return this.targets.value();
+    return [...this.targets.value()];
   }
 
   /**
@@ -219,20 +223,21 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Returns the user-configured portion of the environment variables.
    */
   protected getConfiguredEnvironment(params: T) {
-    const anyParams = params as any;
     let baseEnv = EnvironmentVars.empty;
-
+    if (!isConfigurationWithEnv(params)) {
+      return baseEnv;
+    }
     // read environment variables from any specified file
-    if ('envFile' in params && anyParams.envFile) {
+    if (params.envFile) {
       try {
-        baseEnv = baseEnv.merge(readEnvFile(anyParams.envFile));
+        baseEnv = baseEnv.merge(readEnvFile(params.envFile));
       } catch (e) {
         throw new ProtocolError(cannotLoadEnvironmentVars(e.message));
       }
     }
 
-    if ('env' in params) {
-      baseEnv = baseEnv.merge(anyParams.env);
+    if (params.env) {
+      baseEnv = baseEnv.merge(params.env);
     }
 
     return baseEnv;

@@ -19,6 +19,7 @@ import { LogTag } from '../../common/logging';
 import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
 import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
+import { ITargetOrigin } from '../targetOrigin';
 import { IBrowserProcess } from './browserProcess';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
@@ -30,7 +31,7 @@ export class BrowserTargetManager implements IDisposable {
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: ISourcePathResolver;
-  _targetOrigin: any;
+  _targetOrigin: ITargetOrigin;
   _scriptSkipper?: ScriptSkipper;
 
   private _onTargetAddedEmitter = new EventEmitter<BrowserTarget>();
@@ -44,7 +45,7 @@ export class BrowserTargetManager implements IDisposable {
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
     telemetry: IRawTelemetryReporter,
-    targetOrigin: any,
+    targetOrigin: ITargetOrigin,
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
@@ -72,7 +73,7 @@ export class BrowserTargetManager implements IDisposable {
     sourcePathResolver: ISourcePathResolver,
     private readonly telemetry: IRawTelemetryReporter,
     private readonly launchParams: AnyChromeConfiguration,
-    targetOrigin: any,
+    targetOrigin: ITargetOrigin,
   ) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;

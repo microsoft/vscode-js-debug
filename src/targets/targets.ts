@@ -10,6 +10,7 @@ import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
 import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
+import { ITargetOrigin } from './targetOrigin';
 
 /**
  * A generic running process that can be debugged. We may have a target before
@@ -32,7 +33,7 @@ export interface ITarget {
   attach(): Promise<Cdp.Api | undefined>;
   canDetach(): boolean;
   detach(): Promise<void>;
-  targetOrigin(): any;
+  targetOrigin(): ITargetOrigin;
   /**
    * Lifecycle callback invoked after attaching and the target's events are
    * wired into the debug adapter.
@@ -53,7 +54,7 @@ export interface ITarget {
 export interface ILaunchContext {
   dap: Dap.Api;
   cancellationToken: CancellationToken;
-  targetOrigin: any;
+  targetOrigin: ITargetOrigin;
 }
 
 export interface ILaunchResult {

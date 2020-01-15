@@ -11,6 +11,7 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { basename } from 'path';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { IThreadDelegate } from '../../adapter/threads';
+import { ITargetOrigin } from '../targetOrigin';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -44,7 +45,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   constructor(
     private readonly pathResolver: ISourcePathResolver,
-    private readonly targetOriginValue: string,
+    private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
@@ -80,7 +81,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return 'node';
   }
 
-  targetOrigin(): any {
+  targetOrigin(): ITargetOrigin {
     return this.targetOriginValue;
   }
 

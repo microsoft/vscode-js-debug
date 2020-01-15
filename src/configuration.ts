@@ -4,8 +4,9 @@
 
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
+import { assertNever } from './common/objUtils';
 
-interface IMandatedConfiguration {
+export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
    * The type of the debug session.
    */
@@ -25,6 +26,11 @@ interface IMandatedConfiguration {
    * VS Code pre-launch task to run.
    */
   preLaunchTask?: string;
+
+  /**
+   * Options that configure when the VS Code debug console opens.
+   */
+  internalConsoleOptions?: 'neverOpen' | 'openOnSessionStart' | 'openOnFirstSessionStart';
 }
 
 export const enum OutputSource {
@@ -69,7 +75,7 @@ export interface ILoggingConfiguration {
  */
 export type AsyncStackMode = boolean | { onAttach: number } | { onceBreakpointResolved: number };
 
-export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchParams {
+export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
    * Default is 'localhost'.
@@ -159,7 +165,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration, Dap.LaunchPa
   __workspaceCachePath?: string;
 }
 
-export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
+export interface IExtensionHostConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
   type: Contributions.ExtensionHostDebugType;
   request: 'attach' | 'launch';
 
@@ -203,11 +209,6 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
  */
 export interface INodeBaseConfiguration extends IBaseConfiguration {
   /**
-   * @internal
-   */
-  internalConsoleOptions?: string;
-
-  /**
    * Absolute path to the working directory of the program being debugged.
    */
   cwd: string;
@@ -236,10 +237,23 @@ export interface INodeBaseConfiguration extends IBaseConfiguration {
   autoAttachChildProcesses: boolean;
 }
 
+export interface IConfigurationWithEnv {
+  /**
+   * Environment variables passed to the program. The value `null` removes the
+   * variable from the environment.
+   */
+  env: Readonly<{ [key: string]: string | null }>;
+
+  /**
+   * Absolute path to a file containing environment variable definitions.
+   */
+  envFile: string | null;
+}
+
 /**
  * Configuration for a launch request.
  */
-export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
+export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
   type: Contributions.NodeDebugType;
   request: 'launch';
 
@@ -286,17 +300,6 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration {
    * Optional arguments passed to the runtime executable.
    */
   runtimeArgs: ReadonlyArray<string>;
-
-  /**
-   * Environment variables passed to the program. The value `null` removes the
-   * variable from the environment.
-   */
-  env: Readonly<{ [key: string]: string | null }>;
-
-  /**
-   * Absolute path to a file containing environment variable definitions.
-   */
-  envFile: string | null;
 }
 
 export interface IChromeBaseConfiguration extends IBaseConfiguration {
@@ -334,13 +337,13 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
   /**
    * Launch options to boot a server.
    */
-  server: INodeLaunchConfiguration | INodeTerminalConfiguration | null;
+  server: INodeLaunchConfiguration | ITerminalLaunchConfiguration | null;
 }
 
 /**
  * Opens a debugger-enabled terminal.
  */
-export interface INodeTerminalConfiguration extends INodeBaseConfiguration {
+export interface ITerminalLaunchConfiguration extends INodeBaseConfiguration {
   type: Contributions.TerminalDebugType;
   request: 'launch';
 
@@ -424,13 +427,26 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
   request: 'attach';
 }
 
+/**
+ * Attach request used internally to inject a pre-built target into the lifecycle.
+ */
+export interface ITerminalDelegateConfiguration extends INodeBaseConfiguration {
+  type: Contributions.TerminalDebugType;
+  request: 'attach';
+  delegateId: number;
+}
+
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
-  | INodeTerminalConfiguration
-  | IExtensionHostConfiguration;
+  | ITerminalLaunchConfiguration
+  | IExtensionHostConfiguration
+  | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
+export type AnyTerminalConfiguration =
+  | ITerminalDelegateConfiguration
+  | ITerminalLaunchConfiguration;
 
 /**
  * Where T subtypes AnyLaunchConfiguration, gets the resolving version of T.
@@ -442,7 +458,15 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
 >;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
-export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
+export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
+  ITerminalDelegateConfiguration
+>;
+export type ResolvingTerminalLaunchConfiguration = ResolvingConfiguration<
+  ITerminalLaunchConfiguration
+>;
+export type ResolvingTerminalConfiguration =
+  | ResolvingTerminalDelegateConfiguration
+  | ResolvingTerminalLaunchConfiguration;
 export type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration;
@@ -466,7 +490,7 @@ export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguratio
   : T extends ResolvingChromeConfiguration
   ? AnyChromeConfiguration
   : T extends ResolvingTerminalConfiguration
-  ? INodeTerminalConfiguration
+  ? ITerminalLaunchConfiguration
   : never;
 
 export const baseDefaults: IBaseConfiguration = {
@@ -502,12 +526,20 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   autoAttachChildProcesses: true,
 };
 
-export const terminalBaseDefaults: INodeTerminalConfiguration = {
+export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
   ...nodeBaseDefaults,
   showAsyncStacks: { onceBreakpointResolved: 16 },
   type: Contributions.TerminalDebugType,
   request: 'launch',
   name: 'Debugger Terminal',
+};
+
+export const delegateDefaults: ITerminalDelegateConfiguration = {
+  ...nodeBaseDefaults,
+  type: Contributions.TerminalDebugType,
+  request: 'attach',
+  name: 'Debugger Terminal',
+  delegateId: -1,
 };
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
@@ -602,20 +634,33 @@ export function applyExtensionHostDefaults(
 
 export function applyTerminalDefaults(
   config: ResolvingTerminalConfiguration,
-): INodeTerminalConfiguration {
-  return { ...extensionHostConfigDefaults, ...config };
+): AnyTerminalConfiguration {
+  return config.request === 'launch'
+    ? { ...terminalBaseDefaults, ...config }
+    : { ...delegateDefaults, ...config };
 }
+
+export const isConfigurationWithEnv = (config: unknown): config is IConfigurationWithEnv =>
+  typeof config === 'object' && !!config && 'env' in config && 'envFile' in config;
 
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
-  if (config.type === Contributions.NodeDebugType) configWithDefaults = applyNodeDefaults(config);
-  else if (config.type === Contributions.ChromeDebugType)
-    configWithDefaults = applyChromeDefaults(config);
-  else if (config.type === Contributions.ExtensionHostDebugType)
-    configWithDefaults = applyExtensionHostDefaults(config);
-  else if (config.type === Contributions.TerminalDebugType)
-    configWithDefaults = applyTerminalDefaults(config);
-  else throw new Error(`Unknown config: ${JSON.stringify(config)}`);
+  switch (config.type) {
+    case Contributions.NodeDebugType:
+      configWithDefaults = applyNodeDefaults(config);
+      break;
+    case Contributions.ChromeDebugType:
+      configWithDefaults = applyChromeDefaults(config);
+      break;
+    case Contributions.ExtensionHostDebugType:
+      configWithDefaults = applyExtensionHostDefaults(config);
+      break;
+    case Contributions.TerminalDebugType:
+      configWithDefaults = applyTerminalDefaults(config);
+      break;
+    default:
+      throw assertNever(config, 'Unknown config: {value}');
+  }
 
   resolveWorkspaceRoot(configWithDefaults);
   return configWithDefaults;
