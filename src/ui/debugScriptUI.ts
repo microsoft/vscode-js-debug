@@ -9,8 +9,8 @@ export function registerDebugScriptActions(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       Contributions.CreateDebuggerTerminal,
-      async (command?: string, workspaceFolder = vscode.workspace.workspaceFolders?.[0]) => {
-        vscode.debug.startDebugging(workspaceFolder, {
+      async (command?: string, workspaceFolder?: vscode.WorkspaceFolder) => {
+        vscode.debug.startDebugging(workspaceFolder || vscode.workspace.workspaceFolders?.[0], {
           type: Contributions.TerminalDebugType,
           name: 'Debugger Terminal',
           request: 'launch',

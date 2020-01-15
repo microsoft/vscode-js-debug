@@ -455,9 +455,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
-    if (this.launchConfig.showAsyncStacks) {
-      this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
-    }
     const scriptSkipper = this._delegate.skipFiles();
     if (scriptSkipper) {
       // Note: here we assume that source container does only have a single thread.
