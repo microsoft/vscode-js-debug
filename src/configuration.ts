@@ -539,6 +539,7 @@ export const delegateDefaults: ITerminalDelegateConfiguration = {
   type: Contributions.TerminalDebugType,
   request: 'attach',
   name: 'Debugger Terminal',
+  showAsyncStacks: { onceBreakpointResolved: 16 },
   delegateId: -1,
 };
 
