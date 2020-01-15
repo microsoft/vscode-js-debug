@@ -78,7 +78,7 @@ export class DelegateLauncher implements ILauncher {
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
   ): Promise<ILaunchResult> {
-    if (params.type !== Contributions.DelegateDebugType) {
+    if (params.type !== Contributions.TerminalDebugType || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
 

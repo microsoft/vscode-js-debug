@@ -60,10 +60,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.NodeDebugType, sessionManager),
     vscode.debug.registerDebugAdapterDescriptorFactory(
-      Contributions.DelegateDebugType,
-      sessionManager,
-    ),
-    vscode.debug.registerDebugAdapterDescriptorFactory(
       Contributions.TerminalDebugType,
       sessionManager,
     ),

@@ -4,6 +4,7 @@
 
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
+import { assertNever } from './common/objUtils';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -336,13 +337,13 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
   /**
    * Launch options to boot a server.
    */
-  server: INodeLaunchConfiguration | INodeTerminalConfiguration | null;
+  server: INodeLaunchConfiguration | ITerminalLaunchConfiguration | null;
 }
 
 /**
  * Opens a debugger-enabled terminal.
  */
-export interface INodeTerminalConfiguration extends INodeBaseConfiguration {
+export interface ITerminalLaunchConfiguration extends INodeBaseConfiguration {
   type: Contributions.TerminalDebugType;
   request: 'launch';
 
@@ -429,22 +430,23 @@ export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
 /**
  * Attach request used internally to inject a pre-built target into the lifecycle.
  */
-export interface IDelegateConfiguration extends IBaseConfiguration {
-  type: Contributions.DelegateDebugType;
-  request: 'launch';
+export interface ITerminalDelegateConfiguration extends INodeBaseConfiguration {
+  type: Contributions.TerminalDebugType;
+  request: 'attach';
   delegateId: number;
 }
 
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
-  | INodeTerminalConfiguration
-  | IExtensionHostConfiguration;
+  | ITerminalLaunchConfiguration
+  | IExtensionHostConfiguration
+  | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
-export type AnyLaunchConfiguration =
-  | AnyChromeConfiguration
-  | AnyNodeConfiguration
-  | IDelegateConfiguration;
+export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
+export type AnyTerminalConfiguration =
+  | ITerminalDelegateConfiguration
+  | ITerminalLaunchConfiguration;
 
 /**
  * Where T subtypes AnyLaunchConfiguration, gets the resolving version of T.
@@ -456,19 +458,25 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
 >;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
-export type ResolvingTerminalConfiguration = ResolvingConfiguration<INodeTerminalConfiguration>;
+export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
+  ITerminalDelegateConfiguration
+>;
+export type ResolvingTerminalLaunchConfiguration = ResolvingConfiguration<
+  ITerminalLaunchConfiguration
+>;
+export type ResolvingTerminalConfiguration =
+  | ResolvingTerminalDelegateConfiguration
+  | ResolvingTerminalLaunchConfiguration;
 export type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
-export type ResolvingDelegateConfiguration = ResolvingConfiguration<IDelegateConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
-  | ResolvingTerminalConfiguration
-  | ResolvingDelegateConfiguration;
+  | ResolvingTerminalConfiguration;
 
 /**
  * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
@@ -482,7 +490,7 @@ export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguratio
   : T extends ResolvingChromeConfiguration
   ? AnyChromeConfiguration
   : T extends ResolvingTerminalConfiguration
-  ? INodeTerminalConfiguration
+  ? ITerminalLaunchConfiguration
   : never;
 
 export const baseDefaults: IBaseConfiguration = {
@@ -518,7 +526,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   autoAttachChildProcesses: true,
 };
 
-export const terminalBaseDefaults: INodeTerminalConfiguration = {
+export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
   ...nodeBaseDefaults,
   showAsyncStacks: { onceBreakpointResolved: 16 },
   type: Contributions.TerminalDebugType,
@@ -526,10 +534,10 @@ export const terminalBaseDefaults: INodeTerminalConfiguration = {
   name: 'Debugger Terminal',
 };
 
-export const delegateDefaults: IDelegateConfiguration = {
-  ...baseDefaults,
-  type: Contributions.DelegateDebugType,
-  request: 'launch',
+export const delegateDefaults: ITerminalDelegateConfiguration = {
+  ...nodeBaseDefaults,
+  type: Contributions.TerminalDebugType,
+  request: 'attach',
   name: 'Debugger Terminal',
   delegateId: -1,
 };
@@ -626,14 +634,10 @@ export function applyExtensionHostDefaults(
 
 export function applyTerminalDefaults(
   config: ResolvingTerminalConfiguration,
-): INodeTerminalConfiguration {
-  return { ...extensionHostConfigDefaults, ...config };
-}
-
-export function applyDelegateDefaults(
-  config: ResolvingDelegateConfiguration,
-): IDelegateConfiguration {
-  return { ...delegateDefaults, ...config };
+): AnyTerminalConfiguration {
+  return config.request === 'launch'
+    ? { ...terminalBaseDefaults, ...config }
+    : { ...delegateDefaults, ...config };
 }
 
 export const isConfigurationWithEnv = (config: unknown): config is IConfigurationWithEnv =>
@@ -641,16 +645,22 @@ export const isConfigurationWithEnv = (config: unknown): config is IConfiguratio
 
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
-  if (config.type === Contributions.NodeDebugType) configWithDefaults = applyNodeDefaults(config);
-  else if (config.type === Contributions.ChromeDebugType)
-    configWithDefaults = applyChromeDefaults(config);
-  else if (config.type === Contributions.ExtensionHostDebugType)
-    configWithDefaults = applyExtensionHostDefaults(config);
-  else if (config.type === Contributions.TerminalDebugType)
-    configWithDefaults = applyTerminalDefaults(config);
-  else if (config.type === Contributions.DelegateDebugType)
-    configWithDefaults = applyDelegateDefaults(config);
-  else throw new Error(`Unknown config: ${JSON.stringify(config)}`);
+  switch (config.type) {
+    case Contributions.NodeDebugType:
+      configWithDefaults = applyNodeDefaults(config);
+      break;
+    case Contributions.ChromeDebugType:
+      configWithDefaults = applyChromeDefaults(config);
+      break;
+    case Contributions.ExtensionHostDebugType:
+      configWithDefaults = applyExtensionHostDefaults(config);
+      break;
+    case Contributions.TerminalDebugType:
+      configWithDefaults = applyTerminalDefaults(config);
+      break;
+    default:
+      throw assertNever(config, 'Unknown config: {value}');
+  }
 
   resolveWorkspaceRoot(configWithDefaults);
   return configWithDefaults;

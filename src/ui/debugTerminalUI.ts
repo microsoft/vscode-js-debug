@@ -13,7 +13,7 @@ import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { ITarget } from '../targets/targets';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
-import { applyDefaults, INodeTerminalConfiguration } from '../configuration';
+import { applyDefaults, ITerminalLaunchConfiguration } from '../configuration';
 import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
 import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
@@ -29,7 +29,7 @@ function launchTerminal(
   workspaceFolder?: vscode.WorkspaceFolder,
 ) {
   const launcher = new TerminalNodeLauncher(new NodePathProvider());
-  const baseDebugOptions: Partial<INodeTerminalConfiguration> = {
+  const baseDebugOptions: Partial<ITerminalLaunchConfiguration> = {
     ...readConfig(vscode.workspace.getConfiguration(), Configuration.TerminalDebugConfig),
     // Prevent switching over the the Debug Console whenever a process starts
     internalConsoleOptions: 'neverOpen',
@@ -65,9 +65,9 @@ function launchTerminal(
           workspaceFolder,
           applyDefaults({
             ...baseDebugOptions,
-            type: Contributions.DelegateDebugType,
+            type: Contributions.TerminalDebugType,
             name: 'Node.js Process',
-            request: 'launch',
+            request: 'attach',
             delegateId,
           }),
         );

@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { Command, WorkspaceConfiguration, WorkspaceFolder, commands } from 'vscode';
-import { INodeTerminalConfiguration } from '../configuration';
+import { ITerminalLaunchConfiguration } from '../configuration';
 
 export const enum Contributions {
   PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
@@ -21,7 +21,6 @@ export const enum Contributions {
   TerminalDebugType = 'NAMESPACE(node-terminal)',
   NodeDebugType = 'NAMESPACE(node)',
   ChromeDebugType = 'NAMESPACE(chrome)',
-  DelegateDebugType = 'NAMESPACE(js-debug-delegate)',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
@@ -38,7 +37,7 @@ export const enum Configuration {
 export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
-  [Configuration.TerminalDebugConfig]: Partial<INodeTerminalConfiguration>;
+  [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
 }
 
 export interface ICommandTypes {

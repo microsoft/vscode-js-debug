@@ -15,7 +15,7 @@ import {
   IChromeBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
-  INodeTerminalConfiguration,
+  ITerminalLaunchConfiguration,
   baseDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
@@ -467,7 +467,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
   },
 };
 
-const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
+const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
   type: Contributions.TerminalDebugType,
   request: 'launch',
   label: refString('debug.terminal.label'),
@@ -714,14 +714,6 @@ function buildDebuggers() {
       properties: d.configurationAttributes,
     };
   }
-
-  // Add fake delegate type:
-  output.push({
-    type: Contributions.DelegateDebugType,
-    label: 'a',
-    languages: [],
-    configurationAttributes: { launch: {} },
-  });
 
   return walkObject(output, sortKeys);
 }

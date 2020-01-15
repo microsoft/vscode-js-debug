@@ -9,6 +9,14 @@ export const removeUndefined = <V>(obj: { [key: string]: V | undefined }) =>
   filterValues(obj, (v): v is V => v !== undefined);
 
 /**
+ * Asserts that the value is never. If this function is reached, it throws.
+ */
+export const assertNever = (value: never, message: string): never => {
+  debugger;
+  throw new Error(message.replace('{value}', JSON.stringify(value)));
+};
+
+/**
  * Filters the object by value.
  */
 export function filterValues<V, F extends V>(
