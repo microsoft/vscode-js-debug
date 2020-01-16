@@ -655,6 +655,11 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
 
 function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
   resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
+  resolveVariableInConfig(
+    config,
+    'webRoot',
+    config.type === Contributions.ChromeDebugType ? config.webRoot : config.__workspaceFolder,
+  );
 }
 
 export function resolveVariableInConfig<T>(config: T, varName: string, varValue: string): void {
