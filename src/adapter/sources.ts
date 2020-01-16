@@ -504,7 +504,7 @@ export class SourceContainer {
     uiLocation: IUiLocation,
     sourceMap: SourceMapConsumer,
   ): NullablePosition | undefined {
-    const nextLocation = sourceMap.generatedPositionFor({
+    const prevLocation = sourceMap.generatedPositionFor({
       source: sourceUrl,
       line: uiLocation.lineNumber,
       column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
@@ -512,7 +512,7 @@ export class SourceContainer {
     });
 
     const getVariance = (position: NullablePosition) => {
-      if (nextLocation.line === null || nextLocation.column === null) {
+      if (position.line === null || position.column === null) {
         return 10e10;
       }
 
@@ -520,19 +520,19 @@ export class SourceContainer {
       return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
     };
 
-    const nextVariance = getVariance(nextLocation);
+    const nextVariance = getVariance(prevLocation);
     if (nextVariance === 0) {
-      return nextLocation; // exact match, no need to work harder
+      return prevLocation; // exact match, no need to work harder
     }
 
-    const prevLocation = sourceMap.generatedPositionFor({
+    const nextLocation = sourceMap.generatedPositionFor({
       source: sourceUrl,
       line: uiLocation.lineNumber,
       column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
       bias: SourceMapConsumer.LEAST_UPPER_BOUND,
     });
 
-    return getVariance(prevLocation) < nextVariance ? prevLocation : nextLocation;
+    return getVariance(nextLocation) < nextVariance ? nextLocation : prevLocation;
   }
 
   async addSource(
