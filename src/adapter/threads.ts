@@ -643,22 +643,23 @@ export class Thread implements IVariableStoreDelegate {
   rawLocation(
     location: Cdp.Runtime.CallFrame | Cdp.Debugger.CallFrame | Cdp.Debugger.Location,
   ): RawLocation {
-    // Note: cdp locations are 0-based, while ui locations are 1-based.
-    if ((location as Cdp.Debugger.CallFrame).location) {
+    // Note: cdp locations are 0-based, while ui locations are 1-based. Also,
+    // some we can *apparently* get negative locations; Vue's "hello world"
+    // project was observed to emit source locations at (-1, -1) in its callframe.
+    if ('location' in location) {
       const loc = location as Cdp.Debugger.CallFrame;
       return {
         url: loc.url,
-        lineNumber: loc.location.lineNumber + 1,
-        columnNumber: (loc.location.columnNumber || 0) + 1,
+        lineNumber: Math.max(0, loc.location.lineNumber) + 1,
+        columnNumber: Math.max(0, loc.location.columnNumber || 0) + 1,
         scriptId: loc.location.scriptId,
       };
     }
-    const loc = location as Cdp.Debugger.Location | Cdp.Runtime.CallFrame;
     return {
-      url: (loc as Cdp.Runtime.CallFrame).url || '',
-      lineNumber: loc.lineNumber + 1,
-      columnNumber: (loc.columnNumber || 0) + 1,
-      scriptId: loc.scriptId,
+      url: (location as Cdp.Runtime.CallFrame).url || '',
+      lineNumber: Math.max(0, location.lineNumber) + 1,
+      columnNumber: Math.max(0, location.columnNumber || 0) + 1,
+      scriptId: location.scriptId,
     };
   }
 
@@ -1029,9 +1030,12 @@ export class Thread implements IVariableStoreDelegate {
       if (event.sourceMapURL && this.launchConfig.sourceMaps) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
-        resolvedSourceMapUrl = event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
-        if (!resolvedSourceMapUrl)
+        resolvedSourceMapUrl = urlUtils.isDataUri(event.sourceMapURL)
+          ? event.sourceMapURL
+          : event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
+        if (!resolvedSourceMapUrl) {
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
+        }
       }
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
