@@ -12,10 +12,10 @@ import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
 
 describe('breakpoints', () => {
-  async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
+  async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
-    if (cb) await cb();
+    if (cb) await cb(threadId);
     return p.dap.continue({ threadId });
   }
 
@@ -542,6 +542,21 @@ describe('breakpoints', () => {
       await waitForPause(p);
       p.assertLog();
     });
+  });
+
+  itIntegrates('vue projects', async ({ r }) => {
+    const p = await r.launchUrl('vue/index.html');
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('web/src/App.vue') },
+      breakpoints: [{ line: 9, column: 1 }],
+    });
+    p.load();
+
+    const { threadId } = p.log(await p.dap.once('stopped'));
+    await p.logger.logStackTrace(threadId);
+    p.dap.stepIn({ threadId });
+    await waitForPause(p);
+    p.assertLog();
   });
 
   describe('breakpoint placement', () => {

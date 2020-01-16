@@ -563,8 +563,19 @@ export class SourceContainer {
 
   async _addSource(source: Source) {
     this._sourceByReference.set(source.sourceReference(), source);
-    if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.set(source._url, source);
-    this._sourceByAbsolutePath.set(source._absolutePath, source);
+    if (source._compiledToSourceUrl) {
+      this._sourceMapSourcesByUrl.set(source._url, source);
+    }
+
+    // Some builds, like the Vue starter, generate 'metadata' files for compiled
+    // files with query strings appended to deduplicate them, or nested inside
+    // of internal prefixes. If we see a duplicate entries for an absolute path,
+    // take the shorter of them.
+    const existingByPath = this._sourceByAbsolutePath.get(source._absolutePath);
+    if (existingByPath === undefined || existingByPath.url().length >= source.url().length) {
+      this._sourceByAbsolutePath.set(source._absolutePath, source);
+    }
+
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
