@@ -4,4 +4,4 @@
     reason : breakpoint
     threadId : <number>
 }
-double @ ${workspaceFolder}/nodeModuleBreakpoint/node_modules/@c4312/foo/src/index.ts:2:3
+foo @ ${workspaceFolder}/sourceMapLocations/test.ts:6:3

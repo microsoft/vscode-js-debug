@@ -1,0 +1,1 @@
+{"version":3,"sources":["test.ts"],"names":[],"mappings":";;AAAA,IAAI,CAAC,GAAG,CAAR;;AAEA,SAAS,GAAT,GAAe;AACb,EAAA,OAAO,CAAC,GAAR,CAAY,CAAZ;AACA,EAAA,CAAC;AACD,EAAA,OAAO,CAAC,GAAR,CAAY,CAAZ;AACD;;AAED,GAAG","file":"stdout","sourcesContent":["let a = 0;\n\nfunction foo() {\n  console.log(a);\n  a++;\n  console.log(a);\n}\n\nfoo();\n"]}

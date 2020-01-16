@@ -36,7 +36,7 @@ stderr>
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
 stderr>     
-throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
+throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
 <anonymous> @ <eval>/VM<xx>:1:27
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1

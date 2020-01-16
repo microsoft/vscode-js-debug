@@ -1,10 +1,10 @@
 
-foo @ ${workspaceFolder}/web/browserify/module1.ts:3:2
+foo @ ${workspaceFolder}/web/browserify/module1.ts:3:3
   > scope #0: Local: foo
       this: undefined
   scope #1: Global [expensive]
 
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
   > scope #0: Local: bar
       
 > callback: ƒ foo() {
@@ -13,7 +13,7 @@ bar @ ${workspaceFolder}/web/browserify/module2.ts:3:2
       > this: Object
   scope #1: Global [expensive]
 
-3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:3
+3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:4
   > scope #0: Local: 3../module1
       > exports: {__esModule: true}
       > m1: {__esModule: true, kModule1: 1, foo: ƒ, throwError: ƒ, throwValue: ƒ}
