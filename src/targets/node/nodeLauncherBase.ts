@@ -17,11 +17,7 @@ import {
   ILaunchContext,
   IStopMetadata,
 } from '../../targets/targets';
-import {
-  AnyLaunchConfiguration,
-  AnyNodeConfiguration,
-  isConfigurationWithEnv,
-} from '../../configuration';
+import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
@@ -224,9 +220,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   protected getConfiguredEnvironment(params: T) {
     let baseEnv = EnvironmentVars.empty;
-    if (!isConfigurationWithEnv(params)) {
-      return baseEnv;
-    }
+
     // read environment variables from any specified file
     if (params.envFile) {
       try {
@@ -236,11 +230,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       }
     }
 
-    if (params.env) {
-      baseEnv = baseEnv.merge(params.env);
-    }
-
-    return baseEnv;
+    return baseEnv.merge(params.env);
   }
 
   /**

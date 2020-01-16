@@ -9,7 +9,6 @@ import * as nls from 'vscode-nls';
 import Dap from '../../dap/api';
 import { ProtocolError, cannotLaunchInTerminal } from '../../dap/errors';
 import { TerminalProcess } from './program';
-import { removeNulls } from '../../common/objUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -34,7 +33,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
       args: config.program
         ? [binary, ...config.runtimeArgs, config.program, ...config.args]
         : [binary, ...config.runtimeArgs, ...config.args],
-      env: removeNulls(config.env),
+      env: config.env,
     };
 
     let result: Dap.RunInTerminalResult;

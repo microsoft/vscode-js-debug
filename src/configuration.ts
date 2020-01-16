@@ -165,7 +165,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   __workspaceCachePath?: string;
 }
 
-export interface IExtensionHostConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
+export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
   type: Contributions.ExtensionHostDebugType;
   request: 'attach' | 'launch';
 
@@ -173,17 +173,6 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration, ICo
    * Command line arguments passed to the program.
    */
   args: ReadonlyArray<string>;
-
-  /**
-   * Environment variables passed to the program. The value `null` removes the
-   * variable from the environment.
-   */
-  env: Readonly<{ [key: string]: string | null }>;
-
-  /**
-   * Absolute path to a file containing environment variable definitions.
-   */
-  envFile: string | null;
 
   /**
    * If source maps are enabled, these glob patterns specify the generated
@@ -207,12 +196,11 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration, ICo
 /**
  * Common configuration for the Node debugger.
  */
-export interface INodeBaseConfiguration extends IBaseConfiguration {
+export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurationWithEnv {
   /**
    * Absolute path to the working directory of the program being debugged.
    */
   cwd: string;
-
   /**
    * If source maps are enabled, these glob patterns specify the generated
    * JavaScript files. If a pattern starts with `!` the files are excluded.
@@ -519,6 +507,8 @@ export const baseDefaults: IBaseConfiguration = {
 const nodeBaseDefaults: INodeBaseConfiguration = {
   ...baseDefaults,
   cwd: '${workspaceFolder}',
+  env: {},
+  envFile: null,
   pauseForSourceMap: false,
   sourceMaps: true,
   localRoot: null,
@@ -549,8 +539,6 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   name: 'Debug Extension',
   request: 'launch',
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
-  env: {},
-  envFile: null,
   outFiles: ['${workspaceFolder}/out/**/*.js'],
   port: 0,
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
@@ -569,8 +557,6 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeExecutable: 'node',
   runtimeVersion: 'default',
   runtimeArgs: [],
-  env: {},
-  envFile: null,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

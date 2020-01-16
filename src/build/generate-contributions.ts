@@ -225,6 +225,19 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.launch.autoAttachChildProcesses.description'),
     default: true,
   },
+  env: {
+    type: 'object',
+    additionalProperties: {
+      type: ['string', 'null'],
+    },
+    markdownDescription: refString('node.launch.env.description'),
+    default: {},
+  },
+  envFile: {
+    type: 'string',
+    description: refString('node.launch.envFile.description'),
+    default: '${workspaceFolder}/.env',
+  },
 };
 
 /**
@@ -451,19 +464,6 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       },
       default: [],
     },
-    env: {
-      type: 'object',
-      additionalProperties: {
-        type: ['string', 'null'],
-      },
-      markdownDescription: refString('node.launch.env.description'),
-      default: {},
-    },
-    envFile: {
-      type: 'string',
-      description: refString('node.launch.envFile.description'),
-      default: '${workspaceFolder}/.env',
-    },
   },
 };
 
@@ -588,19 +588,6 @@ const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
       type: ['string', 'null'],
       markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
       default: 'node',
-    },
-    env: {
-      type: 'object',
-      additionalProperties: {
-        type: ['string', 'null'],
-      },
-      markdownDescription: refString('extensionHost.launch.env.description'),
-      default: {},
-    },
-    envFile: {
-      type: 'string',
-      description: refString('node.launch.envFile.description'),
-      default: '${workspaceFolder}/.env',
     },
   },
 };
