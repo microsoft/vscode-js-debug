@@ -10,10 +10,19 @@ import * as errors from '../dap/errors';
 import * as nls from 'vscode-nls';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
+import { invokeGetter } from './templates/invokeGetter';
+import { RemoteException } from './templates';
 
 const localize = nls.loadMessageBundle();
 
 class RemoteObject {
+  /**
+   * For functions, returns whether it should be evaluated when inspected.
+   * This can be set on side-effect-free objects like accessors who should
+   * have their value replaced.
+   */
+  public evaluteOnInspect = false;
+
   readonly o: Cdp.Runtime.RemoteObject;
   readonly objectId: Cdp.Runtime.RemoteObjectId;
   readonly cdp: Cdp.Api;
@@ -25,10 +34,10 @@ class RemoteObject {
   scopeVariables?: Dap.Variable[];
 
   constructor(
-    private name: string | number,
+    public readonly name: string | number,
     cdp: Cdp.Api,
     object: Cdp.Runtime.RemoteObject,
-    private readonly parent?: RemoteObject,
+    public readonly parent?: RemoteObject,
   ) {
     this.o = object;
     // eslint-disable-next-line
@@ -109,8 +118,31 @@ export class VariableStore {
     if (result) return await result();
 
     const object = this._referenceToObject.get(params.variablesReference);
-    if (!object) return [];
-    if (object.scopeVariables) return object.scopeVariables;
+    if (!object) {
+      return [];
+    }
+
+    if (object.scopeVariables) {
+      return object.scopeVariables;
+    }
+
+    if (object.evaluteOnInspect && object.parent) {
+      try {
+        const result = await invokeGetter({
+          cdp: object.cdp,
+          objectId: object.parent.objectId,
+          args: [object.name],
+        });
+
+        return [this._createVariable('', object.parent.wrap(object.name, result), 'repl')];
+      } catch (e) {
+        if (!(e instanceof RemoteException)) {
+          throw e;
+        }
+
+        // continue
+      }
+    }
 
     if (objectPreview.isArray(object.o)) {
       if (params && params.filter === 'indexed') return this._getArraySlots(object, params);
@@ -245,12 +277,12 @@ export class VariableStore {
     stackTrace?: StackTrace,
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
-    if (args.length === 1 && objectPreview.isObject(args[0]) && !stackTrace) {
+    if (args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace) {
       rootObjectVariable = this._createVariable('', new RemoteObject('', this._cdp, args[0]));
       rootObjectVariable.value = text;
     } else {
       const rootObjectReference =
-        stackTrace || args.find(a => objectPreview.isObject(a))
+        stackTrace || args.find(a => objectPreview.previewAsObject(a))
           ? ++VariableStore._lastVariableReference
           : 0;
       rootObjectVariable = {
@@ -275,7 +307,7 @@ export class VariableStore {
     const params: Dap.Variable[] = [];
 
     for (let i = 0; i < args.length; ++i) {
-      if (!objectPreview.isObject(args[i])) continue;
+      if (!objectPreview.previewAsObject(args[i])) continue;
       params.push(
         this._createVariable(`arg${i}`, new RemoteObject(`arg${i}`, this._cdp, args[i]), 'repl'),
       );
@@ -352,24 +384,29 @@ export class VariableStore {
 
     // Push internal properties
     for (const p of ownProperties.internalProperties || []) {
-      if (p.name === '[[StableObjectId]]') continue;
+      if (p.name === '[[StableObjectId]]') {
+        continue;
+      }
+
       const weight = objectPreview.internalPropertyWeight(p);
+      let variable: Dap.Variable;
       if (
         p.name === '[[FunctionLocation]]' &&
         p.value &&
         (p.value.subtype as string) === 'internal#location'
       ) {
         const loc = p.value.value as Cdp.Debugger.Location;
-        properties.push({
-          weight,
-          v: {
-            name: p.name,
-            value: await this._delegate.renderDebuggerLocation(loc),
-            variablesReference: 0,
-          },
-        });
-        continue;
+        variable = {
+          name: p.name,
+          value: await this._delegate.renderDebuggerLocation(loc),
+          variablesReference: 0,
+          presentationHint: { visibility: 'internal' },
+        };
+      } else {
+        variable = this._createVariable(p.name, object.wrap(p.name, p.value));
       }
+
+      properties.push({ v: { ...variable, presentationHint: { visibility: 'internal' } }, weight });
     }
 
     // Wrap up
@@ -441,10 +478,11 @@ export class VariableStore {
     const result: Dap.Variable[] = [];
     if ('value' in p)
       result.push(this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
-    if (p.get && p.get.type !== 'undefined')
-      result.push(
-        this._createVariable(`get ${p.name}`, owner.wrap(p.name, p.get), 'propertyValue'),
-      );
+    if (p.get && p.get.type !== 'undefined') {
+      const obj = owner.wrap(p.name, p.get);
+      obj.evaluteOnInspect = true;
+      result.push(this._createGetter(`get ${p.name}`, obj, 'propertyValue'));
+    }
     if (p.set && p.set.type !== 'undefined')
       result.push(
         this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
@@ -465,11 +503,22 @@ export class VariableStore {
       return this._createArrayVariable(name, value, context);
     }
 
-    if (value.objectId && !objectPreview.primitiveSubtypes.has(value.o.subtype)) {
+    if (value.objectId && !objectPreview.subtypesWithoutPreview.has(value.o.subtype)) {
       return this._createObjectVariable(name, value, context);
     }
 
     return this._createPrimitiveVariable(name, value, context);
+  }
+
+  private _createGetter(name: string, value: RemoteObject, context: string): Dap.Variable {
+    const reference = this._createVariableReference(value);
+    return {
+      name,
+      value: objectPreview.previewRemoteObject(value.o, context),
+      evaluateName: value.accessor,
+      type: value.o.type,
+      variablesReference: reference,
+    };
   }
 
   private _createPrimitiveVariable(

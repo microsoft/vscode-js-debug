@@ -35,6 +35,25 @@ describe('evaluate', () => {
     await p.logger.evaluateAndLog(`baz();`);
     p.log('');
 
+    await p.logger.evaluateAndLog(`new Uint8Array([1, 2, 3]);`);
+    p.log('');
+
+    await p.logger.evaluateAndLog(`new Uint8Array([1, 2, 3]).buffer;`);
+    p.log('');
+
+    await p.logger.evaluateAndLog(`new Proxy({ a: 1 }, { get: () => 2 });`);
+    p.log('');
+
+    // prototype-free objs just to avoid adding prototype noise to tests:
+    await p.logger.evaluateAndLog(`Object.create({ set foo(x) {} })`, { depth: 2 });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`Object.create({ get foo() { return 42 } })`, { depth: 2 });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`Object.create({ get foo() { throw 'wat'; } })`, { depth: 2 });
+    p.log('');
+
     p.evaluate(`setTimeout(() => { throw new Error('bar')}, 0)`);
     await p.logger.logOutput(await p.dap.once('output'));
     p.log('');

@@ -14,32 +14,32 @@ const maxExceptionTitleLength = 10000;
 const minTableCellWidth = 3;
 const maxTableWidth = 120;
 
-export const primitiveSubtypes = new Set<string | undefined>([
+/**
+ * Object subtypes that should be rendered without any preview.
+ */
+export const subtypesWithoutPreview: ReadonlySet<string | undefined> = new Set([
   'null',
   'regexp',
   'date',
   'error',
-  'proxy',
-  'typedarray',
-  'arraybuffer',
-  'dataview',
 ]);
 
-export function isObject(object: Cdp.Runtime.ObjectPreview): boolean;
-export function isObject(object: Cdp.Runtime.PropertyPreview): boolean;
-export function isObject(object: Cdp.Runtime.RemoteObject): boolean;
-export function isObject(
+/**
+ * Returns whether the given type should be previewed as an expandable
+ * object.
+ */
+export function previewAsObject(
   object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview,
 ): boolean {
   return (
     object.type === 'function' ||
-    (object.type === 'object' && !primitiveSubtypes.has(object.subtype))
+    (object.type === 'object' && !subtypesWithoutPreview.has(object.subtype))
   );
 }
 
-export function isArray(object: Cdp.Runtime.ObjectPreview): boolean;
-export function isArray(object: Cdp.Runtime.PropertyPreview): boolean;
-export function isArray(object: Cdp.Runtime.RemoteObject): boolean;
+/**
+ * Returns whether the given type should be previwed as an array.
+ */
 export function isArray(
   object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview,
 ): boolean {
@@ -98,7 +98,7 @@ function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: numb
   if (isArray(preview)) return renderArrayPreview(preview, characterBudget);
   if ((preview.subtype as string) === 'internal#entry')
     return stringUtils.trimEnd(preview.description || '', characterBudget);
-  if (isObject(preview)) return renderObjectPreview(preview, characterBudget);
+  if (previewAsObject(preview)) return renderObjectPreview(preview, characterBudget);
   if (preview.type === 'function')
     return formatFunctionDescription(preview.description!, characterBudget);
   return renderPrimitivePreview(preview, characterBudget);
