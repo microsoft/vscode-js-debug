@@ -3,131 +3,137 @@
  *--------------------------------------------------------*/
 
 import Dap from '../dap/api';
-import { HighResolutionTime, calculateElapsedTime } from '../utils/performance';
-import {
-  OpsReportBatcher,
-  UnbatchedOpReport,
-  TelemetryOperationProperties,
-} from './opsReportBatch';
+import { ReporterBatcher } from './opsReportBatch';
+import { LogFunctions, createLoggers, IRPCOperation } from './classification';
+import { IDisposable } from '../common/disposable';
+import { mapValues } from '../common/objUtils';
 import { EventEmitter } from '../common/events';
 
-export type TelemetryEntityProperties = object;
-export type OutcomeAndTime = { time: number; succesful: boolean };
+// For each logger that takes an IRPCOperation, an OpsBatchReporter
+type Batchable = {
+  [K in keyof LogFunctions]: LogFunctions[K] extends (metrics: IRPCOperation) => void ? K : never;
+}[keyof LogFunctions];
 
-enum RequestOutcome {
-  Succesful,
-  Failed,
-}
+/**
+ * A telemetry reporter is a logging interface that pushes telemetry events
+ * over DAP.
+ */
+export class TelemetryReporter implements IDisposable {
+  /**
+   * How often to flush telemetry batches.
+   */
+  private static batchFlushInterval = 5000;
 
-export interface ITelemetryReporterStrategy {
-  eventsPrefix: string;
-  adjustElapsedTime(elapsedTime: number): number;
-  report(eventName: string, entityProperties: TelemetryEntityProperties): void;
-}
+  /**
+   * Either a connected DAP connection, or telemetry queue.
+   */
+  private target: Dap.Api | Dap.OutputEventParams[] = [];
 
-export class TelemetryReporter {
-  private constructor(private readonly _strategy: ITelemetryReporterStrategy) {}
+  private readonly flushEmitter = new EventEmitter<void>();
+  private readonly loggers = createLoggers(params => this.pushOutput(params));
+  private readonly batchFlushTimeout: { [K in Batchable]?: NodeJS.Timeout } = {};
+  private readonly batchers: { [K in Batchable]: ReporterBatcher } = {
+    dapOperation: new ReporterBatcher(),
+    cdpOperation: new ReporterBatcher(),
+  };
 
-  public static dap(dap: Dap.Api): TelemetryReporter {
-    return new TelemetryReporter(new DapRequestTelemetryReporter(dap));
-  }
-  public static cdp(rawTelemetryReporter: IRawTelemetryReporter): TelemetryReporter {
-    return new TelemetryReporter(new CdpTelemetryReporter(rawTelemetryReporter));
-  }
+  /**
+   * Event that fires when the reporter wants to flush telemetry. Consumers
+   * can hook into this to lazily provide pre-shutdown information.
+   */
+  public readonly onFlush = this.flushEmitter.event;
 
-  reportError(dapCommand: string, receivedTime: HighResolutionTime, error: unknown) {
-    this.reportOutcome(
-      receivedTime,
-      dapCommand,
-      error instanceof Error
-        ? extractErrorDetails(error)
-        : { error: { message: JSON.stringify(error) } },
-      RequestOutcome.Failed,
-    );
-  }
-
-  reportSuccess(dapCommand: string, receivedTime: HighResolutionTime) {
-    this.reportOutcome(receivedTime, dapCommand, {}, RequestOutcome.Succesful);
-  }
-
-  reportEvent(event: string, data: TelemetryEntityProperties) {
-    this._strategy.report(`${this._strategy.eventsPrefix}/${event}`, data);
-  }
-
-  private reportOutcome(
-    receivedTime: [number, number],
-    dapCommand: string,
-    properties: TelemetryEntityProperties,
-    outcome: RequestOutcome,
-  ) {
-    const elapsedTime = calculateElapsedTime(receivedTime);
-    const entityProperties = {
-      ...properties,
-      time: this._strategy.adjustElapsedTime(elapsedTime),
-      succesful: outcome === RequestOutcome.Succesful,
-    };
-    this._strategy.report(`${this._strategy.eventsPrefix}/` + dapCommand, entityProperties);
-  }
-}
-
-class DapRequestTelemetryReporter {
-  private readonly _rawTelemetryReporter: RawTelemetryReporterToDap;
-
-  public readonly eventsPrefix = 'dap';
-  public readonly adjustElapsedTime = (x: number) => x;
-
-  public constructor(dap: Dap.Api) {
-    this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
+  /**
+   * Reports a telemetry event.
+   */
+  public report<K extends keyof LogFunctions>(key: K, ...args: Parameters<LogFunctions[K]>) {
+    const fn = this.loggers[key];
+    // Weirdly, TS doesn't seem to be infer that args is the
+    // same Parameters<Fn[K]> that fn (Fn[K]) is.
+    ((fn as unknown) as (...args: unknown[]) => void)(...args);
   }
 
-  public report(eventName: string, entityProperties: TelemetryEntityProperties): void {
-    this._rawTelemetryReporter.report(eventName, entityProperties);
-  }
-}
+  /**
+   * Reports that an operation succeeded.
+   * @param key - General type of operation
+   * @param method - Operation method call
+   * @param duration - How long the method call took
+   * @param error - Any error that occurred
+   */
+  public reportOperation(key: Batchable, method: string, duration: number, error?: Error) {
+    this.batchers[key].add(method, duration, error);
 
-class CdpTelemetryReporter {
-  private readonly _batcher = new OpsReportBatcher();
-
-  public constructor(private readonly _rawTelemetryReporter: IRawTelemetryReporter) {
-    this._rawTelemetryReporter.flush.event(() => {
-      this._rawTelemetryReporter.report('cdpOperations', this._batcher.batched());
-    });
-  }
-
-  // Floating point numbers use too much space and we don't need that much precision, we use integers to use less space when batching timings
-  public readonly adjustElapsedTime = Math.ceil;
-
-  public readonly eventsPrefix = 'cdp';
-
-  public report(eventName: string, entityProperties: TelemetryOperationProperties) {
-    // CDP generates a lot of operations, so instead of reporting them one by one, we batch them all together
-    this._batcher.add(new UnbatchedOpReport(eventName, entityProperties));
-  }
-}
-
-export interface IRawTelemetryReporter {
-  flush: EventEmitter<void>;
-  report(entityName: string, entityProperties: TelemetryEntityProperties): void;
-}
-
-export class RawTelemetryReporterToDap implements IRawTelemetryReporter {
-  public readonly flush = new EventEmitter<void>();
-  private _enableTelemetry: boolean;
-
-  public constructor(private readonly _dap: Dap.Api) {
-    this._enableTelemetry = !process.env['DA_TEST_DISABLE_TELEMETRY'];
+    if (this.batchFlushTimeout[key] === undefined) {
+      this.batchFlushTimeout[key] = setTimeout(() => {
+        this.report(key, { performance: this.batchers[key].flush() });
+        this.batchFlushTimeout[key] = undefined;
+      }, TelemetryReporter.batchFlushInterval);
+    }
   }
 
-  report(entityName: string, entityProperties: TelemetryEntityProperties) {
-    if (this._enableTelemetry) {
-      this._dap.output({
-        category: 'telemetry',
-        output: entityName,
-        data: entityProperties,
-      });
+  public attachDap(dap: Dap.Api) {
+    if (this.target instanceof Array) {
+      this.target.forEach(event => dap.output(event));
+    }
+
+    this.target = dap;
+  }
+
+  /**
+   * Flushes all pending batch flushes.
+   */
+  public flush() {
+    this.flushEmitter.fire();
+
+    const pending = Object.entries(this.batchFlushTimeout) as [Batchable, NodeJS.Timeout][];
+    for (const [key, value] of pending) {
+      this.report(key, { performance: this.batchers[key].flush() });
+      this.batchFlushTimeout[key] = undefined;
+      clearTimeout(value);
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
+    for (const timeout of Object.values(this.batchFlushTimeout)) {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+  }
+
+  private pushOutput(event: Dap.OutputEventParams) {
+    event.data = mapOutput(event.data) as object;
+    if (this.target instanceof Array) {
+      this.target.push(event);
+    } else {
+      this.target.output(event);
     }
   }
 }
+
+const mapOutput = (obj: unknown): unknown => {
+  if (typeof obj === 'number') {
+    return Number(obj.toFixed(1)); // compress floating point numbers
+  }
+
+  if (typeof obj !== 'object' || !obj) {
+    return obj;
+  }
+
+  // Replace errors with their sanitized details
+  if (obj instanceof Error) {
+    return extractErrorDetails(obj);
+  }
+
+  if (obj instanceof Array) {
+    return obj.map(mapOutput);
+  }
+
+  return mapValues(obj as { [key: string]: unknown }, mapOutput);
+};
 
 // Pattern: The pattern recognizes file paths and captures the file name and the colon at the end.
 // Next line is a sample path aligned with the regexp parts that recognize it/match it. () is for the capture group
@@ -141,9 +147,14 @@ interface IErrorTelemetryProperties {
   stack: string | undefined;
 }
 
-export function extractErrorDetails(e: Error): { error: IErrorTelemetryProperties } {
-  const message = '' + e.message || e.toString();
-  const name = '' + e.name;
+/**
+ * Converts the Error to an nice object with any private paths replaced.
+ */
+function extractErrorDetails(e: Error): { error: IErrorTelemetryProperties } {
+  const message = String(e.message);
+  const name = String(e.name);
+
+  extractFileNamePattern.lastIndex = 0;
 
   const stack =
     typeof e.stack === 'string' ? e.stack.replace(extractFileNamePattern, '$1') : undefined;

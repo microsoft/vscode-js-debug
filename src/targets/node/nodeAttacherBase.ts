@@ -90,8 +90,15 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       return;
     }
 
-    this.program.gotTelemetery(telemetry.result.value);
-    return telemetry.result.value;
+    const result = telemetry.result.value as IProcessTelemetry;
+
+    run.context.telemetryReporter.report('nodeRuntime', {
+      version: result.nodeVersion,
+      arch: result.architecture,
+    });
+    this.program.gotTelemetery(result);
+
+    return result;
   }
 }
 

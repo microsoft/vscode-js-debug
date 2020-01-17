@@ -29,6 +29,7 @@ import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
+import { TelemetryReporter } from './telemetry/telemetryReporter';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -37,11 +38,12 @@ class ChildSession {
   public readonly connection: ChildConnection;
 
   constructor(
+    telemetry: TelemetryReporter,
     public readonly sessionId: string,
     connection: MessageEmitterConnection,
     target: ITarget,
   ) {
-    this.connection = new ChildConnection(connection, sessionId);
+    this.connection = new ChildConnection(telemetry, connection, sessionId);
     this._nameChangedSubscription = target.onNameChanged(() => {
       this.connection.dap().then(dap => dap.process({ name: target.name() }));
     });
@@ -56,6 +58,7 @@ class ChildSession {
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
   const _childSessionsForTarget = new Map<ITarget, ChildSession>();
   const pathProvider = new NodePathProvider();
+  const telemetry = new TelemetryReporter();
   const launchers = [
     new ExtensionHostAttacher(pathProvider),
     new ExtensionHostLauncher(pathProvider),
@@ -89,7 +92,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
         },
       });
 
-      const childSession = new ChildSession(sessionId, connection, target);
+      const childSession = new ChildSession(telemetry, sessionId, connection, target);
       _childSessionsForTarget.set(target, childSession);
       return childSession.connection;
     },
@@ -107,11 +110,17 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
     },
   };
 
-  const connection = new MessageEmitterConnection();
+  const connection = new MessageEmitterConnection(telemetry);
   // First child uses no sessionId. Could potentially use something predefined that both sides know about, or have it passed with either
   // cmd line args or launch config if we decide that all sessions should definitely have an id
-  const firstConnection = new ChildConnection(connection, undefined);
-  new Binder(binderDelegate, firstConnection, launchers, new TargetOrigin('targetOrigin'));
+  const firstConnection = new ChildConnection(telemetry, connection, undefined);
+  new Binder(
+    binderDelegate,
+    firstConnection,
+    launchers,
+    telemetry,
+    new TargetOrigin('targetOrigin'),
+  );
 
   connection.init(inputStream, outputStream);
 }

@@ -16,11 +16,12 @@ import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
-import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBrowserProcess } from './browserProcess';
+import { IBrowserVersionMetrics } from '../../telemetry/classification';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -44,7 +45,7 @@ export class BrowserTargetManager implements IDisposable {
     process: undefined | IBrowserProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
-    telemetry: IRawTelemetryReporter,
+    telemetry: TelemetryReporter,
     targetOrigin: ITargetOrigin,
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
@@ -71,7 +72,7 @@ export class BrowserTargetManager implements IDisposable {
     private readonly process: IBrowserProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
-    private readonly telemetry: IRawTelemetryReporter,
+    private readonly telemetry: TelemetryReporter,
     private readonly launchParams: AnyChromeConfiguration,
     targetOrigin: ITargetOrigin,
   ) {
@@ -202,14 +203,14 @@ export class BrowserTargetManager implements IDisposable {
         throw new Error('Undefined return from getVersion()');
       }
 
-      const properties = {
-        'Versions.Target.CRDPVersion': info.protocolVersion,
-        'Versions.Target.Revision': info.revision,
-        'Versions.Target.UserAgent': info.userAgent,
-        'Versions.Target.V8': info.jsVersion,
-        'Versions.Target.Version': '',
-        'Versions.Target.Project': '',
-        'Versions.Target.Product': '',
+      const properties: IBrowserVersionMetrics = {
+        targetCRDPVersion: info.protocolVersion,
+        targetRevision: info.revision,
+        targetUserAgent: info.userAgent,
+        targetV8: info.jsVersion,
+        targetVersion: '',
+        targetProject: '',
+        targetProduct: '',
       };
 
       logger.verbose(LogTag.RuntimeTarget, 'Retrieved browser information', info);
@@ -217,34 +218,14 @@ export class BrowserTargetManager implements IDisposable {
       const parts = (info.product || '').split('/');
       if (parts.length === 2) {
         // Currently response.product looks like "Chrome/65.0.3325.162" so we split the project and the actual version number
-        properties['Versions.Target.Project'] = parts[0];
-        properties['Versions.Target.Version'] = parts[1];
+        properties.targetProject = parts[0];
+        properties.targetVersion = parts[1];
       } else {
         // If for any reason that changes, we submit the entire product as-is
-        properties['Versions.Target.Product'] = info.product;
+        properties.targetProduct = info.product;
       }
 
-      /* __GDPR__FRAGMENT__
-        "VersionInformation" : {
-          "Versions.Target.CRDPVersion" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.Revision" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.UserAgent" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.V8" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.V<NUMBER>" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.Project" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.Version" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.Product" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "Versions.Target.NoUserAgentReason" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-          "${include}": [ "${IExecutionResultTelemetryProperties}" ]
-        }
-      */
-      /* __GDPR__
-        "target-version" : {
-          "${include}": [ "${DebugCommonProperties}" ]
-        }
-      */
-
-      this.telemetry.report('target-version', properties);
+      this.telemetry.report('browserVersion', properties);
     } catch (e) {
       logger.warn(LogTag.RuntimeTarget, 'Error getting browser telemetry', e);
     }

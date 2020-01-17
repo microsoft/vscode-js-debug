@@ -5,7 +5,6 @@
 import * as net from 'net';
 import WebSocket from 'ws';
 import * as events from 'events';
-import { HighResolutionTime } from '../utils/performance';
 import { CancellationToken } from 'vscode';
 import { timeoutPromise } from '../common/cancellation';
 import { logger } from '../common/logging/logger';
@@ -14,7 +13,7 @@ import { LogTag } from '../common/logging';
 export interface ITransport {
   send(message: string): void;
   close(): void;
-  onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
+  onmessage?: (message: string, receivedTime: bigint) => void;
   onend?: () => void;
 }
 
@@ -22,8 +21,8 @@ export class PipeTransport implements ITransport {
   private _pipeWrite: NodeJS.WritableStream | undefined;
   private _socket: net.Socket | undefined;
   private _pendingBuffers: Buffer[];
-  private _eventListeners: any[];
-  onmessage?: (message: string, receivedTime: HighResolutionTime) => void;
+  private _eventListeners: IListener[];
+  onmessage?: (message: string, receivedTime: bigint) => void;
   onend?: () => void;
 
   constructor(socket: net.Socket);
@@ -35,7 +34,7 @@ export class PipeTransport implements ITransport {
 
     this._pendingBuffers = [];
     this._eventListeners = [
-      addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer)),
+      addEventListener(pipeRead || pipeWrite, 'data', buffer => this._dispatch(buffer as Buffer)),
       addEventListener(pipeWrite, 'end', () => this._onPipeEnd()),
       // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
       addEventListener(pipeWrite, 'error', err =>
@@ -72,7 +71,7 @@ export class PipeTransport implements ITransport {
   }
 
   _dispatch(buffer: Buffer) {
-    const receivedTime = process.hrtime();
+    const receivedTime = process.hrtime.bigint();
     let end = buffer.indexOf('\0');
     if (end === -1) {
       this._pendingBuffers.push(buffer);
@@ -130,7 +129,7 @@ export class WebSocketTransport implements ITransport {
     this._ws.addEventListener('message', event => {
       if (this.onmessage) this.onmessage.call(null, event.data);
     });
-    this._ws.addEventListener('close', event => {
+    this._ws.addEventListener('close', () => {
       if (this.onend) this.onend.call(null);
       this._ws = undefined;
     });
@@ -155,7 +154,7 @@ export class WebSocketTransport implements ITransport {
   }
 }
 
-type HandlerFunction = (...args: any[]) => void;
+type HandlerFunction = (...args: unknown[]) => void;
 
 export interface IListener {
   emitter: events.EventEmitter;

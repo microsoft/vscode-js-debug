@@ -11,10 +11,7 @@ import CdpConnection from '../../cdp/connection';
 import { PipeTransport, WebSocketTransport, ITransport } from '../../cdp/transport';
 import { Readable, Writable } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
-import {
-  RawTelemetryReporterToDap,
-  IRawTelemetryReporter,
-} from '../../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
 import { TaskCancelledError } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
@@ -76,7 +73,7 @@ export interface ILaunchResult {
 export async function launch(
   dap: Dap.Api,
   executablePath: string,
-  rawTelemetryReporter: IRawTelemetryReporter,
+  telemetryReporter: TelemetryReporter,
   clientCapabilities: IDapInitializeParamsWithExtensions,
   cancellationToken: CancellationToken,
   options: ILaunchOptions | undefined = {},
@@ -171,7 +168,7 @@ export async function launch(
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
 
-    const cdp = new CdpConnection(transport, rawTelemetryReporter);
+    const cdp = new CdpConnection(transport, telemetryReporter);
     exitListener = async () => {
       await cdp.rootSession().Browser.close({});
       if (browserProcess.pid) {
@@ -205,7 +202,7 @@ interface IAttachOptions {
 export async function attach(
   options: IAttachOptions,
   cancellationToken: CancellationToken,
-  rawTelemetryReporter: RawTelemetryReporterToDap,
+  telemetryReporter: TelemetryReporter,
 ): Promise<CdpConnection> {
   const { browserWSEndpoint, browserURL } = options;
 
@@ -214,11 +211,11 @@ export async function attach(
       browserWSEndpoint,
       cancellationToken,
     );
-    return new CdpConnection(connectionTransport, rawTelemetryReporter);
+    return new CdpConnection(connectionTransport, telemetryReporter);
   } else if (browserURL) {
     const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
     const connectionTransport = await WebSocketTransport.create(connectionURL, cancellationToken);
-    return new CdpConnection(connectionTransport, rawTelemetryReporter);
+    return new CdpConnection(connectionTransport, telemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }

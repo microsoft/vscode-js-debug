@@ -34,6 +34,7 @@ import { Logger } from './logger';
 import { getLogFileForTest } from './reporters/logReporterUtils';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { TargetOrigin } from '../targets/targetOrigin';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -78,9 +79,9 @@ class Session {
   constructor() {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
-    this.adapterConnection = new DapConnection();
+    this.adapterConnection = new DapConnection(new TelemetryReporter());
     this.adapterConnection.init(testToAdapter, adapterToTest);
-    const testConnection = new DapConnection();
+    const testConnection = new DapConnection(new TelemetryReporter());
     testConnection.init(adapterToTest, testToAdapter);
     this.dap = testConnection.createTestApi();
   }
@@ -349,6 +350,7 @@ export class TestRoot {
         ]),
         new NodeAttacher(pathProvider),
       ],
+      new TelemetryReporter(),
       new TargetOrigin('0'),
     );
 

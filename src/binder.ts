@@ -22,12 +22,17 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import * as errors from './dap/errors';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
-import { RawTelemetryReporterToDap } from './telemetry/telemetryReporter';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
+import { TelemetryReporter } from './telemetry/telemetryReporter';
+import { mapValues } from './common/objUtils';
+import * as os from 'os';
 
 const localize = nls.loadMessageBundle();
+
+// eslint-disable-next-line
+const packageJson = require('../../package.json');
 
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
@@ -47,7 +52,6 @@ export class Binder implements IDisposable {
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
-  private _rawTelemetryReporter: RawTelemetryReporterToDap | undefined;
   private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
 
@@ -55,12 +59,13 @@ export class Binder implements IDisposable {
     delegate: IBinderDelegate,
     connection: DapConnection,
     launchers: ILauncher[],
+    private readonly telemetryReporter: TelemetryReporter,
     targetOrigin: ITargetOrigin,
   ) {
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._disposables = [this._onTargetListChangedEmitter, logger];
+    this._disposables = [this._onTargetListChangedEmitter, logger, this.telemetryReporter];
 
     for (const launcher of launchers) {
       this._launchers.add(launcher);
@@ -77,7 +82,6 @@ export class Binder implements IDisposable {
     }
 
     this._dap.then(dap => {
-      this._rawTelemetryReporter = new RawTelemetryReporterToDap(dap);
       dap.on('initialize', async clientCapabilities => {
         this._clientCapabilities = clientCapabilities;
         const capabilities = DebugAdapter.capabilities();
@@ -127,6 +131,7 @@ export class Binder implements IDisposable {
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     warnNightly(dap);
+    this.reportBootTelemetry(params);
     logger.setup(resolveLoggerOptions(dap, params.trace));
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
@@ -139,6 +144,41 @@ export class Binder implements IDisposable {
     results = results.filter(result => !!result);
     if (results.length) return errors.createUserError(results.join('\n'));
     return {};
+  }
+
+  private reportBootTelemetry(rawParams: AnyLaunchConfiguration) {
+    const defaults = (applyDefaults({
+      type: rawParams.type,
+      request: rawParams.request,
+      name: '<string>',
+    } as AnyResolvingConfiguration) as unknown) as { [key: string]: unknown };
+
+    // Sanitization function that strips non-default strings from the launch
+    // config, to avoid unnecessarily collecting information about the workspace.
+    const sanitizer = (value: unknown, key?: string): unknown => {
+      if (typeof value === 'string') {
+        return key && defaults[key] === value ? value : `<string>`;
+      }
+
+      if (value instanceof Array) {
+        return value.map(v => sanitizer(v));
+      }
+
+      if (value && typeof value === 'object') {
+        return mapValues(value as { [key: string]: unknown }, v => sanitizer(v));
+      }
+
+      return value;
+    };
+
+    this.telemetryReporter.report('launch', {
+      type: rawParams.type,
+      request: rawParams.request,
+      os: `${os.platform()} ${os.arch()}`,
+      nodeVersion: process.version,
+      adapterVersion: packageJson.version,
+      parameters: mapValues((rawParams as unknown) as { [key: string]: unknown }, sanitizer),
+    });
   }
 
   async _restart() {
@@ -190,8 +230,12 @@ export class Binder implements IDisposable {
     try {
       result = await launcher.launch(
         params,
-        { cancellationToken, targetOrigin: this._targetOrigin, dap: await this._dap },
-        this._rawTelemetryReporter!,
+        {
+          telemetryReporter: this.telemetryReporter,
+          cancellationToken,
+          targetOrigin: this._targetOrigin,
+          dap: await this._dap,
+        },
         this._clientCapabilities!,
       );
     } catch (e) {
@@ -254,7 +298,7 @@ export class Binder implements IDisposable {
       target.sourcePathResolver(),
       this._asyncStackPolicy,
       this._launchParams!,
-      this._rawTelemetryReporter!,
+      this.telemetryReporter,
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
@@ -268,7 +312,7 @@ export class Binder implements IDisposable {
     } else {
       dap.on('attach', startThread);
       dap.on('disconnect', async () => {
-        this._rawTelemetryReporter!.flush.fire();
+        this.telemetryReporter.flush();
         if (target.canStop()) target.stop();
         return {};
       });

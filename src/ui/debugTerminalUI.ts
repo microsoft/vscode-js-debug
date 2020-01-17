@@ -16,7 +16,7 @@ import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFac
 import { applyDefaults, ITerminalLaunchConfiguration } from '../configuration';
 import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
-import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 
 /**
@@ -29,6 +29,7 @@ function launchTerminal(
   workspaceFolder?: vscode.WorkspaceFolder,
 ) {
   const launcher = new TerminalNodeLauncher(new NodePathProvider());
+  const telemetry = new TelemetryReporter();
   const baseDebugOptions: Partial<ITerminalLaunchConfiguration> = {
     ...readConfig(vscode.workspace.getConfiguration(), Configuration.TerminalDebugConfig),
     // Prevent switching over the the Debug Console whenever a process starts
@@ -40,6 +41,7 @@ function launchTerminal(
   // to a connection. Terminal processes don't use this too much except for
   // telemetry.
   const dap = createPendingDapApi();
+  telemetry.attachDap(dap);
 
   // Watch the set of targets we get from this terminal launcher. Remember
   // that we can get targets from child processes of session too. When we
@@ -92,6 +94,7 @@ function launchTerminal(
     }),
     {
       dap,
+      telemetryReporter: telemetry,
       cancellationToken: NeverCancelled,
       get targetOrigin() {
         // Use a getter so that each new session receives a new mutable origin.
@@ -100,7 +103,6 @@ function launchTerminal(
         return new MutableTargetOrigin('<unset>');
       },
     },
-    new RawTelemetryReporterToDap(dap),
   );
 
   return Promise.resolve();
