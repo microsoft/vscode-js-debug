@@ -923,7 +923,7 @@ export class Thread implements IVariableStoreDelegate {
 
     let output: string;
     let variablesReference: number | undefined;
-    if (!usedAllArgs || event.args.some(arg => objectPreview.isObject(arg))) {
+    if (!usedAllArgs || event.args.some(arg => objectPreview.previewAsObject(arg))) {
       output = '';
       variablesReference = await this.replVariables.createVariableForOutput(
         messageText + '\n',
