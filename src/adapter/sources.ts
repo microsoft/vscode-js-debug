@@ -10,7 +10,6 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
-import * as pathUtils from '../common/pathUtils';
 import { ScriptSkipper } from './scriptSkipper';
 import { delay, getDeferred } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
@@ -69,35 +68,6 @@ const defaultTimeouts: SourceMapTimeouts = {
   output: 1000,
 };
 
-export class UrlToSourceMap {
-  private _urlToSourceMap = new Map();
-
-  public get(key: string): Source | undefined {
-    return this._urlToSourceMap.get(this.normalizeKey(key));
-  }
-
-  public clear(): void {
-    this._urlToSourceMap.clear();
-  }
-
-  public delete(key: string): boolean {
-    return this._urlToSourceMap.delete(this.normalizeKey(key));
-  }
-
-  public has(key: string): boolean {
-    return this._urlToSourceMap.has(this.normalizeKey(key));
-  }
-
-  public set(key: string, value: Source): this {
-    this._urlToSourceMap.set(this.normalizeKey(key), value);
-    return this;
-  }
-
-  private normalizeKey(key: string): string {
-    return pathUtils.forceForwardSlashes(key.toLowerCase());
-  }
-}
-
 // Represents a text source visible to the user.
 //
 // Source maps flow (start with compiled1 and compiled2). Two different compiled sources
@@ -120,7 +90,6 @@ export class Source {
   _sourceReference: number;
   _url: string;
   _name: string;
-  _blackboxed = false;
   _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
@@ -223,8 +192,8 @@ export class Source {
       path: this._fqname,
       sourceReference: this._sourceReference,
       sources,
-      presentationHint: this._blackboxed ? 'deemphasize' : undefined,
-      origin: this._blackboxed ? localize('source.isBlackboxed', 'blackboxed') : undefined,
+      presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
+      origin: this.blackboxed() ? localize('source.isBlackboxed', 'blackboxed') : undefined,
     };
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
@@ -266,6 +235,10 @@ export class Source {
         .columnOffset + 1}`;
     return fqname;
   }
+
+  blackboxed(): boolean {
+    return this._container.isSourceSkipped(this._url);
+  }
 }
 
 export interface IPreferredUiLocation extends IUiLocation {
@@ -291,7 +264,6 @@ export class SourceContainer {
   private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(
     utils.lowerCaseInsensitivePath,
   );
-  private _sourceByUrl: UrlToSourceMap = new UrlToSourceMap();
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();
@@ -313,7 +285,6 @@ export class SourceContainer {
   ) {
     this._dap = dap;
     this._scriptSkipper = scriptSkipper;
-    scriptSkipper.addNewSourceContainer(this);
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -341,12 +312,8 @@ export class SourceContainer {
     return undefined;
   }
 
-  sourceByReference(refNum: number): Source | undefined {
-    return this._sourceByReference.get(refNum);
-  }
-
-  sourceByUrl(url: string): Source | undefined {
-    return this._sourceByUrl.get(url);
+  isSourceSkipped(url: string): boolean {
+    return this._scriptSkipper.isScriptSkipped(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -511,14 +478,12 @@ export class SourceContainer {
       contentHash,
     );
     await this._scriptSkipper.updateSkippingValueForScript(source);
-    // source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
     this._addSource(source);
     return source;
   }
 
   async _addSource(source: Source) {
     this._sourceByReference.set(source.sourceReference(), source);
-    this._sourceByUrl.set(source._url, source);
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.set(source._url, source);
     this._sourceByAbsolutePath.set(source._absolutePath, source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
@@ -567,7 +532,6 @@ export class SourceContainer {
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
-    this._sourceByUrl.delete(source._url);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
