@@ -511,7 +511,7 @@ export class SourceContainer {
       contentHash,
     );
     await this._scriptSkipper.updateSkippingValueForScript(source);
-    source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
+    // source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
     this._addSource(source);
     return source;
   }
@@ -633,20 +633,16 @@ export class SourceContainer {
           undefined,
           undefined,
         );
-        await this._scriptSkipper.updateSkippingValueForScript(source);
-        source._blackboxed = this._scriptSkipper.isScriptSkipped(source._url);
         source._compiledToSourceUrl = new Map();
-      }
-      // eslint-disable-next-line
-      if (compiled._blackboxed || source._blackboxed) {
-        this._scriptSkipper.setSkippingValueForScripts([source._url, compiled._url], true);
-        source._blackboxed = compiled._blackboxed = true;
+        source._compiledToSourceUrl!.set(compiled, url);
+        compiled._sourceMapSourceByUrl.set(url, source);
+
+        this._scriptSkipper.updateSkippingValueForScript(source);
       } else {
-        this._scriptSkipper.setSkippingValueForScripts([source._url, compiled._url], false);
-        source._blackboxed = compiled._blackboxed = false;
+        source._compiledToSourceUrl!.set(compiled, url);
+        compiled._sourceMapSourceByUrl.set(url, source);
       }
-      source._compiledToSourceUrl!.set(compiled, url);
-      compiled._sourceMapSourceByUrl.set(url, source);
+
       if (isNew) todo.push(this._addSource(source));
     }
 

@@ -1,149 +1,170 @@
 {
   "definitions": {
     "EnableCustomBreakpointsRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Enable custom breakpoints.",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "enableCustomBreakpoints" ]
-					},
-					"arguments": {
-						"$ref": "#/definitions/EnableCustomBreakpointsArguments"
-					}
-				},
-				"required": [ "command", "arguments"  ]
-			}]
-		},
-		"EnableCustomBreakpointsArguments": {
-			"type": "object",
-			"description": "Arguments for 'enableCustomBreakpoints' request.",
-			"properties": {
-				"ids": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"description": "Id of breakpoints to enable."
-				}
-			},
-			"required": [ "ids" ]
-		},
-		"EnableCustomBreakpointsResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object",
-				"description": "Response to 'enableCustomBreakpoints' request."
-			}]
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Enable custom breakpoints.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["enableCustomBreakpoints"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/EnableCustomBreakpointsArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "EnableCustomBreakpointsArguments": {
+      "type": "object",
+      "description": "Arguments for 'enableCustomBreakpoints' request.",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Id of breakpoints to enable."
+        }
+      },
+      "required": ["ids"]
+    },
+    "EnableCustomBreakpointsResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'enableCustomBreakpoints' request."
+        }
+      ]
     },
 
     "DisableCustomBreakpointsRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Disable custom breakpoints.",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "disableCustomBreakpoints" ]
-					},
-					"arguments": {
-						"$ref": "#/definitions/DisableCustomBreakpointsArguments"
-					}
-				},
-				"required": [ "command", "arguments"  ]
-			}]
-		},
-		"DisableCustomBreakpointsArguments": {
-			"type": "object",
-			"description": "Arguments for 'disableCustomBreakpoints' request.",
-			"properties": {
-				"ids": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"description": "Id of breakpoints to disable."
-				}
-			},
-			"required": [ "ids" ]
-		},
-		"DisableCustomBreakpointsResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object",
-				"description": "Response to 'disableCustomBreakpoints' request."
-			}]
-		},
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Disable custom breakpoints.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["disableCustomBreakpoints"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/DisableCustomBreakpointsArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "DisableCustomBreakpointsArguments": {
+      "type": "object",
+      "description": "Arguments for 'disableCustomBreakpoints' request.",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Id of breakpoints to disable."
+        }
+      },
+      "required": ["ids"]
+    },
+    "DisableCustomBreakpointsResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'disableCustomBreakpoints' request."
+        }
+      ]
+    },
 
     "CanPrettyPrintSourceRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Returns whether particular source can be pretty-printed.",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "canPrettyPrintSource" ]
-					},
-					"arguments": {
-						"$ref": "#/definitions/CanPrettyPrintSourceArguments"
-					}
-				},
-				"required": [ "command", "arguments"  ]
-			}]
-		},
-		"CanPrettyPrintSourceArguments": {
-			"type": "object",
-			"description": "Arguments for 'canPrettyPrintSource' request.",
-			"properties": {
-				"source": {
-					"$ref": "#/definitions/Source",
-					"description": "Source to be pretty printed."
-				}
-			},
-			"required": [ "source" ]
-		},
-		"CanPrettyPrintSourceResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object",
-        "description": "Response to 'canPrettyPrintSource' request.",
-        "properties": {
-					"body": {
-						"type": "object",
-						"properties": {
-							"canPrettyPrint": {
-								"type": "boolean",
-								"description": "Whether source can be pretty printed."
-							}
-						},
-						"required": [ "canPrettyPrint" ]
-					}
-				},
-				"required": [ "body" ]
-			}]
-		},
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Returns whether particular source can be pretty-printed.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["canPrettyPrintSource"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/CanPrettyPrintSourceArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "CanPrettyPrintSourceArguments": {
+      "type": "object",
+      "description": "Arguments for 'canPrettyPrintSource' request.",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/Source",
+          "description": "Source to be pretty printed."
+        }
+      },
+      "required": ["source"]
+    },
+    "CanPrettyPrintSourceResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'canPrettyPrintSource' request.",
+          "properties": {
+            "body": {
+              "type": "object",
+              "properties": {
+                "canPrettyPrint": {
+                  "type": "boolean",
+                  "description": "Whether source can be pretty printed."
+                }
+              },
+              "required": ["canPrettyPrint"]
+            }
+          },
+          "required": ["body"]
+        }
+      ]
+    },
 
     "PrettyPrintSourceRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Pretty prints source for debugging.",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "prettyPrintSource" ]
-					},
-					"arguments": {
-						"$ref": "#/definitions/PrettyPrintSourceArguments"
-					}
-				},
-				"required": [ "command", "arguments"  ]
-			}]
-		},
-		"PrettyPrintSourceArguments": {
-			"type": "object",
-			"description": "Arguments for 'prettyPrintSource' request.",
-			"properties": {
-				"source": {
-					"$ref": "#/definitions/Source",
-					"description": "Source to be pretty printed."
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Pretty prints source for debugging.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["prettyPrintSource"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/PrettyPrintSourceArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "PrettyPrintSourceArguments": {
+      "type": "object",
+      "description": "Arguments for 'prettyPrintSource' request.",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/Source",
+          "description": "Source to be pretty printed."
         },
         "line": {
           "type": "integer",
@@ -153,126 +174,143 @@
           "type": "integer",
           "description": "Column number of currently selected location to reveal after pretty printing."
         }
-			},
-			"required": [ "source" ]
-		},
-		"PrettyPrintSourceResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object",
-        "description": "Response to 'prettyPrintSource' request."
-			}]
+      },
+      "required": ["source"]
     },
-
+    "PrettyPrintSourceResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'prettyPrintSource' request."
+        }
+      ]
+    },
     "ToggleSkipFileStatusRequest": {
-			"allOf": [ { "$ref": "#/definitions/Request" }, {
-				"type": "object",
-				"description": "Toggle skip status of file.",
-				"properties": {
-					"command": {
-						"type": "string",
-						"enum": [ "toggleSkipFileStatus" ]
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Toggle skip status of file.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["toggleSkipFileStatus"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/ToggleSkipFileStatusArguments"
+            }
           },
-					"arguments": {
-						"$ref": "#/definitions/ToggleSkipFileStatusArguments"
-					}
-				},
-				"required": [ "command", "arguments" ]
-			}]
+          "required": ["command", "arguments"]
+        }
+      ]
     },
     "ToggleSkipFileStatusArguments": {
-			"type": "object",
-			"description": "Arguments for 'toggleSkipFileStatus' request.",
-			"properties": {
-				"resource": {
-					"type": "string",
-					"description": "Url of file to be skipped."
+      "type": "object",
+      "description": "Arguments for 'toggleSkipFileStatus' request.",
+      "properties": {
+        "resource": {
+          "type": "string",
+          "description": "Url of file to be skipped."
         },
         "sourceReference": {
           "type": "number",
           "description": "Source reference number of file."
         }
-			},
-			"required": [ ]
+      },
+      "required": []
     },
     "ToggleSkipFileStatusResponse": {
-			"allOf": [ { "$ref": "#/definitions/Response" }, {
-				"type": "object",
-				"description": "Response to 'toggleSkipFileStatus' request."
-			}]
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'toggleSkipFileStatus' request."
+        }
+      ]
     },
 
-		"RevealLocationRequestedEvent": {
-			"allOf": [ { "$ref": "#/definitions/Event" }, {
-				"type": "object",
-				"description": "A request to reveal a certain location in the UI.",
-				"properties": {
-					"event": {
-						"type": "string",
-						"enum": [ "revealLocationRequested" ]
-					},
-					"body": {
-						"type": "object",
-						"properties": {
-							"source": {
-								"$ref": "#/definitions/Source",
-								"description": "The source to reveal."
-							},
-							"line": {
-								"type": "integer",
-								"description": "The line number to reveal."
-							},
-							"column": {
-								"type": "integer",
-								"description": "The column number to reveal."
-							}
-						},
-						"required": ["source"]
-					}
-				},
-				"required": [ "event", "body" ]
-			}]
-		},
+    "RevealLocationRequestedEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "A request to reveal a certain location in the UI.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["revealLocationRequested"]
+            },
+            "body": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "$ref": "#/definitions/Source",
+                  "description": "The source to reveal."
+                },
+                "line": {
+                  "type": "integer",
+                  "description": "The line number to reveal."
+                },
+                "column": {
+                  "type": "integer",
+                  "description": "The column number to reveal."
+                }
+              },
+              "required": ["source"]
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
+    },
 
-		"CopyRequestedEvent": {
-			"allOf": [ { "$ref": "#/definitions/Event" }, {
-				"type": "object",
-				"description": "A request to copy a certain string to clipboard.",
-				"properties": {
-					"event": {
-						"type": "string",
-						"enum": [ "copyRequested" ]
-					},
-					"body": {
-						"type": "object",
-						"properties": {
-							"text": {
-								"type": "string",
-								"description": "Text to copy."
-							}
-						},
-						"required": ["text"]
-					}
-				},
-				"required": [ "event", "body" ]
-			}]
-		},
+    "CopyRequestedEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "A request to copy a certain string to clipboard.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["copyRequested"]
+            },
+            "body": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "Text to copy."
+                }
+              },
+              "required": ["text"]
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
+    },
 
-		"LongPredictionEvent": {
-			"allOf": [ { "$ref": "#/definitions/Event" }, {
-				"type": "object",
-				"description": "An event sent when breakpoint prediction takes a significant amount of time.",
-				"properties": {
-					"event": {
-						"type": "string",
-						"enum": [ "longPrediction" ]
-					},
-					"body": {
-						"type": "object",
-						"properties": {}
-					}
-				},
-				"required": [ "event", "body" ]
-			}]
-		}
+    "LongPredictionEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "An event sent when breakpoint prediction takes a significant amount of time.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["longPrediction"]
+            },
+            "body": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
+    }
   }
 }

@@ -9,6 +9,7 @@ import { ITarget } from '../targets/targets';
 import { SourceContainer, Source } from './sources';
 import * as urlUtils from '../common/urlUtils';
 import * as pathUtils from '../common/pathUtils';
+import { debounce } from '../common/objUtils';
 
 export class BlackBoxSender {
   private _blackboxSender: (
@@ -25,55 +26,71 @@ export class BlackBoxSender {
 }
 
 export class ScriptSkipper {
-  private _userSkipPatterns: ReadonlyArray<string>;
-  private _nonNodeInternalRegex = '';
+  private _nonNodeInternalRegex: RegExp | null = null;
 
   // filtering node internals
-  private _nodeInternalsRegex = '';
+  private _nodeInternalsRegex: RegExp | null = null;
   private _allNodeInternals?: string[]; // only set by Node
-  skippingNodeInternals = false;
 
   private _isUrlSkippedMap = new Map<string, boolean>();
   private _blackboxSenders = new Set<BlackBoxSender>();
   private _allSourceContainers = new Set<SourceContainer>();
 
+  private _newScriptDebouncer: () => void;
+  private _unprocessedSources: Source[] = [];
+
   constructor(skipPatterns: ReadonlyArray<string>) {
-    this._userSkipPatterns = skipPatterns;
-    this._preprocessNodeInternals();
-    this._setRegexForNonNodeInternals();
+    this._preprocessNodeInternals(skipPatterns);
+    this._setRegexForNonNodeInternals(skipPatterns);
+    this._newScriptDebouncer = debounce(200, () => this._updateSkippingValueForAllScripts());
   }
 
-  private _preprocessNodeInternals(): void {
+  private _preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
     const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
 
-    const nodeInternalPatterns = this._userSkipPatterns!.filter(pattern =>
-      pattern.includes('<node_internals>'),
-    ).map(nodeInternal => {
-      nodeInternal = nodeInternal.trim();
-      return nodeInternalRegex.exec(nodeInternal)![1];
-    });
+    const nodeInternalPatterns = userSkipPatterns
+      .map(userPattern => {
+        userPattern = userPattern.trim();
+        const nodeInternalPattern = nodeInternalRegex.exec(userPattern);
+        return nodeInternalPattern ? nodeInternalPattern[1] : null;
+      })
+      .filter(nonNullPattern => nonNullPattern) as string[];
 
-    this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
     if (nodeInternalPatterns.length > 0) {
-      this.skippingNodeInternals = true;
+      this._nodeInternalsRegex = new RegExp(this._createRegexString(nodeInternalPatterns));
     }
   }
 
-  private _setRegexForNonNodeInternals(): void {
-    const nonNodeInternalGlobs = this._userSkipPatterns.filter(
+  private _setRegexForNonNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
+    const nonNodeInternalGlobs = userSkipPatterns.filter(
       pattern => !pattern.includes('<node_internals>'),
     );
-    this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
+
+    if (nonNodeInternalGlobs.length > 0) {
+      this._nonNodeInternalRegex = new RegExp(this._createRegexString(nonNodeInternalGlobs));
+    }
   }
 
   private _createRegexString(patterns: string[]): string {
-    if (patterns.length === 0) return '.^';
     return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
 
-  private _testRegex(regexPattern: string, strToTest: string): boolean {
-    const regExp = new RegExp(regexPattern);
-    return regExp.test(strToTest);
+  private _testRegex(regex: RegExp, strToTest: string): boolean {
+    return regex.test(strToTest);
+  }
+
+  private _testSkipNodeInternal(testString: string): boolean {
+    if (this._nodeInternalsRegex) {
+      return this._testRegex(this._nodeInternalsRegex, testString);
+    }
+    return false;
+  }
+
+  private _testSkipNonNodeInternal(testString: string): boolean {
+    if (this._nonNodeInternalRegex) {
+      return this._testRegex(this._nonNodeInternalRegex, testString);
+    }
+    return false;
   }
 
   private _updateBlackboxedUrls(urlsToBlackbox: string[]) {
@@ -131,18 +148,31 @@ export class ScriptSkipper {
     return this._isUrlSkippedMap.get(pathUtils.forceForwardSlashes(url)) === true;
   }
 
-  public initializeNodeInternals(nodeInternalsNames: string[]): void {
-    this._allNodeInternals = nodeInternalsNames.map(name => name + '.js');
-  }
-
   private _isNodeInternal(url: string): boolean {
     return (
       (this._allNodeInternals && this._allNodeInternals.includes(url)) ||
-      this._testRegex('^internal/.+\\.js$', url)
+      this._testRegex(/^internal\/.+\.js$/, url)
     );
   }
 
-  public async updateSkippingValueForScript(source: Source) {
+  public updateSkippingValueForScript(source: Source) {
+    this._unprocessedSources.push(source);
+    this._newScriptDebouncer();
+  }
+
+  private async _updateSkippingValueForAllScripts() {
+    const skipStatuses = await Promise.all(
+      this._unprocessedSources.map(s => this._updateSkippingValueForScript(s)),
+    );
+
+    if (skipStatuses.some(s => !!s)) {
+      this._updateAllScriptsToBeSkipped();
+    }
+
+    this._unprocessedSources = [];
+  }
+
+  private async _updateSkippingValueForScript(source: Source): Promise<boolean> {
     const url = source.url();
     if (!this._isUrlSkippedMap.has(pathUtils.forceForwardSlashes(url))) {
       // applying sourcemappathoverrides results in incorrect absolute paths
@@ -151,18 +181,42 @@ export class ScriptSkipper {
       const pathOnDisk = await source.existingAbsolutePath();
       if (pathOnDisk) {
         // file maps to file on disk
-        this._setUrlToSkip(url, this._testRegex(this._nonNodeInternalRegex, pathOnDisk));
+        this._setUrlToSkip(url, this._testSkipNonNodeInternal(pathOnDisk));
       } else {
         if (this._isNodeInternal(url)) {
-          this._setUrlToSkip(url, this._testRegex(this._nodeInternalsRegex, url));
+          this._setUrlToSkip(url, this._testSkipNodeInternal(url));
         } else {
-          this._setUrlToSkip(url, this._testRegex(this._nonNodeInternalRegex, url));
+          this._setUrlToSkip(url, this._testSkipNonNodeInternal(url));
         }
       }
-      if (this.isScriptSkipped(url)) {
-        this._updateAllScriptsToBeSkipped();
+
+      source._blackboxed = this.isScriptSkipped(source._url);
+
+      let correspondingSources: Source[] | null = null;
+      if (source._sourceMapSourceByUrl) {
+        // if compiled, get authored sources
+        correspondingSources = Array.from(source._sourceMapSourceByUrl.values());
+      } else if (source._compiledToSourceUrl) {
+        correspondingSources = Array.from(source._compiledToSourceUrl.keys());
+        // if authored, get compiled sources
       }
+
+      if (correspondingSources) {
+        const correspondingScriptIsSkipped = correspondingSources.some(
+          source => source._blackboxed,
+        );
+        if (source._blackboxed || correspondingScriptIsSkipped) {
+          source._blackboxed = true;
+          correspondingSources.forEach(source => {
+            source._blackboxed = true;
+          });
+        }
+      }
+
+      return this.isScriptSkipped(url);
     }
+
+    return false;
   }
 
   public async initNewTarget(
@@ -170,14 +224,14 @@ export class ScriptSkipper {
     runtimeAPI: cdp.RuntimeApi,
     debuggerAPI: cdp.DebuggerApi,
   ): Promise<void> {
-    if (target.type() === 'node' && this.skippingNodeInternals && !this._allNodeInternals) {
+    if (target.type() === 'node' && this._nodeInternalsRegex && !this._allNodeInternals) {
       const evalResult = await runtimeAPI.evaluate({
         expression: "require('module').builtinModules",
         returnByValue: true,
         includeCommandLineAPI: true,
       });
       if (evalResult && !evalResult.exceptionDetails) {
-        this.initializeNodeInternals(evalResult.result.value);
+        this._allNodeInternals = (evalResult.result.value as string[]).map(name => name + '.js');
       }
     }
 

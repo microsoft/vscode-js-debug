@@ -21,7 +21,10 @@ export namespace Dap {
      * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
      * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
      */
-    on(request: 'cancel', handler: (params: CancelParams) => Promise<CancelResult | Error>): () => void;
+    on(
+      request: 'cancel',
+      handler: (params: CancelParams) => Promise<CancelResult | Error>,
+    ): () => void;
     /**
      * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
@@ -110,7 +113,10 @@ export namespace Dap {
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
      */
-    on(request: 'runInTerminal', handler: (params: RunInTerminalParams) => Promise<RunInTerminalResult | Error>): () => void;
+    on(
+      request: 'runInTerminal',
+      handler: (params: RunInTerminalParams) => Promise<RunInTerminalResult | Error>,
+    ): () => void;
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
      */
@@ -121,7 +127,10 @@ export namespace Dap {
      * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
      * The 'initialize' request may only be sent once.
      */
-    on(request: 'initialize', handler: (params: InitializeParams) => Promise<InitializeResult | Error>): () => void;
+    on(
+      request: 'initialize',
+      handler: (params: InitializeParams) => Promise<InitializeResult | Error>,
+    ): () => void;
     /**
      * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
      * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
@@ -132,7 +141,10 @@ export namespace Dap {
     /**
      * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
      */
-    on(request: 'configurationDone', handler: (params: ConfigurationDoneParams) => Promise<ConfigurationDoneResult | Error>): () => void;
+    on(
+      request: 'configurationDone',
+      handler: (params: ConfigurationDoneParams) => Promise<ConfigurationDoneResult | Error>,
+    ): () => void;
     /**
      * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
      */
@@ -141,7 +153,10 @@ export namespace Dap {
     /**
      * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
-    on(request: 'launch', handler: (params: LaunchParams) => Promise<LaunchResult | Error>): () => void;
+    on(
+      request: 'launch',
+      handler: (params: LaunchParams) => Promise<LaunchResult | Error>,
+    ): () => void;
     /**
      * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
@@ -150,7 +165,10 @@ export namespace Dap {
     /**
      * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
-    on(request: 'attach', handler: (params: AttachParams) => Promise<AttachResult | Error>): () => void;
+    on(
+      request: 'attach',
+      handler: (params: AttachParams) => Promise<AttachResult | Error>,
+    ): () => void;
     /**
      * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
@@ -162,7 +180,10 @@ export namespace Dap {
      * A debug adapter can override this default behaviour by implementing a restart request
      * and setting the capability 'supportsRestartRequest' to true.
      */
-    on(request: 'restart', handler: (params: RestartParams) => Promise<RestartResult | Error>): () => void;
+    on(
+      request: 'restart',
+      handler: (params: RestartParams) => Promise<RestartResult | Error>,
+    ): () => void;
     /**
      * Restarts a debug session. If the capability 'supportsRestartRequest' is missing or has the value false,
      * the client will implement 'restart' by terminating the debug adapter first and then launching it anew.
@@ -174,7 +195,10 @@ export namespace Dap {
     /**
      * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
      */
-    on(request: 'disconnect', handler: (params: DisconnectParams) => Promise<DisconnectResult | Error>): () => void;
+    on(
+      request: 'disconnect',
+      handler: (params: DisconnectParams) => Promise<DisconnectResult | Error>,
+    ): () => void;
     /**
      * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
      */
@@ -183,7 +207,10 @@ export namespace Dap {
     /**
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
      */
-    on(request: 'terminate', handler: (params: TerminateParams) => Promise<TerminateResult | Error>): () => void;
+    on(
+      request: 'terminate',
+      handler: (params: TerminateParams) => Promise<TerminateResult | Error>,
+    ): () => void;
     /**
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
      */
@@ -192,18 +219,26 @@ export namespace Dap {
     /**
      * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
      */
-    on(request: 'breakpointLocations', handler: (params: BreakpointLocationsParams) => Promise<BreakpointLocationsResult | Error>): () => void;
+    on(
+      request: 'breakpointLocations',
+      handler: (params: BreakpointLocationsParams) => Promise<BreakpointLocationsResult | Error>,
+    ): () => void;
     /**
      * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
      */
-    breakpointLocationsRequest(params: BreakpointLocationsParams): Promise<BreakpointLocationsResult>;
+    breakpointLocationsRequest(
+      params: BreakpointLocationsParams,
+    ): Promise<BreakpointLocationsResult>;
 
     /**
      * Sets multiple breakpoints for a single source and clears all previous breakpoints in that source.
      * To clear all breakpoint for a source, specify an empty array.
      * When a breakpoint is hit, a 'stopped' event (with reason 'breakpoint') is generated.
      */
-    on(request: 'setBreakpoints', handler: (params: SetBreakpointsParams) => Promise<SetBreakpointsResult | Error>): () => void;
+    on(
+      request: 'setBreakpoints',
+      handler: (params: SetBreakpointsParams) => Promise<SetBreakpointsResult | Error>,
+    ): () => void;
     /**
      * Sets multiple breakpoints for a single source and clears all previous breakpoints in that source.
      * To clear all breakpoint for a source, specify an empty array.
@@ -216,27 +251,44 @@ export namespace Dap {
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
      */
-    on(request: 'setFunctionBreakpoints', handler: (params: SetFunctionBreakpointsParams) => Promise<SetFunctionBreakpointsResult | Error>): () => void;
+    on(
+      request: 'setFunctionBreakpoints',
+      handler: (
+        params: SetFunctionBreakpointsParams,
+      ) => Promise<SetFunctionBreakpointsResult | Error>,
+    ): () => void;
     /**
      * Replaces all existing function breakpoints with new function breakpoints.
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
      */
-    setFunctionBreakpointsRequest(params: SetFunctionBreakpointsParams): Promise<SetFunctionBreakpointsResult>;
+    setFunctionBreakpointsRequest(
+      params: SetFunctionBreakpointsParams,
+    ): Promise<SetFunctionBreakpointsResult>;
 
     /**
      * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      */
-    on(request: 'setExceptionBreakpoints', handler: (params: SetExceptionBreakpointsParams) => Promise<SetExceptionBreakpointsResult | Error>): () => void;
+    on(
+      request: 'setExceptionBreakpoints',
+      handler: (
+        params: SetExceptionBreakpointsParams,
+      ) => Promise<SetExceptionBreakpointsResult | Error>,
+    ): () => void;
     /**
      * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      */
-    setExceptionBreakpointsRequest(params: SetExceptionBreakpointsParams): Promise<SetExceptionBreakpointsResult>;
+    setExceptionBreakpointsRequest(
+      params: SetExceptionBreakpointsParams,
+    ): Promise<SetExceptionBreakpointsResult>;
 
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
      */
-    on(request: 'dataBreakpointInfo', handler: (params: DataBreakpointInfoParams) => Promise<DataBreakpointInfoResult | Error>): () => void;
+    on(
+      request: 'dataBreakpointInfo',
+      handler: (params: DataBreakpointInfoParams) => Promise<DataBreakpointInfoResult | Error>,
+    ): () => void;
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
      */
@@ -247,7 +299,10 @@ export namespace Dap {
      * To clear all data breakpoints, specify an empty array.
      * When a data breakpoint is hit, a 'stopped' event (with reason 'data breakpoint') is generated.
      */
-    on(request: 'setDataBreakpoints', handler: (params: SetDataBreakpointsParams) => Promise<SetDataBreakpointsResult | Error>): () => void;
+    on(
+      request: 'setDataBreakpoints',
+      handler: (params: SetDataBreakpointsParams) => Promise<SetDataBreakpointsResult | Error>,
+    ): () => void;
     /**
      * Replaces all existing data breakpoints with new data breakpoints.
      * To clear all data breakpoints, specify an empty array.
@@ -258,7 +313,10 @@ export namespace Dap {
     /**
      * The request starts the debuggee to run again.
      */
-    on(request: 'continue', handler: (params: ContinueParams) => Promise<ContinueResult | Error>): () => void;
+    on(
+      request: 'continue',
+      handler: (params: ContinueParams) => Promise<ContinueResult | Error>,
+    ): () => void;
     /**
      * The request starts the debuggee to run again.
      */
@@ -283,7 +341,10 @@ export namespace Dap {
      * the optional argument 'targetId' can be used to control into which target the 'stepIn' should occur.
      * The list of possible targets for a given source line can be retrieved via the 'stepInTargets' request.
      */
-    on(request: 'stepIn', handler: (params: StepInParams) => Promise<StepInResult | Error>): () => void;
+    on(
+      request: 'stepIn',
+      handler: (params: StepInParams) => Promise<StepInResult | Error>,
+    ): () => void;
     /**
      * The request starts the debuggee to step into a function/method if possible.
      * If it cannot step into a target, 'stepIn' behaves like 'next'.
@@ -298,7 +359,10 @@ export namespace Dap {
      * The request starts the debuggee to run again for one step.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
-    on(request: 'stepOut', handler: (params: StepOutParams) => Promise<StepOutResult | Error>): () => void;
+    on(
+      request: 'stepOut',
+      handler: (params: StepOutParams) => Promise<StepOutResult | Error>,
+    ): () => void;
     /**
      * The request starts the debuggee to run again for one step.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
@@ -309,7 +373,10 @@ export namespace Dap {
      * The request starts the debuggee to run one step backwards.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
      */
-    on(request: 'stepBack', handler: (params: StepBackParams) => Promise<StepBackResult | Error>): () => void;
+    on(
+      request: 'stepBack',
+      handler: (params: StepBackParams) => Promise<StepBackResult | Error>,
+    ): () => void;
     /**
      * The request starts the debuggee to run one step backwards.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
@@ -319,7 +386,10 @@ export namespace Dap {
     /**
      * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
      */
-    on(request: 'reverseContinue', handler: (params: ReverseContinueParams) => Promise<ReverseContinueResult | Error>): () => void;
+    on(
+      request: 'reverseContinue',
+      handler: (params: ReverseContinueParams) => Promise<ReverseContinueResult | Error>,
+    ): () => void;
     /**
      * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
      */
@@ -329,7 +399,10 @@ export namespace Dap {
      * The request restarts execution of the specified stackframe.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
      */
-    on(request: 'restartFrame', handler: (params: RestartFrameParams) => Promise<RestartFrameResult | Error>): () => void;
+    on(
+      request: 'restartFrame',
+      handler: (params: RestartFrameParams) => Promise<RestartFrameResult | Error>,
+    ): () => void;
     /**
      * The request restarts execution of the specified stackframe.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
@@ -355,7 +428,10 @@ export namespace Dap {
      * The request suspends the debuggee.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'pause') after the thread has been paused successfully.
      */
-    on(request: 'pause', handler: (params: PauseParams) => Promise<PauseResult | Error>): () => void;
+    on(
+      request: 'pause',
+      handler: (params: PauseParams) => Promise<PauseResult | Error>,
+    ): () => void;
     /**
      * The request suspends the debuggee.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'pause') after the thread has been paused successfully.
@@ -365,7 +441,10 @@ export namespace Dap {
     /**
      * The request returns a stacktrace from the current execution state.
      */
-    on(request: 'stackTrace', handler: (params: StackTraceParams) => Promise<StackTraceResult | Error>): () => void;
+    on(
+      request: 'stackTrace',
+      handler: (params: StackTraceParams) => Promise<StackTraceResult | Error>,
+    ): () => void;
     /**
      * The request returns a stacktrace from the current execution state.
      */
@@ -374,7 +453,10 @@ export namespace Dap {
     /**
      * The request returns the variable scopes for a given stackframe ID.
      */
-    on(request: 'scopes', handler: (params: ScopesParams) => Promise<ScopesResult | Error>): () => void;
+    on(
+      request: 'scopes',
+      handler: (params: ScopesParams) => Promise<ScopesResult | Error>,
+    ): () => void;
     /**
      * The request returns the variable scopes for a given stackframe ID.
      */
@@ -384,7 +466,10 @@ export namespace Dap {
      * Retrieves all child variables for the given variable reference.
      * An optional filter can be used to limit the fetched children to either named or indexed children.
      */
-    on(request: 'variables', handler: (params: VariablesParams) => Promise<VariablesResult | Error>): () => void;
+    on(
+      request: 'variables',
+      handler: (params: VariablesParams) => Promise<VariablesResult | Error>,
+    ): () => void;
     /**
      * Retrieves all child variables for the given variable reference.
      * An optional filter can be used to limit the fetched children to either named or indexed children.
@@ -394,7 +479,10 @@ export namespace Dap {
     /**
      * Set the variable with the given name in the variable container to a new value.
      */
-    on(request: 'setVariable', handler: (params: SetVariableParams) => Promise<SetVariableResult | Error>): () => void;
+    on(
+      request: 'setVariable',
+      handler: (params: SetVariableParams) => Promise<SetVariableResult | Error>,
+    ): () => void;
     /**
      * Set the variable with the given name in the variable container to a new value.
      */
@@ -403,7 +491,10 @@ export namespace Dap {
     /**
      * The request retrieves the source code for a given source reference.
      */
-    on(request: 'source', handler: (params: SourceParams) => Promise<SourceResult | Error>): () => void;
+    on(
+      request: 'source',
+      handler: (params: SourceParams) => Promise<SourceResult | Error>,
+    ): () => void;
     /**
      * The request retrieves the source code for a given source reference.
      */
@@ -412,7 +503,10 @@ export namespace Dap {
     /**
      * The request retrieves a list of all threads.
      */
-    on(request: 'threads', handler: (params: ThreadsParams) => Promise<ThreadsResult | Error>): () => void;
+    on(
+      request: 'threads',
+      handler: (params: ThreadsParams) => Promise<ThreadsResult | Error>,
+    ): () => void;
     /**
      * The request retrieves a list of all threads.
      */
@@ -421,7 +515,10 @@ export namespace Dap {
     /**
      * The request terminates the threads with the given ids.
      */
-    on(request: 'terminateThreads', handler: (params: TerminateThreadsParams) => Promise<TerminateThreadsResult | Error>): () => void;
+    on(
+      request: 'terminateThreads',
+      handler: (params: TerminateThreadsParams) => Promise<TerminateThreadsResult | Error>,
+    ): () => void;
     /**
      * The request terminates the threads with the given ids.
      */
@@ -430,7 +527,10 @@ export namespace Dap {
     /**
      * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
      */
-    on(request: 'modules', handler: (params: ModulesParams) => Promise<ModulesResult | Error>): () => void;
+    on(
+      request: 'modules',
+      handler: (params: ModulesParams) => Promise<ModulesResult | Error>,
+    ): () => void;
     /**
      * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
      */
@@ -439,7 +539,10 @@ export namespace Dap {
     /**
      * Retrieves the set of all sources currently loaded by the debugged process.
      */
-    on(request: 'loadedSources', handler: (params: LoadedSourcesParams) => Promise<LoadedSourcesResult | Error>): () => void;
+    on(
+      request: 'loadedSources',
+      handler: (params: LoadedSourcesParams) => Promise<LoadedSourcesResult | Error>,
+    ): () => void;
     /**
      * Retrieves the set of all sources currently loaded by the debugged process.
      */
@@ -449,7 +552,10 @@ export namespace Dap {
      * Evaluates the given expression in the context of the top most stack frame.
      * The expression has access to any variables and arguments that are in scope.
      */
-    on(request: 'evaluate', handler: (params: EvaluateParams) => Promise<EvaluateResult | Error>): () => void;
+    on(
+      request: 'evaluate',
+      handler: (params: EvaluateParams) => Promise<EvaluateResult | Error>,
+    ): () => void;
     /**
      * Evaluates the given expression in the context of the top most stack frame.
      * The expression has access to any variables and arguments that are in scope.
@@ -460,7 +566,10 @@ export namespace Dap {
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      */
-    on(request: 'setExpression', handler: (params: SetExpressionParams) => Promise<SetExpressionResult | Error>): () => void;
+    on(
+      request: 'setExpression',
+      handler: (params: SetExpressionParams) => Promise<SetExpressionResult | Error>,
+    ): () => void;
     /**
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
@@ -472,7 +581,10 @@ export namespace Dap {
      * These targets can be used in the 'stepIn' request.
      * The StepInTargets may only be called if the 'supportsStepInTargetsRequest' capability exists and is true.
      */
-    on(request: 'stepInTargets', handler: (params: StepInTargetsParams) => Promise<StepInTargetsResult | Error>): () => void;
+    on(
+      request: 'stepInTargets',
+      handler: (params: StepInTargetsParams) => Promise<StepInTargetsResult | Error>,
+    ): () => void;
     /**
      * This request retrieves the possible stepIn targets for the specified stack frame.
      * These targets can be used in the 'stepIn' request.
@@ -485,7 +597,10 @@ export namespace Dap {
      * These targets can be used in the 'goto' request.
      * The GotoTargets request may only be called if the 'supportsGotoTargetsRequest' capability exists and is true.
      */
-    on(request: 'gotoTargets', handler: (params: GotoTargetsParams) => Promise<GotoTargetsResult | Error>): () => void;
+    on(
+      request: 'gotoTargets',
+      handler: (params: GotoTargetsParams) => Promise<GotoTargetsResult | Error>,
+    ): () => void;
     /**
      * This request retrieves the possible goto targets for the specified source location.
      * These targets can be used in the 'goto' request.
@@ -497,7 +612,10 @@ export namespace Dap {
      * Returns a list of possible completions for a given caret position and text.
      * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
      */
-    on(request: 'completions', handler: (params: CompletionsParams) => Promise<CompletionsResult | Error>): () => void;
+    on(
+      request: 'completions',
+      handler: (params: CompletionsParams) => Promise<CompletionsResult | Error>,
+    ): () => void;
     /**
      * Returns a list of possible completions for a given caret position and text.
      * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
@@ -507,7 +625,10 @@ export namespace Dap {
     /**
      * Retrieves the details of the exception that caused this event to be raised.
      */
-    on(request: 'exceptionInfo', handler: (params: ExceptionInfoParams) => Promise<ExceptionInfoResult | Error>): () => void;
+    on(
+      request: 'exceptionInfo',
+      handler: (params: ExceptionInfoParams) => Promise<ExceptionInfoResult | Error>,
+    ): () => void;
     /**
      * Retrieves the details of the exception that caused this event to be raised.
      */
@@ -516,7 +637,10 @@ export namespace Dap {
     /**
      * Reads bytes from memory at the provided location.
      */
-    on(request: 'readMemory', handler: (params: ReadMemoryParams) => Promise<ReadMemoryResult | Error>): () => void;
+    on(
+      request: 'readMemory',
+      handler: (params: ReadMemoryParams) => Promise<ReadMemoryResult | Error>,
+    ): () => void;
     /**
      * Reads bytes from memory at the provided location.
      */
@@ -525,7 +649,10 @@ export namespace Dap {
     /**
      * Disassembles code stored at the provided location.
      */
-    on(request: 'disassemble', handler: (params: DisassembleParams) => Promise<DisassembleResult | Error>): () => void;
+    on(
+      request: 'disassemble',
+      handler: (params: DisassembleParams) => Promise<DisassembleResult | Error>,
+    ): () => void;
     /**
      * Disassembles code stored at the provided location.
      */
@@ -534,34 +661,56 @@ export namespace Dap {
     /**
      * Enable custom breakpoints.
      */
-    on(request: 'enableCustomBreakpoints', handler: (params: EnableCustomBreakpointsParams) => Promise<EnableCustomBreakpointsResult | Error>): () => void;
+    on(
+      request: 'enableCustomBreakpoints',
+      handler: (
+        params: EnableCustomBreakpointsParams,
+      ) => Promise<EnableCustomBreakpointsResult | Error>,
+    ): () => void;
     /**
      * Enable custom breakpoints.
      */
-    enableCustomBreakpointsRequest(params: EnableCustomBreakpointsParams): Promise<EnableCustomBreakpointsResult>;
+    enableCustomBreakpointsRequest(
+      params: EnableCustomBreakpointsParams,
+    ): Promise<EnableCustomBreakpointsResult>;
 
     /**
      * Disable custom breakpoints.
      */
-    on(request: 'disableCustomBreakpoints', handler: (params: DisableCustomBreakpointsParams) => Promise<DisableCustomBreakpointsResult | Error>): () => void;
+    on(
+      request: 'disableCustomBreakpoints',
+      handler: (
+        params: DisableCustomBreakpointsParams,
+      ) => Promise<DisableCustomBreakpointsResult | Error>,
+    ): () => void;
     /**
      * Disable custom breakpoints.
      */
-    disableCustomBreakpointsRequest(params: DisableCustomBreakpointsParams): Promise<DisableCustomBreakpointsResult>;
+    disableCustomBreakpointsRequest(
+      params: DisableCustomBreakpointsParams,
+    ): Promise<DisableCustomBreakpointsResult>;
 
     /**
      * Returns whether particular source can be pretty-printed.
      */
-    on(request: 'canPrettyPrintSource', handler: (params: CanPrettyPrintSourceParams) => Promise<CanPrettyPrintSourceResult | Error>): () => void;
+    on(
+      request: 'canPrettyPrintSource',
+      handler: (params: CanPrettyPrintSourceParams) => Promise<CanPrettyPrintSourceResult | Error>,
+    ): () => void;
     /**
      * Returns whether particular source can be pretty-printed.
      */
-    canPrettyPrintSourceRequest(params: CanPrettyPrintSourceParams): Promise<CanPrettyPrintSourceResult>;
+    canPrettyPrintSourceRequest(
+      params: CanPrettyPrintSourceParams,
+    ): Promise<CanPrettyPrintSourceResult>;
 
     /**
      * Pretty prints source for debugging.
      */
-    on(request: 'prettyPrintSource', handler: (params: PrettyPrintSourceParams) => Promise<PrettyPrintSourceResult | Error>): () => void;
+    on(
+      request: 'prettyPrintSource',
+      handler: (params: PrettyPrintSourceParams) => Promise<PrettyPrintSourceResult | Error>,
+    ): () => void;
     /**
      * Pretty prints source for debugging.
      */
@@ -570,11 +719,16 @@ export namespace Dap {
     /**
      * Toggle skip status of file.
      */
-    on(request: 'toggleSkipFileStatus', handler: (params: ToggleSkipFileStatusParams) => Promise<ToggleSkipFileStatusResult | Error>): () => void;
+    on(
+      request: 'toggleSkipFileStatus',
+      handler: (params: ToggleSkipFileStatusParams) => Promise<ToggleSkipFileStatusResult | Error>,
+    ): () => void;
     /**
      * Toggle skip status of file.
      */
-    toggleSkipFileStatusRequest(params: ToggleSkipFileStatusParams): Promise<ToggleSkipFileStatusResult>;
+    toggleSkipFileStatusRequest(
+      params: ToggleSkipFileStatusParams,
+    ): Promise<ToggleSkipFileStatusResult>;
 
     /**
      * A request to reveal a certain location in the UI.
@@ -593,7 +747,6 @@ export namespace Dap {
   }
 
   export interface TestApi {
-
     /**
      * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
@@ -618,7 +771,10 @@ export namespace Dap {
      */
     on(request: 'initialized', handler: (params: InitializedEventParams) => void): void;
     off(request: 'initialized', handler: (params: InitializedEventParams) => void): void;
-    once(request: 'initialized', filter?: (event: InitializedEventParams) => boolean): Promise<InitializedEventParams>;
+    once(
+      request: 'initialized',
+      filter?: (event: InitializedEventParams) => boolean,
+    ): Promise<InitializedEventParams>;
 
     /**
      * The event indicates that the execution of the debuggee has stopped due to some condition.
@@ -626,7 +782,10 @@ export namespace Dap {
      */
     on(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
     off(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
-    once(request: 'stopped', filter?: (event: StoppedEventParams) => boolean): Promise<StoppedEventParams>;
+    once(
+      request: 'stopped',
+      filter?: (event: StoppedEventParams) => boolean,
+    ): Promise<StoppedEventParams>;
 
     /**
      * The event indicates that the execution of the debuggee has continued.
@@ -635,63 +794,90 @@ export namespace Dap {
      */
     on(request: 'continued', handler: (params: ContinuedEventParams) => void): void;
     off(request: 'continued', handler: (params: ContinuedEventParams) => void): void;
-    once(request: 'continued', filter?: (event: ContinuedEventParams) => boolean): Promise<ContinuedEventParams>;
+    once(
+      request: 'continued',
+      filter?: (event: ContinuedEventParams) => boolean,
+    ): Promise<ContinuedEventParams>;
 
     /**
      * The event indicates that the debuggee has exited and returns its exit code.
      */
     on(request: 'exited', handler: (params: ExitedEventParams) => void): void;
     off(request: 'exited', handler: (params: ExitedEventParams) => void): void;
-    once(request: 'exited', filter?: (event: ExitedEventParams) => boolean): Promise<ExitedEventParams>;
+    once(
+      request: 'exited',
+      filter?: (event: ExitedEventParams) => boolean,
+    ): Promise<ExitedEventParams>;
 
     /**
      * The event indicates that debugging of the debuggee has terminated. This does **not** mean that the debuggee itself has exited.
      */
     on(request: 'terminated', handler: (params: TerminatedEventParams) => void): void;
     off(request: 'terminated', handler: (params: TerminatedEventParams) => void): void;
-    once(request: 'terminated', filter?: (event: TerminatedEventParams) => boolean): Promise<TerminatedEventParams>;
+    once(
+      request: 'terminated',
+      filter?: (event: TerminatedEventParams) => boolean,
+    ): Promise<TerminatedEventParams>;
 
     /**
      * The event indicates that a thread has started or exited.
      */
     on(request: 'thread', handler: (params: ThreadEventParams) => void): void;
     off(request: 'thread', handler: (params: ThreadEventParams) => void): void;
-    once(request: 'thread', filter?: (event: ThreadEventParams) => boolean): Promise<ThreadEventParams>;
+    once(
+      request: 'thread',
+      filter?: (event: ThreadEventParams) => boolean,
+    ): Promise<ThreadEventParams>;
 
     /**
      * The event indicates that the target has produced some output.
      */
     on(request: 'output', handler: (params: OutputEventParams) => void): void;
     off(request: 'output', handler: (params: OutputEventParams) => void): void;
-    once(request: 'output', filter?: (event: OutputEventParams) => boolean): Promise<OutputEventParams>;
+    once(
+      request: 'output',
+      filter?: (event: OutputEventParams) => boolean,
+    ): Promise<OutputEventParams>;
 
     /**
      * The event indicates that some information about a breakpoint has changed.
      */
     on(request: 'breakpoint', handler: (params: BreakpointEventParams) => void): void;
     off(request: 'breakpoint', handler: (params: BreakpointEventParams) => void): void;
-    once(request: 'breakpoint', filter?: (event: BreakpointEventParams) => boolean): Promise<BreakpointEventParams>;
+    once(
+      request: 'breakpoint',
+      filter?: (event: BreakpointEventParams) => boolean,
+    ): Promise<BreakpointEventParams>;
 
     /**
      * The event indicates that some information about a module has changed.
      */
     on(request: 'module', handler: (params: ModuleEventParams) => void): void;
     off(request: 'module', handler: (params: ModuleEventParams) => void): void;
-    once(request: 'module', filter?: (event: ModuleEventParams) => boolean): Promise<ModuleEventParams>;
+    once(
+      request: 'module',
+      filter?: (event: ModuleEventParams) => boolean,
+    ): Promise<ModuleEventParams>;
 
     /**
      * The event indicates that some source has been added, changed, or removed from the set of all loaded sources.
      */
     on(request: 'loadedSource', handler: (params: LoadedSourceEventParams) => void): void;
     off(request: 'loadedSource', handler: (params: LoadedSourceEventParams) => void): void;
-    once(request: 'loadedSource', filter?: (event: LoadedSourceEventParams) => boolean): Promise<LoadedSourceEventParams>;
+    once(
+      request: 'loadedSource',
+      filter?: (event: LoadedSourceEventParams) => boolean,
+    ): Promise<LoadedSourceEventParams>;
 
     /**
      * The event indicates that the debugger has begun debugging a new process. Either one that it has launched, or one that it has attached to.
      */
     on(request: 'process', handler: (params: ProcessEventParams) => void): void;
     off(request: 'process', handler: (params: ProcessEventParams) => void): void;
-    once(request: 'process', filter?: (event: ProcessEventParams) => boolean): Promise<ProcessEventParams>;
+    once(
+      request: 'process',
+      filter?: (event: ProcessEventParams) => boolean,
+    ): Promise<ProcessEventParams>;
 
     /**
      * The event indicates that one or more capabilities have changed.
@@ -701,7 +887,10 @@ export namespace Dap {
      */
     on(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void): void;
     off(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void): void;
-    once(request: 'capabilities', filter?: (event: CapabilitiesEventParams) => boolean): Promise<CapabilitiesEventParams>;
+    once(
+      request: 'capabilities',
+      filter?: (event: CapabilitiesEventParams) => boolean,
+    ): Promise<CapabilitiesEventParams>;
 
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
@@ -765,12 +954,16 @@ export namespace Dap {
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
      */
-    setFunctionBreakpoints(params: SetFunctionBreakpointsParams): Promise<SetFunctionBreakpointsResult>;
+    setFunctionBreakpoints(
+      params: SetFunctionBreakpointsParams,
+    ): Promise<SetFunctionBreakpointsResult>;
 
     /**
      * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      */
-    setExceptionBreakpoints(params: SetExceptionBreakpointsParams): Promise<SetExceptionBreakpointsResult>;
+    setExceptionBreakpoints(
+      params: SetExceptionBreakpointsParams,
+    ): Promise<SetExceptionBreakpointsResult>;
 
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
@@ -938,12 +1131,16 @@ export namespace Dap {
     /**
      * Enable custom breakpoints.
      */
-    enableCustomBreakpoints(params: EnableCustomBreakpointsParams): Promise<EnableCustomBreakpointsResult>;
+    enableCustomBreakpoints(
+      params: EnableCustomBreakpointsParams,
+    ): Promise<EnableCustomBreakpointsResult>;
 
     /**
      * Disable custom breakpoints.
      */
-    disableCustomBreakpoints(params: DisableCustomBreakpointsParams): Promise<DisableCustomBreakpointsResult>;
+    disableCustomBreakpoints(
+      params: DisableCustomBreakpointsParams,
+    ): Promise<DisableCustomBreakpointsResult>;
 
     /**
      * Returns whether particular source can be pretty-printed.
@@ -963,23 +1160,38 @@ export namespace Dap {
     /**
      * A request to reveal a certain location in the UI.
      */
-    on(request: 'revealLocationRequested', handler: (params: RevealLocationRequestedEventParams) => void): void;
-    off(request: 'revealLocationRequested', handler: (params: RevealLocationRequestedEventParams) => void): void;
-    once(request: 'revealLocationRequested', filter?: (event: RevealLocationRequestedEventParams) => boolean): Promise<RevealLocationRequestedEventParams>;
+    on(
+      request: 'revealLocationRequested',
+      handler: (params: RevealLocationRequestedEventParams) => void,
+    ): void;
+    off(
+      request: 'revealLocationRequested',
+      handler: (params: RevealLocationRequestedEventParams) => void,
+    ): void;
+    once(
+      request: 'revealLocationRequested',
+      filter?: (event: RevealLocationRequestedEventParams) => boolean,
+    ): Promise<RevealLocationRequestedEventParams>;
 
     /**
      * A request to copy a certain string to clipboard.
      */
     on(request: 'copyRequested', handler: (params: CopyRequestedEventParams) => void): void;
     off(request: 'copyRequested', handler: (params: CopyRequestedEventParams) => void): void;
-    once(request: 'copyRequested', filter?: (event: CopyRequestedEventParams) => boolean): Promise<CopyRequestedEventParams>;
+    once(
+      request: 'copyRequested',
+      filter?: (event: CopyRequestedEventParams) => boolean,
+    ): Promise<CopyRequestedEventParams>;
 
     /**
      * An event sent when breakpoint prediction takes a significant amount of time.
      */
     on(request: 'longPrediction', handler: (params: LongPredictionEventParams) => void): void;
     off(request: 'longPrediction', handler: (params: LongPredictionEventParams) => void): void;
-    once(request: 'longPrediction', filter?: (event: LongPredictionEventParams) => boolean): Promise<LongPredictionEventParams>;
+    once(
+      request: 'longPrediction',
+      filter?: (event: LongPredictionEventParams) => boolean,
+    ): Promise<LongPredictionEventParams>;
   }
 
   export interface AttachParams {
@@ -991,8 +1203,7 @@ export namespace Dap {
     __restart?: any[] | boolean | integer | null | number | object | string;
   }
 
-  export interface AttachResult {
-  }
+  export interface AttachResult {}
 
   export interface BreakpointEventParams {
     /**
@@ -1061,8 +1272,7 @@ export namespace Dap {
     requestId?: integer;
   }
 
-  export interface CancelResult {
-  }
+  export interface CancelResult {}
 
   export interface CapabilitiesEventParams {
     /**
@@ -1100,11 +1310,9 @@ export namespace Dap {
     targets: CompletionItem[];
   }
 
-  export interface ConfigurationDoneParams {
-  }
+  export interface ConfigurationDoneParams {}
 
-  export interface ConfigurationDoneResult {
-  }
+  export interface ConfigurationDoneResult {}
 
   export interface ContinueParams {
     /**
@@ -1180,8 +1388,7 @@ export namespace Dap {
     ids: string[];
   }
 
-  export interface DisableCustomBreakpointsResult {
-  }
+  export interface DisableCustomBreakpointsResult {}
 
   export interface DisassembleParams {
     /**
@@ -1231,8 +1438,7 @@ export namespace Dap {
     terminateDebuggee?: boolean;
   }
 
-  export interface DisconnectResult {
-  }
+  export interface DisconnectResult {}
 
   export interface EnableCustomBreakpointsParams {
     /**
@@ -1241,8 +1447,7 @@ export namespace Dap {
     ids: string[];
   }
 
-  export interface EnableCustomBreakpointsResult {
-  }
+  export interface EnableCustomBreakpointsResult {}
 
   export interface EvaluateParams {
     /**
@@ -1353,8 +1558,7 @@ export namespace Dap {
     targetId: integer;
   }
 
-  export interface GotoResult {
-  }
+  export interface GotoResult {}
 
   export interface GotoTargetsParams {
     /**
@@ -1599,8 +1803,7 @@ export namespace Dap {
     supportsBreakpointLocationsRequest?: boolean;
   }
 
-  export interface InitializedEventParams {
-  }
+  export interface InitializedEventParams {}
 
   export interface LaunchParams {
     /**
@@ -1616,8 +1819,7 @@ export namespace Dap {
     __restart?: any[] | boolean | integer | null | number | object | string;
   }
 
-  export interface LaunchResult {
-  }
+  export interface LaunchResult {}
 
   export interface LoadedSourceEventParams {
     /**
@@ -1631,8 +1833,7 @@ export namespace Dap {
     source: Source;
   }
 
-  export interface LoadedSourcesParams {
-  }
+  export interface LoadedSourcesParams {}
 
   export interface LoadedSourcesResult {
     /**
@@ -1641,8 +1842,7 @@ export namespace Dap {
     sources: Source[];
   }
 
-  export interface LongPredictionEventParams {
-  }
+  export interface LongPredictionEventParams {}
 
   export interface ModuleEventParams {
     /**
@@ -1687,8 +1887,7 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface NextResult {
-  }
+  export interface NextResult {}
 
   export interface OutputEventParams {
     /**
@@ -1734,8 +1933,7 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface PauseResult {
-  }
+  export interface PauseResult {}
 
   export interface PrettyPrintSourceParams {
     /**
@@ -1754,8 +1952,7 @@ export namespace Dap {
     column?: integer;
   }
 
-  export interface PrettyPrintSourceResult {
-  }
+  export interface PrettyPrintSourceResult {}
 
   export interface ProcessEventParams {
     /**
@@ -1825,14 +2022,11 @@ export namespace Dap {
     frameId: integer;
   }
 
-  export interface RestartFrameResult {
-  }
+  export interface RestartFrameResult {}
 
-  export interface RestartParams {
-  }
+  export interface RestartParams {}
 
-  export interface RestartResult {
-  }
+  export interface RestartResult {}
 
   export interface RevealLocationRequestedEventParams {
     /**
@@ -1858,8 +2052,7 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface ReverseContinueResult {
-  }
+  export interface ReverseContinueResult {}
 
   export interface RunInTerminalParams {
     /**
@@ -1969,8 +2162,7 @@ export namespace Dap {
     exceptionOptions?: ExceptionOptions[];
   }
 
-  export interface SetExceptionBreakpointsResult {
-  }
+  export interface SetExceptionBreakpointsResult {}
 
   export interface SetExpressionParams {
     /**
@@ -2159,8 +2351,7 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface StepBackResult {
-  }
+  export interface StepBackResult {}
 
   export interface StepInParams {
     /**
@@ -2174,8 +2365,7 @@ export namespace Dap {
     targetId?: integer;
   }
 
-  export interface StepInResult {
-  }
+  export interface StepInResult {}
 
   export interface StepInTargetsParams {
     /**
@@ -2198,15 +2388,22 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface StepOutResult {
-  }
+  export interface StepOutResult {}
 
   export interface StoppedEventParams {
     /**
      * The reason for the event.
      * For backward compatibility this string is shown in the UI if the 'description' attribute is missing (but it must not be translated).
      */
-    reason: 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto' | 'function breakpoint' | 'data breakpoint';
+    reason:
+      | 'step'
+      | 'breakpoint'
+      | 'exception'
+      | 'pause'
+      | 'entry'
+      | 'goto'
+      | 'function breakpoint'
+      | 'data breakpoint';
 
     /**
      * The full reason for the event, e.g. 'Paused on exception'. This string is shown in the UI as is and must be translated.
@@ -2243,8 +2440,7 @@ export namespace Dap {
     restart?: boolean;
   }
 
-  export interface TerminateResult {
-  }
+  export interface TerminateResult {}
 
   export interface TerminateThreadsParams {
     /**
@@ -2253,8 +2449,7 @@ export namespace Dap {
     threadIds?: integer[];
   }
 
-  export interface TerminateThreadsResult {
-  }
+  export interface TerminateThreadsResult {}
 
   export interface TerminatedEventParams {
     /**
@@ -2276,8 +2471,7 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface ThreadsParams {
-  }
+  export interface ThreadsParams {}
 
   export interface ThreadsResult {
     /**
@@ -2298,8 +2492,7 @@ export namespace Dap {
     sourceReference?: number;
   }
 
-  export interface ToggleSkipFileStatusResult {
-  }
+  export interface ToggleSkipFileStatusResult {}
 
   export interface VariablesParams {
     /**
@@ -2650,9 +2843,9 @@ export namespace Dap {
    * A Module object represents a row in the modules view.
    * Two attributes are mandatory: an id identifies a module in the modules view and is used in a ModuleEvent for identifying a module for adding, updating or deleting.
    * The name is used to minimally render the module in the UI.
-   * 
+   *
    * Additional attributes can be added to the module. They will show up in the module View if they have a corresponding ColumnDescriptor.
-   * 
+   *
    * To avoid an unnecessary proliferation of additional attributes with similar semantics but different names
    * we recommend to re-use attributes from the 'recommended' list below first, and only introduce new attributes if nothing appropriate could be found.
    */
@@ -2670,7 +2863,7 @@ export namespace Dap {
     /**
      * optional but recommended attributes.
      * always try to use these first before introducing additional attributes.
-     * 
+     *
      * Logical full path to the module. The exact definition is implementation defined, but usually this would be a full path to the on-disk file for the module.
      */
     path?: string;
@@ -2859,12 +3052,30 @@ export namespace Dap {
     /**
      * The kind of variable. Before introducing additional values, try to use the listed values.
      */
-    kind?: 'property' | 'method' | 'class' | 'data' | 'event' | 'baseClass' | 'innerClass' | 'interface' | 'mostDerivedClass' | 'virtual' | 'dataBreakpoint';
+    kind?:
+      | 'property'
+      | 'method'
+      | 'class'
+      | 'data'
+      | 'event'
+      | 'baseClass'
+      | 'innerClass'
+      | 'interface'
+      | 'mostDerivedClass'
+      | 'virtual'
+      | 'dataBreakpoint';
 
     /**
      * Set of attributes represented as an array of strings. Before introducing additional values, try to use the listed values.
      */
-    attributes?: 'static' | 'constant' | 'readOnly' | 'rawString' | 'hasObjectId' | 'canHaveObjectId' | 'hasSideEffects'[];
+    attributes?:
+      | 'static'
+      | 'constant'
+      | 'readOnly'
+      | 'rawString'
+      | 'hasObjectId'
+      | 'canHaveObjectId'
+      | 'hasSideEffects'[];
 
     /**
      * Visibility of variable. Before introducing additional values, try to use the listed values.
