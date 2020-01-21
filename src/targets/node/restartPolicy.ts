@@ -1,14 +1,14 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { INodeLaunchConfiguration } from '../../configuration';
+
 import { IStopMetadata } from '../targets';
 
 /**
  * Creates restart policies from the configuration.
  */
 export class RestartPolicyFactory {
-  public create(config: INodeLaunchConfiguration): IRestartPolicy {
+  public create(config: { restart: boolean }): IRestartPolicy {
     if (!config.restart) {
       return new NeverRestartPolicy();
     }

@@ -349,6 +349,11 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   request: 'attach';
 
   /**
+   * Restart session after Node.js has terminated.
+   */
+  restart: boolean;
+
+  /**
    * ID of process to attach to.
    */
   processId?: string;
@@ -589,6 +594,7 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   type: Contributions.NodeDebugType,
   attachSpawnedProcesses: true,
   attachExistingChildren: true,
+  restart: true,
   request: 'attach',
   processId: '',
 };

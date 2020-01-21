@@ -125,7 +125,9 @@ const strings = {
     'A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with "!" to exclude them. May be set to an empty array or null to avoid restriction.',
   'node.processattach.config.name': 'Attach to Process',
   'node.remoteRoot.description': 'Absolute path to the remote directory containing the program.',
-  'node.restart.description': 'Restart session after Node.js has terminated.',
+  'node.launch.restart.description':
+    'Try to restart the program if it exits with a non-zero exit code.',
+  'node.attach.restart.description': 'Try to reconnect to the program if we lose connection.',
   'node.showAsyncStacks.description': 'Show the async calls that led to the current call stack.',
   'node.snippet.attach.description': 'Attach to a running node program',
   'node.snippet.attach.label': 'Node.js: Attach',

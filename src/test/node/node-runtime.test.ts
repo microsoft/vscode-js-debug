@@ -207,6 +207,25 @@ describe('node runtime', () => {
       await waitForPause(worker);
       worker.assertLog({ substring: true });
     });
+
+    itIntegrates('restarts if requested', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 100)'],
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const handle = await r.attachNode(0, { port: 9229, restart: true });
+
+      handle.log(await handle.dap.once('stopped'));
+      await handle.dap.evaluate({ expression: 'process.exit(0)' });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const reconnect = await r.waitForTopLevel();
+      reconnect.load();
+
+      await waitForPause(reconnect);
+      handle.assertLog({ substring: true });
+    });
   });
 
   describe('child processes', () => {

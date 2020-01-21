@@ -290,6 +290,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
   ],
   configurationAttributes: {
     ...nodeBaseConfigurationAttributes,
+    restart: {
+      type: 'boolean',
+      description: refString('node.attach.restart.description'),
+      default: true,
+    },
     processId: {
       type: 'string',
       description: refString('node.attach.processId.description'),
@@ -443,7 +448,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
     },
     restart: {
       type: 'boolean',
-      description: refString('node.restart.description'),
+      description: refString('node.launch.restart.description'),
       default: true,
     },
     runtimeExecutable: {

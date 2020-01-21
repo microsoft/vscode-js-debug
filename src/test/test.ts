@@ -399,6 +399,11 @@ export class TestRoot {
     return this._root.dap;
   }
 
+  async waitForTopLevel() {
+    const result = await new Promise(f => (this._launchCallback = f));
+    return result as TestP;
+  }
+
   async _launch(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
     await this.initialize;
     this._launchUrl = url;
