@@ -111,11 +111,11 @@ export class Binder implements IDisposable {
         this._boot(applyDefaults(params as AnyResolvingConfiguration), dap),
       );
       dap.on('terminate', async () => {
-        await Promise.all([...this._launchers].map(l => l.terminate()));
+        await this._disconnect();
         return {};
       });
       dap.on('disconnect', async () => {
-        await Promise.all([...this._launchers].map(l => l.disconnect()));
+        await this._disconnect();
         return {};
       });
       dap.on('restart', async () => {
@@ -123,6 +123,21 @@ export class Binder implements IDisposable {
         return {};
       });
     });
+  }
+
+  private async _disconnect() {
+    await Promise.all([...this._launchers].map(l => l.disconnect()));
+    if (!this.targetList.length) {
+      return;
+    }
+
+    await new Promise(resolve =>
+      this.onTargetListChanged(() => {
+        if (!this.targetList.length) {
+          resolve();
+        }
+      }),
+    );
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {

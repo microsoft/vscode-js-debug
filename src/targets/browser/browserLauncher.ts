@@ -269,7 +269,9 @@ export class BrowserLauncher implements ILauncher {
   }
 
   async terminate(): Promise<void> {
-    if (this._mainTarget) this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
+    if (this._mainTarget) {
+      await this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
+    }
   }
 
   async disconnect(): Promise<void> {

@@ -144,17 +144,17 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   public async terminate(): Promise<void> {
     if (this.program) {
-      this.program.stop();
+      await this.program.stop();
+    } else {
+      this.onProgramTerminated({ code: 0, killed: true });
     }
-
-    this.onProgramTerminated({ code: 0, killed: true });
   }
 
   /**
    * @inheritdoc
    */
   public async disconnect(): Promise<void> {
-    this.terminate();
+    await this.terminate();
   }
 
   /**

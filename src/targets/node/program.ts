@@ -78,6 +78,11 @@ export class TerminalProcess implements IProgram {
    */
   private static readonly terminationPollInterval = 1000;
 
+  /**
+   * How often to check and see if the process exited after we send a close signal.
+   */
+  private static readonly killConfirmInterval = 200;
+
   private didStop = false;
   private onStopped!: (killed: boolean) => void;
   public readonly stopped = new Promise<IStopMetadata>(
@@ -96,50 +101,59 @@ export class TerminalProcess implements IProgram {
   }
 
   public gotTelemetery({ processId }: IProcessTelemetry) {
-    this.startPollLoop(processId);
-  }
-
-  public stop(): Promise<IStopMetadata> {
-    this.onStopped(false);
-
-    if (!this.loop) {
-      if (this.terminalResult.shellProcessId) {
-        killTree(this.terminalResult.shellProcessId);
-      }
-
-      return Promise.resolve({ code: 0, killed: true });
-    }
-
-    killTree(this.loop.processId);
-    clearInterval(this.loop.timer);
-    return this.stopped;
-  }
-
-  private startPollLoop(processId: number) {
-    if (this.loop) {
-      return;
-    }
-
     if (this.didStop) {
       killTree(processId);
       return; // to avoid any races
     }
 
+    if (!this.loop) {
+      this.startPollLoop(processId);
+    }
+  }
+
+  public stop(): Promise<IStopMetadata> {
+    if (this.didStop) {
+      return this.stopped;
+    }
+    this.didStop = true;
+
+    // If we're already polling some process ID, kill it and accelerate polling
+    // so we can confirm it's dead quickly.
+    if (this.loop) {
+      killTree(this.loop.processId);
+      this.startPollLoop(this.loop.processId, TerminalProcess.killConfirmInterval);
+    } else if (this.terminalResult.shellProcessId) {
+      // If we had a shell process ID, well, that's good enough.
+      killTree(this.terminalResult.shellProcessId);
+      this.startPollLoop(this.terminalResult.shellProcessId, TerminalProcess.killConfirmInterval);
+    } else {
+      // Otherwise, we can't do anything. Pretend like we did.
+      this.onStopped(true);
+    }
+
+    return this.stopped;
+  }
+
+  private startPollLoop(processId: number, interval = TerminalProcess.terminationPollInterval) {
+    if (this.loop) {
+      clearInterval(this.loop.timer);
+    }
+
     const loop = {
       processId,
       timer: setInterval(() => {
-        if (!IsProcessAlive(processId)) {
+        if (!isProcessAlive(processId)) {
           clearInterval(loop.timer);
           this.onStopped(true);
         }
-      }, TerminalProcess.terminationPollInterval),
+      }, interval),
     };
 
     this.loop = loop;
   }
 }
 
-function IsProcessAlive(processId: number) {
+function isProcessAlive(processId: number) {
   try {
     // kill with signal=0 just test for whether the proc is alive. It throws if not.
     process.kill(processId, 0);
