@@ -60,11 +60,19 @@
       // "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Dogfood",
-      "type": "pwa",
+      "name": "Extension Dogfood",
+      "type": "pwa-extensionHost",
       "request": "launch",
-      "command": "code-insiders --disable-extensions --enable-proposed-api=ms-vscode.js-debug --extensionDevelopmentPath=${workspaceFolder}/out",
-      // "preLaunchTask": "npm: watch"
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--disable-extensions",
+        "--enable-proposed-api=ms-vscode.js-debug",
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
     },
 		{
 			"name": "Run Tests",
