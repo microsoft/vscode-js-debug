@@ -23,8 +23,7 @@ Evaluating: 'console.log([str2])'
 stdout> > (1) ['test named "test"']
 
 Evaluating: 'console.log(error)'
-stdout> 
-Error
+stdout> Error
     at console-format:9:23
 
 Evaluating: 'console.log([error])'
@@ -33,8 +32,7 @@ stdout>
     at console-format:9:23]
 
 Evaluating: 'console.log(errorWithMessage)'
-stdout> 
-Error: my error message
+stdout> Error: my error message
     at console-format:10:34
 
 Evaluating: 'console.log([errorWithMessage])'
@@ -43,8 +41,7 @@ stdout>
     at console-format:10:34]
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
-stdout> 
-Error: my multiline
+stdout> Error: my multiline
 error message
     at console-format:11:43
 
@@ -168,25 +165,25 @@ Evaluating: 'console.log([arrayLikeFunction])'
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(new Uint16Array(["1", "2", "3"]))'
-stdout> Uint16Array(3) [1, 2, 3]
+stdout> > Uint16Array(3) [1, 2, 3]
 
 Evaluating: 'console.log([new Uint16Array(["1", "2", "3"])])'
 stdout> > (1) [Uint16Array(3)]
 
 Evaluating: 'console.log(tinyTypedArray)'
-stdout> Uint8Array(1) [3]
+stdout> > Uint8Array(1) [3]
 
 Evaluating: 'console.log([tinyTypedArray])'
 stdout> > (1) [Uint8Array(1)]
 
 Evaluating: 'console.log(smallTypedArray)'
-stdout> Uint8Array(400) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
+stdout> > Uint8Array(400) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 
 Evaluating: 'console.log([smallTypedArray])'
 stdout> > (1) [Uint8Array(400)]
 
 Evaluating: 'console.log(bigTypedArray)'
-stdout> Uint8Array(400000000) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
+stdout> > Uint8Array(400000000) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 
 Evaluating: 'console.log([bigTypedArray])'
 stdout> > (1) [Uint8Array(400000000)]

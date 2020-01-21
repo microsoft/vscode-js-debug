@@ -4,13 +4,13 @@
 
 import * as vscode from 'vscode';
 
-import { registerDebugScriptActions } from './ui/debugScriptUI';
+import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { SessionManager } from './ui/sessionManager';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { NodeDebugConfigurationProvider } from './nodeDebugConfigurationProvider';
 import { ChromeDebugConfigurationProvider } from './chromeDebugConfigurationProvider';
-import { Contributions } from './common/contributionUtils';
+import { Contributions, registerCommand } from './common/contributionUtils';
 import { pickProcess, attachProcess } from './ui/processPicker';
 import { ExtensionHostConfigurationProvider } from './extensionHostConfigurationProvider';
 import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
@@ -18,12 +18,14 @@ import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerLongBreakpointUI } from './ui/longPredictionUI';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
+import { registerNpmScriptLens } from './ui/npmScriptLens';
+import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.PickProcessCommand, pickProcess),
-    vscode.commands.registerCommand(Contributions.AttachProcessCommand, attachProcess),
-    vscode.commands.registerCommand(Contributions.DebugNpmScript, debugNpmScript),
+    registerCommand(vscode.commands, Contributions.DebugNpmScript, debugNpmScript),
+    registerCommand(vscode.commands, Contributions.PickProcessCommand, pickProcess),
+    registerCommand(vscode.commands, Contributions.AttachProcessCommand, attachProcess),
     vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile),
   );
 
@@ -55,7 +57,8 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  const sessionManager = new SessionManager(context);
+  const launcherDelegate = new DelegateLauncherFactory();
+  const sessionManager = new SessionManager(context, launcherDelegate);
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.NodeDebugType, sessionManager),
     vscode.debug.registerDebugAdapterDescriptorFactory(
@@ -82,7 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerLongBreakpointUI(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
-  registerDebugScriptActions(context);
+  registerDebugTerminalUI(context, launcherDelegate);
+  registerNpmScriptLens(context);
 }
 
 export function deactivate() {

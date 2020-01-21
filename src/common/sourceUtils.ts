@@ -7,10 +7,10 @@ import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
-import { calculateHash } from './hash';
 import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
+import { hashBytes, hashFile } from './hash';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -179,22 +179,30 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   return code;
 }
 
+/**
+ * If the given code is an object literal expression, like `{ foo: true }`,
+ * wraps it with parens like `({ foo: true })`. Will return the input code
+ * for other expression or invalid code.
+ */
 export function wrapObjectLiteral(code: string): string {
-  // Only parenthesize what appears to be an object literal.
-  if (!(/^\s*\{/.test(code) && /\}\s*$/.test(code))) return code;
-
-  // Function constructor.
-  const parse = (async () => 0).constructor;
+  let src: ts.SourceFile;
   try {
-    // Check if the code can be interpreted as an expression.
-    parse('return ' + code + ';');
-    // No syntax error! Does it work parenthesized?
-    const wrappedCode = '(' + code + ')';
-    parse(wrappedCode);
-    return wrappedCode;
-  } catch (e) {
+    src = ts.createSourceFile('file.js', `return ${code};`, ts.ScriptTarget.ESNext, true);
+  } catch {
     return code;
   }
+  const returnStmt = src.statements[0];
+  if (!ts.isReturnStatement(returnStmt) || !returnStmt.expression) {
+    return code; // should never happen, maybe if there's a bizarre parse error
+  }
+
+  const diagnostics = ((src as unknown) as { parseDiagnostics?: ts.DiagnosticMessage[] })
+    .parseDiagnostics;
+  if (diagnostics?.some(d => d.category === ts.DiagnosticCategory.Error)) {
+    return code; // abort on parse errors
+  }
+
+  return ts.isObjectLiteralExpression(returnStmt.expression) ? `(${code})` : code;
 }
 
 export async function loadSourceMap(
@@ -258,47 +266,25 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   return sourceMapUrl;
 }
 
-export function rewriteLogPoint(code: string): string {
-  function text(node: ts.Node) {
-    return code.substring(node.pos, node.end);
-  }
+const LOGMESSAGE_VARIABLE_REGEXP = /{(.*?)}/g;
+export function logMessageToExpression(msg: string): string {
+  msg = msg.replace('%', '%%');
 
-  let body: ReadonlyArray<ts.Statement>;
-  try {
-    const sourceFile = ts.createSourceFile(
-      'file.js',
-      code,
-      ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true,
-    );
-    body = sourceFile.statements;
-  } catch (e) {
-    return `console.log(${code});`;
-  }
-  if (!body.length) {
-    return `console.log(${code});`;
-  }
-
-  const last = body[body.length - 1] as ts.Node;
-  let logText = `console.log(${text(last)})`;
-  if (last.kind === ts.SyntaxKind.ExpressionStatement) {
-    const expression = (last as ts.ExpressionStatement).expression;
-    if (expression.kind === ts.SyntaxKind.TemplateExpression) {
-      const template = expression as ts.TemplateExpression;
-      const args: string[] = [];
-      const texts: string[] = [];
-      texts.push(template.head.text.replace('%', '%%'));
-      for (const span of template.templateSpans) {
-        texts.push('%O');
-        texts.push(span.literal.text.replace('%', '%%'));
-        args.push(text(span.expression));
-      }
-      args.unshift('`' + texts.join('') + '`');
-      logText = `console.log(${args.map(s => `(${s})`).join(',')})`;
+  const args: string[] = [];
+  let format = msg.replace(LOGMESSAGE_VARIABLE_REGEXP, (_match, group) => {
+    const a = group.trim();
+    if (a) {
+      args.push(`(${a})`);
+      return '%O';
+    } else {
+      return '';
     }
-  }
+  });
 
-  return `(function(){${code.substring(0, last.pos)};${logText};return false;})()`;
+  format = format.replace("'", "\\'");
+
+  const argStr = args.length ? `, ${args.join(', ')}` : '';
+  return `console.log('${format}'${argStr});`;
 }
 
 export async function checkContentHash(
@@ -310,12 +296,11 @@ export async function checkContentHash(
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const content =
+  const hash =
     typeof contentOverride === 'string'
-      ? Buffer.from(contentOverride, 'utf8')
-      : await fsUtils.readFileRaw(absolutePath);
+      ? await hashBytes(contentOverride)
+      : await hashFile(absolutePath);
 
-  const hash = calculateHash(content);
   return hash === contentHash ? absolutePath : undefined;
 }
 

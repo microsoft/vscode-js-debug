@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/tsNode/log.ts:2:1

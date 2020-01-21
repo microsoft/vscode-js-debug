@@ -14,6 +14,65 @@ result: 3
 
 <error>: Uncaught ReferenceError: baz is not defined
 
+> result: Uint8Array(3) [1, 2, 3]
+    0: 1
+    1: 2
+    2: 3
+    > get buffer: ƒ buffer()
+    > get byteLength: ƒ byteLength()
+    > get byteOffset: ƒ byteOffset()
+    > get length: ƒ length()
+    > get Symbol(Symbol.toStringTag): ƒ [Symbol.toStringTag]()
+    > __proto__: TypedArray
+
+> result: ArrayBuffer(3)
+    > [[Int8Array]]: Int8Array(3) [1, 2, 3]
+    > [[Uint8Array]]: Uint8Array(3) [1, 2, 3]
+    > get byteLength: ƒ byteLength()
+    > __proto__: ArrayBuffer
+
+> result: Proxy {a: 1}
+    > [[Handler]]: Object
+    [[IsRevoked]]: false
+    > [[Target]]: Object
+
+> result: {}
+    > set foo: ƒ foo(x) {}
+        > get arguments: ƒ ()
+        > set arguments: ƒ ()
+        > get caller: ƒ ()
+        > set caller: ƒ ()
+        length: 1
+        name: 'set foo'
+        [[FunctionLocation]]: @ <eval>/VM<xx>:1
+        > [[Scopes]]: Scopes[1]
+        > __proto__: function () { [native code] }
+    > __proto__: Object
+        > set foo: ƒ foo(x) {}
+        > __proto__: Object
+
+> result: {}
+    > get foo: ƒ foo() { return 42 }
+        42
+    > __proto__: Object
+        > get foo: ƒ foo() { return 42 }
+        > __proto__: Object
+
+> result: {}
+    > get foo: ƒ foo() { throw 'wat'; }
+        > get arguments: ƒ ()
+        > set arguments: ƒ ()
+        > get caller: ƒ ()
+        > set caller: ƒ ()
+        length: 0
+        name: 'get foo'
+        [[FunctionLocation]]: @ <eval>/VM<xx>:1
+        > [[Scopes]]: Scopes[1]
+        > __proto__: function () { [native code] }
+    > __proto__: Object
+        > get foo: ƒ foo() { throw 'wat'; }
+        > __proto__: Object
+
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
 stderr> > Uncaught Error: bar
@@ -36,7 +95,7 @@ stderr>
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
 stderr>     
-throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:8
+throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
 <anonymous> @ <eval>/VM<xx>:1:27
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1

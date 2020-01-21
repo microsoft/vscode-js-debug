@@ -189,6 +189,7 @@ async function runWebpack(packages) {
 gulp.task('package:webpack-bundle', async () => {
   const packages = [
     { entry: `${buildSrcDir}/extension.js`, library: true },
+    { entry: `${buildSrcDir}/common/hash/hash.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
   ];

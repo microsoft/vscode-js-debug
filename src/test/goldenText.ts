@@ -53,8 +53,16 @@ export class GoldenText {
     return this._hasNonAssertedLogs;
   }
 
+  getOutput(): string {
+    return this._results.join('\n') + '\n';
+  }
+
+  /**
+   * This method _must_ be called from the test file.
+   * The output file will go next to the file from which this is called.
+   */
   assertLog(options: { substring?: boolean } = {}) {
-    const output = this._results.join('\n') + '\n';
+    const output = this.getOutput();
     this._hasNonAssertedLogs = false;
 
     const goldenFilePath = this.findGoldenFilePath();
@@ -65,10 +73,16 @@ export class GoldenText {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
-      if (options.substring) {
-        expect(output).to.contain(expectations);
-      } else {
-        expect(output).to.equal(expectations);
+
+      try {
+        if (options.substring) {
+          expect(output).to.contain(expectations);
+        } else {
+          expect(output).to.equal(expectations);
+        }
+      } catch (err) {
+        fs.writeFileSync(goldenFilePath + '.actual', output, { encoding: 'utf-8' });
+        throw err;
       }
     }
   }

@@ -52,11 +52,12 @@
     "color": "^3.1.2",
     "glob-stream": "^6.1.0",
     "js-beautify": "^1.10.0",
+    "jsonc-parser": "^2.2.0",
     "long": "^4.0.0",
     "micromatch": "^4.0.2",
     "source-map": "^0.7.3",
     "split2": "^3.1.1",
-    "typescript": "^3.7.2",
+    "typescript": "^3.7.4",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },
@@ -143,6 +144,7 @@
   "main": "./src/extension.js",
   "enableProposedApi": true,
   "activationEvents": [
+    "onLanguage:json",
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
     "onDebugResolve:extensionHost",

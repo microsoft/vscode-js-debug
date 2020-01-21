@@ -28,6 +28,9 @@ export type Message = (
   __receivedTime?: HighResolutionTime;
 };
 
+const requestSuffix = 'Request';
+export const isRequest = (req: string) => req.endsWith('Request');
+
 let isFirstDapConnectionEver = true;
 let connectionId = 0;
 
@@ -97,8 +100,6 @@ export default class Connection {
   }
 
   _createApi(): Dap.Api {
-    const requestSuffix = 'Request';
-
     return new Proxy(
       {},
       {
@@ -113,7 +114,7 @@ export default class Connection {
           if (methodName === 'off')
             return (requestName: string) => this._requestHandlers.delete(requestName);
           return (params: object) => {
-            if (methodName.endsWith(requestSuffix)) {
+            if (isRequest(methodName)) {
               return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
             }
 
@@ -163,8 +164,8 @@ export default class Connection {
   private enqueueRequest(command: string, params?: object) {
     return new Promise(cb => {
       const request: Message = { seq: 0, type: 'request', command, arguments: params || {} };
-      this._pendingRequests.set(this._sequence, cb);
-      this._send(request);
+      this._send(request); // this updates request.seq
+      this._pendingRequests.set(request.seq, cb);
     });
   }
 

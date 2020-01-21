@@ -17,9 +17,10 @@ import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { IRawTelemetryReporter } from '../../telemetry/telemetryReporter';
-import { ChildProcess } from 'child_process';
 import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
+import { ITargetOrigin } from '../targetOrigin';
+import { IBrowserProcess } from './browserProcess';
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -30,7 +31,7 @@ export class BrowserTargetManager implements IDisposable {
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: ISourcePathResolver;
-  _targetOrigin: any;
+  _targetOrigin: ITargetOrigin;
   _scriptSkipper?: ScriptSkipper;
 
   private _onTargetAddedEmitter = new EventEmitter<BrowserTarget>();
@@ -40,11 +41,11 @@ export class BrowserTargetManager implements IDisposable {
 
   static async connect(
     connection: CdpConnection,
-    process: undefined | ChildProcess,
+    process: undefined | IBrowserProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
     telemetry: IRawTelemetryReporter,
-    targetOrigin: any,
+    targetOrigin: ITargetOrigin,
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
     const result = await rootSession.Target.attachToBrowserTarget({});
@@ -67,12 +68,12 @@ export class BrowserTargetManager implements IDisposable {
 
   constructor(
     connection: CdpConnection,
-    private readonly process: ChildProcess | undefined,
+    private readonly process: IBrowserProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
     private readonly telemetry: IRawTelemetryReporter,
     private readonly launchParams: AnyChromeConfiguration,
-    targetOrigin: any,
+    targetOrigin: ITargetOrigin,
   ) {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
@@ -99,8 +100,10 @@ export class BrowserTargetManager implements IDisposable {
   }
 
   async closeBrowser(): Promise<void> {
-    if (!this.process || !killTree(this.process.pid)) {
-      await this._browser.Browser.close({});
+    await this._browser.Browser.close({});
+
+    if (this.process && this.process.pid) {
+      killTree(this.process.pid);
     }
   }
 

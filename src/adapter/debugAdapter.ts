@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable } from '../common/events';
 import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
@@ -24,6 +23,10 @@ import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { SourceMapCache } from './sourceMapCache';
 import { logPerf } from '../telemetry/performance';
 import { ScriptSkipper } from './scriptSkipper';
+import { IAsyncStackPolicy } from './asyncStackPolicy';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
+import { DisposableList } from '../common/disposable';
 
 const localize = nls.loadMessageBundle();
 
@@ -33,7 +36,7 @@ export class DebugAdapter {
   readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
-  private _disposables: IDisposable[] = [];
+  private _disposables = new DisposableList();
   private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
@@ -44,6 +47,7 @@ export class DebugAdapter {
     rootPath: string | undefined,
     sourcePathResolver: ISourcePathResolver,
     private scriptSkipper: ScriptSkipper,
+    private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: IRawTelemetryReporter,
   ) {
@@ -284,10 +288,15 @@ export class DebugAdapter {
       delegate,
       this.launchConfig,
       this.breakpointManager,
-      this.launchConfig.__enableInstrumentationBp !== false,
     );
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
+
+    this.asyncStackPolicy
+      .connect(cdp)
+      .then(d => this._disposables.push(d))
+      .catch(err => logger.error(LogTag.Internal, 'Error enabling async stacks', err));
+
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
     this.breakpointManager.setThread(this._thread);
     return this._thread;
@@ -373,7 +382,6 @@ export class DebugAdapter {
   }
 
   dispose() {
-    for (const disposable of this._disposables) disposable.dispose();
-    this._disposables = [];
+    this._disposables.dispose();
   }
 }

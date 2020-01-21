@@ -1,8 +1,9 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { Contributions } from '../common/contributionUtils';
+import { Contributions, IConfigurationTypes, Configuration } from '../common/contributionUtils';
 import {
+  IMandatedConfiguration,
   AnyLaunchConfiguration,
   ResolvingConfiguration,
   INodeAttachConfiguration,
@@ -14,7 +15,7 @@ import {
   IChromeBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
-  INodeTerminalConfiguration,
+  ITerminalLaunchConfiguration,
   baseDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
@@ -22,17 +23,16 @@ import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
 type OmittedKeysFromAttributes =
-  | 'type'
-  | 'request'
-  | 'internalConsoleOptions'
-  | 'name'
+  | keyof IMandatedConfiguration
   | 'rootPath'
-  | '__workspaceFolder';
+  | '__workspaceFolder'
+  | '__workspaceCachePath';
 
 type ConfigurationAttributes<T> = {
   [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
     Described & {
       default: T[K];
+      enum?: Array<T[K]>;
     };
 };
 type Described =
@@ -101,9 +101,33 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     default: false,
   },
   showAsyncStacks: {
-    type: 'boolean',
     description: refString('node.showAsyncStacks.description'),
     default: true,
+    oneOf: [
+      {
+        type: 'boolean',
+      },
+      {
+        type: 'object',
+        required: ['onAttach'],
+        properties: {
+          onAttach: {
+            type: 'number',
+            default: 32,
+          },
+        },
+      },
+      {
+        type: 'object',
+        required: ['onceBreakpointResolved'],
+        properties: {
+          onceBreakpointResolved: {
+            type: 'number',
+            default: 32,
+          },
+        },
+      },
+    ],
   },
   skipFiles: {
     type: 'array',
@@ -166,7 +190,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     ],
   },
   outputCapture: {
-    enum: ['console', 'std'],
+    enum: [OutputSource.Console, OutputSource.Stdio],
     description: refString('node.launch.outputCapture.description'),
     default: OutputSource.Console,
   },
@@ -200,6 +224,19 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     type: 'boolean',
     description: refString('node.launch.autoAttachChildProcesses.description'),
     default: true,
+  },
+  env: {
+    type: 'object',
+    additionalProperties: {
+      type: ['string', 'null'],
+    },
+    markdownDescription: refString('node.launch.env.description'),
+    default: {},
+  },
+  envFile: {
+    type: 'string',
+    description: refString('node.launch.envFile.description'),
+    default: '${workspaceFolder}/.env',
   },
 };
 
@@ -427,23 +464,10 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       },
       default: [],
     },
-    env: {
-      type: 'object',
-      additionalProperties: {
-        type: ['string', 'null'],
-      },
-      markdownDescription: refString('node.launch.env.description'),
-      default: {},
-    },
-    envFile: {
-      type: 'string',
-      description: refString('node.launch.envFile.description'),
-      default: '${workspaceFolder}/.env',
-    },
   },
 };
 
-const nodeTerminalConfiguration: IDebugger<INodeTerminalConfiguration> = {
+const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
   type: Contributions.TerminalDebugType,
   request: 'launch',
   label: refString('debug.terminal.label'),
@@ -565,19 +589,6 @@ const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
       markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
       default: 'node',
     },
-    env: {
-      type: 'object',
-      additionalProperties: {
-        type: ['string', 'null'],
-      },
-      markdownDescription: refString('extensionHost.launch.env.description'),
-      default: {},
-    },
-    envFile: {
-      type: 'string',
-      description: refString('node.launch.envFile.description'),
-      default: '${workspaceFolder}/.env',
-    },
   },
 };
 
@@ -694,8 +705,31 @@ function buildDebuggers() {
   return walkObject(output, sortKeys);
 }
 
+const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
+  [Configuration.NpmScriptLens]: {
+    enum: ['top', 'all', 'never'],
+    default: 'top',
+    description: refString('configuration.npmScriptLensLocation'),
+  },
+  [Configuration.WarnOnLongPrediction]: {
+    type: 'boolean',
+    default: true,
+    description: refString('configuration.warnOnLongPrediction'),
+  },
+  [Configuration.TerminalDebugConfig]: {
+    type: 'object',
+    description: refString('configuration.terminalOptions'),
+    default: {},
+    properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
+  },
+};
+
 process.stdout.write(
   JSON.stringify({
     debuggers: buildDebuggers(),
+    configuration: {
+      title: 'JavaScript Debugger',
+      properties: configurationSchema,
+    },
   }),
 );

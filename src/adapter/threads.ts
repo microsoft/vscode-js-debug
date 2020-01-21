@@ -133,7 +133,6 @@ export class Thread implements IVariableStoreDelegate {
     delegate: IThreadDelegate,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
-    private readonly enableInstrumentationBp: boolean,
   ) {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
@@ -547,17 +546,24 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    const hitData = event.hitBreakpoints?.length
-      ? this._breakpointManager.onBreakpointHit(event.hitBreakpoints)
-      : undefined;
+    const hitBreakpoints = (event.hitBreakpoints ?? []).filter(
+      bp => bp !== this._pauseOnSourceMapBreakpointId,
+    );
     const isSourceMapPause =
-      (event.reason === 'instrumentation' && event.data?.scriptId) || hitData?.entrypointBps.length;
+      (event.reason === 'instrumentation' && event.data?.scriptId) ||
+      this._breakpointManager.isEntrypointBreak(hitBreakpoints);
 
+    let shouldPause: boolean;
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
-      const remainPaused =
-        (await this._handleSourceMapPause(scriptId, location)) || hitData?.remainPaused;
+
+      // Set shouldPause=true if we just resolved a breakpoint that's on this
+      // location; this won't have existed before now.
+      shouldPause = await this._handleSourceMapPause(scriptId, location);
+      // Set shouldPause=true if there's a non-entry, user defined breakpoint
+      // among the remaining points.
+      shouldPause = shouldPause || this._breakpointManager.shouldPauseAt(hitBreakpoints, true);
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -567,7 +573,7 @@ export class Thread implements IVariableStoreDelegate {
       ) {
         // Paused on the script which is run as a task for scheduled async call.
         // We are waiting for this pause, no need to resume.
-      } else if (remainPaused) {
+      } else if (shouldPause) {
         // If should stay paused, that means the user set a breakpoint on
         // the first line (which we are already on!), so pretend it's
         // a breakpoint and let it bubble up.
@@ -579,6 +585,8 @@ export class Thread implements IVariableStoreDelegate {
         this.resume();
         return;
       }
+    } else {
+      shouldPause = this._breakpointManager.shouldPauseAt(hitBreakpoints, false);
     }
 
     if (event.asyncCallStackTraceId) {
@@ -590,11 +598,9 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._pausedDetails = this._createPausedDetails(event);
-    if (this._pausedDetails.reason === 'breakpoint' && event.hitBreakpoints) {
-      if (hitData?.remainPaused === false) {
-        this.resume();
-        return;
-      }
+    if (!shouldPause) {
+      this.resume();
+      return;
     }
 
     if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
@@ -619,33 +625,36 @@ export class Thread implements IVariableStoreDelegate {
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
+
+    this._executionContextsCleared();
+
+    // Send 'exited' after all other thread-releated events
     this._dap.thread({
       reason: 'exited',
       threadId: this.id,
     });
-
-    this._executionContextsCleared();
   }
 
   rawLocation(
     location: Cdp.Runtime.CallFrame | Cdp.Debugger.CallFrame | Cdp.Debugger.Location,
   ): RawLocation {
-    // Note: cdp locations are 0-based, while ui locations are 1-based.
-    if ((location as Cdp.Debugger.CallFrame).location) {
+    // Note: cdp locations are 0-based, while ui locations are 1-based. Also,
+    // some we can *apparently* get negative locations; Vue's "hello world"
+    // project was observed to emit source locations at (-1, -1) in its callframe.
+    if ('location' in location) {
       const loc = location as Cdp.Debugger.CallFrame;
       return {
         url: loc.url,
-        lineNumber: loc.location.lineNumber + 1,
-        columnNumber: (loc.location.columnNumber || 0) + 1,
+        lineNumber: Math.max(0, loc.location.lineNumber) + 1,
+        columnNumber: Math.max(0, loc.location.columnNumber || 0) + 1,
         scriptId: loc.location.scriptId,
       };
     }
-    const loc = location as Cdp.Debugger.Location | Cdp.Runtime.CallFrame;
     return {
-      url: (loc as Cdp.Runtime.CallFrame).url || '',
-      lineNumber: loc.lineNumber + 1,
-      columnNumber: (loc.columnNumber || 0) + 1,
-      scriptId: loc.scriptId,
+      url: (location as Cdp.Runtime.CallFrame).url || '',
+      lineNumber: Math.max(0, location.lineNumber) + 1,
+      columnNumber: Math.max(0, location.columnNumber || 0) + 1,
+      scriptId: location.scriptId,
     };
   }
 
@@ -726,14 +735,13 @@ export class Thread implements IVariableStoreDelegate {
         this._sourceContainer.disableSourceMapForSource(sourceToDisable);
     }
 
-    const stackTrace = this.launchConfig.showAsyncStacks
-      ? StackTrace.fromDebugger(
-          this,
-          event.callFrames,
-          event.asyncStackTrace,
-          event.asyncStackTraceId,
-        )
-      : StackTrace.fromDebugger(this, event.callFrames);
+    const stackTrace = StackTrace.fromDebugger(
+      this,
+      event.callFrames,
+      event.asyncStackTrace,
+      event.asyncStackTraceId,
+    );
+
     switch (event.reason) {
       case 'assert':
         return {
@@ -893,26 +901,38 @@ export class Thread implements IVariableStoreDelegate {
       event.args[0].value = localize('console.assert', 'Assertion failed');
 
     let messageText: string;
+    let usedAllArgs = false;
     if (event.type === 'table' && event.args.length && event.args[0].preview) {
       messageText = objectPreview.formatAsTable(event.args[0].preview);
     } else {
       const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
       const formatString = useMessageFormat ? (event.args[0].value as string) : '';
-      messageText = messageFormat.formatMessage(
+      const formatResult = messageFormat.formatMessage(
         formatString,
         useMessageFormat ? event.args.slice(1) : event.args,
         objectPreview.messageFormatters,
       );
+      messageText = formatResult.result;
+      usedAllArgs = formatResult.usedAllSubs;
     }
 
-    const variablesReference = await this.replVariables.createVariableForOutput(
-      messageText + '\n',
-      event.args,
-      stackTrace,
-    );
+    let output: string;
+    let variablesReference: number | undefined;
+    if (!usedAllArgs || event.args.some(arg => objectPreview.previewAsObject(arg))) {
+      output = '';
+      variablesReference = await this.replVariables.createVariableForOutput(
+        messageText + '\n',
+        event.args,
+        stackTrace,
+      );
+    } else {
+      output = messageText;
+      variablesReference = undefined;
+    }
+
     return {
       category,
-      output: '',
+      output,
       variablesReference,
       source: uiLocation ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
@@ -1005,9 +1025,12 @@ export class Thread implements IVariableStoreDelegate {
       if (event.sourceMapURL && this.launchConfig.sourceMaps) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
-        resolvedSourceMapUrl = event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
-        if (!resolvedSourceMapUrl)
+        resolvedSourceMapUrl = urlUtils.isDataUri(event.sourceMapURL)
+          ? event.sourceMapURL
+          : event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
+        if (!resolvedSourceMapUrl) {
           errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
+        }
       }
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
@@ -1215,14 +1238,13 @@ export class Thread implements IVariableStoreDelegate {
     });
   }
 
-  async setScriptSourceMapHandler(handler?: ScriptWithSourceMapHandler): Promise<void> {
-    if (this._scriptWithSourceMapHandler === handler) return;
+  async setScriptSourceMapHandler(
+    pause: boolean,
+    handler?: ScriptWithSourceMapHandler,
+  ): Promise<void> {
     this._scriptWithSourceMapHandler = handler;
-    const needsPause =
-      this.enableInstrumentationBp &&
-      this._sourceContainer.sourceMapTimeouts().scriptPaused &&
-      handler;
 
+    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',

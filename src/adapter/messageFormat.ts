@@ -63,7 +63,7 @@ export function formatMessage<T>(
   format: string,
   substitutions: ReadonlyArray<T>,
   formatters: Formatters<T>,
-): string {
+): { result: string; usedAllSubs: boolean } {
   const tokens = tokenizeFormatString(format, Array.from(formatters.keys()));
   const usedSubstitutionIndexes = new Set<number>();
   const defaultFormatter = formatters.get('');
@@ -97,13 +97,17 @@ export function formatMessage<T>(
 
   for (let i = 0; builder.checkBudget() && i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i)) continue;
+    usedSubstitutionIndexes.add(i);
     if (format || i)
       // either we are second argument or we had format.
       builder.append(' ');
     builder.append(defaultFormatter(substitutions[i], builder.budget()));
   }
 
-  return builder.build();
+  return {
+    result: builder.build(),
+    usedAllSubs: usedSubstitutionIndexes.size === substitutions.length,
+  };
 }
 
 function escapeAnsiColor(colorString: string): number | undefined {

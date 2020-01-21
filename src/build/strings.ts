@@ -157,8 +157,6 @@ const strings = {
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
 
-  'configuration.warnOnLongPrediction':
-    'Whether a loading prompt should be shown if breakpoint prediction takes a while.',
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
   'longPredictionWarning.open': 'Open launch.json',
@@ -172,8 +170,14 @@ const strings = {
     'An array of glob patterns for files to skip when debugging. The pattern `<node_internals>/**` matches all internal Node.js modules.',
   'smartStep.description':
     'Automatically step through generated code that cannot be mapped back to the original source.',
-
   'errors.timeout': '{0}: timeout after {1}ms',
+
+  'configuration.warnOnLongPrediction':
+    'Whether a loading prompt should be shown if breakpoint prediction takes a while.',
+  'configuration.npmScriptLensLocation':
+    'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
+  'configuration.terminalOptions':
+    'Default launch options for the JavaScript debug terminal and npm scripts.',
 };
 
 export default strings;

@@ -12,10 +12,10 @@ import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
 
 describe('breakpoints', () => {
-  async function waitForPause(p: ITestHandle, cb?: () => Promise<void>) {
+  async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
-    if (cb) await cb();
+    if (cb) await cb(threadId);
     return p.dap.continue({ threadId });
   }
 
@@ -329,24 +329,29 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/logging.js'),
       };
+      const breakpoints = [
+        { line: 6, column: 0, logMessage: '123' },
+        // Logpoint limitations: #226
+        // { line: 7, column: 0, logMessage: "{foo: 'bar'}" },
+        // { line: 8, column: 0, logMessage: '`bar`' },
+        // { line: 9, column: 0, logMessage: '`${bar}`' },
+        { line: 7, column: 0, logMessage: '{foo}' },
+        { line: 8, column: 0, logMessage: 'foo {foo} bar' },
+        { line: 9, column: 0, logMessage: 'foo {bar + baz}' },
+        // { line: 10, column: 0, logMessage: '`${bar} ${foo}`' },
+        // { line: 11, column: 0, logMessage: '{const a = bar + baz; a}' },
+        // { line: 12, column: 0, logMessage: 'const a = bar + baz; `a=${a}`' },
+        { line: 13, column: 0, logMessage: '{(x=>x+baz)(bar)}' },
+        // { line: 14, column: 0, logMessage: 'const b=(x=>x+baz)(bar); `b=${b}`' },
+        { line: 15, column: 0, logMessage: "{'hi'}" },
+      ];
       await p.dap.setBreakpoints({
         source,
-        breakpoints: [
-          { line: 6, column: 0, logMessage: '123' },
-          { line: 7, column: 0, logMessage: "{foo: 'bar'}" },
-          { line: 8, column: 0, logMessage: '`bar`' },
-          { line: 9, column: 0, logMessage: '`${bar}`' },
-          { line: 10, column: 0, logMessage: '`${bar} ${foo}`' },
-          { line: 11, column: 0, logMessage: 'const a = bar + baz; a' },
-          { line: 12, column: 0, logMessage: 'const a = bar + baz; `a=${a}`' },
-          { line: 13, column: 0, logMessage: '(x=>x+baz)(bar)' },
-          { line: 14, column: 0, logMessage: 'const b=(x=>x+baz)(bar); `b=${b}`' },
-          { line: 15, column: 0, logMessage: "'hi'" },
-        ],
+        breakpoints,
       });
       p.load();
       const outputs: Dap.OutputEventParams[] = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < breakpoints.length; i++) {
         outputs.push(await p.dap.once('output'));
       }
       for (const o of outputs) {
@@ -366,7 +371,7 @@ describe('breakpoints', () => {
           {
             line: 28,
             column: 0,
-            logMessage: "window.logValue = (window.logValue || 0) + 1; 'LOG' + window.logValue",
+            logMessage: "{'LOG' + (window.logValue = (window.logValue || 0) + 1)}",
           },
         ],
       });
@@ -447,6 +452,24 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('user defined bp on first line', async ({ r }) => {
+      // The scenario is if a user-defined breakpoint is hit on the first line
+      // of the script, even if in the transpiled code it should have been
+      // on a different line. This tests that we run a hit-check after source maps.
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'tsNode');
+      const handle = await r.runScript(join(cwd, 'index.js'));
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'log.ts') },
+        breakpoints: [{ line: 2, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('adjusts breakpoints', async ({ r }) => {
       await r.initialize;
 
@@ -491,5 +514,88 @@ describe('breakpoints', () => {
 
     await waitForPause(p);
     p.assertLog();
+  });
+
+  describe('lazy async stack', () => {
+    itIntegrates('sets stack on pause', async ({ r }) => {
+      // First debugger; hit will have no async stack, the second (after turning on) will
+      const p = await r.launchUrl('asyncStack.html', {
+        showAsyncStacks: { onceBreakpointResolved: 32 },
+      });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('sets eagerly on bp', async ({ r }) => {
+      // Both debugger; hits will have async stacks since we had a resolved BP
+      const p = await r.launchUrl('asyncStack.html', {
+        showAsyncStacks: { onceBreakpointResolved: 32 },
+      });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/asyncStack.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
+      p.load();
+      await waitForPause(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+  });
+
+  itIntegrates('vue projects', async ({ r }) => {
+    const p = await r.launchUrl('vue/index.html');
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('web/src/App.vue') },
+      breakpoints: [{ line: 9, column: 1 }],
+    });
+    p.load();
+
+    const { threadId } = p.log(await p.dap.once('stopped'));
+    await p.logger.logStackTrace(threadId);
+    p.dap.stepIn({ threadId });
+    await waitForPause(p);
+    p.assertLog();
+  });
+
+  describe('breakpoint placement', () => {
+    const cwd = join(testWorkspace, 'sourceMapLocations');
+
+    describe('first function stmt', () => {
+      ['tsc', 'babel'].forEach(tcase =>
+        itIntegrates(tcase, async ({ r }) => {
+          await r.initialize;
+
+          const handle = await r.runScript(join(cwd, `${tcase}.js`));
+          await handle.dap.setBreakpoints({
+            source: { path: join(cwd, 'test.ts') },
+            breakpoints: [{ line: 4, column: 1 }],
+          });
+
+          handle.load();
+          await waitForPause(handle);
+          handle.assertLog({ substring: true });
+        }),
+      );
+    });
+
+    describe('end function stmt', () => {
+      ['tsc', 'babel'].forEach(tcase =>
+        itIntegrates(tcase, async ({ r }) => {
+          await r.initialize;
+
+          const handle = await r.runScript(join(cwd, `${tcase}.js`));
+          await handle.dap.setBreakpoints({
+            source: { path: join(cwd, 'test.ts') },
+            breakpoints: [{ line: 6, column: 1 }],
+          });
+
+          handle.load();
+          await waitForPause(handle);
+          handle.assertLog({ substring: true });
+        }),
+      );
+    });
   });
 });

@@ -8,7 +8,7 @@ import * as util from 'util';
 import { TestWithLogfile, getLogFileForTest as getLogPathForTest } from './logReporterUtils';
 
 class LoggingReporter extends mocha.reporters.Spec {
-  static alwaysDumpLogs = false;
+  static alwaysDumpLogs = process.env['DUMP_LOGS'];
 
   constructor(runner: any) {
     super(runner);

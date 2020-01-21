@@ -18,6 +18,7 @@ import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
 import { Dap } from '../../dap/api';
+import { ITargetOrigin } from '../targetOrigin';
 
 const localize = nls.loadMessageBundle();
 
@@ -26,7 +27,7 @@ export class BrowserAttacher implements ILauncher {
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: IChromeAttachConfiguration | undefined;
-  private _targetOrigin: any;
+  private _targetOrigin?: ITargetOrigin;
   private _disposables: IDisposable[] = [];
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -122,7 +123,7 @@ export class BrowserAttacher implements ILauncher {
       pathResolver,
       params,
       rawTelemetryReporter,
-      this._targetOrigin,
+      this._targetOrigin!,
     );
     if (!this._targetManager) return;
 

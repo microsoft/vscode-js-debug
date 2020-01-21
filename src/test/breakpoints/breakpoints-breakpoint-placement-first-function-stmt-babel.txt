@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/sourceMapLocations/test.ts:4:3

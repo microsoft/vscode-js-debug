@@ -18,7 +18,6 @@ import { NodeLauncher } from './targets/node/nodeLauncher';
 import { BrowserLauncher } from './targets/browser/browserLauncher';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ITarget } from './targets/targets';
-import { DebugAdapter } from './adapter/debugAdapter';
 import * as crypto from 'crypto';
 import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
 import { IDisposable } from './common/events';
@@ -29,6 +28,7 @@ import { NodeAttacher } from './targets/node/nodeAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { NodePathProvider } from './targets/node/nodePathProvider';
+import { TargetOrigin } from './targets/targetOrigin';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -94,7 +94,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
       return childSession.connection;
     },
 
-    async initAdapter(debugAdapter: DebugAdapter, target: ITarget): Promise<boolean> {
+    async initAdapter(): Promise<boolean> {
       return false;
     },
 
@@ -111,7 +111,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
   // First child uses no sessionId. Could potentially use something predefined that both sides know about, or have it passed with either
   // cmd line args or launch config if we decide that all sessions should definitely have an id
   const firstConnection = new ChildConnection(connection, undefined);
-  new Binder(binderDelegate, firstConnection, launchers, 'targetOrigin');
+  new Binder(binderDelegate, firstConnection, launchers, new TargetOrigin('targetOrigin'));
 
   connection.init(inputStream, outputStream);
 }
