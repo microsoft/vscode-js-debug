@@ -92,7 +92,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
       // lie to the restart policy--the watchdog always gracefully exits
       // when it loses connection, but we may want to restart.
-      const nextRestart = restartPolicy.next({ killed: false, code: 1 });
+      const nextRestart = restartPolicy.next();
       if (!nextRestart) {
         this.onProgramTerminated(result);
         return;
@@ -112,7 +112,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       }
     };
 
-    return doLaunch(this.restarters.create(runData.params));
+    return doLaunch(this.restarters.create(runData.params.restart));
   }
 
   protected async onFirstInitialize(cdp: Cdp.Api, run: IRunData<INodeAttachConfiguration>) {

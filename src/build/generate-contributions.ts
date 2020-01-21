@@ -28,12 +28,14 @@ type OmittedKeysFromAttributes =
   | '__workspaceFolder'
   | '__workspaceCachePath';
 
+type DescribedAttribute<T> = JSONSchema6 &
+  Described & {
+    default: T;
+    enum?: Array<T>;
+  };
+
 type ConfigurationAttributes<T> = {
-  [K in keyof Omit<T, OmittedKeysFromAttributes>]: JSONSchema6 &
-    Described & {
-      default: T[K];
-      enum?: Array<T[K]>;
-    };
+  [K in keyof Omit<T, OmittedKeysFromAttributes>]: DescribedAttribute<T[K]>;
 };
 type Described =
   | { description: MappedReferenceString }
@@ -291,9 +293,41 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
   configurationAttributes: {
     ...nodeBaseConfigurationAttributes,
     restart: {
-      type: 'boolean',
       description: refString('node.attach.restart.description'),
       default: true,
+      oneOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'object',
+          required: ['exponential'],
+          properties: {
+            exponential: {
+              type: 'object',
+              properties: {
+                maxDelay: { type: 'number', minimum: 0, default: 10000 },
+                maxAttempts: { type: 'number', minimum: 0, default: 10 },
+                exponent: { type: 'number', minimum: 1, default: 2 },
+                initialDelay: { type: 'number', minimum: 0, default: 128 },
+              },
+            },
+          },
+        },
+        {
+          type: 'object',
+          required: ['static'],
+          properties: {
+            static: {
+              type: 'object',
+              properties: {
+                delay: { type: 'number', minimum: 0, default: 1000 },
+                maxAttempts: { type: 'number', minimum: 0, default: 10 },
+              },
+            },
+          },
+        },
+      ],
     },
     processId: {
       type: 'string',
@@ -447,9 +481,8 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       default: [],
     },
     restart: {
-      type: 'boolean',
       description: refString('node.launch.restart.description'),
-      default: true,
+      ...nodeAttachConfig.configurationAttributes.restart,
     },
     runtimeExecutable: {
       type: ['string', 'null'],
