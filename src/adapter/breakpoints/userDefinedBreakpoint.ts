@@ -6,7 +6,7 @@ import { CdpReferenceState, Breakpoint, BreakpointCdpReference } from './breakpo
 import * as nls from 'vscode-nls';
 import { BreakpointManager, kLogPointUrl } from '../breakpoints';
 import Dap from '../../dap/api';
-import { logMessageToExpression } from '../../common/sourceUtils';
+import { logMessageToExpression } from './logPoint';
 import { getDeferred } from '../../common/promiseUtil';
 import { HitCondition } from './hitCondition';
 import { Thread } from '../threads';
@@ -22,9 +22,12 @@ export class UserDefinedBreakpoint extends Breakpoint {
    */
   private readonly completedSet = getDeferred<void>();
 
+  private logPointExpression?: string;
+
   /**
    * @param hitCondition - Hit condition for this breakpoint. See
    * {@link HitCondition} for more information.
+   * @throws ProtocolError - if an invalid logpoint message is given
    */
   constructor(
     manager: BreakpointManager,
@@ -34,6 +37,10 @@ export class UserDefinedBreakpoint extends Breakpoint {
     private readonly hitCondition?: HitCondition,
   ) {
     super(manager, source, { lineNumber: dapParams.line, columnNumber: dapParams.column || 1 });
+
+    if (dapParams.logMessage) {
+      this.logPointExpression = logMessageToExpression(dapParams.logMessage);
+    }
   }
 
   /**
@@ -100,15 +107,13 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * @override
    */
   protected getBreakCondition() {
-    const { logMessage, condition } = this.dapParams;
-
     const expressions: string[] = [];
-    if (logMessage) {
-      expressions.push(logMessageToExpression(logMessage) + `\n//# sourceURL=${kLogPointUrl}`);
+    if (this.logPointExpression) {
+      expressions.push(this.logPointExpression + `\n//# sourceURL=${kLogPointUrl}`);
     }
 
-    if (condition) {
-      expressions.push(condition);
+    if (this.dapParams.condition) {
+      expressions.push(this.dapParams.condition);
     }
 
     return expressions.length ? expressions.join(' && ') : undefined;

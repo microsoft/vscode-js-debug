@@ -9,7 +9,7 @@ import { TelemetryReporter, RawTelemetryReporterToDap } from '../telemetry/telem
 import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
-import { isDapError, isExternalError } from './errors';
+import { isDapError, isExternalError, ProtocolError } from './errors';
 
 export type Message = (
   | { type: 'request'; command: string; arguments: object }
@@ -226,18 +226,27 @@ export default class Connection {
         const format = isExternalError(e)
           ? e.message
           : `Error processing ${msg.command}: ${e.stack || e.message}`;
-        this._send({
-          ...response,
-          success: false,
-          body: {
-            error: {
-              id: 9221,
-              format,
-              showUser: false,
-              sendTelemetry: false,
+
+        if (e instanceof ProtocolError) {
+          this._send({
+            ...response,
+            success: false,
+            body: { error: e.cause },
+          });
+        } else {
+          this._send({
+            ...response,
+            success: false,
+            body: {
+              error: {
+                id: 9221,
+                format,
+                showUser: false,
+                sendTelemetry: false,
+              },
             },
-          },
-        });
+          });
+        }
 
         this._telemetryReporter?.reportError(msg.command, receivedTime, e);
       }

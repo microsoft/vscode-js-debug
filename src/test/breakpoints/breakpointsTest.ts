@@ -331,19 +331,14 @@ describe('breakpoints', () => {
       };
       const breakpoints = [
         { line: 6, column: 0, logMessage: '123' },
-        // Logpoint limitations: #226
-        // { line: 7, column: 0, logMessage: "{foo: 'bar'}" },
-        // { line: 8, column: 0, logMessage: '`bar`' },
-        // { line: 9, column: 0, logMessage: '`${bar}`' },
-        { line: 7, column: 0, logMessage: '{foo}' },
-        { line: 8, column: 0, logMessage: 'foo {foo} bar' },
-        { line: 9, column: 0, logMessage: 'foo {bar + baz}' },
-        // { line: 10, column: 0, logMessage: '`${bar} ${foo}`' },
-        // { line: 11, column: 0, logMessage: '{const a = bar + baz; a}' },
-        // { line: 12, column: 0, logMessage: 'const a = bar + baz; `a=${a}`' },
-        { line: 13, column: 0, logMessage: '{(x=>x+baz)(bar)}' },
-        // { line: 14, column: 0, logMessage: 'const b=(x=>x+baz)(bar); `b=${b}`' },
-        { line: 15, column: 0, logMessage: "{'hi'}" },
+        { line: 7, column: 0, logMessage: "{{foo: 'bar'}}" },
+        { line: 8, column: 0, logMessage: '{foo}' },
+        { line: 9, column: 0, logMessage: 'foo {foo} bar' },
+        { line: 10, column: 0, logMessage: 'foo {bar + baz}' },
+        { line: 11, column: 0, logMessage: '{const a = bar + baz; a}' },
+        { line: 12, column: 0, logMessage: '{(x=>x+baz)(bar)}' },
+        { line: 13, column: 0, logMessage: '{throw new Error("oof")}' },
+        { line: 14, column: 0, logMessage: "{'hi'}" },
       ];
       await p.dap.setBreakpoints({
         source,

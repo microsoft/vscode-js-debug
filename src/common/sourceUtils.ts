@@ -266,27 +266,6 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   return sourceMapUrl;
 }
 
-const LOGMESSAGE_VARIABLE_REGEXP = /{(.*?)}/g;
-export function logMessageToExpression(msg: string): string {
-  msg = msg.replace('%', '%%');
-
-  const args: string[] = [];
-  let format = msg.replace(LOGMESSAGE_VARIABLE_REGEXP, (_match, group) => {
-    const a = group.trim();
-    if (a) {
-      args.push(`(${a})`);
-      return '%O';
-    } else {
-      return '';
-    }
-  });
-
-  format = format.replace("'", "\\'");
-
-  const argStr = args.length ? `, ${args.join(', ')}` : '';
-  return `console.log('${format}'${argStr});`;
-}
-
 export async function checkContentHash(
   absolutePath: string,
   contentHash?: string,
