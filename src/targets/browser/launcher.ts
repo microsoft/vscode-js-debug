@@ -33,7 +33,6 @@ const DEFAULT_ARGS = [
   '--disable-client-side-phishing-detection',
   '--disable-default-apps',
   '--disable-dev-shm-usage',
-  '--disable-extensions',
   '--disable-renderer-backgrounding',
   '--disable-sync',
   '--metrics-recording-only',
