@@ -3,70 +3,28 @@
  *--------------------------------------------------------*/
 
 import * as path from 'path';
-import { extractErrorDetails, IRawTelemetryReporter } from './telemetryReporter';
+import { TelemetryReporter } from './telemetryReporter';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 
-type ExceptionType = 'uncaughtException' | 'unhandledRejection';
-
-export function installUnhandledErrorReporter(telemetryReporter: IRawTelemetryReporter): void {
+export function installUnhandledErrorReporter(telemetryReporter: TelemetryReporter): void {
   process.addListener('uncaughtException', (exception: unknown) => {
     if (shouldReportThisError(exception)) {
-      reportErrorTelemetry(telemetryReporter, exception, 'uncaughtException');
-
-      logger.error(
-        LogTag.RuntimeException,
-        'Unhandled error in debug adapter',
-        safeGetErrDetails(exception),
-      );
+      telemetryReporter.report('error', { error: exception, exceptionType: 'uncaughtException' });
+      logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', exception);
     }
   });
 
   process.addListener('unhandledRejection', (rejection: unknown) => {
     if (shouldReportThisError(rejection)) {
-      reportErrorTelemetry(telemetryReporter, rejection, 'unhandledRejection');
-
-      logger.error(
-        LogTag.RuntimeException,
-        'Unhandled promise rejection',
-        safeGetErrDetails(rejection),
-      );
+      telemetryReporter.report('error', { error: rejection, exceptionType: 'unhandledRejection' });
+      logger.error(LogTag.RuntimeException, 'Unhandled promise rejection', rejection);
     }
   });
 }
 
-function reportErrorTelemetry(
-  telemetryReporter: IRawTelemetryReporter,
-  err: unknown,
-  exceptionType: ExceptionType,
-): void {
-  const properties = {
-    ...(err instanceof Error ? extractErrorDetails(err) : { error: err }),
-    successful: 'false',
-    exceptionType,
-  };
-
-  telemetryReporter.report('error', properties);
-}
-
 const isErrorObjectLike = (err: unknown): err is Error =>
   typeof err === 'object' && !!err && 'stack' in err;
-
-function safeGetErrDetails(err: unknown) {
-  if (!err) {
-    return String(err);
-  }
-
-  if (isErrorObjectLike(err)) {
-    return {
-      stack: err.stack,
-      message: err.message,
-      ...err,
-    };
-  }
-
-  return typeof err === 'object' ? err : String(err);
-}
 
 const debugAdapterFolder = path.dirname(path.dirname(path.dirname(__dirname)));
 

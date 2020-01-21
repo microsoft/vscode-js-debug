@@ -22,17 +22,19 @@ import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { assert } from '../common/logging/logger';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { TargetOrigin } from '../targets/targetOrigin';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 
 export class Session implements IDisposable {
   public readonly debugSession: vscode.DebugSession;
   public readonly connection: DapConnection;
+  private readonly telemetryReporter = new TelemetryReporter();
   private _server: net.Server;
   private _binder?: Binder;
   private _onTargetNameChanged?: IDisposable;
 
   constructor(debugSession: vscode.DebugSession) {
     this.debugSession = debugSession;
-    this.connection = new DapConnection();
+    this.connection = new DapConnection(this.telemetryReporter);
     this._server = net
       .createServer(async socket => {
         this.connection.init(socket, socket);
@@ -69,6 +71,7 @@ export class Session implements IDisposable {
       delegate,
       this.connection,
       launchers,
+      this.telemetryReporter,
       new TargetOrigin(this.debugSession.id),
     );
   }

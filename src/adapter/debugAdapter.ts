@@ -14,7 +14,7 @@ import { BreakpointManager, generateBreakpointIds } from './breakpoints';
 import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
-import { IRawTelemetryReporter } from '../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { CodeSearchSourceMapRepository } from '../common/sourceMaps/codeSearchSourceMapRepository';
 import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPredictor';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
@@ -47,7 +47,7 @@ export class DebugAdapter {
     sourcePathResolver: ISourcePathResolver,
     private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
-    private readonly _rawTelemetryReporter: IRawTelemetryReporter,
+    private readonly _rawTelemetryReporter: TelemetryReporter,
   ) {
     this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
@@ -114,9 +114,9 @@ export class DebugAdapter {
       bpPredictor,
     );
 
-    this._rawTelemetryReporter.flush.event(() => {
+    this._rawTelemetryReporter.onFlush(() => {
       this._rawTelemetryReporter.report(
-        'breakpointsStatistics',
+        'breakpointStats',
         this.breakpointManager.statisticsForTelemetry(),
       );
     });

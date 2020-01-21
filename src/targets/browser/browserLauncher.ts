@@ -23,10 +23,7 @@ import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../config
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
-import {
-  RawTelemetryReporterToDap,
-  IRawTelemetryReporter,
-} from '../../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { timeoutPromise } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
@@ -82,7 +79,7 @@ export class BrowserLauncher implements ILauncher {
     }: IChromeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
-    rawTelemetryReporter: IRawTelemetryReporter,
+    telemetryReporter: TelemetryReporter,
     clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<launcher.ILaunchResult> {
     let executablePath: string | undefined;
@@ -131,7 +128,7 @@ export class BrowserLauncher implements ILauncher {
     return await launcher.launch(
       dap,
       executablePath,
-      rawTelemetryReporter,
+      telemetryReporter,
       clientCapabilities,
       cancellationToken,
       {
@@ -150,8 +147,7 @@ export class BrowserLauncher implements ILauncher {
 
   async prepareLaunch(
     params: IChromeLaunchConfiguration,
-    { dap, targetOrigin, cancellationToken }: ILaunchContext,
-    rawTelemetryReporter: IRawTelemetryReporter,
+    { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
     clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
@@ -160,7 +156,7 @@ export class BrowserLauncher implements ILauncher {
         params,
         dap,
         cancellationToken,
-        rawTelemetryReporter,
+        telemetryReporter,
         clientCapabilities,
       );
     } catch (e) {
@@ -191,7 +187,7 @@ export class BrowserLauncher implements ILauncher {
       launched.process,
       pathResolver,
       this._launchParams,
-      rawTelemetryReporter,
+      telemetryReporter,
       targetOrigin,
     );
     if (!this._targetManager)
@@ -250,19 +246,13 @@ export class BrowserLauncher implements ILauncher {
   async launch(
     params: AnyChromeConfiguration,
     context: ILaunchContext,
-    telemetryReporter: RawTelemetryReporterToDap,
     clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(
-      params,
-      context,
-      telemetryReporter,
-      clientCapabilities,
-    );
+    const targetOrError = await this.prepareLaunch(params, context, clientCapabilities);
     if (typeof targetOrError === 'string') return { error: targetOrError };
     await this.finishLaunch(targetOrError, params);
     return { blockSessionTermination: true };

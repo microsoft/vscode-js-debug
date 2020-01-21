@@ -5,8 +5,7 @@
 import { ITransport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
-import { IRawTelemetryReporter, TelemetryReporter } from '../telemetry/telemetryReporter';
-import { HighResolutionTime } from '../utils/performance';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { IDisposable } from '../common/disposable';
@@ -51,9 +50,8 @@ export default class Connection {
   private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
-  private readonly _telemetryReporter: TelemetryReporter;
 
-  constructor(transport: ITransport, rawTelemetryReporter: IRawTelemetryReporter) {
+  constructor(transport: ITransport, private readonly telemetryReporter: TelemetryReporter) {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
@@ -62,7 +60,6 @@ export default class Connection {
     this._closed = false;
     this._rootSession = new CDPSession(this, '');
     this._sessions.set('', this._rootSession);
-    this._telemetryReporter = TelemetryReporter.cdp(rawTelemetryReporter);
   }
 
   rootSession(): Cdp.Api {
@@ -79,7 +76,7 @@ export default class Connection {
     return id;
   }
 
-  async _onMessage(message: string, receivedTime: HighResolutionTime) {
+  async _onMessage(message: string, receivedTime: bigint) {
     const object = JSON.parse(message);
     logger.verbose(LogTag.CdpReceive, undefined, {
       connectionId: this._connectionId,
@@ -87,17 +84,20 @@ export default class Connection {
     });
 
     const session = this._sessions.get(object.sessionId || '');
-    if (session) {
-      const eventName = object.method;
-      try {
-        session._onMessage(object);
-        if (eventName) this._telemetryReporter.reportSuccess(eventName, receivedTime);
-      } catch (error) {
-        if (eventName) this._telemetryReporter.reportError(eventName, receivedTime, error);
-      }
-    } else {
+    if (!session) {
       throw new Error(`Unknown session id: ${object.sessionId}`);
     }
+
+    const eventName = object.method;
+    let error: Error | undefined;
+    try {
+      session._onMessage(object);
+    } catch (e) {
+      error = e;
+    }
+
+    const duration = Number(process.hrtime.bigint() - receivedTime) / 1e6; // ns to ms
+    this.telemetryReporter.reportOperation('cdpOperation', eventName, duration, error);
   }
 
   _onTransportClose() {

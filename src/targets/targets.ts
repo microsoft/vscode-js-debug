@@ -8,7 +8,7 @@ import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathRes
 import { AnyLaunchConfiguration } from '../configuration';
 import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
-import { RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
 import { ITargetOrigin } from './targetOrigin';
 
@@ -55,6 +55,7 @@ export interface ILaunchContext {
   dap: Dap.Api;
   cancellationToken: CancellationToken;
   targetOrigin: ITargetOrigin;
+  telemetryReporter: TelemetryReporter;
 }
 
 export interface ILaunchResult {
@@ -82,14 +83,13 @@ export interface IStopMetadata {
   /**
    * Restart parameters.
    */
-  restart?: any;
+  restart?: Dap.AttachParams['__restart'];
 }
 
 export interface ILauncher extends IDisposable {
   launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
-    rawTelemetryReporter: RawTelemetryReporterToDap,
     clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult>;
   terminate(): Promise<void>;

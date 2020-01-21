@@ -10,7 +10,6 @@ import { IDisposable } from '../common/events';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
-import { TelemetryEntityProperties } from '../telemetry/telemetryReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { delay } from '../common/promiseUtil';
@@ -453,7 +452,7 @@ export class BreakpointManager {
     }
   }
 
-  public statisticsForTelemetry(): TelemetryEntityProperties {
+  public statisticsForTelemetry() {
     return this._breakpointsStatisticsCalculator.statistics();
   }
 

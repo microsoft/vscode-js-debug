@@ -4,8 +4,7 @@
 
 import Dap from './api';
 
-import { HighResolutionTime } from '../utils/performance';
-import { TelemetryReporter, RawTelemetryReporterToDap } from '../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
 import { logger, assert } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
@@ -25,7 +24,7 @@ export type Message = (
 ) & {
   sessionId?: string;
   seq: number;
-  __receivedTime?: HighResolutionTime;
+  __receivedTime?: bigint;
 };
 
 const requestSuffix = 'Request';
@@ -50,15 +49,15 @@ export default class Connection {
   private _dap: Promise<Dap.Api>;
 
   protected _ready: (dap: Dap.Api) => void;
-  protected _telemetryReporter: TelemetryReporter | undefined;
 
-  constructor() {
+  constructor(protected readonly telemetryReporter: TelemetryReporter) {
     this._sequence = 1;
     this._rawData = Buffer.alloc(0);
     this._ready = () => {
       /* no-op */
     };
     this._dap = new Promise<Dap.Api>(f => (this._ready = f));
+    this._dap.then(dap => telemetryReporter.attachDap(dap));
   }
 
   /**
@@ -88,9 +87,8 @@ export default class Connection {
     inStream.resume();
     const dap = this._createApi();
     this._ready(dap);
-    this._telemetryReporter = TelemetryReporter.dap(dap);
     if (isFirstDapConnectionEver) {
-      installUnhandledErrorReporter(new RawTelemetryReporterToDap(dap));
+      installUnhandledErrorReporter(this.telemetryReporter);
       isFirstDapConnectionEver = false;
     }
   }
@@ -192,7 +190,7 @@ export default class Connection {
     this._writableStream.write(data, 'utf8');
   }
 
-  async _onMessage(msg: Message, receivedTime: HighResolutionTime): Promise<void> {
+  async _onMessage(msg: Message, receivedTime: bigint): Promise<void> {
     if (msg.type === 'request') {
       const response = {
         seq: 0,
@@ -220,7 +218,11 @@ export default class Connection {
             this._send({ ...response, body: result });
           }
         }
-        this._telemetryReporter?.reportSuccess(msg.command, receivedTime);
+        this.telemetryReporter?.reportOperation(
+          'dapOperation',
+          msg.command,
+          Number(process.hrtime.bigint() - receivedTime) / 1e6,
+        );
       } catch (e) {
         console.error(e);
         const format = isExternalError(e)
@@ -239,7 +241,12 @@ export default class Connection {
           },
         });
 
-        this._telemetryReporter?.reportError(msg.command, receivedTime, e);
+        this.telemetryReporter?.reportOperation(
+          'dapOperation',
+          msg.command,
+          Number(process.hrtime.bigint() - receivedTime) / 1e6,
+          e,
+        );
       }
     }
     if (msg.type === 'event') {
@@ -264,7 +271,7 @@ export default class Connection {
   }
 
   _handleData(data: Buffer): void {
-    const receivedTime = process.hrtime();
+    const receivedTime = process.hrtime.bigint();
     this._rawData = Buffer.concat([this._rawData, data]);
     while (true) {
       if (this._contentLength >= 0) {

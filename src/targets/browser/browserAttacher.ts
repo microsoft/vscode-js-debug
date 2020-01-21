@@ -12,7 +12,7 @@ import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
 import { Contributions } from '../../common/contributionUtils';
-import { RawTelemetryReporterToDap } from '../../telemetry/telemetryReporter';
+import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
@@ -47,8 +47,7 @@ export class BrowserAttacher implements ILauncher {
 
   async launch(
     params: AnyLaunchConfiguration,
-    { targetOrigin, cancellationToken }: ILaunchContext,
-    rawTelemetryReporter: RawTelemetryReporterToDap,
+    { targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
     clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach') {
@@ -59,7 +58,7 @@ export class BrowserAttacher implements ILauncher {
     this._targetOrigin = targetOrigin;
 
     const error = await this._attemptToAttach(
-      rawTelemetryReporter,
+      telemetryReporter,
       clientCapabilities,
       cancellationToken,
     );
@@ -67,7 +66,7 @@ export class BrowserAttacher implements ILauncher {
   }
 
   _scheduleAttach(
-    rawTelemetryReporter: RawTelemetryReporterToDap,
+    rawTelemetryReporter: TelemetryReporter,
     clientCapabilities: Dap.InitializeParams,
   ) {
     this._attemptTimer = setTimeout(() => {
@@ -77,7 +76,7 @@ export class BrowserAttacher implements ILauncher {
   }
 
   async _attemptToAttach(
-    rawTelemetryReporter: RawTelemetryReporterToDap,
+    rawTelemetryReporter: TelemetryReporter,
     clientCapabilities: Dap.InitializeParams,
     cancellationToken: CancellationToken,
   ) {
@@ -154,7 +153,7 @@ export class BrowserAttacher implements ILauncher {
   }
 
   private async acquireConnectionForBrowser(
-    rawTelemetryReporter: RawTelemetryReporterToDap,
+    rawTelemetryReporter: TelemetryReporter,
     params: IChromeAttachConfiguration,
     cancellationToken: CancellationToken,
   ) {

@@ -2,140 +2,67 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { OutcomeAndTime, TelemetryEntityProperties } from './telemetryReporter';
-import * as _ from 'lodash';
+import { IRPCMetrics } from './classification';
 
-/* Sample telemetry:
- *
-{
-  "cdp/Target.attachedToTarget": {
-    "succesful": {
-      "totalTime": 7,
-      "maxTime": 4,
-      "avgTime": 2.3333333333333335,
-      "count": 3,
-      "breakdown": {
-        "time": "[1,2,4]",
-        <more properties might appear here in the future>
-      }
-    },
-    <if there are failures, we'll have a failed: section here>
-  },
-"cdp/Debugger.scriptParsed": {
-    "succesful": {
-      "totalTime": 8,
-      "maxTime": 5,
-      "avgTime": 4,
-      "count": 2,
-      "breakdown": {
-        "time": "[5,3]"
-      }
-    }
-  },
-  <etc...>
- }
-}
+/**
+ * Batches reported metrics per method call, giving performance information.
  */
-
-export class OpsReportBatcher {
-  private reports: UnbatchedOpReport[] = [];
-
-  public add(report: UnbatchedOpReport) {
-    this.reports.push(report);
-  }
-
-  public batched(): IOpsReportBatch {
-    const opsGroupedByName = _.groupBy(this.reports, report => report.operationName);
-    const propertiesGroupedByName = _.mapValues(opsGroupedByName, manyOpsReports =>
-      manyOpsReports.map(operation => operation.properties),
-    );
-    const opsByNameReport = _.mapValues(propertiesGroupedByName, propertiesSharingOpName =>
-      this.batchOpsSharingName(propertiesSharingOpName),
-    );
-    this.reports = [];
-    return opsByNameReport;
-  }
-
-  public batchOpsSharingName(
-    opsReports: TelemetryOperationProperties[],
-  ): OpsSharingNameReportBatch {
-    const opsGroupedByOutcome = _.groupBy(opsReports, report => report.succesful);
-    const succesfulOps = opsGroupedByOutcome['true']
-      ? this.batchOpsSharingNameAndOutcome(opsGroupedByOutcome['true'] || [])
-      : undefined;
-    const failedOps = opsGroupedByOutcome['false']
-      ? this.batchOpsSharingNameAndOutcome(opsGroupedByOutcome['false'] || [])
-      : undefined;
-    return new OpsSharingNameReportBatch(succesfulOps, failedOps);
-  }
-
-  public batchOpsSharingNameAndOutcome(
-    opsReports: TelemetryOperationProperties[],
-  ): OpsSharingNameAndOutcomeReportBatch {
-    const count = opsReports.length;
-    const totalTime = opsReports.reduce((reduced, next) => reduced + next.time, 0);
-    const maxTime = opsReports.reduce((reduced, next) => Math.max(reduced, next.time), -Infinity);
-    const avgTime = totalTime / count;
-
-    const aggregated = aggregateIntoSingleObject(opsReports);
-    delete aggregated.succesful; // We are groupping by success vs failure on a higher level, so we don't need to store this information again
-
-    const aggregatedWithStringProperties = _.mapValues(aggregated, JSON.stringify);
-
-    return new OpsSharingNameAndOutcomeReportBatch(
-      totalTime,
-      maxTime,
-      avgTime,
-      count,
-      aggregatedWithStringProperties,
-    );
-  }
-}
-
-function extractAllPropertyNames<T>(objects: T[]): (keyof T)[] {
-  return _.uniq(_.flatten(objects.map(object => Object.keys(object))));
-}
-
-function aggregateIntoSingleObject<T>(
-  objectsToAggregate: T[],
-): { [propertyName: string]: unknown[] } {
-  const manyPropertyNames = extractAllPropertyNames(objectsToAggregate);
-  return _.fromPairs(
-    manyPropertyNames.map(propertyName => {
-      return [
-        propertyName,
-        objectsToAggregate.map(objectToAggregate => objectToAggregate[propertyName]),
-      ];
-    }),
+export class ReporterBatcher {
+  // prototype-free object so that we don't need to do hasOwnProperty checks
+  private measurements: { [method: string]: { times: number[]; errors: Error[] } } = Object.create(
+    null,
   );
-}
 
-export class UnbatchedOpReport {
-  public constructor(
-    public readonly operationName: string,
-    public readonly properties: TelemetryOperationProperties,
-  ) {}
-}
+  /**
+   * Adds a new measurement for the given method.
+   */
+  public add(method: string, measurement: number, error?: Error) {
+    let arr = this.measurements[method];
+    if (!arr) {
+      arr = this.measurements[method] = { times: [], errors: [] };
+    }
 
-export interface IOpsReportBatch {
-  [operationName: string]: OpsSharingNameReportBatch;
-}
+    arr.times.push(measurement);
+    if (error) {
+      arr.errors.push(error);
+    }
+  }
 
-export class OpsSharingNameReportBatch {
-  public constructor(
-    public readonly succesful: OpsSharingNameAndOutcomeReportBatch | undefined,
-    public readonly failed: OpsSharingNameAndOutcomeReportBatch | undefined,
-  ) {}
-}
+  /**
+   * Returns a summary of collected measurements taken
+   * since the last flush() call.
+   */
+  public flush() {
+    const results: IRPCMetrics[] = [];
+    for (const key in this.measurements) {
+      const { times, errors } = this.measurements[key];
+      const item: IRPCMetrics = {
+        operation: key,
+        totalTime: 0,
+        max: 0,
+        avg: 0,
+        stddev: 0,
+        count: times.length,
+        failed: errors.length,
+        errors,
+      };
 
-export class OpsSharingNameAndOutcomeReportBatch {
-  public constructor(
-    public readonly totalTime: number,
-    public readonly maxTime: number,
-    public readonly avgTime: number,
-    public readonly count: number,
-    public readonly breakdown: unknown,
-  ) {}
-}
+      for (const t of times) {
+        item.totalTime += t;
+        item.max = Math.max(item.max, t);
+      }
 
-export type TelemetryOperationProperties = OutcomeAndTime & TelemetryEntityProperties;
+      item.avg = item.totalTime / item.count;
+      for (const t of times) {
+        item.stddev += (t - item.avg) ** 2;
+      }
+
+      item.stddev = Math.sqrt(item.stddev / (times.length - 1));
+      results.push(item);
+    }
+
+    this.measurements = Object.create(null);
+
+    return results;
+  }
+}
