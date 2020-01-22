@@ -194,7 +194,7 @@ export class Source {
       sourceReference: this._sourceReference,
       sources,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
-      origin: this.blackboxed() ? localize('source.isBlackboxed', 'blackboxed') : undefined,
+      origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
     };
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
@@ -553,7 +553,7 @@ export class SourceContainer {
       inlineSourceRange,
       contentHash,
     );
-    await this._scriptSkipper.updateSkippingValueForScript(source);
+    this._scriptSkipper.updateSkippingValueForScript(source);
     this._addSource(source);
     return source;
   }
