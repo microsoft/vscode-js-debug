@@ -26,6 +26,7 @@ export const enum Contributions {
 }
 
 export const enum Configuration {
+  UsePreviewDebugger = 'debug.javascript.usePreview',
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
   WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
@@ -35,6 +36,7 @@ export const enum Configuration {
  * Type map for {@link Configuration} properties.
  */
 export interface IConfigurationTypes {
+  [Configuration.UsePreviewDebugger]: boolean;
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;

@@ -4,8 +4,8 @@
 import { sortKeys } from '../common/objUtils';
 
 const strings = {
-  'attach.node.process': 'Attach to Node Process (js-debug)',
-  'extension.description': 'Node.js debugging support (versions < 8.0)',
+  'attach.node.process': 'Attach to Node Process (preview)',
+  'extension.description': 'An extension for debugging Node.js programs and Chrome.',
   'start.with.stop.on.entry': 'Start Debugging and Stop on Entry',
   'toggle.skipping.this.file': 'Toggle Skipping this File',
   'add.browser.breakpoint': 'Add Browser Breakpoint',
@@ -18,7 +18,7 @@ const strings = {
   'trace.level.description': 'Configures the level of logs recorded.',
   'trace.console.description': 'Configures whether logs are also returned to the debug console.',
 
-  'extensionHost.label': 'VS Code Extension Development (js-debug)',
+  'extensionHost.label': 'VS Code Extension Development (preview)',
   'extensionHost.launch.config.name': 'Launch Extension',
   'extensionHost.launch.env.description': 'Environment variables passed to the extension host.',
   'extensionHost.launch.runtimeExecutable.description': 'Absolute path to VS Code.',
@@ -61,7 +61,7 @@ const strings = {
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
   'chrome.userDataDir.description':
     'By default, Chrome is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
-  'chrome.label': 'Chrome (js-debug)',
+  'chrome.label': 'Chrome (preview)',
   'chrome.launch.label': 'Chrome: Launch',
   'chrome.launch.description': 'Launch Chrome to debug a URL',
   'chrome.attach.label': 'Chrome: Attach',
@@ -89,7 +89,7 @@ const strings = {
   'node.console.title': 'Node Debug Console',
   'node.disableOptimisticBPs.description':
     "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
-  'node.label': 'Node.js (js-debug)',
+  'node.label': 'Node.js (preview)',
   'node.launch.autoAttachChildProcesses.description':
     'Attach debugger to new child processes automatically.',
   'node.launch.config.name': 'Launch',
@@ -180,6 +180,7 @@ const strings = {
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
+  'configuration.usePreview': 'Use the new in-preview JavaScript debugger for Node.js and Chrome.',
 };
 
 export default strings;
