@@ -17,6 +17,7 @@ import { TerminalDebugConfigurationProvider } from './terminalDebugConfiguration
 import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { registerLongBreakpointUI } from './ui/longPredictionUI';
+import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Contributions.DebugNpmScript, debugNpmScript),
     registerCommand(vscode.commands, Contributions.PickProcessCommand, pickProcess),
     registerCommand(vscode.commands, Contributions.AttachProcessCommand, attachProcess),
+    vscode.commands.registerCommand(Contributions.ToggleSkippingCommand, toggleSkippingFile),
   );
 
   const extensionConfigProvider = new ExtensionHostConfigurationProvider(context);

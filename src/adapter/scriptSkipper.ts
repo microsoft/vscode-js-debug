@@ -3,99 +3,270 @@
  *--------------------------------------------------------*/
 
 import cdp from '../cdp/api';
+import Dap from '../dap/api';
 import * as utils from '../common/sourceUtils';
+import { ITarget } from '../targets/targets';
+import { SourceContainer, Source } from './sources';
+import * as urlUtils from '../common/urlUtils';
+import * as pathUtils from '../common/pathUtils';
+import { debounce } from '../common/objUtils';
 
-export class ScriptSkipper {
-  private _userSkipPatterns: ReadonlyArray<string>;
-  private _nonNodeInternalRegex = '';
-
-  // filtering node internals
-  private _nodeInternalsRegex = '';
-  skipAllNodeInternals = false;
-
-  private _isUrlSkippedMap = new Map<string, boolean>();
-
-  private _blackboxedUrls: string[] = [];
-  private blackboxSender?: (
+export class BlackBoxSender {
+  private _blackboxSender: (
     params: cdp.Debugger.SetBlackboxPatternsParams,
   ) => Promise<cdp.Debugger.SetBlackboxPatternsResult | undefined>;
 
-  constructor(skipPatterns: ReadonlyArray<string>) {
-    this._userSkipPatterns = skipPatterns;
-    this._preprocessNodeInternals();
-    this._setRegexForNonNodeInternals();
+  public sendPatterns(blackboxPatterns: string[]) {
+    this._blackboxSender({ patterns: blackboxPatterns });
   }
 
-  private _preprocessNodeInternals(): void {
-    const nodeInternalRegex = /^<node_internals>[\/|\\\\](.*)$/;
-    const skipAllNodeInternalsRegex = /^<node_internals>[\/|\\\\]\\*\\*[\/|\\\\]\\*.js/;
+  constructor(debuggerAPI: cdp.DebuggerApi) {
+    this._blackboxSender = debuggerAPI.setBlackboxPatterns.bind(debuggerAPI);
+  }
+}
 
-    const nodeInternalPatterns = this._userSkipPatterns
-      .filter(pattern => pattern.includes('<node_internals>'))
-      .map(nodeInternal => {
-        nodeInternal = nodeInternal.trim();
-        if (skipAllNodeInternalsRegex.test(nodeInternal)) {
-          // check if all node internals are skipped
-          this.skipAllNodeInternals = true;
-        }
+export class ScriptSkipper {
+  private _nonNodeInternalRegex: RegExp | null = null;
 
-        const match = nodeInternalRegex.exec(nodeInternal);
-        return match ? match[1] : nodeInternal;
-      });
+  // filtering node internals
+  private _nodeInternalsRegex: RegExp | null = null;
+  private _allNodeInternals?: string[]; // only set by Node
 
-    if (!this.skipAllNodeInternals && nodeInternalPatterns.length > 0) {
-      this._nodeInternalsRegex = this._createRegexString(nodeInternalPatterns);
+  private _isUrlSkippedMap = new Map<string, { isSkipped: boolean; targetUrl: string }>();
+  private _blackboxSenders = new Set<BlackBoxSender>();
+
+  private _newScriptDebouncer: () => void;
+  private _unprocessedSources: Source[] = [];
+
+  constructor(skipPatterns: ReadonlyArray<string>) {
+    this._preprocessNodeInternals(skipPatterns);
+    this._setRegexForNonNodeInternals(skipPatterns);
+    this._newScriptDebouncer = debounce(200, () => this._updateSkippingValueForAllScripts());
+  }
+
+  private _preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
+    const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
+
+    const nodeInternalPatterns = userSkipPatterns
+      .map(userPattern => {
+        userPattern = userPattern.trim();
+        const nodeInternalPattern = nodeInternalRegex.exec(userPattern);
+        return nodeInternalPattern ? nodeInternalPattern[1] : null;
+      })
+      .filter(nonNullPattern => nonNullPattern) as string[];
+
+    if (nodeInternalPatterns.length > 0) {
+      this._nodeInternalsRegex = new RegExp(this._createRegexString(nodeInternalPatterns));
     }
   }
 
-  private _setRegexForNonNodeInternals(): void {
-    const nonNodeInternalGlobs = this._userSkipPatterns.filter(
+  private _setRegexForNonNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
+    const nonNodeInternalGlobs = userSkipPatterns.filter(
       pattern => !pattern.includes('<node_internals>'),
     );
-    this._nonNodeInternalRegex += this._createRegexString(nonNodeInternalGlobs);
+
+    if (nonNodeInternalGlobs.length > 0) {
+      this._nonNodeInternalRegex = new RegExp(this._createRegexString(nonNodeInternalGlobs));
+    }
   }
 
   private _createRegexString(patterns: string[]): string {
-    if (patterns.length === 0) return '.^';
     return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
 
-  private _testRegex(regexPattern: string, strToTest: string): boolean {
-    const regExp = new RegExp(regexPattern);
-    return regExp.test(strToTest);
+  private _testRegex(regex: RegExp, strToTest: string): boolean {
+    return regex.test(strToTest);
   }
 
-  private _updateBlackboxedUrls(url: string) {
-    if (this._isUrlSkippedMap.get(url) && this.blackboxSender) {
-      this._blackboxedUrls.push(url);
-      const blackboxPattern = '^' + this._blackboxedUrls.join('|') + '$';
-      this.blackboxSender({ patterns: [blackboxPattern] });
+  private _testSkipNodeInternal(testString: string): boolean {
+    if (this._nodeInternalsRegex) {
+      return this._testRegex(this._nodeInternalsRegex, testString);
     }
+    return false;
   }
 
-  public setBlackboxSender(debuggerAPI: cdp.DebuggerApi) {
-    this.blackboxSender = debuggerAPI.setBlackboxPatterns.bind(debuggerAPI);
+  private _testSkipNonNodeInternal(testString: string): boolean {
+    if (this._nonNodeInternalRegex) {
+      return this._testRegex(this._nonNodeInternalRegex, testString);
+    }
+    return false;
   }
 
-  public updateSkippingForScript(localpath: string, url: string): void {
-    if (!this._isUrlSkippedMap.has(url)) {
-      if (localpath) {
-        this._isUrlSkippedMap.set(url, this._testRegex(this._nonNodeInternalRegex, localpath));
-      } else {
-        this._isUrlSkippedMap.set(url, this._testRegex(this._nodeInternalsRegex, url));
+  private _isNodeInternal(url: string): boolean {
+    return (
+      (this._allNodeInternals && this._allNodeInternals.includes(url)) ||
+      this._testRegex(/^internal\/.+\.js$/, url)
+    );
+  }
+
+  private _updateBlackboxedUrls(urlsToBlackbox: string[]) {
+    const blackboxPatterns = urlsToBlackbox.map(url => '^' + url + '$');
+    this._sendBlackboxPatterns(blackboxPatterns);
+  }
+
+  private _updateAllScriptsToBeSkipped(): void {
+    const urlsToSkip: string[] = [];
+    for (const entry of this._isUrlSkippedMap.values()) {
+      if (entry.isSkipped) {
+        urlsToSkip.push(entry.targetUrl);
       }
-
-      this._updateBlackboxedUrls(url);
     }
+    this._updateBlackboxedUrls(urlsToSkip);
+  }
+
+  private _sendBlackboxPatterns(patterns: string[]) {
+    for (const blackboxSender of this._blackboxSenders) {
+      blackboxSender.sendPatterns(patterns);
+    }
+  }
+
+  private _normalizeUrl(url: string): string {
+    return pathUtils.forceForwardSlashes(url.toLowerCase());
+  }
+
+  private _setUrlToSkip(url: string, skipValue: boolean): void {
+    this._isUrlSkippedMap.set(this._normalizeUrl(url), { isSkipped: skipValue, targetUrl: url });
+  }
+
+  public registerNewBlackBoxSender(debuggerAPI: cdp.DebuggerApi) {
+    const sender = new BlackBoxSender(debuggerAPI);
+    if (!this._blackboxSenders.has(sender)) {
+      this._blackboxSenders.add(sender);
+    }
+  }
+
+  public setSkippingValueForScripts(urls: string[], skipValue: boolean): void {
+    urls.forEach(url => {
+      this._setUrlToSkip(url, skipValue);
+    });
+
+    this._updateAllScriptsToBeSkipped();
   }
 
   public isScriptSkipped(url: string): boolean {
-    return this._isUrlSkippedMap.get(url) === true;
+    return this._isUrlSkippedMap.get(this._normalizeUrl(url))?.isSkipped === true;
   }
 
-  public setAllNodeInternalsToSkip(nodeInternalsNames: string[]): void {
-    const fullLibNames = nodeInternalsNames.map(name => name + '.js');
-    fullLibNames.push('^internal/.+.js|');
-    this._nodeInternalsRegex = this._createRegexString(fullLibNames);
+  public hasScript(url: string): boolean {
+    return this._isUrlSkippedMap.has(this._normalizeUrl(url));
+  }
+
+  public updateSkippingValueForScript(source: Source) {
+    this._unprocessedSources.push(source);
+    this._newScriptDebouncer();
+  }
+
+  private async _updateSkippingValueForAllScripts() {
+    const skipStatuses = await Promise.all(
+      this._unprocessedSources.map(s => this._updateSkippingValueForScript(s)),
+    );
+
+    if (skipStatuses.some(s => !!s)) {
+      this._updateAllScriptsToBeSkipped();
+    }
+
+    this._unprocessedSources = [];
+  }
+
+  private async _updateSkippingValueForScript(source: Source): Promise<boolean> {
+    const url = source.url();
+    if (!this._isUrlSkippedMap.has(this._normalizeUrl(url))) {
+      // applying sourcemappathoverrides results in incorrect absolute paths
+      // for some sources that don't map to disk (e.g. node_internals), so here
+      // we're checking for whether a file actually corresponds to a file on disk
+      const pathOnDisk = await source.existingAbsolutePath();
+      if (pathOnDisk) {
+        // file maps to file on disk
+        this._setUrlToSkip(url, this._testSkipNonNodeInternal(pathOnDisk));
+      } else {
+        if (this._isNodeInternal(url)) {
+          this._setUrlToSkip(url, this._testSkipNodeInternal(url));
+        } else {
+          this._setUrlToSkip(url, this._testSkipNonNodeInternal(url));
+        }
+      }
+
+      let correspondingSources: Source[] | null = null;
+      if (source._sourceMapSourceByUrl) {
+        // if compiled, get authored sources
+        correspondingSources = Array.from(source._sourceMapSourceByUrl.values());
+      } else if (source._compiledToSourceUrl) {
+        correspondingSources = Array.from(source._compiledToSourceUrl.keys());
+        // if authored, get compiled sources
+      }
+
+      if (correspondingSources) {
+        const correspondingScriptIsSkipped = correspondingSources.some(correspondingSource =>
+          this.isScriptSkipped(correspondingSource._url),
+        );
+        if (this.isScriptSkipped(source._url) || correspondingScriptIsSkipped) {
+          this._setUrlToSkip(source._url, true);
+          correspondingSources.forEach(correspondingSource => {
+            this._setUrlToSkip(correspondingSource._url, true);
+          });
+        }
+      }
+
+      return this.isScriptSkipped(url);
+    }
+
+    return false;
+  }
+
+  public async initNewTarget(
+    target: ITarget,
+    runtimeAPI: cdp.RuntimeApi,
+    debuggerAPI: cdp.DebuggerApi,
+  ): Promise<void> {
+    if (target.type() === 'node' && this._nodeInternalsRegex && !this._allNodeInternals) {
+      const evalResult = await runtimeAPI.evaluate({
+        expression: "require('module').builtinModules",
+        returnByValue: true,
+        includeCommandLineAPI: true,
+      });
+      if (evalResult && !evalResult.exceptionDetails) {
+        this._allNodeInternals = (evalResult.result.value as string[]).map(name => name + '.js');
+      }
+    }
+
+    this.registerNewBlackBoxSender(debuggerAPI);
+  }
+
+  public async toggleSkippingFile(
+    params: Dap.ToggleSkipFileStatusParams,
+    sourceContainer: SourceContainer,
+  ): Promise<Dap.ToggleSkipFileStatusResult> {
+    let path: string | undefined = undefined;
+    if (params.resource) {
+      if (urlUtils.isAbsolute(params.resource)) {
+        path = params.resource;
+      }
+    }
+    const sourceParams: Dap.Source = { path: path, sourceReference: params.sourceReference };
+
+    const source = sourceContainer.source(sourceParams);
+    if (source) {
+      const urlsToSkip: string[] = [source._url];
+      if (source._sourceMapSourceByUrl) {
+        // if compiled, get authored sources
+        for (const authoredSource of source._sourceMapSourceByUrl.values()) {
+          urlsToSkip.push(authoredSource._url);
+        }
+      } else if (source._compiledToSourceUrl) {
+        // if authored, get compiled sources
+        for (const compiledSource of source._compiledToSourceUrl.keys()) {
+          urlsToSkip.push(compiledSource._url);
+        }
+      }
+
+      const newSkipValue = !this.isScriptSkipped(source.url());
+      this.setSkippingValueForScripts(urlsToSkip, newSkipValue);
+    } else {
+      if (params.resource && this.hasScript(params.resource)) {
+        this._setUrlToSkip(params.resource, !this.isScriptSkipped(params.resource));
+      }
+    }
+
+    return {};
   }
 }

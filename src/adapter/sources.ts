@@ -91,7 +91,6 @@ export class Source {
   _sourceReference: number;
   _url: string;
   _name: string;
-  _blackboxed = false;
   _fqname: string;
   _contentGetter: ContentGetter;
   _sourceMapUrl?: string;
@@ -136,11 +135,6 @@ export class Source {
     this._fqname = this._fullyQualifiedName();
     this._name = path.basename(this._fqname);
     this._absolutePath = absolutePath || '';
-
-    if (container.scriptSkipper) {
-      container.scriptSkipper.updateSkippingForScript(this._absolutePath, url);
-      this._blackboxed = container.scriptSkipper.isScriptSkipped(url);
-    }
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset) contentHash = undefined;
@@ -199,8 +193,8 @@ export class Source {
       path: this._fqname,
       sourceReference: this._sourceReference,
       sources,
-      presentationHint: this._blackboxed ? 'deemphasize' : undefined,
-      origin: this._blackboxed ? localize('source.isBlackboxed', 'blackboxed') : undefined,
+      presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
+      origin: this.blackboxed() ? localize('source.isBlackboxed', 'blackboxed') : undefined,
     };
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
@@ -281,6 +275,10 @@ export class Source {
     }
     return fqname;
   }
+
+  blackboxed(): boolean {
+    return this._container.isSourceSkipped(this._url);
+  }
 }
 
 export interface IPreferredUiLocation extends IUiLocation {
@@ -315,7 +313,7 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
-  private _scriptSkipper?: ScriptSkipper;
+  private _scriptSkipper: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -323,8 +321,10 @@ export class SourceContainer {
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
+    scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
+    this._scriptSkipper = scriptSkipper;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -340,14 +340,6 @@ export class SourceContainer {
     else this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  initializeScriptSkipper(scriptSkipper: ScriptSkipper) {
-    this._scriptSkipper = scriptSkipper;
-  }
-
-  get scriptSkipper(): ScriptSkipper | undefined {
-    return this._scriptSkipper;
-  }
-
   async loadedSources(): Promise<Dap.Source[]> {
     const promises: Promise<Dap.Source>[] = [];
     for (const source of this._sourceByReference.values()) promises.push(source.toDap());
@@ -358,6 +350,10 @@ export class SourceContainer {
     if (ref.sourceReference) return this._sourceByReference.get(ref.sourceReference);
     if (ref.path) return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
+  }
+
+  isSourceSkipped(url: string): boolean {
+    return this._scriptSkipper.isScriptSkipped(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -557,6 +553,7 @@ export class SourceContainer {
       inlineSourceRange,
       contentHash,
     );
+    await this._scriptSkipper.updateSkippingValueForScript(source);
     this._addSource(source);
     return source;
   }
@@ -688,10 +685,15 @@ export class SourceContainer {
           undefined,
         );
         source._compiledToSourceUrl = new Map();
+        source._compiledToSourceUrl!.set(compiled, url);
+        compiled._sourceMapSourceByUrl.set(url, source);
+
+        this._scriptSkipper.updateSkippingValueForScript(source);
+      } else {
+        source._compiledToSourceUrl!.set(compiled, url);
+        compiled._sourceMapSourceByUrl.set(url, source);
       }
-      // eslint-disable-next-line
-      source._compiledToSourceUrl!.set(compiled, url);
-      compiled._sourceMapSourceByUrl.set(url, source);
+
       if (isNew) todo.push(this._addSource(source));
     }
 

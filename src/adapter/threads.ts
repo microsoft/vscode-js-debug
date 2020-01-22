@@ -455,12 +455,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
-    const scriptSkipper = this._delegate.skipFiles();
-    if (scriptSkipper) {
-      // Note: here we assume that source container does only have a single thread.
-      this._sourceContainer.initializeScriptSkipper(scriptSkipper);
-      scriptSkipper.setBlackboxSender(this._cdp.Debugger);
-    }
     this._pauseOnScheduledAsyncCall();
 
     this._dap.thread({
