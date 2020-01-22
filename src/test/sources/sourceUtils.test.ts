@@ -49,7 +49,7 @@ describe('sourceUtils', () => {
       'complex expression': [
         'hello {n++;v=() => { return true }}',
         `console.log("hello %O", (() => {
-    try {n++;;return v=() => { return true };
+    try {n++;return v=() => { return true };
     } catch (e) {
       return e.stack || e.message || String(e);
     }

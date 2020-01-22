@@ -6,40 +6,33 @@ import * as ts from 'typescript';
 import { assert, logger } from '../../common/logging/logger';
 import { invalidLogPointSyntax } from '../../dap/errors';
 import { LogTag } from '../../common/logging';
-/**
- * Statments which we should not prefix with `return {}`
- */
-const unreturnable: ReadonlySet<ts.SyntaxKind> = new Set([
-  ts.SyntaxKind.ReturnStatement,
-  ts.SyntaxKind.IfStatement,
-  ts.SyntaxKind.DoStatement,
-  ts.SyntaxKind.WhileStatement,
-  ts.SyntaxKind.ForStatement,
-  ts.SyntaxKind.ForInStatement,
-  ts.SyntaxKind.ForOfStatement,
-  ts.SyntaxKind.ContinueStatement,
-  ts.SyntaxKind.BreakStatement,
-  ts.SyntaxKind.ReturnStatement,
-  ts.SyntaxKind.WithStatement,
-  ts.SyntaxKind.SwitchStatement,
-  ts.SyntaxKind.LabeledStatement,
-  ts.SyntaxKind.TryStatement,
-  ts.SyntaxKind.ThrowStatement,
-  ts.SyntaxKind.DebuggerStatement,
-  ts.SyntaxKind.VariableDeclaration,
-  ts.SyntaxKind.VariableDeclarationList,
-]);
+
+function getSyntaxErrorIn(code: string): Error | void {
+  try {
+    new Function(code);
+  } catch (e) {
+    return e;
+  }
+}
 
 function serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {
   let output = `(() => {
     try {`;
   for (let i = 0; i < statements.length; i++) {
-    const stmt = statements[i];
-    if (i === statements.length - 1 && !unreturnable.has(stmt.kind)) {
-      output += `return `;
+    let stmt = statements[i].getText().trim();
+    if (!stmt.endsWith(';')) {
+      stmt += ';';
     }
 
-    output += stmt.getText().trim() + ';';
+    if (i === statements.length - 1) {
+      const returned = `return ${stmt}`;
+      if (!getSyntaxErrorIn(returned)) {
+        output += returned;
+        break;
+      }
+    }
+
+    output += stmt;
   }
 
   const result = `${output}
@@ -48,11 +41,8 @@ function serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {
     }
   })()`;
 
-  // Make sure it's good syntax. This won't actually
-  // run the user script, just ask V8 to parse it.
-  try {
-    new Function(result);
-  } catch (e) {
+  const error = getSyntaxErrorIn(result);
+  if (error) {
     logger.warn(LogTag.Runtime, 'Error parsing logpoint BP', {
       code: result,
       input: statements[0].getSourceFile().getText(),
@@ -60,7 +50,7 @@ function serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {
 
     // todo(connor4312): this doesn't actually get handled in VS Code, but once it
     // does it should 'just work': https://github.com/microsoft/vscode/issues/89059
-    throw invalidLogPointSyntax(e.message);
+    throw invalidLogPointSyntax(error.message);
   }
 
   return result;
