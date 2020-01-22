@@ -40,8 +40,10 @@ export async function attachProcess() {
   }
 
   const cwd = guessWorkingDirectory();
-  resolveVariableInConfig(config, 'workspaceFolder', cwd);
-  await vscode.debug.startDebugging(undefined, config);
+  await vscode.debug.startDebugging(
+    undefined,
+    resolveVariableInConfig(config, 'workspaceFolder', cwd),
+  );
 }
 
 /**

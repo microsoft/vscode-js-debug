@@ -4,7 +4,7 @@
 
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
-import { assertNever } from './common/objUtils';
+import { assertNever, mapValues } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
@@ -656,33 +656,35 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
       throw assertNever(config, 'Unknown config: {value}');
   }
 
-  resolveWorkspaceRoot(configWithDefaults);
-  return configWithDefaults;
+  return resolveWorkspaceRoot(configWithDefaults);
 }
 
-function resolveWorkspaceRoot(config: AnyLaunchConfiguration): void {
-  resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
-  resolveVariableInConfig(
+function resolveWorkspaceRoot(config: AnyLaunchConfiguration): AnyLaunchConfiguration {
+  config = resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
+  config = resolveVariableInConfig(
     config,
     'webRoot',
     config.type === Contributions.ChromeDebugType ? config.webRoot : config.__workspaceFolder,
   );
+
+  return config;
 }
 
-export function resolveVariableInConfig<T>(config: T, varName: string, varValue: string): void {
-  for (const key of Object.keys(config)) {
-    const value = config[key];
-    if (typeof value === 'string') {
-      // eslint-disable-next-line
-      config[key] = resolveVariable(value, varName, varValue) as any;
-    } else if (typeof value === 'object' && !!value) {
-      resolveVariableInConfig(value, varName, varValue);
-    }
+export function resolveVariableInConfig<T>(config: T, varName: string, varValue: string): T {
+  let out: unknown;
+  if (typeof config === 'string') {
+    out = config.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
+  } else if (config instanceof Array) {
+    out = config.map(cfg => resolveVariableInConfig(cfg, varName, varValue));
+  } else if (typeof config === 'object' && config) {
+    out = mapValues((config as unknown) as { [key: string]: unknown }, value =>
+      resolveVariableInConfig(value, varName, varValue),
+    );
+  } else {
+    out = config;
   }
-}
 
-function resolveVariable(entry: string, varName: string, varValue: string): string {
-  return entry.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
+  return out as T;
 }
 
 export function isNightly(): boolean {
