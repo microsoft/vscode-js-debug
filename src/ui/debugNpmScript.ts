@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
 import { Contributions, runCommand } from '../common/contributionUtils';
+import { readfile } from '../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -106,7 +107,7 @@ async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[]
 
     let parsed: { scripts?: { [key: string]: string } };
     try {
-      parsed = JSON.parse(fs.readFileSync(packageJson, 'utf-8'));
+      parsed = JSON.parse(await readfile(packageJson));
     } catch (e) {
       promptToOpen(
         'showWarningMessage',
@@ -145,6 +146,8 @@ async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[]
     }
     return;
   }
+
+  scripts.sort((a, b) => (a.name === 'start' ? -1 : 0) + (b.name === 'start' ? 1 : 0));
 
   return scripts;
 }
