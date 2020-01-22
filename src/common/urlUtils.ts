@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
-import { fixDriveLetterAndSlashes, isUncPath, properResolve } from './pathUtils';
+import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
 import Cdp from '../cdp/api';
 import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
