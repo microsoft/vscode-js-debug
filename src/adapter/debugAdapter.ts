@@ -329,9 +329,6 @@ export class DebugAdapter {
   async _toggleSkipFileStatus(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error> {
-    if (!this._thread?.pausedDetails()) {
-      return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
-    }
     await this.scriptSkipper.toggleSkippingFile(params, this.sourceContainer);
     await this._refreshStackTrace();
     return {};
