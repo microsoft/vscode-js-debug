@@ -10,6 +10,7 @@ import { SourceContainer, Source } from './sources';
 import * as urlUtils from '../common/urlUtils';
 import * as pathUtils from '../common/pathUtils';
 import { debounce } from '../common/objUtils';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 
 export class BlackBoxSender {
   private _blackboxSender: (
@@ -32,16 +33,18 @@ export class ScriptSkipper {
   private _nodeInternalsRegex: RegExp | null = null;
   private _allNodeInternals?: string[]; // only set by Node
 
-  private _isUrlSkippedMap = new Map<string, { isSkipped: boolean; targetUrl: string }>();
+  private _isUrlSkippedMap: Map<string, boolean>;
   private _blackboxSenders = new Set<BlackBoxSender>();
 
   private _newScriptDebouncer: () => void;
   private _unprocessedSources: Source[] = [];
 
   constructor(skipPatterns: ReadonlyArray<string>) {
+    this._isUrlSkippedMap = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
+
     this._preprocessNodeInternals(skipPatterns);
     this._setRegexForNonNodeInternals(skipPatterns);
-    this._newScriptDebouncer = debounce(200, () => this._updateSkippingValueForAllScripts());
+    this._newScriptDebouncer = debounce(400, () => this._updateSkippingValueForAllScripts());
   }
 
   private _preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
@@ -106,9 +109,9 @@ export class ScriptSkipper {
 
   private _updateAllScriptsToBeSkipped(): void {
     const urlsToSkip: string[] = [];
-    for (const entry of this._isUrlSkippedMap.values()) {
-      if (entry.isSkipped) {
-        urlsToSkip.push(entry.targetUrl);
+    for (const [url, isSkipped] of this._isUrlSkippedMap.entries()) {
+      if (isSkipped) {
+        urlsToSkip.push(url);
       }
     }
     this._updateBlackboxedUrls(urlsToSkip);
@@ -124,10 +127,6 @@ export class ScriptSkipper {
     return pathUtils.forceForwardSlashes(url.toLowerCase());
   }
 
-  private _setUrlToSkip(url: string, skipValue: boolean): void {
-    this._isUrlSkippedMap.set(this._normalizeUrl(url), { isSkipped: skipValue, targetUrl: url });
-  }
-
   public registerNewBlackBoxSender(debuggerAPI: cdp.DebuggerApi) {
     const sender = new BlackBoxSender(debuggerAPI);
     if (!this._blackboxSenders.has(sender)) {
@@ -135,19 +134,19 @@ export class ScriptSkipper {
     }
   }
 
-  public setSkippingValueForScripts(urls: string[], skipValue: boolean): void {
+  private _setSkippingValueForScripts(urls: string[], skipValue: boolean): void {
     urls.forEach(url => {
-      this._setUrlToSkip(url, skipValue);
+      this._isUrlSkippedMap.set(url, skipValue);
     });
 
     this._updateAllScriptsToBeSkipped();
   }
 
   public isScriptSkipped(url: string): boolean {
-    return this._isUrlSkippedMap.get(this._normalizeUrl(url))?.isSkipped === true;
+    return this._isUrlSkippedMap.get(this._normalizeUrl(url)) === true;
   }
 
-  public hasScript(url: string): boolean {
+  private _hasScript(url: string): boolean {
     return this._isUrlSkippedMap.has(this._normalizeUrl(url));
   }
 
@@ -177,12 +176,12 @@ export class ScriptSkipper {
       const pathOnDisk = await source.existingAbsolutePath();
       if (pathOnDisk) {
         // file maps to file on disk
-        this._setUrlToSkip(url, this._testSkipNonNodeInternal(pathOnDisk));
+        this._isUrlSkippedMap.set(url, this._testSkipNonNodeInternal(pathOnDisk));
       } else {
         if (this._isNodeInternal(url)) {
-          this._setUrlToSkip(url, this._testSkipNodeInternal(url));
+          this._isUrlSkippedMap.set(url, this._testSkipNodeInternal(url));
         } else {
-          this._setUrlToSkip(url, this._testSkipNonNodeInternal(url));
+          this._isUrlSkippedMap.set(url, this._testSkipNonNodeInternal(url));
         }
       }
 
@@ -200,9 +199,9 @@ export class ScriptSkipper {
           this.isScriptSkipped(correspondingSource._url),
         );
         if (this.isScriptSkipped(source._url) || correspondingScriptIsSkipped) {
-          this._setUrlToSkip(source._url, true);
+          this._isUrlSkippedMap.set(source._url, true);
           correspondingSources.forEach(correspondingSource => {
-            this._setUrlToSkip(correspondingSource._url, true);
+            this._isUrlSkippedMap.set(correspondingSource._url, true);
           });
         }
       }
@@ -260,10 +259,10 @@ export class ScriptSkipper {
       }
 
       const newSkipValue = !this.isScriptSkipped(source.url());
-      this.setSkippingValueForScripts(urlsToSkip, newSkipValue);
+      this._setSkippingValueForScripts(urlsToSkip, newSkipValue);
     } else {
-      if (params.resource && this.hasScript(params.resource)) {
-        this._setUrlToSkip(params.resource, !this.isScriptSkipped(params.resource));
+      if (params.resource && this._hasScript(params.resource)) {
+        this._isUrlSkippedMap.set(params.resource, !this.isScriptSkipped(params.resource));
       }
     }
 
