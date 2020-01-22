@@ -1,6 +1,14 @@
 stdout> 123
+stdout> > {foo: 'bar'}
+stdout>     > arg1: {foo: 'bar'}
 stdout> 1
 stdout> foo 1 bar
 stdout> foo barbaz
 stdout> barbaz
+stdout> barbaz
+stdout> Error: oof
+    at eval (logpoint.cdp:2:16)
+    at eval (logpoint.cdp:6:5)
+    at f (http://localhost:8001/logging.js:22:3)
+    at http://localhost:8001/logging.js:24:1
 stdout> hi

@@ -17,6 +17,7 @@ export const enum ErrorCodes {
   CannotFindNodeBinary,
   NodeBinaryOutOfDate,
   InvalidHitCondition,
+  InvalidLogPointBreakpointSyntax,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -119,6 +120,9 @@ export const invalidHitCondition = (expression: string) =>
     ),
     ErrorCodes.InvalidHitCondition,
   );
+
+export const invalidLogPointSyntax = (error: string) =>
+  createUserError(error, ErrorCodes.InvalidLogPointBreakpointSyntax);
 
 export class ProtocolError extends Error {
   public readonly cause: Dap.Message;
