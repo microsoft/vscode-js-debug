@@ -157,16 +157,6 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
-export function properlyResolveFileUrl(url: string): string {
-  const absPath = fileUrlToAbsolutePath(url);
-  let resolved: string | undefined;
-  if (absPath && (resolved = absolutePathToFileUrl(properResolve(absPath)))) {
-    return resolved;
-  } else {
-    throw new Error();
-  }
-}
-
 export function escapeForRegExp(s: string): string {
   const chars = '^[]{}()\\.^$*+?|-,';
 
