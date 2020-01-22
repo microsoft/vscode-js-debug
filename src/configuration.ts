@@ -5,6 +5,7 @@
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
 import { assertNever } from './common/objUtils';
+import { AnyRestartOptions } from './targets/node/restartPolicy';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -271,7 +272,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   /**
    * Restart session after Node.js has terminated.
    */
-  restart: boolean;
+  restart: AnyRestartOptions;
 
   /**
    * Runtime to use. Either an absolute path or the name of a runtime
@@ -347,6 +348,11 @@ export interface ITerminalLaunchConfiguration extends INodeBaseConfiguration {
 export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   type: Contributions.NodeDebugType;
   request: 'attach';
+
+  /**
+   * Restart session after Node.js has terminated.
+   */
+  restart: AnyRestartOptions;
 
   /**
    * ID of process to attach to.
@@ -552,7 +558,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   program: '',
   stopOnEntry: false,
   console: 'internalConsole',
-  restart: true,
+  restart: false,
   args: [],
   runtimeExecutable: 'node',
   runtimeVersion: 'default',
@@ -589,6 +595,7 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   type: Contributions.NodeDebugType,
   attachSpawnedProcesses: true,
   attachExistingChildren: true,
+  restart: false,
   request: 'attach',
   processId: '',
 };

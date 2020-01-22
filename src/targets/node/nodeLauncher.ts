@@ -116,7 +116,12 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
           return;
         }
 
-        const nextRestart = restartPolicy.next(result);
+        if (result.killed || result.code === 0) {
+          this.onProgramTerminated(result);
+          return;
+        }
+
+        const nextRestart = restartPolicy.next();
         if (!nextRestart) {
           this.onProgramTerminated(result);
           return;
@@ -137,7 +142,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       });
     };
 
-    return doLaunch(this.restarters.create(runData.params));
+    return doLaunch(this.restarters.create(runData.params.restart));
   }
 
   /**
