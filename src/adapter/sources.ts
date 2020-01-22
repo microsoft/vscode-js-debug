@@ -19,6 +19,7 @@ import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
 import { LogTag } from '../common/logging';
+import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -654,7 +655,7 @@ export class SourceContainer {
       // whether |sourceUrl| looks like a path and belongs to the workspace.
       const sourceUrl = utils.maybeAbsolutePathToFileUrl(this.rootPath, url);
       const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
-      const resolvedUrl = utils.properlyResolveFileUrl(
+      const resolvedUrl = fixDriveLetterAndSlashes(
         utils.completeUrlEscapingRoot(baseUrl, sourceUrl),
       );
       const contentOrNull = map.sourceContentFor(url);

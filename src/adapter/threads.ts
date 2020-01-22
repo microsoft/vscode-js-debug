@@ -455,7 +455,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
-    this._cdp.Debugger.setAsyncCallStackDepth({ maxDepth: 32 });
     this._pauseOnScheduledAsyncCall();
 
     this._dap.thread({
