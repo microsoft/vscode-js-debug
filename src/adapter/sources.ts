@@ -20,7 +20,6 @@ import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
 import { LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
-import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -121,7 +120,6 @@ export class Source {
   constructor(
     container: SourceContainer,
     url: string,
-    public scriptId: Cdp.Runtime.ScriptId | undefined,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
@@ -315,7 +313,6 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
-  public _scriptSkipper: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -323,10 +320,9 @@ export class SourceContainer {
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
-    scriptSkipper: ScriptSkipper,
+    public readonly scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
-    this._scriptSkipper = scriptSkipper;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -355,7 +351,7 @@ export class SourceContainer {
   }
 
   isSourceSkipped(url: string): boolean {
-    return this._scriptSkipper.isScriptSkipped(url);
+    return this.scriptSkipper.isScriptSkipped(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -535,7 +531,6 @@ export class SourceContainer {
 
   async addSource(
     url: string,
-    scriptId: Cdp.Runtime.ScriptId,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     inlineSourceRange?: InlineScriptOffset,
@@ -550,7 +545,6 @@ export class SourceContainer {
     const source = new Source(
       this,
       url,
-      scriptId,
       absolutePath,
       contentGetter,
       sourceMapUrl,
@@ -681,7 +675,6 @@ export class SourceContainer {
         source = new Source(
           this,
           resolvedUrl,
-          undefined,
           absolutePath,
           content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
           undefined,

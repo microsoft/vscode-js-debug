@@ -16,7 +16,6 @@ import * as completions from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { ScriptSkipper } from './scriptSkipper';
 import { SmartStepper } from './smartStepping';
 import {
   IPreferredUiLocation,
@@ -78,7 +77,6 @@ export interface IThreadDelegate {
   defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
-  skipFiles(): ScriptSkipper | undefined;
   initialize(): Promise<void>;
 }
 
@@ -1035,13 +1033,12 @@ export class Thread implements IVariableStoreDelegate {
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
       source = await this._sourceContainer.addSource(
         event.url,
-        event.scriptId,
         contentGetter,
         resolvedSourceMapUrl,
         inlineSourceOffset,
         hash,
       );
-      this._sourceContainer._scriptSkipper.initializeSkippingValueForSource(source, this._sourceContainer);
+      this._sourceContainer.scriptSkipper.initializeSkippingValueForSource(source, event.scriptId);
       urlHashMap.set(event.hash, source);
     }
 

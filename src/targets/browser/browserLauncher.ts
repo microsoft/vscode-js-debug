@@ -4,30 +4,23 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { IDisposable, EventEmitter } from '../../common/events';
+import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
-import findBrowser from './findBrowser';
-import * as launcher from './launcher';
-import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import {
-  ITarget,
-  ILauncher,
-  ILaunchResult,
-  ILaunchContext,
-  IStopMetadata,
-} from '../../targets/targets';
-import { BrowserSourcePathResolver } from './browserPathResolver';
-import { baseURL } from './browserLaunchParams';
-import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
+import { timeoutPromise } from '../../common/cancellation';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { ScriptSkipper } from '../../adapter/scriptSkipper';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { EventEmitter, IDisposable } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { timeoutPromise } from '../../common/cancellation';
-import { CancellationToken } from 'vscode';
+import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
+import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../../targets/targets';
+import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { baseURL } from './browserLaunchParams';
+import { BrowserSourcePathResolver } from './browserPathResolver';
+import { BrowserTarget, BrowserTargetManager } from './browserTargets';
+import findBrowser from './findBrowser';
+import * as launcher from './launcher';
 
 const localize = nls.loadMessageBundle();
 
@@ -205,10 +198,6 @@ export class BrowserLauncher implements ILauncher {
     this._targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
     });
-
-    if (params.skipFiles) {
-      this._targetManager.setSkipFiles(new ScriptSkipper(params.skipFiles));
-    }
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.

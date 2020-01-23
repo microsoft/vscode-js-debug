@@ -21,14 +21,10 @@ export class BlackBoxSender {
     this.debuggerAPI.setBlackboxedRanges(params);
   }
 
-  constructor(public targetId: string, private debuggerAPI: cdp.DebuggerApi) {
-  }
+  constructor(public targetId: string, private debuggerAPI: cdp.DebuggerApi) {}
 }
 
 export class ScriptSkipper {
-  // TODO yikes
-  public sourceContainerToTarget = new Map<SourceContainer, string>();
-
   private _nonNodeInternalRegex: RegExp | null = null;
 
   // filtering node internals
@@ -38,18 +34,25 @@ export class ScriptSkipper {
   private _isUrlSkipped: Map<string, boolean>;
   private _isAuthoredUrlSkipped: Map<string, boolean>;
 
-  private _blackboxSenders = new Set<BlackBoxSender>();
-
   private _newScriptDebouncer: () => void;
-  private _unprocessedSources: [Source, SourceContainer][] = [];
+  private _unprocessedSources: [Source, Cdp.Runtime.ScriptId][] = [];
 
-  constructor(skipPatterns: ReadonlyArray<string>) {
+  private _sourceContainer: SourceContainer | undefined;
+
+  constructor(skipPatterns: ReadonlyArray<string>, private readonly cdp: Cdp.Api, target: ITarget) {
     this._isUrlSkipped = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
-    this._isAuthoredUrlSkipped = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
+    this._isAuthoredUrlSkipped = new MapUsingProjection<string, boolean>(key =>
+      this._normalizeUrl(key),
+    );
 
     this._preprocessNodeInternals(skipPatterns);
     this._setRegexForNonNodeInternals(skipPatterns);
+    this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
     this._newScriptDebouncer = debounce(100, () => this._initializeSkippingValueForNewSources());
+  }
+
+  public setSourceContainer(sourceContainer: SourceContainer): void {
+    this._sourceContainer = sourceContainer;
   }
 
   private _preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
@@ -103,67 +106,41 @@ export class ScriptSkipper {
     );
   }
 
-  private _updateBlackboxedUrls(urlsToBlackbox: string[]) {
+  private async _updateBlackboxedUrls(urlsToBlackbox: string[]): Promise<void> {
     // TODO safely escape url for regex
     const blackboxPatterns = urlsToBlackbox.map(url => '^' + url + '$');
-    this._sendBlackboxPatterns(blackboxPatterns);
+    await this.cdp.Debugger.setBlackboxPatterns({ patterns: blackboxPatterns });
   }
 
-  private _updateGeneratedSkippedSources(): void {
+  private _updateGeneratedSkippedSources(): Promise<void> {
     const urlsToSkip: string[] = [];
     for (const [url, isSkipped] of this._isUrlSkipped.entries()) {
       if (isSkipped) {
         urlsToSkip.push(url);
       }
     }
-    this._updateBlackboxedUrls(urlsToSkip);
-  }
-
-  private _sendBlackboxPatterns(patterns: string[]) {
-    for (const blackboxSender of this._blackboxSenders) {
-      blackboxSender.sendPatterns(patterns);
-    }
+    return this._updateBlackboxedUrls(urlsToSkip);
   }
 
   private _normalizeUrl(url: string): string {
     return pathUtils.forceForwardSlashes(url.toLowerCase());
   }
 
-  public registerNewBlackBoxSender(id: string, debuggerAPI: cdp.DebuggerApi) {
-    const sender = new BlackBoxSender(id, debuggerAPI);
-    if (!this._blackboxSenders.has(sender)) {
-      this._blackboxSenders.add(sender);
-    }
-  }
-
-  private _setSkippingValueForScripts(urls: string[], skipValue: boolean): void {
-    urls.forEach(url => {
-      this._isUrlSkipped.set(url, skipValue);
-    });
-
-    this._updateGeneratedSkippedSources();
-  }
-
   public isScriptSkipped(url: string): boolean {
-    return this._isUrlSkipped.get(this._normalizeUrl(url)) === true ||
-      this._isAuthoredUrlSkipped.get(this._normalizeUrl(url)) === true;
+    return (
+      this._isUrlSkipped.get(this._normalizeUrl(url)) === true ||
+      this._isAuthoredUrlSkipped.get(this._normalizeUrl(url)) === true
+    );
   }
 
   private _hasScript(url: string): boolean {
     return this._isUrlSkipped.has(this._normalizeUrl(url));
   }
 
-  private async _initializeSourceMappedSources(source: Source, sourceContainer: SourceContainer): Promise<void> {
-    const targetId = this.sourceContainerToTarget.get(sourceContainer);
-
-    // source._compiledToSourceUrl?.forEach((url, compiledSource) => {
-    //   this._blackboxSenders.forEach(sender => {
-    //     if (targetId === sender.targetId) {
-    //       sender.sendRanges({ scriptId: compiledSource.scriptId!, positions: [{ columnNumber: 0, lineNumber: 89 }, {columnNumber: 0, lineNumber: 103}] });
-    //     }
-    //   });
-    // });
-
+  private async _initializeSourceMappedSources(
+    source: Source,
+    scriptId: Cdp.Runtime.ScriptId,
+  ): Promise<void> {
     // Order "should" be correct
     const parentIsSkipped = this.isScriptSkipped(source.url());
     const skipRanges: Cdp.Debugger.ScriptPosition[] = [];
@@ -176,11 +153,14 @@ export class ScriptSkipper {
       }
 
       if (isSkippedSource !== inSkipRange) {
-        const locations = sourceContainer.currentSiblingUiLocations({ source: authoredSource, lineNumber: 1, columnNumber: 1 }, source);
+        const locations = this._sourceContainer!.currentSiblingUiLocations(
+          { source: authoredSource, lineNumber: 1, columnNumber: 1 },
+          source,
+        );
         if (locations[0]) {
           skipRanges.push({
             lineNumber: locations[0].lineNumber - 1,
-            columnNumber: locations[0].columnNumber - 1
+            columnNumber: locations[0].columnNumber - 1,
           });
           inSkipRange = !inSkipRange;
         } else {
@@ -189,91 +169,19 @@ export class ScriptSkipper {
       }
     });
 
-    this._blackboxSenders.forEach(sender => {
-      if (targetId === sender.targetId) {
-        sender.sendRanges({ scriptId: source.scriptId!, positions: skipRanges });
-      }
-    });
+    this.cdp.Debugger.setBlackboxedRanges({ scriptId: scriptId, positions: skipRanges });
   }
 
-//   public async resolveSkipFiles(script: Crdp.Debugger.ScriptParsedEvent, mappedUrl: string, sources: string[], toggling?: boolean): Promise<void> {
-//     if (sources && sources.length) {
-//         const parentIsSkipped = this.shouldSkipSource(script.url);
-//         const libPositions: Crdp.Debugger.ScriptPosition[] = [];
-
-//         // Figure out skip/noskip transitions within script
-//         let inLibRange = parentIsSkipped;
-//         for (let s of sources) {
-//             let isSkippedFile = this.shouldSkipSource(s);
-//             if (typeof isSkippedFile !== 'boolean') {
-//                 // Inherit the parent's status
-//                 isSkippedFile = parentIsSkipped;
-//             }
-
-//             this._skipFileStatuses.set(s, isSkippedFile);
-
-//             if ((isSkippedFile && !inLibRange) || (!isSkippedFile && inLibRange)) {
-//                 const details = await this._transformers.sourceMapTransformer.allSourcePathDetails(mappedUrl);
-//                 const detail = details.find(d => d.inferredPath === s);
-//                 if (detail.startPosition) {
-//                     libPositions.push({
-//                         lineNumber: detail.startPosition.line,
-//                         columnNumber: detail.startPosition.column
-//                     });
-//                 }
-
-//                 inLibRange = !inLibRange;
-//             }
-//         }
-
-//         // If there's any change from the default, set proper blackboxed ranges
-//         if (libPositions.length || toggling) {
-//             if (parentIsSkipped) {
-//                 libPositions.splice(0, 0, { lineNumber: 0, columnNumber: 0});
-//             }
-
-//             if (libPositions[0].lineNumber !== 0 || libPositions[0].columnNumber !== 0) {
-//                 // The list of blackboxed ranges must start with 0,0 for some reason.
-//                 // https://github.com/Microsoft/vscode-chrome-debug/issues/667
-//                 libPositions[0] = {
-//                     lineNumber: 0,
-//                     columnNumber: 0
-//                 };
-//             }
-
-//             await this.chrome.Debugger.setBlackboxedRanges({
-//                 scriptId: script.scriptId,
-//                 positions: []
-//             }).catch(() => this.warnNoSkipFiles());
-
-//             if (libPositions.length) {
-//                 this.chrome.Debugger.setBlackboxedRanges({
-//                     scriptId: script.scriptId,
-//                     positions: libPositions
-//                 }).catch(() => this.warnNoSkipFiles());
-//             }
-//         }
-//     } else {
-//         const status = await this.getSkipStatus(mappedUrl);
-//         const skippedByPattern = this.matchesSkipFilesPatterns(mappedUrl);
-//         if (typeof status === 'boolean' && status !== skippedByPattern) {
-//             const positions = status ? [{ lineNumber: 0, columnNumber: 0 }] : [];
-//             this.chrome.Debugger.setBlackboxedRanges({
-//                 scriptId: script.scriptId,
-//                 positions
-//             }).catch(() => this.warnNoSkipFiles());
-//         }
-//     }
-// }
-
-  public initializeSkippingValueForSource(source: Source, sourceContainer: SourceContainer) {
-    this._unprocessedSources.push([source, sourceContainer]);
+  public initializeSkippingValueForSource(source: Source, scriptId: Cdp.Runtime.ScriptId) {
+    this._unprocessedSources.push([source, scriptId]);
     this._newScriptDebouncer();
   }
 
   private async _initializeSkippingValueForNewSources() {
     const skipStatuses = await Promise.all(
-      this._unprocessedSources.map(([source, sourceContainer]) => this._initializeSkippingValueForSource(source, sourceContainer)),
+      this._unprocessedSources.map(([source, scriptId]) =>
+        this._initializeSkippingValueForSource(source, scriptId),
+      ),
     );
 
     if (skipStatuses.some(s => !!s)) {
@@ -283,11 +191,15 @@ export class ScriptSkipper {
     this._unprocessedSources = [];
   }
 
-  private async _initializeSkippingValueForSource(source: Source, sourceContainer: SourceContainer): Promise<boolean> {
+  private async _initializeSkippingValueForSource(
+    source: Source,
+    scriptId: Cdp.Runtime.ScriptId,
+  ): Promise<boolean> {
     const map = isAuthored(source) ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
 
     const url = source.url();
-    if (!map.has(this._normalizeUrl(url))) { // TODO is this check correct (?)
+    if (!map.has(this._normalizeUrl(url))) {
+      // TODO is this check correct (?)
       const pathOnDisk = await source.existingAbsolutePath();
       if (pathOnDisk) {
         // file maps to file on disk
@@ -304,18 +216,19 @@ export class ScriptSkipper {
         if (source._sourceMapSourceByUrl) {
           // if compiled and skipped, also skip authored sources
           const authoredSources = Array.from(source._sourceMapSourceByUrl.values());
-            authoredSources.forEach(authoredSource => {
-              this._isAuthoredUrlSkipped.set(authoredSource._url, true);
-            });
+          authoredSources.forEach(authoredSource => {
+            this._isAuthoredUrlSkipped.set(authoredSource._url, true);
+          });
         }
       }
 
       if (source._sourceMapSourceByUrl) {
         const sourceMapSources = Array.from(source._sourceMapSourceByUrl.values());
-        await Promise.all(sourceMapSources.map(s => this._initializeSkippingValueForSource(s, sourceContainer)));
-        this._initializeSourceMappedSources(source, sourceContainer);
+        await Promise.all(
+          sourceMapSources.map(s => this._initializeSkippingValueForSource(s, scriptId)),
+        );
+        this._initializeSourceMappedSources(source, scriptId);
       }
-
 
       return this.isScriptSkipped(url);
     }
@@ -323,13 +236,9 @@ export class ScriptSkipper {
     return false;
   }
 
-  public async initNewTarget(
-    target: ITarget,
-    runtimeAPI: cdp.RuntimeApi,
-    debuggerAPI: cdp.DebuggerApi,
-  ): Promise<void> {
+  private async _initNodeInternals(target: ITarget): Promise<void> {
     if (target.type() === 'node' && this._nodeInternalsRegex && !this._allNodeInternals) {
-      const evalResult = await runtimeAPI.evaluate({
+      const evalResult = await this.cdp.Runtime.evaluate({
         expression: "require('module').builtinModules",
         returnByValue: true,
         includeCommandLineAPI: true,
@@ -338,8 +247,6 @@ export class ScriptSkipper {
         this._allNodeInternals = (evalResult.result.value as string[]).map(name => name + '.js');
       }
     }
-
-    this.registerNewBlackBoxSender(target.id(), debuggerAPI);
   }
 
   public async toggleSkippingFile(
@@ -356,25 +263,23 @@ export class ScriptSkipper {
 
     const source = sourceContainer.source(sourceParams);
     if (source) {
-      const urlsToSkip: string[] = [source._url];
-      if (source._sourceMapSourceByUrl) {
-        // if compiled, get authored sources
-        for (const authoredSource of source._sourceMapSourceByUrl.values()) {
-          urlsToSkip.push(authoredSource._url);
-        }
-      } else if (source._compiledToSourceUrl) {
-        // if authored, get compiled sources
-        for (const compiledSource of source._compiledToSourceUrl.keys()) {
-          urlsToSkip.push(compiledSource._url);
+      // TODO
+      const newSkipValue = !this.isScriptSkipped(source.url());
+      if (isAuthored(source)) {
+        this._isAuthoredUrlSkipped.set(source.url(), newSkipValue);
+        // this.
+
+      } else {
+        this._isUrlSkipped.set(source.url(), newSkipValue);
+        if (source._sourceMapSourceByUrl) {
+          // if compiled, get authored sources
+          for (const authoredSource of source._sourceMapSourceByUrl.values()) {
+            this._isAuthoredUrlSkipped.set(authoredSource.url(), newSkipValue);
+          }
         }
       }
 
-      const newSkipValue = !this.isScriptSkipped(source.url());
-      this._setSkippingValueForScripts(urlsToSkip, newSkipValue);
-    } else {
-      if (params.resource && this._hasScript(params.resource)) {
-        this._isUrlSkipped.set(params.resource, !this.isScriptSkipped(params.resource));
-      }
+      await this._updateGeneratedSkippedSources();
     }
 
     return {};

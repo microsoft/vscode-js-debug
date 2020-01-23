@@ -63,10 +63,6 @@ export class BrowserTargetManager implements IDisposable {
     );
   }
 
-  setSkipFiles(scriptSkipper: ScriptSkipper) {
-    this._scriptSkipper = scriptSkipper;
-  }
-
   constructor(
     connection: CdpConnection,
     private readonly process: IBrowserProcess | undefined,
@@ -419,10 +415,6 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   defaultScriptOffset(): InlineScriptOffset | undefined {
-    return undefined;
-  }
-
-  skipFiles(): ScriptSkipper | undefined {
     return undefined;
   }
 
