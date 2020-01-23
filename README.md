@@ -13,7 +13,6 @@ You can use this extension from the marketplace by:
 Or alternatively by self-hosting:
 
 1. Clone this repository and run `npm install`,
-1. Clone this repository and run `npm install`,
 1. Then either:
    - Run `gulp package` to package a `.vsix` you can install manually, or
    - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
