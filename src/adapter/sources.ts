@@ -20,6 +20,7 @@ import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
 import { LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
+import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -120,6 +121,7 @@ export class Source {
   constructor(
     container: SourceContainer,
     url: string,
+    public scriptId: Cdp.Runtime.ScriptId | undefined,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
@@ -276,7 +278,7 @@ export class Source {
     return fqname;
   }
 
-  blackboxed(): boolean {
+  private blackboxed(): boolean {
     return this._container.isSourceSkipped(this._url);
   }
 }
@@ -313,7 +315,7 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
-  private _scriptSkipper: ScriptSkipper;
+  public _scriptSkipper: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -533,6 +535,7 @@ export class SourceContainer {
 
   async addSource(
     url: string,
+    scriptId: Cdp.Runtime.ScriptId,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     inlineSourceRange?: InlineScriptOffset,
@@ -547,13 +550,13 @@ export class SourceContainer {
     const source = new Source(
       this,
       url,
+      scriptId,
       absolutePath,
       contentGetter,
       sourceMapUrl,
       inlineSourceRange,
       contentHash,
     );
-    this._scriptSkipper.updateSkippingValueForScript(source);
     this._addSource(source);
     return source;
   }
@@ -678,6 +681,7 @@ export class SourceContainer {
         source = new Source(
           this,
           resolvedUrl,
+          undefined,
           absolutePath,
           content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
           undefined,
@@ -685,10 +689,9 @@ export class SourceContainer {
           undefined,
         );
         source._compiledToSourceUrl = new Map();
-        source._compiledToSourceUrl!.set(compiled, url);
+        source._compiledToSourceUrl.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
 
-        this._scriptSkipper.updateSkippingValueForScript(source);
       } else {
         source._compiledToSourceUrl!.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);

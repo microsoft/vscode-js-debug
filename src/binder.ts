@@ -324,6 +324,8 @@ export class Binder implements IDisposable {
       this._launchParams!,
       this.telemetryReporter,
     );
+    this._scriptSkipper?.sourceContainerToTarget.set(debugAdapter.sourceContainer, target.id()); // TODO
+
     await this.attachScriptSkipper(target, cdp, dap);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
