@@ -16,7 +16,7 @@ import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
-import { SourceMapCache } from './sourceMapCache';
+import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
 
 // TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
@@ -55,7 +55,7 @@ export class BreakpointsPredictor {
     private readonly rootPath: string,
     launchConfig: AnyLaunchConfiguration,
     private readonly repo: ISourceMapRepository,
-    private readonly sourceMapCache: SourceMapCache,
+    private readonly sourceMapFactory: SourceMapFactory,
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
     private readonly cache: BreakpointPredictionCache | undefined,
   ) {
@@ -93,28 +93,22 @@ export class BreakpointsPredictor {
     }, longPredictionWarning);
 
     await this.repo.streamAllChildren(this.rootPath, this.patterns, async metadata => {
-      const baseUrl = metadata.sourceMapUrl.startsWith('data:')
-        ? metadata.compiledPath
-        : metadata.sourceMapUrl;
-
       const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
       if (cached) {
         cached.forEach(addDiscovery);
         return;
       }
 
-      const map = await this.sourceMapCache.load(metadata);
+      const map = await this.sourceMapFactory.load(metadata);
       if (!map) {
         return;
       }
 
       const discovered: DiscoveredMetadata[] = [];
       for (const url of map.sources) {
-        const sourceUrl = urlUtils.maybeAbsolutePathToFileUrl(this.rootPath, url);
-        const resolvedUrl = urlUtils.completeUrlEscapingRoot(baseUrl, sourceUrl);
         const resolvedPath = this.sourcePathResolver
-          ? await this.sourcePathResolver.urlToAbsolutePath({ url: resolvedUrl, map })
-          : urlUtils.fileUrlToAbsolutePath(resolvedUrl);
+          ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
+          : urlUtils.fileUrlToAbsolutePath(url);
 
         if (!resolvedPath) {
           continue;
@@ -169,7 +163,7 @@ export class BreakpointsPredictor {
         return;
       }
 
-      const map = await this.sourceMapCache.load(metadata);
+      const map = await this.sourceMapFactory.load(metadata);
       if (!map) {
         continue;
       }

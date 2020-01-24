@@ -178,7 +178,7 @@ export class BrowserLauncher implements ILauncher {
       baseUrl: baseURL(params),
       localRoot: null,
       remoteRoot: null,
-      webRoot: params.webRoot || params.rootPath,
+      pathMapping: { '/': params.webRoot, ...params.pathMapping },
       sourceMapOverrides: params.sourceMapPathOverrides,
       clientID: clientCapabilities.clientID,
     });

@@ -14,7 +14,7 @@ describe('node source path resolver', () => {
       basePath: __dirname,
       remoteRoot: null,
       localRoot: null,
-      sourceMapOverrides: { 'webpack:///*': '*' },
+      sourceMapOverrides: { 'webpack:///*': `${__dirname}/*` },
     };
 
     it('resolves absolute', async () => {
@@ -114,7 +114,7 @@ describe('node source path resolver', () => {
 
           const result = await resolver.urlToAbsolutePath({
             url: 'webpack:///hello.js',
-            map: { metadata: { sourceMapUrl: map } } as any,
+            map: { metadata: { sourceMapUrl: map, compiledPath: map }, sourceRoot: '' } as any,
           });
 
           if (ok) {

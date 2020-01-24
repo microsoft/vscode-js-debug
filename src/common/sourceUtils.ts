@@ -7,7 +7,7 @@ import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
-import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
+import { SourceMap } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
 import { hashBytes, hashFile } from './hash';
@@ -33,9 +33,14 @@ export async function prettyPrintAsSourceMap(
       generated: { line: to[i], column: to[i + 1] },
     });
   }
-  return new SourceMap(await sourceMap.SourceMapConsumer.fromSourceMap(generator), {
-    sourceMapUrl: '',
-  });
+  return new SourceMap(
+    await sourceMap.SourceMapConsumer.fromSourceMap(generator),
+    {
+      sourceMapUrl: '',
+      compiledPath: '',
+    },
+    '',
+  );
 }
 
 function generatePositions(text: string) {
@@ -206,11 +211,11 @@ export function wrapObjectLiteral(code: string): string {
 }
 
 export async function loadSourceMap(
-  options: Readonly<Omit<ISourceMapMetadata, 'hash'>>,
-): Promise<SourceMap | undefined> {
+  sourceMapUrl: string,
+): Promise<sourceMap.BasicSourceMapConsumer | undefined> {
   let content: string;
   try {
-    content = await urlUtils.fetch(options.sourceMapUrl);
+    content = await urlUtils.fetch(sourceMapUrl);
   } catch (err) {
     logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
     return;
@@ -221,7 +226,7 @@ export async function loadSourceMap(
   }
 
   try {
-    return new SourceMap(await new sourceMap.SourceMapConsumer(content), options);
+    return (await new sourceMap.SourceMapConsumer(content)) as sourceMap.BasicSourceMapConsumer;
   } catch (err) {
     logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);
   }

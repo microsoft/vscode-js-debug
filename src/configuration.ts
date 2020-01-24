@@ -4,7 +4,7 @@
 
 import Dap from './dap/api';
 import { Contributions } from './common/contributionUtils';
-import { assertNever, mapValues } from './common/objUtils';
+import { assertNever } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
@@ -291,6 +291,12 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   runtimeArgs: ReadonlyArray<string>;
 }
 
+/**
+ * A mapping of URLs/paths to local folders, to resolve scripts
+ * in Chrome to scripts on disk
+ */
+export type PathMapping = Readonly<{ [key: string]: string }>;
+
 export interface IChromeBaseConfiguration extends IBaseConfiguration {
   type: Contributions.ChromeDebugType;
 
@@ -303,7 +309,7 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
    * A mapping of URLs/paths to local folders, to resolve scripts
    * in Chrome to scripts on disk
    */
-  pathMapping: { [key: string]: string };
+  pathMapping: PathMapping;
 
   /**
    * This specifies the workspace absolute path to the webserver root. Used to
@@ -504,9 +510,8 @@ export const baseDefaults: IBaseConfiguration = {
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
   outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
-  // keep in sync with sourceMapPathOverrides in package.json
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
-  // Should always be determined upstream
+  // Should always be determined upstream;
   __workspaceFolder: '',
 };
 
@@ -574,6 +579,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   pathMapping: {},
   url: null,
   urlFilter: '',
+  sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
 };
@@ -602,7 +608,7 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
 
 export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string } {
   return {
-    'webpack://?:*/*': '*',
+    'webpack://?:*/*': `${webRoot}/*`,
     'webpack:///./~/*': `${webRoot}/node_modules/*`,
     'meteor://💻app/*': `${webRoot}/*`,
   };
@@ -677,9 +683,15 @@ export function resolveVariableInConfig<T>(config: T, varName: string, varValue:
   } else if (config instanceof Array) {
     out = config.map(cfg => resolveVariableInConfig(cfg, varName, varValue));
   } else if (typeof config === 'object' && config) {
-    out = mapValues((config as unknown) as { [key: string]: unknown }, value =>
-      resolveVariableInConfig(value, varName, varValue),
-    );
+    const obj: { [key: string]: unknown } = {};
+    for (const [key, value] of Object.entries(config)) {
+      obj[resolveVariableInConfig(key, varName, varValue)] = resolveVariableInConfig(
+        value,
+        varName,
+        varValue,
+      );
+    }
+    out = obj;
   } else {
     out = config;
   }

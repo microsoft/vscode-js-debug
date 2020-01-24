@@ -20,7 +20,7 @@ import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPre
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { join } from 'path';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
-import { SourceMapCache } from './sourceMapCache';
+import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
 import { ScriptSkipper } from './scriptSkipper';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
@@ -88,14 +88,14 @@ export class DebugAdapter {
     const bpCache: BreakpointPredictionCache | undefined = launchConfig.__workspaceCachePath
       ? new CorrelatedCache(join(launchConfig.__workspaceCachePath, 'bp-predict.json'))
       : undefined;
-    const sourceMapCache = new SourceMapCache();
-    this._disposables.push(sourceMapCache);
+    const sourceMapFactory = new SourceMapFactory();
+    this._disposables.push(sourceMapFactory);
     const bpPredictor = rootPath
       ? new BreakpointsPredictor(
           rootPath,
           launchConfig,
           sourceMapRepo,
-          sourceMapCache,
+          sourceMapFactory,
           sourcePathResolver,
           bpCache,
         )
@@ -105,7 +105,7 @@ export class DebugAdapter {
 
     this.sourceContainer = new SourceContainer(
       this.dap,
-      sourceMapCache,
+      sourceMapFactory,
       rootPath,
       sourcePathResolver,
       sourceMapRepo,

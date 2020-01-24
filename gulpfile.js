@@ -86,6 +86,8 @@ const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
 const tsProject = ts.createProject('./tsconfig.json', { typescript });
 const prettierOptions = require('./package.json').prettier;
 
+gulp.task('clean-assertions', () => del(['src/test/**/*.txt.actual']));
+
 gulp.task('clean', () =>
   del(['out/**', 'dist/**', 'src/*/package.nls.*.json', 'packages/**', '*.vsix']),
 );
@@ -323,7 +325,7 @@ const runEslint = (fix, callback) => {
   );
 
   child.on('exit', code => (code ? callback(`Eslint exited with code ${code}`) : callback()));
-}
+};
 
 gulp.task('format:prettier', callback => runPrettier(false, true, callback));
 gulp.task('format:eslint', callback => runEslint(true, callback));

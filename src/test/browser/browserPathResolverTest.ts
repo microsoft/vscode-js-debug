@@ -14,12 +14,12 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
   before(() => {
     fsExistStub = stub(fsModule, 'exists').callsFake((path, cb) => {
       switch (path) {
-        case 'C:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
           return cb(true);
-        case 'C:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\app\\app.component.html':
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\app\\app.component.html':
           return cb(false);
         default:
-          throw Error('Unknown path');
+          throw Error(`Unknown path ${path}`);
       }
     });
   });
@@ -29,10 +29,10 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
     ['vscode', 'wwwroot'],
   ].forEach(([client, folder]) => {
     it(`returns ${folder} for ${client} if the webroot path doesn't exist and the modified path does`, async () => {
-      const webRoot = 'C:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot';
+      const webRoot = 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot';
 
       const resolver = new BrowserSourcePathResolver({
-        webRoot,
+        pathMapping: { '/': webRoot },
         clientID: client,
         baseUrl: 'http://localhost:60318/',
         sourceMapOverrides: defaultSourceMapPathOverrides(webRoot),
@@ -42,10 +42,13 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
       });
 
       const url = 'webpack:///src/app/app.component.html';
-      const absolutePath = await resolver.urlToAbsolutePath({ url });
+      const absolutePath = await resolver.urlToAbsolutePath({
+        url,
+        map: { sourceRoot: '' } as any,
+      });
 
       expect(absolutePath).to.equal(
-        `C:\\Users\\user\\Source\\Repos\\Angular Project\\${folder}\\src\\app\\app.component.html`,
+        `c:\\Users\\user\\Source\\Repos\\Angular Project\\${folder}\\src\\app\\app.component.html`,
       );
     });
   });

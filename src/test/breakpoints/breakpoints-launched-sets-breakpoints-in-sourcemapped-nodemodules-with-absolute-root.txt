@@ -1,0 +1,13 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+double @ ${workspaceFolder}/nodeModuleBreakpoint/node_modules/@c4312/absolute-sourceroot/src/index.ts:2:3
+
+C:\Users\user\Source\Repos\Angular Project\wwwroot\app\app.component.html
+C:\Users\user\Source\Repos\Angular Project\ClientApp\src\app\app.component.html
+C:\Users\user\Source\Repos\Angular Project\wwwroot\src\app\app.component.html
+
+c:\Users\user\Source\Repos\Angular Project\wwwroot\src\app\app.component.html

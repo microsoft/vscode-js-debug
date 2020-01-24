@@ -3,28 +3,28 @@
  *--------------------------------------------------------*/
 
 import {
-  SourceMapConsumer,
   Position,
   NullableMappedPosition,
   NullablePosition,
   MappedPosition,
   MappingItem,
-  IndexedSourceMapConsumer,
+  BasicSourceMapConsumer,
 } from 'source-map';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
   mtime?: number;
-  compiledPath?: string;
+  compiledPath: string;
 }
 
 /**
  * Wrapper for a parsed sourcemap.
  */
-export class SourceMap implements SourceMapConsumer {
+export class SourceMap implements BasicSourceMapConsumer {
   constructor(
-    private readonly original: IndexedSourceMapConsumer,
+    private readonly original: BasicSourceMapConsumer,
     public readonly metadata: Readonly<ISourceMapMetadata>,
+    private readonly actualRoot: string,
   ) {}
 
   /**
@@ -32,6 +32,28 @@ export class SourceMap implements SourceMapConsumer {
    */
   public get sources() {
     return this.original.sources;
+  }
+
+  /**
+   * Gets the optional name of the generated code that this source map is associated with
+   */
+  public get file() {
+    return this.metadata.compiledPath ?? this.original.file;
+  }
+
+  /**
+   * Gets the source root of the sourcemap.
+   */
+  public get sourceRoot() {
+    // see SourceMapFactory.loadSourceMap for what's happening here
+    return this.actualRoot;
+  }
+
+  /**
+   * Gets the sources content.
+   */
+  public get sourcesContent() {
+    return this.original.sourcesContent;
   }
 
   /**

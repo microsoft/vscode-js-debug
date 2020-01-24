@@ -40,6 +40,27 @@ export function lowerCaseInsensitivePath(path: string) {
 }
 
 /**
+ * Returns the closest parent directory where the predicate returns true.
+ */
+export const nearestDirectoryWhere = async (
+  rootDir: string,
+  predicate: (dir: string) => Promise<boolean>,
+): Promise<string | undefined> => {
+  while (true) {
+    const parent = path.dirname(rootDir);
+    if (parent === rootDir) {
+      return undefined;
+    }
+
+    if (await predicate(parent)) {
+      return parent;
+    }
+
+    rootDir = parent;
+  }
+};
+
+/**
  * Returns the path in its true case, correcting for case-insensitive file systems.
  */
 export const truePathCasing = memoize(
@@ -187,6 +208,8 @@ export function stripTrailingSlash(aPath: string): string {
 /**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences
  */
+export function fileUrlToAbsolutePath(urlOrPath: FileUrl): string;
+export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
   if (!isFileUrl(urlOrPath)) {
     return undefined;
@@ -202,6 +225,19 @@ export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
   }
 
   return fixDriveLetterAndSlashes(urlOrPath);
+}
+
+/**
+ * Converts a file URL to a windows network path, if possible.
+ */
+export function fileUrlToNetworkPath(urlOrPath: string): string {
+  if (isFileUrl(urlOrPath)) {
+    urlOrPath = urlOrPath.replace('file:///', '\\\\');
+    urlOrPath = urlOrPath.replace(/\//g, '\\');
+    urlOrPath = decodeURIComponent(urlOrPath);
+  }
+
+  return urlOrPath;
 }
 
 // TODO: this does not escape/unescape special characters, but it should.
@@ -254,7 +290,15 @@ export function urlToRegex(aPath: string) {
   return aPath;
 }
 
-export function isFileUrl(candidate: string): boolean {
+/**
+ * Opaque typed used to indicate strings that are file URLs.
+ */
+export type FileUrl = string & { __opaque_file_url: true };
+
+/**
+ * Returns whether the string is a file UR
+ */
+export function isFileUrl(candidate: string): candidate is FileUrl {
   return candidate.startsWith('file:///');
 }
 

@@ -4,18 +4,18 @@
     reason : breakpoint
     threadId : <number>
 }
-./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ /src/App.vue:11:1
-__webpack_require__ @ /webpack/bootstrap:79:1
-./src/App.vue?vue&type=script&lang=js& @ /src/App.vuec53a=:1:1
-__webpack_require__ @ /webpack/bootstrap:79:1
-./src/App.vue @ /src/App.vue:1:1
-__webpack_require__ @ /webpack/bootstrap:79:1
+./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue:11:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue?c53a:1:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+./src/App.vue @ ${workspaceFolder}/web/src/App.vue:1:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
-__webpack_require__ @ /webpack/bootstrap:79:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
-__webpack_require__ @ /webpack/bootstrap:79:1
-checkDeferredModules @ /webpack/bootstrap:45:1
-<anonymous> @ /webpack/bootstrap:152:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
+<anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:152:1
 <anonymous> @ ${workspaceFolder}/web/vue/js/app.js:156:10
 {
     allThreadsStopped : false
@@ -23,16 +23,16 @@ checkDeferredModules @ /webpack/bootstrap:45:1
     reason : step
     threadId : <number>
 }
-./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ /src/App.vue:18:1
-__webpack_require__ @ /webpack/bootstrap:79:1
-./src/App.vue?vue&type=script&lang=js& @ /src/App.vuec53a=:1:1
-__webpack_require__ @ /webpack/bootstrap:79:1
-./src/App.vue @ /src/App.vue:1:1
-__webpack_require__ @ /webpack/bootstrap:79:1
+./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue:18:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue?c53a:1:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+./src/App.vue @ ${workspaceFolder}/web/src/App.vue:1:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
-__webpack_require__ @ /webpack/bootstrap:79:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
-__webpack_require__ @ /webpack/bootstrap:79:1
-checkDeferredModules @ /webpack/bootstrap:45:1
-<anonymous> @ /webpack/bootstrap:152:1
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
+<anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:152:1
 <anonymous> @ ${workspaceFolder}/web/vue/js/app.js:156:10
