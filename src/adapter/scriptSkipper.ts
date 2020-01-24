@@ -12,6 +12,7 @@ import * as urlUtils from '../common/urlUtils';
 import Dap from '../dap/api';
 import { ITarget } from '../targets/targets';
 import { Source, SourceContainer } from './sources';
+import { escapeRegexSpecialChars } from '../common/stringUtils';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -90,6 +91,7 @@ export class ScriptSkipper {
   }
 
   private _createRegexString(patterns: string[]): string {
+    // TODO this should use node-glob directly
     return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
 
@@ -115,8 +117,9 @@ export class ScriptSkipper {
   }
 
   private async _updateBlackboxedUrls(urlsToBlackbox: string[]): Promise<void> {
-    // TODO safely escape url for regex
-    const blackboxPatterns = urlsToBlackbox.map(url => '^' + url + '$');
+    const blackboxPatterns = urlsToBlackbox
+      .map(url => escapeRegexSpecialChars(url))
+      .map(url => `^${url}$`);
     await this.cdp.Debugger.setBlackboxPatterns({ patterns: blackboxPatterns });
   }
 

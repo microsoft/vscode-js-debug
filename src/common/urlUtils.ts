@@ -9,11 +9,11 @@ import * as http from 'http';
 import * as https from 'https';
 import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
 import Cdp from '../cdp/api';
-import { escapeRegexSpecialChars } from './sourceUtils';
 import { AnyChromeConfiguration } from '../configuration';
 import { readdir } from './fsUtils';
 import { memoize } from './objUtils';
 import { assert } from './logging/logger';
+import { escapeRegexSpecialChars } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
