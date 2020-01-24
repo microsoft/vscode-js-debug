@@ -330,7 +330,7 @@ export class DebugAdapter {
   async _toggleSkipFileStatus(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error> {
-    await this._scriptSkipper.toggleSkippingFile(params, this.sourceContainer);
+    await this._scriptSkipper.toggleSkippingFile(params);
     await this._refreshStackTrace();
     return {};
   }

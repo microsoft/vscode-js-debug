@@ -2,29 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import cdp, { Cdp } from '../cdp/api';
-import Dap from '../dap/api';
-import * as utils from '../common/sourceUtils';
-import { ITarget } from '../targets/targets';
-import { SourceContainer, Source } from './sources';
-import * as urlUtils from '../common/urlUtils';
-import * as pathUtils from '../common/pathUtils';
-import { debounce } from '../common/objUtils';
+import { Cdp } from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { EventEmitter } from '../common/events';
+import { debounce } from '../common/objUtils';
+import * as pathUtils from '../common/pathUtils';
+import * as utils from '../common/sourceUtils';
+import * as urlUtils from '../common/urlUtils';
+import Dap from '../dap/api';
+import { ITarget } from '../targets/targets';
+import { Source, SourceContainer } from './sources';
 
-export class BlackBoxSender {
-  public sendPatterns(blackboxPatterns: string[]) {
-    this.debuggerAPI.setBlackboxPatterns({ patterns: blackboxPatterns });
-  }
-
-  public sendRanges(params: cdp.Debugger.SetBlackboxedRangesParams): void {
-    this.debuggerAPI.setBlackboxedRanges(params);
-  }
-
-  constructor(public targetId: string, private debuggerAPI: cdp.DebuggerApi) {}
+interface ISharedSkipToggleEvent {
+  rootTargetId: string;
+  targetId: string;
+  params: Dap.ToggleSkipFileStatusParams;
 }
 
 export class ScriptSkipper {
+  private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
+
   private _nonNodeInternalRegex: RegExp | null = null;
 
   // filtering node internals
@@ -39,7 +36,12 @@ export class ScriptSkipper {
 
   private _sourceContainer: SourceContainer | undefined;
 
+  private _targetId: string;
+  private _rootTargetId: string;
+
   constructor(skipPatterns: ReadonlyArray<string>, private readonly cdp: Cdp.Api, target: ITarget) {
+    this._targetId = target.id();
+    this._rootTargetId = getRootTarget(target).id();
     this._isUrlSkipped = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
     this._isAuthoredUrlSkipped = new MapUsingProjection<string, boolean>(key =>
       this._normalizeUrl(key),
@@ -49,6 +51,12 @@ export class ScriptSkipper {
     this._setRegexForNonNodeInternals(skipPatterns);
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
     this._newScriptDebouncer = debounce(100, () => this._initializeSkippingValueForNewSources());
+
+    ScriptSkipper.sharedSkipsEmitter.event(e => {
+      if (e.rootTargetId === this._rootTargetId && e.targetId !== this._targetId) {
+        this._toggleSkippingFile(e.params);
+      }
+    });
   }
 
   public setSourceContainer(sourceContainer: SourceContainer): void {
@@ -249,9 +257,8 @@ export class ScriptSkipper {
     }
   }
 
-  public async toggleSkippingFile(
+  private async _toggleSkippingFile(
     params: Dap.ToggleSkipFileStatusParams,
-    sourceContainer: SourceContainer,
   ): Promise<Dap.ToggleSkipFileStatusResult> {
     let path: string | undefined = undefined;
     if (params.resource) {
@@ -261,7 +268,7 @@ export class ScriptSkipper {
     }
     const sourceParams: Dap.Source = { path: path, sourceReference: params.sourceReference };
 
-    const source = sourceContainer.source(sourceParams);
+    const source = this._sourceContainer!.source(sourceParams);
     if (source) {
       const newSkipValue = !this.isScriptSkipped(source.url());
       if (isAuthored(source)) {
@@ -292,8 +299,29 @@ export class ScriptSkipper {
 
     return {};
   }
+
+  public async toggleSkippingFile(
+    params: Dap.ToggleSkipFileStatusParams,
+  ): Promise<Dap.ToggleSkipFileStatusResult> {
+    const result = this._toggleSkippingFile(params);
+    ScriptSkipper.sharedSkipsEmitter.fire({
+      params,
+      rootTargetId: this._rootTargetId,
+      targetId: this._targetId,
+    });
+    return result;
+  }
 }
 
 function isAuthored(source: Source) {
   return source._compiledToSourceUrl;
+}
+
+function getRootTarget(target: ITarget): ITarget {
+  const parent = target.parent();
+  if (parent) {
+    return getRootTarget(parent);
+  } else {
+    return target;
+  }
 }
