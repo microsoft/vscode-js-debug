@@ -133,13 +133,9 @@ export class ScriptSkipper {
     );
   }
 
-  private _hasScript(url: string): boolean {
-    return this._isUrlSkipped.has(this._normalizeUrl(url));
-  }
-
-  private async _initializeSourceMappedSources(
+  private async _updateSourceWithSkippedSourceMappedSources(
     source: Source,
-    scriptId: Cdp.Runtime.ScriptId,
+    ...scriptIds: Cdp.Runtime.ScriptId[]
   ): Promise<void> {
     // Order "should" be correct
     const parentIsSkipped = this.isScriptSkipped(source.url());
@@ -169,7 +165,11 @@ export class ScriptSkipper {
       }
     });
 
-    this.cdp.Debugger.setBlackboxedRanges({ scriptId: scriptId, positions: skipRanges });
+    await Promise.all(
+      scriptIds.map(scriptId =>
+        this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
+      ),
+    );
   }
 
   public initializeSkippingValueForSource(source: Source, scriptId: Cdp.Runtime.ScriptId) {
@@ -227,7 +227,7 @@ export class ScriptSkipper {
         await Promise.all(
           sourceMapSources.map(s => this._initializeSkippingValueForSource(s, scriptId)),
         );
-        this._initializeSourceMappedSources(source, scriptId);
+        this._updateSourceWithSkippedSourceMappedSources(source, scriptId);
       }
 
       return this.isScriptSkipped(url);
@@ -263,12 +263,20 @@ export class ScriptSkipper {
 
     const source = sourceContainer.source(sourceParams);
     if (source) {
-      // TODO
       const newSkipValue = !this.isScriptSkipped(source.url());
       if (isAuthored(source)) {
         this._isAuthoredUrlSkipped.set(source.url(), newSkipValue);
-        // this.
 
+        // Changed the skip value for an authored source, update it for all its compiled sources
+        const compiledSources = Array.from(source._compiledToSourceUrl!.keys());
+        await Promise.all(
+          compiledSources.map(compiledSource =>
+            this._updateSourceWithSkippedSourceMappedSources(
+              compiledSource,
+              ...compiledSource.scriptIds(),
+            ),
+          ),
+        );
       } else {
         this._isUrlSkipped.set(source.url(), newSkipValue);
         if (source._sourceMapSourceByUrl) {

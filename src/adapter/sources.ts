@@ -20,6 +20,7 @@ import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
 import { LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
+import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -117,6 +118,8 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
+  private readonly _scriptIds: Cdp.Runtime.ScriptId[] = [];
+
   constructor(
     container: SourceContainer,
     url: string,
@@ -147,6 +150,14 @@ export class Source {
 
   url(): string {
     return this._url;
+  }
+
+  addScriptId(scriptId: Cdp.Runtime.ScriptId): void {
+    this._scriptIds.push(scriptId);
+  }
+
+  scriptIds(): Cdp.Runtime.ScriptId[] {
+    return this._scriptIds;
   }
 
   sourceReference(): number {
@@ -684,7 +695,6 @@ export class SourceContainer {
         source._compiledToSourceUrl = new Map();
         source._compiledToSourceUrl.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
-
       } else {
         source._compiledToSourceUrl!.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);

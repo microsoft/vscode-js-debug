@@ -1042,6 +1042,7 @@ export class Thread implements IVariableStoreDelegate {
       urlHashMap.set(event.hash, source);
     }
 
+    source.addScriptId(event.scriptId);
     const script = { url: event.url, scriptId: event.scriptId, source, hash: event.hash };
     this._scripts.set(event.scriptId, script);
 
