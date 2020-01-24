@@ -36,19 +36,20 @@ export async function run(): Promise<void> {
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   };
 
-  const logTestReporterPathRelativeToMocha = '../../../out/src/test/reporters/logTestReporter'; // yikes
-  const goldenTextReporterPathRelativeToMocha =
-    '../../../out/src/test/reporters/goldenTextReporter';
+  // Paths are relative to Mocha
+  const logTestReporter = '../../../out/src/test/reporters/logTestReporter';
+  // const goldenTextReporter =
+  //   '../../../out/src/test/reporters/goldenTextReporter';
 
   mochaOpts.reporter = 'mocha-multi-reporters';
   mochaOpts.reporterOptions = {
-    reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}`,
-    // reporterEnabled: goldenTextReporterPathRelativeToMocha
-    // reporterEnabled: logTestReporterPathRelativeToMocha
+    // reporterEnabled: `${logTestReporter}, ${goldenTextReporter}`,
+    // reporterEnabled: goldenTextReporter
+    reporterEnabled: logTestReporter,
   };
   if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY) {
     mochaOpts.reporterOptions = {
-      reporterEnabled: `${logTestReporterPathRelativeToMocha}, ${goldenTextReporterPathRelativeToMocha}, mocha-junit-reporter`,
+      reporterEnabled: `${logTestReporter}, mocha-junit-reporter`,
       mochaJunitReporterReporterOptions: {
         testsuitesTitle: `tests ${process.platform}`,
         mochaFile: join(
