@@ -13,6 +13,8 @@ import Dap from '../dap/api';
 import { ITarget } from '../targets/targets';
 import { Source, SourceContainer } from './sources';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
+import { logger } from '../common/logging/logger';
+import { LogTag } from '../common/logging';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -171,7 +173,10 @@ export class ScriptSkipper {
           });
           inSkipRange = !inSkipRange;
         } else {
-          // log something
+          logger.error(
+            LogTag.Internal,
+            'Could not map script beginning for ' + authoredSource._name,
+          );
         }
       }
     });
@@ -210,7 +215,6 @@ export class ScriptSkipper {
 
     const url = source.url();
     if (!map.has(this._normalizeUrl(url))) {
-      // TODO is this check correct (?)
       const pathOnDisk = await source.existingAbsolutePath();
       if (pathOnDisk) {
         // file maps to file on disk

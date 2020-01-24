@@ -14,7 +14,13 @@ import { EventEmitter, IDisposable } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
-import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../../targets/targets';
+import {
+  ILaunchContext,
+  ILauncher,
+  ILaunchResult,
+  IStopMetadata,
+  ITarget,
+} from '../../targets/targets';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { baseURL } from './browserLaunchParams';
 import { BrowserSourcePathResolver } from './browserPathResolver';

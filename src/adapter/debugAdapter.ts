@@ -111,7 +111,7 @@ export class DebugAdapter {
       sourceMapRepo,
       this._scriptSkipper,
     );
-    this._scriptSkipper.setSourceContainer(this.sourceContainer); // TODO Try to resolve circular dependency btw SourceContainer < - > ScriptSkipper
+    this._scriptSkipper.setSourceContainer(this.sourceContainer);
     this.breakpointManager = new BreakpointManager(
       this.dap,
       this.sourceContainer,
