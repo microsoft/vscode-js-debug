@@ -73,6 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
       Contributions.ChromeDebugType,
       sessionManager,
     ),
+    vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.EdgeDebugType, sessionManager),
   );
   context.subscriptions.push(
     vscode.debug.onDidTerminateDebugSession(s => sessionManager.terminate(s)),

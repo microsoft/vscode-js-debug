@@ -11,7 +11,7 @@ import { timeoutPromise } from '../../common/cancellation';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter, IDisposable } from '../../common/events';
-import { absolutePathToFileUrl } from '../../common/urlUtils';
+import { absolutePathToFileUrl, createTargetFilterForConfig } from '../../common/urlUtils';
 import { AnyChromeConfiguration, IChromeLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import {
@@ -144,6 +144,18 @@ export class BrowserLauncher implements ILauncher {
     );
   }
 
+  prepareWebViewLaunch(params: IChromeLaunchConfiguration) {
+    // port 2015 is carried over from vscode-edge-debug2
+    params.port = params.port || 2015;
+    // Initialize WebView debugging environment variables
+    params.env = params.env || {};
+    if (params.userDataDir) {
+      params.env['WEBVIEW2_USER_DATA_FOLDER'] = params.userDataDir.toString();
+    }
+    params.env['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = `--remote-debugging-port=${params.port}`;
+    params.env['WEBVIEW2_WAIT_FOR_SCRIPT_DEBUGGER'] = 'true';
+  }
+
   async prepareLaunch(
     params: IChromeLaunchConfiguration,
     { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
@@ -208,7 +220,7 @@ export class BrowserLauncher implements ILauncher {
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
     this._mainTarget = await timeoutPromise(
-      this._targetManager.waitForMainTarget(),
+      this._targetManager.waitForMainTarget(createTargetFilterForConfig(params)),
       cancellationToken,
       'Could not attach to main target',
     );
@@ -245,6 +257,10 @@ export class BrowserLauncher implements ILauncher {
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
+    }
+
+    if (params.useWebView) {
+      this.prepareWebViewLaunch(params);
     }
 
     const targetOrError = await this.prepareLaunch(params, context, clientCapabilities);
