@@ -306,7 +306,7 @@ export class ScriptSkipper {
   public async toggleSkippingFile(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult> {
-    const result = this._toggleSkippingFile(params);
+    const result = await this._toggleSkippingFile(params);
     ScriptSkipper.sharedSkipsEmitter.fire({
       params,
       rootTargetId: this._rootTargetId,
