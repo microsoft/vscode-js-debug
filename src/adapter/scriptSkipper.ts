@@ -2,19 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import micromatch from 'micromatch';
 import { Cdp } from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
+import { LogTag } from '../common/logging';
+import { logger } from '../common/logging/logger';
 import { debounce } from '../common/objUtils';
 import * as pathUtils from '../common/pathUtils';
-import * as utils from '../common/sourceUtils';
+import { escapeRegexSpecialChars } from '../common/stringUtils';
 import * as urlUtils from '../common/urlUtils';
 import Dap from '../dap/api';
 import { ITarget } from '../targets/targets';
 import { Source, SourceContainer } from './sources';
-import { escapeRegexSpecialChars } from '../common/stringUtils';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -25,10 +25,10 @@ interface ISharedSkipToggleEvent {
 export class ScriptSkipper {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
 
-  private _nonNodeInternalRegex: RegExp | null = null;
+  private _nonNodeInternalGlobs: string[] | null = null;
 
   // filtering node internals
-  private _nodeInternalsRegex: RegExp | null = null;
+  private _nodeInternalsGlobs: string[] | null = null;
   private _allNodeInternals?: string[]; // only set by Node
 
   private _isUrlSkipped: Map<string, boolean>;
@@ -78,7 +78,7 @@ export class ScriptSkipper {
       .filter(nonNullPattern => nonNullPattern) as string[];
 
     if (nodeInternalPatterns.length > 0) {
-      this._nodeInternalsRegex = new RegExp(this._createRegexString(nodeInternalPatterns));
+      this._nodeInternalsGlobs = nodeInternalPatterns;
     }
   }
 
@@ -88,25 +88,21 @@ export class ScriptSkipper {
     );
 
     if (nonNodeInternalGlobs.length > 0) {
-      this._nonNodeInternalRegex = new RegExp(this._createRegexString(nonNodeInternalGlobs));
+      this._nonNodeInternalGlobs = nonNodeInternalGlobs;
     }
-  }
-
-  private _createRegexString(patterns: string[]): string {
-    // TODO this should use node-glob directly
-    return patterns.map(pattern => utils.pathGlobToBlackboxedRegex(pattern)).join('|');
   }
 
   private _testSkipNodeInternal(testString: string): boolean {
-    if (this._nodeInternalsRegex) {
-      return this._nodeInternalsRegex.test(testString);
+    if (this._nodeInternalsGlobs) {
+      return micromatch([testString], this._nodeInternalsGlobs).length > 0;
     }
+
     return false;
   }
 
   private _testSkipNonNodeInternal(testString: string): boolean {
-    if (this._nonNodeInternalRegex) {
-      return this._nonNodeInternalRegex.test(testString);
+    if (this._nonNodeInternalGlobs) {
+      return micromatch([testString], this._nonNodeInternalGlobs).length > 0;
     }
     return false;
   }
@@ -252,7 +248,7 @@ export class ScriptSkipper {
   }
 
   private async _initNodeInternals(target: ITarget): Promise<void> {
-    if (target.type() === 'node' && this._nodeInternalsRegex && !this._allNodeInternals) {
+    if (target.type() === 'node' && this._nodeInternalsGlobs && !this._allNodeInternals) {
       const evalResult = await this.cdp.Runtime.evaluate({
         expression: "require('module').builtinModules",
         returnByValue: true,

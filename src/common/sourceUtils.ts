@@ -11,7 +11,6 @@ import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
 import { hashBytes, hashFile } from './hash';
-import { escapeRegexSpecialChars } from './stringUtils';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -290,19 +289,4 @@ export function positionToOffset(text: string, line: number, column: number): nu
   for (let l = 1; l < line; ++l) offset += lines[l - 1].length + 1;
   offset += column - 1;
   return offset;
-}
-
-export function pathGlobToBlackboxedRegex(glob: string): string {
-  return (
-    escapeRegexSpecialChars(glob, '*')
-      .replace(/([^*]|^)\*([^*]|$)/g, '$1.*$2') // * -> .*
-      .replace(/\*\*(\\\/|\\\\)?/g, '(.*\\/)?') // **/ -> (.*\/)?
-
-      // Just to simplify
-      .replace(/\.\*\\\/\.\*/g, '.*') // .*\/.* -> .*
-      .replace(/\.\*\.\*/g, '.*') // .*.* -> .*
-
-      // Match either slash direction
-      .replace(/\\\/|\\\\/g, '[/\\\\]')
-  ); // / -> [/|\], \ -> [/|\]
 }
