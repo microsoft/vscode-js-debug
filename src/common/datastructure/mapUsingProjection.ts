@@ -17,7 +17,7 @@ class KeyAndValue<K, V> {
  * equivalent to define a custom comparison criteria in other languages)
  */
 export class MapUsingProjection<K, V, P = K> implements Map<K, V> {
-  private readonly projectionToKeyAndvalue: Map<P, KeyAndValue<K, V>>;
+  private readonly projectionToKeyAndValue: Map<P, KeyAndValue<K, V>>;
 
   constructor(
     private readonly projection: (key: K) => P,
@@ -30,57 +30,57 @@ export class MapUsingProjection<K, V, P = K> implements Map<K, V> {
       },
     );
 
-    this.projectionToKeyAndvalue = new Map<P, KeyAndValue<K, V>>(entries);
+    this.projectionToKeyAndValue = new Map<P, KeyAndValue<K, V>>(entries);
   }
 
   public clear(): void {
-    this.projectionToKeyAndvalue.clear();
+    this.projectionToKeyAndValue.clear();
   }
 
   public delete(key: K): boolean {
     const keyProjected = this.projection(key);
-    return this.projectionToKeyAndvalue.delete(keyProjected);
+    return this.projectionToKeyAndValue.delete(keyProjected);
   }
 
   public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
-    this.projectionToKeyAndvalue.forEach(keyAndValue => {
+    this.projectionToKeyAndValue.forEach(keyAndValue => {
       callbackfn.call(thisArg, keyAndValue.value, keyAndValue.key, this);
     }, thisArg);
   }
 
   public get(key: K): V | undefined {
     const keyProjected = this.projection(key);
-    const value = this.projectionToKeyAndvalue.get(keyProjected);
+    const value = this.projectionToKeyAndValue.get(keyProjected);
     return value ? value.value : undefined;
   }
 
   public has(key: K): boolean {
-    return this.projectionToKeyAndvalue.has(this.projection(key));
+    return this.projectionToKeyAndValue.has(this.projection(key));
   }
 
   public set(key: K, value: V): this {
-    this.projectionToKeyAndvalue.set(this.projection(key), new KeyAndValue(key, value));
+    this.projectionToKeyAndValue.set(this.projection(key), new KeyAndValue(key, value));
     return this;
   }
 
   public get size(): number {
-    return this.projectionToKeyAndvalue.size;
+    return this.projectionToKeyAndValue.size;
   }
 
   public *entries(): IterableIterator<[K, V]> {
-    for (const keyAndValue of this.projectionToKeyAndvalue.values()) {
+    for (const keyAndValue of this.projectionToKeyAndValue.values()) {
       yield [keyAndValue.key, keyAndValue.value];
     }
   }
 
   public *keys(): IterableIterator<K> {
-    for (const keyAndValue of this.projectionToKeyAndvalue.values()) {
+    for (const keyAndValue of this.projectionToKeyAndValue.values()) {
       yield keyAndValue.key;
     }
   }
 
   public *values(): IterableIterator<V> {
-    for (const keyAndValue of this.projectionToKeyAndvalue.values()) {
+    for (const keyAndValue of this.projectionToKeyAndValue.values()) {
       yield keyAndValue.value;
     }
   }

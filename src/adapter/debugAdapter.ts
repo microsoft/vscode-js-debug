@@ -46,7 +46,7 @@ export class DebugAdapter {
     dap: Dap.Api,
     rootPath: string | undefined,
     sourcePathResolver: ISourcePathResolver,
-    private scriptSkipper: ScriptSkipper,
+    private readonly _scriptSkipper: ScriptSkipper,
     private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: TelemetryReporter,
@@ -109,8 +109,9 @@ export class DebugAdapter {
       rootPath,
       sourcePathResolver,
       sourceMapRepo,
-      scriptSkipper,
+      this._scriptSkipper,
     );
+    this._scriptSkipper.setSourceContainer(this.sourceContainer);
     this.breakpointManager = new BreakpointManager(
       this.dap,
       this.sourceContainer,
@@ -329,7 +330,7 @@ export class DebugAdapter {
   async _toggleSkipFileStatus(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error> {
-    await this.scriptSkipper.toggleSkippingFile(params, this.sourceContainer);
+    await this._scriptSkipper.toggleSkippingFile(params);
     await this._refreshStackTrace();
     return {};
   }

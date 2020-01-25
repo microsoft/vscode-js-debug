@@ -7,7 +7,6 @@ import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
-import { ScriptSkipper } from '../adapter/scriptSkipper';
 import { Binder } from '../binder';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
@@ -304,7 +303,6 @@ export class TestRoot {
   private _webRoot: string | undefined;
   _launchUrl: string | undefined;
   private _args: string[];
-  private _skipFiles?: ScriptSkipper;
 
   private _worker: Promise<ITestHandle>;
   private _workerCallback: (session: ITestHandle) => void;
@@ -362,8 +360,6 @@ export class TestRoot {
   }
 
   public async acquireDap(target: ITarget): Promise<DapConnection> {
-    if (this._skipFiles) target.skipFiles = () => this._skipFiles;
-
     const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
     this._targetToP.set(target, p);
     return p._session.adapterConnection;

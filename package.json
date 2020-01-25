@@ -248,7 +248,12 @@
         {
           "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
           "group": "navigation",
-          "when": "inDebugMode && callStackItemType == 'stackFrame'"
+          "when": "inDebugMode && debugType == NAMESPACE(node) && callStackItemType == 'stackFrame'"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
+          "group": "navigation",
+          "when": "inDebugMode && debugType == NAMESPACE(chrome) && callStackItemType == 'stackFrame'"
         }
       ],
       "view/title": [

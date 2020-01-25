@@ -2,14 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { CancellationToken } from 'vscode';
 import Cdp from '../cdp/api';
 import { IDisposable, IEvent } from '../common/events';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
-import { ScriptSkipper } from '../adapter/scriptSkipper';
 import Dap from '../dap/api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { CancellationToken } from 'vscode';
 import { ITargetOrigin } from './targetOrigin';
 
 /**
@@ -48,7 +47,6 @@ export interface ITarget {
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
-  skipFiles(): ScriptSkipper | undefined;
 }
 
 export interface ILaunchContext {

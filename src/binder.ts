@@ -24,7 +24,6 @@ import * as errors from './dap/errors';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
 import { ScriptSkipper } from './adapter/scriptSkipper';
-import Cdp from './cdp/api';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
@@ -55,7 +54,6 @@ export class Binder implements IDisposable {
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
   private _clientCapabilities: Dap.InitializeParams | undefined;
-  private _scriptSkipper?: ScriptSkipper;
   private _asyncStackPolicy?: IAsyncStackPolicy;
 
   constructor(
@@ -156,7 +154,6 @@ export class Binder implements IDisposable {
 
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
-    this._scriptSkipper = new ScriptSkipper(this._launchParams.skipFiles);
     let results = await Promise.all(
       [...this._launchers].map(l => this._launch(l, params, cts.token)),
     );
@@ -300,10 +297,6 @@ export class Binder implements IDisposable {
     return result;
   }
 
-  async attachScriptSkipper(target: ITarget, cdp: Cdp.Api, dap: Dap.Api): Promise<void> {
-    this._scriptSkipper!.initNewTarget(target, cdp.Runtime, cdp.Debugger);
-  }
-
   async attach(target: ITarget) {
     if (!target.canAttach()) return;
     const cdp = await target.attach();
@@ -315,16 +308,16 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy = getAsyncStackPolicy(this._launchParams!.showAsyncStacks);
     }
 
+    const scriptSkipper = new ScriptSkipper(this._launchParams!.skipFiles, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
-      this._scriptSkipper!,
+      scriptSkipper,
       this._asyncStackPolicy,
       this._launchParams!,
       this.telemetryReporter,
     );
-    await this.attachScriptSkipper(target, cdp, dap);
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
     const startThread = async () => {

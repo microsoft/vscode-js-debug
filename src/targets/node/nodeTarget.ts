@@ -2,16 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITarget } from '../targets';
+import { basename } from 'path';
+import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
-import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { EventEmitter } from '../../common/events';
+import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { basename } from 'path';
-import { ScriptSkipper } from '../../adapter/scriptSkipper';
-import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
+import { ITarget } from '../targets';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -37,8 +36,6 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   private _waitingForDebugger: boolean;
   private _onNameChangedEmitter = new EventEmitter<void>();
   private _onDisconnectEmitter = new EventEmitter<void>();
-
-  private _scriptSkipper?: ScriptSkipper;
 
   public readonly onDisconnect = this._onDisconnectEmitter.event;
   public readonly onNameChanged = this._onNameChangedEmitter.event;
@@ -105,10 +102,6 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   defaultScriptOffset(): InlineScriptOffset {
     return { lineOffset: 0, columnOffset: 0 };
-  }
-
-  skipFiles(): ScriptSkipper | undefined {
-    return this._scriptSkipper;
   }
 
   scriptUrlToUrl(url: string): string {

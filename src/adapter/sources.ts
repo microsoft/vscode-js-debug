@@ -20,6 +20,7 @@ import { assert, logger } from '../common/logging/logger';
 import { SourceMapCache } from './sourceMapCache';
 import { LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
+import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -117,6 +118,8 @@ export class Source {
 
   private _content?: Promise<string | undefined>;
 
+  private readonly _scriptIds: Cdp.Runtime.ScriptId[] = [];
+
   constructor(
     container: SourceContainer,
     url: string,
@@ -147,6 +150,14 @@ export class Source {
 
   url(): string {
     return this._url;
+  }
+
+  addScriptId(scriptId: Cdp.Runtime.ScriptId): void {
+    this._scriptIds.push(scriptId);
+  }
+
+  scriptIds(): Cdp.Runtime.ScriptId[] {
+    return this._scriptIds;
   }
 
   sourceReference(): number {
@@ -194,7 +205,7 @@ export class Source {
       sourceReference: this._sourceReference,
       sources,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
-      origin: this.blackboxed() ? localize('source.isBlackboxed', 'blackboxed') : undefined,
+      origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
     };
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
@@ -276,7 +287,7 @@ export class Source {
     return fqname;
   }
 
-  blackboxed(): boolean {
+  private blackboxed(): boolean {
     return this._container.isSourceSkipped(this._url);
   }
 }
@@ -313,7 +324,6 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
-  private _scriptSkipper: ScriptSkipper;
 
   constructor(
     dap: Dap.Api,
@@ -321,10 +331,9 @@ export class SourceContainer {
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
-    scriptSkipper: ScriptSkipper,
+    public readonly scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
-    this._scriptSkipper = scriptSkipper;
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -353,7 +362,7 @@ export class SourceContainer {
   }
 
   isSourceSkipped(url: string): boolean {
-    return this._scriptSkipper.isScriptSkipped(url);
+    return this.scriptSkipper.isScriptSkipped(url);
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -553,7 +562,6 @@ export class SourceContainer {
       inlineSourceRange,
       contentHash,
     );
-    await this._scriptSkipper.updateSkippingValueForScript(source);
     this._addSource(source);
     return source;
   }
@@ -685,10 +693,8 @@ export class SourceContainer {
           undefined,
         );
         source._compiledToSourceUrl = new Map();
-        source._compiledToSourceUrl!.set(compiled, url);
+        source._compiledToSourceUrl.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
-
-        this._scriptSkipper.updateSkippingValueForScript(source);
       } else {
         source._compiledToSourceUrl!.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
