@@ -621,13 +621,15 @@ export class SourceContainer {
     deferred.resolve();
   }
 
-  removeSource(source: Source) {
+  removeSource(source: Source, silent = false) {
     console.assert(this._sourceByReference.get(source.sourceReference()) === source);
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source._url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
-    source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
+    if (!silent) {
+      source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
+    }
 
     const sourceMapUrl = source._sourceMapUrl;
     if (!sourceMapUrl) return;

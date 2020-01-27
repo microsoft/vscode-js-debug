@@ -29,6 +29,7 @@ import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPoli
 import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { mapValues } from './common/objUtils';
 import * as os from 'os';
+import { delay } from './common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -132,17 +133,21 @@ export class Binder implements IDisposable {
 
   private async _disconnect() {
     await Promise.all([...this._launchers].map(l => l.disconnect()));
-    if (!this.targetList.length) {
+
+    const didTerminate = () => !this.targetList.length && this._terminationCount === 0;
+    if (didTerminate()) {
       return;
     }
 
     await new Promise(resolve =>
       this.onTargetListChanged(() => {
-        if (!this.targetList.length) {
+        if (didTerminate()) {
           resolve();
         }
       }),
     );
+
+    await delay(0); // next task so that we're sure terminated() sent
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {

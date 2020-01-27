@@ -618,7 +618,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   dispose() {
-    this._removeAllScripts();
+    this._removeAllScripts(true /* silent */);
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
@@ -986,14 +986,14 @@ export class Thread implements IVariableStoreDelegate {
     return this._sourceScripts.get(source) || new Set();
   }
 
-  _removeAllScripts() {
+  private _removeAllScripts(silent = false) {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
     this._scriptSources.clear();
     for (const script of scripts) {
       const set = this.scriptsFromSource(script.source);
       set.delete(script);
-      if (!set.size) this._sourceContainer.removeSource(script.source);
+      if (!set.size) this._sourceContainer.removeSource(script.source, silent);
     }
   }
 
