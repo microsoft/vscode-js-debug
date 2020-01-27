@@ -13,3 +13,4 @@ demos/web-worker/vscode-pwa-dap.log
 demos/web-worker/vscode-pwa-cdp.log
 .dynamic-testWorkspace
 **/test/**/*.actual
+/testWorkspace/web/tmp

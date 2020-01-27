@@ -5,8 +5,7 @@
 import * as path from 'path';
 import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
-import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
-import { uiToRawOffset } from './sources';
+import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
@@ -18,9 +17,6 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
-
-// TODO: kNodeScriptOffset and every "+/-1" here are incorrect. We should use "defaultScriptOffset".
-const kNodeScriptOffset: InlineScriptOffset = { lineOffset: 0, columnOffset: 62 };
 
 export interface IWorkspaceLocation {
   absolutePath: string;
@@ -179,10 +175,10 @@ export class BreakpointsPredictor {
           continue;
         }
 
-        const { lineNumber, columnNumber } = uiToRawOffset(
-          { lineNumber: entry.line || 1, columnNumber: entry.column ? entry.column + 1 : 1 },
-          kNodeScriptOffset,
-        );
+        const { lineNumber, columnNumber } = {
+          lineNumber: entry.line || 1,
+          columnNumber: entry.column ? entry.column + 1 : 1,
+        };
         const predicted: PredictedLocation = {
           source: {
             absolutePath,

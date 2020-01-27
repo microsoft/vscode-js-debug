@@ -8,7 +8,7 @@ import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
-import { IUiLocation, base1To0, uiToRawOffset } from '../sources';
+import { IUiLocation, base1To0 } from '../sources';
 import { urlToRegex } from '../../common/urlUtils';
 import { logPerf } from '../../telemetry/performance';
 
@@ -335,7 +335,7 @@ export abstract class Breakpoint {
   }
 
   private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
-    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
+    lineColumn = base1To0(lineColumn);
     if (this.hasSetOnLocation({ url }, lineColumn)) {
       return;
     }
@@ -352,7 +352,7 @@ export abstract class Breakpoint {
     script: Script,
     lineColumn: LineColumn,
   ): Promise<void> {
-    lineColumn = base1To0(uiToRawOffset(lineColumn, thread.defaultScriptOffset()));
+    lineColumn = base1To0(lineColumn);
 
     // Avoid setting duplicate breakpoints
     if (this.hasSetOnLocation(script, lineColumn)) {

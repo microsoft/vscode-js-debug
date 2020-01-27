@@ -5,7 +5,7 @@
 import { CancellationToken } from 'vscode';
 import Cdp from '../cdp/api';
 import { IDisposable, IEvent } from '../common/events';
-import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
@@ -43,7 +43,6 @@ export interface ITarget {
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
-  defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;

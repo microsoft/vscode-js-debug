@@ -5,7 +5,6 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { delay, getDeferred } from '../common/promiseUtil';
-import { InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
@@ -17,14 +16,7 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { SmartStepper } from './smartStepping';
-import {
-  IPreferredUiLocation,
-  rawToUiOffset,
-  Source,
-  SourceContainer,
-  IUiLocation,
-  base1To0,
-} from './sources';
+import { IPreferredUiLocation, Source, SourceContainer, IUiLocation, base1To0 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
 import { toStringForClipboard } from './templates/toStringForClipboard';
@@ -74,7 +66,6 @@ export type Script = { url: string; scriptId: string; hash: string; source: Sour
 export interface IThreadDelegate {
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
-  defaultScriptOffset(): InlineScriptOffset | undefined;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   initialize(): Promise<void>;
@@ -168,10 +159,6 @@ export class Thread implements IVariableStoreDelegate {
     for (const context of this._executionContexts.values()) {
       if (context.isDefault()) return context;
     }
-  }
-
-  defaultScriptOffset(): InlineScriptOffset | undefined {
-    return this._delegate.defaultScriptOffset();
   }
 
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
@@ -665,10 +652,8 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    const { lineNumber, columnNumber } = rawToUiOffset(rawLocation, this.defaultScriptOffset());
     return this._sourceContainer.preferredUiLocation({
-      lineNumber,
-      columnNumber,
+      ...rawLocation,
       source: script.source,
     });
   }

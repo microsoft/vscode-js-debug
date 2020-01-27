@@ -11,7 +11,7 @@ import CdpConnection from '../../cdp/connection';
 import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
-import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { AnyChromeConfiguration } from '../../configuration';
 import { logger } from '../../common/logging/logger';
@@ -412,10 +412,6 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
 
   sourcePathResolver(): ISourcePathResolver {
     return this._manager._sourcePathResolver;
-  }
-
-  defaultScriptOffset(): InlineScriptOffset | undefined {
-    return undefined;
   }
 
   isServiceWorker(): boolean {

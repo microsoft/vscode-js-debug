@@ -7,7 +7,7 @@ import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
-import { InlineScriptOffset, ISourcePathResolver } from '../../common/sourcePathResolver';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { ITargetOrigin } from '../targetOrigin';
 import { ITarget } from '../targets';
@@ -100,10 +100,6 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return this._waitingForDebugger;
   }
 
-  defaultScriptOffset(): InlineScriptOffset {
-    return { lineOffset: 0, columnOffset: 0 };
-  }
-
   scriptUrlToUrl(url: string): string {
     const isPath =
       url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
@@ -123,7 +119,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return true;
   }
 
-  executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
+  executionContextName(): string {
     return this._targetName;
   }
 
