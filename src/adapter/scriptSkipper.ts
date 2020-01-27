@@ -37,6 +37,12 @@ export class ScriptSkipper {
   private _newScriptDebouncer: () => void;
   private _unprocessedSources: [Source, Cdp.Runtime.ScriptId][] = [];
 
+  /**
+   * A set of script ID that have one or more skipped ranges in them. Mostly
+   * used to avoid unnecessarily sending skip data for new scripts.
+   */
+  private _scriptsWithSkipping = new Set<string>();
+
   private _sourceContainer: SourceContainer | undefined;
 
   private _targetId: string;
@@ -177,8 +183,14 @@ export class ScriptSkipper {
       }
     });
 
+    let targets = scriptIds;
+    if (!skipRanges.length) {
+      targets = targets.filter(t => this._scriptsWithSkipping.has(t));
+      targets.forEach(t => this._scriptsWithSkipping.delete(t));
+    }
+
     await Promise.all(
-      scriptIds.map(scriptId =>
+      targets.map(scriptId =>
         this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
       ),
     );
