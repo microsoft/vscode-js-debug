@@ -217,10 +217,13 @@ export class BrowserLauncher implements ILauncher {
       this._onTargetListChangedEmitter.fire();
     });
 
+    const filter =
+      params.useWebView === 'advanced' ? createTargetFilterForConfig(params) : undefined;
+
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
     this._mainTarget = await timeoutPromise(
-      this._targetManager.waitForMainTarget(createTargetFilterForConfig(params)),
+      this._targetManager.waitForMainTarget(filter),
       cancellationToken,
       'Could not attach to main target',
     );
