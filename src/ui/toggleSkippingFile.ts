@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import { fileURLToPath } from 'url';
 import { isFileUrl } from '../common/urlUtils';
 
-export function toggleSkippingFile(aPath: string | number): void {
+export async function toggleSkippingFile(aPath: string | number): Promise<void> {
   if (!aPath) {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) return;
@@ -26,6 +26,6 @@ export function toggleSkippingFile(aPath: string | number): void {
       args = { sourceReference: aPath };
     }
 
-    vscode.debug.activeDebugSession.customRequest('toggleSkipFileStatus', args);
+    await vscode.debug.activeDebugSession.customRequest('toggleSkipFileStatus', args);
   }
 }

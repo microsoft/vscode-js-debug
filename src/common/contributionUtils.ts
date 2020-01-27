@@ -47,6 +47,7 @@ export interface ICommandTypes {
   [Contributions.PickProcessCommand]: { args: []; out: string | null };
   [Contributions.AttachProcessCommand]: { args: []; out: void };
   [Contributions.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
+  [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
 }
 
 /**
