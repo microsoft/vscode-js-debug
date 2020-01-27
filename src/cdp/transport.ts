@@ -102,7 +102,7 @@ export class PipeTransport implements ITransport {
 
 export class WebSocketTransport implements ITransport {
   private _ws: WebSocket | undefined;
-  onmessage?: (message: string) => void;
+  onmessage?: (message: string, receivedTime: bigint) => void;
   onend?: () => void;
 
   static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
@@ -127,7 +127,7 @@ export class WebSocketTransport implements ITransport {
   constructor(ws: WebSocket) {
     this._ws = ws;
     this._ws.addEventListener('message', event => {
-      if (this.onmessage) this.onmessage.call(null, event.data);
+      if (this.onmessage) this.onmessage.call(null, event.data, process.hrtime.bigint());
     });
     this._ws.addEventListener('close', () => {
       if (this.onend) this.onend.call(null);
