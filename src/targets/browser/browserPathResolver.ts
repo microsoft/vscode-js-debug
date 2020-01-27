@@ -126,6 +126,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       );
     }
 
-    return url;
+    return fixDriveLetterAndSlashes(url);
   }
 }
