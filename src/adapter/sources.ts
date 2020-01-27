@@ -647,7 +647,9 @@ export class SourceContainer {
       this._sourceMaps.delete(sourceMapUrl);
     }
     // Source map could still be loading, or failed to load.
-    if (sourceMap.map) this._removeSourceMapSources(source, sourceMap.map);
+    if (sourceMap.map) {
+      this._removeSourceMapSources(source, sourceMap.map, silent);
+    }
   }
 
   async _addSourceMapSources(compiled: Source, map: SourceMap) {
@@ -700,7 +702,7 @@ export class SourceContainer {
     await Promise.all(todo);
   }
 
-  _removeSourceMapSources(compiled: Source, map: SourceMap) {
+  private _removeSourceMapSources(compiled: Source, map: SourceMap, silent: boolean) {
     if (!compiled._sourceMapSourceByUrl) {
       return;
     }
@@ -732,7 +734,7 @@ export class SourceContainer {
 
       source._compiledToSourceUrl.delete(compiled);
       if (source._compiledToSourceUrl.size) continue;
-      this.removeSource(source);
+      this.removeSource(source, silent);
     }
   }
 
