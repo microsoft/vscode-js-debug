@@ -69,6 +69,23 @@ export function mapKeys<T>(
 }
 
 /**
+ * Filters the object to the key-value pairs where the predicate returns true.
+ */
+export function filterObject<T>(
+  obj: Readonly<{ [key: string]: T }>,
+  predicate: (key: string, value: T) => boolean,
+): { [key: string]: T } {
+  const next: { [key: string]: T } = {};
+  for (const key of Object.keys(obj)) {
+    if (predicate(key, obj[key])) {
+      next[key] = obj[key];
+    }
+  }
+
+  return next;
+}
+
+/**
  * Sorts the object keys using the given sorting function.
  */
 export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number): T {

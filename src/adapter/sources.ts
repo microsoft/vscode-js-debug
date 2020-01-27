@@ -17,7 +17,7 @@ import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { assert, logger } from '../common/logging/logger';
-import { SourceMapCache } from './sourceMapCache';
+import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 import Cdp from '../cdp/api';
@@ -190,7 +190,7 @@ export class Source {
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    await this._container._addSourceMapSources(this, map, sourceMapUrl);
+    await this._container._addSourceMapSources(this, map);
     return true;
   }
 
@@ -327,7 +327,7 @@ export class SourceContainer {
 
   constructor(
     dap: Dap.Api,
-    private readonly sourceMapCache: SourceMapCache,
+    private readonly sourceMapFactory: SourceMapFactory,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
@@ -592,7 +592,7 @@ export class SourceContainer {
       if (existingSourceMap.map) {
         // If source map has been already loaded, we add sources here.
         // Otheriwse, we'll add sources for all compiled after loading the map.
-        await this._addSourceMapSources(source, existingSourceMap.map, sourceMapUrl);
+        await this._addSourceMapSources(source, existingSourceMap.map);
       }
       return;
     }
@@ -602,7 +602,7 @@ export class SourceContainer {
     this._sourceMaps.set(sourceMapUrl, sourceMap);
 
     // will log any errors internally:
-    const loaded = await this.sourceMapCache.load({
+    const loaded = await this.sourceMapFactory.load({
       sourceMapUrl,
       compiledPath: source.absolutePath(),
     });
@@ -615,9 +615,7 @@ export class SourceContainer {
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(sourceMapUrl) !== sourceMap) return deferred.resolve();
 
-    await Promise.all(
-      [...sourceMap.compiled].map(c => this._addSourceMapSources(c, loaded, sourceMapUrl)),
-    );
+    await Promise.all([...sourceMap.compiled].map(c => this._addSourceMapSources(c, loaded)));
     deferred.resolve();
   }
 
@@ -652,7 +650,7 @@ export class SourceContainer {
     if (sourceMap.map) this._removeSourceMapSources(source, sourceMap.map);
   }
 
-  async _addSourceMapSources(compiled: Source, map: SourceMap, sourceMapUrl: string) {
+  async _addSourceMapSources(compiled: Source, map: SourceMap) {
     compiled._sourceMapSourceByUrl = new Map();
     if (!this.sourcePathResolver.shouldResolveSourceMap(map)) {
       return;
@@ -660,23 +658,12 @@ export class SourceContainer {
 
     const todo: Promise<void>[] = [];
     for (const url of map.sources) {
-      // Per source map spec, |sourceUrl| is relative to the source map's own url. However,
-      // webpack emits absolute paths in some situations instead of a relative url. We check
-      // whether |sourceUrl| looks like a path and belongs to the workspace.
-      const sourceUrl = utils.maybeAbsolutePathToFileUrl(this.rootPath, url);
-      const baseUrl = sourceMapUrl.startsWith('data:') ? compiled.url() : sourceMapUrl;
-      const resolvedUrl = fixDriveLetterAndSlashes(
-        utils.completeUrlEscapingRoot(baseUrl, sourceUrl),
-      );
-      const contentOrNull = map.sourceContentFor(url);
-      const content = contentOrNull === null ? undefined : contentOrNull;
+      const resolvedUrl = fixDriveLetterAndSlashes(url);
+      const content = map.sourceContentFor(url) ?? undefined;
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
-        const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({
-          url: resolvedUrl,
-          map,
-        });
+        const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
         logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
           inputUrl: resolvedUrl,
           absolutePath,
@@ -685,11 +672,16 @@ export class SourceContainer {
         });
 
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
+        const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
         source = new Source(
           this,
-          resolvedUrl,
+          fileUrl || url,
           absolutePath,
-          content !== undefined ? () => Promise.resolve(content) : () => utils.fetch(resolvedUrl),
+          content !== undefined
+            ? () => Promise.resolve(content)
+            : fileUrl
+            ? () => utils.fetch(fileUrl)
+            : compiled._contentGetter,
           undefined,
           undefined,
           undefined,

@@ -310,6 +310,7 @@ describe('breakpoints', () => {
       const cwd = join(testWorkspace, 'nodeModuleBreakpoint');
       const handle = await r.runScript(join(cwd, 'index.js'), {
         outFiles: [`${cwd}/**/*.js`],
+        env: { MODULE: '@c4312/foo' },
         resolveSourceMapLocations: null,
       });
       await handle.dap.setBreakpoints({
@@ -321,6 +322,30 @@ describe('breakpoints', () => {
       await waitForPause(handle);
       handle.assertLog({ substring: true });
     });
+
+    itIntegrates(
+      'sets breakpoints in sourcemapped node_modules with absolute root',
+      async ({ r }) => {
+        await r.initialize;
+
+        const cwd = join(testWorkspace, 'nodeModuleBreakpoint');
+        const handle = await r.runScript(join(cwd, 'index.js'), {
+          outFiles: [`${cwd}/**/*.js`],
+          env: { MODULE: '@c4312/absolute-sourceroot' },
+          resolveSourceMapLocations: null,
+        });
+        await handle.dap.setBreakpoints({
+          source: {
+            path: join(cwd, 'node_modules', '@c4312', 'absolute-sourceroot', 'src', 'index.ts'),
+          },
+          breakpoints: [{ line: 2, column: 1 }],
+        });
+
+        handle.load();
+        await waitForPause(handle);
+        handle.assertLog({ substring: true });
+      },
+    );
   });
 
   describe('logpoints', () => {

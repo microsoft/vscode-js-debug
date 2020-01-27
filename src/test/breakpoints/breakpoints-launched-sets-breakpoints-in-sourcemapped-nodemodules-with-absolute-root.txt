@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+double @ ${workspaceFolder}/nodeModuleBreakpoint/node_modules/@c4312/absolute-sourceroot/src/index.ts:2:3

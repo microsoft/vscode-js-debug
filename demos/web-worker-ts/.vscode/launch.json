@@ -5,15 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch Program",
-      "program": "${workspaceFolder}/dummy.js"
-    },
-    {
       "type": "pwa-chrome",
       "request": "launch",
-      "name": "Client/Server",
+      "name": "[web-worker-ts] Client/Server",
       "url": "http://localhost:5002",
       "preLaunchTask": "npm: build",
       "webRoot": "${workspaceFolder}/out",
@@ -25,24 +19,23 @@
     {
       "type": "pwa-node",
       "request": "launch",
-      "name": "[Debug Server] for Server",
+      "name": "[web-worker-ts] for Server",
       "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
       "args": ["-p", "5002", "./out"],
-      "debugServer": 4711
     },
     {
       "type": "pwa-chrome",
       "request": "launch",
-      "name": "[Debug Server] for Client",
+      "name": "[web-worker-ts] for Client",
+      "trace": true,
+      "smartStep": false,
       "url": "http://localhost:5002",
-      "preLaunchTask": "npm: build",
       "webRoot": "${workspaceFolder}/out",
-      "debugServer": 4711
     }
   ],
   "compounds": [
     {
-      "name": "[Debug Server]",
+      "name": "[web-worker-ts]",
       "configurations": ["[Debug Server] for Server", "[Debug Server] for Client"]
     }
   ]

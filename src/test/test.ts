@@ -439,6 +439,7 @@ export class TestRoot {
       trace: { logFile: tmpLogPath },
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       resolveSourceMapLocations: ['**', '!**/node_modules/**'],
+      __workspaceFolder: this._workspaceRoot,
       ...options,
     } as INodeLaunchConfiguration);
     const result = await new Promise(f => (this._launchCallback = f));

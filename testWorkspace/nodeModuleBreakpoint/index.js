@@ -1,3 +1,3 @@
-const { double } = require('@c4312/foo');
+const { double } = require(process.env.MODULE);
 
 console.log(double(21));
