@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourceMap } from './sourceMaps/sourceMap';
+import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
 
 /**
  * Request to resolve a URL to an absolute path.
@@ -27,7 +27,7 @@ export interface ISourcePathResolver {
    * Returns whether the source map should be used to resolve a local path,
    * following the `resolveSourceMapPaths`
    */
-  shouldResolveSourceMap(map: SourceMap): boolean;
+  shouldResolveSourceMap(map: ISourceMapMetadata): boolean;
 
   /**
    * Attempts to convert a URL received from CDP to a local file path.
