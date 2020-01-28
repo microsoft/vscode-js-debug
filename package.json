@@ -164,7 +164,7 @@
     "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-    "onDebugResolve:NAMESPACE(edge)",
+    "onDebugResolve:NAMESPACE(msedge)",
     "onDebugResolve:NAMESPACE(extensionHost)"
   ],
   "contributes": {

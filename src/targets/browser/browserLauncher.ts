@@ -145,8 +145,6 @@ export class BrowserLauncher implements ILauncher {
   }
 
   prepareWebViewLaunch(params: IChromeLaunchConfiguration) {
-    // port 2015 is carried over from vscode-edge-debug2
-    params.port = params.port || 2015;
     // Initialize WebView debugging environment variables
     params.env = params.env || {};
     if (params.userDataDir) {

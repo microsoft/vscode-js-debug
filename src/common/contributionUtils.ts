@@ -21,7 +21,7 @@ export const enum Contributions {
   TerminalDebugType = 'NAMESPACE(node-terminal)',
   NodeDebugType = 'NAMESPACE(node)',
   ChromeDebugType = 'NAMESPACE(chrome)',
-  EdgeDebugType = 'NAMESPACE(edge)',
+  EdgeDebugType = 'NAMESPACE(msedge)',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
