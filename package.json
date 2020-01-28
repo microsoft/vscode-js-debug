@@ -194,26 +194,17 @@
       {
         "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
         "title": "%add.browser.breakpoint%",
-        "icon": {
-          "light": "resources/light/add.svg",
-          "dark": "resources/dark/add.svg"
-        }
+        "icon": "$(add)"
       },
       {
         "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
         "title": "%remove.browser.breakpoint%",
-        "icon": {
-          "light": "resources/light/remove.svg",
-          "dark": "resources/dark/remove.svg"
-        }
+        "icon": "$(remove)"
       },
       {
         "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
         "title": "%remove.browser.breakpoint.all%",
-        "icon": {
-          "light": "resources/light/remove-all.svg",
-          "dark": "resources/dark/remove-all.svg"
-        }
+        "icon": "$(close-all)"
       },
       {
         "command": "extension.NAMESPACE(node-debug).attachNodeProcess",
@@ -261,6 +252,11 @@
           "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
           "when": "view == jsBrowserBreakpoints",
           "group": "navigation"
+        },
+        {
+          "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
+          "when": "view == jsBrowserBreakpoints",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -275,10 +271,6 @@
         },
         {
           "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-          "when": "view == jsBrowserBreakpoints"
-        },
-        {
-          "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
           "when": "view == jsBrowserBreakpoints"
         }
       ]

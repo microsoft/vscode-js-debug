@@ -4,7 +4,7 @@
 import { sortKeys } from '../common/objUtils';
 
 const strings = {
-  'attach.node.process': 'Attach to Node Process (preview)',
+  'attach.node.process': '$(debug-disconnect) Attach to Node Process (preview)',
   'extension.description': 'An extension for debugging Node.js programs and Chrome.',
   'start.with.stop.on.entry': 'Start Debugging and Stop on Entry',
   'toggle.skipping.this.file': 'Toggle Skipping this File',
