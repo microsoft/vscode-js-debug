@@ -21,7 +21,7 @@ import {
 } from '../common/urlUtils';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
-import { SourceMap } from '../common/sourceMaps/sourceMap';
+import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import match from 'micromatch';
 import { SourceMapOverrides } from './sourceMapOverrides';
 
@@ -45,7 +45,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * Returns whether the source map should be used to resolve a local path,
    * following the `resolveSourceMapPaths`
    */
-  public shouldResolveSourceMap(map: SourceMap) {
+  public shouldResolveSourceMap({ sourceMapUrl, compiledPath }: ISourceMapMetadata) {
     if (
       !this.options.resolveSourceMapLocations ||
       this.options.resolveSourceMapLocations.length === 0
@@ -55,17 +55,17 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     const sourcePath =
       // If the source map refers to an absolute path, that's what we're after
-      fileUrlToAbsolutePath(map.metadata.sourceMapUrl) ||
+      fileUrlToAbsolutePath(sourceMapUrl) ||
       // If it's a data URI, use the compiled path as a stand-in. It should
       // be quite rare that ignored files (i.e. node_modules) reference
       // source modules and vise versa.
-      (isDataUri(map.metadata.sourceMapUrl) && map.metadata.compiledPath) ||
+      (isDataUri(sourceMapUrl) && compiledPath) ||
       // Fall back to the raw URL if those fail.
-      map.metadata.sourceMapUrl;
+      sourceMapUrl;
 
     // Be case insensitive for remote URIs--we have no way to know
     // whether the server is case sensitive or not.
-    const caseSensitive = isValidUrl(map.metadata.sourceMapUrl) ? false : getCaseSensitivePaths();
+    const caseSensitive = isValidUrl(sourceMapUrl) ? false : getCaseSensitivePaths();
     const processMatchInput = (value: string) => {
       value = forceForwardSlashes(value);
       // built-in 'nocase' match option applies only to operand; we need to normalize both

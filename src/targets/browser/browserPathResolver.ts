@@ -82,7 +82,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   }
 
   private async sourceMapSourceToAbsolute(url: string, map: SourceMap) {
-    if (!this.shouldResolveSourceMap(map)) {
+    if (!this.shouldResolveSourceMap(map.metadata)) {
       return undefined;
     }
 

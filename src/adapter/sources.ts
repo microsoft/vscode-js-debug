@@ -584,7 +584,19 @@ export class SourceContainer {
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     const sourceMapUrl = source._sourceMapUrl;
-    if (!sourceMapUrl) return;
+    if (!sourceMapUrl) {
+      return;
+    }
+
+    const mapMetadata = {
+      sourceMapUrl,
+      compiledPath: source.absolutePath(),
+    };
+
+    if (!this.sourcePathResolver.shouldResolveSourceMap(mapMetadata)) {
+      source._sourceMapUrl = undefined;
+      return;
+    }
 
     const existingSourceMap = this._sourceMaps.get(sourceMapUrl);
     if (existingSourceMap) {
@@ -602,10 +614,7 @@ export class SourceContainer {
     this._sourceMaps.set(sourceMapUrl, sourceMap);
 
     // will log any errors internally:
-    const loaded = await this.sourceMapFactory.load({
-      sourceMapUrl,
-      compiledPath: source.absolutePath(),
-    });
+    const loaded = await this.sourceMapFactory.load(mapMetadata);
     if (loaded) {
       sourceMap.map = loaded;
     } else {
@@ -654,10 +663,6 @@ export class SourceContainer {
 
   async _addSourceMapSources(compiled: Source, map: SourceMap) {
     compiled._sourceMapSourceByUrl = new Map();
-    if (!this.sourcePathResolver.shouldResolveSourceMap(map)) {
-      return;
-    }
-
     const todo: Promise<void>[] = [];
     for (const url of map.sources) {
       const resolvedUrl = fixDriveLetterAndSlashes(url);
