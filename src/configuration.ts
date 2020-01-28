@@ -298,7 +298,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
 export type PathMapping = Readonly<{ [key: string]: string }>;
 
 export interface IChromeBaseConfiguration extends IBaseConfiguration {
-  type: Contributions.ChromeDebugType;
+  type: Contributions.ChromeDebugType | Contributions.EdgeDebugType;
 
   /**
    * Controls whether to skip the network cache for each request.
@@ -333,6 +333,11 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Launch options to boot a server.
    */
   server: INodeLaunchConfiguration | ITerminalLaunchConfiguration | null;
+
+  /**
+   * (Edge only) Enable web view debugging.
+   */
+  useWebView: boolean | 'advanced';
 }
 
 /**
@@ -582,6 +587,8 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
+  // Edge only
+  useWebView: false,
 };
 
 export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
@@ -649,8 +656,11 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
     case Contributions.NodeDebugType:
       configWithDefaults = applyNodeDefaults(config);
       break;
+    case Contributions.EdgeDebugType:
     case Contributions.ChromeDebugType:
       configWithDefaults = applyChromeDefaults(config);
+      // Reset type to ChromeDebugType incase EdgeDebugType was used.
+      configWithDefaults.type = Contributions.ChromeDebugType;
       break;
     case Contributions.ExtensionHostDebugType:
       configWithDefaults = applyExtensionHostDefaults(config);

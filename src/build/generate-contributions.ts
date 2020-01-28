@@ -571,6 +571,12 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
     description: refString('chrome.url.description'),
     default: 'http://localhost:8080',
   },
+  useWebView: {
+    type: ['boolean', 'string'],
+    enum: [true, false, 'advanced'],
+    description: refString('edge.useWebView.description'),
+    default: false,
+  },
   server: {
     oneOf: [
       {
@@ -707,6 +713,11 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   },
 };
 
+const edgeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
+  ...chromeLaunchConfig,
+  type: Contributions.EdgeDebugType,
+};
+
 function buildDebuggers() {
   const debuggers = [
     nodeAttachConfig,
@@ -715,6 +726,7 @@ function buildDebuggers() {
     extensionHostConfig,
     chromeLaunchConfig,
     chromeAttachConfig,
+    edgeLaunchConfig,
   ];
 
   // eslint-disable-next-line
