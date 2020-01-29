@@ -50,6 +50,7 @@ interface ILaunchOptions {
   connection?: 'pipe' | number; // pipe or port number
   userDataDir?: string;
   launchUnelevated?: boolean;
+  promisedPort?: Promise<number>;
 }
 
 const suggestedPortArg = '--remote-debugging-';
@@ -108,7 +109,7 @@ export async function launch(
     browserArguments.push(...args);
   }
 
-  const usePipe = browserArguments.includes('--remote-debugging-pipe');
+  let usePipe = browserArguments.includes('--remote-debugging-pipe');
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
   if (usePipe) {
     if (dumpio) stdio = ['ignore', 'pipe', 'pipe', 'pipe', 'pipe'];
@@ -150,6 +151,12 @@ export async function launch(
   browserProcess.on('exit', () => process.removeListener('exit', exitListener));
 
   try {
+    if (options.promisedPort) {
+      suggestedPort = await options.promisedPort;
+      // Avoid the pipe if we get a suggestedPort.
+      usePipe = !suggestedPort;
+    }
+
     let transport: ITransport;
     if (usePipe) {
       transport = new PipeTransport(

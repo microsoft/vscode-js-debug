@@ -2,12 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { createServer } from 'net';
+import { randomBytes } from 'crypto';
+import { tmpdir } from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
-import { timeoutPromise } from '../../common/cancellation';
+import { timeoutPromise, NeverCancelled } from '../../common/cancellation';
 import { Contributions } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter, IDisposable } from '../../common/events';
@@ -20,6 +23,7 @@ import {
   ILaunchResult,
   IStopMetadata,
   ITarget,
+  IWebViewConnectionInfo,
 } from '../../targets/targets';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { baseURL } from './browserLaunchParams';
@@ -27,6 +31,8 @@ import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import findBrowser from './findBrowser';
 import * as launcher from './launcher';
+import { WebSocketTransport } from '../../cdp/transport';
+import { getDeferred } from '../../common/promiseUtil';
 
 const localize = nls.loadMessageBundle();
 
@@ -80,6 +86,7 @@ export class BrowserLauncher implements ILauncher {
     cancellationToken: CancellationToken,
     telemetryReporter: TelemetryReporter,
     clientCapabilities: IDapInitializeParamsWithExtensions,
+    promisedPort?: Promise<number>,
   ): Promise<launcher.ILaunchResult> {
     let executablePath: string | undefined;
     if (executable && !chromeVersions.has(executable)) {
@@ -140,18 +147,69 @@ export class BrowserLauncher implements ILauncher {
         userDataDir: resolvedDataDir,
         connection: port || 'pipe',
         launchUnelevated: launchUnelevated,
+        promisedPort,
       },
     );
   }
 
-  prepareWebViewLaunch(params: IChromeLaunchConfiguration) {
-    // Initialize WebView debugging environment variables
-    params.env = params.env || {};
-    if (params.userDataDir) {
-      params.env['WEBVIEW2_USER_DATA_FOLDER'] = params.userDataDir.toString();
+  async prepareWebViewLaunch(
+    params: IChromeLaunchConfiguration,
+    filter: (info: IWebViewConnectionInfo) => boolean,
+    telemetryReporter: TelemetryReporter,
+  ): Promise<number> {
+    const promisedPort = getDeferred<number>();
+
+    if (!params.runtimeExecutable) {
+      // runtimeExecutable is required for web view debugging.
+      promisedPort.resolve(params.port);
+      return promisedPort.promise;
     }
+
+    const exeName = params.runtimeExecutable.split(/\\|\//).pop();
+    const pipeName = `VSCode_${randomBytes(12).toString('base64')}`;
+    // This is a known pipe name scheme described in the web view documentation
+    // https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl
+    const serverName = `\\\\.\\pipe\\WebView2\\Debugger\\${exeName}\\${pipeName}`;
+
+    const server = createServer(stream => {
+      stream.on('data', async data => {
+        const info: IWebViewConnectionInfo = JSON.parse(data.toString());
+
+        // devtoolsActivePort will always start with the port number
+        // and look something like '92202\n ...'
+        const dtString = info.devtoolsActivePort || '';
+        const dtPort = parseInt(dtString.split('\n').shift() || '');
+        const port = params.port || dtPort || params.port;
+
+        if (!this._mainTarget && filter(info)) {
+          promisedPort.resolve(port);
+        }
+
+        // All web views started under our debugger are waiting to to be resumed.
+        const wsURL = `ws://${params.address}:${port}/devtools/${info.type}/${info.id}`;
+        const ws = await WebSocketTransport.create(wsURL, NeverCancelled);
+        const connection = new CdpConnection(ws, telemetryReporter);
+        await connection.rootSession().Runtime.runIfWaitingForDebugger({});
+        connection.close();
+      });
+    });
+    server.on('close', () => promisedPort.resolve(params.port));
+    server.listen(serverName);
+
+    // We must set a user data directory so the DevToolsActivePort file will be written.
+    // See: https://crrev.com//21e1940/content/public/browser/devtools_agent_host.h#99
+    params.userDataDir =
+      params.userDataDir || path.join(tmpdir(), `vscode-js-debug-userdatadir_${params.port}`);
+
+    // Web views are indirectly configured for debugging with environment variables.
+    // See the WebView2 documentation for more details.
+    params.env = params.env || {};
+    params.env['WEBVIEW2_USER_DATA_FOLDER'] = params.userDataDir.toString();
     params.env['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = `--remote-debugging-port=${params.port}`;
     params.env['WEBVIEW2_WAIT_FOR_SCRIPT_DEBUGGER'] = 'true';
+    params.env['WEBVIEW2_PIPE_FOR_SCRIPT_DEBUGGER'] = pipeName;
+
+    return promisedPort.promise;
   }
 
   async prepareLaunch(
@@ -159,6 +217,11 @@ export class BrowserLauncher implements ILauncher {
     { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
     clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<BrowserTarget | string> {
+    const filter = createTargetFilterForConfig(params);
+    const promisedPort = params.useWebView
+      ? this.prepareWebViewLaunch(params, filter, telemetryReporter)
+      : undefined;
+
     let launched: launcher.ILaunchResult;
     try {
       launched = await this._launchBrowser(
@@ -167,6 +230,7 @@ export class BrowserLauncher implements ILauncher {
         cancellationToken,
         telemetryReporter,
         clientCapabilities,
+        promisedPort,
       );
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
@@ -215,16 +279,21 @@ export class BrowserLauncher implements ILauncher {
       this._onTargetListChangedEmitter.fire();
     });
 
-    const filter =
-      params.useWebView === 'advanced' ? createTargetFilterForConfig(params) : undefined;
+    const filterForMain = params.useWebView ? filter : undefined;
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    this._mainTarget = await timeoutPromise(
-      this._targetManager.waitForMainTarget(filter),
-      cancellationToken,
-      'Could not attach to main target',
-    );
+    const mainTargetPromise = this._targetManager.waitForMainTarget(filterForMain);
+
+    if (params.useWebView === 'advanced') {
+      this._mainTarget = await mainTargetPromise;
+    } else {
+      this._mainTarget = await timeoutPromise(
+        mainTargetPromise,
+        cancellationToken,
+        'Could not attach to main target',
+      );
+    }
 
     if (!this._mainTarget) return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
@@ -258,10 +327,6 @@ export class BrowserLauncher implements ILauncher {
   ): Promise<ILaunchResult> {
     if (params.type !== Contributions.ChromeDebugType || params.request !== 'launch') {
       return { blockSessionTermination: false };
-    }
-
-    if (params.useWebView) {
-      this.prepareWebViewLaunch(params);
     }
 
     const targetOrError = await this.prepareLaunch(params, context, clientCapabilities);

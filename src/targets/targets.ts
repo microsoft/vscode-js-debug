@@ -96,3 +96,13 @@ export interface ILauncher extends IDisposable {
   onTerminated: IEvent<IStopMetadata>;
   targetList(): ITarget[];
 }
+
+export interface IWebViewConnectionInfo {
+  description: string;
+  faviconUrl: string;
+  id: string;
+  title: string;
+  type: string;
+  url: string;
+  devtoolsActivePort?: string;
+}
