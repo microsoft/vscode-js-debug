@@ -590,7 +590,7 @@ export class SourceContainer {
 
     const mapMetadata = {
       sourceMapUrl,
-      compiledPath: source.absolutePath(),
+      compiledPath: source.absolutePath() || source.url(),
     };
 
     if (!this.sourcePathResolver.shouldResolveSourceMap(mapMetadata)) {
