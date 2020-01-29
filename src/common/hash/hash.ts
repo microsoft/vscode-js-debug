@@ -64,7 +64,7 @@ function calculateHash(input: Buffer): string {
 
   // If we have an odd number of bytes, calculate the rest of the hash
   if (buffer.byteLength % inc) {
-    let v = 0;
+    let v = 0; // in c++ this is a uint32, but since we only use the first 24 bits it's OK to have it as a normal JS number
     for (let i = buffer.byteLength - (buffer.byteLength % inc); i < buffer.byteLength; ++i) {
       v <<= 8;
       v |= buffer.readUInt8(i);
@@ -105,29 +105,99 @@ function utf8ToUtf16(buffer: Buffer) {
   return Buffer.from(buffer.toString('utf8'), 'utf16le');
 }
 
+export const enum MessageType {
+  HashFile,
+  HashBytes,
+  VerifyFile,
+  VerifyBytes,
+}
+
 /**
  * Message sent to the hash worker.
  */
-export type HashRequest = { id: number; file: string } | { id: number; data: string | Buffer };
+export type HashRequest =
+  | { type: MessageType.HashFile; id: number; file: string }
+  | { type: MessageType.HashBytes; id: number; data: string | Buffer }
+  | { type: MessageType.VerifyFile; id: number; file: string; expected: string; checkNode: boolean }
+  | {
+      type: MessageType.VerifyBytes;
+      id: number;
+      data: string | Buffer;
+      expected: string;
+      checkNode: boolean;
+    };
 
 /**
  * Message received in the hash response.
  */
-export type HashResponse = { id: number; hash?: string };
+export type HashResponse<T extends HashRequest> = T extends {
+  type: MessageType.HashBytes | MessageType.HashFile;
+}
+  ? { id: number; hash?: string }
+  : { id: number; matches: boolean };
 
-function startWorker(send: (message: HashResponse) => void) {
+/**
+ * Script loaded though _sometimes_ include the Node.js module wrapper code.
+ * Sometimes they don't. If we're in Node, for content hashing try both
+ * the wrapped an unwrapped version of the file if necessary.
+ *
+ * @see https://nodejs.org/api/modules.html#modules_the_module_wrapper
+ */
+const nodePrefix = Buffer.from('(function (exports, require, module, __filename, __dirname) { ');
+const nodeSuffix = Buffer.from('\n});');
+
+const verifyBytes = (bytes: Buffer, expected: string, checkNode: boolean) => {
+  if (calculateHash(bytes) === expected) {
+    return true;
+  }
+
+  if (checkNode && calculateHash(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
+    return true;
+  }
+
+  return false;
+};
+
+const toBuffer = (input: string | Buffer) =>
+  input instanceof Buffer ? input : Buffer.from(input, 'utf-8');
+
+async function handle(message: HashRequest): Promise<HashResponse<HashRequest>> {
+  switch (message.type) {
+    case MessageType.HashFile:
+      try {
+        const data = await readFileRaw(message.file);
+        return { id: message.id, hash: calculateHash(data) };
+      } catch (e) {
+        return { id: message.id };
+      }
+    case MessageType.HashBytes:
+      try {
+        return { id: message.id, hash: calculateHash(toBuffer(message.data)) };
+      } catch (e) {
+        return { id: message.id };
+      }
+    case MessageType.VerifyFile:
+      try {
+        const data = await readFileRaw(message.file);
+        return { id: message.id, matches: verifyBytes(data, message.expected, message.checkNode) };
+      } catch (e) {
+        return { id: message.id, matches: false };
+      }
+    case MessageType.VerifyBytes:
+      try {
+        return {
+          id: message.id,
+          matches: verifyBytes(toBuffer(message.data), message.expected, message.checkNode),
+        };
+      } catch (e) {
+        return { id: message.id, matches: false };
+      }
+  }
+}
+
+function startWorker(send: (message: HashResponse<HashRequest>) => void) {
   process.on('message', (msg: HashRequest) => {
-    if ('file' in msg) {
-      const file = msg.file;
-      readFileRaw(file)
-        .then(data => send({ id: msg.id, hash: calculateHash(data) }))
-        .catch(() => send({ id: msg.id }));
-    } else if ('data' in msg) {
-      send({
-        id: msg.id,
-        hash: calculateHash(msg.data instanceof Buffer ? msg.data : Buffer.from(msg.data, 'utf-8')),
-      });
-    }
+    handle(msg).then(send);
   });
 }
 

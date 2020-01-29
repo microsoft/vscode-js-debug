@@ -4,9 +4,10 @@
 
 import { TestP, createFileTree, testFixturesDir } from '../test';
 import Dap from '../../dap/api';
-import { hashBytes, hashFile } from '../../common/hash';
+import { hashBytes, hashFile, verifyFile } from '../../common/hash';
 import { itIntegrates } from '../testIntegrationUtils';
 import { join } from 'path';
+import { expect } from 'chai';
 
 describe('sources', () => {
   async function dumpSource(p: TestP, event: Dap.LoadedSourceEventParams, name: string) {
@@ -191,5 +192,58 @@ describe('sources', () => {
   itIntegrates('hash code points', async ({ r }) => {
     r.log(await hashBytes(multiByteCodePoints.toString('utf-8')));
     r.assertLog();
+  });
+
+  it('verifies files', async () => {
+    createFileTree(testFixturesDir, {
+      'test.js': 'hello world',
+    });
+
+    const result = await hashFile(join(testFixturesDir, 'test.js'));
+    expect(result).to.equal('1ac3c2bf96f77c71394f85ba44fd90055bb72820');
+  });
+
+  it('verifies files when hash matches', async () => {
+    createFileTree(testFixturesDir, {
+      'test.js': 'hello world',
+    });
+
+    const result = await verifyFile(
+      join(testFixturesDir, 'test.js'),
+      '1ac3c2bf96f77c71394f85ba44fd90055bb72820',
+      false,
+    );
+    expect(result).to.be.true;
+  });
+
+  it('verifies if wrapped in node module', async () => {
+    createFileTree(testFixturesDir, {
+      'test.js': 'hello world',
+    });
+
+    const result = await verifyFile(
+      join(testFixturesDir, 'test.js'),
+      '070b3b0d4612ebf3602b8110696d56564a4f1e73',
+      true,
+    );
+    expect(result).to.be.true;
+  });
+
+  it('verify fails if not existent', async () => {
+    const result = await verifyFile(
+      join(testFixturesDir, 'test.js'),
+      '1ac3c2bf96f77c71394f85ba44fd90055bb72820',
+      false,
+    );
+    expect(result).to.be.false;
+  });
+
+  it('verify fails if hash wrong', async () => {
+    createFileTree(testFixturesDir, {
+      'test.js': 'hello world',
+    });
+
+    const result = await verifyFile(join(testFixturesDir, 'test.js'), 'potato', false);
+    expect(result).to.be.false;
   });
 });
