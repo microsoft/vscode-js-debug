@@ -4,6 +4,8 @@
 
 import { TestP } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
+import { Dap } from '../../dap/api';
+import { sleep } from '../../int-chrome/testUtils';
 
 describe('stacks', () => {
   async function dumpStackAndContinue(p: TestP, scopes: boolean) {
@@ -126,15 +128,6 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  // TODO: Shennie -- fix integration for blackboxing to use skipfiles
-  // itIntegrates('blackboxed', async ({ r }) => {
-  //   r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
-  //   const p = await r.launchUrlAndLoad('index.html');
-  //   p.addScriptTag('browserify/pause.js');
-  //   await dumpStackAndContinue(p, false);
-  //   p.assertLog();
-  // });
-
   itIntegrates('return value', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({
@@ -152,5 +145,42 @@ describe('stacks', () => {
     p.dap.next({ threadId: threadId! });
     await dumpStackAndContinue(p, true); // exit point
     p.assertLog();
+  });
+
+  describe('skipFiles', () => {
+    itIntegrates('single authored js', async ({ r }) => {
+      const p = await r.launchUrl('index.html', { skipFiles: ['**/script.js'] });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/script.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+      p.load();
+      await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('single compiled js', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('basic.html', { skipFiles: ['**/basic.js'] });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/basic.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
+      p.load();
+      await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('multiple authored ts to js', async ({ r }) => {
+      const p = await r.launchUrl('browserify/pause.html', { skipFiles: ['**/module*.ts'] });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/module1.ts'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
+      p.load();
+      const event = await p.dap.once('stopped');
+      await sleep(200); // need to pause test to let debouncer update scripts
+      await p.logger.logStackTrace(event.threadId!, false);
+      p.assertLog();
+    });
   });
 });

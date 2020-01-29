@@ -18,6 +18,7 @@ import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
 import { nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../../configuration';
+import { sleep } from '../../int-chrome/testUtils';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -44,6 +45,22 @@ describe('node runtime', () => {
     const handle = await r.runScript('test.js');
     handle.load();
     await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
+
+  itIntegrates('skipFiles skip node internals', async ({ r }) => {
+    await r.initialize;
+    const cwd = join(testWorkspace, 'simpleNode');
+    const handle = await r.runScript(join(cwd, 'index.js'), { skipFiles: ['<node_internals>/**'] });
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'index.js') },
+      breakpoints: [{ line: 1, column: 1 }],
+    });
+
+    handle.load();
+    const stoppedParams = await handle.dap.once('stopped');
+    await sleep(200);
+    await handle.logger.logStackTrace(stoppedParams.threadId!, false);
     handle.assertLog({ substring: true });
   });
 
