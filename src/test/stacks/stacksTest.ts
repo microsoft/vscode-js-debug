@@ -176,7 +176,7 @@ describe('stacks', () => {
       p.assertLog();
     });
 
-    itIntegrates.only('multiple authored ts to js', async ({ r }) => {
+    itIntegrates('multiple authored ts to js', async ({ r }) => {
       const p = await r.launchUrl('browserify/pause.html', { skipFiles: ['**/module*.ts'] });
       await delay(500); // need to pause test to let debouncer update scripts
       const source: Dap.Source = {
@@ -196,12 +196,19 @@ describe('stacks', () => {
       };
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 21, column: 0 }] });
       p.load();
+
       const event = await p.dap.once('stopped');
       await delay(500); // need to pause test to let debouncer update scripts
       await p.logger.logStackTrace(event.threadId!, false);
+
       p.log('----send toggle skipfile status request----');
       await p.dap.toggleSkipFileStatus({ resource: path });
       await p.logger.logStackTrace(event.threadId!, false);
+
+      p.log('----send (un)toggle skipfile status request----');
+      await p.dap.toggleSkipFileStatus({ resource: path });
+      await p.logger.logStackTrace(event.threadId!, false);
+
       p.assertLog();
     });
   });
