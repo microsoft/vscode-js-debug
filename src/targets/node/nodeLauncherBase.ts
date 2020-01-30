@@ -345,8 +345,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   private getBootloaderFile(cwd: string) {
     const targetPath = path.join(__dirname, 'bootloader.js');
 
-    // 1. If we aren't on windows or the path doesn't have a space, we're OK to use it.
-    if (process.platform !== 'win32' || !targetPath.includes(' ')) {
+    // 1. If the path doesn't have a space, we're OK to use it.
+    if (!targetPath.includes(' ')) {
       return { path: targetPath, dispose: () => undefined };
     }
 
