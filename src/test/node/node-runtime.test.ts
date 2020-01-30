@@ -43,7 +43,7 @@ describe('node runtime', () => {
     const stackframes = expectedStacktrace.split('\n').splice(-1, 1); // removing last empty element
     expect(stackframes.length).to.be.greaterThan(0);
     expect(stackframes[0]).to.not.contain('<hidden: Skipped by skipFiles>');
-    for(let n = 1; n < stackframes.length; n++) {
+    for (let n = 1; n < stackframes.length; n++) {
       expect(stackframes[n]).to.contain('<hidden: Skipped by skipFiles>');
     }
   }

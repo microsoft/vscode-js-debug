@@ -176,9 +176,9 @@ describe('stacks', () => {
       p.assertLog();
     });
 
-    itIntegrates('multiple authored ts to js', async ({ r }) => {
+    itIntegrates.only('multiple authored ts to js', async ({ r }) => {
       const p = await r.launchUrl('browserify/pause.html', { skipFiles: ['**/module*.ts'] });
-      await delay(2000);
+      await delay(500); // need to pause test to let debouncer update scripts
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module1.ts'),
       };
