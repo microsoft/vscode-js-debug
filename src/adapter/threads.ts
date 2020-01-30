@@ -908,7 +908,7 @@ export class Thread implements IVariableStoreDelegate {
         stackTrace,
       );
     } else {
-      output = messageText;
+      output = messageText + '\n';
       variablesReference = undefined;
     }
 
