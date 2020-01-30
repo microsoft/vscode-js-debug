@@ -8,7 +8,6 @@ import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
 import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
-import Cdp from '../cdp/api';
 import { AnyChromeConfiguration } from '../configuration';
 import { readdir } from './fsUtils';
 import { memoize } from './objUtils';
@@ -361,8 +360,8 @@ export const isLoopback = (address: string) => {
  */
 export const createTargetFilterForConfig = (
   config: AnyChromeConfiguration,
-): ((t: Cdp.Target.TargetInfo) => boolean) => {
-  const filter = config.urlFilter || config.url;
+): ((t: { url: string }) => boolean) => {
+  const filter = config.urlFilter || config.url || ('file' in config && config.file);
   if (!filter) {
     return () => true;
   }
