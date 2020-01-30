@@ -318,16 +318,15 @@ export class BreakpointManager {
           params.breakpoints[index],
           hitCondition,
         );
-        const existingIndex = result.unbound.findIndex(p => p.compare(created) === 0);
-        if (existingIndex === -1) {
+        const existingIndex = result.unbound.findIndex(p => p.equivalentTo(created));
+        const existing = result.unbound[existingIndex];
+        if (existing?.equivalentTo?.(created)) {
+          result.list.push(existing);
+          result.unbound.splice(existingIndex, 1);
+        } else {
           result.new.push(created);
           result.list.push(created);
-          continue;
         }
-
-        const existing = result.unbound[existingIndex];
-        result.list.push(existing);
-        result.unbound.splice(existingIndex, 1);
       }
 
       return result;

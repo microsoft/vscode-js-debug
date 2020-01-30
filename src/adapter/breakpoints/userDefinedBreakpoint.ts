@@ -44,6 +44,19 @@ export class UserDefinedBreakpoint extends Breakpoint {
   }
 
   /**
+   * Returns whether this breakpoint is equivalent on DAP to the other one.
+   */
+  public equivalentTo(other: UserDefinedBreakpoint) {
+    return (
+      other.dapParams.column === this.dapParams.column &&
+      other.dapParams.line === this.dapParams.line &&
+      other.dapParams.hitCondition === this.dapParams.hitCondition &&
+      other.dapParams.condition === this.dapParams.condition &&
+      other.dapParams.logMessage === this.dapParams.logMessage
+    );
+  }
+
+  /**
    * Returns a promise that resolves once the breakpoint 'set' response
    */
   public untilSetCompleted() {
