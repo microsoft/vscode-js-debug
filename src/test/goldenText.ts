@@ -61,7 +61,7 @@ export class GoldenText {
    * This method _must_ be called from the test file.
    * The output file will go next to the file from which this is called.
    */
-  assertLog(options: { substring?: boolean } = {}) {
+  assertLog(options: { substring?: boolean, customAssert?: (expected: string) => any } = {}) {
     const output = this.getOutput();
     this._hasNonAssertedLogs = false;
 
@@ -71,6 +71,8 @@ export class GoldenText {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else if (process.env.RESET_RESULTS) {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
+    } else if (options.customAssert) {
+      options.customAssert(output);
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
 

@@ -18,7 +18,6 @@ import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
 import { nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../../configuration';
-import { sleep } from '../../int-chrome/testUtils';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -40,13 +39,14 @@ describe('node runtime', () => {
     handle.assertLog();
   }
 
-  itIntegrates('simple script', async ({ r }) => {
-    createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
-    const handle = await r.runScript('test.js');
-    handle.load();
-    await waitForPause(handle);
-    handle.assertLog({ substring: true });
-  });
+  function assertSkipFiles(expectedStacktrace: string) {
+    const stackframes = expectedStacktrace.split('\n').splice(-1, 1); // removing last empty element
+    expect(stackframes.length).to.be.greaterThan(0);
+    expect(stackframes[0]).to.not.contain('<hidden: Skipped by skipFiles>');
+    for(let n = 1; n < stackframes.length; n++) {
+      expect(stackframes[n]).to.contain('<hidden: Skipped by skipFiles>');
+    }
+  }
 
   itIntegrates('skipFiles skip node internals', async ({ r }) => {
     await r.initialize;
@@ -59,8 +59,16 @@ describe('node runtime', () => {
 
     handle.load();
     const stoppedParams = await handle.dap.once('stopped');
-    await sleep(200);
+    await delay(200); // need to pause test to let debouncer update scripts
     await handle.logger.logStackTrace(stoppedParams.threadId!, false);
+    handle.assertLog({ customAssert: assertSkipFiles });
+  });
+
+  itIntegrates('simple script', async ({ r }) => {
+    createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
+    const handle = await r.runScript('test.js');
+    handle.load();
+    await waitForPause(handle);
     handle.assertLog({ substring: true });
   });
 
