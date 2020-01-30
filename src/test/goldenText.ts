@@ -65,14 +65,17 @@ export class GoldenText {
     const output = this.getOutput();
     this._hasNonAssertedLogs = false;
 
+    if (options.customAssert) {
+      options.customAssert(output);
+      return;
+    }
+
     const goldenFilePath = this.findGoldenFilePath();
     if (!fs.existsSync(goldenFilePath)) {
       console.log(`----- Missing expectations file, writing a new one`);
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else if (process.env.RESET_RESULTS) {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
-    } else if (options.customAssert) {
-      options.customAssert(output);
     } else {
       const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
 
