@@ -44,7 +44,7 @@ const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 /**
  * Whether we're running a nightly build.
  */
-const isNightly = process.argv.includes('--nightly');
+const isNightly = process.argv.includes('--nightly') || process.argv.includes('watch');
 
 /**
  * Extension ID to build. Appended with '-nightly' as necessary.

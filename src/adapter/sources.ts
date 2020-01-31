@@ -20,6 +20,7 @@ import { assert, logger } from '../common/logging/logger';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag } from '../common/logging';
 import Cdp from '../cdp/api';
+import { createHash } from 'crypto';
 
 const localize = nls.loadMessageBundle();
 
@@ -87,9 +88,7 @@ const defaultTimeouts: SourceMapTimeouts = {
 //    source1._compiledToSourceUrl.get(compiled1) === sourceUrl
 //
 export class Source {
-  private static _lastSourceReference = 0;
   _sourceReference: number;
-  _url: string;
   _name: string;
   _fqname: string;
   _contentGetter: ContentGetter;
@@ -121,15 +120,14 @@ export class Source {
 
   constructor(
     container: SourceContainer,
-    url: string,
+    public readonly url: string,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     inlineScriptOffset?: InlineScriptOffset,
     contentHash?: string,
   ) {
-    this._sourceReference = ++Source._lastSourceReference;
-    this._url = url;
+    this._sourceReference = container.getSourceReference(url);
     this._contentGetter = contentGetter;
     this._sourceMapUrl = sourceMapUrl;
     this._inlineScriptOffset = inlineScriptOffset;
@@ -145,10 +143,6 @@ export class Source {
       contentHash,
       container._fileContentOverridesForTest.get(this._absolutePath),
     );
-  }
-
-  url(): string {
-    return this._url;
   }
 
   addScriptId(scriptId: Cdp.Runtime.ScriptId): void {
@@ -181,8 +175,8 @@ export class Source {
     if (this._sourceMapUrl && this._sourceMapUrl.endsWith('-pretty.map')) return true;
     const content = await this.content();
     if (!content) return false;
-    const sourceMapUrl = this.url() + '-pretty.map';
-    const fileName = this.url() + '-pretty.js';
+    const sourceMapUrl = this.url + '-pretty.map';
+    const fileName = this.url + '-pretty.js';
     const map = await prettyPrintAsSourceMap(fileName, content);
     if (!map) return false;
     // Note: this overwrites existing source map.
@@ -233,23 +227,23 @@ export class Source {
    * exist on disk.
    */
   _fullyQualifiedName(): string {
-    if (!this._url) {
+    if (!this.url) {
       return '<eval>/VM' + this._sourceReference;
     }
 
-    if (utils.isAbsolute(this._url)) {
-      return this._url;
+    if (utils.isAbsolute(this.url)) {
+      return this.url;
     }
 
-    const parsedAbsolute = utils.fileUrlToAbsolutePath(this._url);
+    const parsedAbsolute = utils.fileUrlToAbsolutePath(this.url);
     if (parsedAbsolute) {
       return parsedAbsolute;
     }
 
-    let fqname = this._url;
+    let fqname = this.url;
     try {
       const tokens: string[] = [];
-      const url = new URL(this._url);
+      const url = new URL(this.url);
       if (url.protocol === 'data:') {
         return '<eval>/VM' + this._sourceReference;
       }
@@ -287,7 +281,7 @@ export class Source {
   }
 
   private blackboxed(): boolean {
-    return this._container.isSourceSkipped(this._url);
+    return this._container.isSourceSkipped(this.url);
   }
 }
 
@@ -362,6 +356,41 @@ export class SourceContainer {
 
   isSourceSkipped(url: string): boolean {
     return this.scriptSkipper.isScriptSkipped(url);
+  }
+
+  /**
+   * Gets the source preferred source reference for a script. We generate this
+   * determistically so that breakpoints have a good chance of being preserved
+   * between reloads; previously, we had an incrementing source reference, but
+   * this led to breakpoints being lost when the debug session got restarted.
+   *
+   * Note that the reference returned from this function is *only* used for
+   * files that don't exist on disk; the ones that do exist always are
+   * rewritten to source reference ID 0.
+   */
+  public getSourceReference(url: string): number {
+    let id = Math.abs(
+      createHash('sha1')
+        .update(url)
+        .digest()
+        .readInt32BE(0),
+    );
+
+    for (let i = 0; i < 0xffff; i++) {
+      if (!this._sourceByReference.has(id)) {
+        return id;
+      }
+
+      if (id === 2 ** 31 - 1) {
+        // DAP spec says max reference ID is 2^31 - 1, int32
+        id = 0;
+      }
+
+      id++;
+    }
+
+    assert(false, 'Max iterations exceeding for source reference assignment');
+    return id; // conflicts, but it's better than nothing, maybe?
   }
 
   // This method returns a "preferred" location. This usually means going through a source map
@@ -568,7 +597,7 @@ export class SourceContainer {
   async _addSource(source: Source) {
     this._sourceByReference.set(source.sourceReference(), source);
     if (source._compiledToSourceUrl) {
-      this._sourceMapSourcesByUrl.set(source._url, source);
+      this._sourceMapSourcesByUrl.set(source.url, source);
     }
 
     // Some builds, like the Vue starter, generate 'metadata' files for compiled
@@ -576,7 +605,7 @@ export class SourceContainer {
     // of internal prefixes. If we see a duplicate entries for an absolute path,
     // take the shorter of them.
     const existingByPath = this._sourceByAbsolutePath.get(source._absolutePath);
-    if (existingByPath === undefined || existingByPath.url().length >= source.url().length) {
+    if (existingByPath === undefined || existingByPath.url.length >= source.url.length) {
       this._sourceByAbsolutePath.set(source._absolutePath, source);
     }
 
@@ -630,7 +659,7 @@ export class SourceContainer {
   removeSource(source: Source, silent = false) {
     console.assert(this._sourceByReference.get(source.sourceReference()) === source);
     this._sourceByReference.delete(source.sourceReference());
-    if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source._url);
+    if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source.url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
     this._disabledSourceMaps.delete(source);
     if (!silent) {
@@ -646,7 +675,7 @@ export class SourceContainer {
     }
     assert(
       sourceMap.compiled.has(source),
-      `Source map ${sourceMapUrl} does not contain source ${source.url()}`,
+      `Source map ${sourceMapUrl} does not contain source ${source.url}`,
     );
 
     sourceMap.compiled.delete(source);
@@ -734,7 +763,7 @@ export class SourceContainer {
       if (
         !assert(
           source?._compiledToSourceUrl,
-          `Source ${url} is missing compiled file ${compiled._url}`,
+          `Source ${url} is missing compiled file ${compiled.url}`,
         )
       ) {
         continue;
