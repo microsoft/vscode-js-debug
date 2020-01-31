@@ -8,7 +8,7 @@ import { readFileRaw } from '../fsUtils';
  * An implementation of the Chrome content hashing algorithm used to verify
  * whether files on disk are the same as those in the debug session.
  */
-export function calculateHash(input: Buffer): string {
+function calculateHash(input: Buffer): string {
   const prime = [
     new Long(0x3fb75161, 0, true),
     new Long(0xab1f4e4f, 0, true),

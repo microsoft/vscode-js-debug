@@ -54,12 +54,7 @@ export class GoldenText {
   }
 
   getOutput(): string {
-    return (
-      this._results
-        .reduce((lines, result) => [...lines, ...result.split('\n')], [] as string[])
-        .map(line => line.trimRight())
-        .join('\n') + '\n'
-    );
+    return this._results.join('\n') + '\n';
   }
 
   /**
@@ -77,11 +72,7 @@ export class GoldenText {
     } else if (process.env.RESET_RESULTS) {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else {
-      const expectations = fs
-        .readFileSync(goldenFilePath, 'utf-8')
-        .split('\n')
-        .map(l => l.trimRight())
-        .join('\n');
+      const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
 
       try {
         if (options.substring) {

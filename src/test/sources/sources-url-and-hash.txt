@@ -3,9 +3,6 @@ Source event for foo.js
 {
     reason : new
     source : {
-        adapterData : {
-            url : http://localhost:8001/foo.js
-        }
         name : foo.js
         path : localhost꞉8001/foo.js
         sourceReference : <number>
@@ -21,9 +18,6 @@ Source event for foo.js
 {
     reason : new
     source : {
-        adapterData : {
-            url : http://localhost:8001/foo.js
-        }
         name : foo.js
         path : localhost꞉8001/foo.js
         sourceReference : <number>
@@ -39,9 +33,6 @@ Source event for empty.js
 {
     reason : new
     source : {
-        adapterData : {
-            url : http://localhost:8001/empty.js
-        }
         name : empty.js
         path : ${workspaceFolder}/web/empty.js
         sourceReference : <number>
@@ -57,9 +48,6 @@ Source event for empty2.js
 {
     reason : new
     source : {
-        adapterData : {
-            url : http://localhost:8001/empty2.js
-        }
         name : empty2.js
         path : localhost꞉8001/empty2.js
         sourceReference : <number>
@@ -73,49 +61,31 @@ text/javascript
 Loaded sources: {
     sources : [
         [0] : {
-            adapterData : {
-                url : http://localhost:8001/foo.js
-            }
             name : foo.js
             path : localhost꞉8001/foo.js
             sourceReference : <number>
         }
         [1] : {
-            adapterData : {
-                url : http://localhost:8001/foo.js
-            }
             name : foo.js
             path : localhost꞉8001/foo.js
             sourceReference : <number>
         }
         [2] : {
-            adapterData : {
-                url :
-            }
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [3] : {
-            adapterData : {
-                url : http://localhost:8001/empty.js
-            }
             name : empty.js
             path : ${workspaceFolder}/web/empty.js
             sourceReference : <number>
         }
         [4] : {
-            adapterData : {
-                url :
-            }
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [5] : {
-            adapterData : {
-                url : http://localhost:8001/empty2.js
-            }
             name : empty2.js
             path : localhost꞉8001/empty2.js
             sourceReference : <number>
