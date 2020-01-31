@@ -19,6 +19,7 @@ import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { assert, logger } from '../common/logging/logger';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag } from '../common/logging';
+import { SourceAdapterData } from '../dap/extra';
 import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
@@ -205,6 +206,7 @@ export class Source {
       sources,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
       origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
+      adapterData: { url: this._url } as SourceAdapterData,
     };
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
@@ -355,8 +357,29 @@ export class SourceContainer {
   }
 
   source(ref: Dap.Source): Source | undefined {
-    if (ref.sourceReference) return this._sourceByReference.get(ref.sourceReference);
-    if (ref.path) return this._sourceByAbsolutePath.get(ref.path);
+    if (ref.sourceReference) {
+      const byRef = this._sourceByReference.get(ref.sourceReference);
+      if (byRef) {
+        return this._sourceByReference.get(ref.sourceReference);
+      }
+    }
+
+    if (ref.path) {
+      const byPath = this._sourceByAbsolutePath.get(ref.path);
+      if (byPath) {
+        return this._sourceByAbsolutePath.get(ref.path);
+      }
+    }
+
+    const url = (ref.adapterData as SourceAdapterData)?.url;
+    if (url) {
+      for (const source of this._sourceByReference.values()) {
+        if (source.url() === url) {
+          return source;
+        }
+      }
+    }
+
     return undefined;
   }
 

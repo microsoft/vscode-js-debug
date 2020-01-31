@@ -290,7 +290,10 @@ export abstract class Breakpoint {
   }
 
   private async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
-    const sourceByPath = this._manager._sourceContainer.source({ path: this._source.path });
+    const sourceByPath = this._manager._sourceContainer.source({
+      path: this._source.path,
+      adapterData: this._source.adapterData,
+    });
 
     // If the source has been mapped in-place, don't set anything by path,
     // we'll depend only on the mapped locations.
