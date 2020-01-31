@@ -117,10 +117,7 @@ export class BrowserTargetManager implements IDisposable {
       if (targetInfo.type !== 'page') {
         return;
       }
-
-      const advancedWebViewDebugging = this.launchParams.useWebView === 'advanced';
-      const failedFilter = filter && !filter(targetInfo);
-      if (!advancedWebViewDebugging && failedFilter) {
+      if (filter && !filter(targetInfo)) {
         return;
       }
 
@@ -130,15 +127,6 @@ export class BrowserTargetManager implements IDisposable {
       });
       if (!response) {
         callback(undefined);
-        return;
-      }
-
-      if (advancedWebViewDebugging && failedFilter) {
-        // web views created under script debugging are paused and need to be resumed.
-        // https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#members
-        const cdp = this._connection.createSession(response.sessionId);
-        await cdp.Runtime.runIfWaitingForDebugger({});
-        this._connection.disposeSession(response.sessionId);
         return;
       }
 
