@@ -44,7 +44,7 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
     runCommand(
       vscode.commands,
       Contributions.CreateDebuggerTerminal,
-      script.command,
+      `npm run ${script.name}`,
       script.directory,
     );
 

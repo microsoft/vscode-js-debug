@@ -80,13 +80,13 @@ class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
 
     if (this.lensLocation === 'all') {
       return tokens.scripts.map(
-        ({ value, position }) =>
+        ({ name, position }) =>
           new CodeLens(
             new Range(position, position),
             asCommand({
               title,
               command: Contributions.CreateDebuggerTerminal,
-              arguments: [value, workspaceFolder],
+              arguments: [`npm run ${name}`, workspaceFolder],
             }),
           ),
       );
