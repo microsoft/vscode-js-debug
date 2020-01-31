@@ -13,7 +13,6 @@ const sourcemaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
 const rename = require('gulp-rename');
 const merge = require('merge2');
-const prettier = require('gulp-prettier');
 const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
@@ -45,7 +44,7 @@ const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 /**
  * Whether we're running a nightly build.
  */
-const isNightly = process.argv.includes('--nightly');
+const isNightly = process.argv.includes('--nightly') || process.argv.includes('watch');
 
 /**
  * Extension ID to build. Appended with '-nightly' as necessary.

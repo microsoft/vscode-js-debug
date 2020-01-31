@@ -10,7 +10,7 @@ import * as fsUtils from './fsUtils';
 import { SourceMap } from './sourceMaps/sourceMap';
 import { logger } from './logging/logger';
 import { LogTag } from './logging';
-import { hashBytes, hashFile } from './hash';
+import { verifyBytes, verifyFile } from './hash';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -280,12 +280,12 @@ export async function checkContentHash(
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
-  const hash =
+  const result =
     typeof contentOverride === 'string'
-      ? await hashBytes(contentOverride)
-      : await hashFile(absolutePath);
+      ? await verifyBytes(contentOverride, contentHash, false)
+      : await verifyFile(absolutePath, contentHash, false);
 
-  return hash === contentHash ? absolutePath : undefined;
+  return result ? absolutePath : undefined;
 }
 
 export function positionToOffset(text: string, line: number, column: number): number {

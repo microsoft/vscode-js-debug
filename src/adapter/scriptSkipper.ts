@@ -153,11 +153,11 @@ export class ScriptSkipper {
     ...scriptIds: Cdp.Runtime.ScriptId[]
   ): Promise<void> {
     // Order "should" be correct
-    const parentIsSkipped = this.isScriptSkipped(source.url());
+    const parentIsSkipped = this.isScriptSkipped(source.url);
     const skipRanges: Cdp.Debugger.ScriptPosition[] = [];
     let inSkipRange = parentIsSkipped;
     Array.from(source._sourceMapSourceByUrl!.values()).forEach(authoredSource => {
-      let isSkippedSource = this.isScriptSkipped(authoredSource.url());
+      let isSkippedSource = this.isScriptSkipped(authoredSource.url);
       if (typeof isSkippedSource === 'undefined') {
         // If not toggled or specified in launch config, inherit the parent's status
         isSkippedSource = parentIsSkipped;
@@ -221,7 +221,7 @@ export class ScriptSkipper {
   ): Promise<boolean> {
     const map = isAuthored(source) ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
 
-    const url = source.url();
+    const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
       const pathOnDisk = await source.existingAbsolutePath();
       if (pathOnDisk) {
@@ -235,12 +235,12 @@ export class ScriptSkipper {
         }
       }
 
-      if (this.isScriptSkipped(source._url)) {
+      if (this.isScriptSkipped(source.url)) {
         if (source._sourceMapSourceByUrl) {
           // if compiled and skipped, also skip authored sources
           const authoredSources = Array.from(source._sourceMapSourceByUrl.values());
           authoredSources.forEach(authoredSource => {
-            this._isAuthoredUrlSkipped.set(authoredSource._url, true);
+            this._isAuthoredUrlSkipped.set(authoredSource.url, true);
           });
         }
       }
@@ -285,9 +285,9 @@ export class ScriptSkipper {
 
     const source = this._sourceContainer!.source(sourceParams);
     if (source) {
-      const newSkipValue = !this.isScriptSkipped(source.url());
+      const newSkipValue = !this.isScriptSkipped(source.url);
       if (isAuthored(source)) {
-        this._isAuthoredUrlSkipped.set(source.url(), newSkipValue);
+        this._isAuthoredUrlSkipped.set(source.url, newSkipValue);
 
         // Changed the skip value for an authored source, update it for all its compiled sources
         const compiledSources = Array.from(source._compiledToSourceUrl!.keys());
@@ -300,11 +300,11 @@ export class ScriptSkipper {
           ),
         );
       } else {
-        this._isUrlSkipped.set(source.url(), newSkipValue);
+        this._isUrlSkipped.set(source.url, newSkipValue);
         if (source._sourceMapSourceByUrl) {
           // if compiled, get authored sources
           for (const authoredSource of source._sourceMapSourceByUrl.values()) {
-            this._isAuthoredUrlSkipped.set(authoredSource.url(), newSkipValue);
+            this._isAuthoredUrlSkipped.set(authoredSource.url, newSkipValue);
           }
         }
       }

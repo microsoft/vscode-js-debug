@@ -10,6 +10,8 @@ import {
   MappingItem,
   BasicSourceMapConsumer,
 } from 'source-map';
+import { completeUrlEscapingRoot } from '../urlUtils';
+import { fixDriveLetterAndSlashes } from '../pathUtils';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
@@ -54,6 +56,20 @@ export class SourceMap implements BasicSourceMapConsumer {
    */
   public get sourcesContent() {
     return this.original.sourcesContent;
+  }
+
+  /**
+   * Gets the source URL computed from the compiled path and the source root.
+   */
+  public computedSourceUrl(sourceUrl: string) {
+    return fixDriveLetterAndSlashes(
+      completeUrlEscapingRoot(
+        this.metadata.sourceMapUrl.startsWith('data:')
+          ? this.metadata.compiledPath
+          : this.metadata.sourceMapUrl,
+        this.sourceRoot + sourceUrl,
+      ),
+    );
   }
 
   /**

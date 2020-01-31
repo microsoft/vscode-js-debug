@@ -280,6 +280,18 @@ export class BreakpointManager {
   ): Promise<Dap.SetBreakpointsResult> {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
 
+    // If we see we want to set breakpoints in file by source reference ID but
+    // it doesn't exist, they were probably from a previous section. The
+    // references for scripts just auto-increment per session and are entirely
+    // ephemeral. Remove the reference so that we fall back to a path if possible.
+    if (
+      params.source.sourceReference /* not (undefined or 0=on disk) */ &&
+      params.source.path &&
+      !this._sourceContainer.source(params.source)
+    ) {
+      params.source.sourceReference = undefined;
+    }
+
     // Wait until the breakpoint predictor finishes to be sure that we
     // can place correctly in breakpoint.set().
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {

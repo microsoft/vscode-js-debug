@@ -225,9 +225,9 @@ export abstract class Breakpoint {
     // remove any URL-set breakpoints because they are probably not correct.
     // This oft happens with Node.js loaders which rewrite sources on the fly.
     for (const bp of this.cdpBreakpoints) {
-      if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url())) {
+      if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url)) {
         logger.verbose(LogTag.RuntimeSourceMap, 'Adjusted breakpoint due to overlaid sourcemap', {
-          url: source.url(),
+          url: source.url,
         });
         promises.push(this.removeCdpBreakpoint(bp));
       }
@@ -306,7 +306,7 @@ export abstract class Breakpoint {
     const source = this._manager._sourceContainer.source(this._source);
 
     const url = source
-      ? source.url()
+      ? source.url
       : this._source.path
       ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this._source.path)
       : undefined;

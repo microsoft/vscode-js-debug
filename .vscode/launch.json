@@ -66,7 +66,6 @@
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--disable-extensions",
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
