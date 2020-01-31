@@ -3,6 +3,9 @@ Source event for test.js
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/test.js
+        }
         name : test.js
         path : localhost꞉8001/test.js
         sourceReference : <number>
@@ -17,6 +20,9 @@ Source event for test.js updated
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/test.js
+        }
         name : test.js
         path : localhost꞉8001/test.js
         sourceReference : <number>
@@ -30,11 +36,17 @@ content2//# sourceURL=test.js
 Loaded sources: {
     sources : [
         [0] : {
+            adapterData : {
+                url : http://localhost:8001/test.js
+            }
             name : test.js
             path : localhost꞉8001/test.js
             sourceReference : <number>
         }
         [1] : {
+            adapterData : {
+                url : http://localhost:8001/test.js
+            }
             name : test.js
             path : localhost꞉8001/test.js
             sourceReference : <number>

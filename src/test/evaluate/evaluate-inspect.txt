@@ -2,6 +2,9 @@
     column : 13
     line : 1
     source : {
+        adapterData : {
+            url : test.js
+        }
         name : test.js
         path : test.js
         sourceReference : <number>

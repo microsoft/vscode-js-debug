@@ -1,8 +1,11 @@
 
-Source event for 
+Source event for
 {
     reason : new
     source : {
+        adapterData : {
+            url : file://${workspaceFolder}/web/browserify/index.ts
+        }
         name : index.ts
         path : ${workspaceFolder}/web/browserify/index.ts
         sourceReference : <number>
@@ -23,10 +26,13 @@ window['logSome'] = function logSome() {
 
 ---------
 
-Source event for 
+Source event for
 {
     reason : new
     source : {
+        adapterData : {
+            url : file://${workspaceFolder}/web/browserify/module1.ts
+        }
         name : module1.ts
         path : ${workspaceFolder}/web/browserify/module1.ts
         sourceReference : <number>
@@ -47,10 +53,13 @@ export function throwValue(v) {
 
 ---------
 
-Source event for 
+Source event for
 {
     reason : new
     source : {
+        adapterData : {
+            url : file://${workspaceFolder}/web/browserify/module2.ts
+        }
         name : module2.ts
         path : ${workspaceFolder}/web/browserify/module2.ts
         sourceReference : <number>

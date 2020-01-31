@@ -3,6 +3,9 @@ Source event for inline
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/inlinescript.html
+        }
         name : inlinescript.html꞉2:11
         path : ${workspaceFolder}/web/inlinescript.html
         sourceReference : <number>
@@ -12,13 +15,16 @@ text/javascript
 ---------
 
     console.log('inline script');
-  
+
 ---------
 
 Source event for empty.js
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/empty.js
+        }
         name : empty.js
         path : ${workspaceFolder}/web/empty.js
         sourceReference : <number>
@@ -35,6 +41,9 @@ Source event for does not exist
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/doesnotexist.js
+        }
         name : doesnotexist.js
         path : localhost꞉8001/doesnotexist.js
         sourceReference : <number>
@@ -50,6 +59,9 @@ Source event for dir/helloworld
 {
     reason : new
     source : {
+        adapterData : {
+            url : http://localhost:8001/dir/helloworld.js
+        }
         name : helloworld.js
         path : ${workspaceFolder}/web/dir/helloworld.js
         sourceReference : <number>
@@ -66,6 +78,9 @@ Source event for eval
 {
     reason : new
     source : {
+        adapterData : {
+            url :
+        }
         name : VM<xx>
         path : <eval>/VM<xx>
         sourceReference : <number>
@@ -80,36 +95,57 @@ text/javascript
 Loaded sources: {
     sources : [
         [0] : {
+            adapterData : {
+                url : http://localhost:8001/inlinescript.html
+            }
             name : inlinescript.html꞉2:11
             path : ${workspaceFolder}/web/inlinescript.html
             sourceReference : <number>
         }
         [1] : {
+            adapterData : {
+                url :
+            }
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [2] : {
+            adapterData : {
+                url : http://localhost:8001/empty.js
+            }
             name : empty.js
             path : ${workspaceFolder}/web/empty.js
             sourceReference : <number>
         }
         [3] : {
+            adapterData : {
+                url : http://localhost:8001/doesnotexist.js
+            }
             name : doesnotexist.js
             path : localhost꞉8001/doesnotexist.js
             sourceReference : <number>
         }
         [4] : {
+            adapterData : {
+                url :
+            }
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [5] : {
+            adapterData : {
+                url : http://localhost:8001/dir/helloworld.js
+            }
             name : helloworld.js
             path : ${workspaceFolder}/web/dir/helloworld.js
             sourceReference : <number>
         }
         [6] : {
+            adapterData : {
+                url :
+            }
             name : VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>

@@ -3,6 +3,9 @@ Breakpoint resolved: {
     id : <number>
     line : 36
     source : {
+        adapterData : {
+            url : http://localhost:8001/browserify/bundle.js
+        }
         name : bundle.js
         path : ${workspaceFolder}/web/browserify/bundle.js
         sourceReference : <number>
