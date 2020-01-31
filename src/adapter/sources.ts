@@ -19,7 +19,6 @@ import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { assert, logger } from '../common/logging/logger';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag } from '../common/logging';
-import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 import Cdp from '../cdp/api';
 
 const localize = nls.loadMessageBundle();
@@ -665,24 +664,28 @@ export class SourceContainer {
     compiled._sourceMapSourceByUrl = new Map();
     const todo: Promise<void>[] = [];
     for (const url of map.sources) {
-      const resolvedUrl = fixDriveLetterAndSlashes(url);
-      const content = map.sourceContentFor(url) ?? undefined;
+      const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
+      const resolvedUrl =
+        (absolutePath && utils.absolutePathToFileUrl(absolutePath)) || map.computedSourceUrl(url);
+
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
       const isNew = !source;
       if (!source) {
-        const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
         logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
-          inputUrl: resolvedUrl,
+          inputUrl: url,
+          inputMap: map.metadata,
           absolutePath,
-          compiledUrl: compiled.url(),
+          resolvedUrl,
           sourceMapSources: map.sources,
         });
 
         // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
         const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
+        const content = map.sourceContentFor(url) ?? undefined;
+
         source = new Source(
           this,
-          fileUrl || url,
+          resolvedUrl,
           absolutePath,
           content !== undefined
             ? () => Promise.resolve(content)

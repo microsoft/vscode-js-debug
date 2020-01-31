@@ -13,7 +13,6 @@ const sourcemaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
 const rename = require('gulp-rename');
 const merge = require('merge2');
-const prettier = require('gulp-prettier');
 const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
