@@ -217,9 +217,9 @@ export class BrowserLauncher implements ILauncher {
     { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
     clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<BrowserTarget | string> {
-    const filter = createTargetFilterForConfig(params);
+    const targetFilter = createTargetFilterForConfig(params);
     const promisedPort = params.useWebView
-      ? this.prepareWebViewLaunch(params, filter, telemetryReporter)
+      ? this.prepareWebViewLaunch(params, targetFilter, telemetryReporter)
       : undefined;
 
     let launched: launcher.ILaunchResult;
@@ -279,21 +279,15 @@ export class BrowserLauncher implements ILauncher {
       this._onTargetListChangedEmitter.fire();
     });
 
-    const filterForMain = params.useWebView ? filter : undefined;
+    const filter = params.useWebView ? targetFilter : undefined;
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    const mainTargetPromise = this._targetManager.waitForMainTarget(filterForMain);
-
-    if (params.useWebView === 'advanced') {
-      this._mainTarget = await mainTargetPromise;
-    } else {
-      this._mainTarget = await timeoutPromise(
-        mainTargetPromise,
-        cancellationToken,
-        'Could not attach to main target',
-      );
-    }
+    this._mainTarget = await timeoutPromise(
+      this._targetManager.waitForMainTarget(filter),
+      cancellationToken,
+      'Could not attach to main target',
+    );
 
     if (!this._mainTarget) return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
