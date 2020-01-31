@@ -225,7 +225,9 @@ gulp.task('package:copy-extension-files', () =>
         base: buildDir,
       },
     ),
-    gulp.src('node_modules/source-map/lib/*.wasm').pipe(rename({ dirname: 'src' })),
+    gulp
+      .src(['node_modules/source-map/lib/*.wasm', 'node_modules/@c4312/chromehash/pkg/*.wasm'])
+      .pipe(rename({ dirname: 'src' })),
     gulp.src(`${buildDir}/src/**/*.sh`).pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(distDir)),
 );
