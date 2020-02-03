@@ -114,6 +114,24 @@ async function fixNightlyReadme() {
   await writeFile(readmePath, readmeNightlyText + '\n' + readmeText);
 }
 
+const getVersionNumber = () => {
+  if (process.env.JS_DEBUG_VERSION) {
+    return process.env.JS_DEBUG_VERSION;
+  }
+
+  const date = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
+
+  return [
+    // YY
+    date.getFullYear(),
+    // MM,
+    date.getMonth() + 1,
+    //DDHH
+    `${date.getDate()}${String(date.getHours()).padStart(2, '0')}`,
+  ].join('.');
+};
+
 gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
@@ -124,9 +142,8 @@ gulp.task('compile:dynamic', async () => {
   packageJson.name = extensionId;
   if (isNightly) {
     const date = new Date();
-    const monthMinutes = (date.getDate() - 1) * 24 * 60 + date.getHours() * 60 + date.getMinutes();
     packageJson.displayName += ' (Nightly)';
-    packageJson.version = `${date.getFullYear()}.${date.getMonth() + 1}.${monthMinutes}`;
+    packageJson.version = getVersionNumber();
 
     await fixNightlyReadme();
   }
@@ -158,6 +175,9 @@ async function runWebpack(packages) {
         path: path.resolve(distSrcDir),
         filename: path.basename(entry),
         devtoolModuleFilenameTemplate: '../[resource-path]',
+      },
+      resolve: {
+        extensions: ['.js', '.json'],
       },
       node: {
         __dirname: false,
