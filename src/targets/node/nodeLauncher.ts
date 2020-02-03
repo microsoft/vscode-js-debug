@@ -17,6 +17,7 @@ import { NodePathProvider } from './nodePathProvider';
 import { exists } from '../../common/fsUtils';
 import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
+import { fixInspectFlags } from '../../ui/configurationUtils';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program
@@ -60,19 +61,23 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration): INodeLaunchConfiguration | undefined {
+    let config: INodeLaunchConfiguration | undefined;
     if (params.type === Contributions.NodeDebugType && params.request === 'launch') {
-      return params;
-    }
-
-    if (
+      config = { ...params };
+    } else if (
       params.type === Contributions.ChromeDebugType &&
       params.server &&
       'program' in params.server
     ) {
-      return params.server;
+      config = { ...params.server };
     }
 
-    return undefined;
+    if (!config) {
+      return undefined;
+    }
+
+    fixInspectFlags(config);
+    return config;
   }
 
   /**

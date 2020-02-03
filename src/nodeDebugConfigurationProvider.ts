@@ -19,6 +19,7 @@ import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
 import { EnvironmentVars } from './common/environmentVars';
 import { resolveProcessId } from './ui/processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { fixInspectFlags } from './ui/configurationUtils';
 
 // eslint-disable-next-line
 const config = require('../package.json');
@@ -95,22 +96,7 @@ export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<An
       }
 
       // remove manual --inspect flags, which are no longer needed and interfere
-      if (config.runtimeArgs) {
-        const resolved: string[] = [];
-        for (const arg of config.runtimeArgs) {
-          const flags = /^--inspect(-brk)?(=|$)/.exec(arg);
-          if (!flags) {
-            resolved.push(arg);
-          } else if (flags[1]) {
-            // --inspect-brk
-            config.stopOnEntry = config.stopOnEntry ?? true;
-          } else {
-            // simple --inspect, ignored
-          }
-        }
-
-        config.runtimeArgs = resolved;
-      }
+      fixInspectFlags(config);
     }
 
     // "attach to process via picker" support

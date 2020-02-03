@@ -88,6 +88,29 @@ describe('node runtime', () => {
     });
   });
 
+  describe('inspect flag handling', () => {
+    itIntegrates('does not break with inspect flag', async ({ r }) => {
+      createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
+      const handle = await r.runScript('test.js', {
+        runtimeArgs: ['--inspect'],
+      });
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
+    itIntegrates('treats inspect-brk as stopOnEntry', async ({ r }) => {
+      createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");'] });
+      const handle = await r.runScript('test.js', {
+        cwd: testFixturesDir,
+        runtimeArgs: ['--inspect-brk'],
+      });
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+  });
+
   describe('stopOnEntry', () => {
     beforeEach(() =>
       createFileTree(testFixturesDir, { 'test.js': '', 'bar.js': 'require("./test")' }),
