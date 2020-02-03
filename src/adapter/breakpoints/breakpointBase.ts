@@ -209,7 +209,7 @@ export abstract class Breakpoint {
         columnNumber: this.originalPosition.columnNumber,
         source,
       },
-      script.source,
+      await script.source,
     );
 
     if (!uiLocations.length) {

@@ -61,7 +61,7 @@ export class ExecutionContext {
   }
 }
 
-export type Script = { url: string; scriptId: string; hash: string; source: Source };
+export type Script = { url: string; scriptId: string; hash: string; source: Promise<Source> };
 
 export interface IThreadDelegate {
   supportsCustomBreakpoints(): boolean;
@@ -654,7 +654,7 @@ export class Thread implements IVariableStoreDelegate {
 
     return this._sourceContainer.preferredUiLocation({
       ...rawLocation,
-      source: script.source,
+      source: await script.source,
     });
   }
 
@@ -975,14 +975,20 @@ export class Thread implements IVariableStoreDelegate {
     const scripts = Array.from(this._scripts.values());
     this._scripts.clear();
     this._scriptSources.clear();
-    for (const script of scripts) {
-      const set = this.scriptsFromSource(script.source);
-      set.delete(script);
-      if (!set.size) this._sourceContainer.removeSource(script.source, silent);
-    }
+    Promise.all(
+      scripts.map(script =>
+        script.source.then(source => {
+          const set = this.scriptsFromSource(source);
+          set.delete(script);
+          if (!set.size) {
+            this._sourceContainer.removeSource(source, silent);
+          }
+        }),
+      ),
+    );
   }
 
-  async _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+  private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
     if (event.url) event.url = this._delegate.scriptUrlToUrl(event.url);
 
     let urlHashMap = this._scriptSources.get(event.url);
@@ -991,10 +997,13 @@ export class Thread implements IVariableStoreDelegate {
       this._scriptSources.set(event.url, urlHashMap);
     }
 
-    let source: Source | undefined;
-    if (event.url && event.hash && urlHashMap) source = urlHashMap.get(event.hash);
+    const createSource = async () => {
+      const prevSource = event.url && event.hash && urlHashMap && urlHashMap.get(event.hash);
+      if (prevSource) {
+        prevSource.addScriptId(event.scriptId);
+        return prevSource;
+      }
 
-    if (!source) {
       const contentGetter = async () => {
         const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
         return response ? response.scriptSource : undefined;
@@ -1016,7 +1025,7 @@ export class Thread implements IVariableStoreDelegate {
       }
 
       const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
-      source = await this._sourceContainer.addSource(
+      const source = await this._sourceContainer.addSource(
         event.url,
         contentGetter,
         resolvedSourceMapUrl,
@@ -1024,19 +1033,27 @@ export class Thread implements IVariableStoreDelegate {
         hash,
       );
       this._sourceContainer.scriptSkipper.initializeSkippingValueForSource(source, event.scriptId);
-      urlHashMap.set(event.hash, source);
-    }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      urlHashMap!.set(event.hash, source);
+      source.addScriptId(event.scriptId);
 
-    source.addScriptId(event.scriptId);
-    const script = { url: event.url, scriptId: event.scriptId, source, hash: event.hash };
+      let scriptSet = this._sourceScripts.get(source);
+      if (!scriptSet) {
+        scriptSet = new Set();
+        this._sourceScripts.set(source, scriptSet);
+      }
+      scriptSet.add(script);
+
+      return source;
+    };
+
+    const script = {
+      url: event.url,
+      scriptId: event.scriptId,
+      source: createSource(),
+      hash: event.hash,
+    };
     this._scripts.set(event.scriptId, script);
-
-    let scriptSet = this._sourceScripts.get(source);
-    if (!scriptSet) {
-      scriptSet = new Set();
-      this._sourceScripts.set(source, scriptSet);
-    }
-    scriptSet.add(script);
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
@@ -1093,8 +1110,8 @@ export class Thread implements IVariableStoreDelegate {
       return existing;
     }
 
-    const result = this._sourceContainer
-      .waitForSourceMapSources(script.source)
+    const result = script.source
+      .then(source => this._sourceContainer.waitForSourceMapSources(source))
       .then(sources =>
         sources.length && this._scriptWithSourceMapHandler
           ? this._scriptWithSourceMapHandler(script, sources, brokenOn)

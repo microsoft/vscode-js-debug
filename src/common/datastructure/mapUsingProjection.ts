@@ -2,8 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as _ from 'lodash';
-
 class KeyAndValue<K, V> {
   constructor(public readonly key: K, public readonly value: V) {}
 
@@ -23,12 +21,10 @@ export class MapUsingProjection<K, V, P = K> implements Map<K, V> {
     private readonly projection: (key: K) => P,
     readonly initialContents?: Map<K, V> | Iterable<[K, V]> | ReadonlyArray<[K, V]>,
   ) {
-    const entries = Array.from(_.defaultTo(initialContents, [])).map<[P, KeyAndValue<K, V>]>(
-      pair => {
-        const projected = this.projection(pair[0]);
-        return [projected, new KeyAndValue(pair[0], pair[1])];
-      },
-    );
+    const entries = Array.from(initialContents || []).map<[P, KeyAndValue<K, V>]>(pair => {
+      const projected = this.projection(pair[0]);
+      return [projected, new KeyAndValue(pair[0], pair[1])];
+    });
 
     this.projectionToKeyAndValue = new Map<P, KeyAndValue<K, V>>(entries);
   }
