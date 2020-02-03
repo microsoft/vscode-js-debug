@@ -43,6 +43,11 @@ export interface IProcessTree {
    * Looks up process in the tree, accumulating them into a result.
    */
   lookup<T>(onEntry: (process: IProcess, accumulator: T) => T, initial: T): Promise<T>;
+
+  /**
+   * Gets the working directory of the process, if possible.
+   */
+  getWorkingDirectory(processId: number): Promise<string | undefined>;
 }
 
 /**

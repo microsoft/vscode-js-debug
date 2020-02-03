@@ -15,6 +15,11 @@ export abstract class BaseProcessTree implements IProcessTree {
   /**
    * @inheritdoc
    */
+  public abstract getWorkingDirectory(processId: number): Promise<string | undefined>;
+
+  /**
+   * @inheritdoc
+   */
   public lookup<T>(onEntry: (process: IProcess, accumulator: T) => T, value: T): Promise<T> {
     return new Promise((resolve, reject) => {
       const proc = this.createProcess();

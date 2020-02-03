@@ -10,6 +10,13 @@ export class WindowsProcessTree extends BaseProcessTree {
   /**
    * @inheritdoc
    */
+  public async getWorkingDirectory() {
+    return undefined; // not supported
+  }
+
+  /**
+   * @inheritdoc
+   */
   protected createProcess() {
     const wmic = join(process.env['WINDIR'] || 'C:\\Windows', 'System32', 'wbem', 'WMIC.exe');
     return this.spawn(wmic, [
