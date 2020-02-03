@@ -1,0 +1,3 @@
+bar @ ${workspaceFolder}/web/script.js:6:3 <hidden: Skipped by skipFiles>
+foo @ ${workspaceFolder}/web/script.js:2:3 <hidden: Skipped by skipFiles>
+<anonymous> @ ${workspaceFolder}/web/script.js:9:1 <hidden: Skipped by skipFiles>

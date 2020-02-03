@@ -1,0 +1,6 @@
+foo @ ${workspaceFolder}/web/browserify/module1.ts:3:3 <hidden: Skipped by skipFiles>
+bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3 <hidden: Skipped by skipFiles>
+3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:4
+o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+<anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1

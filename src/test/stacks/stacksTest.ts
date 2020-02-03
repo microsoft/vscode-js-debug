@@ -4,6 +4,8 @@
 
 import { TestP } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
+import { Dap } from '../../dap/api';
+import { delay } from '../../common/promiseUtil';
 
 describe('stacks', () => {
   async function dumpStackAndContinue(p: TestP, scopes: boolean) {
@@ -126,15 +128,6 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  // TODO: Shennie -- fix integration for blackboxing to use skipfiles
-  // itIntegrates('blackboxed', async ({ r }) => {
-  //   r.setBlackboxPattern('^(.*/node_modules/.*|.*module2.ts)$');
-  //   const p = await r.launchUrlAndLoad('index.html');
-  //   p.addScriptTag('browserify/pause.js');
-  //   await dumpStackAndContinue(p, false);
-  //   p.assertLog();
-  // });
-
   itIntegrates('return value', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({
@@ -152,5 +145,71 @@ describe('stacks', () => {
     p.dap.next({ threadId: threadId! });
     await dumpStackAndContinue(p, true); // exit point
     p.assertLog();
+  });
+
+  describe('skipFiles', () => {
+    async function waitForPausedThenDelayStackTrace(p: TestP, scopes: boolean) {
+      const event = await p.dap.once('stopped');
+      await delay(200); // need to pause test to let debouncer update scripts
+      await p.logger.logStackTrace(event.threadId!, scopes);
+    }
+
+    itIntegrates('single authored js', async ({ r }) => {
+      const p = await r.launchUrl('script.html', { skipFiles: ['**/script.js'] });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/script.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+      p.load();
+      await waitForPausedThenDelayStackTrace(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('single compiled js', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('basic.html', { skipFiles: ['**/basic.js'] });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/basic.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
+      p.load();
+      await waitForPausedThenDelayStackTrace(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('multiple authored ts to js', async ({ r }) => {
+      const p = await r.launchUrl('browserify/pause.html', { skipFiles: ['**/module*.ts'] });
+      await delay(500); // need to pause test to let debouncer update scripts
+      const source: Dap.Source = {
+        path: p.workspacePath('web/browserify/module1.ts'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
+      p.load();
+      await waitForPausedThenDelayStackTrace(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('toggle authored ts', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('basic.html');
+      const path = p.workspacePath('web/basic.ts');
+      const source: Dap.Source = {
+        path: path,
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 21, column: 0 }] });
+      p.load();
+
+      const event = await p.dap.once('stopped');
+      await delay(500); // need to pause test to let debouncer update scripts
+      await p.logger.logStackTrace(event.threadId!, false);
+
+      p.log('----send toggle skipfile status request----');
+      await p.dap.toggleSkipFileStatus({ resource: path });
+      await p.logger.logStackTrace(event.threadId!, false);
+
+      p.log('----send (un)toggle skipfile status request----');
+      await p.dap.toggleSkipFileStatus({ resource: path });
+      await p.logger.logStackTrace(event.threadId!, false);
+
+      p.assertLog();
+    });
   });
 });

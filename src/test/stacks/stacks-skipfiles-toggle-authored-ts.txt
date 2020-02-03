@@ -1,0 +1,5 @@
+<anonymous> @ ${workspaceFolder}/web/basic.ts:21:1
+----send toggle skipfile status request----
+<anonymous> @ ${workspaceFolder}/web/basic.ts:21:1 <hidden: Skipped by skipFiles>
+----send (un)toggle skipfile status request----
+<anonymous> @ ${workspaceFolder}/web/basic.ts:21:1
