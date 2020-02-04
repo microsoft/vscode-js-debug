@@ -43,6 +43,11 @@ export interface IProcessTree {
    * Looks up process in the tree, accumulating them into a result.
    */
   lookup<T>(onEntry: (process: IProcess, accumulator: T) => T, initial: T): Promise<T>;
+
+  /**
+   * Gets the working directory of the process, if possible.
+   */
+  getWorkingDirectory(processId: number): Promise<string | undefined>;
 }
 
 /**
@@ -67,12 +72,12 @@ export function analyseArguments(args: string) {
 
   // match --inspect, --inspect=1234, --inspect-brk, --inspect-brk=1234
   let matches = DEBUG_FLAGS_PATTERN.exec(args);
-  if (matches && matches.length >= 2) {
-    if (matches.length >= 6 && matches[5]) {
-      address = matches[5];
+  if (matches && matches.length >= 1) {
+    if (matches.length >= 5 && matches[4]) {
+      address = matches[4];
     }
-    if (matches.length >= 7 && matches[6]) {
-      port = parseInt(matches[6]);
+    if (matches.length >= 6 && matches[5]) {
+      port = parseInt(matches[5]);
     }
   }
 

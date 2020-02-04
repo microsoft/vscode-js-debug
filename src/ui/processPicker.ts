@@ -10,10 +10,8 @@ import { Contributions } from '../common/contributionUtils';
 import {
   INodeAttachConfiguration,
   nodeAttachConfigDefaults,
-  resolveVariableInConfig,
   ResolvingNodeAttachConfiguration,
 } from '../configuration';
-import { guessWorkingDirectory } from '../nodeDebugConfigurationProvider';
 import { processTree, analyseArguments } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
@@ -21,7 +19,7 @@ const INSPECTOR_PORT_DEFAULT = 9229;
 const localize = nls.loadMessageBundle();
 
 interface IProcessItem extends vscode.QuickPickItem {
-  pidOrPort: string; // picker result
+  pidAndPort: string; // picker result
   sortKey: number;
 }
 
@@ -39,10 +37,9 @@ export async function attachProcess() {
     return;
   }
 
-  const cwd = guessWorkingDirectory();
   await vscode.debug.startDebugging(
-    undefined,
-    resolveVariableInConfig(config, 'workspaceFolder', cwd),
+    vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.cwd)),
+    config,
   );
 }
 
@@ -67,8 +64,8 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
     processId = result;
   }
 
-  const matches = /^(inspector)?([0-9]+)(inspector)?([0-9]+)?$/.exec(processId);
-  if (!matches || matches.length !== 5) {
+  const result = decodePidAndPort(processId);
+  if (isNaN(result.pid)) {
     throw new Error(
       localize(
         'process.id.error',
@@ -78,28 +75,20 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
     );
   }
 
-  if (matches[2] && matches[3] && matches[4]) {
-    // process id and protocol and port
-    const pid = Number(matches[2]);
-    putPidInDebugMode(pid);
+  if (!result.port) {
+    putPidInDebugMode(result.pid);
+  }
 
-    // debug port
-    config.port = Number(matches[4]);
-    delete config.processId;
-  } else {
-    // protocol and port
-    if (matches[1]) {
-      // debug port
-      config.port = Number(matches[2]);
-      delete config.processId;
-    } else {
-      // process id
-      const pid = Number(matches[2]);
-      putPidInDebugMode(pid);
+  config.port = result.port || INSPECTOR_PORT_DEFAULT;
+  delete config.processId;
 
-      // processID is handled, so turn this config into a normal port attach configuration
-      delete config.processId;
-      config.port = INSPECTOR_PORT_DEFAULT;
+  if (vscode.workspace.workspaceFolders?.length === 1) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    config.cwd = vscode.workspace.workspaceFolders![0].uri.fsPath;
+  } else if (processId) {
+    const inferredWd = await processTree.getWorkingDirectory(result.pid);
+    if (inferredWd) {
+      config.cwd = await processTree.getWorkingDirectory(result.pid);
     }
   }
 
@@ -107,12 +96,8 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
 }
 
 /**
- * Process picker command (for launch config variable)
- * Returns as a string with these formats:
- * - "12345": process id
- * - "inspector12345": port number and inspector protocol
- * - "legacy12345": port number and legacy protocol
- * - null: abort launch silently
+ * Process picker command (for launch config variable). Returns a string in
+ * the format `pid:port`, where port is optional.
  */
 export async function pickProcess(): Promise<string | null> {
   try {
@@ -123,7 +108,7 @@ export async function pickProcess(): Promise<string | null> {
       matchOnDetail: true,
     };
     const item = await vscode.window.showQuickPick(items, options);
-    return item ? item.pidOrPort : null;
+    return item ? item.pidAndPort : null;
   } catch (err) {
     await vscode.window.showErrorMessage(
       localize('process.picker.error', 'Process picker failed ({0})', err.message),
@@ -135,48 +120,44 @@ export async function pickProcess(): Promise<string | null> {
 
 //---- private
 
+const encodePidAndPort = (processId: number, port?: number) => `${processId}:${port ?? ''}`;
+const decodePidAndPort = (encoded: string) => {
+  const [pid, port] = encoded.split(':');
+  return { pid: Number(pid), port: port ? Number(port) : undefined };
+};
+
 async function listProcesses(): Promise<IProcessItem[]> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const items = await processTree.lookup<IProcessItem[]>(({ pid, command, args, date }, acc) => {
-    if (process.platform === 'win32' && command.indexOf('\\??\\') === 0) {
+  const items = await processTree.lookup<IProcessItem[]>((leaf, acc) => {
+    if (process.platform === 'win32' && leaf.command.indexOf('\\??\\') === 0) {
       // remove leading device specifier
-      command = command.replace('\\??\\', '');
+      leaf.command = leaf.command.replace('\\??\\', '');
     }
 
-    const executableName = basename(command, '.exe');
-    const { port } = analyseArguments(args);
-
-    let description: string | void;
-    let pidOrPort: string;
-    if (port) {
-      description = localize(
-        'process.id.port.signal',
-        'process id: {0}, debug port: {1} ({2})',
-        pid,
-        port,
-        'SIGUSR1',
-      );
-      pidOrPort = `${pid}${port}`;
-    } else if (nodeProcessPattern.test(executableName)) {
-      description = localize('process.id.signal', 'process id: {0} ({1})', pid, 'SIGUSR1');
-      pidOrPort = pid.toString();
-    } else {
+    const executableName = basename(leaf.command, '.exe');
+    const { port } = analyseArguments(leaf.args);
+    if (!port && !nodeProcessPattern.test(executableName)) {
       return acc;
     }
 
     return [
       ...acc,
       {
-        // render data
         label: executableName,
-        description: args,
-        detail: description,
-        // picker result
-        pidOrPort: pidOrPort,
-        // sort key
-        sortKey: date ? date : seq++,
+        description: leaf.args,
+        pidAndPort: encodePidAndPort(leaf.pid, port),
+        sortKey: leaf.date ? leaf.date : seq++,
+        detail: port
+          ? localize(
+              'process.id.port.signal',
+              'process id: {0}, debug port: {1} ({2})',
+              leaf.pid,
+              port,
+              'SIGUSR1',
+            )
+          : localize('process.id.signal', 'process id: {0} ({1})', leaf.pid, 'SIGUSR1'),
       },
     ];
   }, []);

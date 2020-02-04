@@ -45,6 +45,13 @@ describe('process tree', () => {
     expect(data[0].command).to.match(/./); // not empty string
   });
 
+  if (process.platform !== 'win32') {
+    it('gets the working directory', async () => {
+      const currentWd = await processTree.getWorkingDirectory(process.pid);
+      expect(currentWd).to.equal(process.cwd());
+    });
+  }
+
   it('works for darwin', async () => {
     await assertParses(
       new DarwinProcessTree(),

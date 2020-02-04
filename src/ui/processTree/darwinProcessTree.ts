@@ -4,13 +4,50 @@
 
 import { IProcess } from './processTree';
 import { BaseProcessTree } from './baseProcessTree';
+import { spawnAsync, ChildProcessError } from '../../common/processUtils';
+import { isAbsolute } from 'path';
+import { exists } from '../../common/fsUtils';
 
 export class DarwinProcessTree extends BaseProcessTree {
+  public async getWorkingDirectory(processId: number) {
+    try {
+      const { stdout } = await spawnAsync('lsof', [
+        // AND options
+        '-a',
+        // Get the cwd
+        '-dcwd',
+        // Filter to the cwd
+        '-Fn',
+        // For this process
+        `-p${processId}`,
+      ]);
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const cwd = stdout
+        .trim()
+        .split('\n')
+        .pop()!
+        .slice(1);
+
+      return cwd && isAbsolute(cwd) && (await exists(cwd)) ? cwd : undefined;
+    } catch (e) {
+      if (e instanceof ChildProcessError) {
+        return undefined;
+      }
+
+      throw e;
+    }
+  }
+
   /**
    * @inheritdoc
    */
   protected createProcess() {
-    return this.spawn('/bin/ps', ['-xo', 'pid=PID,ppid=PPID,comm=BINARY,command=COMMAND']);
+    return this.spawn('/bin/ps', [
+      '-xo',
+      // The "aaaa" is needed otherwise the command name can get truncated.
+      `pid=PID,ppid=PPID,comm=${'a'.repeat(256)},command=COMMAND`,
+    ]);
   }
 
   /**
