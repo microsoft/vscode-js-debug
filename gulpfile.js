@@ -168,11 +168,11 @@ gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynami
 async function runWebpack(packages) {
 
   // add the entrypoints common to both vscode and vs here
-  packages.push(...[
+  packages = [...packages,
     { entry: `${buildSrcDir}/common/hash/hash.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
-  ]);
+  ];
 
   for (const { entry, library } of packages) {
     const config = {
