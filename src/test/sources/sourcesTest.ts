@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP, createFileTree, testFixturesDir } from '../test';
+import { createFileTree, testFixturesDir, testWorkspace, ITestHandle } from '../test';
 import Dap from '../../dap/api';
 import { hashBytes, hashFile, verifyFile } from '../../common/hash';
 import { itIntegrates } from '../testIntegrationUtils';
@@ -10,7 +10,7 @@ import { join } from 'path';
 import { expect } from 'chai';
 
 describe('sources', () => {
-  async function dumpSource(p: TestP, event: Dap.LoadedSourceEventParams, name: string) {
+  async function dumpSource(p: ITestHandle, event: Dap.LoadedSourceEventParams, name: string) {
     p.log('\nSource event for ' + name);
     p.log(event);
     const content = await p.dap.source({
@@ -112,6 +112,13 @@ describe('sources', () => {
 
     p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
     p.assertLog();
+  });
+
+  itIntegrates('allows module wrapper in node code', async ({ r }) => {
+    const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'index.js'));
+    handle.load();
+    handle.log(await handle.waitForSource('test'), undefined, []);
+    handle.assertLog();
   });
 
   /**

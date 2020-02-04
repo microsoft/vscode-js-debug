@@ -282,8 +282,8 @@ export async function checkContentHash(
   }
   const result =
     typeof contentOverride === 'string'
-      ? await verifyBytes(contentOverride, contentHash, false)
-      : await verifyFile(absolutePath, contentHash, false);
+      ? await verifyBytes(contentOverride, contentHash, true)
+      : await verifyFile(absolutePath, contentHash, true);
 
   return result ? absolutePath : undefined;
 }
