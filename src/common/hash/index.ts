@@ -22,7 +22,7 @@ const create = () => {
     return instance;
   }
 
-  instance = fork(join(__dirname, 'hash.js'), [], { env: {}, silent: true });
+  instance = fork(join(__dirname, 'hash.js'), [], { env: {}, silent: true, execArgv: [] });
   instance.setMaxListeners(Infinity);
   instance.addListener('message', msg => {
     const deferred = deferredMap[msg.id];
