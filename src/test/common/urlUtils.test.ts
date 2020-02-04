@@ -93,7 +93,7 @@ describe('urlUtils', () => {
 
     it('space in path', () => {
       expect(urlToRegex('file:///a/space%20path.js')).to.equal(
-        'file:\\/\\/\\/a\\/space%20path\\.js|\\/a\\/space path\\.js',
+        'file:\\/\\/\\/a\\/space( |%20)path\\.js|\\/a\\/space( |%20)path\\.js',
       );
     });
   });
@@ -122,7 +122,7 @@ describe('urlUtils', () => {
 
     it('space in path', () => {
       expect(urlToRegex('file:///a/space%20path.js')).to.equal(
-        '[fF][iI][lL][eE]:\\/\\/\\/[aA]\\/[sS][pP][aA][cC][eE]%20[pP][aA][tT][hH]\\.[jJ][sS]|\\/[aA]\\/[sS][pP][aA][cC][eE] [pP][aA][tT][hH]\\.[jJ][sS]',
+        '[fF][iI][lL][eE]:\\/\\/\\/[aA]\\/[sS][pP][aA][cC][eE]( |%20)[pP][aA][tT][hH]\\.[jJ][sS]|\\/[aA]\\/[sS][pP][aA][cC][eE]( |%20)[pP][aA][tT][hH]\\.[jJ][sS]',
       );
     });
   });
