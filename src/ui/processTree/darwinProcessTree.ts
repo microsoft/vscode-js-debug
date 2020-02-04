@@ -43,7 +43,11 @@ export class DarwinProcessTree extends BaseProcessTree {
    * @inheritdoc
    */
   protected createProcess() {
-    return this.spawn('/bin/ps', ['-xo', 'pid=PID,ppid=PPID,comm=BINARY,command=COMMAND']);
+    return this.spawn('/bin/ps', [
+      '-xo',
+      // The "aaaa" is needed otherwise the command name can get truncated.
+      `pid=PID,ppid=PPID,comm=${'a'.repeat(256)},command=COMMAND`,
+    ]);
   }
 
   /**
