@@ -22,6 +22,8 @@ import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
 import { walkObject, sortKeys } from '../common/objUtils';
 
+const appInsightsKey = 'AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217';
+
 type OmittedKeysFromAttributes =
   | keyof IMandatedConfiguration
   | 'rootPath'
@@ -738,6 +740,7 @@ function buildDebuggers() {
       const { request, configurationAttributes, required, ...rest } = d;
       entry = {
         ...rest,
+        aiKey: appInsightsKey,
         languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
         configurationAttributes: {},
         configurationSnippets: [],
