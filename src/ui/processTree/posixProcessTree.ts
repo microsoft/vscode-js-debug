@@ -9,6 +9,13 @@ export class PosixProcessTree extends DarwinProcessTree {
   /**
    * @inheritdoc
    */
+  protected createProcess() {
+    return this.spawn('/bin/ps', ['-axo', `pid=PID,ppid=PPID,comm:30,command=COMMAND`]);
+  }
+
+  /**
+   * @inheritdoc
+   */
   protected createParser(): (line: string) => IProcess | void {
     const parser = super.createParser();
     return line => {

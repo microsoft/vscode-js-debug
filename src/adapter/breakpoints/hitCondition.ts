@@ -42,7 +42,11 @@ export class HitCondition {
 
     const [, op, value] = parts;
     const expr =
-      op === '%' ? `return (numHits % ${value}) === 0;` : `return numHits ${op} ${value};`;
+      op === '%'
+        ? `return (numHits % ${value}) === 0;`
+        : op[0] === '='
+        ? `return numHits === ${value};`
+        : `return numHits ${op} ${value};`;
 
     return new HitCondition(new Function('numHits', expr) as (n: number) => boolean);
   }

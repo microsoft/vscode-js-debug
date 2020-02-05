@@ -286,6 +286,10 @@ export function urlToRegex(aPath: string) {
     aPath = aPath.replace(/[a-z]/gi, letter => `[${letter.toLowerCase()}${letter.toUpperCase()}]`);
   }
 
+  // In some environments, Chrome(/Electron) doesn't escape spaces in paths.
+  // This was observed in the "Launch VS Code" configuration.
+  aPath = aPath.replace(/ |%20/g, '( |%20)');
+
   return aPath;
 }
 
