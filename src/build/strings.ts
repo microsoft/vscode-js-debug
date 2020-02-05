@@ -28,7 +28,7 @@ const strings = {
   'extensionHost.snippet.launch.label': 'VS Code Extension Development',
 
   'edge.useWebView.description':
-    "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content. When set to 'advanced', the debugger will wait to connect to a WebView matching the urlFilter.",
+    "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
 
   'chrome.address.description': 'TCP/IP address of debug port',
   'chrome.baseUrl.description':

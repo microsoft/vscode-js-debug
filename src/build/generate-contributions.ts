@@ -574,8 +574,7 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
     default: 'http://localhost:8080',
   },
   useWebView: {
-    type: ['boolean', 'string'],
-    enum: [true, false, 'advanced'],
+    type: 'boolean',
     description: refString('edge.useWebView.description'),
     default: false,
   },
