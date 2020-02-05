@@ -20,7 +20,7 @@ const hitConditionRe = /^(>|>=|={1,3}|<|<=|%)?\s*([0-9]+)$/;
 export class HitCondition {
   private hits = 0;
 
-  protected constructor(private readonly predicate: (n: number) => boolean) {}
+  constructor(private readonly predicate: (n: number) => boolean) {}
 
   /**
    * Indicates that the breakpoint was hit, and returns whether the debugger

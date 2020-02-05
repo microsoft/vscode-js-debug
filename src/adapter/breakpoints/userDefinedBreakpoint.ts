@@ -149,7 +149,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
   /**
    * Gets the location whether this breakpoint is resolved, if any.
    */
-  private getResolvedUiLocation() {
+  protected getResolvedUiLocation() {
     for (const bp of this.cdpBreakpoints) {
       if (bp.state === CdpReferenceState.Applied && bp.uiLocations.length) {
         return bp.uiLocations[0];

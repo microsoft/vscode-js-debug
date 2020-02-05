@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testWorkspace, ITestHandle, createFileTree } from '../test';
+import { testWorkspace, ITestHandle, createFileTree, TestRoot, TestP } from '../test';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 import { expect } from 'chai';
@@ -616,6 +616,79 @@ describe('breakpoints', () => {
           handle.assertLog({ substring: true });
         }),
       );
+    });
+  });
+
+  describe('hit count', () => {
+    const doTest = async (r: TestRoot, run: (p: TestP, source: Dap.Source) => Promise<void>) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      p.cdp.Runtime.evaluate({
+        expression: `
+        function foo() {
+          for (let i = 0; i < 10; i++) {
+            console.log(i);
+            console.log(i);
+            console.log(i);
+          }
+        }
+      `,
+      });
+      const { source } = await p.waitForSource('eval');
+      source.path = undefined;
+      await run(p, source);
+      p.assertLog();
+    };
+
+    const waitForHit = async (p: TestP) => {
+      const { threadId: pageThreadId } = await p.dap.once('stopped');
+      const { id: pageFrameId } = (
+        await p.dap.stackTrace({
+          threadId: pageThreadId!,
+        })
+      ).stackFrames[0];
+      await p.logger.logEvaluateResult(
+        await p.dap.evaluate({ expression: 'i', frameId: pageFrameId }),
+      );
+      return p.dap.continue({ threadId: pageThreadId! });
+    };
+
+    itIntegrates('works for valid', async ({ r }) => {
+      await doTest(r, async (p, source) => {
+        r.log(
+          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=5' }] }),
+        );
+        const evaluate = p.evaluate('foo();');
+        await waitForHit(p);
+        await evaluate;
+      });
+    });
+
+    itIntegrates('can change after set', async ({ r }) => {
+      await doTest(r, async (p, source) => {
+        r.log(
+          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=5' }] }),
+        );
+        r.log(
+          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=8' }] }),
+        );
+        const evaluate = p.evaluate('foo();');
+        await waitForHit(p);
+        await evaluate;
+      });
+    });
+
+    itIntegrates('does not validate or hit invalid breakpoint', async ({ r }) => {
+      await doTest(r, async (p, source) => {
+        const output = p.dap.once('output');
+        r.log(
+          await p.dap.setBreakpoints({
+            source,
+            breakpoints: [{ line: 4, hitCondition: 'potato' }],
+          }),
+        );
+        await r.log(await output); // an error message
+        await p.evaluate('foo();'); // should complete without getting paused
+      });
     });
   });
 });
