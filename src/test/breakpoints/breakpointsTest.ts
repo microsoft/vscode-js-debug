@@ -407,6 +407,64 @@ describe('breakpoints', () => {
     });
   });
 
+  describe('hit condition', () => {
+    async function waitForPauseAndLogI(p: ITestHandle) {
+      await waitForPause(p, async () => {
+        await p.logger.evaluateAndLog('i');
+      });
+    }
+
+    itIntegrates('exact', async ({ r }) => {
+      const p = await r.launchUrl('condition.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/condition.js'),
+      };
+      await p.dap.setBreakpoints({
+        source,
+        breakpoints: [{ line: 2, column: 0, hitCondition: '==2' }],
+      });
+      p.load();
+      await waitForPauseAndLogI(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('less than', async ({ r }) => {
+      // Breakpoint in separate script set before launch.
+      const p = await r.launchUrl('condition.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/condition.js'),
+      };
+      await p.dap.setBreakpoints({
+        source,
+        breakpoints: [{ line: 2, column: 0, hitCondition: '<3' }],
+      });
+      p.load();
+
+      await waitForPauseAndLogI(p);
+      await waitForPauseAndLogI(p);
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('greater than', async ({ r }) => {
+      // Breakpoint in separate script set before launch.
+      const p = await r.launchUrl('condition.html');
+      const source: Dap.Source = {
+        path: p.workspacePath('web/condition.js'),
+      };
+      await p.dap.setBreakpoints({
+        source,
+        breakpoints: [{ line: 2, column: 0, hitCondition: '>3' }],
+      });
+      p.load();
+
+      await waitForPauseAndLogI(p);
+      await waitForPauseAndLogI(p);
+      p.assertLog();
+    });
+  });
+
   describe('custom', () => {
     itIntegrates('inner html', async ({ r }) => {
       // Custom breakpoint for innerHtml.

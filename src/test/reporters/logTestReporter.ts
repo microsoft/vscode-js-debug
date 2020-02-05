@@ -31,7 +31,11 @@ class LoggingReporter extends mocha.reporters.Spec {
     try {
       const contents = (await util.promisify(fs.readFile)(logPath)).toString();
       console.log(`##vso[build.uploadlog]${logPath}`);
-      contents.split('\n').forEach(s => console.error(s.substr(0, 1000)));
+      const trimmedLog = contents
+        .split('\n')
+        .map(s => s.substr(0, 1000))
+        .join('\n');
+      console.error(trimmedLog);
     } catch (e) {}
   }
 }
