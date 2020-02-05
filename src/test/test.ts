@@ -34,7 +34,6 @@ import { getLogFileForTest } from './reporters/logReporterUtils';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { TopLevelServiceFactory } from '../services';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -349,7 +348,6 @@ export class TestRoot {
         ]),
         new NodeAttacher(pathProvider),
       ],
-      new TopLevelServiceFactory(),
       new TelemetryReporter(),
       new TargetOrigin('0'),
     );

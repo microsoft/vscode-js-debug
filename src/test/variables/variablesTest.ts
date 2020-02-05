@@ -106,7 +106,11 @@ describe('variables', () => {
       const worker = await r.worker();
       outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
       outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
-      outputs.sort((a, b) => a.output.source!.name!.localeCompare(b.output.source!.name!));
+      outputs.sort((a, b) => {
+        const aName = a?.output?.source?.name;
+        const bName = b?.output?.source?.name;
+        return aName && bName ? aName.localeCompare(bName) : 0;
+      });
       for (const { output, logger } of outputs) await logger.logOutput(output);
       p.assertLog();
     });

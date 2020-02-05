@@ -57,12 +57,13 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
+  private _rootServices = new TopLevelServiceFactory();
+  private _serviceTree = new WeakMap<ITarget, IServiceFactory>();
 
   constructor(
     delegate: IBinderDelegate,
     connection: DapConnection,
     launchers: ILauncher[],
-    private services: IServiceFactory,
     private readonly telemetryReporter: TelemetryReporter,
     targetOrigin: ITargetOrigin,
   ) {
@@ -153,12 +154,10 @@ export class Binder implements IDisposable {
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
-    if (this.services instanceof TopLevelServiceFactory) {
-      warnNightly(dap);
-      logger.setup(resolveLoggerOptions(dap, params.trace));
-      this.reportBootTelemetry(params);
-      this.services.provideRootData({ params, dap });
-    }
+    warnNightly(dap);
+    logger.setup(resolveLoggerOptions(dap, params.trace));
+    this.reportBootTelemetry(params);
+    this._rootServices.provideRootData({ params, dap });
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
@@ -318,7 +317,9 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy = getAsyncStackPolicy(launchParams.showAsyncStacks);
     }
 
-    const services = this.services.create({ target });
+    const parent = target.parent();
+    const services = (parent && this._serviceTree.get(parent)?.child) || this._rootServices.child;
+    this._serviceTree.set(target, services);
 
     // todo: move scriptskipper into services collection
     const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, cdp, target);
@@ -330,7 +331,7 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy,
       launchParams,
       this.telemetryReporter,
-      services,
+      services.create({ target }),
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
