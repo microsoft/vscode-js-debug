@@ -30,7 +30,7 @@ import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { mapValues } from './common/objUtils';
 import * as os from 'os';
 import { delay } from './common/promiseUtil';
-import { IServiceFactory } from './services';
+import { IServiceFactory, TopLevelServiceFactory } from './services';
 
 const localize = nls.loadMessageBundle();
 
@@ -153,12 +153,14 @@ export class Binder implements IDisposable {
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
-    warnNightly(dap);
-    this.reportBootTelemetry(params);
-    logger.setup(resolveLoggerOptions(dap, params.trace));
+    if (this.services instanceof TopLevelServiceFactory) {
+      warnNightly(dap);
+      logger.setup(resolveLoggerOptions(dap, params.trace));
+      this.reportBootTelemetry(params);
+      this.services.provideRootData({ params, dap });
+    }
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
-
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
     let results = await Promise.all(
@@ -316,13 +318,9 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy = getAsyncStackPolicy(launchParams.showAsyncStacks);
     }
 
-    const services = this.services.create({
-      dap,
-      params: launchParams,
-      sourcePathResolver: target.sourcePathResolver(),
-    });
+    const services = this.services.create({ target });
 
-    // todo: move scriptskiller into services collection
+    // todo: move scriptskipper into services collection
     const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
@@ -372,9 +370,14 @@ export class Binder implements IDisposable {
 
   _attachToNewTargets(targets: ITarget[]) {
     for (const target of targets.values()) {
-      if (!target.waitingForDebugger()) continue;
+      if (!target.waitingForDebugger()) {
+        continue;
+      }
+
       const thread = this._threads.get(target);
-      if (!thread) this.attach(target);
+      if (!thread) {
+        this.attach(target);
+      }
     }
   }
 

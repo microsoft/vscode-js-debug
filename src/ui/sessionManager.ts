@@ -98,7 +98,11 @@ export class SessionManager
   private _sessionForTarget = new Map<ITarget, Promise<Session>>();
   private _sessionForTargetCallbacks = new Map<
     ITarget,
-    { fulfill: (session: Session) => void; reject: (error: Error) => void }
+    {
+      services: IServiceFactory;
+      fulfill: (session: Session) => void;
+      reject: (error: Error) => void;
+    }
   >();
 
   constructor(
@@ -126,12 +130,16 @@ export class SessionManager
         return;
       }
 
-      session = new Session(debugSession, this._sessions.get(pendingTargetId)!.services.child);
+      const callbacks = this._sessionForTargetCallbacks.get(target);
+      if (!assert(callbacks, `Cannot find callbacks for target ${pendingTargetId}`)) {
+        return;
+      }
+
+      session = new Session(debugSession, callbacks.services);
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target);
-      const callbacks = this._sessionForTargetCallbacks.get(target);
       this._sessionForTargetCallbacks.delete(target);
-      if (callbacks) callbacks.fulfill(session);
+      callbacks.fulfill(session);
     } else {
       session = new Session(debugSession, new TopLevelServiceFactory());
       session.createBinder(this._context, this.launcherDelegate, this);
@@ -158,21 +166,23 @@ export class SessionManager
     }
 
     const newSession = new Promise<Session>(async (fulfill, reject) => {
-      this._pendingTarget.set(target.id(), target);
-      this._sessionForTargetCallbacks.set(target, { fulfill, reject });
-
-      let parentDebugSession: vscode.DebugSession | undefined;
+      let parentSession: Session | undefined;
       const parentTarget = target.parent();
       if (parentTarget) {
-        const parentSession = await this.createSession(parentTarget);
-        parentDebugSession = parentSession.debugSession;
+        parentSession = await this.createSession(parentTarget);
       } else {
-        parentDebugSession = this._sessions.get(target.targetOrigin().id)?.debugSession;
+        parentSession = this._sessions.get(target.targetOrigin().id);
       }
-
-      if (!assert(parentDebugSession, 'Expected to get a parent debug session for target')) {
+      if (!assert(parentSession, 'Expected to get a parent debug session for target')) {
         return;
       }
+
+      this._pendingTarget.set(target.id(), target);
+      this._sessionForTargetCallbacks.set(target, {
+        services: parentSession.services.child,
+        fulfill,
+        reject,
+      });
 
       const config = {
         type: Contributions.ChromeDebugType,
@@ -181,8 +191,8 @@ export class SessionManager
         __pendingTargetId: target.id(),
       };
 
-      vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
-        parentSession: parentDebugSession,
+      vscode.debug.startDebugging(parentSession.debugSession.workspaceFolder, config, {
+        parentSession: parentSession.debugSession,
         consoleMode: vscode.DebugConsoleMode.MergeWithParent,
       });
     });
