@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 // Improve the default typing of Object.keys(o: T) to be keyof T (without the symbols)
+
 interface ObjectConstructor {
   keys<T>(o: T): WithoutSymbols<keyof T>[];
 }
