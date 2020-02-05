@@ -337,7 +337,7 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
   /**
    * (Edge only) Enable web view debugging.
    */
-  useWebView: boolean | 'advanced';
+  useWebView: boolean;
 }
 
 /**
