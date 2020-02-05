@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/condition.js:5:1
