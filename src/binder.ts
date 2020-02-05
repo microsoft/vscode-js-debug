@@ -30,6 +30,7 @@ import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { mapValues } from './common/objUtils';
 import * as os from 'os';
 import { delay } from './common/promiseUtil';
+import { IServiceFactory } from './services';
 
 const localize = nls.loadMessageBundle();
 
@@ -61,6 +62,7 @@ export class Binder implements IDisposable {
     delegate: IBinderDelegate,
     connection: DapConnection,
     launchers: ILauncher[],
+    private services: IServiceFactory,
     private readonly telemetryReporter: TelemetryReporter,
     targetOrigin: ITargetOrigin,
   ) {
@@ -308,20 +310,29 @@ export class Binder implements IDisposable {
     if (!cdp) return;
     const connection = await this._delegate.acquireDap(target);
     const dap = await connection.dap();
+    const launchParams = this._launchParams!;
 
     if (!this._asyncStackPolicy) {
-      this._asyncStackPolicy = getAsyncStackPolicy(this._launchParams!.showAsyncStacks);
+      this._asyncStackPolicy = getAsyncStackPolicy(launchParams.showAsyncStacks);
     }
 
-    const scriptSkipper = new ScriptSkipper(this._launchParams!.skipFiles, cdp, target);
+    const services = this.services.create({
+      dap,
+      params: launchParams,
+      sourcePathResolver: target.sourcePathResolver(),
+    });
+
+    // todo: move scriptskiller into services collection
+    const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
       scriptSkipper,
       this._asyncStackPolicy,
-      this._launchParams!,
+      launchParams,
       this.telemetryReporter,
+      services,
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });

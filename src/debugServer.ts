@@ -24,6 +24,7 @@ import * as nls from 'vscode-nls';
 import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
+import { TopLevelServiceFactory } from './services';
 
 const localize = nls.loadMessageBundle();
 
@@ -131,6 +132,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
           binderDelegate,
           connection,
           launchers,
+          new TopLevelServiceFactory(),
           telemetry,
           new TargetOrigin('targetOrigin'),
         );

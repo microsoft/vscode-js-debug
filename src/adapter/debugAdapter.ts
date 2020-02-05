@@ -15,10 +15,6 @@ import { Cdp } from '../cdp/api';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { CodeSearchSourceMapRepository } from '../common/sourceMaps/codeSearchSourceMapRepository';
-import { BreakpointsPredictor, BreakpointPredictionCache } from './breakpointPredictor';
-import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
-import { join } from 'path';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
@@ -27,6 +23,7 @@ import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { DisposableList } from '../common/disposable';
+import { IServiceCollection } from '../services';
 
 const localize = nls.loadMessageBundle();
 
@@ -50,6 +47,7 @@ export class DebugAdapter {
     private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: TelemetryReporter,
+    _sharedServices: IServiceCollection,
   ) {
     this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
@@ -84,31 +82,15 @@ export class DebugAdapter {
       })),
     );
 
-    const sourceMapRepo = CodeSearchSourceMapRepository.createOrFallback();
-    const bpCache: BreakpointPredictionCache | undefined = launchConfig.__workspaceCachePath
-      ? new CorrelatedCache(join(launchConfig.__workspaceCachePath, 'bp-predict.json'))
-      : undefined;
     const sourceMapFactory = new SourceMapFactory();
     this._disposables.push(sourceMapFactory);
-    const bpPredictor = rootPath
-      ? new BreakpointsPredictor(
-          rootPath,
-          launchConfig,
-          sourceMapRepo,
-          sourceMapFactory,
-          sourcePathResolver,
-          bpCache,
-        )
-      : undefined;
-
-    bpPredictor?.onLongParse(() => dap.longPrediction({}));
 
     this.sourceContainer = new SourceContainer(
       this.dap,
       sourceMapFactory,
       rootPath,
       sourcePathResolver,
-      sourceMapRepo,
+      _sharedServices.sourceMapRepo,
       this._scriptSkipper,
     );
     this._scriptSkipper.setSourceContainer(this.sourceContainer);
@@ -116,7 +98,7 @@ export class DebugAdapter {
       this.dap,
       this.sourceContainer,
       launchConfig.pauseForSourceMap,
-      bpPredictor,
+      _sharedServices.bpPredictor,
     );
 
     this._rawTelemetryReporter.onFlush(() => {

@@ -23,6 +23,7 @@ import { assert } from '../common/logging/logger';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { TopLevelServiceFactory, IServiceFactory } from '../services';
 
 export class Session implements IDisposable {
   public readonly debugSession: vscode.DebugSession;
@@ -32,7 +33,7 @@ export class Session implements IDisposable {
   private _binder?: Binder;
   private _onTargetNameChanged?: IDisposable;
 
-  constructor(debugSession: vscode.DebugSession) {
+  constructor(debugSession: vscode.DebugSession, public readonly services: IServiceFactory) {
     this.debugSession = debugSession;
     this.connection = new DapConnection(this.telemetryReporter);
     this._server = net
@@ -71,6 +72,7 @@ export class Session implements IDisposable {
       delegate,
       this.connection,
       launchers,
+      this.services,
       this.telemetryReporter,
       new TargetOrigin(this.debugSession.id),
     );
@@ -116,20 +118,22 @@ export class SessionManager
   public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    const session = new Session(debugSession);
     const pendingTargetId: string | undefined = debugSession.configuration.__pendingTargetId;
+    let session: Session;
     if (pendingTargetId) {
       const target = this._pendingTarget.get(pendingTargetId);
       if (!assert(target, `Cannot find target ${pendingTargetId}`)) {
         return;
       }
 
+      session = new Session(debugSession, this._sessions.get(pendingTargetId)!.services.child);
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target);
       const callbacks = this._sessionForTargetCallbacks.get(target);
       this._sessionForTargetCallbacks.delete(target);
       if (callbacks) callbacks.fulfill(session);
     } else {
+      session = new Session(debugSession, new TopLevelServiceFactory());
       session.createBinder(this._context, this.launcherDelegate, this);
     }
     this._sessions.set(debugSession.id, session);

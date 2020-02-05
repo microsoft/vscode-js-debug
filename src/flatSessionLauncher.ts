@@ -30,6 +30,7 @@ import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
+import { TopLevelServiceFactory } from './services';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -118,6 +119,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
     binderDelegate,
     firstConnection,
     launchers,
+    new TopLevelServiceFactory(),
     telemetry,
     new TargetOrigin('targetOrigin'),
   );
