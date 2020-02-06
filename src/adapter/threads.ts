@@ -441,7 +441,9 @@ export class Thread implements IVariableStoreDelegate {
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
     this._pauseOnScheduledAsyncCall();
+  }
 
+  dapInitialized() {
     this._dap.thread({
       reason: 'started',
       threadId: this.id,

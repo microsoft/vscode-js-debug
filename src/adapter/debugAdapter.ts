@@ -120,6 +120,7 @@ export class DebugAdapter {
     console.assert(params.columnsStartAt1);
     const capabilities = DebugAdapter.capabilities();
     setTimeout(() => this.dap.initialized({}), 0);
+    setTimeout(() => this._thread?.dapInitialized(), 0);
     return capabilities;
   }
 
