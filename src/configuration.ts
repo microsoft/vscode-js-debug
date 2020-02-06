@@ -423,6 +423,19 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
    * The debug adapter is running elevated. Launch Chrome unelevated to avoid the security restrictions of running Chrome elevated
    */
   launchUnelevated?: boolean;
+
+  /**
+   * WebSocket (`ws://`) address of the inspector. It's a template string that
+   * interpolates keys in `{curlyBraces}`. Available keys are:
+   *
+   *  - `url.*` is the parsed address of the running application. For instance,
+   *    `{url.port}`, `{url.hostname}`
+   *  - `port` is the debug port that Chrome is listening on.
+   *  - `browserInspectUri` is the inspector URI on the launched browser
+   *  - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if
+   *    the original URL is `https`, or `ws` otherwise.
+   */
+  inspectUri?: string;
 }
 
 /**

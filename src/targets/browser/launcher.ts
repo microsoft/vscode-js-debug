@@ -21,6 +21,7 @@ import { launchUnelevatedChrome } from './unelevatedChome';
 import { IBrowserProcess, NonTrackedBrowserProcess } from './browserProcess';
 import Dap from '../../dap/api';
 import { IDapInitializeParamsWithExtensions } from './browserLauncher';
+import { constructInspectorWSUri } from './constructInspectorWSUri';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -50,7 +51,9 @@ interface ILaunchOptions {
   connection?: 'pipe' | number; // pipe or port number
   userDataDir?: string;
   launchUnelevated?: boolean;
+  url?: string | null;
   promisedPort?: Promise<number>;
+  inspectUri?: string;
 }
 
 const suggestedPortArg = '--remote-debugging-';
@@ -87,6 +90,8 @@ export async function launch(
     env = EnvironmentVars.empty,
     ignoreDefaultArgs = false,
     connection = 'pipe',
+    url,
+    inspectUri,
   } = options;
 
   const browserArguments: string[] = [];
@@ -163,15 +168,14 @@ export async function launch(
         browserProcess.stdio[3] as Writable,
         browserProcess.stdio[4] as Readable,
       );
-    } else if (suggestedPort === undefined || suggestedPort === 0) {
-      const endpoint = await waitForWSEndpoint(browserProcess, cancellationToken);
-      transport = await WebSocketTransport.create(endpoint, cancellationToken);
     } else {
-      const endpoint = await retryGetWSEndpoint(
-        `http://localhost:${suggestedPort}`,
-        cancellationToken,
-      );
-      transport = await WebSocketTransport.create(endpoint, cancellationToken);
+      const endpoint =
+        suggestedPort === undefined || suggestedPort === 0
+          ? await waitForWSEndpoint(browserProcess, cancellationToken)
+          : await retryGetWSEndpoint(`http://localhost:${suggestedPort}`, cancellationToken);
+
+      const inspectWs = inspectUri ? constructInspectorWSUri(inspectUri, url, endpoint) : endpoint;
+      transport = await WebSocketTransport.create(inspectWs, cancellationToken);
     }
 
     const cdp = new CdpConnection(transport, telemetryReporter);

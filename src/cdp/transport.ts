@@ -29,6 +29,7 @@ export class PipeTransport implements ITransport {
   constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
 
   constructor(pipeWrite: net.Socket | NodeJS.WritableStream, pipeRead?: NodeJS.ReadableStream) {
+    logger.info(LogTag.Internal, `Using pipe as transport layer`);
     this._pipeWrite = pipeWrite as NodeJS.WritableStream;
     if (!pipeRead) this._socket = pipeWrite as net.Socket;
 
@@ -106,6 +107,7 @@ export class WebSocketTransport implements ITransport {
   onend?: () => void;
 
   static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
+    logger.info(LogTag.Internal, `Using websocket as transport layer`, url);
     const ws = new WebSocket(url, [], {
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb
