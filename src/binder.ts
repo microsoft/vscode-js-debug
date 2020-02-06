@@ -389,7 +389,7 @@ function warnNightly(dap: Dap.Api): void {
   if (isNightly()) {
     dap.output({
       category: 'console',
-      output: `Note: Using the "nightly" debug extension\n`,
+      output: `Note: Using the "preview" debug extension\n`,
     });
   }
 }
