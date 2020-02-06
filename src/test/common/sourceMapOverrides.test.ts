@@ -53,7 +53,8 @@ describe('SourceMapOverrides', () => {
   });
 
   describe('defaults', () => {
-    const r = new SourceMapOverrides(baseDefaults.sourceMapPathOverrides, logger);
+    let r: SourceMapOverrides;
+    before(() => (r = new SourceMapOverrides(baseDefaults.sourceMapPathOverrides, logger)));
 
     it('does not touch already valid paths', () => {
       expect(r.apply('https://contoso.com/foo.ts')).to.equal('https://contoso.com/foo.ts');
