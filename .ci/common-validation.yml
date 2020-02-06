@@ -1,5 +1,6 @@
 parameters:
   runTests: true
+  runFrameworkTests: false
 
 steps:
 - task: NodeTool@0
@@ -43,7 +44,7 @@ steps:
     verbose: false
     customCommand: test
   timeoutInMinutes: 10
-  condition: eq(${{ parameters.runTests }}, true)
+  condition: eq(${{ parameters.runFrameworkTests }}, true)
   env:
     FRAMEWORK_TESTS: 1
     DISPLAY: ':99.0'
