@@ -79,6 +79,7 @@ export class BrowserLauncher implements ILauncher {
       cwd,
       port,
       url,
+      inspectUri,
       webRoot,
       launchUnelevated: launchUnelevated,
     }: IChromeLaunchConfiguration,
@@ -145,8 +146,10 @@ export class BrowserLauncher implements ILauncher {
         env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
-        connection: port || 'pipe',
+        connection: port || (inspectUri ? 0 : 'pipe'), // We don't default to pipe if we are using an inspectUri
         launchUnelevated: launchUnelevated,
+        url,
+        inspectUri,
         promisedPort,
       },
     );
