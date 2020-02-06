@@ -6,8 +6,7 @@ import micromatch from 'micromatch';
 import { Cdp } from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
-import { LogTag } from '../common/logging';
-import { logger } from '../common/logging/logger';
+import { LogTag, ILogger } from '../common/logging';
 import { debounce } from '../common/objUtils';
 import * as pathUtils from '../common/pathUtils';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
@@ -48,7 +47,12 @@ export class ScriptSkipper {
   private _targetId: string;
   private _rootTargetId: string;
 
-  constructor(skipPatterns: ReadonlyArray<string>, private readonly cdp: Cdp.Api, target: ITarget) {
+  constructor(
+    skipPatterns: ReadonlyArray<string>,
+    private readonly logger: ILogger,
+    private readonly cdp: Cdp.Api,
+    target: ITarget,
+  ) {
     this._targetId = target.id();
     this._rootTargetId = getRootTarget(target).id();
     this._isUrlSkipped = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
@@ -175,7 +179,7 @@ export class ScriptSkipper {
           });
           inSkipRange = !inSkipRange;
         } else {
-          logger.error(
+          this.logger.error(
             LogTag.Internal,
             'Could not map script beginning for ' + authoredSource._name,
           );

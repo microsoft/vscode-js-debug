@@ -6,11 +6,9 @@ import { BreakpointManager } from '../breakpoints';
 import Dap from '../../dap/api';
 import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
-import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { IUiLocation, base1To0 } from '../sources';
 import { urlToRegex } from '../../common/urlUtils';
-import { logPerf } from '../../telemetry/performance';
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -110,7 +108,6 @@ export abstract class Breakpoint {
   /**
    * Sets the breakpoint in the provided thread.
    */
-  @logPerf()
   public async set(thread: Thread): Promise<void> {
     const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or
@@ -226,9 +223,13 @@ export abstract class Breakpoint {
     // This oft happens with Node.js loaders which rewrite sources on the fly.
     for (const bp of this.cdpBreakpoints) {
       if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url)) {
-        logger.verbose(LogTag.RuntimeSourceMap, 'Adjusted breakpoint due to overlaid sourcemap', {
-          url: source.url,
-        });
+        this._manager.logger.verbose(
+          LogTag.RuntimeSourceMap,
+          'Adjusted breakpoint due to overlaid sourcemap',
+          {
+            url: source.url,
+          },
+        );
         promises.push(this.removeCdpBreakpoint(bp));
       }
     }

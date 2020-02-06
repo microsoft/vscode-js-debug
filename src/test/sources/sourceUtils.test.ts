@@ -4,7 +4,8 @@
 
 import { wrapObjectLiteral } from '../../common/sourceUtils';
 import { expect } from 'chai';
-import { logMessageToExpression } from '../../adapter/breakpoints/logPoint';
+import { LogPointCompiler } from '../../adapter/breakpoints/conditions/logPoint';
+import { Logger } from '../../common/logging/logger';
 
 describe('sourceUtils', () => {
   describe('wrapObjectLiteral', () => {
@@ -22,12 +23,16 @@ describe('sourceUtils', () => {
     }
   });
 
-  const wrapped = (text: string) => `(() => {
-    try {${text}
-    } catch (e) {
-      return e.stack || e.message || String(e);
-    }
-  })()`;
+  const wrapped = (...stmts: string[]) =>
+    [
+      '(() => {',
+      '  try {',
+      ...stmts.map(s => `    ${s}`),
+      '  } catch (e) {',
+      '    return e.stack || e.message || String(e);',
+      '  }',
+      '})()',
+    ].join('\n');
 
   describe('logMessageToExpression', () => {
     const cases: { [name: string]: [string, string] } = {
@@ -48,12 +53,7 @@ describe('sourceUtils', () => {
       ],
       'complex expression': [
         'hello {n++;v=() => { return true }}',
-        `console.log("hello %O", (() => {
-    try {n++;return v=() => { return true };
-    } catch (e) {
-      return e.stack || e.message || String(e);
-    }
-  })())`,
+        `console.log("hello %O", ${wrapped('n++;', 'return v=() => { return true };')})`,
       ],
       'invalid empty': ['hello {}!', 'console.log("hello {}!")'],
       'invalid unclosed': ['hello {!', 'console.log("hello {!")'],
@@ -62,7 +62,11 @@ describe('sourceUtils', () => {
 
     for (const name of Object.keys(cases)) {
       const [input, expected] = cases[name];
-      it(name, () => expect(logMessageToExpression(input)).to.equal(expected));
+      it(name, async () => {
+        const compiler = new LogPointCompiler(await Logger.test());
+        const compiled = compiler.compile(input).breakCondition as string;
+        expect(compiled.slice(0, compiled.lastIndexOf('\n'))).to.equal(expected);
+      });
     }
   });
 });

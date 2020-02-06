@@ -4,23 +4,35 @@
 
 import * as path from 'path';
 import { TelemetryReporter } from './telemetryReporter';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
+import { IDisposable } from '../common/disposable';
 
-export function installUnhandledErrorReporter(telemetryReporter: TelemetryReporter): void {
-  process.addListener('uncaughtException', (exception: unknown) => {
+export function installUnhandledErrorReporter(
+  logger: ILogger,
+  telemetryReporter: TelemetryReporter,
+): IDisposable {
+  const exceptionListener = (exception: unknown) => {
     if (shouldReportThisError(exception)) {
       telemetryReporter.report('error', { error: exception, exceptionType: 'uncaughtException' });
       logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', exception);
     }
-  });
-
-  process.addListener('unhandledRejection', (rejection: unknown) => {
+  };
+  const rejectionListener = (rejection: unknown) => {
     if (shouldReportThisError(rejection)) {
       telemetryReporter.report('error', { error: rejection, exceptionType: 'unhandledRejection' });
       logger.error(LogTag.RuntimeException, 'Unhandled promise rejection', rejection);
     }
-  });
+  };
+
+  process.addListener('uncaughtException', exceptionListener);
+  process.addListener('unhandledRejection', rejectionListener);
+
+  return {
+    dispose: () => {
+      process.removeListener('uncaughtException', exceptionListener);
+      process.removeListener('unhandledRejection', rejectionListener);
+    },
+  };
 }
 
 const isErrorObjectLike = (err: unknown): err is Error =>

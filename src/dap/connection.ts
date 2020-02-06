@@ -5,9 +5,7 @@
 import Dap from './api';
 
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { installUnhandledErrorReporter } from '../telemetry/unhandledErrorReporter';
-import { logger, assert } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { isDapError, isExternalError, ProtocolError } from './errors';
 
 export type Message = (
@@ -30,7 +28,6 @@ export type Message = (
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
 
-let isFirstDapConnectionEver = true;
 let connectionId = 0;
 
 export default class Connection {
@@ -50,7 +47,10 @@ export default class Connection {
 
   protected _ready: (dap: Dap.Api) => void;
 
-  constructor(protected readonly telemetryReporter: TelemetryReporter) {
+  constructor(
+    protected readonly telemetryReporter: TelemetryReporter,
+    protected readonly logger: ILogger,
+  ) {
     this._sequence = 1;
     this._rawData = Buffer.alloc(0);
     this._ready = () => {
@@ -87,10 +87,6 @@ export default class Connection {
     inStream.resume();
     const dap = this._createApi();
     this._ready(dap);
-    if (isFirstDapConnectionEver) {
-      installUnhandledErrorReporter(this.telemetryReporter);
-      isFirstDapConnectionEver = false;
-    }
   }
 
   public dap(): Promise<Dap.Api> {
@@ -179,7 +175,7 @@ export default class Connection {
     const json = JSON.stringify(message);
 
     if (message.type !== 'event' || !Connection.logOmittedCalls.has(message.body)) {
-      logger.verbose(LogTag.DapSend, undefined, { connectionId: this._connectionId, message });
+      this.logger.verbose(LogTag.DapSend, undefined, { connectionId: this._connectionId, message });
     }
 
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
@@ -264,7 +260,7 @@ export default class Connection {
     }
     if (msg.type === 'response') {
       const cb = this._pendingRequests.get(msg.request_seq);
-      if (!assert(cb, `Expected callback for request sequence ID ${msg.request_seq}`)) {
+      if (!this.logger.assert(cb, `Expected callback for request sequence ID ${msg.request_seq}`)) {
         return;
       }
 
@@ -291,7 +287,7 @@ export default class Connection {
           if (message.length > 0) {
             try {
               const msg: Message = JSON.parse(message);
-              logger.verbose(LogTag.DapReceive, undefined, {
+              this.logger.verbose(LogTag.DapReceive, undefined, {
                 connectionId: this._connectionId,
                 message: msg,
               });

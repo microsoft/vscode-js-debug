@@ -5,11 +5,11 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
-import { kLogPointUrl } from './breakpoints';
 import { shouldSmartStepStackFrame } from './smartStepping';
 import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
+import { LogPointCompiler } from './breakpoints/conditions/logPoint';
 
 const localize = nls.loadMessageBundle();
 
@@ -22,7 +22,12 @@ export class StackTrace {
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
     const callFrames = stack.callFrames;
-    while (callFrames.length && callFrames[0].url === kLogPointUrl) callFrames.splice(0, 1);
+
+    // Remove any frames on top that are within a log point.
+    while (callFrames.length && LogPointCompiler.isLogPointUrl(callFrames[0].url)) {
+      callFrames.splice(0, 1);
+    }
+
     for (const callFrame of stack.callFrames)
       result._frames.push(StackFrame.fromRuntime(thread, callFrame));
     if (stack.parentId) {

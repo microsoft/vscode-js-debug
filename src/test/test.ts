@@ -34,6 +34,9 @@ import { getLogFileForTest } from './reporters/logReporterUtils';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { TopLevelServiceFactory } from '../services';
+import { ILogger } from '../common/logging';
+import { Logger as AdapterLogger } from '../common/logging/logger';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -75,12 +78,12 @@ class Session {
   readonly dap: Dap.TestApi;
   readonly adapterConnection: DapConnection;
 
-  constructor() {
+  constructor(logger: ILogger) {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
-    this.adapterConnection = new DapConnection(new TelemetryReporter());
+    this.adapterConnection = new DapConnection(new TelemetryReporter(), logger);
     this.adapterConnection.init(testToAdapter, adapterToTest);
-    const testConnection = new DapConnection(new TelemetryReporter());
+    const testConnection = new DapConnection(new TelemetryReporter(), logger);
     testConnection.init(adapterToTest, testToAdapter);
     this.dap = testConnection.createTestApi();
   }
@@ -136,7 +139,7 @@ export class TestP implements ITestHandle {
     this._target = target;
     this.log = root.log;
     this.assertLog = root.assertLog;
-    this._session = new Session();
+    this._session = new Session(root.adapterLogger);
     this.dap = this._session.dap;
     this.logger = new Logger(this.dap, this.log);
   }
@@ -252,7 +255,7 @@ export class NodeTestHandle implements ITestHandle {
     this._target = target;
     this.log = root.log;
     this.assertLog = root.assertLog;
-    this._session = new Session();
+    this._session = new Session(root.adapterLogger);
     this.dap = this._session.dap;
     this.logger = new Logger(this.dap, this.log);
   }
@@ -313,6 +316,7 @@ export class TestRoot {
 
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
   readonly onSessionCreated = this._onSessionCreatedEmitter.event;
+  public readonly adapterLogger = new AdapterLogger();
 
   constructor(goldenText: GoldenText, private _testTitlePath: string) {
     this._args = ['--headless'];
@@ -323,7 +327,7 @@ export class TestRoot {
     );
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this._root = new Session();
+    this._root = new Session(this.adapterLogger);
     this._root.adapterConnection.dap().then(dap => {
       dap.on('initialize', async () => {
         dap.initialized({});
@@ -335,20 +339,22 @@ export class TestRoot {
     });
 
     const storagePath = path.join(__dirname, '..', '..');
-    this._browserLauncher = new BrowserLauncher(storagePath);
+    const services = new TopLevelServiceFactory();
+    this._browserLauncher = new BrowserLauncher(storagePath, services.logger);
     const pathProvider = new NodePathProvider();
     this.binder = new Binder(
       this,
       this._root.adapterConnection,
       [
         this._browserLauncher,
-        new NodeLauncher(pathProvider, [
-          new SubprocessProgramLauncher(),
-          new TerminalProgramLauncher(),
+        new NodeLauncher(pathProvider, services.logger, [
+          new SubprocessProgramLauncher(services.logger),
+          new TerminalProgramLauncher(services.logger),
         ]),
-        new NodeAttacher(pathProvider),
+        new NodeAttacher(pathProvider, services.logger),
       ],
       new TelemetryReporter(),
+      services,
       new TargetOrigin('0'),
     );
 

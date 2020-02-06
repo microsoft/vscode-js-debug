@@ -7,8 +7,7 @@ import * as path from 'path';
 import { PathMapping } from '../../configuration';
 import { URL } from 'url';
 import { properJoin, fixDriveLetterAndSlashes, properResolve } from '../pathUtils';
-import { LogTag } from '../logging';
-import { logger } from '../logging/logger';
+import { LogTag, ILogger } from '../logging';
 import { exists } from '../fsUtils';
 import { filterObject } from '../objUtils';
 
@@ -32,6 +31,7 @@ export async function getComputedSourceRoot(
   generatedPath: string,
   pathMapping: PathMapping,
   resolver: PathMappingResolver,
+  logger: ILogger,
 ): Promise<string> {
   generatedPath = utils.fileUrlToAbsolutePath(generatedPath) || generatedPath;
 
@@ -44,7 +44,7 @@ export async function getComputedSourceRoot(
       // sourceRoot is like "/src", should be like http://localhost/src, resolve to a local path using pathMaping.
       // If path mappings do not apply (e.g. node), assume that sourceRoot is actually a local absolute path.
       // Technically not valid but it's easy to end up with paths like this.
-      absSourceRoot = (await resolver(sourceRoot, pathMapping)) || sourceRoot;
+      absSourceRoot = (await resolver(sourceRoot, pathMapping, logger)) || sourceRoot;
 
       // If no pathMapping (node), use sourceRoot as is.
       // But we also should handle an absolute sourceRoot for chrome? Does CDT handle that? No it does not, it interprets it as "localhost/full path here"
@@ -54,7 +54,7 @@ export async function getComputedSourceRoot(
     } else {
       // generatedPath is a URL so runtime script is not on disk, resolve the sourceRoot location on disk.
       const generatedUrlPath = new URL(generatedPath).pathname;
-      const mappedPath = await resolver(generatedUrlPath, pathMapping);
+      const mappedPath = await resolver(generatedUrlPath, pathMapping, logger);
       const mappedDirname = path.dirname(mappedPath);
       absSourceRoot = properJoin(mappedDirname, sourceRoot);
     }
@@ -68,7 +68,7 @@ export async function getComputedSourceRoot(
   } else {
     // No sourceRoot and runtime script is not on disk, resolve the sourceRoot location on disk
     const urlPathname = new URL(generatedPath).pathname || '/placeholder.js'; // could be debugadapter://123, no other info.
-    const mappedPath = await resolver(urlPathname, pathMapping);
+    const mappedPath = await resolver(urlPathname, pathMapping, logger);
     const scriptPathDirname = mappedPath ? path.dirname(mappedPath) : '';
     absSourceRoot = scriptPathDirname;
     logger.verbose(
@@ -94,6 +94,7 @@ export async function getComputedSourceRoot(
 export type PathMappingResolver = (
   scriptUrlOrPath: string,
   pathMapping: PathMapping,
+  logger: ILogger,
 ) => Promise<string>;
 
 /**
@@ -103,6 +104,7 @@ export type PathMappingResolver = (
 export const defaultPathMappingResolver: PathMappingResolver = async (
   scriptUrlPath,
   pathMapping,
+  logger,
 ) => {
   if (!scriptUrlPath || !scriptUrlPath.startsWith('/')) {
     return '';
@@ -136,19 +138,21 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
 export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappingResolver => async (
   script,
   pathMapping,
+  logger,
 ) => {
   const implicit = await utils.nearestDirectoryWhere(path.dirname(compiledPath), p =>
     exists(path.join(p, 'package.json')),
   );
 
   if (!implicit) {
-    return defaultPathMappingResolver(script, pathMapping);
+    return defaultPathMappingResolver(script, pathMapping, logger);
   }
 
   const explicit = await defaultPathMappingResolver(
     script,
     // filter the mapping to directories that could be
     filterObject(pathMapping, key => key.length >= implicit.length),
+    logger,
   );
 
   return explicit || implicit;

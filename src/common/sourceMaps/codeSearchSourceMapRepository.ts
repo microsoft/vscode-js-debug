@@ -2,8 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { LogTag } from '../logging';
-import { logger } from '../logging/logger';
+import { LogTag, ILogger } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 import { NodeSourceMapRepository } from './nodeSourceMapRepository';
 import { ISourceMapMetadata } from './sourceMap';
@@ -16,9 +15,9 @@ type vscode = typeof import('vscode');
  * look for candidate files.
  */
 export class CodeSearchSourceMapRepository implements ISourceMapRepository {
-  constructor(private readonly _vscode: vscode) {}
+  constructor(private readonly _vscode: vscode, private readonly logger: ILogger) {}
 
-  public static createOrFallback() {
+  public static createOrFallback(logger: ILogger) {
     /*
     todo(connor4312): disabled until https://github.com/microsoft/vscode/issues/85946
     try {
@@ -32,7 +31,7 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
       // ignored -- VS won't have vscode as a viable import, fall back to the memory/node.js version
     }
     */
-    return new NodeSourceMapRepository();
+    return new NodeSourceMapRepository(logger);
   }
 
   /**
@@ -78,7 +77,7 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
           createMetadataForFile(result.uri.fsPath, text)
             .then(parsed => parsed && onChild(parsed))
             .catch(error =>
-              logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
+              this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                 error,
                 file: result.uri.fsPath,
               }),

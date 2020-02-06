@@ -11,8 +11,7 @@ import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
@@ -51,6 +50,7 @@ export class BreakpointsPredictor {
   constructor(
     launchConfig: AnyLaunchConfiguration,
     private readonly repo: ISourceMapRepository,
+    private readonly logger: ILogger,
     private readonly sourceMapFactory: SourceMapFactory,
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
     private readonly cache: BreakpointPredictionCache | undefined,
@@ -61,8 +61,13 @@ export class BreakpointsPredictor {
     );
   }
 
-  @logPerf<BreakpointsPredictor>(m => ({ type: m.repo.constructor.name }))
   private async createInitialMapping(): Promise<MetadataMap> {
+    return logPerf(this.logger, `BreakpointsPredictor.createInitialMapping`, () =>
+      this.createInitialMappingInner(),
+    );
+  }
+
+  private async createInitialMappingInner(): Promise<MetadataMap> {
     if (this.patterns.length === 0) {
       return new Map();
     }
@@ -82,7 +87,7 @@ export class BreakpointsPredictor {
 
     const warnLongRuntime = setTimeout(() => {
       this.longParseEmitter.fire();
-      logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
+      this.logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
         type: this.repo.constructor.name,
         longPredictionWarning,
         patterns: this.patterns,

@@ -63,6 +63,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
           map.metadata.compiledPath,
           { '/': this.options.basePath },
           moduleAwarePathMappingResolver(map.metadata.compiledPath),
+          this.logger,
         ),
         url,
       );

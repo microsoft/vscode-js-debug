@@ -21,6 +21,7 @@ import { launchUnelevatedChrome } from './unelevatedChome';
 import { IBrowserProcess, NonTrackedBrowserProcess } from './browserProcess';
 import Dap from '../../dap/api';
 import { IDapInitializeParamsWithExtensions } from './browserLauncher';
+import { ILogger } from '../../common/logging';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',
@@ -73,6 +74,7 @@ export interface ILaunchResult {
 export async function launch(
   dap: Dap.Api,
   executablePath: string,
+  logger: ILogger,
   telemetryReporter: TelemetryReporter,
   clientCapabilities: IDapInitializeParamsWithExtensions,
   cancellationToken: CancellationToken,
@@ -145,7 +147,7 @@ export async function launch(
   }
 
   let exitListener: () => void = () => {
-    if (browserProcess.pid) killTree(browserProcess.pid);
+    if (browserProcess.pid) killTree(browserProcess.pid, logger);
   };
   process.on('exit', exitListener);
   browserProcess.on('exit', () => process.removeListener('exit', exitListener));
@@ -160,6 +162,7 @@ export async function launch(
     let transport: ITransport;
     if (usePipe) {
       transport = new PipeTransport(
+        logger,
         browserProcess.stdio[3] as Writable,
         browserProcess.stdio[4] as Readable,
       );
@@ -174,11 +177,11 @@ export async function launch(
       transport = await WebSocketTransport.create(endpoint, cancellationToken);
     }
 
-    const cdp = new CdpConnection(transport, telemetryReporter);
+    const cdp = new CdpConnection(transport, logger, telemetryReporter);
     exitListener = async () => {
       await cdp.rootSession().Browser.close({});
       if (browserProcess.pid) {
-        killTree(browserProcess.pid);
+        killTree(browserProcess.pid, logger);
       }
     };
     return { cdp: cdp, process: browserProcess };
@@ -208,6 +211,7 @@ interface IAttachOptions {
 export async function attach(
   options: IAttachOptions,
   cancellationToken: CancellationToken,
+  logger: ILogger,
   telemetryReporter: TelemetryReporter,
 ): Promise<CdpConnection> {
   const { browserWSEndpoint, browserURL } = options;
@@ -217,11 +221,11 @@ export async function attach(
       browserWSEndpoint,
       cancellationToken,
     );
-    return new CdpConnection(connectionTransport, telemetryReporter);
+    return new CdpConnection(connectionTransport, logger, telemetryReporter);
   } else if (browserURL) {
     const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
     const connectionTransport = await WebSocketTransport.create(connectionURL, cancellationToken);
-    return new CdpConnection(connectionTransport, telemetryReporter);
+    return new CdpConnection(connectionTransport, logger, telemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
 }

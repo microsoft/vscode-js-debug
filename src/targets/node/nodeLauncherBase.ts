@@ -27,6 +27,7 @@ import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider } from './nodePathProvider';
+import { ILogger } from '../../common/logging';
 
 /**
  * Telemetry received from the nested process.
@@ -102,7 +103,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   protected program?: IProgram;
 
-  constructor(private readonly pathProvider: NodePathProvider) {}
+  constructor(
+    private readonly pathProvider: NodePathProvider,
+    protected readonly logger: ILogger,
+  ) {}
 
   /**
    * @inheritdoc
@@ -125,13 +129,16 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       params: resolved,
       context,
       bootloader: this.getBootloaderFile(resolved.cwd),
-      pathResolver: new NodeSourcePathResolver({
-        resolveSourceMapLocations: resolved.resolveSourceMapLocations,
-        basePath: resolved.cwd,
-        sourceMapOverrides: resolved.sourceMapPathOverrides,
-        remoteRoot: resolved.remoteRoot,
-        localRoot: resolved.localRoot,
-      }),
+      pathResolver: new NodeSourcePathResolver(
+        {
+          resolveSourceMapLocations: resolved.resolveSourceMapLocations,
+          basePath: resolved.cwd,
+          sourceMapOverrides: resolved.sourceMapPathOverrides,
+          remoteRoot: resolved.remoteRoot,
+          localRoot: resolved.localRoot,
+        },
+        this.logger,
+      ),
     });
 
     const error = await this.launchProgram(run);
@@ -327,7 +334,11 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
 
   protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: TelemetryReporter) {
-    const connection = new Connection(new PipeTransport(socket), rawTelemetryReporter);
+    const connection = new Connection(
+      new PipeTransport(this.logger, socket),
+      this.logger,
+      rawTelemetryReporter,
+    );
     this.serverConnections.push(connection);
     const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f =>

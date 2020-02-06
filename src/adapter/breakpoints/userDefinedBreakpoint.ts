@@ -4,13 +4,12 @@
 
 import { CdpReferenceState, Breakpoint, BreakpointCdpReference } from './breakpointBase';
 import * as nls from 'vscode-nls';
-import { BreakpointManager, kLogPointUrl } from '../breakpoints';
+import { BreakpointManager } from '../breakpoints';
 import Dap from '../../dap/api';
-import { logMessageToExpression } from './logPoint';
 import { getDeferred } from '../../common/promiseUtil';
-import { HitCondition } from './hitCondition';
 import { Thread } from '../threads';
 import Cdp from '../../cdp/api';
+import { IBreakpointCondition } from './conditions';
 
 const localize = nls.loadMessageBundle();
 
@@ -22,8 +21,6 @@ export class UserDefinedBreakpoint extends Breakpoint {
    */
   private readonly completedSet = getDeferred<void>();
 
-  private logPointExpression?: string;
-
   /**
    * @param hitCondition - Hit condition for this breakpoint. See
    * {@link HitCondition} for more information.
@@ -34,13 +31,9 @@ export class UserDefinedBreakpoint extends Breakpoint {
     public readonly dapId: number,
     source: Dap.Source,
     private readonly dapParams: Dap.SourceBreakpoint,
-    private readonly hitCondition?: HitCondition,
+    private readonly condition: IBreakpointCondition,
   ) {
     super(manager, source, { lineNumber: dapParams.line, columnNumber: dapParams.column || 1 });
-
-    if (dapParams.logMessage) {
-      this.logPointExpression = logMessageToExpression(dapParams.logMessage);
-    }
   }
 
   /**
@@ -75,7 +68,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * according to the hit condition.
    */
   public testHitCondition() {
-    return this.hitCondition?.test() ?? true;
+    return this.condition.shouldStayPaused();
   }
 
   /**
@@ -120,16 +113,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * @override
    */
   protected getBreakCondition() {
-    const expressions: string[] = [];
-    if (this.logPointExpression) {
-      expressions.push(this.logPointExpression + `\n//# sourceURL=${kLogPointUrl}`);
-    }
-
-    if (this.dapParams.condition) {
-      expressions.push(this.dapParams.condition);
-    }
-
-    return expressions.length ? expressions.join(' && ') : undefined;
+    return this.condition.breakCondition;
   }
 
   /**

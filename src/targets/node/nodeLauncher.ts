@@ -15,8 +15,7 @@ import { resolve } from 'path';
 import Cdp from '../../cdp/api';
 import { NodePathProvider } from './nodePathProvider';
 import { exists } from '../../common/fsUtils';
-import { logger } from '../../common/logging/logger';
-import { LogTag } from '../../common/logging';
+import { LogTag, ILogger } from '../../common/logging';
 import { fixInspectFlags } from '../../ui/configurationUtils';
 
 /**
@@ -51,10 +50,11 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
     pathProvider: NodePathProvider,
+    logger: ILogger,
     private readonly launchers: ReadonlyArray<IProgramLauncher>,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
-    super(pathProvider);
+    super(pathProvider, logger);
   }
 
   /**
@@ -171,7 +171,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         // do our best to find the entrypoint from the run params.
         const program = await tryGetProgramFromArgs(run.params);
         if (!program) {
-          logger.warn(LogTag.Runtime, 'Could not resolve program entrypointfrom args');
+          this.logger.warn(LogTag.Runtime, 'Could not resolve program entrypointfrom args');
           return;
         }
 

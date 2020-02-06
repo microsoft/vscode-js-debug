@@ -19,22 +19,23 @@ import { ExtensionHostLauncher } from '../targets/node/extensionHostLauncher';
 import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
-import { assert } from '../common/logging/logger';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { TopLevelServiceFactory } from '../services';
 
 export class Session implements IDisposable {
   public readonly debugSession: vscode.DebugSession;
   public readonly connection: DapConnection;
   private readonly telemetryReporter = new TelemetryReporter();
+  private readonly services = new TopLevelServiceFactory();
   private _server: net.Server;
   private _binder?: Binder;
   private _onTargetNameChanged?: IDisposable;
 
   constructor(debugSession: vscode.DebugSession) {
     this.debugSession = debugSession;
-    this.connection = new DapConnection(this.telemetryReporter);
+    this.connection = new DapConnection(this.telemetryReporter, this.services.logger);
     this._server = net
       .createServer(async socket => {
         this.connection.init(socket, socket);
@@ -55,16 +56,16 @@ export class Session implements IDisposable {
   ) {
     const pathProvider = new NodePathProvider();
     const launchers = [
-      new ExtensionHostAttacher(pathProvider),
-      new ExtensionHostLauncher(pathProvider),
-      new TerminalNodeLauncher(pathProvider),
-      new NodeLauncher(pathProvider, [
-        new SubprocessProgramLauncher(),
-        new TerminalProgramLauncher(),
+      new ExtensionHostAttacher(pathProvider, this.services.logger),
+      new ExtensionHostLauncher(pathProvider, this.services.logger),
+      new TerminalNodeLauncher(pathProvider, this.services.logger),
+      new NodeLauncher(pathProvider, this.services.logger, [
+        new SubprocessProgramLauncher(this.services.logger),
+        new TerminalProgramLauncher(this.services.logger),
       ]),
-      new NodeAttacher(pathProvider),
-      new BrowserLauncher(context.storagePath || context.extensionPath),
-      new BrowserAttacher(),
+      new NodeAttacher(pathProvider, this.services.logger),
+      new BrowserLauncher(context.storagePath || context.extensionPath, this.services.logger),
+      new BrowserAttacher(this.services.logger),
       delegateLauncher.createLauncher(),
     ];
     this._binder = new Binder(
@@ -72,6 +73,7 @@ export class Session implements IDisposable {
       this.connection,
       launchers,
       this.telemetryReporter,
+      this.services,
       new TargetOrigin(this.debugSession.id),
     );
   }
@@ -120,8 +122,8 @@ export class SessionManager
     const pendingTargetId: string | undefined = debugSession.configuration.__pendingTargetId;
     if (pendingTargetId) {
       const target = this._pendingTarget.get(pendingTargetId);
-      if (!assert(target, `Cannot find target ${pendingTargetId}`)) {
-        return;
+      if (!target) {
+        throw new Error(`Cannot find target ${pendingTargetId}`);
       }
 
       this._pendingTarget.delete(pendingTargetId);
@@ -166,8 +168,8 @@ export class SessionManager
         parentDebugSession = this._sessions.get(target.targetOrigin().id)?.debugSession;
       }
 
-      if (!assert(parentDebugSession, 'Expected to get a parent debug session for target')) {
-        return;
+      if (!parentDebugSession) {
+        throw new Error('Expected to get a parent debug session for target');
       }
 
       const config = {

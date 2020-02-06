@@ -16,9 +16,8 @@ import { SourceMapConsumer, Position, NullablePosition } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { assert, logger } from '../common/logging/logger';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
 
@@ -321,6 +320,7 @@ export class SourceContainer {
   constructor(
     dap: Dap.Api,
     private readonly sourceMapFactory: SourceMapFactory,
+    private readonly logger: ILogger,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
     public readonly localSourceMaps: ISourceMapRepository,
@@ -389,7 +389,7 @@ export class SourceContainer {
       id++;
     }
 
-    assert(false, 'Max iterations exceeding for source reference assignment');
+    this.logger.assert(false, 'Max iterations exceeding for source reference assignment');
     return id; // conflicts, but it's better than nothing, maybe?
   }
 
@@ -407,7 +407,12 @@ export class SourceContainer {
       }
 
       const sourceMap = this._sourceMaps.get(sourceMapUrl);
-      if (!assert(sourceMap, `Expected to have sourcemap for loaded source ${sourceMapUrl}`)) {
+      if (
+        !this.logger.assert(
+          sourceMap,
+          `Expected to have sourcemap for loaded source ${sourceMapUrl}`,
+        )
+      ) {
         break;
       }
 
@@ -492,7 +497,9 @@ export class SourceContainer {
 
     let output: IUiLocation[] = [];
     for (const [compiled, sourceUrl] of uiLocation.source._compiledToSourceUrl) {
-      if (!assert(compiled._sourceMapUrl, 'Expected compiled script to have source map')) {
+      if (
+        !this.logger.assert(compiled._sourceMapUrl, 'Expected compiled script to have source map')
+      ) {
         continue;
       }
 
@@ -576,7 +583,7 @@ export class SourceContainer {
     contentHash?: string,
   ): Promise<Source> {
     const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
-    logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
+    this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
       inputUrl: url,
       absolutePath,
     });
@@ -662,7 +669,10 @@ export class SourceContainer {
       return; // already removed
     }
 
-    assert(source === existing, 'Expected source to be the same as the existing reference');
+    this.logger.assert(
+      source === existing,
+      'Expected source to be the same as the existing reference',
+    );
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source.url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
@@ -675,10 +685,12 @@ export class SourceContainer {
     if (!sourceMapUrl) return;
 
     const sourceMap = this._sourceMaps.get(sourceMapUrl);
-    if (!assert(sourceMap, `Source map missing for ${sourceMapUrl} in removeSource()`)) {
+    if (
+      !this.logger.assert(sourceMap, `Source map missing for ${sourceMapUrl} in removeSource()`)
+    ) {
       return;
     }
-    assert(
+    this.logger.assert(
       sourceMap.compiled.has(source),
       `Source map ${sourceMapUrl} does not contain source ${source.url}`,
     );
@@ -709,7 +721,7 @@ export class SourceContainer {
         continue;
       }
 
-      logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
+      this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
         inputUrl: url,
         inputMap: map.metadata,
         absolutePath,
@@ -750,12 +762,12 @@ export class SourceContainer {
 
     for (const url of map.sources) {
       const source = compiled._sourceMapSourceByUrl.get(url);
-      if (!assert(source, `Unknown source ${url} in removeSourceMapSources`)) {
+      if (!this.logger.assert(source, `Unknown source ${url} in removeSourceMapSources`)) {
         continue;
       }
 
       if (
-        !assert(
+        !this.logger.assert(
           source._compiledToSourceUrl,
           `Compiled source ${url} missing map in removeSourceMapSources`,
         )
@@ -765,7 +777,7 @@ export class SourceContainer {
 
       compiled._sourceMapSourceByUrl.delete(url);
       if (
-        !assert(
+        !this.logger.assert(
           source?._compiledToSourceUrl,
           `Source ${url} is missing compiled file ${compiled.url}`,
         )
@@ -783,7 +795,9 @@ export class SourceContainer {
   public async waitForSourceMapSources(source: Source): Promise<Source[]> {
     if (!source._sourceMapUrl) return [];
     const sourceMap = this._sourceMaps.get(source._sourceMapUrl);
-    if (!assert(sourceMap, 'Unrecognized source mpa url in waitForSourceMapSources()')) {
+    if (
+      !this.logger.assert(sourceMap, 'Unrecognized source mpa url in waitForSourceMapSources()')
+    ) {
       return [];
     }
 

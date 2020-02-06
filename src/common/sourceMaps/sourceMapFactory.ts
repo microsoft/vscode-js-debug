@@ -5,8 +5,7 @@
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
 import { IDisposable } from '../disposable';
 import { fetch } from '../urlUtils';
-import { logger } from '../logging/logger';
-import { LogTag } from '../logging';
+import { LogTag, ILogger } from '../logging';
 import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
 
 /**
@@ -15,6 +14,8 @@ import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-
  */
 export class SourceMapFactory implements IDisposable {
   private readonly knownMaps = new Map<string, Promise<SourceMap | undefined>>();
+
+  constructor(private readonly logger: ILogger) {}
 
   /**
    * Loads the provided source map.
@@ -42,7 +43,7 @@ export class SourceMapFactory implements IDisposable {
   }
 
   private async loadSourceMap(metadata: ISourceMapMetadata): Promise<SourceMap | undefined> {
-    const basic = await parseSourceMap(metadata.sourceMapUrl);
+    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
     if (!basic) {
       return;
     }
@@ -61,19 +62,18 @@ export class SourceMapFactory implements IDisposable {
       actualRoot ?? '',
     );
   }
-}
 
-async function parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | undefined> {
-  try {
-    let content = await fetch(sourceMapUrl);
+  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | undefined> {
+    try {
+      let content = await fetch(sourceMapUrl);
 
-    if (content.slice(0, 3) === ')]}') {
-      content = content.substring(content.indexOf('\n'));
+      if (content.slice(0, 3) === ')]}') {
+        content = content.substring(content.indexOf('\n'));
+      }
+
+      return JSON.parse(content);
+    } catch (err) {
+      this.logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
     }
-
-    return JSON.parse(content);
-  } catch (err) {
-    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
-    return;
   }
 }
