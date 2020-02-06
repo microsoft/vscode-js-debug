@@ -30,6 +30,7 @@ import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { mapValues } from './common/objUtils';
 import * as os from 'os';
 import { delay } from './common/promiseUtil';
+import { IServiceFactory, TopLevelServiceFactory } from './services';
 
 const localize = nls.loadMessageBundle();
 
@@ -56,6 +57,8 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
+  private _rootServices = new TopLevelServiceFactory();
+  private _serviceTree = new WeakMap<ITarget, IServiceFactory>();
 
   constructor(
     delegate: IBinderDelegate,
@@ -152,11 +155,11 @@ export class Binder implements IDisposable {
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     warnNightly(dap);
-    this.reportBootTelemetry(params);
     logger.setup(resolveLoggerOptions(dap, params.trace));
+    this.reportBootTelemetry(params);
+    this._rootServices.provideRootData({ params, dap });
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
-
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
     let results = await Promise.all(
@@ -308,20 +311,27 @@ export class Binder implements IDisposable {
     if (!cdp) return;
     const connection = await this._delegate.acquireDap(target);
     const dap = await connection.dap();
+    const launchParams = this._launchParams!;
 
     if (!this._asyncStackPolicy) {
-      this._asyncStackPolicy = getAsyncStackPolicy(this._launchParams!.showAsyncStacks);
+      this._asyncStackPolicy = getAsyncStackPolicy(launchParams.showAsyncStacks);
     }
 
-    const scriptSkipper = new ScriptSkipper(this._launchParams!.skipFiles, cdp, target);
+    const parent = target.parent();
+    const services = (parent && this._serviceTree.get(parent)?.child) || this._rootServices.child;
+    this._serviceTree.set(target, services);
+
+    // todo: move scriptskipper into services collection
+    const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
       scriptSkipper,
       this._asyncStackPolicy,
-      this._launchParams!,
+      launchParams,
       this.telemetryReporter,
+      services.create({ target }),
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });
@@ -361,9 +371,14 @@ export class Binder implements IDisposable {
 
   _attachToNewTargets(targets: ITarget[]) {
     for (const target of targets.values()) {
-      if (!target.waitingForDebugger()) continue;
+      if (!target.waitingForDebugger()) {
+        continue;
+      }
+
       const thread = this._threads.get(target);
-      if (!thread) this.attach(target);
+      if (!thread) {
+        this.attach(target);
+      }
     }
   }
 

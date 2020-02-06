@@ -39,6 +39,7 @@ export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetada
 export class BreakpointsPredictor {
   private readonly predictedLocations: PredictedLocation[] = [];
   private readonly patterns: string[];
+  private readonly rootPath: string;
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
 
@@ -48,15 +49,15 @@ export class BreakpointsPredictor {
   public readonly onLongParse = this.longParseEmitter.event;
 
   constructor(
-    private readonly rootPath: string,
     launchConfig: AnyLaunchConfiguration,
     private readonly repo: ISourceMapRepository,
     private readonly sourceMapFactory: SourceMapFactory,
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
     private readonly cache: BreakpointPredictionCache | undefined,
   ) {
+    this.rootPath = launchConfig.rootPath;
     this.patterns = launchConfig.outFiles.map(p =>
-      path.isAbsolute(p) ? path.relative(rootPath, p) : p,
+      path.isAbsolute(p) ? path.relative(launchConfig.rootPath, p) : p,
     );
   }
 
