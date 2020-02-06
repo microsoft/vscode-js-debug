@@ -31,7 +31,7 @@ class LoggingReporter extends mocha.reporters.Spec {
     try {
       const contents = (await util.promisify(fs.readFile)(logPath)).toString();
       console.log(`##vso[build.uploadlog]${logPath}`);
-      contents.split('\n').forEach(s => console.error(s.substr(0, 1000)));
+      contents.split('\n').forEach(s => console.error(s.substr(0, 1000))); // Can't log very large strings in a single console.error call
     } catch (e) {}
   }
 }

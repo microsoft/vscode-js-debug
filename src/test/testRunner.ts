@@ -69,22 +69,26 @@ export async function run(): Promise<void> {
     runner.retries(Number(process.env.RETRY_TESTS));
   }
 
-  runner.addFile(join(__dirname, 'testIntegrationUtils'));
-  runner.addFile(join(__dirname, 'infra/infra'));
-  runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
-  runner.addFile(join(__dirname, 'browser/framesTest'));
-  runner.addFile(join(__dirname, 'browser/browserPathResolverTest'));
-  runner.addFile(join(__dirname, 'evaluate/evaluate'));
-  runner.addFile(join(__dirname, 'sources/sourcesTest'));
-  runner.addFile(join(__dirname, 'stacks/stacksTest'));
-  runner.addFile(join(__dirname, 'threads/threadsTest'));
-  runner.addFile(join(__dirname, 'variables/variablesTest'));
-  runner.addFile(join(__dirname, 'console/consoleFormatTest'));
-  runner.addFile(join(__dirname, 'console/consoleAPITest'));
-  runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
+  if (process.env.FRAMEWORK_TESTS) {
+    runner.addFile(join(__dirname, 'framework/reactTest'));
+  } else {
+    runner.addFile(join(__dirname, 'testIntegrationUtils'));
+    runner.addFile(join(__dirname, 'infra/infra'));
+    runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
+    runner.addFile(join(__dirname, 'browser/framesTest'));
+    runner.addFile(join(__dirname, 'browser/browserPathResolverTest'));
+    runner.addFile(join(__dirname, 'evaluate/evaluate'));
+    runner.addFile(join(__dirname, 'sources/sourcesTest'));
+    runner.addFile(join(__dirname, 'stacks/stacksTest'));
+    runner.addFile(join(__dirname, 'threads/threadsTest'));
+    runner.addFile(join(__dirname, 'variables/variablesTest'));
+    runner.addFile(join(__dirname, 'console/consoleFormatTest'));
+    runner.addFile(join(__dirname, 'console/consoleAPITest'));
+    runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
 
-  for (const file of glob.sync('**/*.test.js', { cwd: __dirname })) {
-    runner.addFile(join(__dirname, file));
+    for (const file of glob.sync('**/*.test.js', { cwd: __dirname })) {
+      runner.addFile(join(__dirname, file));
+    }
   }
 
   try {

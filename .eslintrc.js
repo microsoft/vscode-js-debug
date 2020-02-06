@@ -1,10 +1,10 @@
 module.exports = {
   ignorePatterns: [
     '**/*.d.ts',
-    'src/int-chrome/**/*.ts',
     'src/test/**/*.ts',
     'demos/**/*',
     '**/*.js',
+    'testWorkspace/**'
   ],
   parser: '@typescript-eslint/parser',
   extends: ['plugin:@typescript-eslint/recommended'],
