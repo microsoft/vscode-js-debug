@@ -22,6 +22,9 @@ import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBrowserProcess } from './browserProcess';
 import { IBrowserVersionMetrics } from '../../telemetry/classification';
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
@@ -439,7 +442,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
           ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '')
           : this._targetInfo.title;
     } catch (e) {
-      threadName += this._targetInfo.url;
+      threadName += this._targetInfo.url || localize('chrome.pagePlaceholder', 'Target Page');
     }
     return threadName;
   }
