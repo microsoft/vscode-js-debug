@@ -124,10 +124,24 @@ export class BrowserTargetManager implements IDisposable {
         return;
       }
 
-      const response = await this._browser.Target.attachToTarget({
-        targetId: targetInfo.targetId,
-        flatten: true,
+      // Watch for info updates in case things come through while we're
+      // still attaching. See: https://github.com/microsoft/vscode/issues/90149
+      const updateListener = this._browser.Target.on('targetInfoChanged', evt => {
+        if (evt.targetInfo.targetId === targetInfo.targetId) {
+          targetInfo = evt.targetInfo;
+        }
       });
+
+      let response: Cdp.Target.AttachToBrowserTargetResult | undefined;
+      try {
+        response = await this._browser.Target.attachToTarget({
+          targetId: targetInfo.targetId,
+          flatten: true,
+        });
+      } finally {
+        updateListener.dispose();
+      }
+
       if (!response) {
         callback(undefined);
         return;

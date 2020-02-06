@@ -657,7 +657,12 @@ export class SourceContainer {
   }
 
   removeSource(source: Source, silent = false) {
-    console.assert(this._sourceByReference.get(source.sourceReference()) === source);
+    const existing = this._sourceByReference.get(source.sourceReference());
+    if (existing === undefined) {
+      return; // already removed
+    }
+
+    assert(source === existing, 'Expected source to be the same as the existing reference');
     this._sourceByReference.delete(source.sourceReference());
     if (source._compiledToSourceUrl) this._sourceMapSourcesByUrl.delete(source.url);
     this._sourceByAbsolutePath.delete(source._absolutePath);
@@ -698,42 +703,41 @@ export class SourceContainer {
         (absolutePath && utils.absolutePathToFileUrl(absolutePath)) || map.computedSourceUrl(url);
 
       let source = this._sourceMapSourcesByUrl.get(resolvedUrl);
-      const isNew = !source;
-      if (!source) {
-        logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
-          inputUrl: url,
-          inputMap: map.metadata,
-          absolutePath,
-          resolvedUrl,
-          sourceMapSources: map.sources,
-        });
-
-        // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
-        const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-        const content = map.sourceContentFor(url) ?? undefined;
-
-        source = new Source(
-          this,
-          resolvedUrl,
-          absolutePath,
-          content !== undefined
-            ? () => Promise.resolve(content)
-            : fileUrl
-            ? () => utils.fetch(fileUrl)
-            : compiled._contentGetter,
-          undefined,
-          undefined,
-          undefined,
-        );
-        source._compiledToSourceUrl = new Map();
-        source._compiledToSourceUrl.set(compiled, url);
-        compiled._sourceMapSourceByUrl.set(url, source);
-      } else {
+      if (source) {
         source._compiledToSourceUrl!.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
+        return;
       }
 
-      if (isNew) todo.push(this._addSource(source));
+      logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
+        inputUrl: url,
+        inputMap: map.metadata,
+        absolutePath,
+        resolvedUrl,
+        sourceMapSources: map.sources,
+      });
+
+      // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
+      const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
+      const content = map.sourceContentFor(url) ?? undefined;
+
+      source = new Source(
+        this,
+        resolvedUrl,
+        absolutePath,
+        content !== undefined
+          ? () => Promise.resolve(content)
+          : fileUrl
+          ? () => utils.fetch(fileUrl)
+          : compiled._contentGetter,
+        undefined,
+        undefined,
+        undefined,
+      );
+      source._compiledToSourceUrl = new Map();
+      source._compiledToSourceUrl.set(compiled, url);
+      compiled._sourceMapSourceByUrl.set(url, source);
+      todo.push(this._addSource(source));
     }
 
     await Promise.all(todo);
