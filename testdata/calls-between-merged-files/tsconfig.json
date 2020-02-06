@@ -1,7 +1,0 @@
-{
-    "compilerOptions": {
-        "outDir": "out",
-        "target": "es5",
-        "sourceMap": true
-    }
-}

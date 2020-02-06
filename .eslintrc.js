@@ -1,7 +1,6 @@
 module.exports = {
   ignorePatterns: [
     '**/*.d.ts',
-    'src/int-chrome/**/*.ts',
     'src/test/**/*.ts',
     'demos/**/*',
     '**/*.js',

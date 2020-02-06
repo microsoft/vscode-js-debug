@@ -86,20 +86,6 @@
 			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],
 			// "preLaunchTask": "npm: watch"
     },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Run int tests",
-      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "args": ["--timeout", "10000", "-u", "tdd", "--colors", "--reporter", "out/src/int-chrome/testSupport/loggingReporter.js", "./out/src/int-chrome/**/*.test.js",
-        // "--grep", "Variables scopes"
-      ],
-      "outFiles": ["${workspaceFolder}/out/src/**/*.js"],
-      "skipFiles": ["<node_internals>/**"],
-      "env": {
-        "DISPLAY": ":1.0"
-      }
-    },
 		{
 			"name": "Reset Results",
 			"type": "extensionHost",
