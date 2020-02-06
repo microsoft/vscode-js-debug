@@ -20,6 +20,7 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { HitCondition } from './breakpoints/hitCondition';
 import { ProtocolError } from '../dap/errors';
 import { logPerf } from '../telemetry/performance';
+import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -311,25 +312,29 @@ export class BreakpointManager {
       for (let index = 0; index < params.breakpoints.length; index++) {
         const bpParams = params.breakpoints[index];
 
-        let hitCondition: HitCondition | undefined;
+        let created: UserDefinedBreakpoint;
         try {
-          if (bpParams.hitCondition) {
-            hitCondition = HitCondition.parse(bpParams.hitCondition);
-          }
+          created = new UserDefinedBreakpoint(
+            this,
+            ids[index],
+            params.source,
+            params.breakpoints[index],
+            bpParams.hitCondition ? HitCondition.parse(bpParams.hitCondition) : undefined,
+          );
         } catch (e) {
-          if (e instanceof ProtocolError) {
-            this._dap.output({ category: 'stderr', output: e.message });
-            continue;
+          if (!(e instanceof ProtocolError)) {
+            throw e;
           }
+
+          this._dap.output({ category: 'stderr', output: e.message });
+          created = new NeverResolvedBreakpoint(
+            this,
+            ids[index],
+            params.source,
+            params.breakpoints[index],
+          );
         }
 
-        const created = new UserDefinedBreakpoint(
-          this,
-          ids[index],
-          params.source,
-          params.breakpoints[index],
-          hitCondition,
-        );
         const existingIndex = result.unbound.findIndex(p => p.equivalentTo(created));
         const existing = result.unbound[existingIndex];
         if (existing?.equivalentTo?.(created)) {
