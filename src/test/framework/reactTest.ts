@@ -48,7 +48,7 @@ describe('react', () => {
     await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
     p.load();
     await waitForPause(p);
-    p.assertLog();
+    p.assertLog({ substring: true });
   });
 });
 
