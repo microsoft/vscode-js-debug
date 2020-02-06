@@ -706,7 +706,7 @@ export class SourceContainer {
       if (source) {
         source._compiledToSourceUrl!.set(compiled, url);
         compiled._sourceMapSourceByUrl.set(url, source);
-        return;
+        continue;
       }
 
       logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
