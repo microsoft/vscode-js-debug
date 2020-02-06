@@ -9,6 +9,7 @@ jobs:
   steps:
   - template: common-validation.yml
     parameters:
+      runTests: false
       runFrameworkTests: true
 
 - job: Linux
@@ -17,10 +18,5 @@ jobs:
   steps:
   - template: common-validation.yml
     parameters:
-        runFrameworkTests: true
-
-- job: Windows
-  pool:
-    vmImage: 'vs2017-win2016'
-  steps:
-  - template: common-validation.yml
+      runTests: false
+      runFrameworkTests: true
