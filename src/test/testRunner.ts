@@ -85,10 +85,10 @@ export async function run(): Promise<void> {
     runner.addFile(join(__dirname, 'console/consoleFormatTest'));
     runner.addFile(join(__dirname, 'console/consoleAPITest'));
     runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
-  }
 
-  for (const file of glob.sync('**/*.test.js', { cwd: __dirname })) {
-    runner.addFile(join(__dirname, file));
+    for (const file of glob.sync('**/*.test.js', { cwd: __dirname })) {
+      runner.addFile(join(__dirname, file));
+    }
   }
 
   try {
