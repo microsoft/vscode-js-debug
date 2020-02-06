@@ -1,0 +1,28 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+App @ ${fixturesDir}/react-test/src/App.tsx:6:1
+renderWithHooks @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:16260:1
+mountIndeterminateComponent @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:18794:1
+beginWork$1 @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:20162:1
+beginWork$$1 @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:25756:1
+performUnitOfWork @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:24698:1
+workLoopSync @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:24671:1
+performSyncWorkOnRoot @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:24270:1
+scheduleUpdateOnFiber @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:23698:1
+updateContainer @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:27103:1
+<anonymous> @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:27528:1
+unbatchedUpdates @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:24433:1
+legacyRenderSubtreeIntoContainer @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:27527:1
+render @ ${fixturesDir}/react-test/node_modules/react-dom/cjs/react-dom.development.js:27608:1
+./src/index.tsx @ ${fixturesDir}/react-test/src/index.tsx:7:1
+__webpack_require__ @ ${fixturesDir}/react-test/webpack/bootstrap:785:1
+fn @ ${fixturesDir}/react-test/webpack/bootstrap:150:1
+1 @ localhost꞉3000/static/js/main.chunk.js:376:18
+__webpack_require__ @ ${fixturesDir}/react-test/webpack/bootstrap:785:1
+checkDeferredModules @ ${fixturesDir}/react-test/webpack/bootstrap:45:1
+webpackJsonpCallback @ ${fixturesDir}/react-test/webpack/bootstrap:32:1
+<anonymous> @ localhost꞉3000/static/js/main.chunk.js:1:73

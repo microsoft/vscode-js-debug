@@ -36,6 +36,18 @@ steps:
   env:
     DISPLAY: ':99.0'
 
+- task: Npm@1
+  displayName: npm test (framework tests)
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: test
+  timeoutInMinutes: 10
+  condition: eq(${{ parameters.runTests }}, true)
+  env:
+    FRAMEWORK_TEST: 1
+    DISPLAY: ':99.0'
+
 - task: Gulp@0
   displayName: gulp lint
   inputs:
