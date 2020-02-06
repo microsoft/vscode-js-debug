@@ -513,14 +513,9 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/condition.js'),
       };
-      p.dap.on('output', output => {
-        if (output.category === 'stderr') {
-          p.logger.logOutput(output);
-        }
-      });
       await p.dap.setBreakpoints({
         source,
-        breakpoints: [{ line: 3, column: 0, condition: ')(}{][.&' }],
+        breakpoints: [{ line: 2, column: 0, condition: ')(}{][.&' }],
       });
       p.load();
       await waitForPause(p); // falls through to debugger statement
