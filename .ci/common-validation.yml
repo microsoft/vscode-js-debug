@@ -45,7 +45,7 @@ steps:
   timeoutInMinutes: 10
   condition: eq(${{ parameters.runTests }}, true)
   env:
-    FRAMEWORK_TEST: 1
+    FRAMEWORK_TESTS: 1
     DISPLAY: ':99.0'
 
 - task: Gulp@0
