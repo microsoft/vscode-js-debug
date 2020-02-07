@@ -23,20 +23,17 @@ import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFac
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { TopLevelServiceFactory } from '../services';
+import { ILogger } from '../common/logging';
 
-export class Session implements IDisposable {
-  public readonly debugSession: vscode.DebugSession;
+class Session implements IDisposable {
   public readonly connection: DapConnection;
-  private readonly telemetryReporter = new TelemetryReporter();
-  private readonly services = new TopLevelServiceFactory();
-  private _server: net.Server;
-  private _binder?: Binder;
+  protected readonly telemetryReporter = new TelemetryReporter();
+  private readonly server: net.Server;
   private _onTargetNameChanged?: IDisposable;
 
-  constructor(debugSession: vscode.DebugSession) {
-    this.debugSession = debugSession;
-    this.connection = new DapConnection(this.telemetryReporter, this.services.logger);
-    this._server = net
+  constructor(public readonly debugSession: vscode.DebugSession, public readonly logger: ILogger) {
+    this.connection = new DapConnection(this.telemetryReporter, logger);
+    this.server = net
       .createServer(async socket => {
         this.connection.init(socket, socket);
       })
@@ -47,6 +44,26 @@ export class Session implements IDisposable {
     this._onTargetNameChanged = target.onNameChanged(() => {
       this.debugSession.name = target.name();
     });
+  }
+
+  descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    return new vscode.DebugAdapterServer((this.server.address() as net.AddressInfo).port);
+  }
+
+  dispose() {
+    this._onTargetNameChanged?.dispose?.();
+    this.server.close();
+  }
+}
+
+class RootSession extends Session {
+  private _binder?: Binder;
+
+  constructor(
+    debugSession: vscode.DebugSession,
+    private readonly services = new TopLevelServiceFactory(),
+  ) {
+    super(debugSession, services.logger);
   }
 
   createBinder(
@@ -78,14 +95,9 @@ export class Session implements IDisposable {
     );
   }
 
-  descriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    return new vscode.DebugAdapterServer((this._server.address() as net.AddressInfo).port);
-  }
-
   dispose() {
-    if (this._binder) this._binder.dispose();
-    if (this._onTargetNameChanged) this._onTargetNameChanged.dispose();
-    this._server.close();
+    super.dispose();
+    this._binder?.dispose?.();
   }
 }
 
@@ -94,7 +106,7 @@ export class SessionManager
   private _disposables: IDisposable[] = [];
   private _sessions = new Map<string, Session>();
 
-  private _pendingTarget = new Map<string, ITarget>();
+  private _pendingTarget = new Map<string, { target: ITarget; parent: Session }>();
   private _sessionForTarget = new Map<ITarget, Promise<Session>>();
   private _sessionForTargetCallbacks = new Map<
     ITarget,
@@ -118,22 +130,29 @@ export class SessionManager
   public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    const session = new Session(debugSession);
+    let session: Session;
+
     const pendingTargetId: string | undefined = debugSession.configuration.__pendingTargetId;
     if (pendingTargetId) {
-      const target = this._pendingTarget.get(pendingTargetId);
-      if (!target) {
+      const pending = this._pendingTarget.get(pendingTargetId);
+      if (!pending) {
         throw new Error(`Cannot find target ${pendingTargetId}`);
       }
+
+      const { target, parent } = pending;
+      session = new Session(debugSession, parent.logger);
 
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target);
       const callbacks = this._sessionForTargetCallbacks.get(target);
       this._sessionForTargetCallbacks.delete(target);
-      if (callbacks) callbacks.fulfill(session);
+      callbacks?.fulfill?.(session);
     } else {
-      session.createBinder(this._context, this.launcherDelegate, this);
+      const root = new RootSession(debugSession);
+      root.createBinder(this._context, this.launcherDelegate, this);
+      session = root;
     }
+
     this._sessions.set(debugSession.id, session);
     return session.descriptor();
   }
@@ -156,21 +175,20 @@ export class SessionManager
     }
 
     const newSession = new Promise<Session>(async (fulfill, reject) => {
-      this._pendingTarget.set(target.id(), target);
-      this._sessionForTargetCallbacks.set(target, { fulfill, reject });
-
-      let parentDebugSession: vscode.DebugSession | undefined;
+      let parentSession: Session | undefined;
       const parentTarget = target.parent();
       if (parentTarget) {
-        const parentSession = await this.createSession(parentTarget);
-        parentDebugSession = parentSession.debugSession;
+        parentSession = await this.createSession(parentTarget);
       } else {
-        parentDebugSession = this._sessions.get(target.targetOrigin().id)?.debugSession;
+        parentSession = this._sessions.get(target.targetOrigin().id);
       }
 
-      if (!parentDebugSession) {
+      if (!parentSession) {
         throw new Error('Expected to get a parent debug session for target');
       }
+
+      this._pendingTarget.set(target.id(), { target, parent: parentSession });
+      this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
       const config = {
         type: Contributions.ChromeDebugType,
@@ -179,8 +197,8 @@ export class SessionManager
         __pendingTargetId: target.id(),
       };
 
-      vscode.debug.startDebugging(parentDebugSession.workspaceFolder, config, {
-        parentSession: parentDebugSession,
+      vscode.debug.startDebugging(parentSession.debugSession.workspaceFolder, config, {
+        parentSession: parentSession.debugSession,
         consoleMode: vscode.DebugConsoleMode.MergeWithParent,
       });
     });

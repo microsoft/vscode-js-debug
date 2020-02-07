@@ -461,6 +461,7 @@ export class TestRoot {
     this._root.dap.launch({
       ...nodeAttachConfigDefaults,
       processId: `inspector${processId}`,
+      __workspaceFolder: this._workspaceRoot,
       ...options,
     } as INodeAttachConfiguration);
     const result = await new Promise(f => (this._launchCallback = f));
