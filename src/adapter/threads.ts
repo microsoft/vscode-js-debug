@@ -132,7 +132,6 @@ export class Thread implements IVariableStoreDelegate {
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig);
-    this._initialize();
   }
 
   cdp(): Cdp.Api {
@@ -403,7 +402,7 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  private _initialize() {
+  dapInitialized() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
@@ -441,9 +440,7 @@ export class Thread implements IVariableStoreDelegate {
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
     this._delegate.initialize();
     this._pauseOnScheduledAsyncCall();
-  }
 
-  dapInitialized() {
     this._dap.thread({
       reason: 'started',
       threadId: this.id,
