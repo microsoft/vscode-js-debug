@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import 'reflect-metadata';
+
 import * as net from 'net';
 import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 import { IWatchdogInfo } from './watchdogSpawn';

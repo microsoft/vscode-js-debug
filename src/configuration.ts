@@ -496,6 +496,8 @@ export type AnyResolvingConfiguration =
   | ResolvingNodeLaunchConfiguration
   | ResolvingTerminalConfiguration;
 
+export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
+
 /**
  * Where T subtypes AnyResolvingConfiguration, gets the resolved version of T.
  */

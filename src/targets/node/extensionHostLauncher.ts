@@ -8,6 +8,7 @@ import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { existsSync, lstatSync } from 'fs';
 import { findOpenPort } from '../../common/findOpenPort';
 import { StubProgram } from './program';
+import { injectable } from 'inversify';
 
 /**
  * This interface represents a single command line argument split into a "prefix" and a "path" half.
@@ -23,6 +24,7 @@ interface ILaunchVSCodeArgument {
  * Boots an instance of VS Code for extension debugging. Once this happens,
  * a separate "attach" request will come in.
  */
+@injectable()
 export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfiguration> {
   /**
    * @inheritdoc

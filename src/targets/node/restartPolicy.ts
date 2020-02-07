@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { assertNever } from '../../common/objUtils';
+import { injectable } from 'inversify';
 
 export type AnyRestartOptions =
   | boolean
@@ -19,6 +20,7 @@ const defaultOptions: IExponentialRestartOptions = {
 /**
  * Creates restart policies from the configuration.
  */
+@injectable()
 export class RestartPolicyFactory {
   public create(config: AnyRestartOptions): IRestartPolicy {
     if (config === false) {

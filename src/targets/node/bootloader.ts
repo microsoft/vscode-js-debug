@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import 'reflect-metadata';
+
 import * as inspector from 'inspector';
 import { writeFileSync } from 'fs';
 import { spawnWatchdog } from './watchdogSpawn';

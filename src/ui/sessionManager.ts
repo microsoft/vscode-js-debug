@@ -6,24 +6,14 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { Binder, IBinderDelegate } from '../binder';
 import DapConnection from '../dap/connection';
-import { BrowserLauncher } from '../targets/browser/browserLauncher';
-import { NodeLauncher } from '../targets/node/nodeLauncher';
-import { BrowserAttacher } from '../targets/browser/browserAttacher';
 import { ITarget } from '../targets/targets';
 import { IDisposable } from '../common/events';
-import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
 import { Contributions } from '../common/contributionUtils';
-import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
-import { NodeAttacher } from '../targets/node/nodeAttacher';
-import { ExtensionHostLauncher } from '../targets/node/extensionHostLauncher';
-import { ExtensionHostAttacher } from '../targets/node/extensionHostAttacher';
-import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
-import { NodePathProvider } from '../targets/node/nodePathProvider';
-import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { TopLevelServiceFactory } from '../services';
 import { ILogger } from '../common/logging';
+import { Container } from 'inversify';
+import { createTopLevelSessionContainer } from '../ioc';
 
 class Session implements IDisposable {
   public readonly connection: DapConnection;
@@ -59,36 +49,14 @@ class Session implements IDisposable {
 class RootSession extends Session {
   private _binder?: Binder;
 
-  constructor(
-    debugSession: vscode.DebugSession,
-    private readonly services = new TopLevelServiceFactory(),
-  ) {
-    super(debugSession, services.logger);
+  constructor(debugSession: vscode.DebugSession, private readonly services: Container) {
+    super(debugSession, services.get(ILogger));
   }
 
-  createBinder(
-    context: vscode.ExtensionContext,
-    delegateLauncher: DelegateLauncherFactory,
-    delegate: IBinderDelegate,
-  ) {
-    const pathProvider = new NodePathProvider();
-    const launchers = [
-      new ExtensionHostAttacher(pathProvider, this.services.logger),
-      new ExtensionHostLauncher(pathProvider, this.services.logger),
-      new TerminalNodeLauncher(pathProvider, this.services.logger),
-      new NodeLauncher(pathProvider, this.services.logger, [
-        new SubprocessProgramLauncher(this.services.logger),
-        new TerminalProgramLauncher(this.services.logger),
-      ]),
-      new NodeAttacher(pathProvider, this.services.logger),
-      new BrowserLauncher(context.storagePath || context.extensionPath, this.services.logger),
-      new BrowserAttacher(this.services.logger),
-      delegateLauncher.createLauncher(),
-    ];
+  createBinder(delegate: IBinderDelegate) {
     this._binder = new Binder(
       delegate,
       this.connection,
-      launchers,
       this.telemetryReporter,
       this.services,
       new TargetOrigin(this.debugSession.id),
@@ -113,10 +81,7 @@ export class SessionManager
     { fulfill: (session: Session) => void; reject: (error: Error) => void }
   >();
 
-  constructor(
-    private readonly _context: vscode.ExtensionContext,
-    private readonly launcherDelegate: DelegateLauncherFactory,
-  ) {}
+  constructor(private readonly globalContainer: Container) {}
 
   public terminate(debugSession: vscode.DebugSession) {
     const session = this._sessions.get(debugSession.id);
@@ -148,8 +113,11 @@ export class SessionManager
       this._sessionForTargetCallbacks.delete(target);
       callbacks?.fulfill?.(session);
     } else {
-      const root = new RootSession(debugSession);
-      root.createBinder(this._context, this.launcherDelegate, this);
+      const root = new RootSession(
+        debugSession,
+        createTopLevelSessionContainer(this.globalContainer),
+      );
+      root.createBinder(this);
       session = root;
     }
 

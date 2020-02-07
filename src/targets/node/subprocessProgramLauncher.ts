@@ -10,12 +10,14 @@ import { SubprocessProgram } from './program';
 import { EnvironmentVars } from '../../common/environmentVars';
 import Dap from '../../dap/api';
 import { ILogger } from '../../common/logging';
+import { injectable, inject } from 'inversify';
 
 /**
  * Launcher that boots a subprocess.
  */
+@injectable()
 export class SubprocessProgramLauncher implements IProgramLauncher {
-  constructor(private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   public canLaunch(args: INodeLaunchConfiguration) {
     return args.console === 'internalConsole';

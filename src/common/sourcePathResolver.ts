@@ -19,6 +19,8 @@ export interface IUrlResolution {
   map?: SourceMap;
 }
 
+export const ISourcePathResolver = Symbol('ISourcePathResolver');
+
 /**
  * Maps between URLs (used in CDP) and paths (used in DAP).
  */

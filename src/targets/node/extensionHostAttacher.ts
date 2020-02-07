@@ -11,10 +11,12 @@ import { spawnWatchdog } from './watchdogSpawn';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
 import { NodeAttacherBase } from './nodeAttacherBase';
+import { injectable } from 'inversify';
 
 /**
  * Attaches to an instance of VS Code for extension debugging.
  */
+@injectable()
 export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfiguration> {
   protected restarting = false;
 

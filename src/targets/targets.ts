@@ -11,6 +11,8 @@ import Dap from '../dap/api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ITargetOrigin } from './targetOrigin';
 
+export const ITarget = Symbol('ITarget');
+
 /**
  * A generic running process that can be debugged. We may have a target before
  * we start debugging, until we call `attach()` to
@@ -82,6 +84,8 @@ export interface IStopMetadata {
    */
   restart?: Dap.AttachParams['__restart'];
 }
+
+export const ILauncher = Symbol('ILauncher');
 
 export interface ILauncher extends IDisposable {
   launch(

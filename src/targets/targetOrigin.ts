@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+export const ITargetOrigin = Symbol('ITargetOrigin');
+
 /**
  * The target origin is the debug session ID (a GUID/UUID) in DAP which is
  * a parent to this session.

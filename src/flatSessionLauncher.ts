@@ -14,24 +14,15 @@ import * as path from 'path';
 import * as os from 'os';
 import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
-import { NodeLauncher } from './targets/node/nodeLauncher';
-import { BrowserLauncher } from './targets/browser/browserLauncher';
-import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ITarget } from './targets/targets';
 import * as crypto from 'crypto';
 import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
 import { IDisposable } from './common/events';
-import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { Contributions } from './common/contributionUtils';
-import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
-import { NodeAttacher } from './targets/node/nodeAttacher';
-import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
-import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
-import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
-import { TopLevelServiceFactory } from './services';
 import { ILogger } from './common/logging';
+import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -60,20 +51,8 @@ class ChildSession {
 
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
   const _childSessionsForTarget = new Map<ITarget, ChildSession>();
-  const pathProvider = new NodePathProvider();
   const telemetry = new TelemetryReporter();
-  const services = new TopLevelServiceFactory();
-  const launchers = [
-    new ExtensionHostAttacher(pathProvider, services.logger),
-    new ExtensionHostLauncher(pathProvider, services.logger),
-    new NodeAttacher(pathProvider, services.logger),
-    new NodeLauncher(pathProvider, services.logger, [
-      new SubprocessProgramLauncher(services.logger),
-      new TerminalProgramLauncher(services.logger),
-    ]),
-    new BrowserLauncher(storagePath, services.logger),
-    new BrowserAttacher(services.logger),
-  ];
+  const services = createTopLevelSessionContainer(createGlobalContainer({ storagePath }));
 
   const binderDelegate: IBinderDelegate = {
     async acquireDap(target: ITarget): Promise<DapConnection> {
@@ -97,7 +76,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
       });
 
       const childSession = new ChildSession(
-        services.logger,
+        services.get(ILogger),
         telemetry,
         sessionId,
         connection,
@@ -120,14 +99,18 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
     },
   };
 
-  const connection = new MessageEmitterConnection(telemetry, services.logger);
+  const connection = new MessageEmitterConnection(telemetry, services.get(ILogger));
   // First child uses no sessionId. Could potentially use something predefined that both sides know about, or have it passed with either
   // cmd line args or launch config if we decide that all sessions should definitely have an id
-  const firstConnection = new ChildConnection(services.logger, telemetry, connection, undefined);
+  const firstConnection = new ChildConnection(
+    services.get(ILogger),
+    telemetry,
+    connection,
+    undefined,
+  );
   new Binder(
     binderDelegate,
     firstConnection,
-    launchers,
     telemetry,
     services,
     new TargetOrigin('targetOrigin'),

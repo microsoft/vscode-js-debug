@@ -20,9 +20,11 @@ import { NeverCancelled } from '../../common/cancellation';
 import { Dap } from '../../dap/api';
 import { ITargetOrigin } from '../targetOrigin';
 import { ILogger } from '../../common/logging';
+import { injectable, inject } from 'inversify';
 
 const localize = nls.loadMessageBundle();
 
+@injectable()
 export class BrowserAttacher implements ILauncher {
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
@@ -35,7 +37,7 @@ export class BrowserAttacher implements ILauncher {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   targetManager(): BrowserTargetManager | undefined {
     return this._targetManager;

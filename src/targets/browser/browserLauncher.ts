@@ -34,6 +34,8 @@ import * as launcher from './launcher';
 import { WebSocketTransport } from '../../cdp/transport';
 import { getDeferred } from '../../common/promiseUtil';
 import { ILogger } from '../../common/logging';
+import { injectable, inject } from 'inversify';
+import { StoragePath } from '../../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -46,6 +48,7 @@ export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams
   supportsLaunchUnelevatedProcessRequest?: boolean;
 }
 
+@injectable()
 export class BrowserLauncher implements ILauncher {
   private _connectionForTest: CdpConnection | undefined;
   private _storagePath: string;
@@ -58,7 +61,10 @@ export class BrowserLauncher implements ILauncher {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(storagePath: string, private readonly logger: ILogger) {
+  constructor(
+    @inject(StoragePath) storagePath: string,
+    @inject(ILogger) private readonly logger: ILogger,
+  ) {
     this._storagePath = storagePath;
   }
 

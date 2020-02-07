@@ -13,10 +13,11 @@ import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { resolve } from 'path';
 import Cdp from '../../cdp/api';
-import { NodePathProvider } from './nodePathProvider';
+import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { exists } from '../../common/fsUtils';
 import { LogTag, ILogger } from '../../common/logging';
 import { fixInspectFlags } from '../../ui/configurationUtils';
+import { injectable, inject, multiInject } from 'inversify';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program
@@ -47,12 +48,13 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
   return undefined;
 };
 
+@injectable()
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
-    pathProvider: NodePathProvider,
-    logger: ILogger,
-    private readonly launchers: ReadonlyArray<IProgramLauncher>,
-    private readonly restarters = new RestartPolicyFactory(),
+    @inject(INodePathProvider) pathProvider: NodePathProvider,
+    @inject(ILogger) logger: ILogger,
+    @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
+    @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
   ) {
     super(pathProvider, logger);
   }

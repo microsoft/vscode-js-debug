@@ -7,11 +7,15 @@ import { findInPath } from '../../common/pathUtils';
 import { isAbsolute, basename } from 'path';
 import { cannotFindNodeBinary, nodeBinaryOutOfDate, ProtocolError } from '../../dap/errors';
 import { spawnAsync } from '../../common/processUtils';
+import { injectable } from 'inversify';
+
+export const INodePathProvider = Symbol('INodePathProvider');
 
 /**
  * Utility that resolves a path to Node.js and validates
  * it's a debuggable version./
  */
+@injectable()
 export class NodePathProvider {
   /**
    * A set of binary paths we know are good and which can skip additional

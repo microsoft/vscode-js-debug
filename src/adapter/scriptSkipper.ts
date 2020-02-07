@@ -14,6 +14,9 @@ import * as urlUtils from '../common/urlUtils';
 import Dap from '../dap/api';
 import { ITarget } from '../targets/targets';
 import { Source, SourceContainer } from './sources';
+import { injectable, inject } from 'inversify';
+import { ICdpApi } from '../cdp/connection';
+import { AnyLaunchConfiguration } from '../configuration';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -21,6 +24,9 @@ interface ISharedSkipToggleEvent {
   params: Dap.ToggleSkipFileStatusParams;
 }
 
+export const IScriptSkipper = Symbol('IScriptSkipper');
+
+@injectable()
 export class ScriptSkipper {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
 
@@ -48,10 +54,10 @@ export class ScriptSkipper {
   private _rootTargetId: string;
 
   constructor(
-    skipPatterns: ReadonlyArray<string>,
-    private readonly logger: ILogger,
-    private readonly cdp: Cdp.Api,
-    target: ITarget,
+    @inject(AnyLaunchConfiguration) { skipFiles }: AnyLaunchConfiguration,
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(ICdpApi) private readonly cdp: Cdp.Api,
+    @inject(ITarget) target: ITarget,
   ) {
     this._targetId = target.id();
     this._rootTargetId = getRootTarget(target).id();
@@ -60,8 +66,8 @@ export class ScriptSkipper {
       this._normalizeUrl(key),
     );
 
-    this._preprocessNodeInternals(skipPatterns);
-    this._setRegexForNonNodeInternals(skipPatterns);
+    this._preprocessNodeInternals(skipFiles);
+    this._setRegexForNonNodeInternals(skipFiles);
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
     this._newScriptDebouncer = debounce(100, () => this._initializeSkippingValueForNewSources());
 

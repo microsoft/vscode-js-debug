@@ -23,20 +23,15 @@ import {
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
-import { NodeAttacher } from '../targets/node/nodeAttacher';
-import { NodeLauncher } from '../targets/node/nodeLauncher';
-import { SubprocessProgramLauncher } from '../targets/node/subprocessProgramLauncher';
-import { TerminalProgramLauncher } from '../targets/node/terminalProgramLauncher';
 import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './reporters/logReporterUtils';
-import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { TopLevelServiceFactory } from '../services';
 import { ILogger } from '../common/logging';
 import { Logger as AdapterLogger } from '../common/logging/logger';
+import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -339,20 +334,11 @@ export class TestRoot {
     });
 
     const storagePath = path.join(__dirname, '..', '..');
-    const services = new TopLevelServiceFactory();
-    this._browserLauncher = new BrowserLauncher(storagePath, services.logger);
-    const pathProvider = new NodePathProvider();
+    const services = createTopLevelSessionContainer(createGlobalContainer({ storagePath }));
+    this._browserLauncher = services.get(BrowserLauncher);
     this.binder = new Binder(
       this,
       this._root.adapterConnection,
-      [
-        this._browserLauncher,
-        new NodeLauncher(pathProvider, services.logger, [
-          new SubprocessProgramLauncher(services.logger),
-          new TerminalProgramLauncher(services.logger),
-        ]),
-        new NodeAttacher(pathProvider, services.logger),
-      ],
       new TelemetryReporter(),
       services,
       new TargetOrigin('0'),

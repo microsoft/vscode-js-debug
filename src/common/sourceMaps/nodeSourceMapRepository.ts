@@ -7,12 +7,14 @@ import { ISourceMapRepository, createMetadataForFile } from './sourceMapReposito
 import globStream from 'glob-stream';
 import { LogTag, ILogger } from '../logging';
 import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
+import { injectable, inject } from 'inversify';
 
 /**
  * A source map repository that uses globbing to find candidate files.
  */
+@injectable()
 export class NodeSourceMapRepository implements ISourceMapRepository {
-  constructor(private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   /**
    * Returns the sourcemaps in the directory, given as an absolute path..
