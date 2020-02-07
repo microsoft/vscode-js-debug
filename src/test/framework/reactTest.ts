@@ -9,6 +9,7 @@ import Dap from '../../dap/api';
 import { killTree } from '../../targets/node/killTree';
 import { ITestHandle, testFixturesDir } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
+import mkdirp = require('mkdirp');
 
 describe('react', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
@@ -54,6 +55,7 @@ describe('react', () => {
 
 async function setupCRA(projectName: string, cwd: string): Promise<void> {
   console.log('Setting up CRA in ' + cwd);
+  mkdirp.sync(cwd);
   const setupProc = cp.spawn(
     'npx',
     ['create-react-app', '--template', 'cra-template-typescript', projectName],
