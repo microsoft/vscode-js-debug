@@ -22,12 +22,6 @@ describe('react', () => {
   const projectName = 'react-test';
   let projectFolder: string;
   let devServerProc: cp.ChildProcessWithoutNullStreams | undefined;
-  beforeEach(async function() {
-    this.timeout(60000 * 4);
-    projectFolder = join(testFixturesDir, projectName);
-    await setupCRA(projectName, testFixturesDir);
-    devServerProc = await startDevServer(projectFolder);
-  });
 
   afterEach(() => {
     if (devServerProc) {
@@ -36,35 +30,65 @@ describe('react', () => {
     }
   });
 
-  itIntegrates('hit breakpoint', async ({ r }) => {
-    // Breakpoint in inline script set before launch.
-    const p = await r._launch('http://localhost:3000', {
-      webRoot: projectFolder,
-      __workspaceFolder: projectFolder,
-      rootPath: projectFolder,
+  describe('TS', () => {
+    beforeEach(async function() {
+      this.timeout(60000 * 4);
+      projectFolder = join(testFixturesDir, projectName);
+      await setupCRA(projectName, testFixturesDir, ['--template', 'cra-template-typescript']);
+      devServerProc = await startDevServer(projectFolder);
     });
-    const source: Dap.Source = {
-      path: join(projectFolder, 'src/App.tsx'),
-    };
-    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
-    p.load();
-    await waitForPause(p);
-    p.assertLog({ substring: true });
+
+    itIntegrates('hit breakpoint', async ({ r }) => {
+      // Breakpoint in inline script set before launch.
+      const p = await r._launch('http://localhost:3000', {
+        webRoot: projectFolder,
+        __workspaceFolder: projectFolder,
+        rootPath: projectFolder,
+      });
+      const source: Dap.Source = {
+        path: join(projectFolder, 'src/App.tsx'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+      p.load();
+      await waitForPause(p);
+      p.assertLog({ substring: true });
+    });
+  });
+
+  describe('JS', () => {
+    beforeEach(async function() {
+      this.timeout(60000 * 4);
+      projectFolder = join(testFixturesDir, projectName);
+      await setupCRA(projectName, testFixturesDir);
+      devServerProc = await startDevServer(projectFolder);
+    });
+
+    itIntegrates('hit breakpoint', async ({ r }) => {
+      // Breakpoint in inline script set before launch.
+      const p = await r._launch('http://localhost:3000', {
+        webRoot: projectFolder,
+        __workspaceFolder: projectFolder,
+        rootPath: projectFolder,
+      });
+      const source: Dap.Source = {
+        path: join(projectFolder, 'src/App.js'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+      p.load();
+      await waitForPause(p);
+      p.assertLog({ substring: true });
+    });
   });
 });
 
-async function setupCRA(projectName: string, cwd: string): Promise<void> {
+async function setupCRA(projectName: string, cwd: string, args: string[] = []): Promise<void> {
   console.log('Setting up CRA in ' + cwd);
   mkdirp.sync(cwd);
-  const setupProc = cp.spawn(
-    'npx',
-    ['create-react-app', '--template', 'cra-template-typescript', projectName],
-    {
-      cwd,
-      stdio: 'pipe',
-      env: process.env,
-    },
-  );
+  const setupProc = cp.spawn('npx', ['create-react-app', ...args, projectName], {
+    cwd,
+    stdio: 'pipe',
+    env: process.env,
+  });
   setupProc.stdout.on('data', d => console.log(d.toString().replace(/\r?\n$/, '')));
   setupProc.stderr.on('data', d => console.error(d.toString().replace(/\r?\n$/, '')));
 
