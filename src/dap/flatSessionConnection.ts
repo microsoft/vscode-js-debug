@@ -5,6 +5,7 @@
 import DapConnection, { Message } from './connection';
 import { EventEmitter, IDisposable } from '../common/events';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { ILogger } from '../common/logging';
 
 /**
  * An extension of the DAP connection class which publishes all messages which are received
@@ -34,11 +35,12 @@ export class ChildConnection extends DapConnection {
   private _messageSubscription: IDisposable;
 
   constructor(
+    logger: ILogger,
     telemetryReporter: TelemetryReporter,
     private readonly parentConnection: MessageEmitterConnection,
     private readonly sessionId: string | undefined,
   ) {
-    super(telemetryReporter);
+    super(telemetryReporter, logger);
 
     this._messageSubscription = parentConnection.onMessage(msg => {
       if (msg.sessionId === this.sessionId) {

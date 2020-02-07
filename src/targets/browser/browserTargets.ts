@@ -14,8 +14,7 @@ import { ServiceWorkerModel } from './serviceWorkers';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { AnyChromeConfiguration } from '../../configuration';
-import { logger } from '../../common/logging/logger';
-import { LogTag } from '../../common/logging';
+import { LogTag, ILogger } from '../../common/logging';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
@@ -48,6 +47,7 @@ export class BrowserTargetManager implements IDisposable {
     process: undefined | IBrowserProcess,
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromeConfiguration,
+    logger: ILogger,
     telemetry: TelemetryReporter,
     targetOrigin: ITargetOrigin,
   ): Promise<BrowserTargetManager | undefined> {
@@ -60,6 +60,7 @@ export class BrowserTargetManager implements IDisposable {
       process,
       browserSession,
       sourcePathResolver,
+      logger,
       telemetry,
       launchParams,
       targetOrigin,
@@ -71,6 +72,7 @@ export class BrowserTargetManager implements IDisposable {
     private readonly process: IBrowserProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
+    private readonly logger: ILogger,
     private readonly telemetry: TelemetryReporter,
     private readonly launchParams: AnyChromeConfiguration,
     targetOrigin: ITargetOrigin,
@@ -103,7 +105,7 @@ export class BrowserTargetManager implements IDisposable {
     await this._browser.Browser.close({});
 
     if (this.process && this.process.pid) {
-      killTree(this.process.pid);
+      killTree(this.process.pid, this.logger);
     }
   }
 
@@ -191,7 +193,9 @@ export class BrowserTargetManager implements IDisposable {
 
     cdp.Network.setCacheDisabled({
       cacheDisabled: this.launchParams.disableNetworkCache,
-    }).catch(err => logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err));
+    }).catch(err =>
+      this.logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err),
+    );
 
     // For the 'top-level' page, gather telemetry.
     if (!parentTarget) {
@@ -226,7 +230,7 @@ export class BrowserTargetManager implements IDisposable {
         targetProduct: '',
       };
 
-      logger.verbose(LogTag.RuntimeTarget, 'Retrieved browser information', info);
+      this.logger.verbose(LogTag.RuntimeTarget, 'Retrieved browser information', info);
 
       const parts = (info.product || '').split('/');
       if (parts.length === 2) {
@@ -240,7 +244,7 @@ export class BrowserTargetManager implements IDisposable {
 
       this.telemetry.report('browserVersion', properties);
     } catch (e) {
-      logger.warn(LogTag.RuntimeTarget, 'Error getting browser telemetry', e);
+      this.logger.warn(LogTag.RuntimeTarget, 'Error getting browser telemetry', e);
     }
   }
 

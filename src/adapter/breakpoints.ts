@@ -10,17 +10,16 @@ import { IDisposable } from '../common/events';
 import { BreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
-import { logger, assert } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { delay } from '../common/promiseUtil';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
 import { Breakpoint } from './breakpoints/breakpointBase';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { HitCondition } from './breakpoints/hitCondition';
 import { ProtocolError } from '../dap/errors';
 import { logPerf } from '../telemetry/performance';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
+import { BreakpointConditionFactory } from './breakpoints/conditions';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -54,6 +53,7 @@ export class BreakpointManager {
   private _launchBlocker: Promise<unknown> = Promise.resolve();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
+  private readonly conditionFactory = new BreakpointConditionFactory(this.logger);
 
   /**
    * User-defined breakpoints by path on disk.
@@ -77,6 +77,7 @@ export class BreakpointManager {
   constructor(
     dap: Dap.Api,
     sourceContainer: SourceContainer,
+    public readonly logger: ILogger,
     private readonly pauseForSourceMaps: boolean,
     public readonly _breakpointsPredictor?: BreakpointsPredictor,
   ) {
@@ -85,7 +86,10 @@ export class BreakpointManager {
 
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
-        !assert(this._thread, 'Expected thread to be set for the breakpoint source map handler')
+        !logger.assert(
+          this._thread,
+          'Expected thread to be set for the breakpoint source map handler',
+        )
       ) {
         return [];
       }
@@ -138,7 +142,10 @@ export class BreakpointManager {
     // As far as I know the number of start and end locations should be the
     // same, log if this is not the case.
     if (startLocations.length !== endLocations.length) {
-      logger.warn(LogTag.Internal, 'Expected to have the same number of start and end locations');
+      this.logger.warn(
+        LogTag.Internal,
+        'Expected to have the same number of start and end locations',
+      );
       return [];
     }
 
@@ -151,7 +158,10 @@ export class BreakpointManager {
       const end = endLocations[i];
 
       if (start.source !== end.source) {
-        logger.warn(LogTag.Internal, 'Expected to have the same number of start and end scripts');
+        this.logger.warn(
+          LogTag.Internal,
+          'Expected to have the same number of start and end scripts',
+        );
         continue;
       }
 
@@ -242,11 +252,12 @@ export class BreakpointManager {
     this._updateSourceMapHandler(this._thread);
   }
 
-  @logPerf()
   async launchBlocker(): Promise<void> {
-    if (!this._predictorDisabledForTest) {
-      await this._launchBlocker;
-    }
+    logPerf(this.logger, 'BreakpointManager.launchBlocker', async () => {
+      if (!this._predictorDisabledForTest) {
+        await this._launchBlocker;
+      }
+    });
   }
 
   setSourceMapPauseDisabledForTest() {
@@ -318,8 +329,8 @@ export class BreakpointManager {
             this,
             ids[index],
             params.source,
-            params.breakpoints[index],
-            bpParams.hitCondition ? HitCondition.parse(bpParams.hitCondition) : undefined,
+            bpParams,
+            this.conditionFactory.getConditionFor(bpParams),
           );
         } catch (e) {
           if (!(e instanceof ProtocolError)) {
@@ -327,12 +338,7 @@ export class BreakpointManager {
           }
 
           this._dap.output({ category: 'stderr', output: e.message });
-          created = new NeverResolvedBreakpoint(
-            this,
-            ids[index],
-            params.source,
-            params.breakpoints[index],
-          );
+          created = new NeverResolvedBreakpoint(this, ids[index], params.source, bpParams);
         }
 
         const existingIndex = result.unbound.findIndex(p => p.equivalentTo(created));
@@ -492,8 +498,6 @@ export class BreakpointManager {
     this._setBreakpoint(bp, thread);
   }
 }
-
-export const kLogPointUrl = 'logpoint.cdp';
 
 let lastBreakpointId = 0;
 export function generateBreakpointIds(params: Dap.SetBreakpointsParams): number[] {

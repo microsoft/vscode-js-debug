@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ProtocolError, invalidHitCondition } from '../../dap/errors';
+import { ProtocolError, invalidHitCondition } from '../../../dap/errors';
+import { IBreakpointCondition } from '.';
 
 /**
  * Regex used to match hit conditions. It matches the operator in group 1 and
@@ -17,16 +18,16 @@ const hitConditionRe = /^(>|>=|={1,3}|<|<=|%)?\s*([0-9]+)$/;
  *
  * This is used and exposed by the {@link Breakpoint} class.
  */
-export class HitCondition {
+export class HitCondition implements IBreakpointCondition {
   private hits = 0;
+  public readonly breakCondition = undefined;
 
   constructor(private readonly predicate: (n: number) => boolean) {}
 
   /**
-   * Indicates that the breakpoint was hit, and returns whether the debugger
-   * should remain paused.
+   * @inheritdoc
    */
-  public test() {
+  public shouldStayPaused() {
     return this.predicate(++this.hits);
   }
 
@@ -34,7 +35,7 @@ export class HitCondition {
    * Parses the hit condition expression, like "> 42", into a {@link HitCondition}.
    * @throws {ProtocolError} if the expression is invalid
    */
-  public static parse(expression: string) {
+  public static parse(expression: string): IBreakpointCondition {
     const parts = hitConditionRe.exec(expression);
     if (!parts) {
       throw new ProtocolError(invalidHitCondition(expression));

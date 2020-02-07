@@ -8,7 +8,6 @@ import { IProgram } from './program';
 import Cdp from '../../cdp/api';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IDisposable } from '../../common/disposable';
-import { logger } from '../../common/logging/logger';
 import { LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 
@@ -75,18 +74,22 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
     }
 
     if (!telemetry) {
-      logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
+      this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
       return;
     }
 
     if (telemetry.exceptionDetails) {
       if (isProcessNotDefined(telemetry.exceptionDetails)) {
-        logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
+        this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
         await delay(10);
         return this.gatherTelemetry(cdp, run);
       }
 
-      logger.error(LogTag.RuntimeTarget, 'Error getting telemetry', telemetry.exceptionDetails);
+      this.logger.error(
+        LogTag.RuntimeTarget,
+        'Error getting telemetry',
+        telemetry.exceptionDetails,
+      );
       return;
     }
 

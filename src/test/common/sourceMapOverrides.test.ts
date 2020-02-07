@@ -11,44 +11,50 @@ import {
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import * as path from 'path';
 import { fixDriveLetter } from '../../common/pathUtils';
+import { ILogger } from '../../common/logging';
+import { Logger } from '../../common/logging/logger';
 
 describe('SourceMapOverrides', () => {
+  let logger: ILogger;
+  before(async () => (logger = await Logger.test()));
+
   describe('functionality', () => {
     it('replaces simple paths', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/b/*' });
+      const r = new SourceMapOverrides({ '/a/*': '/b/*' }, logger);
       expect(r.apply('/a/foo/bar')).to.equal('/b/foo/bar');
       expect(r.apply('/q/foo/bar')).to.equal('/q/foo/bar');
     });
 
     it('replaces paths without groups on the right', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/b' });
+      const r = new SourceMapOverrides({ '/a/*': '/b' }, logger);
       expect(r.apply('/a/foo/bar')).to.equal('/b');
     });
 
     it('replaces paths without groups on the left or right', () => {
-      const r = new SourceMapOverrides({ '/a': '/b' });
+      const r = new SourceMapOverrides({ '/a': '/b' }, logger);
       expect(r.apply('/a/foo/bar')).to.equal('/a/foo/bar');
       expect(r.apply('/a')).to.equal('/b');
     });
 
     it('handles non-capturing groups', () => {
-      const r = new SourceMapOverrides({ '/a/?:*/*': '/b/*' });
+      const r = new SourceMapOverrides({ '/a/?:*/*': '/b/*' }, logger);
       expect(r.apply('/a/foo/bar')).to.equal('/b/bar');
     });
 
     it('applies longer replacements first', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/c', '/a/foo': '/b' });
+      const r = new SourceMapOverrides({ '/a/*': '/c', '/a/foo': '/b' }, logger);
       expect(r.apply('/a/foo')).to.equal('/b');
     });
 
     it('normalizes mapped paths', () => {
-      const r = new SourceMapOverrides({ 'file:///./foo/*': '/b/*' });
+      const r = new SourceMapOverrides({ 'file:///./foo/*': '/b/*' }, logger);
       expect(r.apply('file:///foo/bar')).to.equal('/b/bar');
     });
   });
 
   describe('defaults', () => {
-    const r = new SourceMapOverrides(baseDefaults.sourceMapPathOverrides);
+    let r: SourceMapOverrides;
+    before(() => (r = new SourceMapOverrides(baseDefaults.sourceMapPathOverrides, logger)));
 
     it('does not touch already valid paths', () => {
       expect(r.apply('https://contoso.com/foo.ts')).to.equal('https://contoso.com/foo.ts');
@@ -79,61 +85,98 @@ describe('SourceMapOverrides', () => {
           genPath,
           PATH_MAPPING,
           defaultPathMappingResolver,
+          logger,
         ),
       ).to.equal(ABS_SOURCEROOT);
     });
 
     it('handles /src style sourceRoot', async () => {
       expect(
-        await getComputedSourceRoot('/src', genPath, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          '/src',
+          genPath,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal(resolve('/project/webroot/src'));
     });
 
     it('handles /src style without matching pathMapping', async () => {
       expect(
-        await getComputedSourceRoot('/foo/bar', genPath, {}, defaultPathMappingResolver),
+        await getComputedSourceRoot('/foo/bar', genPath, {}, defaultPathMappingResolver, logger),
       ).to.equal('/foo/bar');
     });
 
     it('handles c:/src style without matching pathMapping', async () => {
       expect(
-        await getComputedSourceRoot('c:\\foo\\bar', genPath, {}, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          'c:\\foo\\bar',
+          genPath,
+          {},
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal('c:\\foo\\bar');
     });
 
     it('handles ../../src style sourceRoot', async () => {
       expect(
-        await getComputedSourceRoot('../../src', genPath, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          '../../src',
+          genPath,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal(ABS_SOURCEROOT);
     });
 
     it('handles src style sourceRoot', async () => {
       expect(
-        await getComputedSourceRoot('src', genPath, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          'src',
+          genPath,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal(resolve('/project/webroot/code/src'));
     });
 
     it('handles runtime script not on disk', async () => {
       expect(
-        await getComputedSourceRoot('../src', GEN_URL, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          '../src',
+          GEN_URL,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal(resolve('/project/webroot/src'));
     });
 
     it('when no sourceRoot specified and runtime script is on disk, uses the runtime script dirname', async () => {
       expect(
-        await getComputedSourceRoot('', genPath, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot('', genPath, PATH_MAPPING, defaultPathMappingResolver, logger),
       ).to.equal(resolve('/project/webroot/code'));
     });
 
     it('when no sourceRoot specified and runtime script is not on disk, uses the runtime script dirname', async () => {
       expect(
-        await getComputedSourceRoot('', GEN_URL, PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot('', GEN_URL, PATH_MAPPING, defaultPathMappingResolver, logger),
       ).to.equal(resolve('/project/webroot/code'));
     });
 
     it('no crash on debugadapter:// urls', async () => {
       expect(
-        await getComputedSourceRoot('', 'eval://123', PATH_MAPPING, defaultPathMappingResolver),
+        await getComputedSourceRoot(
+          '',
+          'eval://123',
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          logger,
+        ),
       ).to.equal(resolve(WEBROOT));
     });
   });

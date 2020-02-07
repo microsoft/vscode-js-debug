@@ -7,8 +7,7 @@ import WebSocket from 'ws';
 import * as events from 'events';
 import { CancellationToken } from 'vscode';
 import { timeoutPromise } from '../common/cancellation';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 
 export interface ITransport {
   send(message: string): void;
@@ -25,11 +24,14 @@ export class PipeTransport implements ITransport {
   onmessage?: (message: string, receivedTime: bigint) => void;
   onend?: () => void;
 
-  constructor(socket: net.Socket);
-  constructor(pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
+  constructor(logger: ILogger, socket: net.Socket);
+  constructor(logger: ILogger, pipeWrite: NodeJS.WritableStream, pipeRead: NodeJS.ReadableStream);
 
-  constructor(pipeWrite: net.Socket | NodeJS.WritableStream, pipeRead?: NodeJS.ReadableStream) {
-    logger.info(LogTag.Internal, `Using pipe as transport layer`);
+  constructor(
+    logger: ILogger,
+    pipeWrite: net.Socket | NodeJS.WritableStream,
+    pipeRead?: NodeJS.ReadableStream,
+  ) {
     this._pipeWrite = pipeWrite as NodeJS.WritableStream;
     if (!pipeRead) this._socket = pipeWrite as net.Socket;
 
@@ -107,7 +109,6 @@ export class WebSocketTransport implements ITransport {
   onend?: () => void;
 
   static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
-    logger.info(LogTag.Internal, `Using websocket as transport layer`, url);
     const ws = new WebSocket(url, [], {
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb

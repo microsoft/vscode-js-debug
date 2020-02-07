@@ -10,6 +10,7 @@ import Dap from '../../dap/api';
 import { ProtocolError, cannotLaunchInTerminal } from '../../dap/errors';
 import { TerminalProcess } from './program';
 import { removeNulls } from '../../common/objUtils';
+import { ILogger } from '../../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -17,6 +18,8 @@ const localize = nls.loadMessageBundle();
  * Launcher that boots a subprocess.
  */
 export class TerminalProgramLauncher implements IProgramLauncher {
+  constructor(private readonly logger: ILogger) {}
+
   public canLaunch(args: INodeLaunchConfiguration) {
     args.internalConsoleOptions;
     return args.console !== 'internalConsole';
@@ -44,7 +47,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
       throw new ProtocolError(cannotLaunchInTerminal(err.message));
     }
 
-    return new TerminalProcess(result);
+    return new TerminalProcess(result, this.logger);
   }
 
   /**

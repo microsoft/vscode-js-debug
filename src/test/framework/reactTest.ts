@@ -9,7 +9,8 @@ import Dap from '../../dap/api';
 import { killTree } from '../../targets/node/killTree';
 import { ITestHandle, testFixturesDir } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
-import mkdirp = require('mkdirp');
+import * as mkdirp from 'mkdirp';
+import { Logger } from '../../common/logging/logger';
 
 describe('react', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
@@ -26,7 +27,7 @@ describe('react', () => {
   afterEach(() => {
     if (devServerProc) {
       console.log('Killing ' + devServerProc.pid);
-      killTree(devServerProc.pid);
+      killTree(devServerProc.pid, Logger.null);
     }
   });
 

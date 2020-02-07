@@ -11,6 +11,9 @@ import { CodeSearchSourceMapRepository } from './common/sourceMaps/codeSearchSou
 import { ISourceMapRepository } from './common/sourceMaps/sourceMapRepository';
 import Dap from './dap/api';
 import { ITarget } from './targets/targets';
+import { Logger } from './common/logging/logger';
+import { ILogger, resolveLoggerOptions } from './common/logging';
+import { IDisposable } from './common/disposable';
 
 /**
  * Collection of services returned from {@link IServiceFactory.create()}
@@ -18,6 +21,7 @@ import { ITarget } from './targets/targets';
 export interface IServiceCollection {
   bpPredictor: BreakpointsPredictor;
   sourceMapRepo: ISourceMapRepository;
+  logger: ILogger;
 }
 
 /**
@@ -49,6 +53,7 @@ export interface IServiceFactory {
 interface IRootData {
   dap: Dap.Api;
   params: AnyLaunchConfiguration;
+  logger: ILogger;
 }
 
 /**
@@ -62,7 +67,9 @@ interface IInheritedServices extends IRootData {
 /**
  * The global factory that creates services for top-level sessions.
  */
-export class TopLevelServiceFactory implements IServiceFactory {
+export class TopLevelServiceFactory implements IServiceFactory, IDisposable {
+  public readonly logger = new Logger();
+
   private root?: IRootData;
 
   public get child() {
@@ -76,8 +83,9 @@ export class TopLevelServiceFactory implements IServiceFactory {
   /**
    * Must be called by the top-level session to provide initial data.
    */
-  public provideRootData(data: IRootData) {
-    this.root = data;
+  public provideRootData(data: { dap: Dap.Api; params: AnyLaunchConfiguration }) {
+    this.logger.setup(resolveLoggerOptions(data.dap, data.params.trace));
+    this.root = { ...data, logger: this.logger };
   }
 
   /**
@@ -85,6 +93,13 @@ export class TopLevelServiceFactory implements IServiceFactory {
    */
   public create(params: IServiceParams) {
     return this.child.create(params);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
+    this.root?.logger.dispose();
   }
 }
 
@@ -100,6 +115,7 @@ export class NestedServiceFactory implements IServiceFactory {
 
   public create({ target }: IServiceParams): IServiceCollection {
     return {
+      logger: this.inherited.logger,
       sourceMapRepo: this.getSourceMapRepo(),
       bpPredictor: this.getBpPredictor(target),
     };
@@ -107,7 +123,9 @@ export class NestedServiceFactory implements IServiceFactory {
 
   private getSourceMapRepo() {
     if (!this.inherited.sourceMapRepo) {
-      this.inherited.sourceMapRepo = CodeSearchSourceMapRepository.createOrFallback();
+      this.inherited.sourceMapRepo = CodeSearchSourceMapRepository.createOrFallback(
+        this.inherited.logger,
+      );
     }
 
     return this.inherited.sourceMapRepo;
@@ -115,10 +133,11 @@ export class NestedServiceFactory implements IServiceFactory {
 
   private getBpPredictor(target: ITarget) {
     if (!this.inherited.bpPredictor) {
-      const sourceMapFactory = new SourceMapFactory();
+      const sourceMapFactory = new SourceMapFactory(this.inherited.logger);
       this.inherited.bpPredictor = new BreakpointsPredictor(
         this.inherited.params,
         this.getSourceMapRepo(),
+        this.inherited.logger,
         sourceMapFactory,
         target.sourcePathResolver(),
         this.inherited.params.__workspaceCachePath

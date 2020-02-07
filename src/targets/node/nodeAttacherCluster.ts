@@ -2,8 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { logger } from '../../common/logging/logger';
-import { LogTag } from '../../common/logging';
+import { LogTag, ILogger } from '../../common/logging';
 import { spawnWatchdog } from './watchdogSpawn';
 import { getWSEndpoint } from '../browser/launcher';
 import { NeverCancelled } from '../../common/cancellation';
@@ -26,9 +25,10 @@ export async function watchAllChildren(
     hostname: string;
     ipcAddress: string;
   },
+  logger: ILogger,
   cancellation: CancellationToken = NeverCancelled,
 ): Promise<ChildProcess[]> {
-  const node = await getProcessTree(options.pid);
+  const node = await getProcessTree(options.pid, logger);
   if (!node) {
     return [];
   }
@@ -73,7 +73,10 @@ export async function watchAllChildren(
 /**
  * Returns a process tree rooting at the give process ID.
  */
-async function getProcessTree(rootPid: number): Promise<IProcessTreeNode | undefined> {
+async function getProcessTree(
+  rootPid: number,
+  logger: ILogger,
+): Promise<IProcessTreeNode | undefined> {
   const map = new Map<number, IProcessTreeNode>();
 
   map.set(0, { children: [], pid: 0, ppid: 0, command: '', args: '' });

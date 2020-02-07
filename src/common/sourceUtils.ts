@@ -5,11 +5,8 @@
 import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
-import * as urlUtils from './urlUtils';
 import * as fsUtils from './fsUtils';
 import { SourceMap } from './sourceMaps/sourceMap';
-import { logger } from './logging/logger';
-import { LogTag } from './logging';
 import { verifyBytes, verifyFile } from './hash';
 
 export async function prettyPrintAsSourceMap(
@@ -208,28 +205,6 @@ export function wrapObjectLiteral(code: string): string {
   }
 
   return ts.isObjectLiteralExpression(returnStmt.expression) ? `(${code})` : code;
-}
-
-export async function loadSourceMap(
-  sourceMapUrl: string,
-): Promise<sourceMap.BasicSourceMapConsumer | undefined> {
-  let content: string;
-  try {
-    content = await urlUtils.fetch(sourceMapUrl);
-  } catch (err) {
-    logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
-    return;
-  }
-
-  if (content.slice(0, 3) === ')]}') {
-    content = content.substring(content.indexOf('\n'));
-  }
-
-  try {
-    return (await new sourceMap.SourceMapConsumer(content)) as sourceMap.BasicSourceMapConsumer;
-  } catch (err) {
-    logger.warn(LogTag.SourceMapParsing, 'Error parsing sourcemap', err);
-  }
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

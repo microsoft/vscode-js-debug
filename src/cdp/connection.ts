@@ -6,8 +6,7 @@ import { ITransport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
 
 interface IProtocolCommand {
@@ -51,14 +50,18 @@ export default class Connection {
   private _onDisconnectedEmitter = new EventEmitter<void>();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
-  constructor(transport: ITransport, private readonly telemetryReporter: TelemetryReporter) {
+  constructor(
+    transport: ITransport,
+    private readonly logger: ILogger,
+    private readonly telemetryReporter: TelemetryReporter,
+  ) {
     this._lastId = 0;
     this._transport = transport;
     this._transport.onmessage = this._onMessage.bind(this);
     this._transport.onend = this._onTransportClose.bind(this);
     this._sessions = new Map();
     this._closed = false;
-    this._rootSession = new CDPSession(this, '');
+    this._rootSession = new CDPSession(this, '', this.logger);
     this._sessions.set('', this._rootSession);
   }
 
@@ -71,14 +74,14 @@ export default class Connection {
     const message: IProtocolCommand = { id, method, params };
     if (sessionId) message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
-    logger.verbose(LogTag.CdpSend, undefined, { connectionId: this._connectionId, message });
+    this.logger.verbose(LogTag.CdpSend, undefined, { connectionId: this._connectionId, message });
     this._transport.send(messageString);
     return id;
   }
 
   async _onMessage(message: string, receivedTime: bigint) {
     const object = JSON.parse(message);
-    logger.verbose(LogTag.CdpReceive, undefined, {
+    this.logger.verbose(LogTag.CdpReceive, undefined, {
       connectionId: this._connectionId,
       message: object,
     });
@@ -120,7 +123,7 @@ export default class Connection {
   }
 
   createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {
-    const session = new CDPSession(this, sessionId);
+    const session = new CDPSession(this, sessionId, this.logger);
     this._sessions.set(sessionId, session);
     return session.cdp();
   }
@@ -146,7 +149,7 @@ class CDPSession {
   private _listeners = new Map<string, Set<(params: object) => void>>();
   private paused = false;
 
-  constructor(connection: Connection, sessionId: string) {
+  constructor(connection: Connection, sessionId: string, private readonly logger: ILogger) {
     this._callbacks = new Map();
     this._connection = connection;
     this._sessionId = sessionId;
@@ -165,7 +168,7 @@ class CDPSession {
     this.paused = false;
     const toSend = this._queue;
     this._queue = [];
-    logger.verbose(LogTag.CdpReceive, 'Dequeue messages', { message: toSend });
+    this.logger.verbose(LogTag.CdpReceive, 'Dequeue messages', { message: toSend });
     for (const item of toSend) {
       this._processResponse(item);
     }

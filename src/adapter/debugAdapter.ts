@@ -17,10 +17,8 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { logPerf } from '../telemetry/performance';
 import { ScriptSkipper } from './scriptSkipper';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
-import { logger } from '../common/logging/logger';
 import { LogTag } from '../common/logging';
 import { DisposableList } from '../common/disposable';
 import { IServiceCollection } from '../services';
@@ -47,7 +45,7 @@ export class DebugAdapter {
     private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: TelemetryReporter,
-    _sharedServices: IServiceCollection,
+    private readonly _sharedServices: IServiceCollection,
   ) {
     this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
@@ -82,12 +80,13 @@ export class DebugAdapter {
       })),
     );
 
-    const sourceMapFactory = new SourceMapFactory();
+    const sourceMapFactory = new SourceMapFactory(_sharedServices.logger);
     this._disposables.push(sourceMapFactory);
 
     this.sourceContainer = new SourceContainer(
       this.dap,
       sourceMapFactory,
+      _sharedServices.logger,
       rootPath,
       sourcePathResolver,
       _sharedServices.sourceMapRepo,
@@ -97,6 +96,7 @@ export class DebugAdapter {
     this.breakpointManager = new BreakpointManager(
       this.dap,
       this.sourceContainer,
+      _sharedServices.logger,
       launchConfig.pauseForSourceMap,
       _sharedServices.bpPredictor,
     );
@@ -109,7 +109,6 @@ export class DebugAdapter {
     });
   }
 
-  @logPerf()
   public async launchBlocker(): Promise<void> {
     await this._configurationDoneDeferred.promise;
     await this.breakpointManager.launchBlocker();
@@ -269,6 +268,7 @@ export class DebugAdapter {
       cdp,
       this.dap,
       delegate,
+      this._sharedServices.logger,
       this.launchConfig,
       this.breakpointManager,
     );
@@ -278,7 +278,9 @@ export class DebugAdapter {
     this.asyncStackPolicy
       .connect(cdp)
       .then(d => this._disposables.push(d))
-      .catch(err => logger.error(LogTag.Internal, 'Error enabling async stacks', err));
+      .catch(err =>
+        this._sharedServices.logger.error(LogTag.Internal, 'Error enabling async stacks', err),
+      );
 
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
     this.breakpointManager.setThread(this._thread);

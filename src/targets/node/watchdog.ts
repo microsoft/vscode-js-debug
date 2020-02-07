@@ -6,6 +6,7 @@ import * as net from 'net';
 import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 import { IWatchdogInfo } from './watchdogSpawn';
 import { NeverCancelled } from '../../common/cancellation';
+import { Logger } from '../../common/logging/logger';
 
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 
@@ -27,7 +28,7 @@ process.on('exit', () => {
   debugLog('CONNECTED TO TARGET');
   let pipe: any;
   await new Promise(f => (pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f)));
-  const server = new PipeTransport(pipe);
+  const server = new PipeTransport(Logger.null, pipe);
 
   const targetInfo = {
     targetId: info.pid || '0',

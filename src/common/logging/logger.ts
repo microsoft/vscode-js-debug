@@ -5,6 +5,7 @@
 import { IDisposable } from '../events';
 import * as os from 'os';
 import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
+import { TestLogSink } from './testLogSink';
 
 // eslint-disable-next-line
 const packageJson = require('../../../package.json');
@@ -29,6 +30,24 @@ export class Logger implements ILogger, IDisposable {
    * Log tag filter.
    */
   private tags?: ReadonlySet<LogTag>;
+
+  /**
+   * A no-op logger that never logs anything.
+   */
+  public static null = (() => {
+    const logger = new Logger();
+    logger.setup({ sinks: [], level: LogLevel.Fatal + 1 });
+    return logger;
+  })();
+
+  /**
+   * Creates a logger with the TestLogSink hooked up.
+   */
+  public static async test(level: LogLevel = LogLevel.Info) {
+    const logger = new Logger();
+    logger.setup({ sinks: [new TestLogSink()], level, showWelcome: false });
+    return logger;
+  }
 
   /**
    * @inheritdoc
@@ -93,6 +112,23 @@ export class Logger implements ILogger, IDisposable {
       metadata,
       level: LogLevel.Fatal,
     });
+  }
+  /**
+   * Makes an assertion, *logging* if it failed.
+   */
+  public assert<T>(assertion: T | false | undefined | null, message: string): assertion is T {
+    if (assertion === false || assertion === undefined || assertion === null) {
+      this.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
+
+      if (process.env.JS_DEBUG_THROW_ASSERTIONS) {
+        throw new Error(message);
+      }
+
+      debugger; // break when running in development
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -172,32 +208,6 @@ export class Logger implements ILogger, IDisposable {
     }
   }
 }
-
-/**
- * Global logger instance.
- */
-export const logger = new Logger();
-
-/**
- * Makes an assertion, *logging* if it failed.
- */
-export const assert = <T>(
-  assertion: T | false | undefined | null,
-  message: string,
-): assertion is T => {
-  if (assertion === false || assertion === undefined || assertion === null) {
-    logger.error(LogTag.RuntimeAssertion, message, { error: new Error('Assertion failed') });
-
-    if (process.env.JS_DEBUG_THROW_ASSERTIONS) {
-      throw new Error(message);
-    }
-
-    debugger; // break when running in development
-    return false;
-  }
-
-  return true;
-};
 
 const createWelcomeMessage = (): ILogItem<unknown> => ({
   timestamp: Date.now(),

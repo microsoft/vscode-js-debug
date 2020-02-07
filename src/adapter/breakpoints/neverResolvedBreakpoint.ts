@@ -4,7 +4,7 @@
 
 import { BreakpointManager } from '../breakpoints';
 import { UserDefinedBreakpoint } from './userDefinedBreakpoint';
-import { HitCondition } from './hitCondition';
+import { HitCondition } from './conditions/hitCount';
 import Dap from '../../dap/api';
 
 /**

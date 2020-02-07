@@ -5,14 +5,15 @@
 import { ISourceMapMetadata } from './sourceMap';
 import { ISourceMapRepository, createMetadataForFile } from './sourceMapRepository';
 import globStream from 'glob-stream';
-import { logger } from '../logging/logger';
-import { LogTag } from '../logging';
+import { LogTag, ILogger } from '../logging';
 import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
 
 /**
  * A source map repository that uses globbing to find candidate files.
  */
 export class NodeSourceMapRepository implements ISourceMapRepository {
+  constructor(private readonly logger: ILogger) {}
+
   /**
    * Returns the sourcemaps in the directory, given as an absolute path..
    */
@@ -49,7 +50,7 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
             createMetadataForFile(fixDriveLetterAndSlashes(value.path))
               .then(parsed => parsed && onChild(parsed))
               .catch(error =>
-                logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
+                this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                   error,
                   file: value.path,
                 }),

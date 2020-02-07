@@ -33,6 +33,7 @@ import findBrowser from './findBrowser';
 import * as launcher from './launcher';
 import { WebSocketTransport } from '../../cdp/transport';
 import { getDeferred } from '../../common/promiseUtil';
+import { ILogger } from '../../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -57,7 +58,7 @@ export class BrowserLauncher implements ILauncher {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(storagePath: string) {
+  constructor(storagePath: string, private readonly logger: ILogger) {
     this._storagePath = storagePath;
   }
 
@@ -135,6 +136,7 @@ export class BrowserLauncher implements ILauncher {
     return await launcher.launch(
       dap,
       executablePath,
+      this.logger,
       telemetryReporter,
       clientCapabilities,
       cancellationToken,
@@ -191,7 +193,7 @@ export class BrowserLauncher implements ILauncher {
         // All web views started under our debugger are waiting to to be resumed.
         const wsURL = `ws://${params.address}:${port}/devtools/${info.type}/${info.id}`;
         const ws = await WebSocketTransport.create(wsURL, NeverCancelled);
-        const connection = new CdpConnection(ws, telemetryReporter);
+        const connection = new CdpConnection(ws, this.logger, telemetryReporter);
         await connection.rootSession().Runtime.runIfWaitingForDebugger({});
         connection.close();
       });
@@ -249,20 +251,24 @@ export class BrowserLauncher implements ILauncher {
     this._connectionForTest = launched.cdp;
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver({
-      resolveSourceMapLocations: params.resolveSourceMapLocations,
-      baseUrl: baseURL(params),
-      localRoot: null,
-      remoteRoot: null,
-      pathMapping: { '/': params.webRoot, ...params.pathMapping },
-      sourceMapOverrides: params.sourceMapPathOverrides,
-      clientID: clientCapabilities.clientID,
-    });
+    const pathResolver = new BrowserSourcePathResolver(
+      {
+        resolveSourceMapLocations: params.resolveSourceMapLocations,
+        baseUrl: baseURL(params),
+        localRoot: null,
+        remoteRoot: null,
+        pathMapping: { '/': params.webRoot, ...params.pathMapping },
+        sourceMapOverrides: params.sourceMapPathOverrides,
+        clientID: clientCapabilities.clientID,
+      },
+      this.logger,
+    );
     this._targetManager = await BrowserTargetManager.connect(
       launched.cdp,
       launched.process,
       pathResolver,
       this._launchParams,
+      this.logger,
       telemetryReporter,
       targetOrigin,
     );

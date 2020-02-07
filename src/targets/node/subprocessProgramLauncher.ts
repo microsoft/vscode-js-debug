@@ -9,11 +9,14 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { SubprocessProgram } from './program';
 import { EnvironmentVars } from '../../common/environmentVars';
 import Dap from '../../dap/api';
+import { ILogger } from '../../common/logging';
 
 /**
  * Launcher that boots a subprocess.
  */
 export class SubprocessProgramLauncher implements IProgramLauncher {
+  constructor(private readonly logger: ILogger) {}
+
   public canLaunch(args: INodeLaunchConfiguration) {
     return args.console === 'internalConsole';
   }
@@ -45,7 +48,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
 
     this.setupStdio(config, context.dap, child);
 
-    return new SubprocessProgram(child);
+    return new SubprocessProgram(child, this.logger);
   }
 
   private setupStdio(

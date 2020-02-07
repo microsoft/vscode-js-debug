@@ -6,6 +6,7 @@ import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolve
 import { expect } from 'chai';
 import { join, resolve } from 'path';
 import { setCaseSensitivePaths, resetCaseSensitivePaths } from '../../common/urlUtils';
+import { Logger } from '../../common/logging/logger';
 
 describe('node source path resolver', () => {
   describe('url to path', () => {
@@ -18,18 +19,21 @@ describe('node source path resolver', () => {
     };
 
     it('resolves absolute', async () => {
-      const r = new NodeSourcePathResolver(defaultOptions);
+      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
     });
 
     it('normalizes roots (win -> posix) ', async () => {
-      const r = new NodeSourcePathResolver({
-        ...defaultOptions,
-        remoteRoot: 'C:\\Source',
-        localRoot: '/dev/src',
-      });
+      const r = new NodeSourcePathResolver(
+        {
+          ...defaultOptions,
+          remoteRoot: 'C:\\Source',
+          localRoot: '/dev/src',
+        },
+        await Logger.test(),
+      );
 
       expect(await r.urlToAbsolutePath({ url: 'file:///c:/source/foo/bar.js' })).to.equal(
         '/dev/src/foo/bar.js',
@@ -37,11 +41,14 @@ describe('node source path resolver', () => {
     });
 
     it('normalizes roots (posix -> win) ', async () => {
-      const r = new NodeSourcePathResolver({
-        ...defaultOptions,
-        remoteRoot: '/dev/src',
-        localRoot: 'C:\\Source',
-      });
+      const r = new NodeSourcePathResolver(
+        {
+          ...defaultOptions,
+          remoteRoot: '/dev/src',
+          localRoot: 'C:\\Source',
+        },
+        await Logger.test(),
+      );
 
       expect(await r.urlToAbsolutePath({ url: 'file:///dev/src/foo/bar.js' })).to.equal(
         'c:\\Source\\foo\\bar.js',
@@ -49,7 +56,7 @@ describe('node source path resolver', () => {
     });
 
     it('applies source map overrides', async () => {
-      const r = new NodeSourcePathResolver(defaultOptions);
+      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
 
       expect(await r.urlToAbsolutePath({ url: 'webpack:///hello.js' })).to.equal(
         join(__dirname, 'hello.js'),
@@ -107,10 +114,13 @@ describe('node source path resolver', () => {
         it(key, async () => {
           setCaseSensitivePaths(caseSensitive);
 
-          const resolver = new NodeSourcePathResolver({
-            ...defaultOptions,
-            resolveSourceMapLocations: locs,
-          });
+          const resolver = new NodeSourcePathResolver(
+            {
+              ...defaultOptions,
+              resolveSourceMapLocations: locs,
+            },
+            await Logger.test(),
+          );
 
           const result = await resolver.urlToAbsolutePath({
             url: 'webpack:///hello.js',

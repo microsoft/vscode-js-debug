@@ -7,11 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
-import { fixDriveLetterAndSlashes, isUncPath } from './pathUtils';
+import { fixDriveLetterAndSlashes } from './pathUtils';
 import { AnyChromeConfiguration } from '../configuration';
-import { readdir } from './fsUtils';
-import { memoize } from './objUtils';
-import { assert } from './logging/logger';
 import { escapeRegexSpecialChars } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
@@ -58,48 +55,6 @@ export const nearestDirectoryWhere = async (
     rootDir = parent;
   }
 };
-
-/**
- * Returns the path in its true case, correcting for case-insensitive file systems.
- */
-export const truePathCasing = memoize(
-  async (inputPath: string): Promise<string> => {
-    if (isCaseSensitive || isUncPath(inputPath)) {
-      return inputPath;
-    }
-
-    const parsedFromUrl = fileUrlToAbsolutePath(inputPath);
-    if (parsedFromUrl) {
-      const fileUrl = absolutePathToFileUrl(await truePathCasing(parsedFromUrl));
-      if (assert(fileUrl, 'Expected to be able to build file URL from a path')) {
-        return fileUrl;
-      }
-    }
-
-    // This seems to be the canonical way to do things as far as I can tell.
-    const trueSegment: Promise<string>[] = [];
-    while (true) {
-      const nextDir = path.dirname(inputPath);
-      if (nextDir === inputPath) {
-        return path.join(nextDir, ...(await Promise.all(trueSegment)));
-      }
-
-      const needle = path.basename(inputPath);
-      trueSegment.unshift(
-        (async () => {
-          try {
-            const children = await readdir(nextDir);
-            return children.find(c => c.toLowerCase() === needle.toLowerCase()) || needle;
-          } catch (e) {
-            return needle;
-          }
-        })(),
-      );
-
-      inputPath = nextDir;
-    }
-  },
-);
 
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {

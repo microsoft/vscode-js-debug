@@ -12,8 +12,7 @@ import { SubprocessProgram, IProgram } from './program';
 import Cdp from '../../cdp/api';
 import { isLoopback } from '../../common/urlUtils';
 import { LeaseFile } from './lease-file';
-import { logger } from '../../common/logging/logger';
-import { LogTag } from '../../common/logging';
+import { LogTag, ILogger } from '../../common/logging';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
@@ -33,9 +32,10 @@ const localize = nls.loadMessageBundle();
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
     pathProvider: NodePathProvider,
+    logger: ILogger,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
-    super(pathProvider);
+    super(pathProvider, logger);
   }
 
   /**
@@ -76,6 +76,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
           waitForDebugger: true,
           dynamicAttach: true,
         }),
+        this.logger,
       ));
 
       program.stopped.then(r => restart(restartPolicy, program, r));
@@ -128,12 +129,15 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     ]);
 
     if (telemetry && run.params.attachSpawnedProcesses) {
-      watchAllChildren({
-        pid: telemetry.processId,
-        nodePath: await this.resolveNodePath(run.params),
-        hostname: run.params.address,
-        ipcAddress: run.serverAddress,
-      }).catch(err => logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
+      watchAllChildren(
+        {
+          pid: telemetry.processId,
+          nodePath: await this.resolveNodePath(run.params),
+          hostname: run.params.address,
+          ipcAddress: run.serverAddress,
+        },
+        this.logger,
+      ).catch(err => this.logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
     }
 
     return [leaseFile];
@@ -149,7 +153,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     }
 
     if (!isLoopback(run.params.address)) {
-      logger.warn(LogTag.RuntimeTarget, 'Cannot attach to children of remote process');
+      this.logger.warn(LogTag.RuntimeTarget, 'Cannot attach to children of remote process');
       return;
     }
 
@@ -165,12 +169,12 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     });
 
     if (!result) {
-      logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
+      this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
       return;
     }
 
     if (result.exceptionDetails) {
-      logger.error(
+      this.logger.error(
         LogTag.RuntimeTarget,
         'Error setting child environment vars',
         result.exceptionDetails,

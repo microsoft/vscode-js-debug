@@ -19,6 +19,7 @@ import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
 import { Dap } from '../../dap/api';
 import { ITargetOrigin } from '../targetOrigin';
+import { ILogger } from '../../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -33,6 +34,8 @@ export class BrowserAttacher implements ILauncher {
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
+
+  constructor(private readonly logger: ILogger) {}
 
   targetManager(): BrowserTargetManager | undefined {
     return this._targetManager;
@@ -107,20 +110,24 @@ export class BrowserAttacher implements ILauncher {
       this._disposables,
     );
 
-    const pathResolver = new BrowserSourcePathResolver({
-      resolveSourceMapLocations: params.resolveSourceMapLocations,
-      baseUrl: baseURL(params),
-      localRoot: null,
-      remoteRoot: null,
-      pathMapping: { '/': params.webRoot, ...params.pathMapping },
-      sourceMapOverrides: params.sourceMapPathOverrides,
-      clientID: clientCapabilities.clientID,
-    });
+    const pathResolver = new BrowserSourcePathResolver(
+      {
+        resolveSourceMapLocations: params.resolveSourceMapLocations,
+        baseUrl: baseURL(params),
+        localRoot: null,
+        remoteRoot: null,
+        pathMapping: { '/': params.webRoot, ...params.pathMapping },
+        sourceMapOverrides: params.sourceMapPathOverrides,
+        clientID: clientCapabilities.clientID,
+      },
+      this.logger,
+    );
     this._targetManager = await BrowserTargetManager.connect(
       connection,
       undefined,
       pathResolver,
       params,
+      this.logger,
       rawTelemetryReporter,
       this._targetOrigin!,
     );
@@ -160,7 +167,12 @@ export class BrowserAttacher implements ILauncher {
     const browserURL = `http://${params.address}:${params.port}`;
     while (this._launchParams === params) {
       try {
-        return await launcher.attach({ browserURL }, cancellationToken, rawTelemetryReporter);
+        return await launcher.attach(
+          { browserURL },
+          cancellationToken,
+          this.logger,
+          rawTelemetryReporter,
+        );
       } catch (e) {
         if (cancellationToken.isCancellationRequested) {
           return localize(

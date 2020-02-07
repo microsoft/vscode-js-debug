@@ -9,8 +9,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
 import { IDisposable, EventEmitter } from './common/events';
-import { LogTag, resolveLoggerOptions } from './common/logging';
-import { logger } from './common/logging/logger';
+import { LogTag } from './common/logging';
 import * as urlUtils from './common/urlUtils';
 import {
   AnyLaunchConfiguration,
@@ -22,7 +21,10 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import * as errors from './dap/errors';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
-import { filterErrorsReportedToTelemetry } from './telemetry/unhandledErrorReporter';
+import {
+  filterErrorsReportedToTelemetry,
+  installUnhandledErrorReporter,
+} from './telemetry/unhandledErrorReporter';
 import { ScriptSkipper } from './adapter/scriptSkipper';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
@@ -57,7 +59,6 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
-  private _rootServices = new TopLevelServiceFactory();
   private _serviceTree = new WeakMap<ITarget, IServiceFactory>();
 
   constructor(
@@ -65,12 +66,17 @@ export class Binder implements IDisposable {
     connection: DapConnection,
     launchers: ILauncher[],
     private readonly telemetryReporter: TelemetryReporter,
+    private readonly _rootServices = new TopLevelServiceFactory(),
     targetOrigin: ITargetOrigin,
   ) {
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._disposables = [this._onTargetListChangedEmitter, logger, this.telemetryReporter];
+    this._disposables = [
+      this._onTargetListChangedEmitter,
+      this.telemetryReporter,
+      installUnhandledErrorReporter(_rootServices.logger, telemetryReporter),
+    ];
 
     for (const launcher of launchers) {
       this._launchers.add(launcher);
@@ -155,7 +161,6 @@ export class Binder implements IDisposable {
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     warnNightly(dap);
-    logger.setup(resolveLoggerOptions(dap, params.trace));
     this.reportBootTelemetry(params);
     this._rootServices.provideRootData({ params, dap });
 
@@ -283,9 +288,12 @@ export class Binder implements IDisposable {
         );
       }
 
-      logger.warn(LogTag.RuntimeLaunch, 'Launch returned error', { error: result.error, name });
+      this._rootServices.logger.warn(LogTag.RuntimeLaunch, 'Launch returned error', {
+        error: result.error,
+        name,
+      });
     } else if (result.blockSessionTermination) {
-      logger.info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
+      this._rootServices.logger.info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
     }
 
     return result;
@@ -318,11 +326,13 @@ export class Binder implements IDisposable {
     }
 
     const parent = target.parent();
-    const services = (parent && this._serviceTree.get(parent)?.child) || this._rootServices.child;
-    this._serviceTree.set(target, services);
+    const servicesFactory =
+      (parent && this._serviceTree.get(parent)?.child) || this._rootServices.child;
+    this._serviceTree.set(target, servicesFactory);
+    const services = servicesFactory.create({ target });
 
     // todo: move scriptskipper into services collection
-    const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, cdp, target);
+    const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, services.logger, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
@@ -331,7 +341,7 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy,
       launchParams,
       this.telemetryReporter,
-      services.create({ target }),
+      services,
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });

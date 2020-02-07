@@ -24,6 +24,7 @@ import * as nls from 'vscode-nls';
 import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
+import { TopLevelServiceFactory } from './services';
 
 const localize = nls.loadMessageBundle();
 
@@ -93,17 +94,18 @@ export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net
       .createServer(async socket => {
+        const services = new TopLevelServiceFactory();
         const pathProvider = new NodePathProvider();
         const launchers = [
-          new ExtensionHostAttacher(pathProvider),
-          new ExtensionHostLauncher(pathProvider),
-          new NodeAttacher(pathProvider),
-          new NodeLauncher(pathProvider, [
-            new SubprocessProgramLauncher(),
-            new TerminalProgramLauncher(),
+          new ExtensionHostAttacher(pathProvider, services.logger),
+          new ExtensionHostLauncher(pathProvider, services.logger),
+          new NodeAttacher(pathProvider, services.logger),
+          new NodeLauncher(pathProvider, services.logger, [
+            new SubprocessProgramLauncher(services.logger),
+            new TerminalProgramLauncher(services.logger),
           ]),
-          new BrowserLauncher(storagePath),
-          new BrowserAttacher(),
+          new BrowserLauncher(storagePath, services.logger),
+          new BrowserAttacher(services.logger),
         ];
 
         const binderDelegate: IBinderDelegate = {
@@ -126,12 +128,13 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         };
 
         const telemetry = new TelemetryReporter();
-        const connection = new DapConnection(telemetry);
+        const connection = new DapConnection(telemetry, services.logger);
         new Binder(
           binderDelegate,
           connection,
           launchers,
           telemetry,
+          services,
           new TargetOrigin('targetOrigin'),
         );
         const configurator = new Configurator(connection.dap());

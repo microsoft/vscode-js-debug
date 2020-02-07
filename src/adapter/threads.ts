@@ -22,6 +22,7 @@ import { VariableStore, IVariableStoreDelegate } from './variables';
 import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { ILogger } from '../common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -120,6 +121,7 @@ export class Thread implements IVariableStoreDelegate {
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: IThreadDelegate,
+    logger: ILogger,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
   ) {
@@ -131,7 +133,7 @@ export class Thread implements IVariableStoreDelegate {
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
-    this._smartStepper = new SmartStepper(this.launchConfig);
+    this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
   }
 

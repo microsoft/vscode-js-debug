@@ -58,7 +58,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
       dynamicAttach: true,
     });
 
-    const program = (this.program = new SubprocessProgram(wd));
+    const program = (this.program = new SubprocessProgram(wd, this.logger));
     this.program.stopped.then(result => {
       if (program === this.program) {
         this.onProgramTerminated(result);
@@ -80,7 +80,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
     // process stops, stop our Watchdog, and vise versa.
     const watchdog = this.program;
     if (telemetry && watchdog) {
-      const code = new TerminalProcess({ processId: telemetry.processId });
+      const code = new TerminalProcess({ processId: telemetry.processId }, this.logger);
       code.stopped.then(() => watchdog.stop());
       watchdog.stopped.then(() => {
         if (!this.restarting) {

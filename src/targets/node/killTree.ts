@@ -3,13 +3,12 @@
  *--------------------------------------------------------*/
 import { spawnSync, execSync } from 'child_process';
 import { join } from 'path';
-import { logger } from '../../common/logging/logger';
-import { LogTag } from '../../common/logging';
+import { LogTag, ILogger } from '../../common/logging';
 
 /**
  * Kills the tree of processes starting at the given parent ID.
  */
-export function killTree(processId: number): boolean {
+export function killTree(processId: number, logger: ILogger): boolean {
   if (process.platform === 'win32') {
     const windir = process.env['WINDIR'] || 'C:\\Windows';
     const TASK_KILL = join(windir, 'System32', 'taskkill.exe');

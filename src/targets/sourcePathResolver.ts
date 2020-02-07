@@ -19,8 +19,7 @@ import {
   isFileUrl,
   isValidUrl,
 } from '../common/urlUtils';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import match from 'micromatch';
 import { SourceMapOverrides } from './sourceMapOverrides';
@@ -34,8 +33,11 @@ export interface ISourcePathResolverOptions {
 
 export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions>
   implements ISourcePathResolver {
-  protected readonly sourceMapOverrides = new SourceMapOverrides(this.options.sourceMapOverrides);
-  constructor(protected readonly options: T) {}
+  protected readonly sourceMapOverrides = new SourceMapOverrides(
+    this.options.sourceMapOverrides,
+    this.logger,
+  );
+  constructor(protected readonly options: T, protected readonly logger: ILogger) {}
 
   public abstract urlToAbsolutePath(request: IUrlResolution): Promise<string | undefined>;
 
@@ -98,7 +100,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     let localPath = properJoin(this.options.localRoot, relativePath);
 
     localPath = fixDriveLetter(localPath);
-    logger.verbose(LogTag.RuntimeSourceMap, `Mapped remoteToLocal: ${remotePath} -> ${localPath}`);
+    this.logger.verbose(
+      LogTag.RuntimeSourceMap,
+      `Mapped remoteToLocal: ${remotePath} -> ${localPath}`,
+    );
     return properResolve(localPath);
   }
 
@@ -117,7 +122,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     let remotePath = properJoin(this.options.remoteRoot, relPath);
 
     remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
-    logger.verbose(LogTag.RuntimeSourceMap, `Mapped localToRemote: ${localPath} -> ${remotePath}`);
+    this.logger.verbose(
+      LogTag.RuntimeSourceMap,
+      `Mapped localToRemote: ${localPath} -> ${remotePath}`,
+    );
     return remotePath;
   }
 

@@ -9,6 +9,7 @@ import Dap from '../../dap/api';
 import { ConsoleLogSink } from './consoleLogSink';
 import { tmpdir } from 'os';
 import { FileLogSink } from './fileLogSink';
+import { existsSync } from 'fs';
 
 export const enum LogLevel {
   Verbose = 0,
@@ -53,11 +54,18 @@ export interface ILogItem<T> {
 /**
  * Logger interface.
  */
-export interface ILogger {
+export interface ILogger extends IDisposable {
   log(item: ILogItem<unknown>): void;
-  verbose(msg?: string, metadata?: unknown): void;
-  warn(msg?: string, metadata?: unknown): void;
-  error(msg?: string, metadata?: unknown): void;
+  info(tag: LogTag, msg?: string, metadata?: unknown): void;
+  verbose(tag: LogTag, msg?: string, metadata?: unknown): void;
+  warn(tag: LogTag, msg?: string, metadata?: unknown): void;
+  error(tag: LogTag, msg?: string, metadata?: unknown): void;
+  fatal(tag: LogTag, msg?: string, metadata?: unknown): void;
+
+  /**
+   * Makes an assertion, *logging* if it failed.
+   */
+  assert<T>(assertion: T | false | undefined | null, message: string): assertion is T;
 }
 
 /**
@@ -113,10 +121,16 @@ export function fulfillLoggerOptions(
     return { console: false, level: 'fatal', logFile: null, tags: [] };
   }
 
+  let logFile: string;
+  let i = 0;
+  do {
+    logFile = path.join(logDir, `vscode-debugadapter-${i++}.json`);
+  } while (existsSync(logFile));
+
   const defaults: ILoggingConfiguration = {
     console: false,
     level: 'verbose',
-    logFile: path.join(logDir, 'vscode-debugadapter.json'),
+    logFile,
     tags: [],
   };
 

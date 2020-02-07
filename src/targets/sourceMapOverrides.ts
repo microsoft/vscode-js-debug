@@ -3,8 +3,7 @@
  *--------------------------------------------------------*/
 
 import { forceForwardSlashes } from '../common/pathUtils';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
 import { URL } from 'url';
 
@@ -36,7 +35,7 @@ export class SourceMapOverrides {
    */
   private readonly replacers: [RegExp, string][] = [];
 
-  constructor(sourceMapOverrides: { [from: string]: string }) {
+  constructor(sourceMapOverrides: { [from: string]: string }, private readonly logger: ILogger) {
     // Sort the overrides by length, large to small
     const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort((a, b) => b.length - a.length);
 
@@ -116,7 +115,7 @@ export class SourceMapOverrides {
       // replacement pattern, and return the result.
       const mappedPath = replacement.replace('*', parts[1]);
 
-      logger.verbose(
+      this.logger.verbose(
         LogTag.RuntimeSourceMap,
         `SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${re.toString()}`,
       );

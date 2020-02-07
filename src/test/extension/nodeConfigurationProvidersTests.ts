@@ -63,7 +63,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.containSubset({
         console: false,
         level: 'verbose',
-        logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
+        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
         tags: [],
       });
     });
@@ -79,7 +79,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.deep.equal({
         console: false,
         level: 'warn',
-        logFile: join(testFixturesDir, 'vscode-debugadapter.json'),
+        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
         tags: ['cdp'],
       });
     });

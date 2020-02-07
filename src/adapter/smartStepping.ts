@@ -4,8 +4,7 @@
 
 import { StackFrame } from './stackTrace';
 import { IPausedDetails } from './threads';
-import { logger } from '../common/logging/logger';
-import { LogTag } from '../common/logging';
+import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { UnmappedReason } from './sources';
 
@@ -23,7 +22,10 @@ export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise
 export class SmartStepper {
   private _smartStepCount = 0;
 
-  constructor(private launchConfig: AnyLaunchConfiguration) {}
+  constructor(
+    private readonly launchConfig: AnyLaunchConfiguration,
+    private readonly logger: ILogger,
+  ) {}
 
   private resetSmartStepCount(): void {
     this._smartStepCount = 0;
@@ -38,7 +40,7 @@ export class SmartStepper {
       this._smartStepCount++;
     } else {
       if (this._smartStepCount > 0) {
-        logger.verbose(LogTag.Internal, `smartStep: skipped ${this._smartStepCount} steps`);
+        this.logger.verbose(LogTag.Internal, `smartStep: skipped ${this._smartStepCount} steps`);
         this.resetSmartStepCount();
       }
     }

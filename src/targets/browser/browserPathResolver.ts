@@ -72,7 +72,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       .split(/[\/\\]/);
     while (pathParts.length > 0) {
       const joinedPath = '/' + pathParts.join('/');
-      const clientPath = await defaultPathMappingResolver(joinedPath, this.options.pathMapping);
+      const clientPath = await defaultPathMappingResolver(
+        joinedPath,
+        this.options.pathMapping,
+        this.logger,
+      );
       if (clientPath && (await fsUtils.exists(clientPath))) {
         return clientPath;
       }
@@ -121,6 +125,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
           map.metadata.compiledPath,
           pathMapping,
           defaultPathMappingResolver,
+          this.logger,
         ),
         url,
       );
