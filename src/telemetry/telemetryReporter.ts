@@ -43,6 +43,10 @@ export class TelemetryReporter implements IDisposable {
    */
   public readonly onFlush = this.flushEmitter.event;
 
+  private enabled(): boolean {
+    return !process.env['DA_TEST_DISABLE_TELEMETRY'];
+  }
+
   /**
    * Reports a telemetry event.
    */
@@ -105,6 +109,10 @@ export class TelemetryReporter implements IDisposable {
   }
 
   private pushOutput(event: Dap.OutputEventParams) {
+    if (!this.enabled()) {
+      return;
+    }
+
     event.data = mapOutput(event.data) as object;
     if (this.target instanceof Array) {
       this.target.push(event);

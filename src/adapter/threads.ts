@@ -4,7 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import { delay, getDeferred } from '../common/promiseUtil';
+import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
@@ -85,10 +85,27 @@ export type RawLocation = {
   scriptId?: Cdp.Runtime.ScriptId;
 };
 
+class DeferredContainer<T> {
+  private _dapDeferred: IDeferred<T> = getDeferred();
+
+  constructor(private readonly _obj: T) {}
+
+  resolve(): void {
+    this._dapDeferred.resolve(this._obj);
+  }
+
+  with<Return>(callback: (obj: T) => Return): Return | Promise<Return> {
+    if (this._dapDeferred.hasSettled()) {
+      return callback(this._obj);
+    } else {
+      return this._dapDeferred.promise.then(obj => callback(obj));
+    }
+  }
+}
+
 export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
   public readonly id: number;
-  private _dap: Dap.Api;
   private _cdp: Cdp.Api;
   private _name: string;
   private _pausedDetails?: IPausedDetails;
@@ -114,6 +131,8 @@ export class Thread implements IVariableStoreDelegate {
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
 
+  private _dap: DeferredContainer<Dap.Api>;
+
   constructor(
     sourceContainer: SourceContainer,
     threadName: string,
@@ -123,15 +142,16 @@ export class Thread implements IVariableStoreDelegate {
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
   ) {
+    this._dap = new DeferredContainer(dap);
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
-    this._dap = dap;
     this._name = threadName;
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this);
     this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig);
+    this._initialize();
   }
 
   cdp(): Cdp.Api {
@@ -402,7 +422,7 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  dapInitialized() {
+  _initialize() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
@@ -441,10 +461,16 @@ export class Thread implements IVariableStoreDelegate {
     this._delegate.initialize();
     this._pauseOnScheduledAsyncCall();
 
-    this._dap.thread({
-      reason: 'started',
-      threadId: this.id,
-    });
+    this._dap.with(dap =>
+      dap.thread({
+        reason: 'started',
+        threadId: this.id,
+      }),
+    );
+  }
+
+  dapInitialized() {
+    this._dap.resolve();
   }
 
   async refreshStackTrace() {
@@ -484,7 +510,7 @@ export class Thread implements IVariableStoreDelegate {
         const isClearConsole = payload.output === '\x1b[2J';
         const noop = isClearConsole && !this._consoleIsDirty;
         if (!noop) {
-          this._dap.output(payload);
+          this._dap.with(dap => dap.output(payload));
           this._consoleIsDirty = !isClearConsole;
         }
       }
@@ -612,10 +638,12 @@ export class Thread implements IVariableStoreDelegate {
     this._executionContextsCleared();
 
     // Send 'exited' after all other thread-releated events
-    this._dap.thread({
-      reason: 'exited',
-      threadId: this.id,
-    });
+    this._dap.with(dap =>
+      dap.thread({
+        reason: 'exited',
+        threadId: this.id,
+      }),
+    );
   }
 
   rawLocation(
@@ -1019,7 +1047,9 @@ export class Thread implements IVariableStoreDelegate {
           ? event.sourceMapURL
           : event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
         if (!resolvedSourceMapUrl) {
-          errors.reportToConsole(this._dap, `Could not load source map from ${event.sourceMapURL}`);
+          this._dap.with(dap =>
+            errors.reportToConsole(dap, `Could not load source map from ${event.sourceMapURL}`),
+          );
         }
       }
 
@@ -1145,7 +1175,9 @@ export class Thread implements IVariableStoreDelegate {
 
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
-      this._dap.copyRequested({ text: objectPreview.previewRemoteObject(object, 'copy') });
+      this._dap.with(dap =>
+        dap.copyRequested({ text: objectPreview.previewRemoteObject(object, 'copy') }),
+      );
       return;
     }
 
@@ -1158,7 +1190,7 @@ export class Thread implements IVariableStoreDelegate {
         returnByValue: true,
       });
 
-      this._dap.copyRequested({ text: result.value });
+      this._dap.with(dap => dap.copyRequested({ text: result.value }));
     } catch (e) {
       // ignored
     } finally {
@@ -1222,20 +1254,24 @@ export class Thread implements IVariableStoreDelegate {
       ]);
     }
 
-    this._dap.stopped({
-      reason: details.reason,
-      description: details.description,
-      threadId: this.id,
-      text: details.text,
-      allThreadsStopped: false,
-    });
+    this._dap.with(dap =>
+      dap.stopped({
+        reason: details.reason,
+        description: details.description,
+        threadId: this.id,
+        text: details.text,
+        allThreadsStopped: false,
+      }),
+    );
   }
 
   _onThreadResumed() {
-    this._dap.continued({
-      threadId: this.id,
-      allThreadsContinued: false,
-    });
+    this._dap.with(dap =>
+      dap.continued({
+        threadId: this.id,
+        allThreadsContinued: false,
+      }),
+    );
   }
 
   async setScriptSourceMapHandler(
