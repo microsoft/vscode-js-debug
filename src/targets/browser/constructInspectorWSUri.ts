@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
+import { memoize } from '../../common/objUtils';
 
 /**
  * Returns WebSocket (`ws(s)://`) address of the inspector to use. This function interpolates the inspect uri from the browser inspect uri and other values. Available keys are:
@@ -18,16 +19,24 @@ export function constructInspectorWSUri(
   urlText: string | null | undefined,
   browserInspectUri: string,
 ): string {
-  const url = new URL(urlText || '');
-  const replacements: { [key: string]: string } = {
-    'url.hostname': url.hostname,
-    'url.port': url.port,
-    browserInspectUri: browserInspectUri,
-    wsProtocol: url.protocol === 'https' ? 'wss' : 'ws',
+  const getUrl = memoize((maybeText: string | null | undefined) => {
+    if (maybeText) {
+      return new URL(maybeText);
+    } else {
+      throw new Error(`A valid url wasn't supplied: <${maybeText}>`);
+    }
+  });
+
+  // We map keys to functions, so we won't fail with a missing url unless the inspector uri format is actually referencing the url
+  const replacements: { [key: string]: () => string } = {
+    'url.hostname': () => getUrl(urlText).hostname,
+    'url.port': () => getUrl(urlText).port,
+    browserInspectUri: () => encodeURIComponent(browserInspectUri),
+    wsProtocol: () => (getUrl(urlText).protocol === 'https:' ? 'wss' : 'ws'), // the protocol includes the : at the end
   };
 
   const inspectUri = inspectUriFormat.replace(/{([^\}]+)}/g, (match, key: string) =>
-    replacements.hasOwnProperty(key) ? replacements[key] : match,
+    replacements.hasOwnProperty(key) ? replacements[key]() : match,
   );
 
   return inspectUri;

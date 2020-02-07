@@ -54,7 +54,7 @@ interface ILaunchOptions {
   launchUnelevated?: boolean;
   url?: string | null;
   promisedPort?: Promise<number>;
-  inspectUri?: string;
+  inspectUri?: string | null;
 }
 
 const suggestedPortArg = '--remote-debugging-';
