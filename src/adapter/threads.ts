@@ -422,7 +422,7 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  _initialize() {
+  private _initialize() {
     this._cdp.Runtime.on('executionContextCreated', event => {
       this._executionContextCreated(event.context);
     });
