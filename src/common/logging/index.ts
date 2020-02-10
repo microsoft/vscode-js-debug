@@ -51,10 +51,13 @@ export interface ILogItem<T> {
   level: LogLevel;
 }
 
+export const ILogger = Symbol('ILogger');
+
 /**
  * Logger interface.
  */
 export interface ILogger extends IDisposable {
+  setup(options: ILoggerSetupOptions): Promise<void>;
   log(item: ILogItem<unknown>): void;
   info(tag: LogTag, msg?: string, metadata?: unknown): void;
   verbose(tag: LogTag, msg?: string, metadata?: unknown): void;

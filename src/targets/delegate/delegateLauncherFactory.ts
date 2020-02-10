@@ -6,6 +6,7 @@ import { ITarget } from '../targets';
 import { ObservableMap } from '../targetList';
 import { IDelegateRef, DelegateLauncher } from './delegateLauncher';
 import { IPendingDapApi } from '../../dap/pending-api';
+import { injectable } from 'inversify';
 
 let idCounter = 0;
 
@@ -13,6 +14,7 @@ let idCounter = 0;
  * An extension-global instance used to shuffle delegated launch sessions.
  * See docblocks on {@link DelegateLauncher} for usage details.
  */
+@injectable()
 export class DelegateLauncherFactory {
   private delegateSessions = new ObservableMap<number, IDelegateRef>();
   private refsByTarget = new WeakMap<ITarget, IDelegateRef>();

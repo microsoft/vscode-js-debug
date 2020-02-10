@@ -30,6 +30,11 @@ export const isRequest = (req: string) => req.endsWith('Request');
 
 let connectionId = 0;
 
+/**
+ * Symbol injected to get the closest DAP connection.
+ */
+export const IDapApi = Symbol('IDapApi');
+
 export default class Connection {
   private static _TWO_CRLF = '\r\n\r\n';
   private static readonly logOmittedCalls = new WeakSet<object>();

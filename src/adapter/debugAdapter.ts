@@ -16,18 +16,21 @@ import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
-import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { ScriptSkipper } from './scriptSkipper';
+import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { ScriptSkipper, IScriptSkipper } from './scriptSkipper';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
-import { LogTag } from '../common/logging';
-import { DisposableList } from '../common/disposable';
-import { IServiceCollection } from '../services';
+import { LogTag, ILogger } from '../common/logging';
+import { DisposableList, IDisposable } from '../common/disposable';
+import { Container } from 'inversify';
+import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { IBreakpointsPredictor } from './breakpointPredictor';
+import { disposeContainer } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
-export class DebugAdapter {
+export class DebugAdapter implements IDisposable {
   readonly dap: Dap.Api;
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
@@ -41,11 +44,10 @@ export class DebugAdapter {
     dap: Dap.Api,
     rootPath: string | undefined,
     sourcePathResolver: ISourcePathResolver,
-    private readonly _scriptSkipper: ScriptSkipper,
     private readonly asyncStackPolicy: IAsyncStackPolicy,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _rawTelemetryReporter: TelemetryReporter,
-    private readonly _sharedServices: IServiceCollection,
+    private readonly _services: Container,
   ) {
     this._configurationDoneDeferred = getDeferred();
     this.dap = dap;
@@ -80,25 +82,22 @@ export class DebugAdapter {
       })),
     );
 
-    const sourceMapFactory = new SourceMapFactory(_sharedServices.logger);
-    this._disposables.push(sourceMapFactory);
-
     this.sourceContainer = new SourceContainer(
       this.dap,
-      sourceMapFactory,
-      _sharedServices.logger,
+      _services.get(ISourceMapFactory),
+      _services.get(ILogger),
       rootPath,
       sourcePathResolver,
-      _sharedServices.sourceMapRepo,
-      this._scriptSkipper,
+      _services.get(ISourceMapRepository),
+      _services.get(IScriptSkipper),
     );
-    this._scriptSkipper.setSourceContainer(this.sourceContainer);
+
     this.breakpointManager = new BreakpointManager(
       this.dap,
       this.sourceContainer,
-      _sharedServices.logger,
+      _services.get(ILogger),
       launchConfig.pauseForSourceMap,
-      _sharedServices.bpPredictor,
+      _services.get(IBreakpointsPredictor),
     );
 
     this._rawTelemetryReporter.onFlush(() => {
@@ -268,7 +267,7 @@ export class DebugAdapter {
       cdp,
       this.dap,
       delegate,
-      this._sharedServices.logger,
+      this._services.get(ILogger),
       this.launchConfig,
       this.breakpointManager,
     );
@@ -279,7 +278,9 @@ export class DebugAdapter {
       .connect(cdp)
       .then(d => this._disposables.push(d))
       .catch(err =>
-        this._sharedServices.logger.error(LogTag.Internal, 'Error enabling async stacks', err),
+        this._services
+          .get<ILogger>(ILogger)
+          .error(LogTag.Internal, 'Error enabling async stacks', err),
       );
 
     this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
@@ -314,7 +315,7 @@ export class DebugAdapter {
   async _toggleSkipFileStatus(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error> {
-    await this._scriptSkipper.toggleSkippingFile(params);
+    await this._services.get<ScriptSkipper>(IScriptSkipper).toggleSkippingFile(params);
     await this._refreshStackTrace();
     return {};
   }
@@ -365,5 +366,6 @@ export class DebugAdapter {
 
   dispose() {
     this._disposables.dispose();
+    disposeContainer(this._services);
   }
 }

@@ -15,6 +15,8 @@ export interface IRelativePattern {
   pattern: string;
 }
 
+export const ISourceMapRepository = Symbol('ISourceMapRepository');
+
 export interface ISourceMapRepository {
   /**
    * Recursively finds all children matching the given glob, calling `onChild`

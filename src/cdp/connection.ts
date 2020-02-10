@@ -40,6 +40,8 @@ interface IProtocolCallback {
 
 let connectionId = 0;
 
+export const ICdpApi = Symbol('ICdpApi');
+
 export default class Connection {
   private _connectionId = connectionId++;
   private _lastId: number;

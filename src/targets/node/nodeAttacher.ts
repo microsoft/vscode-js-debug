@@ -19,6 +19,7 @@ import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
 import { NodePathProvider } from './nodePathProvider';
 import { IStopMetadata } from '../targets';
+import { injectable } from 'inversify';
 
 const localize = nls.loadMessageBundle();
 
@@ -29,6 +30,7 @@ const localize = nls.loadMessageBundle();
  * the debugger, then evaluate and set the environment variables so that
  * child processes operate just like those we boot with the NodeLauncher.
  */
+@injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
     pathProvider: NodePathProvider,

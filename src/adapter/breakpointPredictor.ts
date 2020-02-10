@@ -14,8 +14,9 @@ import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { EventEmitter } from '../common/events';
-import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
+import { injectable, inject } from 'inversify';
 
 export interface IWorkspaceLocation {
   absolutePath: string;
@@ -33,14 +34,38 @@ type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
 const longPredictionWarning = 10 * 1000;
 
-export type BreakpointPredictionCache = CorrelatedCache<number, DiscoveredMetadata[]>;
+export const IBreakpointsPredictor = Symbol('IBreakpointsPredictor');
 
-export class BreakpointsPredictor {
+/**
+ * Determines ahead of time where to set breakpoints in the target files
+ * by looking at source maps on disk.
+ */
+export interface IBreakpointsPredictor {
+  /**
+   * Returns a promise that resolves once maps in the root are predicted.
+   */
+  prepareToPredict(): Promise<void>;
+
+  /**
+   * Returns a promise that resolves when breakpoints for the given location
+   * are predicted.
+   */
+  predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void>;
+
+  /**
+   * Returns predicted breakpoint locations for the provided source.
+   */
+  predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[];
+}
+
+@injectable()
+export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations: PredictedLocation[] = [];
   private readonly patterns: string[];
   private readonly rootPath: string;
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
+  private cache?: CorrelatedCache<number, DiscoveredMetadata[]>;
 
   /**
    * Event that fires if it takes a long time to predict sourcemaps.
@@ -48,17 +73,23 @@ export class BreakpointsPredictor {
   public readonly onLongParse = this.longParseEmitter.event;
 
   constructor(
-    launchConfig: AnyLaunchConfiguration,
-    private readonly repo: ISourceMapRepository,
-    private readonly logger: ILogger,
-    private readonly sourceMapFactory: SourceMapFactory,
+    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(ISourceMapRepository) private readonly repo: ISourceMapRepository,
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
+    @inject(ISourcePathResolver)
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
-    private readonly cache: BreakpointPredictionCache | undefined,
   ) {
     this.rootPath = launchConfig.rootPath;
     this.patterns = launchConfig.outFiles.map(p =>
       path.isAbsolute(p) ? path.relative(launchConfig.rootPath, p) : p,
     );
+
+    if (launchConfig.__workspaceCachePath) {
+      this.cache = new CorrelatedCache(
+        path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
+      );
+    }
   }
 
   private async createInitialMapping(): Promise<MetadataMap> {
@@ -129,7 +160,7 @@ export class BreakpointsPredictor {
   }
 
   /**
-   * Returns a promise that resolves once maps in the root are predicted.
+   * @inheritdoc
    */
   public async prepareToPredict(): Promise<void> {
     if (!this.sourcePathToCompiled) {

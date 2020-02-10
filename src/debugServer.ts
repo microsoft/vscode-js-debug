@@ -2,29 +2,22 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as net from 'net';
+import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as net from 'net';
 import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
-import { NodeLauncher } from './targets/node/nodeLauncher';
-import { BrowserLauncher } from './targets/browser/browserLauncher';
-import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
 import { generateBreakpointIds } from './adapter/breakpoints';
-import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
-import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 import { IDisposable } from './common/disposable';
-import { NodeAttacher } from './targets/node/nodeAttacher';
-import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
-import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import * as nls from 'vscode-nls';
-import { NodePathProvider } from './targets/node/nodePathProvider';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
-import { TopLevelServiceFactory } from './services';
+import { ILogger } from './common/logging';
 
 const localize = nls.loadMessageBundle();
 
@@ -94,20 +87,9 @@ export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net
       .createServer(async socket => {
-        const services = new TopLevelServiceFactory();
-        const pathProvider = new NodePathProvider();
-        const launchers = [
-          new ExtensionHostAttacher(pathProvider, services.logger),
-          new ExtensionHostLauncher(pathProvider, services.logger),
-          new NodeAttacher(pathProvider, services.logger),
-          new NodeLauncher(pathProvider, services.logger, [
-            new SubprocessProgramLauncher(services.logger),
-            new TerminalProgramLauncher(services.logger),
-          ]),
-          new BrowserLauncher(storagePath, services.logger),
-          new BrowserAttacher(services.logger),
-        ];
-
+        const services = createTopLevelSessionContainer(
+          createGlobalContainer({ storagePath, isVsCode: false }),
+        );
         const binderDelegate: IBinderDelegate = {
           async acquireDap(): Promise<DapConnection> {
             // Note: we can make multi-session work through custom dap message:
@@ -128,11 +110,10 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         };
 
         const telemetry = new TelemetryReporter();
-        const connection = new DapConnection(telemetry, services.logger);
+        const connection = new DapConnection(telemetry, services.get(ILogger));
         new Binder(
           binderDelegate,
           connection,
-          launchers,
           telemetry,
           services,
           new TargetOrigin('targetOrigin'),

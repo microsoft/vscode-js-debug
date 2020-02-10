@@ -11,14 +11,16 @@ import { ProtocolError, cannotLaunchInTerminal } from '../../dap/errors';
 import { TerminalProcess } from './program';
 import { removeNulls } from '../../common/objUtils';
 import { ILogger } from '../../common/logging';
+import { injectable, inject } from 'inversify';
 
 const localize = nls.loadMessageBundle();
 
 /**
  * Launcher that boots a subprocess.
  */
+@injectable()
 export class TerminalProgramLauncher implements IProgramLauncher {
-  constructor(private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   public canLaunch(args: INodeLaunchConfiguration) {
     args.internalConsoleOptions;

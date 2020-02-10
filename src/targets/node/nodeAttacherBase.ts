@@ -10,10 +10,12 @@ import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IDisposable } from '../../common/disposable';
 import { LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
+import { injectable } from 'inversify';
 
 /**
  * Base class that implements common matters for attachment.
  */
+@injectable()
 export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends NodeLauncherBase<T> {
   /**
    * Tracker for whether we're waiting to break and instrument into the main

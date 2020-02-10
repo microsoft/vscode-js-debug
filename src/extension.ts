@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 
+import { createGlobalContainer } from './ioc';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { SessionManager } from './ui/sessionManager';
@@ -22,6 +23,11 @@ import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 
 export function activate(context: vscode.ExtensionContext) {
+  const services = createGlobalContainer({
+    storagePath: context.storagePath || context.extensionPath,
+    isVsCode: true,
+  });
+
   context.subscriptions.push(
     registerCommand(vscode.commands, Contributions.DebugNpmScript, debugNpmScript),
     registerCommand(vscode.commands, Contributions.PickProcessCommand, pickProcess),
@@ -57,8 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  const launcherDelegate = new DelegateLauncherFactory();
-  const sessionManager = new SessionManager(context, launcherDelegate);
+  const sessionManager = new SessionManager(services);
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory(Contributions.NodeDebugType, sessionManager),
     vscode.debug.registerDebugAdapterDescriptorFactory(
@@ -86,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerLongBreakpointUI(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
-  registerDebugTerminalUI(context, launcherDelegate);
+  registerDebugTerminalUI(context, services.get(DelegateLauncherFactory));
   registerNpmScriptLens(context);
 }
 

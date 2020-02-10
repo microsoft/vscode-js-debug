@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { IDisposable } from '../events';
+import { injectable } from 'inversify';
 import * as os from 'os';
 import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
 import { TestLogSink } from './testLogSink';
@@ -14,6 +15,7 @@ const packageJson = require('../../../package.json');
  * Implementation of ILogger for the extension. You should probably use the
  * global const `logger` instance.
  */
+@injectable()
 export class Logger implements ILogger, IDisposable {
   /**
    * The target of the logger. Either a list of sinks, or a queue of items

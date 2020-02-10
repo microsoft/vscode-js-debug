@@ -6,6 +6,7 @@ import Mocha from 'mocha';
 import * as glob from 'glob';
 import { use } from 'chai';
 import { join } from 'path';
+import 'reflect-metadata';
 
 use(require('chai-subset'));
 

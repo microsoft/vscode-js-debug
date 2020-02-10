@@ -9,7 +9,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
 import { IDisposable, EventEmitter } from './common/events';
-import { LogTag } from './common/logging';
+import { LogTag, ILogger, resolveLoggerOptions } from './common/logging';
 import * as urlUtils from './common/urlUtils';
 import {
   AnyLaunchConfiguration,
@@ -25,14 +25,15 @@ import {
   filterErrorsReportedToTelemetry,
   installUnhandledErrorReporter,
 } from './telemetry/unhandledErrorReporter';
-import { ScriptSkipper } from './adapter/scriptSkipper';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { mapValues } from './common/objUtils';
 import * as os from 'os';
 import { delay } from './common/promiseUtil';
-import { IServiceFactory, TopLevelServiceFactory } from './services';
+import { Container } from 'inversify';
+import { createTargetContainer, provideLaunchParams } from './ioc';
+import { disposeContainer } from './ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -59,26 +60,26 @@ export class Binder implements IDisposable {
   private _launchParams?: AnyLaunchConfiguration;
   private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
-  private _serviceTree = new WeakMap<ITarget, IServiceFactory>();
+  private _serviceTree = new WeakMap<ITarget, Container>();
 
   constructor(
     delegate: IBinderDelegate,
     connection: DapConnection,
-    launchers: ILauncher[],
     private readonly telemetryReporter: TelemetryReporter,
-    private readonly _rootServices = new TopLevelServiceFactory(),
+    private readonly _rootServices: Container,
     targetOrigin: ITargetOrigin,
   ) {
+    this._launchers = new Set(_rootServices.getAll(ILauncher));
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
     this._disposables = [
       this._onTargetListChangedEmitter,
       this.telemetryReporter,
-      installUnhandledErrorReporter(_rootServices.logger, telemetryReporter),
+      installUnhandledErrorReporter(_rootServices.get(ILogger), telemetryReporter),
     ];
 
-    for (const launcher of launchers) {
+    for (const launcher of this._launchers) {
       this._launchers.add(launcher);
       launcher.onTargetListChanged(
         () => {
@@ -162,7 +163,8 @@ export class Binder implements IDisposable {
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     warnNightly(dap);
     this.reportBootTelemetry(params);
-    this._rootServices.provideRootData({ params, dap });
+    provideLaunchParams(this._rootServices, params);
+    this._rootServices.get<ILogger>(ILogger).setup(resolveLoggerOptions(dap, params.trace));
 
     const cts = CancellationTokenSource.withTimeout(params.timeout);
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
@@ -288,12 +290,14 @@ export class Binder implements IDisposable {
         );
       }
 
-      this._rootServices.logger.warn(LogTag.RuntimeLaunch, 'Launch returned error', {
+      this._rootServices.get<ILogger>(ILogger).warn(LogTag.RuntimeLaunch, 'Launch returned error', {
         error: result.error,
         name,
       });
     } else if (result.blockSessionTermination) {
-      this._rootServices.logger.info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
+      this._rootServices
+        .get<ILogger>(ILogger)
+        .info(LogTag.RuntimeLaunch, 'Launched successfully', { name });
     }
 
     return result;
@@ -304,6 +308,7 @@ export class Binder implements IDisposable {
     this._disposables = [];
     for (const launcher of this._launchers) launcher.dispose();
     this._launchers.clear();
+    disposeContainer(this._rootServices);
     this._detachOrphanThreads([]);
   }
 
@@ -325,23 +330,21 @@ export class Binder implements IDisposable {
       this._asyncStackPolicy = getAsyncStackPolicy(launchParams.showAsyncStacks);
     }
 
-    const parent = target.parent();
-    const servicesFactory =
-      (parent && this._serviceTree.get(parent)?.child) || this._rootServices.child;
-    this._serviceTree.set(target, servicesFactory);
-    const services = servicesFactory.create({ target });
+    const parentTarget = target.parent();
+    const parentContainer =
+      (parentTarget && this._serviceTree.get(parentTarget)) || this._rootServices;
+    const container = createTargetContainer(parentContainer, target, dap, cdp);
+    this._serviceTree.set(target, parentContainer);
 
     // todo: move scriptskipper into services collection
-    const scriptSkipper = new ScriptSkipper(launchParams.skipFiles, services.logger, cdp, target);
     const debugAdapter = new DebugAdapter(
       dap,
       this._launchParams?.rootPath || undefined,
       target.sourcePathResolver(),
-      scriptSkipper,
       this._asyncStackPolicy,
       launchParams,
       this.telemetryReporter,
-      services,
+      container,
     );
     const thread = debugAdapter.createThread(target.name(), cdp, target);
     this._threads.set(target, { thread, debugAdapter });

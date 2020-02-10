@@ -16,7 +16,7 @@ import { SourceMapConsumer, Position, NullablePosition } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { SourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { CachingSourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
@@ -319,7 +319,7 @@ export class SourceContainer {
 
   constructor(
     dap: Dap.Api,
-    private readonly sourceMapFactory: SourceMapFactory,
+    private readonly sourceMapFactory: CachingSourceMapFactory,
     private readonly logger: ILogger,
     public readonly rootPath: string | undefined,
     public readonly sourcePathResolver: ISourcePathResolver,
@@ -327,6 +327,7 @@ export class SourceContainer {
     public readonly scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
+    scriptSkipper.setSourceContainer(this);
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {

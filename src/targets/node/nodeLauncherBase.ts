@@ -26,8 +26,9 @@ import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { ObservableMap } from '../targetList';
 import { findInPath } from '../../common/pathUtils';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
-import { NodePathProvider } from './nodePathProvider';
+import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { ILogger } from '../../common/logging';
+import { inject, injectable } from 'inversify';
 
 /**
  * Telemetry received from the nested process.
@@ -65,6 +66,7 @@ export interface IRunData<T> {
 
 let counter = 0;
 
+@injectable()
 export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implements ILauncher {
   /**
    * Data set while a debug session is running.
@@ -104,8 +106,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   protected program?: IProgram;
 
   constructor(
-    private readonly pathProvider: NodePathProvider,
-    protected readonly logger: ILogger,
+    @inject(INodePathProvider) private readonly pathProvider: NodePathProvider,
+    @inject(ILogger) protected readonly logger: ILogger,
   ) {}
 
   /**

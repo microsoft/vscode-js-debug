@@ -7,6 +7,7 @@ import { forceForwardSlashes } from '../pathUtils';
 import { NodeSourceMapRepository } from './nodeSourceMapRepository';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISourceMapRepository } from './sourceMapRepository';
+import { injectable } from 'inversify';
 
 type vscode = typeof import('vscode');
 
@@ -14,6 +15,7 @@ type vscode = typeof import('vscode');
  * A source map repository that uses VS Code's proposed search API to
  * look for candidate files.
  */
+@injectable()
 export class CodeSearchSourceMapRepository implements ISourceMapRepository {
   constructor(private readonly _vscode: vscode, private readonly logger: ILogger) {}
 

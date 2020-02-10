@@ -7,15 +7,29 @@ import { IDisposable } from '../disposable';
 import { fetch } from '../urlUtils';
 import { LogTag, ILogger } from '../logging';
 import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
+import { injectable, inject } from 'inversify';
+
+export const ISourceMapFactory = Symbol('ISourceMapFactory');
+
+/**
+ * Factory that loads source maps.
+ */
+export interface ISourceMapFactory extends IDisposable {
+  /**
+   * Loads the provided source map.
+   */
+  load(metadata: ISourceMapMetadata): Promise<SourceMap | undefined>;
+}
 
 /**
  * A cache of source maps shared between the Thread and Predictor to avoid
  * duplicate loading.
  */
-export class SourceMapFactory implements IDisposable {
+@injectable()
+export class CachingSourceMapFactory implements ISourceMapFactory {
   private readonly knownMaps = new Map<string, Promise<SourceMap | undefined>>();
 
-  constructor(private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   /**
    * Loads the provided source map.

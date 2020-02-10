@@ -6,6 +6,8 @@ import { INodeLaunchConfiguration } from '../../configuration';
 import { ILaunchContext } from '../targets';
 import { IProgram } from './program';
 
+export const IProgramLauncher = Symbol('IProgramLauncher');
+
 /**
  * Interface that handles booting a program to debug.
  */
