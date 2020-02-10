@@ -581,8 +581,7 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
   inspectUri: {
     type: ['string', 'null'],
     description: refString('chrome.inspectUri.description'),
-    default:
-      '{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}', // The default value used to debug Blazor
+    default: null,
   },
   server: {
     oneOf: [
