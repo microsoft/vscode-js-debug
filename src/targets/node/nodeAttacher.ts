@@ -4,7 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IRunData } from './nodeLauncherBase';
@@ -44,9 +44,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration): INodeAttachConfiguration | undefined {
-    return params.type === Contributions.NodeDebugType && params.request === 'attach'
-      ? params
-      : undefined;
+    return params.type === DebugType.Node && params.request === 'attach' ? params : undefined;
   }
 
   /**

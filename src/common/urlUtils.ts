@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
 import { fixDriveLetterAndSlashes } from './pathUtils';
-import { AnyChromeConfiguration } from '../configuration';
+import { AnyChromiumConfiguration } from '../configuration';
 import { escapeRegexSpecialChars } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
@@ -318,7 +318,7 @@ export const isLoopback = (address: string) => {
  * Creates a target filter function for the given Chrome configuration.
  */
 export const createTargetFilterForConfig = (
-  config: AnyChromeConfiguration,
+  config: AnyChromiumConfiguration,
 ): ((t: { url: string }) => boolean) => {
   const filter = config.urlFilter || config.url || ('file' in config && config.file);
   if (!filter) {

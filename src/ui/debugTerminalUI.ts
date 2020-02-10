@@ -8,6 +8,7 @@ import {
   registerCommand,
   readConfig,
   Configuration,
+  DebugType,
 } from '../common/contributionUtils';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
@@ -68,7 +69,7 @@ function launchTerminal(
           workspaceFolder,
           applyDefaults({
             ...baseDebugOptions,
-            type: Contributions.TerminalDebugType,
+            type: DebugType.Terminal,
             name: 'Node.js Process',
             request: 'attach',
             delegateId,
@@ -88,7 +89,7 @@ function launchTerminal(
   launcher.launch(
     applyDefaults({
       ...baseDebugOptions,
-      type: Contributions.TerminalDebugType,
+      type: DebugType.Terminal,
       name: 'Debugger Terminal',
       request: 'launch',
       command,

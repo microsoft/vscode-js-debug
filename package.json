@@ -58,7 +58,7 @@
     "reflect-metadata": "^0.1.13",
     "source-map": "^0.7.3",
     "split2": "^3.1.1",
-    "typescript": "^3.7.4",
+    "typescript": "^3.8.1-rc",
     "vscode-nls": "^4.1.1",
     "ws": "^7.0.1"
   },

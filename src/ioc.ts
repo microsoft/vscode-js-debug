@@ -6,6 +6,7 @@
 import 'reflect-metadata';
 
 import { Container } from 'inversify';
+import * as vscode from 'vscode';
 import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
 import { IScriptSkipper, ScriptSkipper } from './adapter/scriptSkipper';
 import Cdp from './cdp/api';
@@ -19,21 +20,24 @@ import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
 import { IDapApi } from './dap/connection';
-import { IsVSCode, StoragePath, trackDispose } from './ioc-extras';
+import { ExtensionContext, IsVSCode, StoragePath, trackDispose } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { BrowserLauncher } from './targets/browser/browserLauncher';
+import { ChromeLauncher } from './targets/browser/chromeLauncher';
+import { EdgeLauncher } from './targets/browser/edgeLauncher';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { NodeAttacher } from './targets/node/nodeAttacher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { INodePathProvider, NodePathProvider } from './targets/node/nodePathProvider';
+import { INvmResolver, NvmResolver } from './targets/node/nvmResolver';
 import { IProgramLauncher } from './targets/node/processLauncher';
 import { RestartPolicyFactory } from './targets/node/restartPolicy';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
+import { IDebugConfigurationProvider } from './ui/configuration/configurationProvider';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -149,11 +153,16 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .to(NodeAttacher)
     .onActivation(trackDispose);
   container
-    .bind(BrowserLauncher)
+    .bind(ChromeLauncher)
     .toSelf()
     .inSingletonScope()
     .onActivation(trackDispose);
-  container.bind(ILauncher).toService(BrowserLauncher);
+  container.bind(ILauncher).toService(ChromeLauncher);
+  container
+    .bind(ILauncher)
+    .to(EdgeLauncher)
+    .inSingletonScope()
+    .onActivation(trackDispose);
   container
     .bind(ILauncher)
     .to(BrowserAttacher)
@@ -166,7 +175,11 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   return container;
 };
 
-export const createGlobalContainer = (options: { storagePath: string; isVsCode: boolean }) => {
+export const createGlobalContainer = (options: {
+  storagePath: string;
+  isVsCode: boolean;
+  context?: vscode.ExtensionContext;
+}) => {
   const container = new Container();
   container
     .bind(DelegateLauncherFactory)
@@ -175,6 +188,38 @@ export const createGlobalContainer = (options: { storagePath: string; isVsCode: 
 
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
+  container.bind(INvmResolver).to(NvmResolver);
+
+  if (options.context) {
+    container.bind(ExtensionContext).toConstantValue(options.context);
+  }
+
+  // Dependency that pull from the vscode global--aren't safe to require at
+  // a top level (e.g. in the debug server)
+  if (options.isVsCode) {
+    const {
+      ChromeDebugConfigurationProvider,
+      EdgeDebugConfigurationProvider,
+      ExtensionHostConfigurationProvider,
+      NodeConfigurationProvider,
+      TerminalDebugConfigurationProvider,
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+    } = require('./ui/configuration');
+
+    [
+      ChromeDebugConfigurationProvider,
+      EdgeDebugConfigurationProvider,
+      ExtensionHostConfigurationProvider,
+      NodeConfigurationProvider,
+      TerminalDebugConfigurationProvider,
+    ].forEach(cls => {
+      container
+        .bind(cls)
+        .toSelf()
+        .inSingletonScope();
+      container.bind(IDebugConfigurationProvider).to(cls);
+    });
+  }
 
   return container;
 };

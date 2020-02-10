@@ -15,6 +15,11 @@ export const StoragePath = Symbol('StoragePath');
  */
 export const IsVSCode = Symbol('IsVSCode');
 
+/**
+ * Key for the vscode.ExtensionContext. Only available in the extension.
+ */
+export const ExtensionContext = Symbol('ExtensionContext');
+
 const toDispose = new WeakMap<interfaces.Container, IDisposable[]>();
 
 /**

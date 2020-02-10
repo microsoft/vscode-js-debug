@@ -4,7 +4,7 @@
 
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import * as vscode from 'vscode';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { IProgram } from './program';
 import { IStopMetadata } from '../targets';
@@ -45,15 +45,11 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
   protected resolveParams(
     params: AnyLaunchConfiguration,
   ): ITerminalLaunchConfiguration | undefined {
-    if (params.type === Contributions.TerminalDebugType && params.request === 'launch') {
+    if (params.type === DebugType.Terminal && params.request === 'launch') {
       return params;
     }
 
-    if (
-      params.type === Contributions.ChromeDebugType &&
-      params.server &&
-      'command' in params.server
-    ) {
+    if (params.type === DebugType.Chrome && params.server && 'command' in params.server) {
       return params.server;
     }
 

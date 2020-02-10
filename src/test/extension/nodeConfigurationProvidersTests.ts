@@ -6,14 +6,14 @@ import * as vscode from 'vscode';
 import { stub, SinonStub } from 'sinon';
 import { join } from 'path';
 import { expect } from 'chai';
-import { NodeDebugConfigurationProvider } from '../../nodeDebugConfigurationProvider';
+import { NodeConfigurationProvider } from '../../ui/configuration/nodeDebugConfigurationProvider';
 import { createFileTree, testFixturesDir } from '../test';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeLaunchConfiguration } from '../../configuration';
 
 describe('NodeDebugConfigurationProvider', () => {
-  let provider: NodeDebugConfigurationProvider;
+  let provider: NodeConfigurationProvider;
   let nvmResolver: { resolveNvmVersionPath: SinonStub };
   const folder: vscode.WorkspaceFolder = {
     uri: vscode.Uri.file(testFixturesDir),
@@ -23,7 +23,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
   beforeEach(() => {
     nvmResolver = { resolveNvmVersionPath: stub() };
-    provider = new NodeDebugConfigurationProvider({ logPath: testFixturesDir } as any, nvmResolver);
+    provider = new NodeConfigurationProvider({ logPath: testFixturesDir } as any, nvmResolver);
     EnvironmentVars.platform = 'linux';
   });
 
@@ -190,7 +190,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
     nvmResolver.resolveNvmVersionPath.resolves('/my/node/location');
     const result = await provider.resolveDebugConfiguration(folder, {
-      type: Contributions.NodeDebugType,
+      type: DebugType.Node,
       name: '',
       request: 'launch',
       program: 'hello.js',
@@ -209,7 +209,7 @@ describe('NodeDebugConfigurationProvider', () => {
   describe('inspect flags', () => {
     it('demaps', async () => {
       const result = (await provider.resolveDebugConfiguration(folder, {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         name: '',
         request: 'launch',
         program: 'hello.js',
@@ -222,7 +222,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
     it('does not overwrite existing stop on entry', async () => {
       const result = (await provider.resolveDebugConfiguration(folder, {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         name: '',
         request: 'launch',
         program: 'hello.js',

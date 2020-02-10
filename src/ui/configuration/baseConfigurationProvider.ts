@@ -3,16 +3,29 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { ResolvingConfiguration, AnyLaunchConfiguration } from './configuration';
-import { fulfillLoggerOptions } from './common/logging';
+import { ResolvingConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import { fulfillLoggerOptions } from '../../common/logging';
+import { injectable, inject } from 'inversify';
+import { ExtensionContext } from '../../ioc-extras';
+import { IDebugConfigurationProvider } from './configurationProvider';
 
 /**
  * Base configuration provider that handles some resolution around common
  * options and handles errors.
  */
+@injectable()
 export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration>
-  implements vscode.DebugConfigurationProvider {
-  constructor(protected readonly extensionContext: vscode.ExtensionContext) {}
+  implements IDebugConfigurationProvider {
+  /**
+   * @inheritdoc
+   */
+  public get type() {
+    return this.getType();
+  }
+
+  constructor(
+    @inject(ExtensionContext) protected readonly extensionContext: vscode.ExtensionContext,
+  ) {}
 
   /**
    * @inheritdoc
@@ -96,4 +109,9 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     config.__workspaceCachePath = this.extensionContext.storagePath;
     return config;
   }
+
+  /**
+   * Gets the type for this debug configuration.
+   */
+  protected abstract getType(): T['type'];
 }

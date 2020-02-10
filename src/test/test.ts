@@ -22,7 +22,7 @@ import {
 } from '../configuration';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { ChromeLauncher } from '../targets/browser/chromeLauncher';
 import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
@@ -306,7 +306,7 @@ export class TestRoot {
   private _workerCallback: (session: ITestHandle) => void;
   private _launchCallback: (session: ITestHandle) => void;
 
-  _browserLauncher: BrowserLauncher;
+  _browserLauncher: ChromeLauncher;
   readonly binder: Binder;
 
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
@@ -337,7 +337,7 @@ export class TestRoot {
     const services = createTopLevelSessionContainer(
       createGlobalContainer({ storagePath, isVsCode: true }),
     );
-    this._browserLauncher = services.get(BrowserLauncher);
+    this._browserLauncher = services.get(ChromeLauncher);
     this.binder = new Binder(
       this,
       this._root.adapterConnection,

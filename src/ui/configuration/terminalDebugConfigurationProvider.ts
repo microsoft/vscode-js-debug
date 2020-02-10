@@ -7,9 +7,10 @@ import {
   ResolvedConfiguration,
   terminalBaseDefaults,
   ITerminalLaunchConfiguration,
-} from './configuration';
+} from '../../configuration';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
+import { DebugType } from '../../common/contributionUtils';
 
 /**
  * Configuration provider for node debugging. In order to allow for a
@@ -34,5 +35,9 @@ export class TerminalDebugConfigurationProvider
     }
 
     return { ...terminalBaseDefaults, ...config };
+  }
+
+  protected getType() {
+    return DebugType.Terminal as const;
   }
 }

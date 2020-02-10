@@ -20,9 +20,9 @@ import { killTree } from '../node/killTree';
 import { launchUnelevatedChrome } from './unelevatedChome';
 import { IBrowserProcess, NonTrackedBrowserProcess } from './browserProcess';
 import Dap from '../../dap/api';
-import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 import { constructInspectorWSUri } from './constructInspectorWSUri';
 import { ILogger } from '../../common/logging';
+import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 
 const DEFAULT_ARGS = [
   '--disable-background-networking',

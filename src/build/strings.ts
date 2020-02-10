@@ -30,45 +30,50 @@ const strings = {
   'edge.useWebView.description':
     "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
 
-  'chrome.address.description': 'TCP/IP address of debug port',
-  'chrome.baseUrl.description':
-    'Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.',
-  'chrome.cwd.description': 'Optional working directory for the runtime executable.',
-  'chrome.disableNetworkCache.description':
-    'Controls whether to skip the network cache for each request',
-  'chrome.env.description': 'Optional dictionary of environment key/value pairs for the browser.',
-  'chrome.file.description': 'A local html file to open in the browser',
-  'chrome.pathMapping.description':
-    'A mapping of URLs/paths to local folders, to resolve scripts in Chrome to scripts on disk',
-  'chrome.port.description': 'Port to use for Chrome remote debugging.',
-  'chrome.runtimeExecutable.description':
-    "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.",
-  'chrome.showAsyncStacks.description': 'Show the async calls that led to the current call stack',
-  'chrome.skipFiles.description':
-    'An array of file or folder names, or path globs, to skip when debugging.',
-  'chrome.smartStep.description':
-    'Automatically step through unmapped lines in sourcemapped files. For example, code that TypeScript produces automatically when downcompiling async/await or other features.',
-  'chrome.sourceMapPathOverrides.description':
-    'A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk. See README for details.',
-  'chrome.sourceMaps.description': 'Use JavaScript source maps (if they exist).',
-  'chrome.timeout.description':
-    'Retry for this number of milliseconds to connect to Chrome. Default is 10000 ms.',
-  'chrome.url.description': 'Will search for a tab with this exact url and attach to it, if found',
-  'chrome.urlFilter.description':
-    'Will search for a page with this url and attach to it, if found. Can have * wildcards.',
-  'chrome.webRoot.description':
-    'This specifies the workspace absolute path to the webserver root. Used to resolve paths like `/app.js` to files on disk. Shorthand for a pathMapping for "/"',
-  'node.launch.args.description': 'Command line arguments passed to the program.',
-  'chrome.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',
-  'chrome.server.description':
-    "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
-  'chrome.userDataDir.description':
-    'By default, Chrome is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
   'chrome.label': 'Chrome (preview)',
+  'edge.label': 'Edge (preview)',
+  'edge.launch.label': 'Edge: Launch',
+  'edge.attach.label': 'Edge: Attach',
+  'edge.launch.description': 'Launch Edge to debug a URL',
+  'edge.attach.description': 'Attach to an instance of Edge already in debug mode',
   'chrome.launch.label': 'Chrome: Launch',
   'chrome.launch.description': 'Launch Chrome to debug a URL',
   'chrome.attach.label': 'Chrome: Attach',
   'chrome.attach.description': 'Attach to an instance of Chrome already in debug mode',
+
+  'browser.address.description': 'TCP/IP address of debug port',
+  'browser.baseUrl.description':
+    'Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.',
+  'browser.cwd.description': 'Optional working directory for the runtime executable.',
+  'browser.disableNetworkCache.description':
+    'Controls whether to skip the network cache for each request',
+  'browser.env.description': 'Optional dictionary of environment key/value pairs for the browser.',
+  'browser.file.description': 'A local html file to open in the browser',
+  'browser.pathMapping.description':
+    'A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk',
+  'browser.port.description': 'Port to use for remote debugging the browser.',
+  'browser.runtimeExecutable.description':
+    "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.",
+  'browser.skipFiles.description':
+    'An array of file or folder names, or path globs, to skip when debugging.',
+  'browser.smartStep.description':
+    'Automatically step through unmapped lines in sourcemapped files. For example, code that TypeScript produces automatically when downcompiling async/await or other features.',
+  'browser.sourceMapPathOverrides.description':
+    'A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk. See README for details.',
+  'browser.sourceMaps.description': 'Use JavaScript source maps (if they exist).',
+  'browser.timeout.description':
+    'Retry for this number of milliseconds to connect to the browser. Default is 10000 ms.',
+  'browser.url.description': 'Will search for a tab with this exact url and attach to it, if found',
+  'browser.urlFilter.description':
+    'Will search for a page with this url and attach to it, if found. Can have * wildcards.',
+  'browser.webRoot.description':
+    'This specifies the workspace absolute path to the webserver root. Used to resolve paths like `/app.js` to files on disk. Shorthand for a pathMapping for "/"',
+  'node.launch.args.description': 'Command line arguments passed to the program.',
+  'browser.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',
+  'browser.server.description':
+    "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
+  'browser.userDataDir.description':
+    'By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',

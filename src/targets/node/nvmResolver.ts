@@ -5,6 +5,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound } from '../../dap/errors';
+import { injectable } from 'inversify';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -17,7 +18,10 @@ export interface INvmResolver {
   resolveNvmVersionPath(version: string): Promise<string>;
 }
 
-export class NvmResolver {
+export const INvmResolver = Symbol('INvmResolver');
+
+@injectable()
+export class NvmResolver implements INvmResolver {
   constructor(
     private readonly env = process.env,
     private readonly arch = process.arch,

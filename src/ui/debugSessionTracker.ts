@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import Dap from '../dap/api';
-import { Contributions } from '../common/contributionUtils';
+import { DebugType } from '../common/contributionUtils';
 
 export class DebugSessionTracker implements vscode.Disposable {
   private _onSessionAddedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
@@ -16,10 +16,7 @@ export class DebugSessionTracker implements vscode.Disposable {
   public attach() {
     vscode.debug.onDidStartDebugSession(
       session => {
-        if (
-          session.type === Contributions.ChromeDebugType &&
-          session.configuration.request === 'attach'
-        ) {
+        if (session.type === DebugType.Chrome && session.configuration.request === 'attach') {
           this.sessions.set(session.id, session);
           this._onSessionAddedEmitter.fire(session);
         }
@@ -38,10 +35,7 @@ export class DebugSessionTracker implements vscode.Disposable {
 
     vscode.debug.onDidReceiveDebugSessionCustomEvent(
       event => {
-        if (
-          event.session.type !== Contributions.ChromeDebugType &&
-          event.session.type !== Contributions.NodeDebugType
-        ) {
+        if (event.session.type !== DebugType.Chrome && event.session.type !== DebugType.Node) {
           return;
         }
 

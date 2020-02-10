@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import Dap from './dap/api';
-import { Contributions } from './common/contributionUtils';
+import { DebugType } from './common/contributionUtils';
 import { assertNever } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 
@@ -167,7 +167,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
-  type: Contributions.ExtensionHostDebugType;
+  type: DebugType.ExtensionHost;
   request: 'attach' | 'launch';
 
   /**
@@ -243,7 +243,7 @@ export interface IConfigurationWithEnv {
  * Configuration for a launch request.
  */
 export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
-  type: Contributions.NodeDebugType;
+  type: DebugType.Node;
   request: 'launch';
 
   /**
@@ -297,9 +297,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
  */
 export type PathMapping = Readonly<{ [key: string]: string }>;
 
-export interface IChromeBaseConfiguration extends IBaseConfiguration {
-  type: Contributions.ChromeDebugType | Contributions.EdgeDebugType;
-
+export interface IChromiumBaseConfiguration extends IBaseConfiguration {
   /**
    * Controls whether to skip the network cache for each request.
    */
@@ -333,18 +331,13 @@ export interface IChromeBaseConfiguration extends IBaseConfiguration {
    * Launch options to boot a server.
    */
   server: INodeLaunchConfiguration | ITerminalLaunchConfiguration | null;
-
-  /**
-   * (Edge only) Enable web view debugging.
-   */
-  useWebView: boolean;
 }
 
 /**
  * Opens a debugger-enabled terminal.
  */
 export interface ITerminalLaunchConfiguration extends INodeBaseConfiguration {
-  type: Contributions.TerminalDebugType;
+  type: DebugType.Terminal;
   request: 'launch';
 
   /**
@@ -357,7 +350,7 @@ export interface ITerminalLaunchConfiguration extends INodeBaseConfiguration {
  * Configuration for an attach request.
  */
 export interface INodeAttachConfiguration extends INodeBaseConfiguration {
-  type: Contributions.NodeDebugType;
+  type: DebugType.Node;
   request: 'attach';
 
   /**
@@ -382,7 +375,7 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   attachExistingChildren: boolean;
 }
 
-export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
+interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
   request: 'launch';
 
   /**
@@ -439,17 +432,46 @@ export interface IChromeLaunchConfiguration extends IChromeBaseConfiguration {
 }
 
 /**
+ * Configuration to launch to a Chrome instance.
+ */
+export interface IChromeLaunchConfiguration extends IChromiumLaunchConfiguration {
+  type: DebugType.Chrome;
+}
+
+/**
  * Configuration to attach to a Chrome instance.
  */
-export interface IChromeAttachConfiguration extends IChromeBaseConfiguration {
+export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.Chrome;
   request: 'attach';
+}
+
+/**
+ * Configuration to launch to a Edge instance.
+ */
+export interface IEdgeLaunchConfiguration extends IChromiumLaunchConfiguration {
+  type: DebugType.Edge;
+
+  /**
+   * Enable web view debugging.
+   */
+  useWebView: boolean;
+}
+
+/**
+ * Configuration to attach to a Edge instance.
+ */
+export interface IEdgeAttachConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.Edge;
+  request: 'attach';
+  useWebView: boolean;
 }
 
 /**
  * Attach request used internally to inject a pre-built target into the lifecycle.
  */
 export interface ITerminalDelegateConfiguration extends INodeBaseConfiguration {
-  type: Contributions.TerminalDebugType;
+  type: DebugType.Terminal;
   request: 'attach';
   delegateId: number;
 }
@@ -461,7 +483,11 @@ export type AnyNodeConfiguration =
   | IExtensionHostConfiguration
   | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
-export type AnyLaunchConfiguration = AnyChromeConfiguration | AnyNodeConfiguration;
+export type AnyEdgeConfiguration = IEdgeAttachConfiguration | IEdgeLaunchConfiguration;
+export type AnyChromiumLaunchConfiguration = IEdgeLaunchConfiguration | IChromeLaunchConfiguration;
+export type AnyChromiumAttachConfiguration = IEdgeAttachConfiguration | IChromeAttachConfiguration;
+export type AnyChromiumConfiguration = AnyEdgeConfiguration | AnyChromeConfiguration;
+export type AnyLaunchConfiguration = AnyChromiumConfiguration | AnyNodeConfiguration;
 export type AnyTerminalConfiguration =
   | ITerminalDelegateConfiguration
   | ITerminalLaunchConfiguration;
@@ -489,12 +515,14 @@ export type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
+export type ResolvingEdgeConfiguration = ResolvingConfiguration<AnyEdgeConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
-  | ResolvingTerminalConfiguration;
+  | ResolvingTerminalConfiguration
+  | ResolvingEdgeConfiguration;
 
 export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
 
@@ -550,14 +578,14 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
   ...nodeBaseDefaults,
   showAsyncStacks: { onceBreakpointResolved: 16 },
-  type: Contributions.TerminalDebugType,
+  type: DebugType.Terminal,
   request: 'launch',
   name: 'Debugger Terminal',
 };
 
 export const delegateDefaults: ITerminalDelegateConfiguration = {
   ...nodeBaseDefaults,
-  type: Contributions.TerminalDebugType,
+  type: DebugType.Terminal,
   request: 'attach',
   name: 'Debugger Terminal',
   showAsyncStacks: { onceBreakpointResolved: 16 },
@@ -566,7 +594,7 @@ export const delegateDefaults: ITerminalDelegateConfiguration = {
 
 export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   ...nodeBaseDefaults,
-  type: Contributions.ExtensionHostDebugType,
+  type: DebugType.ExtensionHost,
   name: 'Debug Extension',
   request: 'launch',
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
@@ -578,7 +606,7 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
 
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   ...nodeBaseDefaults,
-  type: Contributions.NodeDebugType,
+  type: DebugType.Node,
   request: 'launch',
   program: '',
   stopOnEntry: false,
@@ -592,7 +620,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   ...baseDefaults,
-  type: Contributions.ChromeDebugType,
+  type: DebugType.Chrome,
   request: 'attach',
   port: 0,
   disableNetworkCache: true,
@@ -602,13 +630,17 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
-  // Edge only
+};
+
+export const edgeAttachConfigDefaults: IEdgeAttachConfiguration = {
+  ...chromeAttachConfigDefaults,
+  type: DebugType.Edge,
   useWebView: false,
 };
 
 export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   ...chromeAttachConfigDefaults,
-  type: Contributions.ChromeDebugType,
+  type: DebugType.Chrome,
   request: 'launch',
   cwd: null,
   file: null,
@@ -618,9 +650,15 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   userDataDir: false,
 };
 
+export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
+  ...chromeLaunchConfigDefaults,
+  type: DebugType.Edge,
+  useWebView: false,
+};
+
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   ...nodeBaseDefaults,
-  type: Contributions.NodeDebugType,
+  type: DebugType.Node,
   attachSpawnedProcesses: true,
   attachExistingChildren: true,
   restart: false,
@@ -648,6 +686,12 @@ export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyCh
     : { ...chromeLaunchConfigDefaults, ...config };
 }
 
+export function applyEdgeDefaults(config: ResolvingEdgeConfiguration): AnyEdgeConfiguration {
+  return config.request === 'attach'
+    ? { ...edgeAttachConfigDefaults, ...config }
+    : { ...edgeLaunchConfigDefaults, ...config };
+}
+
 export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
 ): IExtensionHostConfiguration {
@@ -668,19 +712,19 @@ export const isConfigurationWithEnv = (config: unknown): config is IConfiguratio
 export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
   switch (config.type) {
-    case Contributions.NodeDebugType:
+    case DebugType.Node:
       configWithDefaults = applyNodeDefaults(config);
       break;
-    case Contributions.EdgeDebugType:
-    case Contributions.ChromeDebugType:
-      configWithDefaults = applyChromeDefaults(config);
-      // Reset type to ChromeDebugType incase EdgeDebugType was used.
-      configWithDefaults.type = Contributions.ChromeDebugType;
+    case DebugType.Edge:
+      configWithDefaults = applyEdgeDefaults(config);
       break;
-    case Contributions.ExtensionHostDebugType:
+    case DebugType.Chrome:
+      configWithDefaults = applyChromeDefaults(config);
+      break;
+    case DebugType.ExtensionHost:
       configWithDefaults = applyExtensionHostDefaults(config);
       break;
-    case Contributions.TerminalDebugType:
+    case DebugType.Terminal:
       configWithDefaults = applyTerminalDefaults(config);
       break;
     default:
@@ -695,7 +739,7 @@ function resolveWorkspaceRoot(config: AnyLaunchConfiguration): AnyLaunchConfigur
   config = resolveVariableInConfig(
     config,
     'webRoot',
-    config.type === Contributions.ChromeDebugType ? config.webRoot : config.__workspaceFolder,
+    config.type === DebugType.Chrome ? config.webRoot : config.__workspaceFolder,
   );
 
   return config;
