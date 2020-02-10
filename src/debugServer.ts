@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -15,7 +17,6 @@ import { IDisposable } from './common/disposable';
 import * as nls from 'vscode-nls';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
-import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
 import { ILogger } from './common/logging';
 
 const localize = nls.loadMessageBundle();
@@ -86,7 +87,9 @@ export function startDebugServer(port: number): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net
       .createServer(async socket => {
-        const services = createTopLevelSessionContainer(createGlobalContainer({ storagePath }));
+        const services = createTopLevelSessionContainer(
+          createGlobalContainer({ storagePath, isVsCode: false }),
+        );
         const binderDelegate: IBinderDelegate = {
           async acquireDap(): Promise<DapConnection> {
             // Note: we can make multi-session work through custom dap message:

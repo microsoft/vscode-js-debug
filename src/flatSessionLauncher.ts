@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import 'reflect-metadata';
+
 /**
  * This script launches the pwa adapter in "flat session" mode for DAP, which means
  * that all DAP traffic will be routed through a single connection (either tcp socket or stdin/out)
@@ -52,7 +54,9 @@ class ChildSession {
 function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
   const _childSessionsForTarget = new Map<ITarget, ChildSession>();
   const telemetry = new TelemetryReporter();
-  const services = createTopLevelSessionContainer(createGlobalContainer({ storagePath }));
+  const services = createTopLevelSessionContainer(
+    createGlobalContainer({ storagePath, isVsCode: false }),
+  );
 
   const binderDelegate: IBinderDelegate = {
     async acquireDap(target: ITarget): Promise<DapConnection> {

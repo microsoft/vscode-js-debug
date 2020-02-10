@@ -334,7 +334,9 @@ export class TestRoot {
     });
 
     const storagePath = path.join(__dirname, '..', '..');
-    const services = createTopLevelSessionContainer(createGlobalContainer({ storagePath }));
+    const services = createTopLevelSessionContainer(
+      createGlobalContainer({ storagePath, isVsCode: true }),
+    );
     this._browserLauncher = services.get(BrowserLauncher);
     this.binder = new Binder(
       this,

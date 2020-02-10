@@ -25,6 +25,7 @@ import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFact
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
     storagePath: context.storagePath || context.extensionPath,
+    isVsCode: true,
   });
 
   context.subscriptions.push(

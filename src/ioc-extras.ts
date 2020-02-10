@@ -10,6 +10,11 @@ import { IDisposable } from './common/disposable';
  */
 export const StoragePath = Symbol('StoragePath');
 
+/**
+ * Key for whether vs code services are available here.
+ */
+export const IsVSCode = Symbol('IsVSCode');
+
 const toDispose = new WeakMap<interfaces.Container, IDisposable[]>();
 
 /**

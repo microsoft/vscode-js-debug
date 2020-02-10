@@ -6,35 +6,34 @@
 import 'reflect-metadata';
 
 import { Container } from 'inversify';
+import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
+import { IScriptSkipper, ScriptSkipper } from './adapter/scriptSkipper';
+import Cdp from './cdp/api';
+import { ICdpApi } from './cdp/connection';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
-import { ISourceMapRepository } from './common/sourceMaps/sourceMapRepository';
 import { CodeSearchSourceMapRepository } from './common/sourceMaps/codeSearchSourceMapRepository';
-import { ISourceMapFactory, CachingSourceMapFactory } from './common/sourceMaps/sourceMapFactory';
-import { ITarget, ILauncher } from './targets/targets';
-import { IBreakpointsPredictor, BreakpointsPredictor } from './adapter/breakpointPredictor';
+import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
+import { ISourceMapRepository } from './common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from './common/sourcePathResolver';
-import { ITargetOrigin } from './targets/targetOrigin';
-import { ScriptSkipper, IScriptSkipper } from './adapter/scriptSkipper';
+import { AnyLaunchConfiguration } from './configuration';
+import Dap from './dap/api';
+import { IDapApi } from './dap/connection';
+import { IsVSCode, StoragePath, trackDispose } from './ioc-extras';
+import { BrowserAttacher } from './targets/browser/browserAttacher';
+import { BrowserLauncher } from './targets/browser/browserLauncher';
+import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
-import { TerminalNodeLauncher } from './targets/node/terminalNodeLauncher';
-import { NodeLauncher } from './targets/node/nodeLauncher';
 import { NodeAttacher } from './targets/node/nodeAttacher';
-import { BrowserLauncher } from './targets/browser/browserLauncher';
-import { BrowserAttacher } from './targets/browser/browserAttacher';
-import { NodePathProvider, INodePathProvider } from './targets/node/nodePathProvider';
+import { NodeLauncher } from './targets/node/nodeLauncher';
+import { INodePathProvider, NodePathProvider } from './targets/node/nodePathProvider';
 import { IProgramLauncher } from './targets/node/processLauncher';
+import { RestartPolicyFactory } from './targets/node/restartPolicy';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
-import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
-import { AnyLaunchConfiguration } from './configuration';
-import { StoragePath, trackDispose } from './ioc-extras';
-import { RestartPolicyFactory } from './targets/node/restartPolicy';
-import Dap from './dap/api';
-import Cdp from './cdp/api';
-import { IDapApi } from './dap/connection';
-import { ICdpApi } from './cdp/connection';
+import { ITargetOrigin } from './targets/targetOrigin';
+import { ILauncher, ITarget } from './targets/targets';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -90,7 +89,8 @@ export interface IRootOptions {
 }
 
 /**
- * Creates the
+ * Creates a container for the top-level "virtual" debug session, containing
+ * shared/global services.
  */
 export const createTopLevelSessionContainer = (parent: Container) => {
   const container = new Container();
@@ -131,22 +131,29 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .onActivation(trackDispose);
   container
     .bind(ILauncher)
-    .to(TerminalNodeLauncher)
-    .onActivation(trackDispose);
-  container
-    .bind(ILauncher)
     .to(NodeLauncher)
     .onActivation(trackDispose);
   container.bind(IProgramLauncher).to(SubprocessProgramLauncher);
   container.bind(IProgramLauncher).to(TerminalProgramLauncher);
+
+  if (parent.get(IsVSCode)) {
+    // dynamic require to not break the debug server
+    container
+      .bind(ILauncher)
+      .to(require('./targets/node/terminalNodeLauncher').TerminalNodeLauncher)
+      .onActivation(trackDispose);
+  }
+
   container
     .bind(ILauncher)
     .to(NodeAttacher)
     .onActivation(trackDispose);
   container
-    .bind(ILauncher)
-    .to(BrowserLauncher)
+    .bind(BrowserLauncher)
+    .toSelf()
+    .inSingletonScope()
     .onActivation(trackDispose);
+  container.bind(ILauncher).toService(BrowserLauncher);
   container
     .bind(ILauncher)
     .to(BrowserAttacher)
@@ -159,7 +166,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   return container;
 };
 
-export const createGlobalContainer = (options: { storagePath: string }) => {
+export const createGlobalContainer = (options: { storagePath: string; isVsCode: boolean }) => {
   const container = new Container();
   container
     .bind(DelegateLauncherFactory)
@@ -167,6 +174,7 @@ export const createGlobalContainer = (options: { storagePath: string }) => {
     .inSingletonScope();
 
   container.bind(StoragePath).toConstantValue(options.storagePath);
+  container.bind(IsVSCode).toConstantValue(options.isVsCode);
 
   return container;
 };
