@@ -15,7 +15,7 @@ import { canAccess } from '../../../common/fsUtils';
 const newLineRegex = /\r?\n/;
 
 /**
- * Finds the Chrome browser on Windows.
+ * Finds the Chrome browser on Linux.
  */
 @injectable()
 export class LinuxChromeBrowserFinder implements IBrowserFinder {
