@@ -50,6 +50,7 @@
   "dependencies": {
     "@c4312/chromehash": "^0.2.0",
     "color": "^3.1.2",
+    "execa": "^4.0.0",
     "glob-stream": "^6.1.0",
     "inversify": "^5.0.1",
     "js-beautify": "^1.10.0",

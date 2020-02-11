@@ -18,7 +18,7 @@ import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { baseURL } from './browserLaunchParams';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import findBrowser from './findBrowser';
+import { Quality } from './findBrowser';
 import * as launcher from './launcher';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
@@ -53,10 +53,18 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     @inject(ILogger) protected readonly logger: ILogger,
   ) {}
 
-  dispose() {
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
     for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
   }
+
+  /**
+   * Gets the path to the browser executable.
+   */
+  protected abstract findBrowserPath(executablePath: string): Promise<string>;
 
   protected async launchBrowser(
     {
@@ -77,32 +85,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     clientCapabilities: IDapInitializeParamsWithExtensions,
     promisedPort?: Promise<number>,
   ): Promise<launcher.ILaunchResult> {
-    let executablePath: string | undefined;
-    if (executable && !chromeVersions.has(executable)) {
-      executablePath = executable;
-    } else {
-      const installations = findBrowser();
-      if (executable) {
-        const installation = installations.find(e => e.type === executable);
-        if (installation) {
-          executablePath = installation.path;
-        }
-      } else {
-        // Prefer canary over stable, it comes earlier in the list.
-        if (installations.length) {
-          executablePath = installations[0].path;
-        }
-      }
-
-      if (!executablePath) {
-        const available = installations.map(i => i.type).join(', ');
-        throw new Error(
-          `Unable to find Chrome version ${executable}. ` +
-            (available ? `Available versions are: ${available}. ` : '') +
-            'You can set the "runtimeExecutable" in your launch.json to the path to Chrome',
-        );
-      }
-    }
+    const executablePath = await this.findBrowserPath(executable || Quality.Stable);
 
     // If we had a custom executable, don't resolve a data
     // dir unless it's  explicitly requested.

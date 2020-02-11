@@ -18,6 +18,7 @@ export const enum ErrorCodes {
   NodeBinaryOutOfDate,
   InvalidHitCondition,
   InvalidLogPointBreakpointSyntax,
+  BrowserNotFound,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -119,6 +120,28 @@ export const invalidHitCondition = (expression: string) =>
       expression,
     ),
     ErrorCodes.InvalidHitCondition,
+  );
+
+export const browserNotFound = (
+  browserType: string,
+  requested: string,
+  available: ReadonlyArray<string>,
+) =>
+  createUserError(
+    requested === 'stable' && !available.length
+      ? localize(
+          'noBrowserInstallFound',
+          'Unable to find a {0} installation on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
+          browserType,
+        )
+      : localize(
+          'browserVersionNotFound',
+          'Unable to find {0} version {1}. Available auto-discovered versions are: {2}. You can set the "runtimeExecutable" in your launch.json to one of these, or provide an absolute path to the browser executable.',
+          browserType,
+          requested,
+          JSON.stringify([...new Set(available)]),
+        ),
+    ErrorCodes.BrowserNotFound,
   );
 
 export const invalidLogPointSyntax = (error: string) =>

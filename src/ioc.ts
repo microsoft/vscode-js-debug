@@ -20,10 +20,23 @@ import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
 import { IDapApi } from './dap/connection';
-import { ExtensionContext, IsVSCode, StoragePath, trackDispose } from './ioc-extras';
+import {
+  ExtensionContext,
+  IsVSCode,
+  StoragePath,
+  trackDispose,
+  ProcessEnv,
+  Execa,
+  FS,
+} from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
 import { EdgeLauncher } from './targets/browser/edgeLauncher';
+import {
+  IBrowserFinder,
+  ChromeBrowserFinder,
+  EdgeBrowserFinder,
+} from './targets/browser/findBrowser';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
@@ -38,6 +51,8 @@ import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher'
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
 import { IDebugConfigurationProvider } from './ui/configuration/configurationProvider';
+import execa from 'execa';
+import { promises as fsPromises } from 'fs';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -172,6 +187,15 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .toDynamicValue(() => parent.get(DelegateLauncherFactory).createLauncher())
     .inSingletonScope();
 
+  container
+    .bind(IBrowserFinder)
+    .to(ChromeBrowserFinder)
+    .whenTargetTagged('browser', 'chrome');
+  container
+    .bind(IBrowserFinder)
+    .to(EdgeBrowserFinder)
+    .whenTargetTagged('browser', 'edge');
+
   return container;
 };
 
@@ -189,6 +213,9 @@ export const createGlobalContainer = (options: {
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
   container.bind(INvmResolver).to(NvmResolver);
+  container.bind(ProcessEnv).toConstantValue(process.env);
+  container.bind(Execa).toConstantValue(execa);
+  container.bind(FS).toConstantValue(fsPromises);
 
   if (options.context) {
     container.bind(ExtensionContext).toConstantValue(options.context);

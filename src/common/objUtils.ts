@@ -173,6 +173,23 @@ export function getCaseInsensitiveProperty<R>(
   return undefined;
 }
 
+const unset = Symbol('unset');
+
+/**
+ * Wraps a function so that it's called once, and never again, memoizing
+ * the result.
+ */
+export function once<T>(fn: () => T): () => T {
+  let value: T | typeof unset = unset;
+  return () => {
+    if (value === unset) {
+      value = fn();
+    }
+
+    return value;
+  };
+}
+
 /**
  * Memoizes the single-parameter function.
  */
@@ -235,4 +252,16 @@ export function bisectArray<T>(
   }
 
   return [a, b];
+}
+
+/**
+ * Flattens an array of arrays into a single-dimensional array.
+ */
+export function flatten<T>(items: ReadonlyArray<ReadonlyArray<T>>): T[] {
+  let out: T[] = [];
+  for (const list of items) {
+    out = out.concat(list);
+  }
+
+  return out;
 }

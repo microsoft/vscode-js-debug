@@ -8,6 +8,22 @@ const readFileAsync = util.promisify(fs.readFile);
 
 export const fsModule = fs;
 
+/**
+ * Returns whether the user can access the given file path.
+ */
+export async function canAccess({ access }: typeof fs.promises, file: string | undefined | null) {
+  if (!file) {
+    return false;
+  }
+
+  try {
+    await access(file);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 export function stat(path: string): Promise<fs.Stats | undefined> {
   return new Promise(cb => {
     fs.stat(path, (err, stat) => {
@@ -35,7 +51,7 @@ export function readfile(path: string): Promise<string> {
 export const writeFile = util.promisify(fs.writeFile);
 
 export function readFileRaw(path: string): Promise<Buffer> {
-  return readFileAsync(path).catch(err => Buffer.alloc(0));
+  return readFileAsync(path).catch(() => Buffer.alloc(0));
 }
 
 export function exists(path: string): Promise<boolean> {

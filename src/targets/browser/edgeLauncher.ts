@@ -18,8 +18,28 @@ import { CancellationToken } from 'vscode';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { BrowserLauncher, IDapInitializeParamsWithExtensions } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
+import { StoragePath, FS, FsPromises } from '../../ioc-extras';
+import { inject, tagged, injectable } from 'inversify';
+import { ILogger } from '../../common/logging';
+import { IBrowserFinder, isQuality } from './findBrowser';
+import { once } from '../../common/objUtils';
+import { canAccess } from '../../common/fsUtils';
+import { browserNotFound, ProtocolError } from '../../dap/errors';
 
+@injectable()
 export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
+  constructor(
+    @inject(StoragePath) storagePath: string,
+    @inject(ILogger) logger: ILogger,
+    @inject(IBrowserFinder)
+    @tagged('browser', 'edge')
+    protected readonly browserFinder: IBrowserFinder,
+    @inject(FS)
+    private readonly fs: FsPromises,
+  ) {
+    super(storagePath, logger);
+  }
+
   /**
    * @inheritdoc
    */
@@ -111,5 +131,31 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     params.env['WEBVIEW2_PIPE_FOR_SCRIPT_DEBUGGER'] = pipeName;
 
     return promisedPort.promise;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected async findBrowserPath(executablePath: string): Promise<string> {
+    let resolvedPath: string | undefined;
+
+    const discover = once(() => this.browserFinder.findAll());
+    if (isQuality(executablePath)) {
+      resolvedPath = (await discover()).find(r => r.quality === executablePath)?.path;
+    } else {
+      resolvedPath = executablePath;
+    }
+
+    if (!resolvedPath || !(await canAccess(this.fs, resolvedPath))) {
+      throw new ProtocolError(
+        browserNotFound(
+          'Edge',
+          executablePath,
+          (await discover()).map(b => b.quality),
+        ),
+      );
+    }
+
+    return resolvedPath;
   }
 }
