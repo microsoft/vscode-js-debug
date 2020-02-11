@@ -578,6 +578,11 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
     description: refString('edge.useWebView.description'),
     default: false,
   },
+  inspectUri: {
+    type: ['string', 'null'],
+    description: refString('chrome.inspectUri.description'),
+    default: null,
+  },
   server: {
     oneOf: [
       {
