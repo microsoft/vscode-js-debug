@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
 import { retryGetWSEndpoint } from '../browser/launcher';
@@ -36,7 +36,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration): IExtensionHostConfiguration | undefined {
-    return params.type === Contributions.ExtensionHostDebugType && params.request === 'attach'
+    return params.type === DebugType.ExtensionHost && params.request === 'attach'
       ? params
       : undefined;
   }

@@ -8,7 +8,7 @@ import { Binder, IBinderDelegate } from '../binder';
 import DapConnection from '../dap/connection';
 import { ITarget } from '../targets/targets';
 import { IDisposable } from '../common/events';
-import { Contributions } from '../common/contributionUtils';
+import { DebugType } from '../common/contributionUtils';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
@@ -159,7 +159,7 @@ export class SessionManager
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
       const config = {
-        type: Contributions.ChromeDebugType,
+        type: DebugType.Chrome,
         name: target.name(),
         request: 'attach',
         __pendingTargetId: target.id(),

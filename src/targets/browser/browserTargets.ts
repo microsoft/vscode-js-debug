@@ -13,7 +13,7 @@ import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { ScriptSkipper } from '../../adapter/scriptSkipper';
-import { AnyChromeConfiguration } from '../../configuration';
+import { AnyChromiumConfiguration } from '../../configuration';
 import { LogTag, ILogger } from '../../common/logging';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { killTree } from '../node/killTree';
@@ -46,7 +46,7 @@ export class BrowserTargetManager implements IDisposable {
     connection: CdpConnection,
     process: undefined | IBrowserProcess,
     sourcePathResolver: ISourcePathResolver,
-    launchParams: AnyChromeConfiguration,
+    launchParams: AnyChromiumConfiguration,
     logger: ILogger,
     telemetry: TelemetryReporter,
     targetOrigin: ITargetOrigin,
@@ -74,7 +74,7 @@ export class BrowserTargetManager implements IDisposable {
     sourcePathResolver: ISourcePathResolver,
     private readonly logger: ILogger,
     private readonly telemetry: TelemetryReporter,
-    private readonly launchParams: AnyChromeConfiguration,
+    private readonly launchParams: AnyChromiumConfiguration,
     targetOrigin: ITargetOrigin,
   ) {
     this._connection = connection;

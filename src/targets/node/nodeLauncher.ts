@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { IProgramLauncher } from './processLauncher';
 import { CallbackFile } from './callback-file';
 import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
@@ -64,13 +64,9 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
    */
   protected resolveParams(params: AnyLaunchConfiguration): INodeLaunchConfiguration | undefined {
     let config: INodeLaunchConfiguration | undefined;
-    if (params.type === Contributions.NodeDebugType && params.request === 'launch') {
+    if (params.type === DebugType.Node && params.request === 'launch') {
       config = { ...params };
-    } else if (
-      params.type === Contributions.ChromeDebugType &&
-      params.server &&
-      'program' in params.server
-    ) {
+    } else if (params.type === DebugType.Chrome && params.server && 'program' in params.server) {
       config = { ...params.server };
     }
 

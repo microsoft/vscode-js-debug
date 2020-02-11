@@ -166,7 +166,11 @@ export class Binder implements IDisposable {
     provideLaunchParams(this._rootServices, params);
     this._rootServices.get<ILogger>(ILogger).setup(resolveLoggerOptions(dap, params.trace));
 
-    const cts = CancellationTokenSource.withTimeout(params.timeout);
+    const cts =
+      params.timeout > 0
+        ? CancellationTokenSource.withTimeout(params.timeout)
+        : new CancellationTokenSource();
+
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
     let results = await Promise.all(

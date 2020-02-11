@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { existsSync, lstatSync } from 'fs';
 import { findOpenPort } from '../../common/findOpenPort';
@@ -30,7 +30,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration): IExtensionHostConfiguration | undefined {
-    return params.type === Contributions.ExtensionHostDebugType && params.request === 'launch'
+    return params.type === DebugType.ExtensionHost && params.request === 'launch'
       ? params
       : undefined;
   }

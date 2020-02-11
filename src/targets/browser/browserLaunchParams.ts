@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import { AnyChromeConfiguration } from '../../configuration';
+import { AnyChromiumConfiguration } from '../../configuration';
 
-export function baseURL(params: AnyChromeConfiguration): string | undefined {
+export function baseURL(params: AnyChromiumConfiguration): string | undefined {
   if (params.url) {
     try {
       const baseUrl = new URL(params.url);

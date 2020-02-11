@@ -17,14 +17,30 @@ export const enum Contributions {
   RemoveCustomBreakpointCommand = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
   RemoveAllCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
 
-  ExtensionHostDebugType = 'NAMESPACE(extensionHost)',
-  TerminalDebugType = 'NAMESPACE(node-terminal)',
-  NodeDebugType = 'NAMESPACE(node)',
-  ChromeDebugType = 'NAMESPACE(chrome)',
-  EdgeDebugType = 'NAMESPACE(msedge)',
-
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
+
+export const enum DebugType {
+  ExtensionHost = 'NAMESPACE(extensionHost)',
+  Terminal = 'NAMESPACE(node-terminal)',
+  Node = 'NAMESPACE(node)',
+  Chrome = 'NAMESPACE(chrome)',
+  Edge = 'NAMESPACE(msedge)',
+}
+
+// constructing it this way makes sure we can't forget to add a type:
+const debugTypes: { [K in DebugType]: null } = {
+  [DebugType.ExtensionHost]: null,
+  [DebugType.Terminal]: null,
+  [DebugType.Node]: null,
+  [DebugType.Chrome]: null,
+  [DebugType.Edge]: null,
+};
+
+/**
+ * Set of all known debug types.
+ */
+export const allDebugTypes: ReadonlySet<DebugType> = new Set(Object.keys(debugTypes));
 
 export const enum Configuration {
   UsePreviewDebugger = 'debug.javascript.usePreview',

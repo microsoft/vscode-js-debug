@@ -7,12 +7,15 @@ import {
   extensionHostConfigDefaults,
   IExtensionHostConfiguration,
   ResolvingExtensionHostConfiguration,
-} from './configuration';
+} from '../../configuration';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { injectable } from 'inversify';
+import { DebugType } from '../../common/contributionUtils';
 
 /**
  * Configuration provider for Extension host debugging.
  */
+@injectable()
 export class ExtensionHostConfigurationProvider
   extends BaseConfigurationProvider<IExtensionHostConfiguration>
   implements vscode.DebugConfigurationProvider {
@@ -24,5 +27,9 @@ export class ExtensionHostConfigurationProvider
       ...extensionHostConfigDefaults,
       ...config,
     });
+  }
+
+  protected getType() {
+    return DebugType.ExtensionHost as const;
   }
 }

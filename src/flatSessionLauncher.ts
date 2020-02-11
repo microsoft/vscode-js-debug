@@ -20,7 +20,7 @@ import { ITarget } from './targets/targets';
 import * as crypto from 'crypto';
 import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
 import { IDisposable } from './common/events';
-import { Contributions } from './common/contributionUtils';
+import { DebugType } from './common/contributionUtils';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { ILogger } from './common/logging';
@@ -62,7 +62,7 @@ function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableS
     async acquireDap(target: ITarget): Promise<DapConnection> {
       const sessionId = crypto.randomBytes(20).toString('hex');
       const config = {
-        type: Contributions.ChromeDebugType,
+        type: DebugType.Chrome,
         name: target.name(),
         request: 'attach',
         __pendingTargetId: target.id(),

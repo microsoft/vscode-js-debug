@@ -1,0 +1,62 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+import { DebugType } from '../../common/contributionUtils';
+import { IChromeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import { injectable, inject, tagged } from 'inversify';
+import { BrowserLauncher } from './browserLauncher';
+import { StoragePath, FS, FsPromises } from '../../ioc-extras';
+import { ILogger } from '../../common/logging';
+import { IBrowserFinder, isQuality } from './findBrowser';
+import { once } from '../../common/objUtils';
+import { canAccess } from '../../common/fsUtils';
+import { ProtocolError, browserNotFound } from '../../dap/errors';
+
+@injectable()
+export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> {
+  constructor(
+    @inject(StoragePath) storagePath: string,
+    @inject(ILogger) logger: ILogger,
+    @inject(IBrowserFinder)
+    @tagged('browser', 'chrome')
+    protected readonly browserFinder: IBrowserFinder,
+    @inject(FS)
+    private readonly fs: FsPromises,
+  ) {
+    super(storagePath, logger);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected resolveParams(params: AnyLaunchConfiguration) {
+    return params.type === DebugType.Chrome && params.request === 'launch' ? params : undefined;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected async findBrowserPath(executablePath: string): Promise<string> {
+    let resolvedPath: string | undefined;
+
+    const discover = once(() => this.browserFinder.findAll());
+    if (isQuality(executablePath)) {
+      resolvedPath = (await discover()).find(r => r.quality === executablePath)?.path;
+    } else {
+      resolvedPath = executablePath;
+    }
+
+    if (!resolvedPath || !(await canAccess(this.fs, resolvedPath))) {
+      throw new ProtocolError(
+        browserNotFound(
+          'Chrome',
+          executablePath,
+          (await discover()).map(b => b.quality),
+        ),
+      );
+    }
+
+    return resolvedPath;
+  }
+}

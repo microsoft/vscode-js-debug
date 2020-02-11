@@ -1,7 +1,12 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { Contributions, IConfigurationTypes, Configuration } from '../common/contributionUtils';
+import {
+  Contributions,
+  DebugType,
+  IConfigurationTypes,
+  Configuration,
+} from '../common/contributionUtils';
 import {
   IMandatedConfiguration,
   AnyLaunchConfiguration,
@@ -12,11 +17,13 @@ import {
   OutputSource,
   INodeLaunchConfiguration,
   IExtensionHostConfiguration,
-  IChromeBaseConfiguration,
+  IChromiumBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
   ITerminalLaunchConfiguration,
   baseDefaults,
+  IEdgeLaunchConfiguration,
+  IEdgeAttachConfiguration,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
@@ -135,7 +142,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   },
   skipFiles: {
     type: 'array',
-    description: refString('chrome.skipFiles.description'),
+    description: refString('browser.skipFiles.description'),
     default: ['<node_internals>/**'],
   },
   smartStep: {
@@ -145,7 +152,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   },
   sourceMaps: {
     type: 'boolean',
-    description: refString('chrome.sourceMaps.description'),
+    description: refString('browser.sourceMaps.description'),
     default: true,
   },
   sourceMapPathOverrides: {
@@ -248,7 +255,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
  * Node attach configuration.
  */
 const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
-  type: Contributions.NodeDebugType,
+  type: DebugType.Node,
   request: 'attach',
   label: refString('node.label'),
   variables: {
@@ -259,7 +266,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       label: refString('node.snippet.attach.label'),
       description: refString('node.snippet.attach.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'attach',
         name: '${1:Attach}',
         port: 9229,
@@ -270,7 +277,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       label: refString('node.snippet.remoteattach.label'),
       description: refString('node.snippet.remoteattach.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'attach',
         name: '${1:Attach to Remote}',
         address: '${2:TCP/IP address of process to be debugged}',
@@ -284,7 +291,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       label: refString('node.snippet.attachProcess.label'),
       description: refString('node.snippet.attachProcess.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'attach',
         name: '${1:Attach by Process ID}',
         processId: '^"\\${command:PickProcess}"',
@@ -353,7 +360,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
  * Node attach configuration.
  */
 const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
-  type: Contributions.NodeDebugType,
+  type: DebugType.Node,
   request: 'launch',
   label: refString('node.label'),
   variables: {
@@ -364,7 +371,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.launch.label'),
       description: refString('node.snippet.launch.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: '${2:Launch Program}',
         program: '^"\\${workspaceFolder}/${1:app.js}"',
@@ -375,7 +382,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.npm.label'),
       markdownDescription: refString('node.snippet.npm.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: '${1:Launch via NPM}',
         runtimeExecutable: 'npm',
@@ -388,7 +395,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.nodemon.label'),
       description: refString('node.snippet.nodemon.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: 'nodemon',
         runtimeExecutable: 'nodemon',
@@ -403,7 +410,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.mocha.label'),
       description: refString('node.snippet.mocha.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: 'Mocha Tests',
         program: '^"\\${workspaceFolder}/node_modules/mocha/bin/_mocha"',
@@ -416,7 +423,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.yo.label'),
       markdownDescription: refString('node.snippet.yo.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: 'Yeoman ${1:generator}',
         program: '^"\\${workspaceFolder}/node_modules/yo/lib/cli.js"',
@@ -430,7 +437,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.gulp.label'),
       description: refString('node.snippet.gulp.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: 'Gulp ${1:task}',
         program: '^"\\${workspaceFolder}/node_modules/gulp/bin/gulp.js"',
@@ -442,7 +449,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       label: refString('node.snippet.electron.label'),
       description: refString('node.snippet.electron.description'),
       body: {
-        type: Contributions.NodeDebugType,
+        type: DebugType.Node,
         request: 'launch',
         name: 'Electron Main',
         runtimeExecutable: '^"\\${workspaceFolder}/node_modules/.bin/electron"',
@@ -508,7 +515,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
 };
 
 const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
-  type: Contributions.TerminalDebugType,
+  type: DebugType.Terminal,
   request: 'launch',
   label: refString('debug.terminal.label'),
   configurationSnippets: [
@@ -516,7 +523,7 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
       label: refString('debug.terminal.snippet.label'),
       description: refString('debug.terminal.snippet.label'),
       body: {
-        type: Contributions.TerminalDebugType,
+        type: DebugType.Terminal,
         request: 'launch',
         name: 'Run npm start',
         command: 'npm start',
@@ -536,58 +543,53 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
 /**
  * Shared Chrome configuration.
  */
-const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConfiguration> = {
+const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBaseConfiguration> = {
   ...baseConfigurationAttributes,
   port: {
     type: 'number',
-    description: refString('chrome.port.description'),
+    description: refString('browser.port.description'),
     default: 9222,
   },
   address: {
     type: 'string',
-    description: refString('chrome.address.description'),
+    description: refString('browser.address.description'),
     default: '127.0.0.1',
   },
   disableNetworkCache: {
     type: 'boolean',
-    description: refString('chrome.disableNetworkCache.description'),
+    description: refString('browser.disableNetworkCache.description'),
     default: true,
   },
   pathMapping: {
     type: 'object',
-    description: refString('chrome.pathMapping.description'),
+    description: refString('browser.pathMapping.description'),
     default: {},
   },
   webRoot: {
     type: 'string',
-    description: refString('chrome.webRoot.description'),
+    description: refString('browser.webRoot.description'),
     default: '${workspaceFolder}',
   },
   urlFilter: {
     type: 'string',
-    description: refString('chrome.urlFilter.description'),
+    description: refString('browser.urlFilter.description'),
     default: '',
   },
   url: {
     type: 'string',
-    description: refString('chrome.url.description'),
+    description: refString('browser.url.description'),
     default: 'http://localhost:8080',
-  },
-  useWebView: {
-    type: 'boolean',
-    description: refString('edge.useWebView.description'),
-    default: false,
   },
   inspectUri: {
     type: ['string', 'null'],
-    description: refString('chrome.inspectUri.description'),
+    description: refString('browser.inspectUri.description'),
     default: null,
   },
   server: {
     oneOf: [
       {
         type: 'object',
-        description: refString('chrome.server.description'),
+        description: refString('browser.server.description'),
         additionalProperties: false,
         default: { program: 'node my-server.js' },
         properties: nodeLaunchConfig.configurationAttributes,
@@ -605,7 +607,7 @@ const chromeBaseConfigurationAttributes: ConfigurationAttributes<IChromeBaseConf
 };
 
 const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
-  type: Contributions.ExtensionHostDebugType,
+  type: DebugType.ExtensionHost,
   request: 'launch',
   label: refString('extensionHost.label'),
   required: ['args'],
@@ -614,7 +616,7 @@ const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
       label: refString('extensionHost.snippet.launch.label'),
       description: refString('extensionHost.snippet.launch.description'),
       body: {
-        type: Contributions.ExtensionHostDebugType,
+        type: DebugType.ExtensionHost,
         request: 'launch',
         name: refString('extensionHost.launch.config.name'),
         runtimeExecutable: '^"\\${execPath}"',
@@ -643,7 +645,7 @@ const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
 };
 
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
-  type: Contributions.ChromeDebugType,
+  type: DebugType.Chrome,
   request: 'launch',
   label: refString('chrome.label'),
   configurationSnippets: [
@@ -651,7 +653,7 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       label: refString('chrome.launch.label'),
       description: refString('chrome.launch.description'),
       body: {
-        type: Contributions.ChromeDebugType,
+        type: DebugType.Chrome,
         request: 'launch',
         name: 'Launch Chrome',
         url: 'http://localhost:8080',
@@ -660,25 +662,25 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
     },
   ],
   configurationAttributes: {
-    ...chromeBaseConfigurationAttributes,
+    ...chromiumBaseConfigurationAttributes,
     file: {
       type: 'string',
-      description: refString('chrome.file.description'),
+      description: refString('browser.file.description'),
       default: '${workspaceFolder}/index.html',
     },
     userDataDir: {
       type: ['string', 'boolean'],
-      description: refString('chrome.userDataDir.description'),
+      description: refString('browser.userDataDir.description'),
       default: true,
     },
     runtimeExecutable: {
       type: ['string', 'null'],
-      description: refString('chrome.runtimeExecutable.description'),
+      description: refString('browser.runtimeExecutable.description'),
       default: 'stable',
     },
     runtimeArgs: {
       type: 'array',
-      description: refString('chrome.runtimeArgs.description'),
+      description: refString('browser.runtimeArgs.description'),
       items: {
         type: 'string',
       },
@@ -686,19 +688,19 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
     },
     env: {
       type: 'object',
-      description: refString('chrome.env.description'),
+      description: refString('browser.env.description'),
       default: {},
     },
     cwd: {
       type: 'string',
-      description: refString('chrome.cwd.description'),
+      description: refString('browser.cwd.description'),
       default: null,
     },
   },
 };
 
 const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
-  type: Contributions.ChromeDebugType,
+  type: DebugType.Chrome,
   request: 'attach',
   label: refString('chrome.label'),
   configurationSnippets: [
@@ -706,7 +708,7 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
       label: refString('chrome.attach.label'),
       description: refString('chrome.attach.description'),
       body: {
-        type: Contributions.ChromeDebugType,
+        type: DebugType.Chrome,
         request: 'attach',
         name: 'Attach to Chrome',
         port: 9222,
@@ -715,13 +717,62 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
     },
   ],
   configurationAttributes: {
-    ...chromeBaseConfigurationAttributes,
+    ...chromiumBaseConfigurationAttributes,
   },
 };
 
-const edgeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
-  ...chromeLaunchConfig,
-  type: Contributions.EdgeDebugType,
+const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
+  type: DebugType.Edge,
+  request: 'launch',
+  label: refString('edge.launch.label'),
+  configurationSnippets: [
+    {
+      label: refString('edge.launch.label'),
+      description: refString('edge.launch.description'),
+      body: {
+        type: DebugType.Edge,
+        request: 'launch',
+        name: 'Launch Edge',
+        url: 'http://localhost:8080',
+        webRoot: '^"${2:\\${workspaceFolder\\}}"',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...chromeLaunchConfig.configurationAttributes,
+    useWebView: {
+      type: 'boolean',
+      description: refString('edge.useWebView.description'),
+      default: false,
+    },
+  },
+};
+
+const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
+  type: DebugType.Edge,
+  request: 'attach',
+  label: refString('edge.label'),
+  configurationSnippets: [
+    {
+      label: refString('edge.attach.label'),
+      description: refString('edge.attach.description'),
+      body: {
+        type: DebugType.Edge,
+        request: 'attach',
+        name: 'Attach to Chrome',
+        port: 9222,
+        webRoot: '^"${2:\\${workspaceFolder\\}}"',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...chromiumBaseConfigurationAttributes,
+    useWebView: {
+      type: 'boolean',
+      description: refString('edge.useWebView.description'),
+      default: false,
+    },
+  },
 };
 
 function buildDebuggers() {
@@ -733,6 +784,7 @@ function buildDebuggers() {
     chromeLaunchConfig,
     chromeAttachConfig,
     edgeLaunchConfig,
+    edgeAttachConfig,
   ];
 
   // eslint-disable-next-line

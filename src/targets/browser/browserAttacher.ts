@@ -11,7 +11,7 @@ import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
@@ -39,10 +39,6 @@ export class BrowserAttacher implements ILauncher {
 
   constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
-  targetManager(): BrowserTargetManager | undefined {
-    return this._targetManager;
-  }
-
   dispose() {
     for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
@@ -55,7 +51,7 @@ export class BrowserAttacher implements ILauncher {
     { targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
     clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
-    if (params.type !== Contributions.ChromeDebugType || params.request !== 'attach') {
+    if (params.type !== DebugType.Chrome || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
 
@@ -211,7 +207,7 @@ export class BrowserAttacher implements ILauncher {
   }
 
   targetList(): ITarget[] {
-    const manager = this.targetManager();
+    const manager = this._targetManager;
     return manager ? manager.targetList() : [];
   }
 }

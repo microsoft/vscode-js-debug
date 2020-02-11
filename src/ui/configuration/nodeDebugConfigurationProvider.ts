@@ -6,23 +6,25 @@ import * as nls from 'vscode-nls';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { writeToConsole } from './common/console';
+import { writeToConsole } from '../../common/console';
 import {
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
   AnyNodeConfiguration,
-} from './configuration';
-import { Contributions } from './common/contributionUtils';
-import { NvmResolver, INvmResolver } from './targets/node/nvmResolver';
-import { EnvironmentVars } from './common/environmentVars';
-import { resolveProcessId } from './ui/processPicker';
+} from '../../configuration';
+import { DebugType } from '../../common/contributionUtils';
+import { INvmResolver } from '../../targets/node/nvmResolver';
+import { EnvironmentVars } from '../../common/environmentVars';
+import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
-import { fixInspectFlags } from './ui/configurationUtils';
+import { fixInspectFlags } from '../configurationUtils';
+import { injectable, inject } from 'inversify';
+import { ExtensionContext } from '../../ioc-extras';
 
 // eslint-disable-next-line
-const config = require('../package.json');
+const config = require('../../../package.json');
 
 const localize = nls.loadMessageBundle();
 
@@ -39,14 +41,13 @@ type ResolvingNodeConfiguration =
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration>
-  implements vscode.DebugConfigurationProvider {
+@injectable()
+export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration> {
   constructor(
-    context: vscode.ExtensionContext,
-    private readonly nvmResolver: INvmResolver = new NvmResolver(),
+    @inject(ExtensionContext) context: vscode.ExtensionContext,
+    @inject(INvmResolver) private readonly nvmResolver: INvmResolver,
   ) {
     super(context);
-
     this.setProvideDefaultConfiguration(folder => createLaunchConfigFromContext(folder, true));
   }
 
@@ -110,6 +111,10 @@ export class NodeDebugConfigurationProvider extends BaseConfigurationProvider<An
       ? { ...nodeAttachConfigDefaults, ...config }
       : { ...nodeLaunchConfigDefaults, ...config };
   }
+
+  protected getType() {
+    return DebugType.Node as const;
+  }
 }
 
 export function guessWorkingDirectory(program?: string, folder?: vscode.WorkspaceFolder): string {
@@ -157,7 +162,7 @@ function createLaunchConfigFromContext(
   existingConfig?: ResolvingNodeConfiguration,
 ): ResolvingNodeConfiguration {
   const config: ResolvingNodeConfiguration = {
-    type: Contributions.NodeDebugType,
+    type: DebugType.Node,
     request: 'launch',
     name: localize('node.launch.config.name', 'Launch Program'),
     skipFiles: ['<node_internals>/**'],

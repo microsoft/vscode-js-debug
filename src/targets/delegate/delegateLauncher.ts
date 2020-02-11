@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 import { ILauncher, ILaunchResult, ITarget, IStopMetadata, ILaunchContext } from '../targets';
 import { AnyLaunchConfiguration } from '../../configuration';
-import { Contributions } from '../../common/contributionUtils';
+import { DebugType } from '../../common/contributionUtils';
 import { ObservableMap } from '../targetList';
 import { EventEmitter } from '../../common/events';
 import { IPendingDapApi } from '../../dap/pending-api';
@@ -78,7 +78,7 @@ export class DelegateLauncher implements ILauncher {
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
   ): Promise<ILaunchResult> {
-    if (params.type !== Contributions.TerminalDebugType || params.request !== 'attach') {
+    if (params.type !== DebugType.Terminal || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
 
