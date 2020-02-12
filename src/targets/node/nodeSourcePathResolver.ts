@@ -29,6 +29,10 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return this.rebaseRemoteToLocal(absolutePath);
     }
 
+    if (!path.isAbsolute(url)) {
+      return `<node_internals>/${url}`;
+    }
+
     if (!this.options.basePath) {
       return '';
     }

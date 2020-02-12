@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import * as nls from 'vscode-nls';
-import * as path from 'path';
 import { URL } from 'url';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import Dap from '../dap/api';
@@ -20,6 +19,8 @@ import { CachingSourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
+import { isSubdirectoryOf, forceForwardSlashes } from '../common/pathUtils';
+import { relative } from 'path';
 
 const localize = nls.loadMessageBundle();
 
@@ -131,9 +132,9 @@ export class Source {
     this._sourceMapUrl = sourceMapUrl;
     this._inlineScriptOffset = inlineScriptOffset;
     this._container = container;
-    this._fqname = this._fullyQualifiedName();
-    this._name = path.basename(this._fqname);
     this._absolutePath = absolutePath || '';
+    this._fqname = this._fullyQualifiedName();
+    this._name = this._humanName();
 
     // Inline scripts will never match content of the html file. We skip the content check.
     if (inlineScriptOffset) contentHash = undefined;
@@ -221,13 +222,31 @@ export class Source {
   }
 
   /**
+   * Gets the human-readable name of the source.
+   */
+  private _humanName() {
+    if (utils.isAbsolute(this._fqname)) {
+      const root = this._container.rootPath;
+      if (root && isSubdirectoryOf(root, this._fqname)) {
+        return forceForwardSlashes(relative(root, this._fqname));
+      }
+    }
+
+    return this._fqname;
+  }
+
+  /**
    * Returns a pretty name for the script. This is the name displayed in
    * stack traces and returned through DAP if the file does not verifiably
    * exist on disk.
    */
-  _fullyQualifiedName(): string {
+  private _fullyQualifiedName(): string {
     if (!this.url) {
       return '<eval>/VM' + this._sourceReference;
+    }
+
+    if (this._absolutePath.startsWith('<node_internals>')) {
+      return this._absolutePath;
     }
 
     if (utils.isAbsolute(this.url)) {

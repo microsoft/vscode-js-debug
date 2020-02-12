@@ -12,6 +12,12 @@ import { forceForwardSlashes } from '../common/pathUtils';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
+const trimLineWhitespace = (str: string) =>
+  str
+    .split('\n')
+    .map(l => l.trimRight())
+    .join('\n');
+
 export class GoldenText {
   _results: string[];
   _testName: string;
@@ -54,7 +60,7 @@ export class GoldenText {
   }
 
   getOutput(): string {
-    return this._results.join('\n') + '\n';
+    return trimLineWhitespace(this._results.join('\n') + '\n');
   }
 
   /**
@@ -77,7 +83,7 @@ export class GoldenText {
     } else if (process.env.RESET_RESULTS) {
       fs.writeFileSync(goldenFilePath, output, { encoding: 'utf-8' });
     } else {
-      const expectations = fs.readFileSync(goldenFilePath).toString('utf-8');
+      const expectations = trimLineWhitespace(fs.readFileSync(goldenFilePath).toString('utf-8'));
 
       try {
         if (options.substring) {

@@ -3,7 +3,7 @@ Breakpoint resolved: {
     id : <number>
     line : 36
     source : {
-        name : bundle.js
+        name : localhost꞉8001/browserify/bundle.js
         path : ${workspaceFolder}/web/browserify/bundle.js
         sourceReference : <number>
     }

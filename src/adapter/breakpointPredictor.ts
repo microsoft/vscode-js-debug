@@ -103,6 +103,10 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       return new Map();
     }
 
+    if (!this.rootPath) {
+      return new Map();
+    }
+
     const sourcePathToCompiled: MetadataMap = new MapUsingProjection(
       urlUtils.lowerCaseInsensitivePath,
     );
