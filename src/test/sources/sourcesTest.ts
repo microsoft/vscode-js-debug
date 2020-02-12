@@ -121,6 +121,23 @@ describe('sources', () => {
     handle.assertLog();
   });
 
+  itIntegrates('allows shebang in node code', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      index: 'require("./shebang-lf"); require("./shebang-crlf")',
+      'shebang-lf': '#!/bin/node\nconsole.log("hello world")',
+      'shebang-crlf': '#!/bin/node\r\nconsole.log("hello world")',
+    });
+
+    const handle = await r.runScript(join(testFixturesDir, 'index'));
+    handle.load();
+
+    const lf = handle.waitForSource('shebang-lf');
+    const crlf = handle.waitForSource('shebang-crlf');
+    handle.log(await lf, undefined, []);
+    handle.log(await crlf, undefined, []);
+    handle.assertLog();
+  });
+
   /**
    *  different encodings for the same string: "\"1111111111111111111111111111111111111111111\""
    */

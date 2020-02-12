@@ -45,13 +45,35 @@ export type HashResponse<T extends HashRequest> = T extends {
 const nodePrefix = Buffer.from('(function (exports, require, module, __filename, __dirname) { ');
 const nodeSuffix = Buffer.from('\n});');
 
+/**
+ * Node scripts starting with a shebang also have that stripped out.
+ */
+const shebangPrefix = Buffer.from('#!');
+
+const CR = Buffer.from('\r')[0];
+const LF = Buffer.from('\n')[0];
+
+const hasPrefix = (buf: Buffer, prefix: Buffer) => buf.slice(0, prefix.length).equals(prefix);
+
 const verifyBytes = (bytes: Buffer, expected: string, checkNode: boolean) => {
   if (hash(bytes) === expected) {
     return true;
   }
 
-  if (checkNode && hash(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
-    return true;
+  if (checkNode) {
+    if (hasPrefix(bytes, shebangPrefix)) {
+      let end = bytes.indexOf(LF);
+      if (bytes[end - 1] === CR) {
+        // CRLF
+        end--;
+      }
+
+      return hash(bytes.slice(end)) === expected;
+    }
+
+    if (hash(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
+      return true;
+    }
   }
 
   return false;

@@ -1,0 +1,16 @@
+{
+    reason : new
+    source : {
+        name : ${fixturesDir}/shebang-lf
+        path : ${fixturesDir}/shebang-lf
+        sourceReference : 0
+    }
+}
+{
+    reason : new
+    source : {
+        name : ${fixturesDir}/shebang-crlf
+        path : ${fixturesDir}/shebang-crlf
+        sourceReference : 0
+    }
+}
