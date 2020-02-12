@@ -43,7 +43,7 @@ const packageJson = require('../../package.json');
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
   // Returns whether we should disable child session treatment.
-  initAdapter(debugAdapter: DebugAdapter, target: ITarget): Promise<boolean>;
+  initAdapter(debugAdapter: DebugAdapter, target: ITarget, launcher: ILauncher): Promise<boolean>;
   releaseDap(target: ITarget): void;
 }
 
@@ -84,7 +84,7 @@ export class Binder implements IDisposable {
       launcher.onTargetListChanged(
         () => {
           const targets = this.targetList();
-          this._attachToNewTargets(targets);
+          this._attachToNewTargets(targets, launcher);
           this._detachOrphanThreads(targets);
           this._onTargetListChangedEmitter.fire();
         },
@@ -322,7 +322,7 @@ export class Binder implements IDisposable {
     return result;
   }
 
-  async attach(target: ITarget) {
+  async attach(target: ITarget, launcher: ILauncher) {
     if (!target.canAttach()) return;
     const cdp = await target.attach();
     if (!cdp) return;
@@ -357,7 +357,7 @@ export class Binder implements IDisposable {
       cdp.Runtime.runIfWaitingForDebugger({});
       return {};
     };
-    if (await this._delegate.initAdapter(debugAdapter, target)) {
+    if (await this._delegate.initAdapter(debugAdapter, target, launcher)) {
       startThread();
     } else {
       dap.on('attach', startThread);
@@ -386,7 +386,7 @@ export class Binder implements IDisposable {
     this._releaseTarget(target);
   }
 
-  _attachToNewTargets(targets: ITarget[]) {
+  _attachToNewTargets(targets: ITarget[], launcher: ILauncher) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger()) {
         continue;
@@ -394,7 +394,7 @@ export class Binder implements IDisposable {
 
       const thread = this._threads.get(target);
       if (!thread) {
-        this.attach(target);
+        this.attach(target, launcher);
       }
     }
   }
