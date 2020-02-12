@@ -15,7 +15,7 @@ import { IDeferred, getDeferred } from '../common/promiseUtil';
 /**
  * A connection strategy which creates a new TCP socket server for every new connection
  */
-class SocketServerConnectionStrategy implements IConnectionStrategy {
+class SocketServerConnectionStrategy implements IConnectionStrategy, IDisposable {
   public server?: net.Server;
   private deferredConnection: IDeferred<DapConnection>;
 
@@ -35,6 +35,10 @@ class SocketServerConnectionStrategy implements IConnectionStrategy {
 
   getConnection() {
     return this.deferredConnection.promise;
+  }
+
+  dispose() {
+    this.server?.close();
   }
 }
 
@@ -60,9 +64,11 @@ const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSessi
  */
 export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactory, IDisposable {
   private readonly sessionManager: SessionManager<vscode.DebugSession>;
+  private disposables: IDisposable[] = [];
 
   constructor(globalContainer: Container) {
     this.sessionManager = new SessionManager(globalContainer, vsCodeSessionLauncher);
+    this.disposables.push(this.sessionManager);
   }
 
   /**
@@ -73,6 +79,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     debugSession.workspaceFolder;
     const connectionStrat = new SocketServerConnectionStrategy();
+    this.disposables.push(connectionStrat);
     this.sessionManager.createNewSession(debugSession, debugSession.configuration, connectionStrat);
     return new vscode.DebugAdapterServer(
       (connectionStrat.server!.address() as net.AddressInfo).port,
@@ -90,6 +97,6 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
    * @inheritdoc
    */
   public dispose() {
-    this.sessionManager.dispose();
+    this.disposables.forEach(d => d.dispose());
   }
 }
