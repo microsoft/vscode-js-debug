@@ -113,7 +113,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         const connection = new DapConnection(telemetry, services.get(ILogger));
         new Binder(
           binderDelegate,
-          connection,
+          Promise.resolve(connection),
           telemetry,
           services,
           new TargetOrigin('targetOrigin'),

@@ -444,6 +444,7 @@ export interface IChromeLaunchConfiguration extends IChromiumLaunchConfiguration
 export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
   type: DebugType.Chrome;
   request: 'attach';
+  __pendingTargetId?: string;
 }
 
 /**
