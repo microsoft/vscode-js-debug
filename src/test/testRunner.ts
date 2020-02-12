@@ -87,7 +87,16 @@ export async function run(): Promise<void> {
     runner.addFile(join(__dirname, 'console/consoleAPITest'));
     runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
 
-    for (const file of glob.sync('**/*.test.js', { cwd: __dirname })) {
+    const options = { cwd: __dirname };
+    const files = glob.sync('**/*.test.js', options);
+
+    // Only run tests on supported platforms
+    // https://nodejs.org/api/process.html#process_process_platform
+    if (process.platform === 'win32') {
+      files.push(...glob.sync('**/*.test.win.js', options));
+    }
+
+    for (const file of files) {
       runner.addFile(join(__dirname, file));
     }
   }

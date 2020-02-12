@@ -19,10 +19,10 @@ import {
   INodeLaunchConfiguration,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
+  AnyChromiumLaunchConfiguration,
 } from '../configuration';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
-import { ChromeLauncher } from '../targets/browser/chromeLauncher';
 import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
@@ -32,6 +32,7 @@ import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
 import { Logger as AdapterLogger } from '../common/logging/logger';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
+import { BrowserLauncher } from '../targets/browser/browserLauncher';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -112,7 +113,11 @@ export interface ITestHandle {
   readonly assertLog: AssertLog;
 
   load(): Promise<void>;
-  _init(adapter: DebugAdapter, target: ITarget): Promise<boolean>;
+  _init(
+    adapter: DebugAdapter,
+    target: ITarget,
+    launcher: BrowserLauncher<AnyChromiumLaunchConfiguration>,
+  ): Promise<boolean>;
 }
 
 export class TestP implements ITestHandle {
@@ -196,7 +201,11 @@ export class TestP implements ITestHandle {
     return this._root.workspacePath(relative);
   }
 
-  async _init(adapter: DebugAdapter) {
+  async _init(
+    adapter: DebugAdapter,
+    _target: ITarget,
+    launcher: BrowserLauncher<AnyChromiumLaunchConfiguration>,
+  ) {
     adapter.breakpointManager.setPredictorDisabledForTest(true);
     adapter.sourceContainer.setSourceMapTimeouts({
       load: 0,
@@ -206,7 +215,8 @@ export class TestP implements ITestHandle {
     });
     this._adapter = adapter;
 
-    this._connection = this._root._browserLauncher.connectionForTest()!;
+    this._root._browserLauncher = launcher;
+    this._connection = this._root._browserLauncher?.connectionForTest()!;
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
     const { sessionId } = (await testSession.Target.attachToTarget({
@@ -306,7 +316,7 @@ export class TestRoot {
   private _workerCallback: (session: ITestHandle) => void;
   private _launchCallback: (session: ITestHandle) => void;
 
-  _browserLauncher: ChromeLauncher;
+  _browserLauncher: BrowserLauncher<AnyChromiumLaunchConfiguration> | undefined;
   readonly binder: Binder;
 
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
@@ -337,7 +347,7 @@ export class TestRoot {
     const services = createTopLevelSessionContainer(
       createGlobalContainer({ storagePath, isVsCode: true }),
     );
-    this._browserLauncher = services.get(ChromeLauncher);
+
     this.binder = new Binder(
       this,
       this._root.adapterConnection,
@@ -359,13 +369,17 @@ export class TestRoot {
     return p._session.adapterConnection;
   }
 
-  async initAdapter(adapter: DebugAdapter, target: ITarget): Promise<boolean> {
+  async initAdapter(
+    adapter: DebugAdapter,
+    target: ITarget,
+    launcher: BrowserLauncher<AnyChromiumLaunchConfiguration>,
+  ): Promise<boolean> {
     const p = this._targetToP.get(target);
     if (!p) {
       return true;
     }
 
-    const boot = await p._init(adapter, target);
+    const boot = await p._init(adapter, target, launcher);
     if (target.parent()) this._workerCallback(p);
     else this._launchCallback(p);
     this._onSessionCreatedEmitter.fire(p);
@@ -489,7 +503,7 @@ export class TestRoot {
   async disconnect(): Promise<void> {
     return new Promise<void>(cb => {
       this.initialize.then(() => {
-        const connection = this._browserLauncher.connectionForTest();
+        const connection = this._browserLauncher?.connectionForTest();
         if (connection) {
           const disposable = connection.onDisconnected(() => {
             cb();

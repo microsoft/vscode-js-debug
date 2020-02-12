@@ -19,4 +19,14 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
+  - powershell: |
+      # This step can be removed once Edge is included on the test VM image.
+      # The download URI comes from: https://www.microsoftedgeinsider.com/en-us/download
+      $InstallerDownloadURI = "https://go.microsoft.com/fwlink/?linkid=2084649&Channel=Canary&language=en&Consent=1"
+      $InstallerExe = "$ENV:BUILD_ARTIFACTSTAGINGDIRECTORY\MicrosoftEdgeSetup.exe"
+      Invoke-WebRequest -Uri $InstallerDownloadURI -OutFile $InstallerExe
+      Start-Process $InstallerExe -Wait -ArgumentList '/silent /install'
+      # Cleanup installer
+      Remove-Item $InstallerExe
+    displayName: Install Edge Canary
   - template: common-validation.yml
