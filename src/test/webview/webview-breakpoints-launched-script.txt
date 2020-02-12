@@ -1,0 +1,16 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/script.js:10:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/script.js:6:3
+foo @ ${workspaceFolder}/web/script.js:2:3
+<anonymous> @ ${workspaceFolder}/web/script.js:11:1
