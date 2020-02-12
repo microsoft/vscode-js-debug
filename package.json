@@ -155,7 +155,6 @@
     "onDebugResolve:NAMESPACE(node-terminal)",
     "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
-    "onCommand:extension.NAMESPACE(node-debug).pickLoadedScript",
     "onCommand:extension.NAMESPACE(node-debug).toggleSkippingFile",
     "onCommand:extension.NAMESPACE(node-debug).attachNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).startAutoAttach",
@@ -183,11 +182,6 @@
       {
         "command": "extension.NAMESPACE(node-debug).prettyPrint",
         "title": "%pretty.print.script%"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
-        "title": "%open.loaded.script%",
-        "category": "Debug"
       },
       {
         "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
@@ -226,18 +220,6 @@
       }
     ],
     "menus": {
-      "explorer/context": [
-        {
-          "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
-          "when": "resourceLangId == javascript"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "extension.NAMESPACE(node-debug).pickLoadedScript",
-          "when": "resourceLangId == javascript"
-        }
-      ],
       "debug/callstack/context": [
         {
           "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",

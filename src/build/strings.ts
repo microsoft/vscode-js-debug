@@ -178,7 +178,6 @@ const strings = {
   'longPredictionWarning.open': 'Open launch.json',
   'longPredictionWarning.disable': "Don't show again",
   'longPredictionWarning.noFolder': 'No workspace folder open.',
-  'open.loaded.script': 'Open Loaded Script',
   'outFiles.description':
     'If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with `!` the files are excluded. If not specified, the generated code is expected in the same directory as its source.',
   'pretty.print.script': 'Pretty print for debugging',
