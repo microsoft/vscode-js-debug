@@ -10,6 +10,9 @@ import * as https from 'https';
 import { fixDriveLetterAndSlashes } from './pathUtils';
 import { AnyChromiumConfiguration } from '../configuration';
 import { escapeRegexSpecialChars } from './stringUtils';
+import { promises as dns } from 'dns';
+import { memoize } from './objUtils';
+import ipModule from 'ip';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -56,6 +59,56 @@ export const nearestDirectoryWhere = async (
   }
 };
 
+const localv4 = ipModule.toBuffer('127.0.0.1');
+const localv6 = ipModule.toBuffer('::1');
+
+/**
+ * Checks if the given address, well-formed loopback IPs. We don't need exotic
+ * variations like `127.1` because `dns.lookup()` will resolve the proper
+ * version for us. The "right" way would be to parse the IP to an integer
+ * like Go does (https://golang.org/pkg/net/#IP.IsLoopback), but this
+ * is lightweight and works.
+ */
+const isLoopbackIp = (ipOrLocalhost: string) => {
+  if (ipOrLocalhost.toLowerCase() === 'localhost') {
+    return true;
+  }
+
+  let buf: Buffer;
+  try {
+    buf = ipModule.toBuffer(ipOrLocalhost);
+  } catch {
+    return false;
+  }
+
+  return buf.equals(localv4) || buf.equals(localv6);
+};
+
+/**
+ * Gets whether the IP is a loopback address.
+ */
+export const isLoopback = memoize(async (address: string) => {
+  let ipOrHostname: string;
+  try {
+    const url = new URL(address);
+    // replace brackets in ipv6 addresses:
+    ipOrHostname = url.hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    ipOrHostname = address;
+  }
+
+  if (isLoopbackIp(ipOrHostname)) {
+    return true;
+  }
+
+  try {
+    const resolved = await dns.lookup(ipOrHostname);
+    return isLoopbackIp(resolved.address);
+  } catch {
+    return false;
+  }
+});
+
 export async function fetch(url: string): Promise<string> {
   if (url.startsWith('data:')) {
     const prefix = url.substring(0, url.indexOf(','));
@@ -79,9 +132,11 @@ export async function fetch(url: string): Promise<string> {
     });
   }
 
-  const driver = url.startsWith('https://') ? https : http;
+  const isInsecure = url.startsWith('http://');
+  const driver = isInsecure ? http : https;
+  const rejectUnauthorized = !isInsecure && !(await isLoopback(url));
   return new Promise<string>((fulfill, reject) => {
-    const request = driver.get(url, response => {
+    const request = driver.get(url, { rejectUnauthorized }, response => {
       let data = '';
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => (data += chunk));
@@ -293,26 +348,6 @@ export function platformPathToPreferredCase(p: string | undefined): string | und
   if (p && process.platform === 'win32' && p[1] === ':') return p[0].toUpperCase() + p.substring(1);
   return p;
 }
-
-const loopbacks: ReadonlySet<string> = new Set([
-  'localhost',
-  '127.0.0.1',
-  '::1',
-  '0:0:0:0:0:0:0:1',
-]);
-
-/**
- * Returns whether the given URL is a loopback address.
- */
-
-export const isLoopback = (address: string) => {
-  try {
-    const url = new URL(address);
-    return loopbacks.has(url.hostname);
-  } catch {
-    return loopbacks.has(address);
-  }
-};
 
 /**
  * Creates a target filter function for the given Chrome configuration.

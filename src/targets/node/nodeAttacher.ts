@@ -152,7 +152,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    if (!isLoopback(run.params.address)) {
+    if (!(await isLoopback(run.params.address))) {
       this.logger.warn(LogTag.RuntimeTarget, 'Cannot attach to children of remote process');
       return;
     }
