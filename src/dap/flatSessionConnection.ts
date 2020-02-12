@@ -43,10 +43,7 @@ export class ChildConnection extends DapConnection {
     super(telemetryReporter, logger);
 
     this._messageSubscription = parentConnection.onMessage(msg => {
-      if (
-        (msg.sessionId === undefined && this.sessionId === '') ||
-        msg.sessionId === this.sessionId
-      ) {
+      if (msg.sessionId === this.sessionId) {
         super._onMessage(msg, msg.__receivedTime || BigInt(0));
       }
     });
@@ -55,7 +52,7 @@ export class ChildConnection extends DapConnection {
   }
 
   _send(msg: Message) {
-    if (this.sessionId !== '') {
+    if (this.sessionId) {
       msg.sessionId = this.sessionId;
     }
     this.parentConnection._send(msg);
