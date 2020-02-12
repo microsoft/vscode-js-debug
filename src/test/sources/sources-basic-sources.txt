@@ -3,7 +3,7 @@ Source event for inline
 {
     reason : new
     source : {
-        name : inlinescript.html꞉2:11
+        name : localhost꞉8001/inlinescript.html꞉2:11
         path : ${workspaceFolder}/web/inlinescript.html
         sourceReference : <number>
     }
@@ -12,14 +12,14 @@ text/javascript
 ---------
 
     console.log('inline script');
-  
+
 ---------
 
 Source event for empty.js
 {
     reason : new
     source : {
-        name : empty.js
+        name : localhost꞉8001/empty.js
         path : ${workspaceFolder}/web/empty.js
         sourceReference : <number>
     }
@@ -35,7 +35,7 @@ Source event for does not exist
 {
     reason : new
     source : {
-        name : doesnotexist.js
+        name : localhost꞉8001/doesnotexist.js
         path : localhost꞉8001/doesnotexist.js
         sourceReference : <number>
     }
@@ -50,7 +50,7 @@ Source event for dir/helloworld
 {
     reason : new
     source : {
-        name : helloworld.js
+        name : localhost꞉8001/dir/helloworld.js
         path : ${workspaceFolder}/web/dir/helloworld.js
         sourceReference : <number>
     }
@@ -66,7 +66,7 @@ Source event for eval
 {
     reason : new
     source : {
-        name : VM<xx>
+        name : <eval>/VM<xx>
         path : <eval>/VM<xx>
         sourceReference : <number>
     }
@@ -80,37 +80,37 @@ text/javascript
 Loaded sources: {
     sources : [
         [0] : {
-            name : inlinescript.html꞉2:11
+            name : localhost꞉8001/inlinescript.html꞉2:11
             path : ${workspaceFolder}/web/inlinescript.html
             sourceReference : <number>
         }
         [1] : {
-            name : VM<xx>
+            name : <eval>/VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [2] : {
-            name : empty.js
+            name : localhost꞉8001/empty.js
             path : ${workspaceFolder}/web/empty.js
             sourceReference : <number>
         }
         [3] : {
-            name : doesnotexist.js
+            name : localhost꞉8001/doesnotexist.js
             path : localhost꞉8001/doesnotexist.js
             sourceReference : <number>
         }
         [4] : {
-            name : VM<xx>
+            name : <eval>/VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }
         [5] : {
-            name : helloworld.js
+            name : localhost꞉8001/dir/helloworld.js
             path : ${workspaceFolder}/web/dir/helloworld.js
             sourceReference : <number>
         }
         [6] : {
-            name : VM<xx>
+            name : <eval>/VM<xx>
             path : <eval>/VM<xx>
             sourceReference : <number>
         }

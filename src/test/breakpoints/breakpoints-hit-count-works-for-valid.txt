@@ -5,7 +5,7 @@
             id : <number>
             line : 4
             source : {
-                name : VM<xx>
+                name : <eval>/VM<xx>
                 path : <eval>/VM<xx>
                 sourceReference : <number>
             }

@@ -55,12 +55,25 @@ describe('node source path resolver', () => {
       );
     });
 
+    it('places relative paths in node_internals', async () => {
+      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
+
+      expect(
+        await r.urlToAbsolutePath({
+          url: 'internal.js',
+        }),
+      ).to.equal('<node_internals>/internal.js');
+    });
+
     it('applies source map overrides', async () => {
       const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
 
-      expect(await r.urlToAbsolutePath({ url: 'webpack:///hello.js' })).to.equal(
-        join(__dirname, 'hello.js'),
-      );
+      expect(
+        await r.urlToAbsolutePath({
+          url: 'webpack:///hello.js',
+          map: { sourceRoot: '', metadata: { compiledPath: 'hello.js' } } as any,
+        }),
+      ).to.equal(join(__dirname, 'hello.js'));
     });
 
     describe('source map filtering', () => {

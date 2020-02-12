@@ -187,6 +187,14 @@ export const splitWithDriveLetter = (inputPath: string) => {
 };
 
 /**
+ * Gets whether the child is a subdirectory of its parent.
+ */
+export const isSubdirectoryOf = (parent: string, child: string) => {
+  const rel = path.relative(parent, child);
+  return !path.isAbsolute(rel) && !rel.startsWith('..');
+};
+
+/**
  * Returns whether the path looks like a UNC path.
  */
 export const isUncPath = (path: string) => path.startsWith('\\\\');
