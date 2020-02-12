@@ -88,7 +88,7 @@ class VSSessionManager {
     );
     this.rootConnection = new MessageEmitterConnection(this.telemetry, new Logger());
 
-    this.createSession('', 'rootSession', {});
+    this.createSession(undefined, 'rootSession', {});
     this.rootConnection.init(inputStream, outputStream);
   }
 
@@ -112,10 +112,15 @@ class VSSessionManager {
     };
   }
 
-  createSession(sessionId: string, name: string, config: any) {
+  createSession(sessionId: string | undefined, name: string, config: any) {
     const connectionStrat = this.buildConnectionStrategy(sessionId);
     this.sessionManager.createNewSession(
-      new VSDebugSession(sessionId, name, connectionStrat.getConnection(), this.mockProcessId++),
+      new VSDebugSession(
+        sessionId || 'root',
+        name,
+        connectionStrat.getConnection(),
+        this.mockProcessId++,
+      ),
       config,
       connectionStrat,
     );
