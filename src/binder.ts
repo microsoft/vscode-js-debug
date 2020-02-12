@@ -64,14 +64,14 @@ export class Binder implements IDisposable {
 
   constructor(
     delegate: IBinderDelegate,
-    connection: DapConnection,
+    connection: Promise<DapConnection>,
     private readonly telemetryReporter: TelemetryReporter,
     private readonly _rootServices: Container,
     targetOrigin: ITargetOrigin,
   ) {
     this._launchers = new Set(_rootServices.getAll(ILauncher));
     this._delegate = delegate;
-    this._dap = connection.dap();
+    this._dap = connection.then(x => x.dap());
     this._targetOrigin = targetOrigin;
     this._disposables = [
       this._onTargetListChangedEmitter,
