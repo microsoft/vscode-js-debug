@@ -23,8 +23,9 @@ import {
   SessionManager,
   SessionLauncher,
 } from './sessionManager';
-import { IDeferred, getDeferred } from './common/promiseUtil';
+import { getDeferred } from './common/promiseUtil';
 import { Logger } from './common/logging/logger';
+import DapConnection from './dap/connection';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -32,7 +33,7 @@ class VSDebugSession implements IDebugSessionLike {
   constructor(
     public id: string,
     name: string,
-    private readonly childConnection: Promise<ChildConnection>,
+    private readonly childConnection: Promise<DapConnection>,
     private readonly mockProcessId: number,
   ) {
     this._name = name;
@@ -52,23 +53,13 @@ class VSDebugSession implements IDebugSessionLike {
 }
 
 class VSConnectionStrategy implements IConnectionStrategy {
-  deferredChildConnection: IDeferred<ChildConnection>;
-
   constructor(
     private readonly rootConnection: MessageEmitterConnection,
     private readonly sessionId?: string,
-  ) {
-    this.deferredChildConnection = getDeferred();
-  }
+  ) {}
 
-  init(telemetryReporter: TelemetryReporter, logger: ILogger) {
-    this.deferredChildConnection.resolve(
-      new ChildConnection(logger, telemetryReporter, this.rootConnection, this.sessionId),
-    );
-  }
-
-  getConnection() {
-    return this.deferredChildConnection.promise;
+  getConnection(telemetryReporter: TelemetryReporter, logger: ILogger) {
+    return new ChildConnection(logger, telemetryReporter, this.rootConnection, this.sessionId);
   }
 }
 
@@ -99,31 +90,31 @@ class VSSessionManager {
       this.createSession(target.id(), target.name(), childAttachConfig);
 
       // Custom message currently not part of DAP
-      parentSession.connection.then(conn =>
-        conn._send({
-          seq: 0,
-          command: 'attachedChildSession',
-          type: 'request',
-          arguments: {
-            config: childAttachConfig,
-          },
-        }),
-      );
+      parentSession.connection._send({
+        seq: 0,
+        command: 'attachedChildSession',
+        type: 'request',
+        arguments: {
+          config: childAttachConfig,
+        },
+      });
     };
   }
 
   createSession(sessionId: string | undefined, name: string, config: any) {
     const connectionStrat = this.buildConnectionStrategy(sessionId);
-    this.sessionManager.createNewSession(
+    const deferredConnection = getDeferred<DapConnection>();
+    const newSession = this.sessionManager.createNewSession(
       new VSDebugSession(
         sessionId || 'root',
         name,
-        connectionStrat.getConnection(),
+        deferredConnection.promise,
         this.mockProcessId++,
       ),
       config,
       connectionStrat,
     );
+    deferredConnection.resolve(newSession.connection);
   }
 
   buildConnectionStrategy(sessionId?: string) {

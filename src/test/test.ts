@@ -340,7 +340,7 @@ export class TestRoot {
     this._browserLauncher = services.get(ChromeLauncher);
     this.binder = new Binder(
       this,
-      Promise.resolve(this._root.adapterConnection),
+      this._root.adapterConnection,
       new TelemetryReporter(),
       services,
       new TargetOrigin('0'),

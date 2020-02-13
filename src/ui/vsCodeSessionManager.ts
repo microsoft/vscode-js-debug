@@ -16,25 +16,19 @@ import { IDeferred, getDeferred } from '../common/promiseUtil';
  * A connection strategy which creates a new TCP socket server for every new connection
  */
 class SocketServerConnectionStrategy implements IConnectionStrategy, IDisposable {
-  public server?: net.Server;
   private deferredConnection: IDeferred<DapConnection>;
 
-  constructor() {
+  constructor(private readonly server: net.Server) {
     this.deferredConnection = getDeferred();
+    server.on('connection', socket => {
+      this.deferredConnection.promise.then(conn => conn.init(socket, socket));
+    });
   }
 
-  init(telemetryReporter: TelemetryReporter, logger: ILogger) {
-    this.server = net
-      .createServer(async socket => {
-        this.getConnection().then(conn => conn.init(socket, socket));
-      })
-      .listen(0);
-
-    this.deferredConnection.resolve(new DapConnection(telemetryReporter, logger));
-  }
-
-  getConnection() {
-    return this.deferredConnection.promise;
+  getConnection(telemetryReporter: TelemetryReporter, logger: ILogger) {
+    const newConnection = new DapConnection(telemetryReporter, logger);
+    this.deferredConnection.resolve(newConnection);
+    return newConnection;
   }
 
   dispose() {
@@ -78,12 +72,12 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     debugSession.workspaceFolder;
-    const connectionStrat = new SocketServerConnectionStrategy();
+
+    const debugServer = net.createServer().listen(0);
+    const connectionStrat = new SocketServerConnectionStrategy(debugServer);
     this.disposables.push(connectionStrat);
     this.sessionManager.createNewSession(debugSession, debugSession.configuration, connectionStrat);
-    return new vscode.DebugAdapterServer(
-      (connectionStrat.server!.address() as net.AddressInfo).port,
-    );
+    return new vscode.DebugAdapterServer((debugServer.address() as net.AddressInfo).port);
   }
 
   /**
