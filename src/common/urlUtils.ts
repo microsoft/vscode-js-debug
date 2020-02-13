@@ -132,11 +132,11 @@ export async function fetch(url: string): Promise<string> {
     });
   }
 
-  const isInsecure = url.startsWith('http://');
-  const driver = isInsecure ? http : https;
-  const rejectUnauthorized = !isInsecure && !(await isLoopback(url));
+  const isSecure = !url.startsWith('http://');
+  const driver = isSecure ? https : http;
+  const validateCerts = isSecure && !(await isLoopback(url));
   return new Promise<string>((fulfill, reject) => {
-    const request = driver.get(url, { rejectUnauthorized }, response => {
+    const request = driver.get(url, { rejectUnauthorized: !validateCerts }, response => {
       let data = '';
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => (data += chunk));

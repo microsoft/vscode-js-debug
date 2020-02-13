@@ -221,14 +221,13 @@ describe('urlUtils', () => {
 
     const ttable = {
       '127.0.0.1': true,
-      '127.1': true,
       'http://127.1/foo': true,
       'http://1.1.1.1/foo': false,
       'totes invalid': false,
       '1.1.1.1': false,
-      '0x7f000001': true,
       '::1': true,
       ':0:1': true,
+      '0:0:0:0:0:0:0:1': true,
       ':1:1': false,
       'http://[::1]/foo': true,
       'http://[:1:1]/foo': false,
@@ -236,6 +235,14 @@ describe('urlUtils', () => {
       'http://contoso.com/foo': false,
       'http://local.contoso.com/foo': true,
     };
+
+    // Alternative forms supported by posix:
+    if (process.platform !== 'win32') {
+      Object.assign(ttable, {
+        '127.1': true,
+        '0x7f000001': true,
+      });
+    }
 
     for (const [ip, expected] of Object.entries(ttable)) {
       it(ip, async () => expect(await isLoopback(ip)).to.equal(expected));
