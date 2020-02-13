@@ -16,7 +16,8 @@ const trimLineWhitespace = (str: string) =>
   str
     .split('\n')
     .map(l => l.trimRight())
-    .join('\n');
+    .join('\n')
+    .replace(/\\r\\n/g, '\\n');
 
 export class GoldenText {
   _results: string[];
