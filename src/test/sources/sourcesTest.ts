@@ -123,7 +123,7 @@ describe('sources', () => {
 
   itIntegrates('allows shebang in node code', async ({ r }) => {
     createFileTree(testFixturesDir, {
-      index: 'require("./shebang-lf"); require("./shebang-crlf")',
+      index: 'require("./shebang-lf"); require("./shebang-crlf"); debugger;',
       'shebang-lf': '#!/bin/node\nconsole.log("hello world")',
       'shebang-crlf': '#!/bin/node\r\nconsole.log("hello world")',
     });

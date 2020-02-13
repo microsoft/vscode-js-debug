@@ -12,8 +12,7 @@ import { TestLogSink } from './testLogSink';
 const packageJson = require('../../../package.json');
 
 /**
- * Implementation of ILogger for the extension. You should probably use the
- * global const `logger` instance.
+ * Implementation of ILogger for the extension.
  */
 @injectable()
 export class Logger implements ILogger, IDisposable {

@@ -30,7 +30,6 @@ import { getLogFileForTest } from './reporters/logReporterUtils';
 import { TargetOrigin } from '../targets/targetOrigin';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
-import { Logger as AdapterLogger } from '../common/logging/logger';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 
@@ -139,7 +138,7 @@ export class TestP implements ITestHandle {
     this._target = target;
     this.log = root.log;
     this.assertLog = root.assertLog;
-    this._session = new Session(root.adapterLogger);
+    this._session = new Session(root.logger);
     this.dap = this._session.dap;
     this.logger = new Logger(this.dap, this.log);
   }
@@ -260,7 +259,7 @@ export class NodeTestHandle implements ITestHandle {
     this._target = target;
     this.log = root.log;
     this.assertLog = root.assertLog;
-    this._session = new Session(root.adapterLogger);
+    this._session = new Session(root.logger);
     this.dap = this._session.dap;
     this.logger = new Logger(this.dap, this.log);
   }
@@ -321,7 +320,7 @@ export class TestRoot {
 
   private _onSessionCreatedEmitter = new EventEmitter<ITestHandle>();
   readonly onSessionCreated = this._onSessionCreatedEmitter.event;
-  public readonly adapterLogger = new AdapterLogger();
+  public readonly logger: ILogger;
 
   constructor(goldenText: GoldenText, private _testTitlePath: string) {
     this._args = ['--headless'];
@@ -332,7 +331,13 @@ export class TestRoot {
     );
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
-    this._root = new Session(this.adapterLogger);
+    const storagePath = path.join(__dirname, '..', '..');
+    const services = createTopLevelSessionContainer(
+      createGlobalContainer({ storagePath, isVsCode: true }),
+    );
+
+    this.logger = services.get(ILogger);
+    this._root = new Session(this.logger);
     this._root.adapterConnection.dap().then(dap => {
       dap.on('initialize', async () => {
         dap.initialized({});
@@ -342,11 +347,6 @@ export class TestRoot {
         return {};
       });
     });
-
-    const storagePath = path.join(__dirname, '..', '..');
-    const services = createTopLevelSessionContainer(
-      createGlobalContainer({ storagePath, isVsCode: true }),
-    );
 
     this.binder = new Binder(
       this,
