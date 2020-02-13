@@ -148,6 +148,8 @@ const strings = {
   'node.snippet.attachProcess.description':
     'Open process picker to select node process to attach to',
   'node.snippet.attachProcess.label': 'Node.js: Attach to Process',
+  'node.attach.continueOnAttach':
+    "If true, we'll automatically resume programs launched and waiting on `--inspect-brk`",
   'node.snippet.electron.description': 'Debug the Electron main process',
   'node.snippet.electron.label': 'Node.js: Electron Main',
   'node.snippet.gulp.description':

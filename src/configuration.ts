@@ -386,6 +386,12 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    * Whether to attempt to attach to already-spawned child processes.
    */
   attachExistingChildren: boolean;
+
+  /**
+   * Whether to automatically resume processes if we see they were launched
+   * with `--inpect-brk`.
+   */
+  continueOnAttach: boolean;
 }
 
 interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
@@ -664,6 +670,7 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   restart: false,
   request: 'attach',
   processId: '',
+  continueOnAttach: false,
 };
 
 export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string } {

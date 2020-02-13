@@ -462,6 +462,7 @@ export class TestRoot {
     this._launchUrl = `process${processId}`;
     this._root.dap.launch({
       ...nodeAttachConfigDefaults,
+      trace: { logFile: getLogFileForTest(this._testTitlePath) },
       processId: `inspector${processId}`,
       __workspaceFolder: this._workspaceRoot,
       ...options,

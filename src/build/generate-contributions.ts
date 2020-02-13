@@ -353,6 +353,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       description: refString('node.attach.attachExistingChildren.description'),
       default: false,
     },
+    continueOnAttach: {
+      type: 'boolean',
+      markdownDescription: refString('node.attach.continueOnAttach'),
+      default: true,
+    },
   },
 };
 

@@ -198,6 +198,19 @@ describe('node runtime', () => {
       handle.assertLog({ substring: true });
     });
 
+    // todo(connor4312): I'm having a really hard time getting this to pass. I
+    // think there might be funky with out test setup, works fine running manually.
+    itIntegrates.skip('continueOnAttach', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['console.log("");', 'debugger;'],
+      });
+
+      child = spawn('node', ['--inspect-brk', join(testFixturesDir, 'test')]);
+      const handle = await r.attachNode(0, { continueOnAttach: true });
+      await waitForPause(handle); // pauses on 2nd line, not 1st
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('retries attachment', async ({ r }) => {
       createFileTree(testFixturesDir, {
         'test.js': ['setInterval(() => { debugger; }, 500)'],

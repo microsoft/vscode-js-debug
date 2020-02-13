@@ -561,6 +561,7 @@ export class Thread implements IVariableStoreDelegate {
     const hitBreakpoints = (event.hitBreakpoints ?? []).filter(
       bp => bp !== this._pauseOnSourceMapBreakpointId,
     );
+    const isInspectBrk = (event.reason as string) === 'Break on start';
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
       this._breakpointManager.isEntrypointBreak(hitBreakpoints);
@@ -574,8 +575,9 @@ export class Thread implements IVariableStoreDelegate {
       // location; this won't have existed before now.
       shouldPause = await this._handleSourceMapPause(scriptId, location);
       // Set shouldPause=true if there's a non-entry, user defined breakpoint
-      // among the remaining points.
-      shouldPause = shouldPause || this._breakpointManager.shouldPauseAt(hitBreakpoints, true);
+      // among the remaining points--or an inspect-brk.
+      shouldPause =
+        shouldPause || isInspectBrk || this._breakpointManager.shouldPauseAt(hitBreakpoints, true);
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -605,6 +607,17 @@ export class Thread implements IVariableStoreDelegate {
       scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
       const threads = Array.from(Thread._allThreadsByDebuggerId.values());
       await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
+      this.resume();
+      return;
+    }
+
+    // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
+    // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
+    if (
+      isInspectBrk &&
+      'continueOnAttach' in this.launchConfig &&
+      this.launchConfig.continueOnAttach
+    ) {
       this.resume();
       return;
     }
