@@ -4,6 +4,7 @@
 
 import Color from 'color';
 import { BudgetStringBuilder } from '../common/budgetStringBuilder';
+import { IPreviewContext } from './objectPreview/contexts';
 
 export type FormatToken =
   | { type: 'string'; value: string }
@@ -11,7 +12,7 @@ export type FormatToken =
 
 const maxMessageFormatLength = 10000;
 
-export type Formatters<T> = Map<string, (a: T, characterBudget: number) => string>;
+export type Formatters<T> = Map<string, (a: T, context: IPreviewContext) => string>;
 
 function tokenizeFormatString(format: string, formatterNames: string[]): FormatToken[] {
   const tokens: FormatToken[] = [];
@@ -90,7 +91,7 @@ export function formatMessage<T>(
     usedSubstitutionIndexes.add(index);
     if (token.specifier === 'c') cssFormatApplied = true;
     const formatter = formatters.get(token.specifier) || defaultFormatter;
-    builder.append(formatter(substitutions[index], builder.budget()));
+    builder.append(formatter(substitutions[index], { budget: builder.budget(), quoted: false }));
   }
 
   if (cssFormatApplied) builder.append('\x1b[0m'); // clear format
@@ -101,7 +102,7 @@ export function formatMessage<T>(
     if (format || i)
       // either we are second argument or we had format.
       builder.append(' ');
-    builder.append(defaultFormatter(substitutions[i], builder.budget()));
+    builder.append(defaultFormatter(substitutions[i], { budget: builder.budget(), quoted: false }));
   }
 
   return {

@@ -2,10 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Cdp from '../cdp/api';
-import * as stringUtils from '../common/stringUtils';
-import { BudgetStringBuilder } from '../common/budgetStringBuilder';
-import * as messageFormat from './messageFormat';
+import Cdp from '../../cdp/api';
+import * as stringUtils from '../../common/stringUtils';
+import { BudgetStringBuilder } from '../../common/budgetStringBuilder';
+import * as messageFormat from '../messageFormat';
+import { getContextForType, IPreviewContext } from './contexts';
+import * as ObjectPreview from './betterTypes';
 
 const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 100;
@@ -30,7 +32,7 @@ export const subtypesWithoutPreview: ReadonlySet<string | undefined> = new Set([
  */
 export function previewAsObject(
   object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview,
-): boolean {
+): object is ObjectPreview.PreviewAsObjectType {
   return (
     object.type === 'function' ||
     (object.type === 'object' && !subtypesWithoutPreview.has(object.subtype))
@@ -40,45 +42,39 @@ export function previewAsObject(
 /**
  * Returns whether the given type should be previwed as an array.
  */
+export function isArray(object: Cdp.Runtime.RemoteObject): object is ObjectPreview.ArrayObj;
+export function isArray(object: ObjectPreview.AnyPreview): object is ObjectPreview.ArrayPreview;
 export function isArray(
   object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview,
 ): boolean {
   return object.subtype === 'array' || object.subtype === 'typedarray';
 }
 
-const getPreviewBudget = (context: string | undefined) => {
-  switch (context) {
-    case 'repl':
-      return 1000;
-    case 'hover':
-      return 500;
-    case 'copy':
-      return Infinity;
-    default:
-      return 100;
-  }
-};
-
 export function previewRemoteObject(
   object: Cdp.Runtime.RemoteObject,
-  context: string | undefined,
+  contextType?: string,
 ): string {
-  const result = previewRemoteObjectInternal(object, getPreviewBudget(context), context !== 'copy');
-  return result;
+  const context = getContextForType(contextType);
+  const result = previewRemoteObjectInternal(object as ObjectPreview.AnyObject, context);
+  return context.postProcess?.(result) ?? result;
 }
 
 function previewRemoteObjectInternal(
-  object: Cdp.Runtime.RemoteObject,
-  characterBudget: number,
-  quoteString: boolean,
+  object: ObjectPreview.AnyObject,
+  context: IPreviewContext,
 ): string {
   // Evaluating function does not produce preview object for it.
-  if (object.type === 'function')
-    return formatFunctionDescription(object.description!, characterBudget);
-  if (object.subtype === 'node') return object.description!;
-  return object.preview
-    ? renderPreview(object.preview, characterBudget)
-    : renderValue(object, characterBudget, quoteString);
+  if (object.type === 'function') {
+    return formatFunctionDescription(object.description, context.budget);
+  }
+
+  if (object.type === 'object' && object.subtype === 'node') {
+    return object.description;
+  }
+
+  return 'preview' in object && object.preview
+    ? renderPreview(object.preview, context.budget)
+    : renderValue(object, context.budget, context.quoted);
 }
 
 export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
@@ -86,28 +82,43 @@ export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
   return 100;
 }
 
-export function privatePropertyWeight(prop: Cdp.Runtime.PrivatePropertyDescriptor): number {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function privatePropertyWeight(_prop: Cdp.Runtime.PrivatePropertyDescriptor): number {
   return 20;
 }
 
-export function internalPropertyWeight(prop: Cdp.Runtime.InternalPropertyDescriptor): number {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function internalPropertyWeight(_prop: Cdp.Runtime.InternalPropertyDescriptor): number {
   return 10;
 }
 
-function renderPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
-  if (isArray(preview)) return renderArrayPreview(preview, characterBudget);
-  if ((preview.subtype as string) === 'internal#entry')
-    return stringUtils.trimEnd(preview.description || '', characterBudget);
-  if (previewAsObject(preview)) return renderObjectPreview(preview, characterBudget);
-  if (preview.type === 'function')
-    return formatFunctionDescription(preview.description!, characterBudget);
+function renderPreview(preview: ObjectPreview.AnyPreview, characterBudget: number): string {
+  if (isArray(preview)) {
+    return renderArrayPreview(preview, characterBudget);
+  }
+
+  if ((preview.subtype as string) === 'internal#entry') {
+    return stringUtils.trimEnd(
+      (preview as { description: string }).description || '',
+      characterBudget,
+    );
+  }
+
+  if (preview.type === 'function') {
+    return formatFunctionDescription(preview.value, characterBudget);
+  }
+
+  if (previewAsObject(preview)) {
+    return renderObjectPreview(preview, characterBudget);
+  }
+
   return renderPrimitivePreview(preview, characterBudget);
 }
 
-function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
+function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget: number): string {
   const builder = new BudgetStringBuilder(characterBudget);
-  let description = preview.description!;
-  const match = description!.match(/[^(]*\(([\d]+)\)/);
+  let description = preview.description;
+  const match = description.match(/[^(]*\(([\d]+)\)/);
   if (!match) return description;
   const arrayLength = parseInt(match[1], 10);
 
@@ -139,13 +150,19 @@ function renderArrayPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget:
   return builder.build();
 }
 
-function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget: number): string {
+function renderObjectPreview(
+  preview: ObjectPreview.ObjectPreview | ObjectPreview.NodePreview,
+  characterBudget: number,
+): string {
   const builder = new BudgetStringBuilder(characterBudget, ' ');
   if (preview.description !== 'Object')
-    builder.append(stringUtils.trimEnd(preview.description!, builder.budget()));
+    builder.append(stringUtils.trimEnd(preview.description, builder.budget()));
 
-  const map = new Map<string, Cdp.Runtime.PropertyPreview>();
-  for (const prop of preview.properties) map.set(prop.name, prop);
+  const map = new Map<string, ObjectPreview.PropertyPreview>();
+  const properties = preview.properties || [];
+  for (const prop of properties) {
+    map.set(prop.name, prop);
+  }
 
   // Handle boxed values such as Number, String.
   const primitiveValue = map.get('[[PrimitiveValue]]');
@@ -178,7 +195,7 @@ function renderObjectPreview(preview: Cdp.Runtime.ObjectPreview, characterBudget
   }
 
   const propsBuilder = new BudgetStringBuilder(builder.budget() - 2, ', '); // for '{}'
-  for (const prop of preview.properties) {
+  for (const prop of properties) {
     if (!propsBuilder.checkBudget()) break;
     propsBuilder.append(renderPropertyPreview(prop, propsBuilder.budget(), prop.name));
   }
@@ -217,14 +234,22 @@ function truncateValue(value: string, characterBudget: number): string {
   return value.length >= characterBudget ? value.slice(0, characterBudget - 1) + '…' : value;
 }
 
-function renderPrimitivePreview(
-  preview: Cdp.Runtime.ObjectPreview,
-  characterBudget: number,
-): string {
-  if (preview.subtype === 'null') return valueOrEllipsis('null', characterBudget);
-  if (preview.type === 'undefined') return valueOrEllipsis('undefined', characterBudget);
-  if (preview.type === 'string')
-    return stringUtils.trimMiddle(preview.description!, characterBudget);
+/**
+ * Renders a preview of a primitive (number, undefined, null, string, etc) type.
+ */
+function renderPrimitivePreview(preview: ObjectPreview.Primitive, characterBudget: number): string {
+  if (preview.type === 'object' && preview.subtype === 'null') {
+    return valueOrEllipsis('null', characterBudget);
+  }
+
+  if (preview.type === 'undefined') {
+    return valueOrEllipsis('undefined', characterBudget);
+  }
+
+  if (preview.type === 'string') {
+    return stringUtils.trimMiddle(preview.description ?? preview.value, characterBudget);
+  }
+
   return truncateValue(preview.description || '', characterBudget);
 }
 
@@ -244,7 +269,7 @@ function appendKeyValue(
 }
 
 function renderPropertyPreview(
-  prop: Cdp.Runtime.PropertyPreview,
+  prop: ObjectPreview.PropertyPreview,
   characterBudget: number,
   name?: string,
 ): string {
@@ -255,7 +280,7 @@ function renderPropertyPreview(
   if (typeof prop.value === 'undefined')
     return appendKeyValue(name, ': ', `<${prop.type}>`, characterBudget);
   if (prop.type === 'string') return appendKeyValue(name, ': ', `'${prop.value}'`, characterBudget);
-  return appendKeyValue(name, ': ', prop.value, characterBudget);
+  return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
 }
 
 function renderValue(
@@ -352,7 +377,7 @@ export function previewException(
 ): { title: string; stackTrace?: string } {
   if (exception.type !== 'object')
     return { title: renderValue(exception, maxExceptionTitleLength, false) };
-  const description = exception.description!;
+  const description = exception.description ?? exception.className ?? 'Error';
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame) {
     const lastLineBreak = description.lastIndexOf('\n');
@@ -366,13 +391,20 @@ export function previewException(
 }
 
 function formatAsNumber(
-  param: Cdp.Runtime.RemoteObject,
+  param: ObjectPreview.Numeric,
   round: boolean,
   characterBudget: number,
 ): string {
-  if (param.type === 'number') return String(param.value);
-  if (param.type === 'bigint') return param.description!;
-  const value = typeof param.value === 'number' ? param.value : +param.description!;
+  if (param.type === 'number') {
+    return String(param.value);
+  }
+
+  if (param.type === 'bigint') {
+    return param.description;
+  }
+
+  const fallback = param as Cdp.Runtime.RemoteObject;
+  const value = typeof fallback.value === 'number' ? fallback.value : +String(fallback.description);
   return stringUtils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }
 
@@ -396,11 +428,11 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
     colLengths.set(undefined, Math.max(colLengths.get(undefined) || 0, row.name.length));
 
     rows.push(value);
-    row.valuePreview!.properties.map(prop => {
+    row.valuePreview?.properties.map(prop => {
       if (!prop.value) return;
       colNames.add(prop.name);
-      value.set(prop.name, prop.value!);
-      colLengths.set(prop.name, Math.max(colLengths.get(prop.name) || 0, prop.value!.length));
+      value.set(prop.name, prop.value);
+      colLengths.set(prop.name, Math.max(colLengths.get(prop.name) || 0, prop.value.length));
     });
   }
 
@@ -415,6 +447,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
   if (columnsWidth > maxColumnsWidth) {
     const ratio = maxColumnsWidth / columnsWidth;
     for (const name of colLengths.keys()) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const newWidth = Math.max(minTableCellWidth, (colLengths.get(name)! * ratio) | 0);
       colLengths.set(name, newWidth);
     }
@@ -422,6 +455,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 
   // Template string for line separators.
   const colTemplates: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   for (const name of colNames.values()) colTemplates.push('-'.repeat(colLengths.get(name)!));
   const rowTemplate = '[-' + colTemplates.join('-|-') + '-]';
 
@@ -434,6 +468,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
       .replace(/-/g, '┄'),
   );
   const header: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   for (const name of colNames.values()) header.push(pad(name || '', colLengths.get(name)!));
   table.push('┊ ' + header.join(' ┊ ') + ' ┊');
   table.push(
@@ -446,8 +481,10 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 
   for (const value of rows) {
     const row: string[] = [];
-    for (const colName of colNames.values())
+    for (const colName of colNames.values()) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       row.push(pad(value.get(colName) || '', colLengths.get(colName)!));
+    }
     table.push('┊ ' + row.join(' ┊ ') + ' ┊');
   }
   table.push(
@@ -460,24 +497,15 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
   return table.map(row => stringUtils.trimEnd(row, maxTableWidth)).join('\n');
 }
 
-export const messageFormatters: messageFormat.Formatters<Cdp.Runtime.RemoteObject> = new Map([
-  [
-    '',
-    (param, characterBudget: number) => previewRemoteObjectInternal(param, characterBudget, false),
-  ],
-  ['s', (param, characterBudget: number) => formatAsString(param, characterBudget)],
-  ['i', (param, characterBudget: number) => formatAsNumber(param, true, characterBudget)],
-  ['d', (param, characterBudget: number) => formatAsNumber(param, true, characterBudget)],
-  ['f', (param, characterBudget: number) => formatAsNumber(param, false, characterBudget)],
-  ['c', param => messageFormat.formatCssAsAnsi(param.value)],
-  [
-    'o',
-    (param, characterBudget: number) => previewRemoteObjectInternal(param, characterBudget, false),
-  ],
-  [
-    'O',
-    (param, characterBudget: number) => previewRemoteObjectInternal(param, characterBudget, false),
-  ],
+export const messageFormatters: messageFormat.Formatters<ObjectPreview.AnyObject> = new Map([
+  ['', (param, context) => previewRemoteObjectInternal(param, context)],
+  ['s', (param, context) => formatAsString(param, context.budget)],
+  ['i', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
+  ['d', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
+  ['f', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, false, context.budget)],
+  ['c', param => messageFormat.formatCssAsAnsi((param as { value: string }).value)],
+  ['o', (param, context) => previewRemoteObjectInternal(param, context)],
+  ['O', (param, context) => previewRemoteObjectInternal(param, context)],
 ]);
 
 function pad(text: string, length: number) {
