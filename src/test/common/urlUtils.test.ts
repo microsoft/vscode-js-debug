@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { expect } from 'chai';
-import { stub } from 'sinon';
+import { SinonStub, stub } from 'sinon';
+import { promises as dns } from 'dns';
 import * as os from 'os';
 import {
   fileUrlToAbsolutePath,
@@ -10,6 +11,7 @@ import {
   urlToRegex,
   setCaseSensitivePaths,
   resetCaseSensitivePaths,
+  isLoopback,
 } from '../../common/urlUtils';
 
 describe('urlUtils', () => {
@@ -200,5 +202,50 @@ describe('urlUtils', () => {
         ['http://localhost', false],
       ]);
     });
+  });
+
+  describe('isLoopback', () => {
+    let lookupStub: SinonStub;
+
+    beforeEach(() => {
+      lookupStub = stub(dns, 'lookup');
+      lookupStub.callThrough();
+      lookupStub.withArgs('contoso.com').resolves({ address: '1.1.1.1' });
+      lookupStub.withArgs('local.contoso.com').resolves({ address: '127.0.0.1' });
+    });
+
+    afterEach(() => {
+      isLoopback.clear();
+      lookupStub.restore();
+    });
+
+    const ttable = {
+      '127.0.0.1': true,
+      'http://127.1/foo': true,
+      'http://1.1.1.1/foo': false,
+      'totes invalid': false,
+      '1.1.1.1': false,
+      '::1': true,
+      ':0:1': true,
+      '0:0:0:0:0:0:0:1': true,
+      ':1:1': false,
+      'http://[::1]/foo': true,
+      'http://[:1:1]/foo': false,
+
+      'http://contoso.com/foo': false,
+      'http://local.contoso.com/foo': true,
+    };
+
+    // Alternative forms supported by posix:
+    if (process.platform !== 'win32') {
+      Object.assign(ttable, {
+        '127.1': true,
+        '0x7f000001': true,
+      });
+    }
+
+    for (const [ip, expected] of Object.entries(ttable)) {
+      it(ip, async () => expect(await isLoopback(ip)).to.equal(expected));
+    }
   });
 });

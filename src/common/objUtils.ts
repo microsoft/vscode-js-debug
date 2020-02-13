@@ -193,9 +193,9 @@ export function once<T>(fn: () => T): () => T {
 /**
  * Memoizes the single-parameter function.
  */
-export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
+export function memoize<T, R>(fn: (arg: T) => R): ((arg: T) => R) & { clear(): void } {
   const cached = new Map<T, R>();
-  return arg => {
+  const wrapper = (arg: T): R => {
     if (cached.has(arg)) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return cached.get(arg)!;
@@ -205,6 +205,10 @@ export function memoize<T, R>(fn: (arg: T) => R): (arg: T) => R {
     cached.set(arg, value);
     return value;
   };
+
+  wrapper.clear = () => cached.clear();
+
+  return wrapper;
 }
 
 /**
