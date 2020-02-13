@@ -349,7 +349,7 @@ export class TestRoot {
 
     this.binder = new Binder(
       this,
-      Promise.resolve(this._root.adapterConnection),
+      this._root.adapterConnection,
       new TelemetryReporter(),
       services,
       new TargetOrigin('0'),

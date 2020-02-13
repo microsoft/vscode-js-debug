@@ -19,8 +19,7 @@ import { IChromeAttachConfiguration } from './configuration';
  * a given session.
  */
 export interface IConnectionStrategy {
-  init(telemetryReporter: TelemetryReporter, logger: ILogger): void;
-  getConnection(): Promise<DapConnection>;
+  getConnection(telemetryReporter: TelemetryReporter, logger: ILogger): DapConnection;
 }
 
 /**
@@ -45,7 +44,7 @@ export type SessionLauncher<T extends IDebugSessionLike> = (
  * @template TSessionImpl Type of the mplementation specific debug session
  */
 export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposable {
-  public readonly connection: Promise<DapConnection>;
+  public readonly connection: DapConnection;
   protected readonly telemetryReporter = new TelemetryReporter();
   private _onTargetNameChanged = new EventEmitter<string>();
   public onTargetNameChanged: IEvent<string> = this._onTargetNameChanged.event;
@@ -57,8 +56,7 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
     connectonStrategy: IConnectionStrategy,
     public readonly logger: ILogger,
   ) {
-    connectonStrategy.init(this.telemetryReporter, logger);
-    this.connection = connectonStrategy.getConnection();
+    this.connection = connectonStrategy.getConnection(this.telemetryReporter, logger);
   }
 
   listenToTarget(target: ITarget) {
