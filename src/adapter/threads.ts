@@ -23,6 +23,7 @@ import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ILogger } from '../common/logging';
+import { AnyObject } from './objectPreview/betterTypes';
 
 const localize = nls.loadMessageBundle();
 
@@ -920,7 +921,7 @@ export class Thread implements IVariableStoreDelegate {
       const formatString = useMessageFormat ? (event.args[0].value as string) : '';
       const formatResult = messageFormat.formatMessage(
         formatString,
-        useMessageFormat ? event.args.slice(1) : event.args,
+        (useMessageFormat ? event.args.slice(1) : event.args) as AnyObject[],
         objectPreview.messageFormatters,
       );
       messageText = formatResult.result;
