@@ -80,6 +80,29 @@ describe('completion', () => {
     ['MyCoolCl|', [{ label: 'MyCoolClass', sortText: '~~MyCoolClass', type: 'class' }]],
     ['Strin|', [{ label: 'String', sortText: '~~String', type: 'class' }]],
     ['myNeatFun|', [{ label: 'myNeatFunction', sortText: '~~myNeatFunction', type: 'function' }]],
+    [
+      'new Array(42).|',
+      [
+        {
+          label: '[index]',
+          length: 1,
+          sortText: '~~[',
+          start: 13,
+          text: '[',
+          type: 'property',
+        },
+        {
+          label: 'length',
+          sortText: '~~length',
+          type: 'property',
+        },
+        {
+          label: 'concat',
+          sortText: '~~~concat',
+          type: 'method',
+        },
+      ],
+    ],
   ];
 
   itIntegrates('completion', async ({ r }) => {
