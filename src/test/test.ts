@@ -14,7 +14,6 @@ import { EventEmitter } from '../common/events';
 import * as utils from '../common/urlUtils';
 import {
   chromeLaunchConfigDefaults,
-  IChromeLaunchConfiguration,
   INodeAttachConfiguration,
   INodeLaunchConfiguration,
   nodeAttachConfigDefaults,
@@ -410,7 +409,10 @@ export class TestRoot {
     return result as TestP;
   }
 
-  async _launch(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
+  async _launch(
+    url: string,
+    options: Partial<AnyChromiumLaunchConfiguration> = {},
+  ): Promise<TestP> {
     await this.initialize;
     this._launchUrl = url;
 
@@ -425,7 +427,7 @@ export class TestRoot {
       trace: { logFile: tmpLogPath },
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       ...options,
-    } as IChromeLaunchConfiguration);
+    } as AnyChromiumLaunchConfiguration);
 
     const result = await new Promise(f => (this._launchCallback = f));
     return result as TestP;
@@ -471,14 +473,17 @@ export class TestRoot {
     return result as NodeTestHandle;
   }
 
-  async launch(content: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
+  async launch(
+    content: string,
+    options: Partial<AnyChromiumLaunchConfiguration> = {},
+  ): Promise<TestP> {
     const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     return this._launch(url, options);
   }
 
   async launchAndLoad(
     content: string,
-    options: Partial<IChromeLaunchConfiguration> = {},
+    options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
     const url = 'data:text/html;base64,' + Buffer.from(content).toString('base64');
     const p = await this._launch(url, options);
@@ -486,14 +491,17 @@ export class TestRoot {
     return p;
   }
 
-  async launchUrl(url: string, options: Partial<IChromeLaunchConfiguration> = {}): Promise<TestP> {
+  async launchUrl(
+    url: string,
+    options: Partial<AnyChromiumLaunchConfiguration> = {},
+  ): Promise<TestP> {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
     return await this._launch(url, options);
   }
 
   async launchUrlAndLoad(
     url: string,
-    options: Partial<IChromeLaunchConfiguration> = {},
+    options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
     url = utils.completeUrl('http://localhost:8001/', url) || url;
     const p = await this._launch(url, options);

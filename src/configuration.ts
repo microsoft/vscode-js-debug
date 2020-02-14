@@ -435,6 +435,11 @@ interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
    * The debug adapter is running elevated. Launch Chrome unelevated to avoid the security restrictions of running Chrome elevated
    */
   launchUnelevated?: boolean;
+
+  /**
+   * Internal use only. Do not include in contrib.
+   */
+  skipNavigateForTest?: boolean;
 }
 
 /**
