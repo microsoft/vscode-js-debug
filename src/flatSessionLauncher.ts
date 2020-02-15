@@ -41,6 +41,7 @@ class VSDebugSession implements IDebugSessionLike {
 
   private _name: string;
   set name(newName: string) {
+    this._name = newName;
     this.childConnection
       .then(x => x.dap())
       .then(dap => {

@@ -15,10 +15,10 @@ import { IDeferred, getDeferred } from '../common/promiseUtil';
 /**
  * A connection strategy which creates a new TCP socket server for every new connection
  */
-class SocketServerConnectionStrategy implements IConnectionStrategy, IDisposable {
+class SocketServerConnectionStrategy implements IConnectionStrategy {
   private deferredConnection: IDeferred<DapConnection>;
 
-  constructor(private readonly server: net.Server) {
+  constructor(server: net.Server) {
     this.deferredConnection = getDeferred();
     server.on('connection', socket => {
       this.deferredConnection.promise.then(conn => conn.init(socket, socket));
@@ -29,10 +29,6 @@ class SocketServerConnectionStrategy implements IConnectionStrategy, IDisposable
     const newConnection = new DapConnection(telemetryReporter, logger);
     this.deferredConnection.resolve(newConnection);
     return newConnection;
-  }
-
-  dispose() {
-    this.server?.close();
   }
 }
 
@@ -59,6 +55,7 @@ const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSessi
 export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactory, IDisposable {
   private readonly sessionManager: SessionManager<vscode.DebugSession>;
   private disposables: IDisposable[] = [];
+  private servers = new Map<string, net.Server>();
 
   constructor(globalContainer: Container) {
     this.sessionManager = new SessionManager(globalContainer, vsCodeSessionLauncher);
@@ -74,8 +71,8 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
     debugSession.workspaceFolder;
 
     const debugServer = net.createServer().listen(0);
+    this.servers.set(debugSession.id, debugServer);
     const connectionStrat = new SocketServerConnectionStrategy(debugServer);
-    this.disposables.push(connectionStrat);
     this.sessionManager.createNewSession(debugSession, debugSession.configuration, connectionStrat);
     return new vscode.DebugAdapterServer((debugServer.address() as net.AddressInfo).port);
   }
@@ -85,6 +82,8 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
    */
   public terminate(debugSession: vscode.DebugSession) {
     this.sessionManager.terminate(debugSession);
+    this.servers.get(debugSession.id)?.close();
+    this.servers.delete(debugSession.id);
   }
 
   /**
