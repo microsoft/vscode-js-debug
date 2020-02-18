@@ -106,7 +106,7 @@ export async function completions(
     /*setParentNodes */ true,
   );
 
-  const offset = positionToOffset(options.expression, options.line + 1, options.column);
+  const offset = positionToOffset(options.expression, options.line, options.column);
   let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
   ts.forEachChild(sourceFile, function traverse(node: ts.Node) {
