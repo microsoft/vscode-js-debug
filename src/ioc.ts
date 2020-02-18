@@ -115,13 +115,6 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   const container = new Container();
   container.parent = parent;
 
-  // Core services:
-  container
-    .bind(ILogger)
-    .to(Logger)
-    .inSingletonScope()
-    .onActivation(trackDispose);
-
   // Source handling:
   container
     .bind(ISourceMapFactory)
@@ -216,6 +209,13 @@ export const createGlobalContainer = (options: {
   container.bind(ProcessEnv).toConstantValue(process.env);
   container.bind(Execa).toConstantValue(execa);
   container.bind(FS).toConstantValue(fsPromises);
+
+  // Core services:
+  container
+    .bind(ILogger)
+    .to(Logger)
+    .inSingletonScope()
+    .onActivation(trackDispose);
 
   if (options.context) {
     container.bind(ExtensionContext).toConstantValue(options.context);

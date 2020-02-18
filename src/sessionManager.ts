@@ -13,14 +13,7 @@ import { ILogger } from './common/logging';
 import { Container } from 'inversify';
 import { createTopLevelSessionContainer } from './ioc';
 import { IChromeAttachConfiguration } from './configuration';
-
-/**
- * Interface defining a strategy for obtaining a new DAP connection for
- * a given session.
- */
-export interface IConnectionStrategy {
-  getConnection(telemetryReporter: TelemetryReporter, logger: ILogger): DapConnection;
-}
+import { IDapTransport } from './dap/transport';
 
 /**
  * Interface for abstracting the details of a particular (e.g. vscode vs VS) debug session
@@ -53,10 +46,10 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
 
   constructor(
     public readonly debugSession: TSessionImpl,
-    connectonStrategy: IConnectionStrategy,
+    transport: IDapTransport,
     public readonly logger: ILogger,
   ) {
-    this.connection = connectonStrategy.getConnection(this.telemetryReporter, logger);
+    this.connection = new DapConnection(transport, this.telemetryReporter, this.logger);
   }
 
   listenToTarget(target: ITarget) {
@@ -73,10 +66,10 @@ export class RootSession<TSessionImpl extends IDebugSessionLike> extends Session
 
   constructor(
     public readonly debugSession: TSessionImpl,
-    connectionStrategy: IConnectionStrategy,
+    transport: IDapTransport,
     private readonly services: Container,
   ) {
-    super(debugSession, connectionStrategy, services.get(ILogger));
+    super(debugSession, transport, services.get(ILogger));
   }
 
   createBinder(delegate: IBinderDelegate) {
@@ -124,7 +117,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
   public createNewSession(
     debugSession: TSessionImpl,
     config: any,
-    connectionStrategy: IConnectionStrategy,
+    transport: IDapTransport,
   ): Session<TSessionImpl> {
     let session: Session<TSessionImpl>;
 
@@ -136,7 +129,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       }
 
       const { target, parent } = pending;
-      session = new Session<TSessionImpl>(debugSession, connectionStrategy, parent.logger);
+      session = new Session<TSessionImpl>(debugSession, transport, parent.logger);
 
       this._pendingTarget.delete(pendingTargetId);
       session.listenToTarget(target);
@@ -146,7 +139,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
     } else {
       const root = new RootSession(
         debugSession,
-        connectionStrategy,
+        transport,
         createTopLevelSessionContainer(this.globalContainer),
       );
       root.createBinder(this);

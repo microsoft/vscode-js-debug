@@ -4,33 +4,11 @@
 
 import * as net from 'net';
 import * as vscode from 'vscode';
-import DapConnection from '../dap/connection';
 import { IDisposable } from '../common/events';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { ILogger } from '../common/logging';
 import { Container } from 'inversify';
-import { SessionManager, IConnectionStrategy, SessionLauncher } from '../sessionManager';
-import { IDeferred, getDeferred } from '../common/promiseUtil';
-
-/**
- * A connection strategy which creates a new TCP socket server for every new connection
- */
-class SocketServerConnectionStrategy implements IConnectionStrategy {
-  private deferredConnection: IDeferred<DapConnection>;
-
-  constructor(server: net.Server) {
-    this.deferredConnection = getDeferred();
-    server.on('connection', socket => {
-      this.deferredConnection.promise.then(conn => conn.init(socket, socket));
-    });
-  }
-
-  getConnection(telemetryReporter: TelemetryReporter, logger: ILogger) {
-    const newConnection = new DapConnection(telemetryReporter, logger);
-    this.deferredConnection.resolve(newConnection);
-    return newConnection;
-  }
-}
+import { SessionManager, SessionLauncher } from '../sessionManager';
+import { StreamDapTransport } from '../dap/transport';
+import { ILogger } from '../common/logging';
 
 /**
  * Session launcher which uses vscode's `startDebugging` method to start a new debug session
@@ -57,7 +35,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   private disposables: IDisposable[] = [];
   private servers = new Map<string, net.Server>();
 
-  constructor(globalContainer: Container) {
+  constructor(private readonly globalContainer: Container) {
     this.sessionManager = new SessionManager(globalContainer, vsCodeSessionLauncher);
     this.disposables.push(this.sessionManager);
   }
@@ -70,10 +48,13 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     debugSession.workspaceFolder;
 
-    const debugServer = net.createServer().listen(0);
+    const debugServer = net.createServer(socket => {
+      const transport = new StreamDapTransport(socket, socket, this.globalContainer.get(ILogger));
+      this.sessionManager.createNewSession(debugSession, debugSession.configuration, transport);
+    });
+    debugServer.listen(0);
     this.servers.set(debugSession.id, debugServer);
-    const connectionStrat = new SocketServerConnectionStrategy(debugServer);
-    this.sessionManager.createNewSession(debugSession, debugSession.configuration, connectionStrat);
+
     return new vscode.DebugAdapterServer((debugServer.address() as net.AddressInfo).port);
   }
 
