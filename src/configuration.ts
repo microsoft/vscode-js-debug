@@ -746,7 +746,7 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
   return resolveWorkspaceRoot(configWithDefaults);
 }
 
-function resolveWorkspaceRoot(config: AnyLaunchConfiguration): AnyLaunchConfiguration {
+function resolveWorkspaceRoot<T>(config: AnyLaunchConfiguration): AnyLaunchConfiguration {
   config = resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
   config = resolveVariableInConfig(
     config,

@@ -13,6 +13,8 @@ import {
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
   AnyNodeConfiguration,
+  resolveVariableInConfig,
+  baseDefaults,
 } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { INvmResolver } from '../../targets/node/nvmResolver';
@@ -22,6 +24,8 @@ import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { fixInspectFlags } from '../configurationUtils';
 import { injectable, inject } from 'inversify';
 import { ExtensionContext } from '../../ioc-extras';
+import { nearestDirectoryContaining } from '../../common/urlUtils';
+import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
 
 // eslint-disable-next-line
 const config = require('../../../package.json');
@@ -98,6 +102,9 @@ export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNode
 
       // remove manual --inspect flags, which are no longer needed and interfere
       fixInspectFlags(config);
+
+      // update outfiles to the nearest package root
+      await guessOutFiles(folder, config);
     }
 
     // "attach to process via picker" support
@@ -142,6 +149,52 @@ export function guessWorkingDirectory(program?: string, folder?: vscode.Workspac
 
   // last resort
   return '${workspaceFolder}';
+}
+
+function getAbsoluteProgramLocation(folder: vscode.WorkspaceFolder | undefined, program: string) {
+  if (folder) {
+    program = resolveVariableInConfig(program, 'workspaceFolder', folder.uri.fsPath);
+  }
+
+  if (path.isAbsolute(program)) {
+    return program;
+  }
+
+  if (folder) {
+    return path.join(folder.uri.fsPath, program);
+  }
+
+  return undefined;
+}
+
+/**
+ * Set the outFiles to the nearest package.json-containing folder relative
+ * to the program, if we can find one within the workspace folder. This speeds
+ * things up significantly in monorepos.
+ * @see https://github.com/microsoft/vscode-js-debug/issues/326
+ */
+async function guessOutFiles(
+  folder: vscode.WorkspaceFolder | undefined,
+  config: ResolvingNodeLaunchConfiguration,
+) {
+  if (config.outFiles || !config.program || !folder) {
+    return;
+  }
+
+  const programLocation = getAbsoluteProgramLocation(folder, config.program);
+  if (!programLocation) {
+    return;
+  }
+
+  const root = await nearestDirectoryContaining(path.dirname(programLocation), 'package.json');
+  if (root && isSubdirectoryOf(folder.uri.fsPath, root)) {
+    const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
+    config.outFiles = resolveVariableInConfig(
+      baseDefaults.outFiles,
+      'workspaceFolder',
+      `\${workspaceFolder}/${rel}`,
+    );
+  }
 }
 
 interface ITSConfig {

@@ -8,7 +8,6 @@ import { PathMapping } from '../../configuration';
 import { URL } from 'url';
 import { properJoin, fixDriveLetterAndSlashes, properResolve } from '../pathUtils';
 import { LogTag, ILogger } from '../logging';
-import { exists } from '../fsUtils';
 import { filterObject } from '../objUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
@@ -140,10 +139,10 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
   pathMapping,
   logger,
 ) => {
-  const implicit = await utils.nearestDirectoryWhere(path.dirname(compiledPath), p =>
-    exists(path.join(p, 'package.json')),
+  const implicit = await utils.nearestDirectoryContaining(
+    path.dirname(compiledPath),
+    'package.json',
   );
-
   if (!implicit) {
     return defaultPathMappingResolver(script, pathMapping, logger);
   }

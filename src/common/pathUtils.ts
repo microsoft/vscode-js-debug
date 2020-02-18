@@ -191,7 +191,7 @@ export const splitWithDriveLetter = (inputPath: string) => {
  */
 export const isSubdirectoryOf = (parent: string, child: string) => {
   const rel = path.relative(parent, child);
-  return !path.isAbsolute(rel) && !rel.startsWith('..');
+  return rel.length && !path.isAbsolute(rel) && !rel.startsWith('..');
 };
 
 /**

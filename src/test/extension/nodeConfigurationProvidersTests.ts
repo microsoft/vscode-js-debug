@@ -234,4 +234,80 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result.stopOnEntry).to.equal('hello.js');
     });
   });
+
+  describe('outFiles', () => {
+    it('does not modify outfiles with no package.json', async () => {
+      createFileTree(testFixturesDir, {
+        'hello.js': '',
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+    });
+
+    it('preserves outFiles if package.json is in the same folder', async () => {
+      createFileTree(testFixturesDir, {
+        'hello.js': '',
+        'package.json': '{}',
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+    });
+
+    it('gets the nearest nested package.json', async () => {
+      createFileTree(testFixturesDir, {
+        'a/b/c/hello.js': '',
+        'a/b/package.json': '{}',
+        'a/package.json': '{}',
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'a/b/c/hello.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/a/b/**/*.js',
+        '!**/node_modules/**',
+      ]);
+    });
+
+    it('does not resolve outside the workspace folder', async () => {
+      createFileTree(testFixturesDir, {
+        'a/b/c/hello.js': '',
+        'package.json': '{}',
+      });
+
+      const result = await provider.resolveDebugConfiguration(
+        {
+          uri: vscode.Uri.file(join(testFixturesDir, 'a')),
+          name: 'test-dir',
+          index: 0,
+        },
+        {
+          type: DebugType.Node,
+          name: '',
+          request: 'launch',
+          program: 'b/c/hello.js',
+        },
+      );
+
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+    });
+  });
 });

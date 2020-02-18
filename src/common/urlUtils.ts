@@ -13,6 +13,7 @@ import { escapeRegexSpecialChars } from './stringUtils';
 import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import ipModule from 'ip';
+import { exists } from './fsUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -58,6 +59,12 @@ export const nearestDirectoryWhere = async (
     rootDir = parent;
   }
 };
+
+/**
+ * Returns the closest parent directory that contains a file with the given name.
+ */
+export const nearestDirectoryContaining = (rootDir: string, file: string) =>
+  nearestDirectoryWhere(rootDir, p => exists(path.join(p, file)));
 
 const localv4 = ipModule.toBuffer('127.0.0.1');
 const localv6 = ipModule.toBuffer('::1');
