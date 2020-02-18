@@ -39,8 +39,9 @@ export function templateFunction<A, B>(fn: (a: A, b: B) => void): (a: string, b:
 export function templateFunction<A, B, C>(
   fn: (a: A, b: B, c: C) => void,
 ): (a: string, b: string, c: string) => string;
+export function templateFunction<Args extends unknown[]>(fn: string): (...args: Args) => string;
 export function templateFunction<Args extends unknown[]>(
-  fn: (...args: Args) => void,
+  fn: string | ((...args: Args) => void),
 ): (...args: string[]) => string {
   const stringified = '' + fn;
   const sourceFile = ts.createSourceFile('test.js', stringified, ts.ScriptTarget.ESNext, true);
@@ -129,7 +130,7 @@ export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) =>
   //  1. Have args that extend the function arg and omit the args we provide (easy)
   //  2. If and only if returnByValue is set to true, have that type in our return
   //  3. If and only if it's not set, then return an object ID.
-  return async <ByValue extends boolean = false>({
+  const result = async <ByValue extends boolean = false>({
     cdp,
     args,
     ...options
@@ -137,9 +138,10 @@ export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) =>
     Cdp.Runtime.CallFunctionOnParams,
     'functionDeclaration' | 'arguments' | 'returnByValue'
   > &
-    (ByValue extends true ? { returnByValue: ByValue } : {})): Promise<
-    RemoteObjectWithType<R, ByValue>
-  > => {
+    (ByValue extends true ? { returnByValue: ByValue } : {})): Promise<RemoteObjectWithType<
+    R,
+    ByValue
+  >> => {
     const result = await cdp.Runtime.callFunctionOn({
       functionDeclaration: stringified,
       arguments: args.map(value => ({ value })),
@@ -161,4 +163,8 @@ export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) =>
 
     return result.result as RemoteObjectWithType<R, ByValue>;
   };
+
+  result.source = stringified;
+
+  return result;
 }

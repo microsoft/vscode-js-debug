@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { StackFrame } from './stackTrace';
 import { positionToOffset } from '../common/sourceUtils';
-import { enumeratePropertiesTemplate } from './templates/enumerateProperties';
+import { enumerateProperties, enumeratePropertiesTemplate } from './templates/enumerateProperties';
 
 /**
  * Context in which a completion is being evaluated.
@@ -27,7 +27,7 @@ export interface ICompletionExpression {
   column: number;
 }
 
-interface ICompletionWithSort extends Dap.CompletionItem {
+export interface ICompletionWithSort extends Dap.CompletionItem {
   sortText: string;
 }
 
@@ -106,7 +106,7 @@ export async function completions(
     /*setParentNodes */ true,
   );
 
-  const offset = positionToOffset(options.expression, options.line, options.column);
+  const offset = positionToOffset(options.expression, options.line + 1, options.column);
   let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
   ts.forEachChild(sourceFile, function traverse(node: ts.Node) {
@@ -200,17 +200,17 @@ const propertyAccessCompleter = async (
   node: ts.PropertyAccessExpression,
   offset: number,
 ): Promise<ICompletionWithSort[]> => {
-  if (hasSideEffects(node.expression)) {
-    return [];
-  }
-
-  const { result, isArray } = await completePropertyAccess(
-    options.cdp,
-    options.executionContextId,
-    options.stackFrame,
-    node.expression.getText(),
-    node.name.text.substring(0, offset - node.name.getStart()),
-  );
+  const { result, isArray } = await completePropertyAccess({
+    cdp: options.cdp,
+    executionContextId: options.executionContextId,
+    stackFrame: options.stackFrame,
+    expression: node.expression.getText(),
+    prefix: node.name.text.substring(0, offset - node.name.getStart()),
+    // If we see the expression might have a side effect, still try to get
+    // completions, but tell V8 to throw if it sees a side effect. This is a
+    // fairly conservative checker, we don't enable it if not needed.
+    throwOnSideEffect: maybeHasSideEffects(node.expression),
+  });
 
   if (isArray) {
     const start = node.name.getStart() - 1;
@@ -227,38 +227,80 @@ const propertyAccessCompleter = async (
   return result;
 };
 
-async function completePropertyAccess(
-  cdp: Cdp.Api,
-  executionContextId: number | undefined,
-  stackFrame: StackFrame | undefined,
-  expression: string,
-  prefix: string,
+async function completePropertyAccess({
+  cdp,
+  executionContextId,
+  stackFrame,
+  expression,
+  prefix,
   isInGlobalScope = false,
-): Promise<{ result: ICompletionWithSort[]; isArray: boolean }> {
+  throwOnSideEffect = false,
+}: {
+  cdp: Cdp.Api;
+  executionContextId?: number;
+  stackFrame?: StackFrame;
+  expression: string;
+  prefix: string;
+  throwOnSideEffect?: boolean;
+  isInGlobalScope?: boolean;
+}): Promise<{ result: ICompletionWithSort[]; isArray: boolean }> {
   const params = {
-    expression: enumeratePropertiesTemplate(
-      `(${expression})`,
-      JSON.stringify(prefix),
-      String(isInGlobalScope),
-    ),
+    expression: `(${expression})`,
     objectGroup: 'console',
     silent: true,
-    includeCommandLineAPI: true,
-    returnByValue: true,
-    // completePropertyAccess has numerous false positive side effects, so we can't use throwOnSideEffect.
+    throwOnSideEffect,
   };
+
   const callFrameId = stackFrame && stackFrame.callFrameId();
-  const response = callFrameId
+  const objRefResult = callFrameId
     ? await cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId })
     : await cdp.Runtime.evaluate({ ...params, contextId: executionContextId });
-  if (!response || response.exceptionDetails) {
+  if (!objRefResult || objRefResult.exceptionDetails) {
     return { result: [], isArray: false };
   }
 
-  return response.result.value;
+  // No object ID indicates a primitive. Call enumeration on the value
+  // directly. We don't do this all the time, since our enumeration logic
+  // triggers Chrome's side-effect detect and fails.
+  if (!objRefResult.result.objectId) {
+    const primitiveParams = {
+      ...params,
+      returnByValue: true,
+      throwOnSideEffect: false,
+      expression: enumeratePropertiesTemplate(
+        `(${expression})`,
+        JSON.stringify(prefix),
+        JSON.stringify(isInGlobalScope),
+      ),
+    };
+
+    const propsResult = callFrameId
+      ? await cdp.Debugger.evaluateOnCallFrame({ ...primitiveParams, callFrameId })
+      : await cdp.Runtime.evaluate({ ...primitiveParams, contextId: executionContextId });
+
+    return !propsResult || propsResult.exceptionDetails
+      ? { result: [], isArray: false }
+      : propsResult.result.value;
+  }
+
+  // Otherwise, invoke the property enumeration on the returned object ID.
+  try {
+    const propsResult = await enumerateProperties({
+      cdp,
+      args: [undefined, prefix, isInGlobalScope],
+      objectId: objRefResult.result.objectId,
+      returnByValue: true,
+    });
+
+    return propsResult.value;
+  } catch {
+    return { result: [], isArray: false };
+  } finally {
+    cdp.Runtime.releaseObject({ objectId: objRefResult.result.objectId }); // no await
+  }
 }
 
-function hasSideEffects(node: ts.Node): boolean {
+function maybeHasSideEffects(node: ts.Node): boolean {
   let result = false;
   traverse(node);
 
@@ -287,14 +329,14 @@ async function defaultCompletions(
   prefix = '',
 ): Promise<ICompletionWithSort[]> {
   for (const global of ['self', 'global', 'this']) {
-    const { result: items } = await completePropertyAccess(
-      options.cdp,
-      options.executionContextId,
-      options.stackFrame,
-      global,
+    const { result: items } = await completePropertyAccess({
+      cdp: options.cdp,
+      executionContextId: options.executionContextId,
+      stackFrame: options.stackFrame,
+      expression: global,
       prefix,
-      true,
-    );
+      isInGlobalScope: true,
+    });
 
     if (!items.length) {
       continue;
