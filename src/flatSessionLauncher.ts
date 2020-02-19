@@ -19,7 +19,6 @@ import { getDeferred } from './common/promiseUtil';
 import DapConnection from './dap/connection';
 import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
 import { Readable, Writable } from 'stream';
-import { ILogger } from './common/logging';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -58,11 +57,7 @@ class VSSessionManager {
       this.services,
       this.buildVSSessionLauncher(),
     );
-    this.rootTransport = new StreamDapTransport(
-      inputStream,
-      outputStream,
-      this.services.get(ILogger),
-    );
+    this.rootTransport = new StreamDapTransport(inputStream, outputStream);
     this.createSession(undefined, 'rootSession', {});
   }
 

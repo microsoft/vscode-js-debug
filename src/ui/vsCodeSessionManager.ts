@@ -8,7 +8,6 @@ import { IDisposable } from '../common/events';
 import { Container } from 'inversify';
 import { SessionManager, SessionLauncher } from '../sessionManager';
 import { StreamDapTransport } from '../dap/transport';
-import { ILogger } from '../common/logging';
 
 /**
  * Session launcher which uses vscode's `startDebugging` method to start a new debug session
@@ -35,7 +34,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   private disposables: IDisposable[] = [];
   private servers = new Map<string, net.Server>();
 
-  constructor(private readonly globalContainer: Container) {
+  constructor(globalContainer: Container) {
     this.sessionManager = new SessionManager(globalContainer, vsCodeSessionLauncher);
     this.disposables.push(this.sessionManager);
   }
@@ -49,7 +48,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
     debugSession.workspaceFolder;
 
     const debugServer = net.createServer(socket => {
-      const transport = new StreamDapTransport(socket, socket, this.globalContainer.get(ILogger));
+      const transport = new StreamDapTransport(socket, socket);
       this.sessionManager.createNewSession(debugSession, debugSession.configuration, transport);
     });
     debugServer.listen(0);

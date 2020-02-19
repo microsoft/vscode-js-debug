@@ -99,11 +99,14 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
     ITarget,
     { fulfill: (session: Session<TSessionImpl>) => void; reject: (error: Error) => void }
   >();
+  private _topLevelContainer: Container;
 
   constructor(
     private readonly globalContainer: Container,
     private readonly sessionLauncher: SessionLauncher<TSessionImpl>,
-  ) {}
+  ) {
+    this._topLevelContainer = createTopLevelSessionContainer(this.globalContainer);
+  }
 
   public terminate(debugSession: TSessionImpl) {
     const session = this._sessions.get(debugSession.id);
@@ -119,6 +122,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
     config: any,
     transport: IDapTransport,
   ): Session<TSessionImpl> {
+    transport.setLogger(this._topLevelContainer.get(ILogger));
     let session: Session<TSessionImpl>;
 
     const pendingTargetId: string | undefined = config.__pendingTargetId;
@@ -137,11 +141,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       this._sessionForTargetCallbacks.delete(target);
       callbacks?.fulfill?.(session);
     } else {
-      const root = new RootSession(
-        debugSession,
-        transport,
-        createTopLevelSessionContainer(this.globalContainer),
-      );
+      const root = new RootSession(debugSession, transport, this._topLevelContainer);
       root.createBinder(this);
       session = root;
     }

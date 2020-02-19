@@ -38,25 +38,23 @@ export interface IDapTransport {
    */
   send(message: Message, shouldLog?: boolean): void;
 
-  /**
-   * Close the connection for this transport
-   */
+  /** Close the connection for this transport */
   close(): void;
 
-  /**
-   * Message received event. Will fire when a new DAP message has been received on this transport
-   */
+  /** Message received event. Will fire when a new DAP message has been received on this transport */
   messageReceived: Event<{ message: Message; receivedTime: bigint }>;
 
-  /**
-   * Closed event. Will fire when this transport has been closed
-   */
+  /** Set the logger implementation for the transport */
+  setLogger(logger: ILogger): IDapTransport;
+
+  /** Closed event. Will fire when this transport has been closed */
   closed: Event<void>;
 }
 
 export class StreamDapTransport implements IDapTransport {
   private _rawData: Buffer;
   private _contentLength = -1;
+  private logger?: ILogger;
 
   private msgEmitter = new EventEmitter<{ message: Message; receivedTime: bigint }>();
   messageReceived = this.msgEmitter.event;
@@ -67,8 +65,9 @@ export class StreamDapTransport implements IDapTransport {
   constructor(
     private readonly inputStream: Readable,
     private readonly outputStream: Writable,
-    protected readonly logger: ILogger,
+    logger?: ILogger,
   ) {
+    this.logger = logger;
     this._rawData = Buffer.alloc(0);
     inputStream.on('end', () => this.endedEmitter.fire());
     inputStream.on('data', this._handleData);
@@ -77,7 +76,7 @@ export class StreamDapTransport implements IDapTransport {
   send(message: Message, shouldLog = true): void {
     const json = JSON.stringify(message);
     if (shouldLog) {
-      this.logger.verbose(LogTag.DapSend, undefined, { message });
+      this.logger?.verbose(LogTag.DapSend, undefined, { message });
     }
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
     if (this.outputStream.destroyed) {
@@ -89,6 +88,11 @@ export class StreamDapTransport implements IDapTransport {
   close(): void {
     this.inputStream.destroy();
     this.outputStream.destroy();
+  }
+
+  setLogger(logger: ILogger) {
+    this.logger = logger;
+    return this;
   }
 
   _handleData = (data: Buffer): void => {
@@ -103,7 +107,7 @@ export class StreamDapTransport implements IDapTransport {
           if (message.length > 0) {
             try {
               const msg: Message = JSON.parse(message);
-              this.logger.verbose(LogTag.DapReceive, undefined, {
+              this.logger?.verbose(LogTag.DapReceive, undefined, {
                 message: msg,
               });
               this.msgEmitter.fire({ message: msg, receivedTime });
@@ -160,6 +164,11 @@ export class SessionIdDapTransport implements IDapTransport {
       msg.sessionId = this.sessionId;
       this.rootTransport.send(msg, shouldLog);
     }
+  }
+
+  setLogger(logger: ILogger) {
+    this.rootTransport.setLogger(logger);
+    return this;
   }
 
   onMessage(event: { message: Message; receivedTime: bigint }) {
