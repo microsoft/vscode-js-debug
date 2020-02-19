@@ -17,6 +17,5 @@ second.onchange = function() {
 
 worker.onmessage = function(e) {
   // You are back in main! Check out the CALL STACK.
-  // Try selecting threads in the THREADS view.
   result.textContent = e.data;
 }

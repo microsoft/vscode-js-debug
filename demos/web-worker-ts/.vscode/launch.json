@@ -36,7 +36,7 @@
   "compounds": [
     {
       "name": "[web-worker-ts]",
-      "configurations": ["[Debug Server] for Server", "[Debug Server] for Client"]
+      "configurations": ["[web-worker-ts] for Server", "[web-worker-ts] for Client"]
     }
   ]
 }
