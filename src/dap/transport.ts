@@ -10,6 +10,8 @@ import { ILogger, LogTag } from '../common/logging';
 
 const _TWO_CRLF = '\r\n\r\n';
 
+let connectionId = 0;
+
 export type Message = (
   | { type: 'request'; command: string; arguments: object }
   | {
@@ -55,6 +57,7 @@ export class StreamDapTransport implements IDapTransport {
   private _rawData: Buffer;
   private _contentLength = -1;
   private logger?: ILogger;
+  private _connectionId = connectionId++;
 
   private msgEmitter = new EventEmitter<{ message: Message; receivedTime: bigint }>();
   messageReceived = this.msgEmitter.event;
@@ -76,7 +79,10 @@ export class StreamDapTransport implements IDapTransport {
   send(message: Message, shouldLog = true): void {
     const json = JSON.stringify(message);
     if (shouldLog) {
-      this.logger?.verbose(LogTag.DapSend, undefined, { message });
+      this.logger?.verbose(LogTag.DapSend, undefined, {
+        connectionId: this._connectionId,
+        message,
+      });
     }
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
     if (this.outputStream.destroyed) {
@@ -108,6 +114,7 @@ export class StreamDapTransport implements IDapTransport {
             try {
               const msg: Message = JSON.parse(message);
               this.logger?.verbose(LogTag.DapReceive, undefined, {
+                connectionId: this._connectionId,
                 message: msg,
               });
               this.msgEmitter.fire({ message: msg, receivedTime });
