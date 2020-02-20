@@ -18,20 +18,20 @@ import { CancellationToken } from 'vscode';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { BrowserLauncher, IDapInitializeParamsWithExtensions } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
-import { StoragePath, FS, FsPromises } from '../../ioc-extras';
+import { StoragePath, FS, FsPromises, BrowserFinder } from '../../ioc-extras';
 import { inject, tagged, injectable } from 'inversify';
 import { ILogger } from '../../common/logging';
-import { IBrowserFinder, isQuality } from './findBrowser';
 import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
 import { browserNotFound, ProtocolError } from '../../dap/errors';
+import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
 
 @injectable()
 export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
   constructor(
     @inject(StoragePath) storagePath: string,
     @inject(ILogger) logger: ILogger,
-    @inject(IBrowserFinder)
+    @inject(BrowserFinder)
     @tagged('browser', 'edge')
     protected readonly browserFinder: IBrowserFinder,
     @inject(FS)
@@ -48,7 +48,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   protected launchBrowser(
     params: IEdgeLaunchConfiguration,

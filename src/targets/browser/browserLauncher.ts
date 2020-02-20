@@ -9,7 +9,7 @@ import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { EventEmitter, IDisposable } from '../../common/events';
+import { EventEmitter } from '../../common/events';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
@@ -18,18 +18,14 @@ import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { baseURL } from './browserLaunchParams';
 import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
-import { Quality } from './findBrowser';
 import * as launcher from './launcher';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
 import { StoragePath } from '../../ioc-extras';
+import { Quality } from 'vscode-js-debug-browsers';
+import { DisposableList } from '../../common/disposable';
 
 const localize = nls.loadMessageBundle();
-
-/**
- * 'magic' chrome version runtime executables.
- */
-const chromeVersions = new Set<string>(['canary', 'stable', 'custom']);
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
   supportsLaunchUnelevatedProcessRequest?: boolean;
@@ -42,7 +38,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: T | undefined;
   protected _mainTarget?: BrowserTarget;
-  private _disposables: IDisposable[] = [];
+  protected _disposables = new DisposableList();
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -57,8 +53,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
    * @inheritdoc
    */
   public dispose() {
-    for (const disposable of this._disposables) disposable.dispose();
-    this._disposables = [];
+    this._disposables.dispose();
   }
 
   /**
@@ -90,13 +85,13 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     // If we had a custom executable, don't resolve a data
     // dir unless it's  explicitly requested.
     let resolvedDataDir: string | undefined;
-    if (!executable || chromeVersions.has(executable) || userDataDir === true) {
+    if (typeof userDataDir === 'string') {
+      resolvedDataDir = userDataDir;
+    } else if (userDataDir) {
       resolvedDataDir = path.join(
         this.storagePath,
         runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
       );
-    } else if (typeof userDataDir === 'string') {
-      resolvedDataDir = userDataDir;
     }
 
     try {
@@ -149,12 +144,10 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    launched.cdp.onDisconnected(
-      () => {
+    this._disposables.push(
+      launched.cdp.onDisconnected(() => {
         this._onTerminatedEmitter.fire({ code: 0, killed: true });
-      },
-      undefined,
-      this._disposables,
+      }),
     );
     this._connectionForTest = launched.cdp;
     this._launchParams = params;

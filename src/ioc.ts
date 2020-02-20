@@ -20,6 +20,7 @@ import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
 import { IDapApi } from './dap/connection';
+import { ChromeBrowserFinder, EdgeBrowserFinder } from 'vscode-js-debug-browsers';
 import {
   ExtensionContext,
   IsVSCode,
@@ -28,15 +29,11 @@ import {
   ProcessEnv,
   Execa,
   FS,
+  BrowserFinder,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
 import { EdgeLauncher } from './targets/browser/edgeLauncher';
-import {
-  IBrowserFinder,
-  ChromeBrowserFinder,
-  EdgeBrowserFinder,
-} from './targets/browser/findBrowser';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
@@ -187,13 +184,18 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .toDynamicValue(() => parent.get(DelegateLauncherFactory).createLauncher())
     .inSingletonScope();
 
+  const browserFinderFactory = (ctor: BrowserFinderCtor) => (ctx: interfaces.Context) =>
+    new ctor(ctx.container.get(ProcessEnv), ctx.container.get(FS), ctx.container.get(Execa));
+
   container
-    .bind(IBrowserFinder)
-    .to(ChromeBrowserFinder)
+    .bind(BrowserFinder)
+    .toDynamicValue(browserFinderFactory(ChromeBrowserFinder))
+    .inSingletonScope()
     .whenTargetTagged('browser', 'chrome');
   container
-    .bind(IBrowserFinder)
-    .to(EdgeBrowserFinder)
+    .bind(BrowserFinder)
+    .toDynamicValue(browserFinderFactory(EdgeBrowserFinder))
+    .inSingletonScope()
     .whenTargetTagged('browser', 'edge');
 
   return container;

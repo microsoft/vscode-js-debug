@@ -42,6 +42,11 @@ export const FS = Symbol('FS');
  */
 export type FsPromises = typeof fsPromises;
 
+/**
+ * Symbol for `vscode-js-debug-browsers`'s IBrowserFinder.
+ */
+export const BrowserFinder = Symbol('IBrowserFinder');
+
 const toDispose = new WeakMap<interfaces.Container, IDisposable[]>();
 
 /**

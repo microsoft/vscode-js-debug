@@ -14,6 +14,9 @@ import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import ipModule from 'ip';
 import { exists } from './fsUtils';
+import { IDisposable } from './disposable';
+import { TaskCancelledError, NeverCancelled } from './cancellation';
+import { CancellationToken } from 'vscode';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -116,7 +119,21 @@ export const isLoopback = memoize(async (address: string) => {
   }
 });
 
-export async function fetch(url: string): Promise<string> {
+/**
+ * Fetches JSON content from the given URL.
+ */
+export async function fetchJson<T>(url: string, cancellationToken: CancellationToken): Promise<T> {
+  const data = await fetch(url, cancellationToken);
+  return JSON.parse(data);
+}
+
+/**
+ * Fetches content from the given URL.
+ */
+export async function fetch(
+  url: string,
+  cancellationToken: CancellationToken = NeverCancelled,
+): Promise<string> {
   if (url.startsWith('data:')) {
     const prefix = url.substring(0, url.indexOf(','));
     const match = prefix.match(/data:[^;]*(;[^;]*)?(;[^;]*)?(;[^;]*)?/);
@@ -142,16 +159,29 @@ export async function fetch(url: string): Promise<string> {
   const isSecure = !url.startsWith('http://');
   const driver = isSecure ? https : http;
   const validateCerts = isSecure && !(await isLoopback(url));
+  const disposables: IDisposable[] = [];
+
   return new Promise<string>((fulfill, reject) => {
     const request = driver.get(url, { rejectUnauthorized: !validateCerts }, response => {
+      disposables.push(cancellationToken.onCancellationRequested(() => response.destroy()));
+
       let data = '';
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => (data += chunk));
       response.on('end', () => fulfill(data));
       response.on('error', reject);
     });
+
+    disposables.push(
+      cancellationToken.onCancellationRequested(() => {
+        request.destroy();
+        reject(new TaskCancelledError(`Cancelled GET ${url}`));
+      }),
+    );
+
     request.on('error', reject);
-  });
+    request.end();
+  }).finally(() => disposables.forEach(d => d.dispose()));
 }
 
 export function completeUrl(base: string | undefined, relative: string): string | undefined {

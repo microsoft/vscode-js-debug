@@ -10,6 +10,7 @@ import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { LeaseFile } from './lease-file';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
 }
@@ -80,7 +81,7 @@ function debugLog(text: string) {
     ipcAddress: process.env.NODE_INSPECTOR_IPC,
     pid: String(process.pid),
     scriptName,
-    inspectorURL: inspector.url()!,
+    inspectorURL: inspector.url() as string,
     waitForDebugger,
     ppid,
   };

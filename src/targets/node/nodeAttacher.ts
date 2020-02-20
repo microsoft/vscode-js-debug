@@ -5,7 +5,6 @@
 import * as nls from 'vscode-nls';
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
-import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, IProgram } from './program';
@@ -20,6 +19,7 @@ import { delay } from '../../common/promiseUtil';
 import { NodePathProvider } from './nodePathProvider';
 import { IStopMetadata } from '../targets';
 import { injectable } from 'inversify';
+import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 
 const localize = nls.loadMessageBundle();
 
