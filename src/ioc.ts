@@ -5,7 +5,7 @@
 // important! This must come before anything else
 import 'reflect-metadata';
 
-import { Container } from 'inversify';
+import { Container, interfaces } from 'inversify';
 import * as vscode from 'vscode';
 import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
 import { IScriptSkipper, ScriptSkipper } from './adapter/scriptSkipper';
@@ -20,7 +20,11 @@ import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
 import { IDapApi } from './dap/connection';
-import { ChromeBrowserFinder, EdgeBrowserFinder } from 'vscode-js-debug-browsers';
+import {
+  BrowserFinderCtor,
+  ChromeBrowserFinder,
+  EdgeBrowserFinder,
+} from 'vscode-js-debug-browsers';
 import {
   ExtensionContext,
   IsVSCode,
@@ -30,6 +34,7 @@ import {
   Execa,
   FS,
   BrowserFinder,
+  ExtensionLocation,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -50,6 +55,7 @@ import { ILauncher, ITarget } from './targets/targets';
 import { IDebugConfigurationProvider } from './ui/configuration/configurationProvider';
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
+import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -164,17 +170,27 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .bind(ILauncher)
     .to(NodeAttacher)
     .onActivation(trackDispose);
-  container
-    .bind(ChromeLauncher)
-    .toSelf()
-    .inSingletonScope()
-    .onActivation(trackDispose);
-  container.bind(ILauncher).toService(ChromeLauncher);
-  container
-    .bind(ILauncher)
-    .to(EdgeLauncher)
-    .inSingletonScope()
-    .onActivation(trackDispose);
+
+  if (container.get<ExtensionLocation>(ExtensionLocation) === 'local') {
+    container
+      .bind(ChromeLauncher)
+      .toSelf()
+      .inSingletonScope()
+      .onActivation(trackDispose);
+    container.bind(ILauncher).toService(ChromeLauncher);
+    container
+      .bind(ILauncher)
+      .to(EdgeLauncher)
+      .inSingletonScope()
+      .onActivation(trackDispose);
+  } else {
+    container
+      .bind(ILauncher)
+      .to(RemoteBrowserLauncher)
+      .inSingletonScope()
+      .onActivation(trackDispose);
+  }
+
   container
     .bind(ILauncher)
     .to(BrowserAttacher)
@@ -204,6 +220,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 export const createGlobalContainer = (options: {
   storagePath: string;
   isVsCode: boolean;
+  isRemote?: boolean;
   context?: vscode.ExtensionContext;
 }) => {
   const container = new Container();
@@ -218,6 +235,9 @@ export const createGlobalContainer = (options: {
   container.bind(ProcessEnv).toConstantValue(process.env);
   container.bind(Execa).toConstantValue(execa);
   container.bind(FS).toConstantValue(fsPromises);
+  container
+    .bind<ExtensionLocation>(ExtensionLocation)
+    .toConstantValue(options.isRemote ? 'remote' : 'local');
 
   if (options.context) {
     container.bind(ExtensionContext).toConstantValue(options.context);

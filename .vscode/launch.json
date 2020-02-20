@@ -73,6 +73,28 @@
         "${workspaceFolder}/out/**/*.js"
       ],
     },
+    {
+      "name": "Extension and Companion",
+      "type": "pwa-extensionHost",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--enable-proposed-api=ms-vscode.js-debug",
+        "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-debug-companion",
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
+      ],
+      "trace": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../vscode-js-debug-companion/**",
+        "!**/node_modules/**"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js",
+      ],
+    },
 		{
 			"name": "Run Tests",
 			"type": "extensionHost",

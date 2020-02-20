@@ -311,6 +311,81 @@
           "required": ["event", "body"]
         }
       ]
+    },
+
+    "LaunchBrowserInCompanionEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "Enable custom breakpoints.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["launchBrowserInCompanion"]
+            },
+            "body": {
+              "type": "object",
+              "description": "Body for 'LaunchBrowserInCompanion' request.",
+              "required": ["type", "params", "serverPort", "launchId"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["chrome", "edge"],
+                  "description": "Type of browser to launch"
+                },
+                "launchId": {
+                  "type": "number",
+                  "description": "Incrementing ID to refer to this browser launch request"
+                },
+                "serverPort": {
+                  "type": "number",
+                  "description": "Local port the debug server is listening on"
+                },
+                "browserArgs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Original launch parameters for the debug session"
+                }
+              }
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
+    },
+
+    "KillCompanionBrowserEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "Enable custom breakpoints.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["killCompanionBrowser"]
+            },
+            "body": {
+              "type": "object",
+              "description": "Body for 'KillCompanionBrowser' request.",
+              "required": ["launchId"],
+              "properties": {
+                "launchId": {
+                  "type": "number",
+                  "description": "Incrementing ID to refer to this browser launch request"
+                }
+              }
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
     }
   }
 }

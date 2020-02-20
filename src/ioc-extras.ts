@@ -38,6 +38,11 @@ export const Execa = Symbol('execa');
 export const FS = Symbol('FS');
 
 /**
+ * Location the extension is running.
+ */
+export const ExtensionLocation = 'ExtensionLocation';
+
+/**
  * FS promises alias, for easy import/completion
  */
 export type FsPromises = typeof fsPromises;
@@ -46,6 +51,11 @@ export type FsPromises = typeof fsPromises;
  * Symbol for `vscode-js-debug-browsers`'s IBrowserFinder.
  */
 export const BrowserFinder = Symbol('IBrowserFinder');
+
+/**
+ * Location the extension is running in.
+ */
+export type ExtensionLocation = 'local' | 'remote';
 
 const toDispose = new WeakMap<interfaces.Container, IDisposable[]>();
 

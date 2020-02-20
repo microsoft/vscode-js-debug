@@ -658,7 +658,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   env: {},
   runtimeArgs: null,
   runtimeExecutable: 'stable',
-  userDataDir: false,
+  userDataDir: true,
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {

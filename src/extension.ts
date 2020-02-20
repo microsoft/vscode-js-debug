@@ -18,11 +18,18 @@ import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { IDebugConfigurationProvider } from './ui/configuration';
+import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
+
+// eslint-disable-next-line
+const packageJson = require('../package.json');
+const extensionId = `${packageJson.publisher}.${packageJson.name}`;
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
     storagePath: context.storagePath || context.extensionPath,
     isVsCode: true,
+    isRemote:
+      vscode.extensions.getExtension(extensionId)?.extensionKind === vscode.ExtensionKind.Workspace,
     context,
   });
 
@@ -54,6 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
   debugSessionTracker.attach();
 
   registerLongBreakpointUI(context);
+  registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerPrettyPrintActions(context, debugSessionTracker);
   registerDebugTerminalUI(context, services.get(DelegateLauncherFactory));
