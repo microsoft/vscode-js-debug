@@ -9,128 +9,100 @@ import 'reflect-metadata';
  * that all DAP traffic will be routed through a single connection (either tcp socket or stdin/out)
  * and use the sessionId field on each message to route it to the correct child session
  */
-
 import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Binder, IBinderDelegate } from './binder';
+import { createGlobalContainer } from './ioc';
+import { IDebugSessionLike, SessionManager, SessionLauncher } from './sessionManager';
+import { getDeferred } from './common/promiseUtil';
 import DapConnection from './dap/connection';
-import { ITarget } from './targets/targets';
-import * as crypto from 'crypto';
-import { MessageEmitterConnection, ChildConnection } from './dap/flatSessionConnection';
-import { IDisposable } from './common/events';
-import { DebugType } from './common/contributionUtils';
-import { TargetOrigin } from './targets/targetOrigin';
-import { TelemetryReporter } from './telemetry/telemetryReporter';
-import { ILogger } from './common/logging';
-import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
+import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
+import { Readable, Writable } from 'stream';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
-class ChildSession {
-  private _nameChangedSubscription: IDisposable;
-  public readonly connection: ChildConnection;
-
+class VSDebugSession implements IDebugSessionLike {
   constructor(
-    logger: ILogger,
-    telemetry: TelemetryReporter,
-    public readonly sessionId: string,
-    connection: MessageEmitterConnection,
-    target: ITarget,
+    public id: string,
+    name: string,
+    private readonly childConnection: Promise<DapConnection>,
+    private readonly mockProcessId: number,
   ) {
-    this.connection = new ChildConnection(logger, telemetry, connection, sessionId);
-    this._nameChangedSubscription = target.onNameChanged(() => {
-      this.connection.dap().then(dap => dap.process({ name: target.name() }));
-    });
+    this._name = name;
   }
 
-  dispose() {
-    this.connection.dispose();
-    this._nameChangedSubscription.dispose();
+  private _name: string;
+  set name(newName: string) {
+    this._name = newName;
+    this.childConnection
+      .then(x => x.dap())
+      .then(dap => {
+        dap.process({ systemProcessId: this.mockProcessId, name: newName });
+      });
+  }
+  get name() {
+    return this._name;
   }
 }
 
-function main(inputStream: NodeJS.ReadableStream, outputStream: NodeJS.WritableStream) {
-  const _childSessionsForTarget = new Map<ITarget, ChildSession>();
-  const telemetry = new TelemetryReporter();
-  const services = createTopLevelSessionContainer(
-    createGlobalContainer({ storagePath, isVsCode: false }),
-  );
+class VSSessionManager {
+  private services = createGlobalContainer({ storagePath, isVsCode: false });
+  private sessionManager: SessionManager<VSDebugSession>;
+  private rootTransport: IDapTransport;
+  private mockProcessId = 1;
 
-  const binderDelegate: IBinderDelegate = {
-    async acquireDap(target: ITarget): Promise<DapConnection> {
-      const sessionId = crypto.randomBytes(20).toString('hex');
-      const config = {
-        type: DebugType.Chrome,
-        name: target.name(),
-        request: 'attach',
-        __pendingTargetId: target.id(),
-        sessionId,
-      };
+  constructor(inputStream: Readable, outputStream: Writable) {
+    this.sessionManager = new SessionManager<VSDebugSession>(
+      this.services,
+      this.buildVSSessionLauncher(),
+    );
+    this.rootTransport = new StreamDapTransport(inputStream, outputStream);
+    this.createSession(undefined, 'rootSession', {});
+  }
+
+  buildVSSessionLauncher(): SessionLauncher<VSDebugSession> {
+    return (parentSession, target, config) => {
+      const childAttachConfig = { ...config, sessionId: target.id() };
+
+      this.createSession(target.id(), target.name(), childAttachConfig);
 
       // Custom message currently not part of DAP
-      connection._send({
+      parentSession.connection._send({
         seq: 0,
         command: 'attachedChildSession',
         type: 'request',
         arguments: {
-          config,
+          config: childAttachConfig,
         },
       });
+    };
+  }
 
-      const childSession = new ChildSession(
-        services.get(ILogger),
-        telemetry,
-        sessionId,
-        connection,
-        target,
-      );
-      _childSessionsForTarget.set(target, childSession);
-      return childSession.connection;
-    },
-
-    async initAdapter(): Promise<boolean> {
-      return false;
-    },
-
-    releaseDap(target: ITarget): void {
-      const childSession = _childSessionsForTarget.get(target);
-      if (childSession !== undefined) {
-        childSession.dispose();
-      }
-      _childSessionsForTarget.delete(target);
-    },
-  };
-
-  const connection = new MessageEmitterConnection(telemetry, services.get(ILogger));
-  // First child uses no sessionId. Could potentially use something predefined that both sides know about, or have it passed with either
-  // cmd line args or launch config if we decide that all sessions should definitely have an id
-  const firstConnection = new ChildConnection(
-    services.get(ILogger),
-    telemetry,
-    connection,
-    undefined,
-  );
-  new Binder(
-    binderDelegate,
-    firstConnection,
-    telemetry,
-    services,
-    new TargetOrigin('targetOrigin'),
-  );
-
-  connection.init(inputStream, outputStream);
+  createSession(sessionId: string | undefined, name: string, config: any) {
+    const deferredConnection = getDeferred<DapConnection>();
+    const newSession = this.sessionManager.createNewSession(
+      new VSDebugSession(
+        sessionId || 'root',
+        name,
+        deferredConnection.promise,
+        this.mockProcessId++,
+      ),
+      config,
+      new SessionIdDapTransport(sessionId, this.rootTransport),
+    );
+    deferredConnection.resolve(newSession.connection);
+  }
 }
 
 const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : undefined;
 if (debugServerPort !== undefined) {
   const server = net
     .createServer(async socket => {
-      main(socket, socket);
+      new VSSessionManager(socket, socket);
     })
     .listen(debugServerPort);
   console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
 } else {
-  main(process.stdin, process.stdout);
+  new VSSessionManager(process.stdin, process.stdout);
 }
