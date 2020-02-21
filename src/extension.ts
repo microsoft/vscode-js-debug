@@ -19,6 +19,7 @@ import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { IDebugConfigurationProvider } from './ui/configuration';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
+import { tmpdir } from 'os';
 
 // eslint-disable-next-line
 const packageJson = require('../package.json');
@@ -26,7 +27,10 @@ const extensionId = `${packageJson.publisher}.${packageJson.name}`;
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
-    storagePath: context.storagePath || context.extensionPath,
+    // On Windows, use the os.tmpdir() since the extension storage path is too long. See:
+    // https://github.com/microsoft/vscode-js-debug/issues/342
+    storagePath:
+      process.platform === 'win32' ? tmpdir() : context.storagePath || context.extensionPath,
     isVsCode: true,
     isRemote:
       vscode.extensions.getExtension(extensionId)?.extensionKind === vscode.ExtensionKind.Workspace,
