@@ -18,6 +18,7 @@ import * as nls from 'vscode-nls';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { ILogger } from './common/logging';
+import { StreamDapTransport } from './dap/transport';
 
 const localize = nls.loadMessageBundle();
 
@@ -110,7 +111,8 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         };
 
         const telemetry = new TelemetryReporter();
-        const connection = new DapConnection(telemetry, services.get(ILogger));
+        const transport = new StreamDapTransport(socket, socket, services.get(ILogger));
+        const connection = new DapConnection(transport, telemetry, services.get(ILogger));
         new Binder(
           binderDelegate,
           connection,
@@ -119,8 +121,6 @@ export function startDebugServer(port: number): Promise<IDisposable> {
           new TargetOrigin('targetOrigin'),
         );
         const configurator = new Configurator(connection.dap());
-
-        connection.init(socket, socket);
       })
       .on('error', reject)
       .listen(port, () => {

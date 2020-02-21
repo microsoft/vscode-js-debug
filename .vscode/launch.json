@@ -25,8 +25,10 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server (Flat Session)",
+      "trace": true,
       "program": "${workspaceFolder}/out/src/flatSessionLauncher.js",
       "args": ["4712"],
+      "skipFiles": ["<node_internals>/**/*.js"]
       // "preLaunchTask": "npm: watch"
     },
     {

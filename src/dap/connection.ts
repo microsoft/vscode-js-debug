@@ -5,30 +5,13 @@
 import Dap from './api';
 
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
-import { LogTag, ILogger } from '../common/logging';
+import { ILogger } from '../common/logging';
 import { isDapError, isExternalError, ProtocolError } from './errors';
-
-export type Message = (
-  | { type: 'request'; command: string; arguments: object }
-  | {
-      type: 'response';
-      message?: string;
-      command: string;
-      request_seq: number;
-      success: boolean;
-      body: object;
-    }
-  | { type: 'event'; event: string; body: object }
-) & {
-  sessionId?: string;
-  seq: number;
-  __receivedTime?: bigint;
-};
+import { Message, IDapTransport } from './transport';
+import { IDisposable } from '../common/disposable';
 
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
-
-let connectionId = 0;
 
 /**
  * Symbol injected to get the closest DAP connection.
@@ -36,32 +19,26 @@ let connectionId = 0;
 export const IDapApi = Symbol('IDapApi');
 
 export default class Connection {
-  private static _TWO_CRLF = '\r\n\r\n';
   private static readonly logOmittedCalls = new WeakSet<object>();
-
-  private _connectionId = connectionId++;
-  private _writableStream?: NodeJS.WritableStream;
-  private _rawData: Buffer;
-  private _contentLength = -1;
   private _sequence: number;
 
   private _pendingRequests = new Map<number, (result: string | object) => void>();
   private _requestHandlers = new Map<string, (params: object) => Promise<object>>();
   private _eventListeners = new Map<string, Set<(params: object) => void>>();
   private _dap: Promise<Dap.Api>;
-
-  protected _ready: (dap: Dap.Api) => void;
+  private disposables: IDisposable[] = [];
 
   constructor(
+    protected readonly transport: IDapTransport,
     protected readonly telemetryReporter: TelemetryReporter,
     protected readonly logger: ILogger,
   ) {
     this._sequence = 1;
-    this._rawData = Buffer.alloc(0);
-    this._ready = () => {
-      /* no-op */
-    };
-    this._dap = new Promise<Dap.Api>(f => (this._ready = f));
+
+    this.disposables.push(
+      this.transport.messageReceived(event => this._onMessage(event.message, event.receivedTime)),
+    );
+    this._dap = Promise.resolve(this._createApi());
     this._dap.then(dap => telemetryReporter.attachDap(dap));
   }
 
@@ -73,25 +50,6 @@ export default class Connection {
   public static omitLoggingFor<T extends object>(obj: T): T {
     Connection.logOmittedCalls.add(obj);
     return obj;
-  }
-
-  public init(inStream: NodeJS.ReadableStream, outStream: NodeJS.WritableStream) {
-    this._writableStream = outStream;
-    inStream.on('data', (data: Buffer) => {
-      this._handleData(data);
-    });
-    inStream.on('close', () => {
-      /* no-op */
-    });
-    inStream.on('error', () => {
-      // error.message
-    });
-    outStream.on('error', () => {
-      // error.message
-    });
-    inStream.resume();
-    const dap = this._createApi();
-    this._ready(dap);
   }
 
   public dap(): Promise<Dap.Api> {
@@ -169,26 +127,14 @@ export default class Connection {
   }
 
   public stop(): void {
-    if (this._writableStream) {
-      this._writableStream.end();
-      this._writableStream = undefined;
-    }
+    this.transport.close();
   }
 
   _send(message: Message) {
     message.seq = this._sequence++;
-    const json = JSON.stringify(message);
 
-    if (message.type !== 'event' || !Connection.logOmittedCalls.has(message.body)) {
-      this.logger.verbose(LogTag.DapSend, undefined, { connectionId: this._connectionId, message });
-    }
-
-    const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
-    if (!this._writableStream) {
-      console.error('Writing to a closed connection');
-      return;
-    }
-    this._writableStream.write(data, 'utf8');
+    const shouldLog = message.type !== 'event' || !Connection.logOmittedCalls.has(message.body);
+    this.transport.send(message, shouldLog);
   }
 
   async _onMessage(msg: Message, receivedTime: bigint): Promise<void> {
@@ -277,48 +223,6 @@ export default class Connection {
         const format: string | undefined = (msg.body as any)?.error?.format;
         cb(format || msg.message || `Unknown error`);
       }
-    }
-  }
-
-  _handleData(data: Buffer): void {
-    const receivedTime = process.hrtime.bigint();
-    this._rawData = Buffer.concat([this._rawData, data]);
-    while (true) {
-      if (this._contentLength >= 0) {
-        if (this._rawData.length >= this._contentLength) {
-          const message = this._rawData.toString('utf8', 0, this._contentLength);
-          this._rawData = this._rawData.slice(this._contentLength);
-          this._contentLength = -1;
-          if (message.length > 0) {
-            try {
-              const msg: Message = JSON.parse(message);
-              this.logger.verbose(LogTag.DapReceive, undefined, {
-                connectionId: this._connectionId,
-                message: msg,
-              });
-              this._onMessage(msg, receivedTime);
-            } catch (e) {
-              console.error('Error handling data: ' + (e && e.message));
-            }
-          }
-          continue; // there may be more complete messages to process
-        }
-      } else {
-        const idx = this._rawData.indexOf(Connection._TWO_CRLF);
-        if (idx !== -1) {
-          const header = this._rawData.toString('utf8', 0, idx);
-          const lines = header.split('\r\n');
-          for (let i = 0; i < lines.length; i++) {
-            const pair = lines[i].split(/: +/);
-            if (pair[0] === 'Content-Length') {
-              this._contentLength = +pair[1];
-            }
-          }
-          this._rawData = this._rawData.slice(idx + Connection._TWO_CRLF.length);
-          continue;
-        }
-      }
-      break;
     }
   }
 }

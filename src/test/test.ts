@@ -31,6 +31,7 @@ import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { StreamDapTransport } from '../dap/transport';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -75,10 +76,17 @@ class Session {
   constructor(logger: ILogger) {
     const testToAdapter = new Stream();
     const adapterToTest = new Stream();
-    this.adapterConnection = new DapConnection(new TelemetryReporter(), logger);
-    this.adapterConnection.init(testToAdapter, adapterToTest);
-    const testConnection = new DapConnection(new TelemetryReporter(), logger);
-    testConnection.init(adapterToTest, testToAdapter);
+
+    this.adapterConnection = new DapConnection(
+      new StreamDapTransport(testToAdapter, adapterToTest, logger),
+      new TelemetryReporter(),
+      logger,
+    );
+    const testConnection = new DapConnection(
+      new StreamDapTransport(adapterToTest, testToAdapter, logger),
+      new TelemetryReporter(),
+      logger,
+    );
     this.dap = testConnection.createTestApi();
   }
 

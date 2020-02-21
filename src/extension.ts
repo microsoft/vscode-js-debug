@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { createGlobalContainer } from './ioc';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { registerPrettyPrintActions } from './ui/prettyPrintUI';
-import { SessionManager } from './ui/sessionManager';
+import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { Contributions, registerCommand, allDebugTypes } from './common/contributionUtils';
 import { pickProcess, attachProcess } from './ui/processPicker';
@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
       .map(provider => vscode.debug.registerDebugConfigurationProvider(provider.type, provider)),
   );
 
-  const sessionManager = new SessionManager(services);
+  const sessionManager = new VSCodeSessionManager(services);
   context.subscriptions.push(
     ...[...allDebugTypes].map(type =>
       vscode.debug.registerDebugAdapterDescriptorFactory(type, sessionManager),
