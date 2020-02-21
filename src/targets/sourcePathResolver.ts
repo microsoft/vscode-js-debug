@@ -18,6 +18,7 @@ import {
   isDataUri,
   isFileUrl,
   isValidUrl,
+  isAbsolute,
 } from '../common/urlUtils';
 import { LogTag, ILogger } from '../common/logging';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
@@ -37,6 +38,22 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     this.options.sourceMapOverrides,
     this.logger,
   );
+
+  /**
+   * Source map resolve locations. Processed to resolve any relative segments
+   * of the path, to make `${workspaceFolder}/../foo` and the like work, since
+   * micromatch doesn't have native awareness of them.
+   */
+  private readonly resolveLocations = this.options.resolveSourceMapLocations?.map(location => {
+    const prefix = location.startsWith('!') ? '!' : '';
+    const remaining = location.slice(prefix.length);
+    if (isAbsolute(remaining)) {
+      return prefix + properResolve(remaining);
+    }
+
+    return location;
+  });
+
   constructor(protected readonly options: T, protected readonly logger: ILogger) {}
 
   public abstract urlToAbsolutePath(request: IUrlResolution): Promise<string | undefined>;
@@ -48,10 +65,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * following the `resolveSourceMapPaths`
    */
   public shouldResolveSourceMap({ sourceMapUrl, compiledPath }: ISourceMapMetadata) {
-    if (
-      !this.options.resolveSourceMapLocations ||
-      this.options.resolveSourceMapLocations.length === 0
-    ) {
+    if (!this.resolveLocations || this.resolveLocations.length === 0) {
       return true;
     }
 
@@ -75,11 +89,9 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     };
 
     return (
-      match(
-        [processMatchInput(sourcePath)],
-        this.options.resolveSourceMapLocations.map(processMatchInput),
-        { dot: true },
-      ).length > 0
+      match([processMatchInput(sourcePath)], this.resolveLocations.map(processMatchInput), {
+        dot: true,
+      }).length > 0
     );
   }
 

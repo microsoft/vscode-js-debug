@@ -16,10 +16,9 @@ import { ScriptSkipper } from '../../adapter/scriptSkipper';
 import { AnyChromiumConfiguration } from '../../configuration';
 import { LogTag, ILogger } from '../../common/logging';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
-import { killTree } from '../node/killTree';
 import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
-import { IBrowserProcess } from './browserProcess';
+import { IBrowserProcess } from './spawn/browserProcess';
 import { IBrowserVersionMetrics } from '../../telemetry/classification';
 import * as nls from 'vscode-nls';
 
@@ -103,10 +102,7 @@ export class BrowserTargetManager implements IDisposable {
 
   async closeBrowser(): Promise<void> {
     await this._browser.Browser.close({});
-
-    if (this.process && this.process.pid) {
-      killTree(this.process.pid, this.logger);
-    }
+    this.process?.kill();
   }
 
   waitForMainTarget(

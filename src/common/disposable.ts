@@ -39,6 +39,14 @@ export class DisposableList {
   }
 
   /**
+   * Removes the item from the list and disposes it.
+   */
+  public disposeObject(d: IDisposable) {
+    this.items = this.items.filter(i => i !== d);
+    d.dispose();
+  }
+
+  /**
    * @inheritdoc
    */
   public dispose() {

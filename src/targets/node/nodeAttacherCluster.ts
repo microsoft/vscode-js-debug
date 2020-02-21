@@ -4,11 +4,11 @@
 
 import { LogTag, ILogger } from '../../common/logging';
 import { spawnWatchdog } from './watchdogSpawn';
-import { getWSEndpoint } from '../browser/launcher';
 import { NeverCancelled } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
 import { ChildProcess } from 'child_process';
 import { processTree, analyseArguments } from '../../ui/processTree/processTree';
+import { getWSEndpoint } from '../browser/spawn/endpoints';
 
 interface IProcessTreeNode {
   children: IProcessTreeNode[];

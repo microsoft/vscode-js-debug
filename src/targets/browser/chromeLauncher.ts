@@ -6,19 +6,19 @@ import { DebugType } from '../../common/contributionUtils';
 import { IChromeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { injectable, inject, tagged } from 'inversify';
 import { BrowserLauncher } from './browserLauncher';
-import { StoragePath, FS, FsPromises } from '../../ioc-extras';
+import { StoragePath, FS, FsPromises, BrowserFinder } from '../../ioc-extras';
 import { ILogger } from '../../common/logging';
-import { IBrowserFinder, isQuality } from './findBrowser';
 import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
 import { ProtocolError, browserNotFound } from '../../dap/errors';
+import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
 
 @injectable()
 export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> {
   constructor(
     @inject(StoragePath) storagePath: string,
     @inject(ILogger) logger: ILogger,
-    @inject(IBrowserFinder)
+    @inject(BrowserFinder)
     @tagged('browser', 'chrome')
     protected readonly browserFinder: IBrowserFinder,
     @inject(FS)

@@ -6,12 +6,12 @@ import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../confi
 import { DebugType } from '../../common/contributionUtils';
 import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
-import { retryGetWSEndpoint } from '../browser/launcher';
 import { spawnWatchdog } from './watchdogSpawn';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { injectable } from 'inversify';
+import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 
 /**
  * Attaches to an instance of VS Code for extension debugging.

@@ -42,7 +42,7 @@ export namespace Dap {
      * The sequence of events/requests is as follows:
      * - adapters sends 'initialized' event (after the 'initialize' request has returned)
      * - frontend sends zero or more 'setBreakpoints' requests
-     * - frontend sends one 'setFunctionBreakpoints' request
+     * - frontend sends one 'setFunctionBreakpoints' request (if capability 'supportsFunctionBreakpoints' is true)
      * - frontend sends a 'setExceptionBreakpoints' request if one or more 'exceptionBreakpointFilters' have been defined (or if 'supportsConfigurationDoneRequest' is not defined or false)
      * - frontend sends other future configuration requests
      * - frontend sends one 'configurationDone' request to indicate the end of the configuration.
@@ -744,6 +744,16 @@ export namespace Dap {
      * An event sent when breakpoint prediction takes a significant amount of time.
      */
     longPrediction(params: LongPredictionEventParams): void;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    launchBrowserInCompanion(params: LaunchBrowserInCompanionEventParams): void;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    killCompanionBrowser(params: KillCompanionBrowserEventParams): void;
   }
 
   export interface TestApi {
@@ -764,7 +774,7 @@ export namespace Dap {
      * The sequence of events/requests is as follows:
      * - adapters sends 'initialized' event (after the 'initialize' request has returned)
      * - frontend sends zero or more 'setBreakpoints' requests
-     * - frontend sends one 'setFunctionBreakpoints' request
+     * - frontend sends one 'setFunctionBreakpoints' request (if capability 'supportsFunctionBreakpoints' is true)
      * - frontend sends a 'setExceptionBreakpoints' request if one or more 'exceptionBreakpointFilters' have been defined (or if 'supportsConfigurationDoneRequest' is not defined or false)
      * - frontend sends other future configuration requests
      * - frontend sends one 'configurationDone' request to indicate the end of the configuration.
@@ -1192,6 +1202,38 @@ export namespace Dap {
       request: 'longPrediction',
       filter?: (event: LongPredictionEventParams) => boolean,
     ): Promise<LongPredictionEventParams>;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    on(
+      request: 'launchBrowserInCompanion',
+      handler: (params: LaunchBrowserInCompanionEventParams) => void,
+    ): void;
+    off(
+      request: 'launchBrowserInCompanion',
+      handler: (params: LaunchBrowserInCompanionEventParams) => void,
+    ): void;
+    once(
+      request: 'launchBrowserInCompanion',
+      filter?: (event: LaunchBrowserInCompanionEventParams) => boolean,
+    ): Promise<LaunchBrowserInCompanionEventParams>;
+
+    /**
+     * Enable custom breakpoints.
+     */
+    on(
+      request: 'killCompanionBrowser',
+      handler: (params: KillCompanionBrowserEventParams) => void,
+    ): void;
+    off(
+      request: 'killCompanionBrowser',
+      handler: (params: KillCompanionBrowserEventParams) => void,
+    ): void;
+    once(
+      request: 'killCompanionBrowser',
+      filter?: (event: KillCompanionBrowserEventParams) => boolean,
+    ): Promise<KillCompanionBrowserEventParams>;
   }
 
   export interface AttachParams {
@@ -1805,6 +1847,37 @@ export namespace Dap {
 
   export interface InitializedEventParams {}
 
+  export interface KillCompanionBrowserEventParams {
+    /**
+     * Incrementing ID to refer to this browser launch request
+     */
+    launchId: number;
+  }
+
+  export interface LaunchBrowserInCompanionEventParams {
+    /**
+     * Type of browser to launch
+     */
+    type: string;
+
+    /**
+     * Incrementing ID to refer to this browser launch request
+     */
+    launchId: number;
+
+    /**
+     * Local port the debug server is listening on
+     */
+    serverPort: number;
+
+    browserArgs?: string[];
+
+    /**
+     * Original launch parameters for the debug session
+     */
+    params: object;
+  }
+
   export interface LaunchParams {
     /**
      * If noDebug is true the launch request should launch the program without enabling debugging.
@@ -1899,6 +1972,11 @@ export namespace Dap {
      * The output to report.
      */
     output: string;
+
+    /**
+     * Support for keeping an output log organized by grouping related messages.
+     */
+    group?: string;
 
     /**
      * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request. The value should be less than or equal to 2147483647 (2^31 - 1).
@@ -3183,6 +3261,20 @@ export namespace Dap {
      * If missing the value 0 is assumed which results in the completion text being inserted.
      */
     length?: integer;
+
+    /**
+     * Determines the start of the new selection after the text has been inserted (or replaced).
+     * The start position must in the range 0 and length of the completion text.
+     * If omitted the selection starts at the end of the completion text.
+     */
+    selectionStart?: integer;
+
+    /**
+     * Determines the length of the new selection after the text has been inserted (or replaced).
+     * The selection can not extend beyond the bounds of the completion text.
+     * If omitted the length is assumed to be 0.
+     */
+    selectionLength?: integer;
   }
 
   /**
