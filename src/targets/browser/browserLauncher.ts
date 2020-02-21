@@ -39,6 +39,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   private _launchParams: T | undefined;
   protected _mainTarget?: BrowserTarget;
   protected _disposables = new DisposableList();
+  private _terminated = false;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -144,11 +145,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
 
-    this._disposables.push(
-      launched.cdp.onDisconnected(() => {
-        this._onTerminatedEmitter.fire({ code: 0, killed: true });
-      }),
-    );
+    this._disposables.push(launched.cdp.onDisconnected(() => this.fireTerminatedEvent()));
     this._connectionForTest = launched.cdp;
     this._launchParams = params;
 
@@ -199,7 +196,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
     if (!this._mainTarget) return localize('error.threadNotFound', 'Target page not found');
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
-      if (target === this._mainTarget) this._onTerminatedEmitter.fire({ code: 0, killed: true });
+      if (target === this._mainTarget) this.fireTerminatedEvent();
     });
     return this._mainTarget;
   }
@@ -275,5 +272,12 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
   connectionForTest(): CdpConnection | undefined {
     return this._connectionForTest;
+  }
+
+  fireTerminatedEvent() {
+    if (!this._terminated) {
+      this._terminated = true;
+      this._onTerminatedEmitter.fire({ code: 0, killed: true });
+    }
   }
 }
