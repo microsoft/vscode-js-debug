@@ -18,6 +18,7 @@ import {
   isDataUri,
   isFileUrl,
   isValidUrl,
+  isAbsolute,
 } from '../common/urlUtils';
 import { LogTag, ILogger } from '../common/logging';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
@@ -46,8 +47,8 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
   private readonly resolveLocations = this.options.resolveSourceMapLocations?.map(location => {
     const prefix = location.startsWith('!') ? '!' : '';
     const remaining = location.slice(prefix.length);
-    if (path.isAbsolute(remaining)) {
-      return prefix + path.resolve(remaining);
+    if (isAbsolute(remaining)) {
+      return prefix + properResolve(remaining);
     }
 
     return location;
