@@ -1,0 +1,109 @@
+{
+    breakpoint : {
+        column : 1
+        id : <number>
+        line : 5
+        source : {
+            name : localhost꞉8001/pretty/ugly.js
+            path : ${workspaceFolder}/web/pretty/ugly.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+{
+    breakpoint : {
+        column : 9
+        id : <number>
+        line : 13
+        source : {
+            name : web/pretty/ugly.js-pretty.js
+            path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+{
+    breakpoint : {
+        column : 9
+        id : <number>
+        line : 13
+        source : {
+            name : web/pretty/ugly.js-pretty.js
+            path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+{
+    breakpoints : [
+        [0] : {
+            column : 5
+            id : <number>
+            line : 17
+            source : {
+                name : web/pretty/ugly.js-pretty.js
+                path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+                sourceReference : <number>
+            }
+            verified : true
+        }
+        [1] : {
+            column : 9
+            id : <number>
+            line : 13
+            source : {
+                name : web/pretty/ugly.js-pretty.js
+                path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+                sourceReference : <number>
+            }
+            verified : true
+        }
+        [2] : {
+            id : <number>
+            message : Unbound breakpoint
+            verified : false
+        }
+    ]
+}
+
+continue
+[
+    [0] : {
+        allThreadsContinued : false
+        threadId : <number>
+    }
+    [1] : {
+        allThreadsStopped : false
+        description : Paused on breakpoint
+        reason : breakpoint
+        threadId : <number>
+    }
+]
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:13:9
+
+continue
+[
+    [0] : {
+        allThreadsContinued : false
+        threadId : <number>
+    }
+    [1] : {
+        allThreadsStopped : false
+        description : Paused on breakpoint
+        reason : breakpoint
+        threadId : <number>
+    }
+]
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:17:5

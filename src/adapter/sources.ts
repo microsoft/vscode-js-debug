@@ -170,21 +170,42 @@ export class Source {
     return this._container && !this._name.endsWith('-pretty.js');
   }
 
-  async prettyPrint(): Promise<boolean> {
-    if (!this._container || !this.canPrettyPrint()) return false;
-    if (this._sourceMapUrl && this._sourceMapUrl.endsWith('-pretty.map')) return true;
+  /**
+   * Pretty-prints the source. Generates a beauitified source map if possible
+   * and it hasn't already been done, and returns the created map and created
+   * ephemeral source. Returns undefined if the source can't be beautified.
+   */
+  async prettyPrint(): Promise<{ map: SourceMap; source: Source } | undefined> {
+    if (!this._container || !this.canPrettyPrint()) {
+      return undefined;
+    }
+
+    if (this._sourceMapUrl && this._sourceMapUrl.endsWith('-pretty.map')) {
+      const map = this._container._sourceMaps.get(this._sourceMapUrl)?.map;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return map && { map, source: [...this._sourceMapSourceByUrl!.values()][0] };
+    }
+
     const content = await this.content();
-    if (!content) return false;
+    if (!content) {
+      return undefined;
+    }
+
     const sourceMapUrl = this.url + '-pretty.map';
-    const fileName = this.url + '-pretty.js';
-    const map = await prettyPrintAsSourceMap(fileName, content);
-    if (!map) return false;
+    const basename = this.url.split(/[\/\\]/).pop() as string;
+    const fileName = basename + '-pretty.js';
+    const map = await prettyPrintAsSourceMap(fileName, content, this.url, sourceMapUrl);
+    if (!map) {
+      return undefined;
+    }
+
     // Note: this overwrites existing source map.
     this._sourceMapUrl = sourceMapUrl;
     const sourceMap: SourceMapData = { compiled: new Set([this]), map, loaded: Promise.resolve() };
     this._container._sourceMaps.set(sourceMapUrl, sourceMap);
     await this._container._addSourceMapSources(this, map);
-    return true;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return { map, source: [...this._sourceMapSourceByUrl!.values()][0] };
   }
 
   async toDap(): Promise<Dap.Source> {
@@ -204,6 +225,7 @@ export class Source {
       dap.sourceReference = 0;
       dap.path = existingAbsolutePath;
     }
+
     return dap;
   }
 
@@ -496,8 +518,10 @@ export class SourceContainer {
     if (this._disabledSourceMaps.has(compiled)) return UnmappedReason.MapDisabled;
     if (!compiled._sourceMapSourceByUrl) return UnmappedReason.CannotMap;
 
-    const { lineNumber, columnNumber } = rawToUiOffset(uiLocation, compiled._inlineScriptOffset);
-    const entry = map.originalPositionFor({ line: lineNumber, column: columnNumber });
+    const entry = this.getOptiminalOriginalPosition(
+      map,
+      rawToUiOffset(uiLocation, compiled._inlineScriptOffset),
+    );
     if (!entry.source) return UnmappedReason.CannotMap;
 
     const source = compiled._sourceMapSourceByUrl.get(entry.source);
@@ -561,9 +585,9 @@ export class SourceContainer {
    */
   private getOptimalCompiledPosition(
     sourceUrl: string,
-    uiLocation: IUiLocation,
+    uiLocation: LineColumn,
     sourceMap: SourceMapConsumer,
-  ): NullablePosition | undefined {
+  ): NullablePosition {
     const prevLocation = sourceMap.generatedPositionFor({
       source: sourceUrl,
       line: uiLocation.lineNumber,
@@ -593,6 +617,27 @@ export class SourceContainer {
     });
 
     return getVariance(nextLocation) < nextVariance ? nextLocation : prevLocation;
+  }
+
+  /**
+   * Gets the best original position for the location in the source map.
+   */
+  public getOptiminalOriginalPosition(sourceMap: SourceMapConsumer, uiLocation: LineColumn) {
+    const glb = sourceMap.originalPositionFor({
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber - 1,
+      bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+    });
+
+    if (glb.line !== null) {
+      return glb;
+    }
+
+    return sourceMap.originalPositionFor({
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber - 1,
+      bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+    });
   }
 
   async addSource(
@@ -838,8 +883,12 @@ export class SourceContainer {
     this._disabledSourceMaps.add(source);
   }
 
-  clearDisabledSourceMaps() {
-    this._disabledSourceMaps.clear();
+  clearDisabledSourceMaps(forSource?: Source) {
+    if (forSource) {
+      this._disabledSourceMaps.delete(forSource);
+    } else {
+      this._disabledSourceMaps.clear();
+    }
   }
 }
 

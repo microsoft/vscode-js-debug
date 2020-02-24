@@ -12,6 +12,8 @@ import { verifyBytes, verifyFile } from './hash';
 export async function prettyPrintAsSourceMap(
   fileName: string,
   minified: string,
+  compiledPath: string,
+  sourceMapUrl: string,
 ): Promise<SourceMap | undefined> {
   const source = beautify(minified);
   const from = generatePositions(source);
@@ -33,8 +35,8 @@ export async function prettyPrintAsSourceMap(
   return new SourceMap(
     await sourceMap.SourceMapConsumer.fromSourceMap(generator),
     {
-      sourceMapUrl: '',
-      compiledPath: '',
+      sourceMapUrl,
+      compiledPath,
     },
     '',
   );

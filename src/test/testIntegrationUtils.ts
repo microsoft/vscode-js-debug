@@ -68,7 +68,9 @@ const itIntegratesBasic = (
     }
 
     if (golden.hasNonAssertedLogs()) {
-      throw new Error(`Whoa, test "${test}" has some logs that it did not assert!`);
+      throw new Error(
+        `Whoa, test "${test}" has some logs that it did not assert!\n\n${golden.getOutput()}`,
+      );
     }
   });
 

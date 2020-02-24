@@ -10,7 +10,7 @@ import { LogTag } from '../../common/logging';
 import { IUiLocation, base1To0 } from '../sources';
 import { urlToRegex } from '../../common/urlUtils';
 
-type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
+export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
 const lcEqual = (a: Partial<LineColumn>, b: Partial<LineColumn>) =>
   a.lineNumber === b.lineNumber && a.columnNumber === b.columnNumber;
@@ -92,18 +92,54 @@ export abstract class Breakpoint {
    */
   protected readonly cdpBreakpoints: ReadonlyArray<BreakpointCdpReference> = [];
 
+  /**
+   * Gets the source the breakpoint is set in.
+   */
+  public get source() {
+    return this._source;
+  }
+
+  /**
+   * Gets the location where the breakpoint was originally set.
+   */
+  public get originalPosition() {
+    return this._originalPosition;
+  }
+
   private _cdpIds = new Set<string>();
 
   /**
    * @param manager - Associated breakpoint manager
    * @param originalPosition - The position in the UI this breakpoint was placed at
-   * @param _source - Source in which this breakpoint is placed
+   * @param source - Source in which this breakpoint is placed
    */
   constructor(
     protected readonly _manager: BreakpointManager,
-    public readonly _source: Dap.Source,
-    public readonly originalPosition: LineColumn,
+    private _source: Dap.Source,
+    private _originalPosition: LineColumn,
   ) {}
+
+  /**
+   * Updates the source location for the breakpoint. It is assumed that the
+   * updated location is equivalent to the original on.  This is used to move
+   * the breakpoints when we pretty print a source. This is dangerous with
+   * sharp edges, use with caution.
+   */
+  public async updateSourceLocation(source: Dap.Source, uiLocation: IUiLocation) {
+    this._source = source;
+    this._originalPosition = uiLocation;
+
+    this.updateCdpRefs(list =>
+      list.map(bp =>
+        bp.state === CdpReferenceState.Applied
+          ? {
+              ...bp,
+              uiLocations: this._manager._sourceContainer.currentSiblingUiLocations(uiLocation),
+            }
+          : bp,
+      ),
+    );
+  }
 
   /**
    * Sets the breakpoint in the provided thread.
@@ -120,7 +156,7 @@ export abstract class Breakpoint {
       this._setPredicted(thread),
     ];
 
-    const source = this._manager._sourceContainer.source(this._source);
+    const source = this._manager._sourceContainer.source(this.source);
     if (source) {
       const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this.originalPosition.lineNumber,
@@ -152,7 +188,7 @@ export abstract class Breakpoint {
       return;
     }
 
-    const source = this._manager._sourceContainer.source(this._source);
+    const source = this._manager._sourceContainer.source(this.source);
     if (!source) {
       return;
     }
@@ -194,7 +230,7 @@ export abstract class Breakpoint {
   }
 
   public async updateForSourceMap(thread: Thread, script: Script) {
-    const source = this._manager._sourceContainer.source(this._source);
+    const source = this._manager._sourceContainer.source(this.source);
     if (!source) {
       return [];
     }
@@ -267,9 +303,9 @@ export abstract class Breakpoint {
   }
 
   private async _setPredicted(thread: Thread): Promise<void> {
-    if (!this._source.path || !this._manager._breakpointsPredictor) return;
+    if (!this.source.path || !this._manager._breakpointsPredictor) return;
     const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
-      absolutePath: this._source.path,
+      absolutePath: this.source.path,
       lineNumber: this.originalPosition.lineNumber,
       columnNumber: this.originalPosition.columnNumber,
     });
@@ -291,25 +327,25 @@ export abstract class Breakpoint {
   }
 
   private async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
-    const sourceByPath = this._manager._sourceContainer.source({ path: this._source.path });
+    const sourceByPath = this._manager._sourceContainer.source({ path: this.source.path });
 
     // If the source has been mapped in-place, don't set anything by path,
     // we'll depend only on the mapped locations.
     if (sourceByPath?._compiledToSourceUrl) {
       const mappedInPlace = [...sourceByPath._compiledToSourceUrl.keys()].some(
-        s => s.absolutePath() === this._source.path,
+        s => s.absolutePath() === this.source.path,
       );
 
       if (mappedInPlace) {
         return;
       }
     }
-    const source = this._manager._sourceContainer.source(this._source);
+    const source = this._manager._sourceContainer.source(this.source);
 
     const url = source
       ? source.url
-      : this._source.path
-      ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this._source.path)
+      : this.source.path
+      ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path)
       : undefined;
     if (!url) return;
     await this._setByUrl(thread, url, lineColumn);

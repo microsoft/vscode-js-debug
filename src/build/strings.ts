@@ -196,6 +196,8 @@ const strings = {
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
   'configuration.usePreview': 'Use the new in-preview JavaScript debugger for Node.js and Chrome.',
+  'configuration.suggestPrettyPrinting':
+    'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
 };
 
 export default strings;
