@@ -158,11 +158,17 @@ export async function fetch(
 
   const isSecure = !url.startsWith('http://');
   const driver = isSecure ? https : http;
-  const validateCerts = isSecure && !(await isLoopback(url));
+  const targetAddressIsLoopback = await isLoopback(url);
   const disposables: IDisposable[] = [];
 
   return new Promise<string>((fulfill, reject) => {
-    const request = driver.get(url, { rejectUnauthorized: !validateCerts }, response => {
+    const requestOptions: https.RequestOptions = {};
+
+    if (isSecure && targetAddressIsLoopback) {
+      requestOptions.rejectUnauthorized = false;
+    }
+
+    const request = driver.get(url, requestOptions, response => {
       disposables.push(cancellationToken.onCancellationRequested(() => response.destroy()));
 
       let data = '';
