@@ -174,9 +174,6 @@
   "extensionKind": [
     "workspace"
   ],
-  "extensionDependencies": [
-    "ms-vscode.js-debug-companion"
-  ],
   "contributes": {
     "views": {
       "debug": [
