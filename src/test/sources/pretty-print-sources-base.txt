@@ -1,0 +1,26 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js:5:1
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+{
+    reason : new
+    source : {
+        name : web/pretty/ugly.js-pretty.js
+        path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+        sourceReference : <number>
+    }
+}
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:13:9

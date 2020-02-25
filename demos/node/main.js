@@ -1,5 +1,9 @@
 console.log('hi');console.log('hi2');
 
+const mm = require('./micromatch');
+
+mm(['foo', 'bar', 'baz', 'qux'], ['f*', 'b*']);
+
 async function bar() {
   return 42;
 }

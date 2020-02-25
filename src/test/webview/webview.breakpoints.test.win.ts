@@ -15,7 +15,9 @@ describe('webview breakpoints', () => {
     return p.dap.continue({ threadId });
   }
 
-  itIntegrates('launched script', async ({ r }) => {
+  itIntegrates('launched script', async ({ r, context }) => {
+    context.timeout(15 * 1000);
+
     // Breakpoint in separate script set after launch.
     const p = await r.launchUrl('script.html', {
       type: DebugType.Edge,

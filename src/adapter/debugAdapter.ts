@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import * as errors from '../dap/errors';
-import { SourceContainer, IUiLocation } from './sources';
+import { SourceContainer } from './sources';
 import { Thread, IThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
 import { BreakpointManager, generateBreakpointIds } from './breakpoints';
@@ -344,24 +344,23 @@ export class DebugAdapter implements IDisposable {
 
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     const source = this.sourceContainer.source(params.source);
-    if (!source)
+    if (!source) {
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    }
 
-    if (!source.canPrettyPrint() || !(await source.prettyPrint()))
+    const prettified = await source.prettyPrint();
+    if (!prettified) {
       return errors.createSilentError(
         localize('error.cannotPrettyPrint', 'Unable to pretty print'),
       );
-
-    await this._refreshStackTrace();
-    if (params.line) {
-      const originalUiLocation: IUiLocation = {
-        source,
-        lineNumber: params.line || 1,
-        columnNumber: params.column || 1,
-      };
-      const newUiLocation = await this.sourceContainer.preferredUiLocation(originalUiLocation);
-      this.sourceContainer.revealUiLocation(newUiLocation);
     }
+
+    const { map: sourceMap, source: generated } = prettified;
+
+    this.breakpointManager.moveBreakpoints(source, sourceMap, generated);
+    this.sourceContainer.clearDisabledSourceMaps(source);
+    await this._refreshStackTrace();
+
     return {};
   }
 

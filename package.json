@@ -54,7 +54,7 @@
     "glob-stream": "^6.1.0",
     "inversify": "^5.0.1",
     "ip": "^1.1.5",
-    "js-beautify": "^1.10.0",
+    "js-beautify": "^1.10.3",
     "jsonc-parser": "^2.2.0",
     "micromatch": "^4.0.2",
     "reflect-metadata": "^0.1.13",
@@ -187,7 +187,8 @@
     "commands": [
       {
         "command": "extension.NAMESPACE(node-debug).prettyPrint",
-        "title": "%pretty.print.script%"
+        "title": "%pretty.print.script%",
+        "category": "Debug"
       },
       {
         "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
@@ -226,6 +227,13 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "extension.NAMESPACE(node-debug).prettyPrint",
+          "title": "%pretty.print.script%",
+          "when": "inDebugMode && debugType == NAMESPACE(chrome) && editorLangId == javascript"
+        }
+      ],
       "debug/callstack/context": [
         {
           "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",

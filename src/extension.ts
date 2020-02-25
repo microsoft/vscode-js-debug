@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 
 import { createGlobalContainer } from './ioc';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
-import { registerPrettyPrintActions } from './ui/prettyPrintUI';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { Contributions, registerCommand, allDebugTypes } from './common/contributionUtils';
@@ -20,6 +19,7 @@ import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFact
 import { IDebugConfigurationProvider } from './ui/configuration';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { tmpdir } from 'os';
+import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 
 // eslint-disable-next-line
 const packageJson = require('../package.json');
@@ -64,10 +64,10 @@ export function activate(context: vscode.ExtensionContext) {
   const debugSessionTracker = new DebugSessionTracker();
   debugSessionTracker.attach();
 
+  context.subscriptions.push(PrettyPrintTrackerFactory.register(debugSessionTracker));
   registerLongBreakpointUI(context);
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
-  registerPrettyPrintActions(context, debugSessionTracker);
   registerDebugTerminalUI(context, services.get(DelegateLauncherFactory));
   registerNpmScriptLens(context);
 }

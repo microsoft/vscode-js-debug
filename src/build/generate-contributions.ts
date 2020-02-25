@@ -841,6 +841,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: {},
     properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
   },
+  [Configuration.SuggestPrettyPrinting]: {
+    type: 'boolean',
+    description: refString('configuration.suggestPrettyPrinting'),
+    default: true,
+  },
 };
 
 process.stdout.write(

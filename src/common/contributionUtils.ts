@@ -47,6 +47,7 @@ export const enum Configuration {
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
   WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
+  SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
 }
 
 /**
@@ -57,6 +58,7 @@ export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
+  [Configuration.SuggestPrettyPrinting]: boolean;
 }
 
 export interface ICommandTypes {
@@ -65,6 +67,7 @@ export interface ICommandTypes {
   [Contributions.AttachProcessCommand]: { args: []; out: void };
   [Contributions.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
   [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
+  [Contributions.PrettyPrintCommand]: { args: []; out: void };
 }
 
 /**

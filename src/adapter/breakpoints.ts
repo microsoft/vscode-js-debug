@@ -20,6 +20,8 @@ import { ProtocolError } from '../dap/errors';
 import { logPerf } from '../telemetry/performance';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { BreakpointConditionFactory } from './breakpoints/conditions';
+import { SourceMap } from '../common/sourceMaps/sourceMap';
+import { bisectArray } from '../common/objUtils';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -111,6 +113,49 @@ export class BreakpointManager {
 
       return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
     };
+  }
+
+  /**
+   * Moves all breakpoints set in the `fromSource` to their corresponding
+   * location in the `toSource`, using the provided source map. Breakpoints
+   * are don't have a corresponding location won't be moved.
+   */
+  public moveBreakpoints(fromSource: Source, sourceMap: SourceMap, toSource: Source) {
+    const tryUpdateLocations = (breakpoints: UserDefinedBreakpoint[]) =>
+      bisectArray(breakpoints, bp => {
+        const gen = this._sourceContainer.getOptiminalOriginalPosition(
+          sourceMap,
+          bp.originalPosition,
+        );
+        if (gen.column === null || gen.line === null) {
+          return false;
+        }
+
+        bp.updateSourceLocation(
+          {
+            path: toSource.absolutePath(),
+            sourceReference: toSource.sourceReference(),
+          },
+          { lineNumber: gen.line, columnNumber: gen.column + 1, source: toSource },
+        );
+        return false;
+      });
+
+    const fromPath = fromSource.absolutePath();
+    const toPath = toSource.absolutePath();
+    const byPath = fromPath ? this._byPath.get(fromPath) : undefined;
+    if (byPath && toPath) {
+      const [remaining, moved] = tryUpdateLocations(byPath);
+      this._byPath.set(fromPath, remaining);
+      this._byPath.set(toPath, moved);
+    }
+
+    const byRef = this._byRef.get(fromSource.sourceReference());
+    if (byRef) {
+      const [remaining, moved] = tryUpdateLocations(byRef);
+      this._byRef.set(fromSource.sourceReference(), remaining);
+      this._byRef.set(toSource.sourceReference(), moved);
+    }
   }
 
   /**
@@ -233,7 +278,7 @@ export class BreakpointManager {
       for (const id of breakpointIds) {
         const breakpoint = this._resolvedBreakpoints.get(id);
         if (breakpoint) {
-          const source = this._sourceContainer.source(breakpoint._source);
+          const source = this._sourceContainer.source(breakpoint.source);
           if (source) sources.push(source);
         }
       }
@@ -242,7 +287,7 @@ export class BreakpointManager {
 
     for (const breakpoints of this._byPath.values()) {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
-      this.ensureModuleEntryBreakpoint(thread, breakpoints[0]?._source);
+      this.ensureModuleEntryBreakpoint(thread, breakpoints[0]?.source);
     }
 
     for (const breakpoints of this._byRef.values()) {
