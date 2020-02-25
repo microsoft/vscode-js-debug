@@ -41,6 +41,7 @@ after(async () => {
 });
 
 interface IIntegrationState {
+  context: Mocha.Context & { test: Mocha.Runnable };
   golden: GoldenText;
   r: TestRoot;
 }
@@ -58,7 +59,7 @@ const itIntegratesBasic = (
     try {
       (this.test as IGoldenReporterTextTest).goldenText = golden;
 
-      await fn({ golden, r: root });
+      await fn({ golden, r: root, context: this as Mocha.Context & { test: Mocha.Runnable } });
     } finally {
       try {
         await root.disconnect();
