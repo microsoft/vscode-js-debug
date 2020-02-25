@@ -12,7 +12,7 @@ describe('pretty print sources', () => {
     return () => p.dap.continue({ threadId });
   }
 
-  itIntegrates.only('base', async ({ r }) => {
+  itIntegrates('base', async ({ r }) => {
     const p = await r.launchUrl('pretty/pretty.html');
     const source = { path: p.workspacePath('web/pretty/ugly.js') };
     await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
@@ -32,7 +32,7 @@ describe('pretty print sources', () => {
     p.assertLog();
   });
 
-  itIntegrates.only('steps in pretty', async ({ r }) => {
+  itIntegrates('steps in pretty', async ({ r }) => {
     const p = await r.launchUrl('pretty/pretty.html');
     const source = { path: p.workspacePath('web/pretty/ugly.js') };
     await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
@@ -53,7 +53,7 @@ describe('pretty print sources', () => {
     p.assertLog();
   });
 
-  itIntegrates.only('bps', async ({ r }) => {
+  itIntegrates('bps', async ({ r }) => {
     const p = await r.launchUrl('pretty/pretty.html');
     const source = { path: p.workspacePath('web/pretty/ugly.js') };
     await p.dap.setBreakpoints({
