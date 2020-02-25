@@ -208,7 +208,7 @@ const sourceForUri = (uri: vscode.Uri) => {
   const query = qs.parse(uri.query);
   const sessionId: string | undefined = query['session'] as string;
   const source = {
-    path: uri.path,
+    path: uri.fsPath,
     sourceReference: Number(query['ref']) || 0,
   };
 
