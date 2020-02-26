@@ -14,6 +14,7 @@ import { ILogger } from '../../../common/logging';
 import { TaskCancelledError } from '../../../common/cancellation';
 import { DisposableList } from '../../../common/disposable';
 import { killTree } from '../../node/killTree';
+import { delay } from '../../../common/promiseUtil';
 
 interface ITransportOptions {
   connection: 'pipe' | number;
@@ -69,7 +70,18 @@ const inspectWsConnection = async (
   const inspectWs = options.inspectUri
     ? constructInspectorWSUri(options.inspectUri, options.url, endpoint)
     : endpoint;
-  return await WebSocketTransport.create(inspectWs, cancellationToken);
+
+  while (true) {
+    try {
+      return await WebSocketTransport.create(inspectWs, cancellationToken);
+    } catch (e) {
+      if (cancellationToken.isCancellationRequested) {
+        throw e;
+      }
+
+      await delay(200);
+    }
+  }
 };
 
 export class NonTrackedBrowserProcess implements IBrowserProcess {
