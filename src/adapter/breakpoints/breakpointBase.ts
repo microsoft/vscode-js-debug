@@ -8,7 +8,7 @@ import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
 import { IUiLocation, base1To0 } from '../sources';
-import { urlToRegex } from '../../common/urlUtils';
+import { urlToRegex, absolutePathToFileUrl } from '../../common/urlUtils';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -348,7 +348,7 @@ export abstract class Breakpoint {
       ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path)
       : undefined;
     if (!url) return;
-    await this._setByUrl(thread, url, lineColumn);
+    await this._setByUrl(thread, url, lineColumn, this.source.path);
   }
 
   /**
@@ -371,14 +371,23 @@ export abstract class Breakpoint {
     );
   }
 
-  private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
+  private async _setByUrl(
+    thread: Thread,
+    url: string,
+    lineColumn: LineColumn,
+    filePath?: string,
+  ): Promise<void> {
     lineColumn = base1To0(lineColumn);
     if (this.hasSetOnLocation({ url }, lineColumn)) {
       return;
     }
 
+    const filePathRegexp = filePath
+      ? '|' + urlToRegex(absolutePathToFileUrl(filePath)?.toString()!)
+      : '';
+    const urlRegexp = urlToRegex(url) + filePathRegexp;
     return this._setAny(thread, {
-      urlRegex: urlToRegex(url),
+      urlRegex: urlRegexp,
       condition: this.getBreakCondition(),
       ...lineColumn,
     });
