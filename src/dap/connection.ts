@@ -30,7 +30,12 @@ export default class Connection {
   private disposables: IDisposable[] = [];
 
   private _initialized = getDeferred<Connection>();
-  public initialized = this._initialized.promise;
+  /**
+   * Get a promise which will resolve with this connection after the session has responded to initialize
+   */
+  public get initializedBlocker() {
+    return this._initialized.promise;
+  }
 
   constructor(
     protected readonly transport: IDapTransport,
