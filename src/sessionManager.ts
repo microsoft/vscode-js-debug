@@ -5,7 +5,7 @@
 import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
 import { ITarget } from './targets/targets';
-import { IDisposable, IEvent, EventEmitter } from './common/events';
+import { IDisposable } from './common/events';
 import { DebugType } from './common/contributionUtils';
 import { TargetOrigin } from './targets/targetOrigin';
 import { TelemetryReporter } from './telemetry/telemetryReporter';
@@ -39,9 +39,6 @@ export type SessionLauncher<T extends IDebugSessionLike> = (
 export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposable {
   public readonly connection: DapConnection;
   protected readonly telemetryReporter = new TelemetryReporter();
-  private _onTargetNameChanged = new EventEmitter<string>();
-  public onTargetNameChanged: IEvent<string> = this._onTargetNameChanged.event;
-
   private subscription?: IDisposable;
 
   constructor(
@@ -54,7 +51,7 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
   }
 
   listenToTarget(target: ITarget) {
-    this.subscription = target.onNameChanged(() => this._onTargetNameChanged.fire(target.name()));
+    this.subscription = target.onNameChanged(() => (this.debugSession.name = target.name()));
   }
 
   dispose() {
@@ -133,6 +130,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       session = new Session<TSessionImpl>(debugSession, transport, parent.logger);
 
       this._pendingTarget.delete(pendingTargetId);
+      session.debugSession.name = target.name();
       session.listenToTarget(target);
       const callbacks = this._sessionForTargetCallbacks.get(target);
       this._sessionForTargetCallbacks.delete(target);
