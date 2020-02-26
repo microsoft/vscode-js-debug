@@ -110,6 +110,7 @@ class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
     let scriptStart: Position | undefined;
     let inScripts = false;
     let buildingScript: { name: string; position: Position } | void;
+    let level = 0;
     const text = document.getText();
     const getPos = (offset: number) => {
       const line = text.slice(0, offset).match(/\n/g)?.length ?? 0;
@@ -123,10 +124,14 @@ class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
       onError() {
         // no-op
       },
+      onObjectBegin() {
+        level++;
+      },
       onObjectEnd() {
         if (inScripts) {
           inScripts = false;
         }
+        level--;
       },
       onLiteralValue(value: unknown) {
         if (buildingScript && typeof value === 'string') {
@@ -135,11 +140,13 @@ class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
         }
       },
       onObjectProperty(property: string, offset: number) {
-        if (property === 'scripts') {
-          inScripts = true;
-          scriptStart = getPos(offset);
-        } else if (inScripts) {
-          buildingScript = { name: property, position: getPos(offset) };
+        if (level === 1) {
+          if (property === 'scripts') {
+            inScripts = true;
+            scriptStart = getPos(offset);
+          } else if (inScripts) {
+            buildingScript = { name: property, position: getPos(offset) };
+          }
         }
       },
     };
