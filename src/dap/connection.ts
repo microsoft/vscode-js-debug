@@ -9,6 +9,7 @@ import { ILogger } from '../common/logging';
 import { isDapError, isExternalError, ProtocolError } from './errors';
 import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
+import { getDeferred } from '../common/promiseUtil';
 
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
@@ -27,6 +28,9 @@ export default class Connection {
   private _eventListeners = new Map<string, Set<(params: object) => void>>();
   private _dap: Promise<Dap.Api>;
   private disposables: IDisposable[] = [];
+
+  private _initialized = getDeferred<Connection>();
+  public initialized = this._initialized.promise;
 
   constructor(
     protected readonly transport: IDapTransport,
@@ -163,6 +167,9 @@ export default class Connection {
             });
           } else {
             this._send({ ...response, body: result });
+            if (response.command === 'initialize') {
+              this._initialized.resolve(this);
+            }
           }
         }
         this.telemetryReporter?.reportOperation(
