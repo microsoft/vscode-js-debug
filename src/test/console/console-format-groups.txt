@@ -1,0 +1,38 @@
+Evaluating: 'console.log('outer')'
+stdout> outer
+
+Evaluating: 'console.group()'
+# group: start
+stdout> console.group
+
+Evaluating: 'console.log('in anonymous')'
+stdout> in anonymous
+
+Evaluating: 'console.groupCollapsed('named')'
+# group: startCollapsed
+stdout> named
+
+Evaluating: 'console.log('in named')'
+stdout> in named
+
+Evaluating: 'console.group({ complex: true })'
+# group: start
+stdout> > {complex: true}
+stdout>     complex: true
+stdout>     > __proto__: Object
+
+Evaluating: 'console.log('in complex')'
+stdout> in complex
+
+Evaluating: 'console.groupEnd()'
+# group: end
+
+Evaluating: 'console.groupEnd()'
+# group: end
+
+Evaluating: 'console.log('back in anonymous')'
+stdout> back in anonymous
+
+Evaluating: 'console.groupEnd()'
+# group: end
+

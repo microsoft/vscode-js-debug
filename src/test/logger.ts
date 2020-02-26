@@ -105,8 +105,15 @@ export class Logger {
   }
 
   async logOutput(params: Dap.OutputEventParams, options?: ILogOptions) {
+    if (params.group) {
+      this.logAsConsole(`# group: ${params.group}`);
+    }
+
     const prefix = `${params.category}> `;
-    if (params.output) this.logAsConsole(`${prefix}${params.output}`);
+    if (params.output) {
+      this.logAsConsole(`${prefix}${params.output}`);
+    }
+
     if (params.variablesReference) {
       const result = await this._dap.variables({ variablesReference: params.variablesReference });
       for (const variable of result.variables) await this.logVariable(variable, options, prefix);

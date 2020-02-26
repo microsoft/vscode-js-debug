@@ -367,6 +367,24 @@ describe('console format', () => {
     p.assertLog();
   });
 
+  itIntegrates('groups', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog([
+      `console.log('outer')`,
+      `console.group()`,
+      `console.log('in anonymous')`,
+      `console.groupCollapsed('named')`,
+      `console.log('in named')`,
+      `console.group({ complex: true })`,
+      `console.log('in complex')`,
+      `console.groupEnd()`,
+      `console.groupEnd()`,
+      `console.log('back in anonymous')`,
+      `console.groupEnd()`,
+    ]);
+    p.assertLog();
+  });
+
   itIntegrates('colors', async ({ r }) => {
     const p = await r.launchAndLoad(`blank`);
 

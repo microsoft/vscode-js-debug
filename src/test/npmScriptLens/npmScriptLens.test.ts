@@ -34,7 +34,7 @@ function prepareFileTree() {
 const setLocation = (location: 'all' | 'top') =>
   writeConfig(vscode.workspace.getConfiguration(), Configuration.NpmScriptLens, location);
 
-describe.only('npmScriptLens', () => {
+describe('npmScriptLens', () => {
   describe('with location=top', () => {
     it('uses the scripts property at root level only', async () => {
       try {

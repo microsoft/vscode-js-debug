@@ -900,9 +900,22 @@ export class Thread implements IVariableStoreDelegate {
   ): Promise<Dap.OutputEventParams | undefined> {
     switch (event.type) {
       case 'endGroup':
-        return;
+        return { category: 'stdout', output: '', group: 'end' };
       case 'clear':
         return this._clearDebuggerConsole();
+    }
+
+    // Ignore the duplicate group events that Node.js can emit:
+    // See: https://github.com/nodejs/node/issues/31973
+    if (event.type === 'log') {
+      const firstFrame = event.stackTrace?.callFrames[0];
+      if (
+        firstFrame &&
+        firstFrame.functionName === 'group' &&
+        firstFrame.url === 'internal/console/constructor.js'
+      ) {
+        return undefined;
+      }
     }
 
     let stackTrace: StackTrace | undefined;
@@ -954,10 +967,18 @@ export class Thread implements IVariableStoreDelegate {
       variablesReference = undefined;
     }
 
+    const group =
+      event.type === 'startGroup'
+        ? 'start'
+        : event.type === 'startGroupCollapsed'
+        ? 'startCollapsed'
+        : undefined;
+
     return {
       category,
       output,
       variablesReference,
+      group,
       source: uiLocation ? await uiLocation.source.toDap() : undefined,
       line: uiLocation ? uiLocation.lineNumber : undefined,
       column: uiLocation ? uiLocation.columnNumber : undefined,
