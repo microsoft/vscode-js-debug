@@ -8,6 +8,7 @@ import * as events from 'events';
 import { CancellationToken } from 'vscode';
 import { timeoutPromise } from '../common/cancellation';
 import { LogTag, ILogger } from '../common/logging';
+import { isLoopback } from '../common/urlUtils';
 
 export interface ITransport {
   send(message: string): void;
@@ -108,10 +109,17 @@ export class WebSocketTransport implements ITransport {
   onmessage?: (message: string, receivedTime: bigint) => void;
   onend?: () => void;
 
-  static create(url: string, cancellationToken: CancellationToken): Promise<WebSocketTransport> {
+  static async create(
+    url: string,
+    cancellationToken: CancellationToken,
+  ): Promise<WebSocketTransport> {
+    const isSecure = !url.startsWith('ws://');
+    const targetAddressIsLoopback = await isLoopback(url);
+
     const ws = new WebSocket(url, [], {
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb
+      rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
     });
 
     return timeoutPromise(
