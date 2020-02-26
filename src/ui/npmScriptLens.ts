@@ -28,7 +28,7 @@ const getFreshLensLocation = () =>
  * Npm script lens provider implementation. Can show a "Debug" text above any
  * npm script, or the npm scripts section.
  */
-class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
+export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
   private lensLocation = getFreshLensLocation();
   private changeEmitter = new EventEmitter<void>();
   private subscriptions: IDisposable[] = [];
@@ -140,13 +140,11 @@ class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
         }
       },
       onObjectProperty(property: string, offset: number) {
-        if (level === 1) {
-          if (property === 'scripts') {
-            inScripts = true;
-            scriptStart = getPos(offset);
-          } else if (inScripts) {
-            buildingScript = { name: property, position: getPos(offset) };
-          }
+        if (level === 1 && property === 'scripts') {
+          inScripts = true;
+          scriptStart = getPos(offset);
+        } else if (inScripts) {
+          buildingScript = { name: property, position: getPos(offset) };
         }
       },
     };
