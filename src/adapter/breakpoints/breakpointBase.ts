@@ -8,7 +8,7 @@ import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
 import { IUiLocation, base1To0 } from '../sources';
-import { urlToRegex } from '../../common/urlUtils';
+import { urlToRegex, absolutePathToFileUrl } from '../../common/urlUtils';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -349,6 +349,13 @@ export abstract class Breakpoint {
       : undefined;
     if (!url) return;
     await this._setByUrl(thread, url, lineColumn);
+    if (this.source.path !== url && this.source.path !== undefined) {
+      await this._setByUrl(
+        thread,
+        absolutePathToFileUrl(this.source.path)?.toString()!,
+        lineColumn,
+      );
+    }
   }
 
   /**
