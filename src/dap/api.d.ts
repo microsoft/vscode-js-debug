@@ -2748,7 +2748,42 @@ export namespace Dap {
     presentationHint?: string;
   }
 
-  export type StackFrameFormat = undefined;
+  export interface StackFrameFormat extends ValueFormat {
+    /**
+     * Displays parameters for the stack frame.
+     */
+    parameters?: boolean;
+
+    /**
+     * Displays the types of parameters for the stack frame.
+     */
+    parameterTypes?: boolean;
+
+    /**
+     * Displays the names of parameters for the stack frame.
+     */
+    parameterNames?: boolean;
+
+    /**
+     * Displays the values of parameters for the stack frame.
+     */
+    parameterValues?: boolean;
+
+    /**
+     * Displays the line number of the stack frame.
+     */
+    line?: boolean;
+
+    /**
+     * Displays the module of the stack frame.
+     */
+    module?: boolean;
+
+    /**
+     * Includes all stack frames, including those the debug adapter might otherwise hide.
+     */
+    includeAll?: boolean;
+  }
 
   /**
    * Properties of a breakpoint passed to the setFunctionBreakpoints request.

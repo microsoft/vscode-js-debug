@@ -106,6 +106,12 @@ async function generate() {
     }
   }
 
+  function getExtends(def) {
+      const refs = (def.allOf.filter(x => x['$ref']) || [])
+                    .map(ref => definition(ref['$ref'])).join(', ');
+    return 'extends ' + refs;
+  }
+
   const stubs = [];
   const interfaceSeparator = createSeparator();
 
@@ -198,11 +204,18 @@ async function generate() {
     const def = defs[type];
     interfaceSeparator();
     appendText(def.description, '  ');
-    if (def.type !== 'object') {
+    if (def.type && def.type !== 'object') {
       result.push(`  export type ${type} = ${def.type};`);
     } else {
-      result.push(`  export interface ${type} {`);
-      appendProps(def.properties, def.required, '    ');
+      result.push(`  export interface ${type} ${(def.allOf) ? getExtends(def) : ''} {`);
+
+      if(def.allOf) {
+        // def extends some other interface(s)
+        const ownDescription = def.allOf.find(parent => !parent['$ref']);
+        appendProps(ownDescription.properties, ownDescription.required, '    ');
+      } else {
+        appendProps(def.properties, def.required, '    ');
+      }
       result.push(`  }`);
     }
   }
