@@ -237,7 +237,6 @@ export class Binder implements IDisposable {
     ++this._terminationCount;
     launcher.onTerminated(
       result => {
-        this._launchers.delete(launcher);
         this._detachOrphanThreads(this.targetList(), { restart: result.restart });
         this._onTargetListChangedEmitter.fire();
         if (!--this._terminationCount) {

@@ -88,17 +88,47 @@ export interface IStopMetadata {
 export const ILauncher = Symbol('ILauncher');
 
 export interface ILauncher extends IDisposable {
+  /**
+   * Attempts to launch the given configuration. It should no-op and return a
+   * result `{ blockSessionTermination: false }` if it's unable to launch
+   * the given configuration, or return an error/true value as appropriate.
+   */
   launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
     clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult>;
+
+  /**
+   * Terminates the debugged process. This should be idempotent.
+   */
   terminate(): Promise<void>;
+
+  /**
+   * Disconnects from the debugged process. This should be idempotent.
+   */
   disconnect(): Promise<void>;
+
+  /**
+   * Attempts to restart the debugged process. This may no-op for certain
+   * debug types, like attach.
+   */
   restart(): Promise<void>;
+
+  /**
+   * Event that fires when targets connect or disconnect.
+   */
   onTargetListChanged: IEvent<void>;
-  onTerminated: IEvent<IStopMetadata>;
+
+  /**
+   * List of currently connected debug targets.
+   */
   targetList(): ITarget[];
+
+  /**
+   * An event that fires when the debug session has ended.
+   */
+  onTerminated: IEvent<IStopMetadata>;
 }
 
 export interface IWebViewConnectionInfo {

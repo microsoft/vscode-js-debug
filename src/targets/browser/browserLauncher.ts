@@ -255,7 +255,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   }
 
   async disconnect(): Promise<void> {
-    if (this._targetManager) await this._targetManager.closeBrowser();
+    await this._targetManager?.closeBrowser();
   }
 
   async restart(): Promise<void> {

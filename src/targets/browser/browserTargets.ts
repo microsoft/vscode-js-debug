@@ -68,7 +68,7 @@ export class BrowserTargetManager implements IDisposable {
 
   constructor(
     connection: CdpConnection,
-    private readonly process: IBrowserProcess | undefined,
+    private process: IBrowserProcess | undefined,
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
     private readonly logger: ILogger,
@@ -103,6 +103,7 @@ export class BrowserTargetManager implements IDisposable {
   async closeBrowser(): Promise<void> {
     await this._browser.Browser.close({});
     this.process?.kill();
+    this.process = undefined;
   }
 
   waitForMainTarget(
