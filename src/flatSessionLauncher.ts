@@ -27,7 +27,6 @@ class VSDebugSession implements IDebugSessionLike {
     public id: string,
     name: string,
     private readonly childConnection: Promise<DapConnection>,
-    private readonly mockProcessId: number,
   ) {
     this._name = name;
   }
@@ -36,9 +35,10 @@ class VSDebugSession implements IDebugSessionLike {
   set name(newName: string) {
     this._name = newName;
     this.childConnection
-      .then(x => x.dap())
+      .then(conn => conn.initializedBlocker)
+      .then(conn => conn.dap())
       .then(dap => {
-        dap.process({ systemProcessId: this.mockProcessId, name: newName });
+        dap.process({ name: newName });
       });
   }
   get name() {
@@ -50,7 +50,6 @@ class VSSessionManager {
   private services = createGlobalContainer({ storagePath, isVsCode: false });
   private sessionManager: SessionManager<VSDebugSession>;
   private rootTransport: IDapTransport;
-  private mockProcessId = 1;
 
   constructor(inputStream: Readable, outputStream: Writable) {
     this.sessionManager = new SessionManager<VSDebugSession>(
@@ -58,7 +57,8 @@ class VSSessionManager {
       this.buildVSSessionLauncher(),
     );
     this.rootTransport = new StreamDapTransport(inputStream, outputStream);
-    this.createSession(undefined, 'rootSession', {});
+    const root = this.createSession(undefined, 'rootSession', {});
+    root.debugSession.name = 'javascript debugger root session';
   }
 
   buildVSSessionLauncher(): SessionLauncher<VSDebugSession> {
@@ -82,16 +82,12 @@ class VSSessionManager {
   createSession(sessionId: string | undefined, name: string, config: any) {
     const deferredConnection = getDeferred<DapConnection>();
     const newSession = this.sessionManager.createNewSession(
-      new VSDebugSession(
-        sessionId || 'root',
-        name,
-        deferredConnection.promise,
-        this.mockProcessId++,
-      ),
+      new VSDebugSession(sessionId || 'root', name, deferredConnection.promise),
       config,
       new SessionIdDapTransport(sessionId, this.rootTransport),
     );
     deferredConnection.resolve(newSession.connection);
+    return newSession;
   }
 }
 
