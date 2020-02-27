@@ -40,22 +40,18 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   /**
    * @inheritdoc
    */
-  public resolveDebugConfiguration(
+  public async resolveDebugConfiguration(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
-  ): vscode.ProviderResult<T> {
-    // We can't make the entire method async, as TS complains that it must
-    // return a Promise rather than a ProviderResult.
+  ): Promise<T | undefined> {
     const castConfig = config as ResolvingConfiguration<T>;
-    return (async () => {
-      try {
-        const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
-        return resolved && this.commonResolution(resolved);
-      } catch (err) {
-        vscode.window.showErrorMessage(err.message, { modal: true });
-      }
-    })();
+    try {
+      const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
+      return resolved && this.commonResolution(resolved);
+    } catch (err) {
+      vscode.window.showErrorMessage(err.message, { modal: true });
+    }
   }
 
   /**
