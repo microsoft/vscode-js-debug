@@ -348,7 +348,14 @@ export abstract class Breakpoint {
       ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path)
       : undefined;
     if (!url) return;
-    await this._setByUrl(thread, url, lineColumn, this.source.path);
+    await this._setByUrl(thread, url, lineColumn);
+    if (this.source.path !== url && this.source.path !== undefined) {
+      await this._setByUrl(
+        thread,
+        absolutePathToFileUrl(this.source.path)?.toString()!,
+        lineColumn,
+      );
+    }
   }
 
   /**
@@ -371,23 +378,14 @@ export abstract class Breakpoint {
     );
   }
 
-  private async _setByUrl(
-    thread: Thread,
-    url: string,
-    lineColumn: LineColumn,
-    filePath?: string,
-  ): Promise<void> {
+  private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
     lineColumn = base1To0(lineColumn);
     if (this.hasSetOnLocation({ url }, lineColumn)) {
       return;
     }
 
-    const filePathRegexp = filePath
-      ? '|' + urlToRegex(absolutePathToFileUrl(filePath)?.toString()!)
-      : '';
-    const urlRegexp = urlToRegex(url) + filePathRegexp;
     return this._setAny(thread, {
-      urlRegex: urlRegexp,
+      urlRegex: urlToRegex(url),
       condition: this.getBreakCondition(),
       ...lineColumn,
     });
