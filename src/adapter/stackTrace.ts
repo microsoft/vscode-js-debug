@@ -120,7 +120,8 @@ export class StackTrace {
     const frames = await this.loadFrames(to);
     to = Math.min(frames.length, params.levels ? to : frames.length);
     const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to; index++) result.push(await frames[index].toDap());
+    for (let index = from; index < to; index++)
+      result.push(await frames[index].toDap(params.format));
     return {
       stackFrames: result,
       totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length,
@@ -259,7 +260,7 @@ export class StackFrame {
     return { scopes };
   }
 
-  async toDap(): Promise<Dap.StackFrame> {
+  async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
     const uiLocation = await this._uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
@@ -271,11 +272,26 @@ export class StackFrame {
     if (isSmartStepped && source)
       source.origin = localize('smartStepSkipLabel', 'Skipped by smartStep');
 
+    const line = (uiLocation || this._rawLocation).lineNumber;
+    const column = (uiLocation || this._rawLocation).columnNumber;
+
+    let formattedName = this._name;
+
+    if (source && format) {
+      if (format.module) {
+        formattedName += ` [${source.name}]`;
+      }
+
+      if (format.line) {
+        formattedName += ` Line ${line}`;
+      }
+    }
+
     return {
       id: this._id,
-      name: this._name, // TODO: Use params to format the name
-      line: (uiLocation || this._rawLocation).lineNumber,
-      column: (uiLocation || this._rawLocation).columnNumber,
+      name: formattedName, // TODO: Use params to format the name
+      line,
+      column,
       source,
       presentationHint,
     } as Dap.StackFrame;
