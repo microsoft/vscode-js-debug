@@ -240,8 +240,9 @@ export class Binder implements IDisposable {
       result => {
         if (firstCall) {
           this._detachOrphanThreads(this.targetList(), { restart: result.restart });
+          --this._terminationCount;
           this._onTargetListChangedEmitter.fire();
-          if (!--this._terminationCount) {
+          if (!this._terminationCount) {
             this._dap.then(dap => dap.terminated({ restart: result.restart }));
           }
 
