@@ -358,6 +358,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       markdownDescription: refString('node.attach.continueOnAttach'),
       default: true,
     },
+    inspectUri: {
+      type: ['string', 'null'],
+      description: refString('node.inspectUri.description'),
+      default: null,
+    },
   },
 };
 

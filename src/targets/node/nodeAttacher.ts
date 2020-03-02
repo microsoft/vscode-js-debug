@@ -20,6 +20,7 @@ import { NodePathProvider } from './nodePathProvider';
 import { IStopMetadata } from '../targets';
 import { injectable } from 'inversify';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { constructInspectorWSUri } from '../browser/constructInspectorWSUri';
 
 const localize = nls.loadMessageBundle();
 
@@ -68,11 +69,19 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         }
       }
 
+      let inspectWs = "";
+      if (runData.params.inspectUri) {
+        inspectWs = constructInspectorWSUri(
+          runData.params.inspectUri,
+          `http://localhost:${runData.params.port}`,
+          inspectorURL);
+      }
+
       const program = (this.program = new SubprocessProgram(
         spawnWatchdog(await this.resolveNodePath(runData.params), {
           ipcAddress: runData.serverAddress,
           scriptName: 'Remote Process',
-          inspectorURL,
+          inspectorURL: inspectWs || inspectorURL,
           waitForDebugger: true,
           dynamicAttach: true,
         }),
