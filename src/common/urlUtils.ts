@@ -12,7 +12,6 @@ import { AnyChromiumConfiguration } from '../configuration';
 import { escapeRegexSpecialChars } from './stringUtils';
 import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
-import ipModule from 'ip';
 import { exists } from './fsUtils';
 import { IDisposable } from './disposable';
 import { TaskCancelledError, NeverCancelled } from './cancellation';
@@ -69,30 +68,16 @@ export const nearestDirectoryWhere = async (
 export const nearestDirectoryContaining = (rootDir: string, file: string) =>
   nearestDirectoryWhere(rootDir, p => exists(path.join(p, file)));
 
-const localv4 = ipModule.toBuffer('127.0.0.1');
-const localv6 = ipModule.toBuffer('::1');
+// todo: not super correct, and most node libraries don't handle this accurately
+const knownLoopbacks = new Set<string>(['localhost', '127.0.0.1', '::1']);
 
 /**
  * Checks if the given address, well-formed loopback IPs. We don't need exotic
  * variations like `127.1` because `dns.lookup()` will resolve the proper
  * version for us. The "right" way would be to parse the IP to an integer
- * like Go does (https://golang.org/pkg/net/#IP.IsLoopback), but this
- * is lightweight and works.
+ * like Go does (https://golang.org/pkg/net/#IP.IsLoopback).
  */
-const isLoopbackIp = (ipOrLocalhost: string) => {
-  if (ipOrLocalhost.toLowerCase() === 'localhost') {
-    return true;
-  }
-
-  let buf: Buffer;
-  try {
-    buf = ipModule.toBuffer(ipOrLocalhost);
-  } catch {
-    return false;
-  }
-
-  return buf.equals(localv4) || buf.equals(localv6);
-};
+const isLoopbackIp = (ipOrLocalhost: string) => knownLoopbacks.has(ipOrLocalhost.toLowerCase());
 
 /**
  * Gets whether the IP is a loopback address.

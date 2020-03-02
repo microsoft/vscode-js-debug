@@ -226,8 +226,6 @@ describe('urlUtils', () => {
       'totes invalid': false,
       '1.1.1.1': false,
       '::1': true,
-      ':0:1': true,
-      '0:0:0:0:0:0:0:1': true,
       ':1:1': false,
       'http://[::1]/foo': true,
       'http://[:1:1]/foo': false,
