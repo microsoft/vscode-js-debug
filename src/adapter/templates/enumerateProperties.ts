@@ -16,9 +16,10 @@ export const enumerateProperties = remoteFunction(function(
   prefix: string,
   isGlobal: boolean,
 ) {
+  const defaultType = isGlobal ? CompletionKind.Variable : CompletionKind.Property;
   const getCompletionKind = (name: string, dtype: string | undefined, value: unknown) => {
     if (dtype !== 'function') {
-      return isGlobal ? CompletionKind.Variable : CompletionKind.Property;
+      return defaultType;
     }
 
     // Say this value is a class if either it stringifies into a native ES6
@@ -28,7 +29,7 @@ export const enumerateProperties = remoteFunction(function(
     const stringified = String(value);
     if (
       stringified.startsWith('class ') ||
-      (stringified.includes('[native code]') && name[0].toUpperCase() === name[0])
+      (stringified.includes('[native code]') && /^[A-Z]/.test(name))
     ) {
       return CompletionKind.Class;
     }
@@ -55,10 +56,20 @@ export const enumerateProperties = remoteFunction(function(
 
       discovered.add(name);
       const descriptor = Object.getOwnPropertyDescriptor(object, name);
+      let type = defaultType;
+      try {
+        type = getCompletionKind(name, typeof descriptor?.value, (object as any)[name]);
+      } catch {
+        // ignored -- the act of accessing some properties has side effects
+        // or can throw errors, fall back to the default type in those cass.
+      }
+
       result.push({
         label: name,
-        sortText: sortPrefix + name,
-        type: getCompletionKind(name, typeof descriptor?.value, (object as any)[name]),
+        // Replace leading underscores with `{` (ordered after alphanum) so
+        // that 'private' fields get shown last.
+        sortText: sortPrefix + name.replace(/^_+/, m => '{'.repeat(m.length)),
+        type,
       });
     }
 

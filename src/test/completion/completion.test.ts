@@ -103,6 +103,22 @@ describe('completion', () => {
         },
       ],
     ],
+    [
+      'poison.|',
+      [
+        { label: 'bar', sortText: '~~bar', type: 'property' },
+        { label: 'foo', sortText: '~~foo', type: 'property' },
+        { label: 'constructor', sortText: '~~~constructor', type: 'method' },
+      ],
+    ],
+    [
+      'hasPrivate.|',
+      [
+        { label: 'c', sortText: '~~c', type: 'property' },
+        { label: '_a', sortText: '~~{a', type: 'property' },
+        { label: '__b', sortText: '~~{{b', type: 'property' },
+      ],
+    ],
   ];
 
   itIntegrates('completion', async ({ r }) => {
@@ -113,6 +129,8 @@ describe('completion', () => {
         var myString = '';
         var MyCoolClass = class MyCoolClass {} // need to be hoisted manually
         function myNeatFunction() {}
+        var hasPrivate = { _a: 1, __b: 2, c: 3 };
+        var poison = { get foo() { throw new Error('oh no!') }, bar: true };
       </script>
     `);
 
