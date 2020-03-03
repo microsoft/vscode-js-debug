@@ -63,6 +63,8 @@ export class NodeSourceMapRepository implements ISourceMapRepository {
         .on('error', reject),
     );
 
+    this.logger.info(LogTag.SourceMapParsing, `node search found ${todo.length} files`);
+
     return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
   }
 }

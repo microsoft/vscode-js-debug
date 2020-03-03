@@ -20,19 +20,16 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
   constructor(private readonly _vscode: vscode, private readonly logger: ILogger) {}
 
   public static createOrFallback(logger: ILogger) {
-    /*
-    todo(connor4312): disabled until https://github.com/microsoft/vscode/issues/85946
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const code: typeof import('vscode') = require('vscode');
-      if (code.workspace.findTextInFiles) {
-        return new CodeSearchSourceMapRepository(
-          code.workspace.findTextInFiles.bind(code.workspace),
-        );
+      if (code.workspace.findTextInFiles as unknown) {
+        return new CodeSearchSourceMapRepository(code, logger);
       }
     } catch {
       // ignored -- VS won't have vscode as a viable import, fall back to the memory/node.js version
     }
-    */
+
     return new NodeSourceMapRepository(logger);
   }
 
@@ -66,6 +63,7 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
           .filter(p => p.startsWith('!'))
           .map(p => forceForwardSlashes(p.slice(1)))
           .join(','),
+        useDefaultExcludes: false,
         useIgnoreFiles: false,
         useGlobalIgnoreFiles: false,
         followSymlinks: true,
@@ -87,6 +85,8 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
         );
       },
     );
+
+    this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
 
     return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
   }
