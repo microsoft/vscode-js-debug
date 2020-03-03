@@ -2,12 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import * as fsUtils from './fsUtils';
 import { SourceMap } from './sourceMaps/sourceMap';
 import { verifyBytes, verifyFile } from './hash';
+
+import { parse } from '@babel/parser';
+import generate from '@babel/generator';
+import traverse from '@babel/traverse';
+import plugin from 'babel-unminify-plugin';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -15,23 +19,19 @@ export async function prettyPrintAsSourceMap(
   compiledPath: string,
   sourceMapUrl: string,
 ): Promise<SourceMap | undefined> {
-  const source = beautify(minified);
-  const from = generatePositions(source);
-  const to = generatePositions(minified);
-  if (from.length !== to.length) return Promise.resolve(undefined);
-
+  const ast = parse(minified);
+  traverse(ast, plugin({}, { enableStructuralChanges: false }).visitor as any);
+  const { code, rawMappings } = generate(ast, { sourceMaps: true, sourceFileName: fileName }) as any;
   const generator = new sourceMap.SourceMapGenerator();
-  generator.setSourceContent(fileName, source);
-
-  // We know that AST for both sources is the same, so we can
-  // walk them together to generate mapping.
-  for (let i = 0; i < from.length; i += 2) {
+  generator.setSourceContent(fileName, code);
+  for (const mapping of rawMappings) {
     generator.addMapping({
-      source: fileName,
-      original: { line: from[i], column: from[i + 1] },
-      generated: { line: to[i], column: to[i + 1] },
+      ...mapping,
+      generated: mapping.original,
+      original: mapping.generated,
     });
   }
+
   return new SourceMap(
     await sourceMap.SourceMapConsumer.fromSourceMap(generator),
     {
@@ -40,34 +40,6 @@ export async function prettyPrintAsSourceMap(
     },
     '',
   );
-}
-
-function generatePositions(text: string) {
-  const sourceFile = ts.createSourceFile(
-    'file.js',
-    text,
-    ts.ScriptTarget.ESNext,
-    /*setParentNodes */ false,
-  );
-
-  const result: number[] = [];
-  let index = 0;
-  let line = 0;
-  let column = 0;
-  function traverse(node: ts.Node) {
-    for (; index < node.pos; ++index) {
-      if (text[index] === '\n') {
-        ++line;
-        column = 0;
-        continue;
-      }
-      ++column;
-    }
-    result.push(line + 1, column);
-    ts.forEachChild(node, traverse);
-  }
-  traverse(sourceFile);
-  return result;
 }
 
 export function rewriteTopLevelAwait(code: string): string | undefined {

@@ -45,8 +45,6 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    debugSession.workspaceFolder;
-
     const debugServer = net.createServer(socket => {
       const transport = new StreamDapTransport(socket, socket);
       this.sessionManager.createNewSession(debugSession, debugSession.configuration, transport);

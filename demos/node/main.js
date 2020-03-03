@@ -2,6 +2,9 @@ console.log('hi');console.log('hi2');
 
 const mm = require('./micromatch');
 
+let i = 0;
+i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;i++;
+
 mm(['foo', 'bar', 'baz', 'qux'], ['f*', 'b*']);
 
 async function bar() {
