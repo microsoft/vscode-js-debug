@@ -752,7 +752,7 @@ function resolveWorkspaceRoot<T>(config: AnyLaunchConfiguration): AnyLaunchConfi
   config = resolveVariableInConfig(
     config,
     'webRoot',
-    config.type === DebugType.Chrome ? config.webRoot : config.__workspaceFolder,
+    'webRoot' in config ? config.webRoot : config.__workspaceFolder,
   );
 
   return config;
