@@ -154,6 +154,7 @@
     "onDebugResolve:chrome",
     "onDebugResolve:NAMESPACE(node)",
     "onDebugResolve:NAMESPACE(node-terminal)",
+    "onCommand:extension.js-debug.experimentEnlist",
     "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
     "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
     "onCommand:extension.NAMESPACE(node-debug).toggleSkippingFile",

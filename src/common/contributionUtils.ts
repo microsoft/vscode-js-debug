@@ -2,7 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Command, WorkspaceConfiguration, WorkspaceFolder, commands } from 'vscode';
+import {
+  Command,
+  WorkspaceConfiguration,
+  WorkspaceFolder,
+  commands,
+  ConfigurationTarget,
+} from 'vscode';
 import { ITerminalLaunchConfiguration } from '../configuration';
 
 export const enum Contributions {
@@ -13,6 +19,7 @@ export const enum Contributions {
   DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
   CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
 
+  EnlistExperimentCommand = 'extension.js-debug.experimentEnlist',
   AddCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
   RemoveCustomBreakpointCommand = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
   RemoveAllCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
@@ -68,6 +75,7 @@ export interface ICommandTypes {
   [Contributions.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
   [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
   [Contributions.PrettyPrintCommand]: { args: []; out: void };
+  [Contributions.EnlistExperimentCommand]: { args: []; out: void };
 }
 
 /**
@@ -113,4 +121,5 @@ export const writeConfig = <K extends keyof IConfigurationTypes>(
   config: WorkspaceConfiguration,
   key: K,
   value: IConfigurationTypes[K],
-) => config.update(key, value);
+  target?: ConfigurationTarget,
+) => config.update(key, value, target);

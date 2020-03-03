@@ -20,6 +20,7 @@ import { IDebugConfigurationProvider } from './ui/configuration';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { tmpdir } from 'os';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
+import { toggleOnExperiment } from './ui/experimentEnlist';
 
 // eslint-disable-next-line
 const packageJson = require('../package.json');
@@ -42,6 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Contributions.PickProcessCommand, pickProcess),
     registerCommand(vscode.commands, Contributions.AttachProcessCommand, attachProcess),
     registerCommand(vscode.commands, Contributions.ToggleSkippingCommand, toggleSkippingFile),
+    registerCommand(vscode.commands, Contributions.EnlistExperimentCommand, toggleOnExperiment),
   );
 
   context.subscriptions.push(
