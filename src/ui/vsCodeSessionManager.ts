@@ -8,6 +8,13 @@ import { IDisposable } from '../common/events';
 import { Container } from 'inversify';
 import { SessionManager, SessionLauncher } from '../sessionManager';
 import { StreamDapTransport } from '../dap/transport';
+import { pick } from '../common/objUtils';
+
+const preservedProperties = [
+  // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
+  // and processed: https://github.com/microsoft/vscode-js-debug/issues/362
+  'serverReadyAction',
+];
 
 /**
  * Session launcher which uses vscode's `startDebugging` method to start a new debug session
@@ -17,7 +24,10 @@ import { StreamDapTransport } from '../dap/transport';
 const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSession, _, config) => {
   vscode.debug.startDebugging(
     parentSession.debugSession.workspaceFolder,
-    config as vscode.DebugConfiguration,
+    {
+      ...config,
+      ...pick(parentSession.debugSession.configuration, preservedProperties),
+    } as vscode.DebugConfiguration,
     {
       parentSession: parentSession.debugSession,
       consoleMode: vscode.DebugConsoleMode.MergeWithParent,

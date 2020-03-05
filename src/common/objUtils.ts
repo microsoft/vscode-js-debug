@@ -269,3 +269,15 @@ export function flatten<T>(items: ReadonlyArray<ReadonlyArray<T>>): T[] {
 
   return out;
 }
+
+/**
+ * Picks the subset of keys from the object.
+ */
+export function pick<T>(obj: T, keys: ReadonlyArray<keyof T>): Partial<T> {
+  const partial: Partial<T> = {};
+  for (const key of keys) {
+    partial[key] = obj[key];
+  }
+
+  return partial;
+}
