@@ -91,13 +91,7 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration,
  */
 export async function pickProcess(): Promise<string | null> {
   try {
-    const items = await listProcesses();
-    const options: vscode.QuickPickOptions = {
-      placeHolder: localize('pickNodeProcess', 'Pick the node.js process to attach to'),
-      matchOnDescription: true,
-      matchOnDetail: true,
-    };
-    const item = await vscode.window.showQuickPick(items, options);
+    const item = await listProcesses();
     return item ? item.pidAndPort : null;
   } catch (err) {
     await vscode.window.showErrorMessage(
@@ -116,25 +110,41 @@ const decodePidAndPort = (encoded: string) => {
   return { pid: Number(pid), port: port ? Number(port) : undefined };
 };
 
-async function listProcesses(): Promise<IProcessItem[]> {
+async function listProcesses(): Promise<IProcessItem> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const items = await processTree.lookup<IProcessItem[]>((leaf, acc) => {
-    if (process.platform === 'win32' && leaf.command.indexOf('\\??\\') === 0) {
-      // remove leading device specifier
-      leaf.command = leaf.command.replace('\\??\\', '');
-    }
+  const quickPick = await vscode.window.createQuickPick<IProcessItem>();
+  quickPick.placeholder = localize('pickNodeProcess', 'Pick the node.js process to attach to');
+  quickPick.matchOnDescription = true;
+  quickPick.matchOnDetail = true;
+  quickPick.busy = true;
+  quickPick.show();
 
-    const executableName = basename(leaf.command, '.exe');
-    const { port } = analyseArguments(leaf.args);
-    if (!port && !nodeProcessPattern.test(executableName)) {
-      return acc;
-    }
+  let hasPicked = false;
+  const itemPromise = new Promise<IProcessItem>(resolve => {
+    quickPick.onDidAccept(() => resolve(quickPick.selectedItems[0]));
+    quickPick.onDidHide(() => resolve(undefined));
+  });
 
-    return [
-      ...acc,
-      {
+  processTree
+    .lookup<IProcessItem[]>((leaf, acc) => {
+      if (hasPicked) {
+        return acc;
+      }
+
+      if (process.platform === 'win32' && leaf.command.indexOf('\\??\\') === 0) {
+        // remove leading device specifier
+        leaf.command = leaf.command.replace('\\??\\', '');
+      }
+
+      const executableName = basename(leaf.command, '.exe');
+      const { port } = analyseArguments(leaf.args);
+      if (!port && !nodeProcessPattern.test(executableName)) {
+        return acc;
+      }
+
+      const newItem = {
         label: executableName,
         description: leaf.args,
         pidAndPort: encodePidAndPort(leaf.pid, port),
@@ -148,11 +158,19 @@ async function listProcesses(): Promise<IProcessItem[]> {
               'SIGUSR1',
             )
           : localize('process.id.signal', 'process id: {0} ({1})', leaf.pid, 'SIGUSR1'),
-      },
-    ];
-  }, []);
+      };
 
-  return items.sort((a, b) => b.sortKey - a.sortKey); // sort items by process id, newest first
+      const index = acc.findIndex(item => item.sortKey < newItem.sortKey);
+      acc.splice(index === -1 ? acc.length : index, 0, newItem);
+      quickPick.items = acc;
+      return acc;
+    }, [])
+    .then(() => (quickPick.busy = false));
+
+  const item = await itemPromise;
+  hasPicked = true;
+  quickPick.dispose();
+  return item;
 }
 
 function putPidInDebugMode(pid: number): void {
