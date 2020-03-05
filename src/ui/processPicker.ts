@@ -6,7 +6,6 @@ import { execSync } from 'child_process';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Contributions } from '../common/contributionUtils';
 import {
   INodeAttachConfiguration,
   nodeAttachConfigDefaults,
@@ -27,16 +26,20 @@ interface IProcessItem extends vscode.QuickPickItem {
  * end user action for picking a process and attaching debugger to it
  */
 export async function attachProcess() {
-  const config: INodeAttachConfiguration = {
-    ...nodeAttachConfigDefaults,
-    name: 'process',
-    processId: `\${command:${Contributions.PickProcessCommand}}`,
-  };
-
-  if (!(await resolveProcessId(config))) {
+  // We pick here, rather than just putting the command as the process ID, so
+  // that the cwd is set correctly in multi-root workspaces.
+  const processId = await pickProcess();
+  if (!processId) {
     return;
   }
 
+  const config: INodeAttachConfiguration = {
+    ...nodeAttachConfigDefaults,
+    name: 'process',
+    processId,
+  };
+
+  await resolveProcessId(config, true);
   await vscode.debug.startDebugging(
     vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.cwd)),
     config,
@@ -48,24 +51,11 @@ export async function attachProcess() {
  * appropriately. Returns true if the configuration was updated, false
  * if it was cancelled.
  */
-export async function resolveProcessId(config: ResolvingNodeAttachConfiguration): Promise<boolean> {
+export async function resolveProcessId(config: ResolvingNodeAttachConfiguration, setCwd = false) {
   // we resolve Process Picker early (before VS Code) so that we can probe the process for its protocol
-  let processId = config.processId && config.processId.trim();
-  if (
-    !processId ||
-    processId === '${command:PickProcess}' ||
-    processId === `\${command:${Contributions.PickProcessCommand}}`
-  ) {
-    const result = await pickProcess(); // ask for pids and ports!
-    if (!result) {
-      return false; // UI dismissed (cancelled)
-    }
-
-    processId = result;
-  }
-
-  const result = decodePidAndPort(processId);
-  if (isNaN(result.pid)) {
+  const processId = config.processId?.trim();
+  const result = processId && decodePidAndPort(processId);
+  if (!result || isNaN(result.pid)) {
     throw new Error(
       localize(
         'process.id.error',
@@ -82,17 +72,17 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration)
   config.port = result.port || INSPECTOR_PORT_DEFAULT;
   delete config.processId;
 
-  if (vscode.workspace.workspaceFolders?.length === 1) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    config.cwd = vscode.workspace.workspaceFolders![0].uri.fsPath;
-  } else if (processId) {
-    const inferredWd = await processTree.getWorkingDirectory(result.pid);
-    if (inferredWd) {
-      config.cwd = await processTree.getWorkingDirectory(result.pid);
+  if (setCwd) {
+    if (vscode.workspace.workspaceFolders?.length === 1) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      config.cwd = vscode.workspace.workspaceFolders![0].uri.fsPath;
+    } else if (processId) {
+      const inferredWd = await processTree.getWorkingDirectory(result.pid);
+      if (inferredWd) {
+        config.cwd = await processTree.getWorkingDirectory(result.pid);
+      }
     }
   }
-
-  return true;
 }
 
 /**

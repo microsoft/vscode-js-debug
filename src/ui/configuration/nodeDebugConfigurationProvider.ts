@@ -19,13 +19,13 @@ import {
 import { DebugType } from '../../common/contributionUtils';
 import { INvmResolver } from '../../targets/node/nvmResolver';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { fixInspectFlags } from '../configurationUtils';
 import { injectable, inject } from 'inversify';
 import { ExtensionContext } from '../../ioc-extras';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
+import { resolveProcessId } from '../processPicker';
 
 // eslint-disable-next-line
 const config = require('../../../package.json');
@@ -53,6 +53,25 @@ export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNode
   ) {
     super(context);
     this.setProvideDefaultConfiguration(folder => createLaunchConfigFromContext(folder, true));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async resolveDebugConfigurationWithSubstitutedVariables(
+    folder: vscode.WorkspaceFolder | undefined,
+    rawConfig: vscode.DebugConfiguration,
+  ): Promise<vscode.DebugConfiguration> {
+    const config = rawConfig as AnyNodeConfiguration;
+    if (
+      config.type === DebugType.Node &&
+      config.request === 'attach' &&
+      typeof config.processId === 'string'
+    ) {
+      await resolveProcessId(config);
+    }
+
+    return config;
   }
 
   /**
@@ -105,13 +124,6 @@ export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNode
 
       // update outfiles to the nearest package root
       await guessOutFiles(folder, config);
-    }
-
-    // "attach to process via picker" support
-    if (config.request === 'attach' && typeof config.processId === 'string') {
-      if (!(await resolveProcessId(config))) {
-        return undefined; // abort launch
-      }
     }
 
     return config.request === 'attach'

@@ -35,7 +35,6 @@ export class WindowsProcessTree extends BaseProcessTree {
 
     return line => {
       const matches = CMD_PAT.exec(line.trim());
-      console.log(matches, line.trim());
       if (!matches || matches.length !== 5) {
         return;
       }

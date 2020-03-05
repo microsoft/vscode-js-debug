@@ -675,7 +675,6 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   attachExistingChildren: true,
   restart: false,
   request: 'attach',
-  processId: '',
   continueOnAttach: false,
 };
 
