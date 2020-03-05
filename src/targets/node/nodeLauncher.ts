@@ -66,7 +66,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     let config: INodeLaunchConfiguration | undefined;
     if (params.type === DebugType.Node && params.request === 'launch') {
       config = { ...params };
-    } else if (params.type === DebugType.Chrome && params.server && 'program' in params.server) {
+    } else if ('server' in params && params.server && 'program' in params.server) {
       config = { ...params.server };
     }
 
