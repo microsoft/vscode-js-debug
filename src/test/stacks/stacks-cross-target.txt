@@ -7,5 +7,7 @@
 
 ----postMessage----
 <anonymous> @ ${workspaceFolder}/web/worker.js:6:5
+  scope error: Variables not available in async stacks
 ----Worker.postMessage----
 <anonymous> @ <eval>/VM<xx>:1:10
+  scope error: Variables not available in async stacks

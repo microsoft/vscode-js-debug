@@ -161,23 +161,27 @@ export class Logger {
       );
       if (!withScopes) continue;
       const scopes = await this._dap.scopes({ frameId: frame.id });
-      for (let i = 0; i < scopes.scopes.length; i++) {
-        const scope = scopes.scopes[i];
-        if (scope.expensive) {
-          this._log(`  scope #${i}: ${scope.name} [expensive]`);
-          continue;
+      if (typeof scopes === 'string') {
+        this._log(`  scope error: ${scopes}`);
+      } else {
+        for (let i = 0; i < scopes.scopes.length; i++) {
+          const scope = scopes.scopes[i];
+          if (scope.expensive) {
+            this._log(`  scope #${i}: ${scope.name} [expensive]`);
+            continue;
+          }
+          await this.logVariable(
+            {
+              name: 'scope #' + i,
+              value: scope.name,
+              variablesReference: scope.variablesReference,
+              namedVariables: scope.namedVariables,
+              indexedVariables: scope.indexedVariables,
+            },
+            {},
+            '  ',
+          );
         }
-        await this.logVariable(
-          {
-            name: 'scope #' + i,
-            value: scope.name,
-            variablesReference: scope.variablesReference,
-            namedVariables: scope.namedVariables,
-            indexedVariables: scope.indexedVariables,
-          },
-          {},
-          '  ',
-        );
       }
     }
 

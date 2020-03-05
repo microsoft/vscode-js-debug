@@ -19,6 +19,7 @@ export const enum ErrorCodes {
   InvalidHitCondition,
   InvalidLogPointBreakpointSyntax,
   BrowserNotFound,
+  AsyncScopesNotAvailable,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -28,11 +29,11 @@ export function reportToConsole(dap: Dap.Api, error: string) {
   });
 }
 
-export function createSilentError(text: string): Dap.Error {
+export function createSilentError(text: string, code = ErrorCodes.SilentError): Dap.Error {
   return {
     __errorMarker: true,
     error: {
-      id: ErrorCodes.SilentError,
+      id: code,
       format: text,
       showUser: false,
     },
@@ -146,6 +147,15 @@ export const browserNotFound = (
 
 export const invalidLogPointSyntax = (error: string) =>
   createUserError(error, ErrorCodes.InvalidLogPointBreakpointSyntax);
+
+export const asyncScopesNotAvailable = () =>
+  createSilentError(
+    localize(
+      'asyncScopesNotAvailable',
+      'Variables not available in async stacks',
+      ErrorCodes.AsyncScopesNotAvailable,
+    ),
+  );
 
 export class ProtocolError extends Error {
   public readonly cause: Dap.Message;
