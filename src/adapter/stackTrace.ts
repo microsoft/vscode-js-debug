@@ -10,6 +10,7 @@ import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
 import { LogPointCompiler } from './breakpoints/conditions/logPoint';
+import { asyncScopesNotAvailable, ProtocolError } from '../dap/errors';
 
 const localize = nls.loadMessageBundle();
 
@@ -184,7 +185,9 @@ export class StackFrame {
   }
 
   async scopes(): Promise<Dap.ScopesResult> {
-    if (!this._scope) return { scopes: [] };
+    if (!this._scope) {
+      throw new ProtocolError(asyncScopesNotAvailable());
+    }
 
     const scopes: Dap.Scope[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {

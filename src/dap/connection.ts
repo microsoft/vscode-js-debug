@@ -183,7 +183,6 @@ export default class Connection {
           Number(process.hrtime.bigint() - receivedTime) / 1e6,
         );
       } catch (e) {
-        console.error(e);
         const format = isExternalError(e)
           ? e.message
           : `Error processing ${msg.command}: ${e.stack || e.message}`;
@@ -195,6 +194,7 @@ export default class Connection {
             body: { error: e.cause },
           });
         } else {
+          console.error(e);
           this._send({
             ...response,
             success: false,
