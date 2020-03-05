@@ -48,6 +48,7 @@ export interface ITarget {
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
+  entryBreakpointId: string | undefined;
 }
 
 export interface ILaunchContext {

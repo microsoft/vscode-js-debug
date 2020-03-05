@@ -71,6 +71,7 @@ export interface IThreadDelegate {
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   initialize(): Promise<void>;
+  entryBreakpointId: string | undefined;
 }
 
 export type ScriptWithSourceMapHandler = (
@@ -845,11 +846,14 @@ export class Thread implements IVariableStoreDelegate {
         };
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
+          const isStopOnEntry =
+            event.hitBreakpoints.length === 1 &&
+            this._delegate.entryBreakpointId === event.hitBreakpoints[0];
           return {
             thread: this,
             stackTrace,
             hitBreakpoints: event.hitBreakpoints,
-            reason: 'breakpoint',
+            reason: isStopOnEntry ? 'entry' : 'breakpoint',
             description: localize('pause.breakpoint', 'Paused on breakpoint'),
           };
         }
