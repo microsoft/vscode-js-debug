@@ -846,6 +846,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     description: refString('configuration.suggestPrettyPrinting'),
     default: true,
   },
+  [Configuration.AutoServerTunnelOpen]: {
+    type: 'boolean',
+    description: refString('configuration.automaticallyTunnelRemoteServer'),
+    default: true,
+  },
 };
 
 process.stdout.write(

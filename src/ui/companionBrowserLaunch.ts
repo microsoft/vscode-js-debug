@@ -4,26 +4,63 @@
 
 import * as vscode from 'vscode';
 import Dap from '../dap/api';
+import { readConfig, Configuration } from '../common/contributionUtils';
+import { URL } from 'url';
 
 const sessionTunnels = new Map<string, vscode.Tunnel>();
+
+const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionEventParams) => {
+  const urlStr = (args.params as { url?: string }).url;
+  if (!urlStr) {
+    return;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(urlStr);
+  } catch (e) {
+    return;
+  }
+
+  if (!readConfig(vscode.workspace.getConfiguration(), Configuration.AutoServerTunnelOpen)) {
+    return;
+  }
+
+  const port = Number(url.port) || 80;
+  if ((await vscode.workspace.tunnels).some(t => t.localAddress.endsWith(`:${port}`))) {
+    return;
+  }
+
+  try {
+    await vscode.workspace.openTunnel({
+      remoteAddress: { port, host: 'localhost' },
+      localAddressPort: port,
+    });
+  } catch {
+    // throws if already forwarded by user or by us previously
+  }
+};
 
 const launchCompanionBrowser = async (
   session: vscode.DebugSession,
   args: Dap.LaunchBrowserInCompanionEventParams,
 ) => {
   try {
-    const tunnel = await vscode.workspace.openTunnel({
-      remoteAddress: { port: args.serverPort, host: 'localhost' },
-      localAddressPort: args.serverPort,
-      label: 'Browser Debug Tunnel',
-    });
+    const [, tunnel] = await Promise.all([
+      tunnelRemoteServerIfNecessary(args),
+      vscode.workspace.openTunnel({
+        remoteAddress: { port: args.serverPort, host: 'localhost' },
+        localAddressPort: args.serverPort,
+        label: 'Browser Debug Tunnel',
+      }),
+    ]);
 
     sessionTunnels.set(session.id, tunnel);
 
     await vscode.commands.executeCommand('js-debug-companion.launchAndAttach', {
       proxyUri: tunnel
         ? `${tunnel.remoteAddress.host}:${tunnel.remoteAddress.port}`
-        : `127.0.01:${args.serverPort}`,
+        : `127.0.0.1:${args.serverPort}`,
       ...args,
     });
   } catch (e) {

@@ -198,6 +198,8 @@ const strings = {
   'configuration.usePreview': 'Use the new in-preview JavaScript debugger for Node.js and Chrome.',
   'configuration.suggestPrettyPrinting':
     'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
+  'configuration.automaticallyTunnelRemoteServer':
+    'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
 };
 
 export default strings;

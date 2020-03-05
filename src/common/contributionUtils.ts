@@ -55,6 +55,7 @@ export const enum Configuration {
   WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
+  AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
 }
 
 /**
@@ -66,6 +67,7 @@ export interface IConfigurationTypes {
   [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
   [Configuration.SuggestPrettyPrinting]: boolean;
+  [Configuration.AutoServerTunnelOpen]: boolean;
 }
 
 export interface ICommandTypes {
