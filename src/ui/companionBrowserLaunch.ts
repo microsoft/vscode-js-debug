@@ -3,10 +3,12 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import Dap from '../dap/api';
 import { readConfig, Configuration } from '../common/contributionUtils';
 import { URL } from 'url';
 
+const localize = nls.loadMessageBundle();
 const sessionTunnels = new Map<string, vscode.Tunnel>();
 
 const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionEventParams) => {
@@ -45,6 +47,15 @@ const launchCompanionBrowser = async (
   session: vscode.DebugSession,
   args: Dap.LaunchBrowserInCompanionEventParams,
 ) => {
+  if (vscode.env.uiKind === vscode.UIKind.Web) {
+    return vscode.window.showErrorMessage(
+      localize(
+        'cannotDebugInBrowser',
+        "We can't launch a browser in debug mode from here. Open this workspace in VS Code on your desktop to enable debugging.",
+      ),
+    );
+  }
+
   try {
     const [, tunnel] = await Promise.all([
       tunnelRemoteServerIfNecessary(args),
