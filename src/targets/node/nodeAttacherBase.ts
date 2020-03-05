@@ -39,6 +39,7 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       initialized: async () => {
         toDispose = this.onFirstInitialize(cdp, run);
         await toDispose;
+        return undefined;
       },
       close: async () => {
         (await toDispose).forEach(d => d.dispose());

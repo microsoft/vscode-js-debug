@@ -173,11 +173,13 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
           return;
         }
 
-        await cdp.Debugger.setBreakpointByUrl({
+        const breakpoint = await cdp.Debugger.setBreakpointByUrl({
           urlRegex: urlToRegex(absolutePathToFileUrl(program) ?? program),
           lineNumber: 0,
           columnNumber: 0,
         });
+
+        return breakpoint?.breakpointId;
       },
       close: () => {
         const processId = Number(targetId);
