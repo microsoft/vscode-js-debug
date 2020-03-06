@@ -120,6 +120,7 @@ export class WebSocketTransport implements ITransport {
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb
       rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
+      followRedirects: true,
     });
 
     return timeoutPromise(
