@@ -98,7 +98,7 @@
     "@types/split2": "^2.1.6",
     "@types/stream-buffers": "^3.0.3",
     "@types/tmp": "^0.1.0",
-    "@types/ws": "^6.0.1",
+    "@types/ws": "^7.2.2",
     "@typescript-eslint/eslint-plugin": "^2.11.0",
     "@typescript-eslint/parser": "^2.11.0",
     "chai": "^4.2.0",
