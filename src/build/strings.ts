@@ -91,7 +91,7 @@ const strings = {
   'debug.terminal.program.description':
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
-  'debug.terminal.welcome': `[Open Debug Terminal](command:${Contributions.CreateDebuggerTerminal})\n\nYou can use the JavaScript Debug Terminal to instantly debug any Node.js scripts you run.`,
+  'debug.terminal.welcome': `[Node.js Debug Terminal](command:${Contributions.CreateDebuggerTerminal})\n\nYou can use the Node.js Debug Terminal to instantly debug JavaScript you run from the command line.`,
 
   'node.pauseForSourceMap.description':
     'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
