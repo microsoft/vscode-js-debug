@@ -134,33 +134,14 @@ interface ILaunchClassification {
   os: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
 }
 
-interface IKeyValuePair<T> {
-  key: string;
-  value: T;
-}
-
 export interface ILaunchMetrics {
   type: string;
   os: string;
   nodeVersion: string;
   adapterVersion: string;
   request: string;
-  parameters: IKeyValuePair<unknown>[];
+  parameters: string;
 }
-
-const toDeepPairs = (obj: unknown, prefix = ''): IKeyValuePair<unknown>[] => {
-  if (typeof obj !== 'object' || !obj) {
-    return [{ key: prefix, value: obj }];
-  }
-
-  let output: IKeyValuePair<unknown>[] = [];
-  const cast = obj as { [key: string]: unknown };
-  for (const key of Object.keys(cast)) {
-    output = output.concat(toDeepPairs(cast[key], prefix ? `${prefix}.${key}` : key));
-  }
-
-  return output;
-};
 
 /******************************************************************************
  * Implementations
@@ -240,7 +221,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
   const launch = (metrics: Omit<ILaunchMetrics, 'parameters'> & { parameters: object }) => {
     publicLog2<IGlobalMetrics & ILaunchMetrics, ILaunchClassification & IGlobalClassification>(
       'js-debug/launch',
-      { ...globalMetrics, ...metrics, parameters: toDeepPairs(metrics.parameters) },
+      { ...globalMetrics, ...metrics, parameters: JSON.stringify(metrics.parameters) },
     );
   };
 
