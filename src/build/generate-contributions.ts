@@ -680,6 +680,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.userDataDir.description'),
       default: true,
     },
+    includeDefaultArgs: {
+      type: 'boolean',
+      description: refString('browser.includeDefaultArgs.description'),
+      default: true,
+    },
     runtimeExecutable: {
       type: ['string', 'null'],
       description: refString('browser.runtimeExecutable.description'),

@@ -49,6 +49,8 @@ const strings = {
   'browser.disableNetworkCache.description':
     'Controls whether to skip the network cache for each request',
   'browser.env.description': 'Optional dictionary of environment key/value pairs for the browser.',
+  'browser.includeDefaultArgs.description':
+    'Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.',
   'browser.file.description': 'A local html file to open in the browser',
   'browser.pathMapping.description':
     'A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk',

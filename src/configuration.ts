@@ -413,6 +413,12 @@ interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
   file: string | null;
 
   /**
+   * Whether default browser launch arguments (to disable features that may
+   * make debugging harder) will be included in the launch.
+   */
+  includeDefaultArgs: boolean;
+
+  /**
    * Additional browser command line arguments.
    */
   runtimeArgs: ReadonlyArray<string> | null;
@@ -657,6 +663,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   cwd: null,
   file: null,
   env: {},
+  includeDefaultArgs: true,
   runtimeArgs: null,
   runtimeExecutable: 'stable',
   userDataDir: true,

@@ -63,6 +63,7 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
       serverPort: (server.address() as AddressInfo).port,
       browserArgs: defaultArgs(new BrowserArgs(params.runtimeArgs || []), {
         hasUserNavigation: !!params.url,
+        ignoreDefaultArgs: !params.includeDefaultArgs,
       }).toArray(),
       launchId,
       params,
