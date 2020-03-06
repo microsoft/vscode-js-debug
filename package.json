@@ -183,6 +183,13 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "debug",
+        "contents": "%debug.terminal.welcome%",
+        "when": "debugStartLanguage == javascript || debugStartLanguage == typescript"
+      }
+    ],
     "commands": [
       {
         "command": "extension.NAMESPACE(node-debug).prettyPrint",

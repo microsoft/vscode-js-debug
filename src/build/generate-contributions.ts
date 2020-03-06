@@ -70,6 +70,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   label: MappedReferenceString;
   program?: string;
   runtime?: string;
+  languages?: string[];
   variables?: { [key: string]: Contributions };
   required?: (keyof T)[];
   configurationSnippets: ({
@@ -523,6 +524,7 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
   type: DebugType.Terminal,
   request: 'launch',
   label: refString('debug.terminal.label'),
+  languages: [],
   configurationSnippets: [
     {
       label: refString('debug.terminal.snippet.label'),
@@ -800,9 +802,9 @@ function buildDebuggers() {
       // eslint-disable-next-line
       const { request, configurationAttributes, required, ...rest } = d;
       entry = {
+        languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
         ...rest,
         aiKey: appInsightsKey,
-        languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
         configurationAttributes: {},
         configurationSnippets: [],
       };
