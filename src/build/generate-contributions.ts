@@ -180,6 +180,10 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         properties: {
           console: {
             type: 'boolean',
+            description: refString('trace.stdio.description'),
+          },
+          stdio: {
+            type: 'boolean',
             description: refString('trace.console.description'),
           },
           level: {

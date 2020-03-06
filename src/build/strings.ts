@@ -18,6 +18,8 @@ const strings = {
   'trace.logFile.description': 'Configures where on disk logs are written.',
   'trace.level.description': 'Configures the level of logs recorded.',
   'trace.console.description': 'Configures whether logs are also returned to the debug console.',
+  'trace.stdio.description':
+    'Whether to return trace data from the launched application or browser.',
 
   'extensionHost.label': 'VS Code Extension Development (preview)',
   'extensionHost.launch.config.name': 'Launch Extension',

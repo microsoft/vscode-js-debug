@@ -65,6 +65,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   protected async launchBrowser(
     {
       runtimeExecutable: executable,
+      trace,
       includeDefaultArgs,
       runtimeArgs,
       userDataDir,
@@ -110,6 +111,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       {
         onStdout: output => dap.output({ category: 'stdout', output }),
         onStderr: output => dap.output({ category: 'stderr', output }),
+        dumpio: typeof trace === 'boolean' ? trace : trace.stdio,
         hasUserNavigation: !!url,
         cwd: cwd || webRoot || undefined,
         env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),

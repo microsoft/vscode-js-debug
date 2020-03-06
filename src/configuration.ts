@@ -52,6 +52,11 @@ export interface ILoggingConfiguration {
   level: string;
 
   /**
+   * Whether to return trace data from the launched application or browser.
+   */
+  stdio: boolean;
+
+  /**
    * Configures where on disk logs are written. If this is null, no logs
    * will be written, otherwise the extension log directory (in VS Code) or
    * OS tmpdir (in VS) will be used.

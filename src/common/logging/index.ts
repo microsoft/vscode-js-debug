@@ -121,7 +121,7 @@ export function fulfillLoggerOptions(
   logDir = tmpdir(),
 ): ILoggingConfiguration {
   if (config === false) {
-    return { console: false, level: 'fatal', logFile: null, tags: [] };
+    return { console: false, level: 'fatal', stdio: false, logFile: null, tags: [] };
   }
 
   let logFile: string;
@@ -133,6 +133,7 @@ export function fulfillLoggerOptions(
   const defaults: ILoggingConfiguration = {
     console: false,
     level: 'verbose',
+    stdio: true,
     logFile,
     tags: [],
   };
