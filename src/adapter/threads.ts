@@ -11,7 +11,7 @@ import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { BreakpointManager } from './breakpoints';
-import * as completions from './completions';
+import { ICompletions } from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
@@ -24,6 +24,7 @@ import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ILogger } from '../common/logging';
 import { AnyObject } from './objectPreview/betterTypes';
+import { IEvaluator } from './evaluator';
 
 const localize = nls.loadMessageBundle();
 
@@ -143,6 +144,8 @@ export class Thread implements IVariableStoreDelegate {
     dap: Dap.Api,
     delegate: IThreadDelegate,
     logger: ILogger,
+    private readonly evaluator: IEvaluator,
+    private readonly completer: ICompletions,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
   ) {
@@ -296,8 +299,7 @@ export class Thread implements IVariableStoreDelegate {
       return { targets: this.getExecutionContextCompletions(params) };
     }
 
-    const targets = await completions.completions({
-      cdp: this._cdp,
+    const targets = await this.completer.completions({
       executionContextId: this._selectedContext ? this._selectedContext.description.id : undefined,
       stackFrame,
       expression: params.text,
@@ -363,12 +365,14 @@ export class Thread implements IVariableStoreDelegate {
       }
     }
 
-    const responsePromise = callFrameId
-      ? this._cdp.Debugger.evaluateOnCallFrame({ ...params, callFrameId })
-      : this._cdp.Runtime.evaluate({
-          ...params,
-          contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
-        });
+    const responsePromise = this.evaluator.evaluate(
+      callFrameId
+        ? { ...params, callFrameId }
+        : {
+            ...params,
+            contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
+          },
+    );
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
@@ -642,6 +646,7 @@ export class Thread implements IVariableStoreDelegate {
   _onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
+    this.evaluator.setReturnedValue(undefined);
     this._onThreadResumed();
   }
 
@@ -752,6 +757,7 @@ export class Thread implements IVariableStoreDelegate {
       event.reason === 'promiseRejection' ||
       event.reason === 'other' ||
       event.reason === 'ambiguous';
+
     const hitAnyBreakpoint = !!(event.hitBreakpoints && event.hitBreakpoints.length);
     if (hitAnyBreakpoint || !sameDebuggingSequence) this._sourceContainer.clearDisabledSourceMaps();
 
@@ -766,6 +772,8 @@ export class Thread implements IVariableStoreDelegate {
       event.asyncStackTrace,
       event.asyncStackTraceId,
     );
+
+    this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     switch (event.reason) {
       case 'assert':

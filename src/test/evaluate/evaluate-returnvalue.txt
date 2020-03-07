@@ -1,0 +1,11 @@
+return 42:
+
+result: 42
+return { a: { b: true } }:
+
+> result: {a: {…}}
+    > a: {b: true}
+    > __proto__: Object
+return undefined:
+
+result: undefined

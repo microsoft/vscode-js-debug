@@ -56,6 +56,8 @@ import { IDebugConfigurationProvider } from './ui/configuration/configurationPro
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
+import { ICompletions, Completions } from './adapter/completions';
+import { IEvaluator, Evaluator } from './adapter/evaluator';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -93,6 +95,16 @@ export const createTargetContainer = (
   container
     .bind(IScriptSkipper)
     .to(ScriptSkipper)
+    .inSingletonScope();
+
+  container
+    .bind(ICompletions)
+    .to(Completions)
+    .inSingletonScope();
+
+  container
+    .bind(IEvaluator)
+    .to(Evaluator)
     .inSingletonScope();
 
   // first/parent target
