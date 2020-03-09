@@ -50,6 +50,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.deep.equal({
         console: false,
         level: 'fatal',
+        stdio: false,
         logFile: null,
         tags: [],
       });
@@ -63,6 +64,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.containSubset({
         console: false,
         level: 'verbose',
+        stdio: true,
         logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
         tags: [],
       });
@@ -79,6 +81,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.deep.equal({
         console: false,
         level: 'warn',
+        stdio: true,
         logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
         tags: ['cdp'],
       });
