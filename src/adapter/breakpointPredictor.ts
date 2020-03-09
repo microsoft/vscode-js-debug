@@ -8,7 +8,6 @@ import * as urlUtils from '../common/urlUtils';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
-import { SourceMapConsumer } from 'source-map';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { LogTag, ILogger } from '../common/logging';
@@ -17,6 +16,7 @@ import { EventEmitter } from '../common/events';
 import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
 import { injectable, inject } from 'inversify';
+import { getOptimalCompiledPosition } from '../common/sourceUtils';
 
 export interface IWorkspaceLocation {
   absolutePath: string;
@@ -206,12 +206,15 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       }
 
       for (const b of params.breakpoints || []) {
-        const entry = map.generatedPositionFor({
-          source: metadata.sourceUrl,
-          line: b.line,
-          column: b.column || 1,
-          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
-        });
+        const entry = getOptimalCompiledPosition(
+          metadata.sourceUrl,
+          {
+            lineNumber: b.line,
+            columnNumber: b.column || 1,
+          },
+          map,
+        );
+
         if (entry.line === null) {
           continue;
         }

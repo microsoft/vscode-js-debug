@@ -8,6 +8,7 @@ import * as ts from 'typescript';
 import * as fsUtils from './fsUtils';
 import { SourceMap } from './sourceMaps/sourceMap';
 import { verifyBytes, verifyFile } from './hash';
+import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -271,4 +272,46 @@ export function positionToOffset(text: string, line: number, column: number): nu
   for (let l = 1; l < line; ++l) offset += lines[l - 1].length + 1;
   offset += column - 1;
   return offset;
+}
+
+/**
+ * When calling `generatedPositionFor`, we may find non-exact matches. The
+ * bias passed to the method controls which of the matches we choose.
+ * Here, we will try to pick the position that maps back as closely as
+ * possible to the source line if we get an approximate match,
+ */
+export function getOptimalCompiledPosition(
+  sourceUrl: string,
+  uiLocation: LineColumn,
+  map: sourceMap.SourceMapConsumer,
+): sourceMap.NullablePosition {
+  const prevLocation = map.generatedPositionFor({
+    source: sourceUrl,
+    line: uiLocation.lineNumber,
+    column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+    bias: sourceMap.SourceMapConsumer.GREATEST_LOWER_BOUND,
+  });
+
+  const getVariance = (position: sourceMap.NullablePosition) => {
+    if (position.line === null || position.column === null) {
+      return 10e10;
+    }
+
+    const original = map.originalPositionFor(position as sourceMap.Position);
+    return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
+  };
+
+  const nextVariance = getVariance(prevLocation);
+  if (nextVariance === 0) {
+    return prevLocation; // exact match, no need to work harder
+  }
+
+  const nextLocation = map.generatedPositionFor({
+    source: sourceUrl,
+    line: uiLocation.lineNumber,
+    column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+    bias: sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND,
+  });
+
+  return getVariance(nextLocation) < nextVariance ? nextLocation : prevLocation;
 }
