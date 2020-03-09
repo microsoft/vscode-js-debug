@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/basic.ts:21:1

@@ -56,6 +56,7 @@ import { IDebugConfigurationProvider } from './ui/configuration/configurationPro
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
+import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -95,14 +96,6 @@ export const createTargetContainer = (
     .to(ScriptSkipper)
     .inSingletonScope();
 
-  // first/parent target
-  if (!parent.isBound(ITarget)) {
-    container
-      .bind(IBreakpointsPredictor)
-      .to(BreakpointsPredictor)
-      .inSingletonScope();
-  }
-
   return container;
 };
 
@@ -131,6 +124,11 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .to(CachingSourceMapFactory)
     .inSingletonScope()
     .onActivation(trackDispose);
+
+  container
+    .bind(IBreakpointsPredictor)
+    .to(BreakpointsPredictor)
+    .inSingletonScope();
 
   container
     .bind(ISourceMapRepository)
@@ -273,5 +271,16 @@ export const createGlobalContainer = (options: {
   return container;
 };
 
-export const provideLaunchParams = (container: Container, params: AnyLaunchConfiguration) =>
+export const provideLaunchParams = (container: Container, params: AnyLaunchConfiguration) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
+
+  container
+    .bind(SourcePathResolverFactory)
+    .toSelf()
+    .inSingletonScope();
+
+  container
+    .bind(ISourcePathResolver)
+    .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create())
+    .inSingletonScope();
+};

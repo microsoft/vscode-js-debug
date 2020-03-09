@@ -8,8 +8,6 @@ import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
 import { BrowserTargetManager } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
-import { BrowserSourcePathResolver } from './browserPathResolver';
-import { baseURL } from './browserLaunchParams';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
@@ -17,10 +15,10 @@ import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
-import { Dap } from '../../dap/api';
 import { ITargetOrigin } from '../targetOrigin';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -37,7 +35,10 @@ export class BrowserAttacher implements ILauncher {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
+  ) {}
 
   dispose() {
     for (const disposable of this._disposables) disposable.dispose();
@@ -49,7 +50,6 @@ export class BrowserAttacher implements ILauncher {
   async launch(
     params: AnyLaunchConfiguration,
     { targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
-    clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     if (params.type !== DebugType.Chrome || params.request !== 'attach') {
       return { blockSessionTermination: false };
@@ -58,27 +58,19 @@ export class BrowserAttacher implements ILauncher {
     this._launchParams = params;
     this._targetOrigin = targetOrigin;
 
-    const error = await this._attemptToAttach(
-      telemetryReporter,
-      clientCapabilities,
-      cancellationToken,
-    );
+    const error = await this._attemptToAttach(telemetryReporter, cancellationToken);
     return error ? { error } : { blockSessionTermination: false };
   }
 
-  _scheduleAttach(
-    rawTelemetryReporter: TelemetryReporter,
-    clientCapabilities: Dap.InitializeParams,
-  ) {
+  _scheduleAttach(rawTelemetryReporter: TelemetryReporter) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
-      this._attemptToAttach(rawTelemetryReporter, clientCapabilities, NeverCancelled);
+      this._attemptToAttach(rawTelemetryReporter, NeverCancelled);
     }, 1000);
   }
 
   async _attemptToAttach(
     rawTelemetryReporter: TelemetryReporter,
-    clientCapabilities: Dap.InitializeParams,
     cancellationToken: CancellationToken,
   ) {
     const params = this._launchParams!;
@@ -101,29 +93,17 @@ export class BrowserAttacher implements ILauncher {
           this._onTargetListChangedEmitter.fire();
         }
         if (this._launchParams === params) {
-          this._scheduleAttach(rawTelemetryReporter, clientCapabilities);
+          this._scheduleAttach(rawTelemetryReporter);
         }
       },
       undefined,
       this._disposables,
     );
 
-    const pathResolver = new BrowserSourcePathResolver(
-      {
-        resolveSourceMapLocations: params.resolveSourceMapLocations,
-        baseUrl: baseURL(params),
-        localRoot: null,
-        remoteRoot: null,
-        pathMapping: { '/': params.webRoot, ...params.pathMapping },
-        sourceMapOverrides: params.sourceMapPathOverrides,
-        clientID: clientCapabilities.clientID,
-      },
-      this.logger,
-    );
     this._targetManager = await BrowserTargetManager.connect(
       connection,
       undefined,
-      pathResolver,
+      this.pathResolver,
       params,
       this.logger,
       rawTelemetryReporter,

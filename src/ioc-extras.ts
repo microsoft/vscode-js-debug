@@ -12,6 +12,11 @@ import { promises as fsPromises } from 'fs';
 export const StoragePath = Symbol('StoragePath');
 
 /**
+ * Key for the Dap.InitializeParams.
+ */
+export const IInitializeParams = Symbol('IInitializeParams');
+
+/**
  * Key for whether vs code services are available here.
  */
 export const IsVSCode = Symbol('IsVSCode');

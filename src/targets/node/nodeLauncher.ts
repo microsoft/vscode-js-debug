@@ -11,13 +11,15 @@ import { delay } from '../../common/promiseUtil';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
-import { resolve } from 'path';
+import { resolve, extname } from 'path';
 import Cdp from '../../cdp/api';
 import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { exists } from '../../common/fsUtils';
 import { LogTag, ILogger } from '../../common/logging';
 import { fixInspectFlags } from '../../ui/configurationUtils';
 import { injectable, inject, multiInject } from 'inversify';
+import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
+import { ISourceMapMetadata } from '../../common/sourceMaps/sourceMap';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program
@@ -53,6 +55,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
     @inject(INodePathProvider) pathProvider: NodePathProvider,
     @inject(ILogger) logger: ILogger,
+    @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
     @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
   ) {
@@ -82,6 +85,10 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
    * Launches the program.
    */
   protected async launchProgram(runData: IRunData<INodeLaunchConfiguration>): Promise<void> {
+    if (runData.params.program) {
+      runData.params.program = await this.tryGetCompiledFile(runData.params.program);
+    }
+
     const doLaunch = async (restartPolicy: IRestartPolicy) => {
       // Close any existing program. We intentionally don't wait for stop() to
       // finish, since doing so will shut down the server.
@@ -192,5 +199,37 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         }
       },
     };
+  }
+
+  /**
+   * Gets the compiled version of the given target program, if it exists and
+   * we can find it. Otherwise we fall back to evaluating it directly.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/291
+   */
+  private async tryGetCompiledFile(targetProgram: string) {
+    const ext = extname(targetProgram);
+    if (!ext || ext === '.js') {
+      return targetProgram;
+    }
+
+    const mapped = await this.bpPredictor.getPredictionForSource(targetProgram);
+    if (!mapped || mapped.size === 0) {
+      return targetProgram;
+    }
+
+    // There can be more than one compile file per source file. Just pick
+    // whichever one in that case.
+    const entry: ISourceMapMetadata = mapped.values().next().value;
+    if (!entry) {
+      return targetProgram;
+    }
+
+    this.logger.info(LogTag.RuntimeLaunch, 'Updating entrypoint to compiled file', {
+      from: targetProgram,
+      to: entry.compiledPath,
+      candidates: mapped.size,
+    });
+
+    return entry.compiledPath;
   }
 }

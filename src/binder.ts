@@ -33,7 +33,7 @@ import * as os from 'os';
 import { delay } from './common/promiseUtil';
 import { Container } from 'inversify';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer } from './ioc-extras';
+import { disposeContainer, IInitializeParams } from './ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -51,16 +51,15 @@ export class Binder implements IDisposable {
   private _delegate: IBinderDelegate;
   private _disposables: IDisposable[];
   private _threads = new Map<ITarget, { thread: Thread; debugAdapter: DebugAdapter }>();
-  private _launchers = new Set<ILauncher>();
   private _terminationCount = 0;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
-  private _clientCapabilities: Dap.InitializeParams | undefined;
   private _asyncStackPolicy?: IAsyncStackPolicy;
   private _serviceTree = new WeakMap<ITarget, Container>();
+  private _launchers?: ReadonlySet<ILauncher>;
 
   constructor(
     delegate: IBinderDelegate,
@@ -69,7 +68,6 @@ export class Binder implements IDisposable {
     private readonly _rootServices: Container,
     targetOrigin: ITargetOrigin,
   ) {
-    this._launchers = new Set(_rootServices.getAll(ILauncher));
     this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
@@ -79,23 +77,9 @@ export class Binder implements IDisposable {
       installUnhandledErrorReporter(_rootServices.get(ILogger), telemetryReporter),
     ];
 
-    for (const launcher of this._launchers) {
-      this._launchers.add(launcher);
-      launcher.onTargetListChanged(
-        () => {
-          const targets = this.targetList();
-          this._attachToNewTargets(targets, launcher);
-          this._detachOrphanThreads(targets);
-          this._onTargetListChangedEmitter.fire();
-        },
-        undefined,
-        this._disposables,
-      );
-    }
-
     this._dap.then(dap => {
       dap.on('initialize', async clientCapabilities => {
-        this._clientCapabilities = clientCapabilities;
+        this._rootServices.bind(IInitializeParams).toConstantValue(clientCapabilities);
         const capabilities = DebugAdapter.capabilities();
         if (clientCapabilities.clientID === 'vscode') {
           filterErrorsReportedToTelemetry();
@@ -141,8 +125,29 @@ export class Binder implements IDisposable {
     });
   }
 
+  private getLaunchers() {
+    if (!this._launchers) {
+      this._launchers = new Set(this._rootServices.getAll(ILauncher));
+
+      for (const launcher of this._launchers) {
+        launcher.onTargetListChanged(
+          () => {
+            const targets = this.targetList();
+            this._attachToNewTargets(targets, launcher);
+            this._detachOrphanThreads(targets);
+            this._onTargetListChangedEmitter.fire();
+          },
+          undefined,
+          this._disposables,
+        );
+      }
+    }
+
+    return this._launchers;
+  }
+
   private async _disconnect() {
-    await Promise.all([...this._launchers].map(l => l.disconnect()));
+    await Promise.all([...this.getLaunchers()].map(l => l.disconnect()));
 
     const didTerminate = () => !this.targetList.length && this._terminationCount === 0;
     if (didTerminate()) {
@@ -174,7 +179,7 @@ export class Binder implements IDisposable {
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
     let results = await Promise.all(
-      [...this._launchers].map(l => this._launch(l, params, cts.token)),
+      [...this.getLaunchers()].map(l => this._launch(l, params, cts.token)),
     );
     results = results.filter(result => !!result);
     if (results.length) return errors.createUserError(results.join('\n'));
@@ -217,7 +222,7 @@ export class Binder implements IDisposable {
   }
 
   async _restart() {
-    await Promise.all([...this._launchers].map(l => l.restart()));
+    await Promise.all([...this.getLaunchers()].map(l => l.restart()));
   }
 
   async _launch(
@@ -263,16 +268,12 @@ export class Binder implements IDisposable {
 
     let result: ILaunchResult;
     try {
-      result = await launcher.launch(
-        params,
-        {
-          telemetryReporter: this.telemetryReporter,
-          cancellationToken,
-          targetOrigin: this._targetOrigin,
-          dap: await this._dap,
-        },
-        this._clientCapabilities!,
-      );
+      result = await launcher.launch(params, {
+        telemetryReporter: this.telemetryReporter,
+        cancellationToken,
+        targetOrigin: this._targetOrigin,
+        dap: await this._dap,
+      });
     } catch (e) {
       if (e instanceof TaskCancelledError) {
         result = {
@@ -310,15 +311,16 @@ export class Binder implements IDisposable {
   dispose() {
     for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
-    for (const launcher of this._launchers) launcher.dispose();
-    this._launchers.clear();
     disposeContainer(this._rootServices);
     this._detachOrphanThreads([]);
   }
 
   targetList(): ITarget[] {
     const result: ITarget[] = [];
-    for (const delegate of this._launchers) result.push(...delegate.targetList());
+    for (const delegate of this.getLaunchers()) {
+      result.push(...delegate.targetList());
+    }
+
     return result;
   }
 

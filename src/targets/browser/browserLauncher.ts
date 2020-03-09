@@ -15,15 +15,14 @@ import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../co
 import Dap from '../../dap/api';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
-import { baseURL } from './browserLaunchParams';
-import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import * as launcher from './launcher';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
-import { StoragePath } from '../../ioc-extras';
+import { StoragePath, IInitializeParams } from '../../ioc-extras';
 import { Quality } from 'vscode-js-debug-browsers';
 import { DisposableList } from '../../common/disposable';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -48,6 +47,8 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   constructor(
     @inject(StoragePath) private readonly storagePath: string,
     @inject(ILogger) protected readonly logger: ILogger,
+    @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
+    @inject(IInitializeParams) private readonly initializeParams: Dap.InitializeParams,
   ) {}
 
   /**
@@ -80,7 +81,6 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     dap: Dap.Api,
     cancellationToken: CancellationToken,
     telemetryReporter: TelemetryReporter,
-    clientCapabilities: IDapInitializeParamsWithExtensions,
     promisedPort?: Promise<number>,
   ): Promise<launcher.ILaunchResult> {
     const executablePath = await this.findBrowserPath(executable || Quality.Stable);
@@ -106,7 +106,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       executablePath,
       this.logger,
       telemetryReporter,
-      clientCapabilities,
+      this.initializeParams,
       cancellationToken,
       {
         onStdout: output => dap.output({ category: 'stdout', output }),
@@ -134,17 +134,10 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   private async prepareLaunch(
     params: T,
     { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
-    clientCapabilities: IDapInitializeParamsWithExtensions,
   ): Promise<BrowserTarget | string> {
     let launched: launcher.ILaunchResult;
     try {
-      launched = await this.launchBrowser(
-        params,
-        dap,
-        cancellationToken,
-        telemetryReporter,
-        clientCapabilities,
-      );
+      launched = await this.launchBrowser(params, dap, cancellationToken, telemetryReporter);
     } catch (e) {
       return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
     }
@@ -153,22 +146,10 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     this._connectionForTest = launched.cdp;
     this._launchParams = params;
 
-    const pathResolver = new BrowserSourcePathResolver(
-      {
-        resolveSourceMapLocations: params.resolveSourceMapLocations,
-        baseUrl: baseURL(params),
-        localRoot: null,
-        remoteRoot: null,
-        pathMapping: { '/': params.webRoot, ...params.pathMapping },
-        sourceMapOverrides: params.sourceMapPathOverrides,
-        clientID: clientCapabilities.clientID,
-      },
-      this.logger,
-    );
     this._targetManager = await BrowserTargetManager.connect(
       launched.cdp,
       launched.process,
-      pathResolver,
+      this.pathResolver,
       this._launchParams,
       this.logger,
       telemetryReporter,
@@ -230,14 +211,13 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   public async launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
-    clientCapabilities: Dap.InitializeParams,
   ): Promise<ILaunchResult> {
     const resolved = this.resolveParams(params);
     if (!resolved) {
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(resolved, context, clientCapabilities);
+    const targetOrError = await this.prepareLaunch(resolved, context);
     if (typeof targetOrError === 'string') {
       return { error: targetOrError };
     }

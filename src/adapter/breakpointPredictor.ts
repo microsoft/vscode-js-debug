@@ -42,6 +42,11 @@ export const IBreakpointsPredictor = Symbol('IBreakpointsPredictor');
  */
 export interface IBreakpointsPredictor {
   /**
+   * Gets prediction data for the given source file path, if it exists.
+   */
+  getPredictionForSource(sourceFile: string): Promise<ReadonlySet<DiscoveredMetadata> | undefined>;
+
+  /**
    * Returns a promise that resolves once maps in the root are predicted.
    */
   prepareToPredict(): Promise<void>;
@@ -238,6 +243,17 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         this.predictedLocations.push(predicted);
       }
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async getPredictionForSource(sourcePath: string) {
+    if (!this.sourcePathToCompiled) {
+      this.sourcePathToCompiled = this.createInitialMapping();
+    }
+
+    return (await this.sourcePathToCompiled).get(sourcePath);
   }
 
   /**
