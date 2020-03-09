@@ -26,10 +26,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
   public async restart() {
     this.restarting = true;
     this.onProgramTerminated({ code: 0, killed: true, restart: true });
-
-    if (this.program) {
-      this.program.stop();
-    }
+    this.program?.stop();
   }
 
   /**

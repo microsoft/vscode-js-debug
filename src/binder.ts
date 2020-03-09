@@ -235,23 +235,18 @@ export class Binder implements IDisposable {
     }
 
     ++this._terminationCount;
-    let firstCall = true;
-    launcher.onTerminated(
-      result => {
-        if (firstCall) {
-          this._detachOrphanThreads(this.targetList(), { restart: result.restart });
-          --this._terminationCount;
-          this._onTargetListChangedEmitter.fire();
-          if (!this._terminationCount) {
-            this._dap.then(dap => dap.terminated({ restart: result.restart }));
-          }
 
-          firstCall = false;
-        }
-      },
-      undefined,
-      this._disposables,
-    );
+    const listener = launcher.onTerminated(result => {
+      listener.dispose();
+      this._detachOrphanThreads(this.targetList(), { restart: result.restart });
+      --this._terminationCount;
+      this._onTargetListChangedEmitter.fire();
+      if (!this._terminationCount) {
+        this._dap.then(dap => dap.terminated({ restart: result.restart }));
+      }
+    });
+
+    this._disposables.push(listener);
   }
 
   /**

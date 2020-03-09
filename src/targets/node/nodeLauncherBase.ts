@@ -29,6 +29,7 @@ import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { ILogger } from '../../common/logging';
 import { inject, injectable } from 'inversify';
+import { CancellationTokenSource } from '../../common/cancellation';
 
 /**
  * Telemetry received from the nested process.
@@ -176,8 +177,22 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     // connections must be closed, or the process will wait forever:
     this.closeAllConnections();
 
-    // relaunch the program:
-    await this.launchProgram(this.run);
+    // Clear the program so that termination logic doesn't run.
+    const program = this.program;
+    if (program) {
+      this.program = undefined;
+      await program.stop();
+    }
+
+    // relaunch the program, releasing the initial cancellation token:
+    const cts = CancellationTokenSource.withTimeout(this.run.params.timeout);
+    await this.launchProgram({
+      ...this.run,
+      context: {
+        ...this.run.context,
+        cancellationToken: cts.token,
+      },
+    });
   }
 
   public targetList(): ITarget[] {

@@ -51,7 +51,10 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
    * @inheritdoc
    */
   protected async launchProgram(runData: IRunData<INodeAttachConfiguration>): Promise<void> {
-    const doLaunch = async (restartPolicy: IRestartPolicy): Promise<void> => {
+    const doLaunch = async (
+      restartPolicy: IRestartPolicy,
+      restarting?: IProgram,
+    ): Promise<void> => {
       const prevProgram = this.program;
 
       let inspectorURL: string;
@@ -61,7 +64,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
           runData.context.cancellationToken,
         );
       } catch (e) {
-        if (prevProgram /* is a restart */) {
+        if (prevProgram && prevProgram === restarting /* is a restart */) {
           return restart(restartPolicy, prevProgram, { killed: false, code: 1 });
         } else {
           throw e;
@@ -109,7 +112,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
       await delay(nextRestart.delay);
       if (this.program === program) {
-        return doLaunch(nextRestart);
+        return doLaunch(nextRestart, program);
       }
     };
 
