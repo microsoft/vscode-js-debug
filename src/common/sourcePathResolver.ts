@@ -26,6 +26,12 @@ export const ISourcePathResolver = Symbol('ISourcePathResolver');
  */
 export interface ISourcePathResolver {
   /**
+   * Rebases a remote path to a local one using the remote and local roots.
+   * The path should should given as a filesystem path, not a URI.
+   */
+  rebaseRemoteToLocal(remotePath: string): string | undefined;
+
+  /**
    * Returns whether the source map should be used to resolve a local path,
    * following the `resolveSourceMapPaths`
    */

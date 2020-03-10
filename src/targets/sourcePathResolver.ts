@@ -99,7 +99,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * Rebases a remote path to a local one using the remote and local roots.
    * The path should should given as a filesystem path, not a URI.
    */
-  protected rebaseRemoteToLocal(remotePath: string) {
+  public rebaseRemoteToLocal(remotePath: string) {
     if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(remotePath)) {
       return path.resolve(remotePath);
     }
