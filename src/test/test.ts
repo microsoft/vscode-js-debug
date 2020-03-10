@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as stream from 'stream';
+import * as gulp from 'gulp';
+import del from 'del';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Binder } from '../binder';
 import Cdp from '../cdp/api';
@@ -32,6 +34,8 @@ import { ILogger } from '../common/logging';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import { StreamDapTransport } from '../dap/transport';
+import { tmpdir } from 'os';
+import { forceForwardSlashes } from '../common/pathUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -460,6 +464,55 @@ export class TestRoot {
       __workspaceFolder: this._workspaceRoot,
       ...options,
     } as INodeLaunchConfiguration);
+    const result = await new Promise(f => (this._launchCallback = f));
+    return result as NodeTestHandle;
+  }
+
+  /**
+   * Runs a script in a separate workspace (i.e. a different 'remoteRoot')
+   * from the original file, by copying the containing folder of the file
+   * into a temporary directory.
+   */
+  async runScriptAsRemote(
+    filename: string,
+    options: Partial<INodeLaunchConfiguration> = {},
+  ): Promise<NodeTestHandle> {
+    await this.initialize;
+
+    filename = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
+    const tmpPath = path.join(tmpdir(), 'js-debug-test');
+    after(() => del(`${forceForwardSlashes(tmpPath)}/**`, { force: true }));
+
+    await new Promise((resolve, reject) =>
+      gulp
+        .src('**/*.*', { cwd: path.dirname(filename) })
+        .pipe(gulp.dest(tmpPath))
+        .on('end', resolve)
+        .on('error', reject),
+    );
+
+    this._root.dap.launch({
+      ...nodeLaunchConfigDefaults,
+      cwd: path.dirname(testFixturesDir),
+      program: path.join(tmpPath, path.basename(filename)),
+      localRoot: path.dirname(filename),
+      remoteRoot: tmpPath,
+      trace: { logFile: getLogFileForTest(this._testTitlePath) },
+      outFiles: [],
+      resolveSourceMapLocations: ['**', '!**/node_modules/**'],
+      env: {
+        NODE_PATH: [
+          process.env.NODE_PATH,
+          path.resolve(path.dirname(filename), 'node_modules'),
+          path.resolve(workspaceFolder, 'node_modules'),
+        ]
+          .filter(Boolean)
+          .join(process.platform === 'win32' ? ';' : ':'),
+      },
+      __workspaceFolder: this._workspaceRoot,
+      ...options,
+    } as INodeLaunchConfiguration);
+
     const result = await new Promise(f => (this._launchCallback = f));
     return result as NodeTestHandle;
   }
