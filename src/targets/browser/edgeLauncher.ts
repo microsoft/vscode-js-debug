@@ -16,15 +16,16 @@ import { join } from 'path';
 import Dap from '../../dap/api';
 import { CancellationToken } from 'vscode';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
-import { BrowserLauncher, IDapInitializeParamsWithExtensions } from './browserLauncher';
+import { BrowserLauncher } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
-import { StoragePath, FS, FsPromises, BrowserFinder } from '../../ioc-extras';
+import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
 import { inject, tagged, injectable } from 'inversify';
 import { ILogger } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
 import { browserNotFound, ProtocolError } from '../../dap/errors';
 import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 
 @injectable()
 export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
@@ -36,8 +37,10 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     protected readonly browserFinder: IBrowserFinder,
     @inject(FS)
     private readonly fs: FsPromises,
+    @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
+    @inject(IInitializeParams) initializeParams: Dap.InitializeParams,
   ) {
-    super(storagePath, logger);
+    super(storagePath, logger, pathResolver, initializeParams);
   }
 
   /**
@@ -55,14 +58,12 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     dap: Dap.Api,
     cancellationToken: CancellationToken,
     telemetryReporter: TelemetryReporter,
-    clientCapabilities: IDapInitializeParamsWithExtensions,
   ) {
     return super.launchBrowser(
       params,
       dap,
       cancellationToken,
       telemetryReporter,
-      clientCapabilities,
       params.useWebView
         ? this.getWebviewPort(params, createTargetFilterForConfig(params), telemetryReporter)
         : undefined,

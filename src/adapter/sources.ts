@@ -635,7 +635,11 @@ export class SourceContainer {
     // of internal prefixes. If we see a duplicate entries for an absolute path,
     // take the shorter of them.
     const existingByPath = this._sourceByAbsolutePath.get(source._absolutePath);
-    if (existingByPath === undefined || existingByPath.url.length >= source.url.length) {
+    if (
+      existingByPath === undefined ||
+      existingByPath.url.length >= source.url.length ||
+      source._compiledToSourceUrl?.has(existingByPath)
+    ) {
       this._sourceByAbsolutePath.set(source._absolutePath, source);
     }
 

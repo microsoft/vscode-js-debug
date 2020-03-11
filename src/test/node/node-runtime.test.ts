@@ -113,6 +113,20 @@ describe('node runtime', () => {
     });
   });
 
+  itIntegrates('adjusts to compiles file if it exists', async ({ r }) => {
+    await r.initialize;
+
+    const handle = await r.runScript(join(testWorkspace, 'web/basic.ts'));
+    await handle.dap.setBreakpoints({
+      source: { path: handle.workspacePath('web/basic.ts') },
+      breakpoints: [{ line: 21, column: 0 }],
+    });
+    handle.load();
+
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
+
   describe('inspect flag handling', () => {
     itIntegrates('does not break with inspect flag', async ({ r }) => {
       createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });

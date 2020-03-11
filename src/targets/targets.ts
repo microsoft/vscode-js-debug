@@ -94,11 +94,7 @@ export interface ILauncher extends IDisposable {
    * result `{ blockSessionTermination: false }` if it's unable to launch
    * the given configuration, or return an error/true value as appropriate.
    */
-  launch(
-    params: AnyLaunchConfiguration,
-    context: ILaunchContext,
-    clientCapabilities: Dap.InitializeParams,
-  ): Promise<ILaunchResult>;
+  launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<ILaunchResult>;
 
   /**
    * Terminates the debugged process. This should be idempotent.

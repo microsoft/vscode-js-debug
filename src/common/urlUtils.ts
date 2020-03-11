@@ -129,12 +129,10 @@ export async function fetch(
     return result;
   }
 
-  if (url.startsWith('file://')) {
-    const path = fileUrlToAbsolutePath(url);
-    if (!path) throw new Error(`Can't fetch from '${url}'`);
-
+  const absolutePath = isAbsolute(url) ? url : fileUrlToAbsolutePath(url);
+  if (absolutePath) {
     return new Promise<string>((fulfill, reject) => {
-      fs.readFile(path, (err, data) => {
+      fs.readFile(absolutePath, (err, data) => {
         if (err) reject(err);
         else fulfill(data.toString());
       });
