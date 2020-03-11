@@ -389,7 +389,7 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
 
   /**
    * Whether to automatically resume processes if we see they were launched
-   * with `--inpect-brk`.
+   * with `--inspect-brk`.
    */
   continueOnAttach: boolean;
 
@@ -399,7 +399,7 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    *
    *  - `url.*` is the parsed address of the running application. For instance,
    *    `{url.port}`, `{url.hostname}`
-   *  - `port` is the debug port that Chrome is listening on.
+   *  - `port` is the debug port that Node.js is listening on.
    *  - `browserInspectUri` is the inspector URI on the launched browser
    *  - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if
    *    the original URL is `https`, or `ws` otherwise.
