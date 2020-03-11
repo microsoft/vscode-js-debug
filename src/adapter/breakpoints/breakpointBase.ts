@@ -7,7 +7,7 @@ import Dap from '../../dap/api';
 import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
-import { IUiLocation, base1To0 } from '../sources';
+import { IUiLocation, base1To0, Source } from '../sources';
 import { urlToRegex, absolutePathToFileUrl } from '../../common/urlUtils';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -258,7 +258,7 @@ export abstract class Breakpoint {
     // remove any URL-set breakpoints because they are probably not correct.
     // This oft happens with Node.js loaders which rewrite sources on the fly.
     for (const bp of this.cdpBreakpoints) {
-      if (isSetByUrl(bp.args) && breakpointIsForUrl(bp.args, source.url)) {
+      if (isSetByUrl(bp.args) && this.breakpointIsForSource(bp.args, source)) {
         this._manager.logger.verbose(
           LogTag.RuntimeSourceMap,
           'Adjusted breakpoint due to overlaid sourcemap',
@@ -273,6 +273,26 @@ export abstract class Breakpoint {
     await Promise.all(promises);
 
     return uiLocations;
+  }
+
+  /**
+   * Gets whether the breakpoint was set in the source by URL. Also checks
+   * the rebased remote paths, since Sources are always normalized to the
+   * 'local' locations, but the CDP set is for the remote.
+   */
+  private breakpointIsForSource(args: Cdp.Debugger.SetBreakpointByUrlParams, source: Source) {
+    if (breakpointIsForUrl(args, source.url)) {
+      return true;
+    }
+
+    const remotePath = this._manager._sourceContainer.sourcePathResolver.rebaseLocalToRemote(
+      source.absolutePath(),
+    );
+    if (breakpointIsForUrl(args, remotePath)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

@@ -4,10 +4,11 @@
 
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
 import { IDisposable } from '../disposable';
-import { fetch } from '../urlUtils';
+import { fetch, fileUrlToAbsolutePath } from '../urlUtils';
 import { LogTag, ILogger } from '../logging';
 import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
 import { injectable, inject } from 'inversify';
+import { ISourcePathResolver } from '../sourcePathResolver';
 
 export const ISourceMapFactory = Symbol('ISourceMapFactory');
 
@@ -29,7 +30,10 @@ export interface ISourceMapFactory extends IDisposable {
 export class CachingSourceMapFactory implements ISourceMapFactory {
   private readonly knownMaps = new Map<string, Promise<SourceMap | undefined>>();
 
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
+  ) {}
 
   /**
    * Loads the provided source map.
@@ -78,9 +82,13 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
   }
 
   private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | undefined> {
-    try {
-      let content = await fetch(sourceMapUrl);
+    let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
+    if (absolutePath) {
+      absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
+    }
 
+    try {
+      let content = await fetch(absolutePath || sourceMapUrl);
       if (content.slice(0, 3) === ')]}') {
         content = content.substring(content.indexOf('\n'));
       }

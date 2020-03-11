@@ -12,7 +12,6 @@ const replacer = (_key: string, value: unknown): unknown => {
     return {
       message: value.message,
       stack: value.stack,
-      ...value,
     };
   }
 

@@ -61,7 +61,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     }
 
     if (!path.isAbsolute(url)) {
-      return properResolve(
+      url = properResolve(
         await getComputedSourceRoot(
           map.sourceRoot,
           map.metadata.compiledPath,
@@ -73,6 +73,6 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       );
     }
 
-    return url;
+    return this.rebaseRemoteToLocal(url) || url;
   }
 }

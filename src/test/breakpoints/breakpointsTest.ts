@@ -621,6 +621,21 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('works in remote workspaces', async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'tsNode');
+      const handle = await r.runScriptAsRemote(join(cwd, 'index.js'));
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'double.ts') },
+        breakpoints: [{ line: 5, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('does not adjust already correct', async ({ r }) => {
       await r.initialize;
 
