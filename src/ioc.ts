@@ -35,6 +35,7 @@ import {
   FS,
   BrowserFinder,
   ExtensionLocation,
+  IContainer,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -52,13 +53,15 @@ import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLaunc
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
-import { IDebugConfigurationProvider } from './ui/configuration/configurationProvider';
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
 import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
 import { ICompletions, Completions } from './adapter/completions';
 import { IEvaluator, Evaluator } from './adapter/evaluator';
+import { ProfilerFactory, IProfilerFactory } from './adapter/profiling';
+import { BasicCpuProfiler } from './adapter/profiling/basicProfiler';
+import { IProfileController, ProfileController } from './adapter/profileController';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -87,6 +90,8 @@ export const createTargetContainer = (
 ) => {
   const container = new Container();
   container.parent = parent;
+  container.bind(IContainer).toConstantValue(container);
+
   container.bind(IDapApi).toConstantValue(dap);
   container.bind(ICdpApi).toConstantValue(cdp);
   container.bind(ITarget).toConstantValue(target);
@@ -107,6 +112,19 @@ export const createTargetContainer = (
     .bind(IEvaluator)
     .to(Evaluator)
     .inSingletonScope();
+
+  container.bind(BasicCpuProfiler).toSelf();
+
+  container
+    .bind(IProfilerFactory)
+    .to(ProfilerFactory)
+    .inSingletonScope();
+
+  container
+    .bind(IProfileController)
+    .to(ProfileController)
+    .inSingletonScope();
+
   return container;
 };
 
@@ -121,6 +139,7 @@ export interface IRootOptions {
 export const createTopLevelSessionContainer = (parent: Container) => {
   const container = new Container();
   container.parent = parent;
+  container.bind(IContainer).toConstantValue(container);
 
   // Core services:
   container
@@ -233,6 +252,8 @@ export const createGlobalContainer = (options: {
   context?: vscode.ExtensionContext;
 }) => {
   const container = new Container();
+  container.bind(IContainer).toConstantValue(container);
+
   container
     .bind(DelegateLauncherFactory)
     .toSelf()
@@ -255,28 +276,7 @@ export const createGlobalContainer = (options: {
   // Dependency that pull from the vscode global--aren't safe to require at
   // a top level (e.g. in the debug server)
   if (options.isVsCode) {
-    const {
-      ChromeDebugConfigurationProvider,
-      EdgeDebugConfigurationProvider,
-      ExtensionHostConfigurationProvider,
-      NodeConfigurationProvider,
-      TerminalDebugConfigurationProvider,
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-    } = require('./ui/configuration');
-
-    [
-      ChromeDebugConfigurationProvider,
-      EdgeDebugConfigurationProvider,
-      ExtensionHostConfigurationProvider,
-      NodeConfigurationProvider,
-      TerminalDebugConfigurationProvider,
-    ].forEach(cls => {
-      container
-        .bind(cls)
-        .toSelf()
-        .inSingletonScope();
-      container.bind(IDebugConfigurationProvider).to(cls);
-    });
+    require('./ui/ui-ioc').registerUiComponents(container);
   }
 
   return container;

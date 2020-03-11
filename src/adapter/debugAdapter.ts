@@ -27,6 +27,7 @@ import { IBreakpointsPredictor } from './breakpointPredictor';
 import { disposeContainer } from '../ioc-extras';
 import { ICompletions } from './completions';
 import { IEvaluator } from './evaluator';
+import { IProfileController } from './profileController';
 
 const localize = nls.loadMessageBundle();
 
@@ -83,6 +84,8 @@ export class DebugAdapter implements IDisposable {
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),
       })),
     );
+
+    _services.get<IProfileController>(IProfileController).connect(this.dap);
 
     this.sourceContainer = new SourceContainer(
       this.dap,

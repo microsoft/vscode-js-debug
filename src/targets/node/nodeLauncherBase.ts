@@ -23,7 +23,7 @@ import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
-import { ObservableMap } from '../targetList';
+import { ObservableMap } from '../../common/datastructure/observableMap';
 import { findInPath } from '../../common/pathUtils';
 import { TelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider, INodePathProvider } from './nodePathProvider';

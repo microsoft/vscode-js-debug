@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { EventEmitter } from '../common/events';
+import { EventEmitter } from '../events';
 
 /**
  * A wrapper around map that fires an event emitter when it's mutated. Used

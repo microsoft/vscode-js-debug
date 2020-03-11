@@ -206,6 +206,9 @@ const strings = {
     'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
+
+  'profile.start': 'Take Performance Profile',
+  'profile.stop': 'Stop Performance Profile',
 };
 
 export default strings;

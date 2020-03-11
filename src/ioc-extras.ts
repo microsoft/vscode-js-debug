@@ -7,6 +7,11 @@ import { IDisposable } from './common/disposable';
 import { promises as fsPromises } from 'fs';
 
 /**
+ * The IOC container itself.
+ */
+export const IContainer = Symbol('IContainer');
+
+/**
  * Token for the string that points to a temporary storage directory.
  */
 export const StoragePath = Symbol('StoragePath');

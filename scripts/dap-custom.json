@@ -386,6 +386,116 @@
           "required": ["event", "body"]
         }
       ]
+    },
+
+    "StartProfileRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Starts taking a profile of the target.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["startProfile"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/StartProfileArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "StartProfileArguments": {
+      "type": "object",
+      "description": "Arguments for 'StartProfile' request.",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Location where the profile should be saved."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of profile that should be taken"
+        },
+        "params": {
+          "type": "object",
+          "description": "Additional arguments for the type of profiler"
+        }
+      },
+      "required": ["file", "type"]
+    },
+    "StartProfileResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'StartProfile' request."
+        }
+      ]
+    },
+
+    "StopProfileRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Stops a running profile.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["stopProfile"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/StopProfileArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "StopProfileArguments": {
+      "type": "object",
+      "description": "Arguments for 'StopProfile' request.",
+      "properties": {}
+    },
+    "StopProfileResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'StopProfile' request."
+        }
+      ]
+    },
+
+    "ProfilerStateUpdateEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "Fired when a profiling state changes.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["profilerStateUpdate"]
+            },
+            "body": {
+              "type": "object",
+              "description": "Body for 'ProfilerStateUpdateEvent' event.",
+              "required": ["label"],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Description of the current state"
+                }
+              }
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
     }
   }
 }

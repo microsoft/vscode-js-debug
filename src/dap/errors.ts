@@ -20,6 +20,8 @@ export const enum ErrorCodes {
   InvalidLogPointBreakpointSyntax,
   BrowserNotFound,
   AsyncScopesNotAvailable,
+  ProfileCaptureError,
+  InvalidConcurrentProfile,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -121,6 +123,21 @@ export const invalidHitCondition = (expression: string) =>
       expression,
     ),
     ErrorCodes.InvalidHitCondition,
+  );
+
+export const profileCaptureError = () =>
+  createUserError(
+    localize('profile.error.generic', 'An error occurred taking a profile from the target.'),
+    ErrorCodes.ProfileCaptureError,
+  );
+
+export const invalidConcurrentProfile = () =>
+  createUserError(
+    localize(
+      'profile.error.concurrent',
+      'Please stop the running profile before starting a new one.',
+    ),
+    ErrorCodes.InvalidConcurrentProfile,
   );
 
 export const browserNotFound = (

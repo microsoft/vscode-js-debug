@@ -1091,6 +1091,19 @@ export namespace Cdp {
     getEncodedResponse(
       params: Audits.GetEncodedResponseParams,
     ): Promise<Audits.GetEncodedResponseResult | undefined>;
+
+    /**
+     * Disables issues domain, prevents further issues from being reported to the client.
+     */
+    disable(params: Audits.DisableParams): Promise<Audits.DisableResult | undefined>;
+
+    /**
+     * Enables issues domain, sends the issues collected so far to the client by means of the
+     * `issueAdded` event.
+     */
+    enable(params: Audits.EnableParams): Promise<Audits.EnableResult | undefined>;
+
+    on(event: 'issueAdded', listener: (event: Audits.IssueAddedEvent) => void): IDisposable;
   }
 
   /**
@@ -1140,6 +1153,37 @@ export namespace Cdp {
        * Size after re-encoding.
        */
       encodedSize: integer;
+    }
+
+    /**
+     * Parameters of the 'Audits.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'Audits.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'Audits.enable' method.
+     */
+    export interface EnableParams {}
+
+    /**
+     * Return value of the 'Audits.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'Audits.issueAdded' event.
+     */
+    export interface IssueAddedEvent {
+      issue: Issue;
+    }
+
+    export interface Issue {
+      code: string;
     }
   }
 
@@ -3776,6 +3820,7 @@ export namespace Cdp {
 
     /**
      * This command is deprecated. Use getScriptSource instead.
+     * @deprecated
      */
     getWasmBytecode(
       params: Debugger.GetWasmBytecodeParams,
@@ -3793,6 +3838,10 @@ export namespace Cdp {
      */
     pause(params: Debugger.PauseParams): Promise<Debugger.PauseResult | undefined>;
 
+    /**
+     * undefined
+     * @deprecated
+     */
     pauseOnAsyncCall(
       params: Debugger.PauseOnAsyncCallParams,
     ): Promise<Debugger.PauseOnAsyncCallResult | undefined>;
@@ -4254,7 +4303,16 @@ export namespace Cdp {
     /**
      * Parameters of the 'Debugger.resume' method.
      */
-    export interface ResumeParams {}
+    export interface ResumeParams {
+      /**
+       * Set to true to terminate execution upon resuming execution. In contrast
+       * to Runtime.terminateExecution, this will allows to execute further
+       * JavaScript (i.e. via evaluation) until execution of the paused code
+       * is actually resumed, at which point termination is triggered.
+       * If execution is currently not paused, this parameter has no effect.
+       */
+      terminateOnResume?: boolean;
+    }
 
     /**
      * Return value of the 'Debugger.resume' method.
@@ -4713,6 +4771,7 @@ export namespace Cdp {
 
       /**
        * Never present, will be removed.
+       * @deprecated
        */
       asyncCallStackTraceId?: Runtime.StackTraceId;
     }
@@ -5115,6 +5174,15 @@ export namespace Cdp {
      * objects, can be used for automation.
      */
     describeNode(params: DOM.DescribeNodeParams): Promise<DOM.DescribeNodeResult | undefined>;
+
+    /**
+     * Scrolls the specified rect of the given node into view if not already visible.
+     * Note: exactly one between nodeId, backendNodeId and objectId should be passed
+     * to identify the node.
+     */
+    scrollIntoViewIfNeeded(
+      params: DOM.ScrollIntoViewIfNeededParams,
+    ): Promise<DOM.ScrollIntoViewIfNeededResult | undefined>;
 
     /**
      * Disables DOM agent for the given page.
@@ -5573,6 +5641,37 @@ export namespace Cdp {
        */
       node: Node;
     }
+
+    /**
+     * Parameters of the 'DOM.scrollIntoViewIfNeeded' method.
+     */
+    export interface ScrollIntoViewIfNeededParams {
+      /**
+       * Identifier of the node.
+       */
+      nodeId?: NodeId;
+
+      /**
+       * Identifier of the backend node.
+       */
+      backendNodeId?: BackendNodeId;
+
+      /**
+       * JavaScript object id of the node wrapper.
+       */
+      objectId?: Runtime.RemoteObjectId;
+
+      /**
+       * The rect to be scrolled into view, relative to the node's border box, in CSS pixels.
+       * When omitted, center of the node will be used, similar to Element.scrollIntoView.
+       */
+      rect?: Rect;
+    }
+
+    /**
+     * Return value of the 'DOM.scrollIntoViewIfNeeded' method.
+     */
+    export interface ScrollIntoViewIfNeededResult {}
 
     /**
      * Parameters of the 'DOM.disable' method.
@@ -7305,6 +7404,7 @@ export namespace Cdp {
      * template contents, and imported documents) in a flattened array, as well as layout and
      * white-listed computed style information for the nodes. Shadow DOM in the returned DOM tree is
      * flattened.
+     * @deprecated
      */
     getSnapshot(
       params: DOMSnapshot.GetSnapshotParams,
@@ -8208,6 +8308,13 @@ export namespace Cdp {
     ): Promise<Emulation.SetEmulatedMediaResult | undefined>;
 
     /**
+     * Emulates the given vision deficiency.
+     */
+    setEmulatedVisionDeficiency(
+      params: Emulation.SetEmulatedVisionDeficiencyParams,
+    ): Promise<Emulation.SetEmulatedVisionDeficiencyResult | undefined>;
+
+    /**
      * Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
      * unavailable.
      */
@@ -8217,6 +8324,7 @@ export namespace Cdp {
 
     /**
      * Overrides value returned by the javascript navigator object.
+     * @deprecated
      */
     setNavigatorOverrides(
       params: Emulation.SetNavigatorOverridesParams,
@@ -8252,6 +8360,13 @@ export namespace Cdp {
     ): Promise<Emulation.SetVirtualTimePolicyResult | undefined>;
 
     /**
+     * Overrides default host system locale with the specified one.
+     */
+    setLocaleOverride(
+      params: Emulation.SetLocaleOverrideParams,
+    ): Promise<Emulation.SetLocaleOverrideResult | undefined>;
+
+    /**
      * Overrides default host system timezone with the specified one.
      */
     setTimezoneOverride(
@@ -8262,6 +8377,7 @@ export namespace Cdp {
      * Resizes the frame/viewport of the page. Note that this does not affect the frame's container
      * (e.g. browser window). Can be used to produce screenshots of the specified size. Not supported
      * on Android.
+     * @deprecated
      */
     setVisibleSize(
       params: Emulation.SetVisibleSizeParams,
@@ -8521,6 +8637,31 @@ export namespace Cdp {
     export interface SetEmulatedMediaResult {}
 
     /**
+     * Parameters of the 'Emulation.setEmulatedVisionDeficiency' method.
+     */
+    export interface SetEmulatedVisionDeficiencyParams {
+      /**
+       * Vision deficiency to emulate.
+       */
+      type:
+        | 'none'
+        | 'achromatomaly'
+        | 'achromatopsia'
+        | 'blurredVision'
+        | 'deuteranomaly'
+        | 'deuteranopia'
+        | 'protanomaly'
+        | 'protanopia'
+        | 'tritanomaly'
+        | 'tritanopia';
+    }
+
+    /**
+     * Return value of the 'Emulation.setEmulatedVisionDeficiency' method.
+     */
+    export interface SetEmulatedVisionDeficiencyResult {}
+
+    /**
      * Parameters of the 'Emulation.setGeolocationOverride' method.
      */
     export interface SetGeolocationOverrideParams {
@@ -8649,6 +8790,22 @@ export namespace Cdp {
        */
       virtualTimeTicksBase: number;
     }
+
+    /**
+     * Parameters of the 'Emulation.setLocaleOverride' method.
+     */
+    export interface SetLocaleOverrideParams {
+      /**
+       * ICU style C locale (e.g. "en_US"). If not specified or empty, disables the override and
+       * restores default host system locale.
+       */
+      locale?: string;
+    }
+
+    /**
+     * Return value of the 'Emulation.setLocaleOverride' method.
+     */
+    export interface SetLocaleOverrideResult {}
 
     /**
      * Parameters of the 'Emulation.setTimezoneOverride' method.
@@ -9226,6 +9383,7 @@ export namespace Cdp {
      * Issued when the target starts or stops needing BeginFrames.
      * Deprecated. Issue beginFrame unconditionally instead and use result from
      * beginFrame to detect whether the frames were suppressed.
+     * @deprecated
      */
     on(
       event: 'needsBeginFramesChanged',
@@ -10979,8 +11137,14 @@ export namespace Cdp {
     export interface CompositingReasonsResult {
       /**
        * A list of strings specifying reasons for the given layer to become composited.
+       * @deprecated
        */
       compositingReasons: string[];
+
+      /**
+       * A list of strings specifying reason IDs for the given layer to become composited.
+       */
+      compositingReasonIds: string[];
     }
 
     /**
@@ -11643,7 +11807,7 @@ export namespace Cdp {
     /**
      * Break out events into different types
      */
-    export type PlayerEventType = 'playbackEvent' | 'systemEvent' | 'messageEvent';
+    export type PlayerEventType = 'errorEvent' | 'triggeredEvent' | 'messageEvent';
 
     export interface PlayerEvent {
       type: PlayerEventType;
@@ -11933,6 +12097,7 @@ export namespace Cdp {
   export interface NetworkApi {
     /**
      * Tells whether clearing browser cache is supported.
+     * @deprecated
      */
     canClearBrowserCache(
       params: Network.CanClearBrowserCacheParams,
@@ -11940,6 +12105,7 @@ export namespace Cdp {
 
     /**
      * Tells whether clearing browser cookies is supported.
+     * @deprecated
      */
     canClearBrowserCookies(
       params: Network.CanClearBrowserCookiesParams,
@@ -11947,6 +12113,7 @@ export namespace Cdp {
 
     /**
      * Tells whether emulation of network conditions is supported.
+     * @deprecated
      */
     canEmulateNetworkConditions(
       params: Network.CanEmulateNetworkConditionsParams,
@@ -11972,6 +12139,7 @@ export namespace Cdp {
      * fetch occurs as a result which encounters a redirect an additional Network.requestIntercepted
      * event will be sent with the same InterceptionId.
      * Deprecated, use Fetch.continueRequest, Fetch.fulfillRequest and Fetch.failRequest instead.
+     * @deprecated
      */
     continueInterceptedRequest(
       params: Network.ContinueInterceptedRequestParams,
@@ -12115,6 +12283,7 @@ export namespace Cdp {
     /**
      * Sets the requests to intercept that match the provided patterns and optionally resource types.
      * Deprecated, please use Fetch.enable instead.
+     * @deprecated
      */
     setRequestInterception(
       params: Network.SetRequestInterceptionParams,
@@ -12157,6 +12326,7 @@ export namespace Cdp {
      * Details of an intercepted HTTP request, which must be either allowed, blocked, modified or
      * mocked.
      * Deprecated, use Fetch.requestPaused instead.
+     * @deprecated
      */
     on(
       event: 'requestIntercepted',
@@ -13790,7 +13960,12 @@ export namespace Cdp {
       | 'inspector'
       | 'subresource-filter'
       | 'content-type'
-      | 'collapsed-by-client';
+      | 'collapsed-by-client'
+      | 'coep-frame-resource-needs-coep-header'
+      | 'coop-sandboxed-iframe-cannot-navigate-to-coop-page'
+      | 'corp-not-same-origin'
+      | 'corp-not-same-origin-after-defaulted-to-same-origin-by-coep'
+      | 'corp-not-same-site';
 
     /**
      * HTTP response data.
@@ -15030,6 +15205,7 @@ export namespace Cdp {
   export interface PageApi {
     /**
      * Deprecated, please use addScriptToEvaluateOnNewDocument instead.
+     * @deprecated
      */
     addScriptToEvaluateOnLoad(
       params: Page.AddScriptToEvaluateOnLoadParams,
@@ -15064,6 +15240,7 @@ export namespace Cdp {
 
     /**
      * Clears the overriden device metrics.
+     * @deprecated
      */
     clearDeviceMetricsOverride(
       params: Page.ClearDeviceMetricsOverrideParams,
@@ -15071,6 +15248,7 @@ export namespace Cdp {
 
     /**
      * Clears the overridden Device Orientation.
+     * @deprecated
      */
     clearDeviceOrientationOverride(
       params: Page.ClearDeviceOrientationOverrideParams,
@@ -15078,6 +15256,7 @@ export namespace Cdp {
 
     /**
      * Clears the overriden Geolocation Position and Error.
+     * @deprecated
      */
     clearGeolocationOverride(
       params: Page.ClearGeolocationOverrideParams,
@@ -15092,6 +15271,7 @@ export namespace Cdp {
 
     /**
      * Deletes browser cookie with given name, domain and path.
+     * @deprecated
      */
     deleteCookie(params: Page.DeleteCookieParams): Promise<Page.DeleteCookieResult | undefined>;
 
@@ -15120,6 +15300,7 @@ export namespace Cdp {
     /**
      * Returns all browser cookies. Depending on the backend support, will return detailed cookie
      * information in the `cookies` field.
+     * @deprecated
      */
     getCookies(params: Page.GetCookiesParams): Promise<Page.GetCookiesResult | undefined>;
 
@@ -15194,6 +15375,7 @@ export namespace Cdp {
 
     /**
      * Deprecated, please use removeScriptToEvaluateOnNewDocument instead.
+     * @deprecated
      */
     removeScriptToEvaluateOnLoad(
       params: Page.RemoveScriptToEvaluateOnLoadParams,
@@ -15236,6 +15418,7 @@ export namespace Cdp {
      * Overrides the values of device screen dimensions (window.screen.width, window.screen.height,
      * window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
      * query results).
+     * @deprecated
      */
     setDeviceMetricsOverride(
       params: Page.SetDeviceMetricsOverrideParams,
@@ -15243,6 +15426,7 @@ export namespace Cdp {
 
     /**
      * Overrides the Device Orientation.
+     * @deprecated
      */
     setDeviceOrientationOverride(
       params: Page.SetDeviceOrientationOverrideParams,
@@ -15277,6 +15461,7 @@ export namespace Cdp {
     /**
      * Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
      * unavailable.
+     * @deprecated
      */
     setGeolocationOverride(
       params: Page.SetGeolocationOverrideParams,
@@ -15291,6 +15476,7 @@ export namespace Cdp {
 
     /**
      * Toggles mouse event-based touch event emulation.
+     * @deprecated
      */
     setTouchEmulationEnabled(
       params: Page.SetTouchEmulationEnabledParams,
@@ -15399,6 +15585,7 @@ export namespace Cdp {
 
     /**
      * Fired when frame no longer has a scheduled navigation.
+     * @deprecated
      */
     on(
       event: 'frameClearedScheduledNavigation',
@@ -15428,6 +15615,7 @@ export namespace Cdp {
 
     /**
      * Fired when frame schedules a potential navigation.
+     * @deprecated
      */
     on(
       event: 'frameScheduledNavigation',
@@ -15783,7 +15971,7 @@ export namespace Cdp {
      * Return value of the 'Page.getInstallabilityErrors' method.
      */
     export interface GetInstallabilityErrorsResult {
-      errors: string[];
+      installabilityErrors: InstallabilityError[];
     }
 
     /**
@@ -15972,6 +16160,11 @@ export namespace Cdp {
        * Frame id to navigate, if not specified navigates the top frame.
        */
       frameId?: FrameId;
+
+      /**
+       * Referrer-policy used for the navigation.
+       */
+      referrerPolicy?: ReferrerPolicy;
     }
 
     /**
@@ -16768,14 +16961,7 @@ export namespace Cdp {
       /**
        * The reason for the navigation.
        */
-      reason:
-        | 'formSubmissionGet'
-        | 'formSubmissionPost'
-        | 'httpHeaderRefresh'
-        | 'scriptInitiated'
-        | 'metaTagRefresh'
-        | 'pageBlockInterstitial'
-        | 'reload';
+      reason: ClientNavigationReason;
 
       /**
        * The destination URL for the scheduled navigation.
@@ -17408,7 +17594,48 @@ export namespace Cdp {
       | 'scriptInitiated'
       | 'metaTagRefresh'
       | 'pageBlockInterstitial'
-      | 'reload';
+      | 'reload'
+      | 'anchorClick';
+
+    export interface InstallabilityErrorArgument {
+      /**
+       * Argument name (e.g. name:'minimum-icon-size-in-pixels').
+       */
+      name: string;
+
+      /**
+       * Argument value (e.g. value:'64').
+       */
+      value: string;
+    }
+
+    /**
+     * The installability error
+     */
+    export interface InstallabilityError {
+      /**
+       * The error id (e.g. 'manifest-missing-suitable-icon').
+       */
+      errorId: string;
+
+      /**
+       * The list of error arguments (e.g. {name:'minimum-icon-size-in-pixels', value:'64'}).
+       */
+      errorArguments: InstallabilityErrorArgument[];
+    }
+
+    /**
+     * The referring-policy used for the navigation.
+     */
+    export type ReferrerPolicy =
+      | 'noReferrer'
+      | 'noReferrerWhenDowngrade'
+      | 'origin'
+      | 'originWhenCrossOrigin'
+      | 'sameOrigin'
+      | 'strictOrigin'
+      | 'strictOriginWhenCrossOrigin'
+      | 'unsafeUrl';
   }
 
   /**
@@ -17429,6 +17656,7 @@ export namespace Cdp {
      * Sets time domain to use for collecting and reporting duration metrics.
      * Note that this must be called before enabling metrics collection. Calling
      * this method while metrics collection is enabled returns an error.
+     * @deprecated
      */
     setTimeDomain(
       params: Performance.SetTimeDomainParams,
@@ -17464,7 +17692,12 @@ export namespace Cdp {
     /**
      * Parameters of the 'Performance.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+      /**
+       * Time domain to use for collecting and reporting duration metrics.
+       */
+      timeDomain?: 'timeTicks' | 'threadTicks';
+    }
 
     /**
      * Return value of the 'Performance.enable' method.
@@ -17638,6 +17871,17 @@ export namespace Cdp {
       event: 'consoleProfileStarted',
       listener: (event: Profiler.ConsoleProfileStartedEvent) => void,
     ): IDisposable;
+
+    /**
+     * Reports coverage delta since the last poll (either from an event like this, or from
+     * `takePreciseCoverage` for the current isolate. May only be sent if precise code
+     * coverage has been started. This event can be trigged by the embedder to, for example,
+     * trigger collection of coverage data immediatelly at a certain point in time.
+     */
+    on(
+      event: 'preciseCoverageDeltaUpdate',
+      listener: (event: Profiler.PreciseCoverageDeltaUpdateEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -17717,6 +17961,11 @@ export namespace Cdp {
        * Collect block-based coverage.
        */
       detailed?: boolean;
+
+      /**
+       * Allow the backend to send updates on its own initiative
+       */
+      allowTriggeredUpdates?: boolean;
     }
 
     /**
@@ -17878,6 +18127,26 @@ export namespace Cdp {
        * Profile title passed as an argument to console.profile().
        */
       title?: string;
+    }
+
+    /**
+     * Parameters of the 'Profiler.preciseCoverageDeltaUpdate' event.
+     */
+    export interface PreciseCoverageDeltaUpdateEvent {
+      /**
+       * Monotonically increasing time (in seconds) when the coverage update was taken in the backend.
+       */
+      timestamp: number;
+
+      /**
+       * Identifier for distinguishing coverage events.
+       */
+      occassion: string;
+
+      /**
+       * Coverage data for the current isolate.
+       */
+      result: ScriptCoverage[];
     }
 
     /**
@@ -18554,7 +18823,9 @@ export namespace Cdp {
       disableBreaks?: boolean;
 
       /**
-       * Reserved flag for future REPL mode support. Setting this flag has currently no effect.
+       * Setting this flag to true enables `let` re-declaration and top-level `await`.
+       * Note that `let` variables can only be re-declared if they originate from
+       * `replMode` themselves.
        */
       replMode?: boolean;
     }
@@ -19587,6 +19858,7 @@ export namespace Cdp {
 
     /**
      * Handles a certificate error that fired a certificateError event.
+     * @deprecated
      */
     handleCertificateError(
       params: Security.HandleCertificateErrorParams,
@@ -19595,6 +19867,7 @@ export namespace Cdp {
     /**
      * Enable/disable overriding certificate errors. If enabled, all certificate error events need to
      * be handled by the DevTools client and should be answered with `handleCertificateError` commands.
+     * @deprecated
      */
     setOverrideCertificateErrors(
       params: Security.SetOverrideCertificateErrorsParams,
@@ -19605,6 +19878,7 @@ export namespace Cdp {
      * handled with the `handleCertificateError` command. Note: this event does not fire if the
      * certificate error has been allowed internally. Only one client per target should override
      * certificate errors at the same time.
+     * @deprecated
      */
     on(
       event: 'certificateError',
@@ -19743,6 +20017,7 @@ export namespace Cdp {
 
       /**
        * True if the page was loaded over cryptographic transport such as HTTPS.
+       * @deprecated
        */
       schemeIsCryptographic: boolean;
 
@@ -19754,6 +20029,7 @@ export namespace Cdp {
 
       /**
        * Information about insecure content on the page.
+       * @deprecated
        */
       insecureContentStatus: InsecureContentStatus;
 
@@ -19961,6 +20237,7 @@ export namespace Cdp {
 
     /**
      * Information about insecure content on the page.
+     * @deprecated
      */
     export interface InsecureContentStatus {
       /**
@@ -21054,6 +21331,7 @@ export namespace Cdp {
      * Sends protocol message over session with given id.
      * Consider using flat mode instead; see commands attachToTarget, setAutoAttach,
      * and crbug.com/991325.
+     * @deprecated
      */
     sendMessageToTarget(
       params: Target.SendMessageToTargetParams,
@@ -21227,7 +21505,12 @@ export namespace Cdp {
     /**
      * Parameters of the 'Target.createBrowserContext' method.
      */
-    export interface CreateBrowserContextParams {}
+    export interface CreateBrowserContextParams {
+      /**
+       * If specified, disposes this context when debugging session disconnects.
+       */
+      disposeOnDetach?: boolean;
+    }
 
     /**
      * Return value of the 'Target.createBrowserContext' method.
@@ -21317,6 +21600,7 @@ export namespace Cdp {
 
       /**
        * Deprecated.
+       * @deprecated
        */
       targetId?: TargetID;
     }
@@ -21380,6 +21664,7 @@ export namespace Cdp {
 
       /**
        * Deprecated.
+       * @deprecated
        */
       targetId?: TargetID;
     }
@@ -21410,11 +21695,6 @@ export namespace Cdp {
        * and eventually retire it. See crbug.com/991325.
        */
       flatten?: boolean;
-
-      /**
-       * Auto-attach to the targets created via window.open from current target.
-       */
-      windowOpen?: boolean;
     }
 
     /**
@@ -21477,6 +21757,7 @@ export namespace Cdp {
 
       /**
        * Deprecated.
+       * @deprecated
        */
       targetId?: TargetID;
     }
@@ -21494,6 +21775,7 @@ export namespace Cdp {
 
       /**
        * Deprecated.
+       * @deprecated
        */
       targetId?: TargetID;
     }
@@ -21770,11 +22052,13 @@ export namespace Cdp {
     export interface StartParams {
       /**
        * Category/tag filter
+       * @deprecated
        */
       categories?: string;
 
       /**
        * Tracing options
+       * @deprecated
        */
       options?: string;
 

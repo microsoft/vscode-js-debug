@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { ITarget } from '../targets';
-import { ObservableMap } from '../targetList';
+import { ObservableMap } from '../../common/datastructure/observableMap';
 import { IDelegateRef, DelegateLauncher } from './delegateLauncher';
 import { IPendingDapApi } from '../../dap/pending-api';
 import { injectable } from 'inversify';

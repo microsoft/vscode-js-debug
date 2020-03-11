@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+const prettier = require('prettier');
 const path = require('path');
 const fs = require('fs');
 
@@ -15,20 +16,24 @@ function fetch(url) {
   const request = driver.get(url, response => {
     let data = '';
     response.setEncoding('utf8');
-    response.on('data', chunk => data += chunk);
+    response.on('data', chunk => (data += chunk));
     response.on('end', () => fulfill(data));
     response.on('error', reject);
   });
   request.on('error', reject);
   return promise;
-};
+}
 
 function toTitleCase(s) {
   return s[0].toUpperCase() + s.substr(1);
 }
 
 async function generate() {
-  const standard = JSON.parse(await fetch('https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/gh-pages/debugAdapterProtocol.json'));
+  const standard = JSON.parse(
+    await fetch(
+      'https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/gh-pages/debugAdapterProtocol.json',
+    ),
+  );
   const custom = JSON.parse(fs.readFileSync(path.join(__dirname, 'dap-custom.json')));
   const result = [];
 
@@ -41,30 +46,27 @@ async function generate() {
   result.push(`import * as E from './error';`);
   result.push(``);
   result.push(`export namespace Dap {`);
-  result.push(`  export type Error = E.Error;`);
-  result.push(`  export type Message = E.Message;`);
-  result.push(`  export type integer = number;`);
+  result.push(`export type Error = E.Error;`);
+  result.push(`export type Message = E.Message;`);
+  result.push(`export type integer = number;`);
   result.push(``);
 
-  function appendText(text, indent) {
-    if (!text)
-      return;
-    result.push(`${indent}/**`);
-    for (const line of text.split('\n'))
-      result.push(`${indent} * ${line}`);
-    result.push(`${indent} */`);
+  function appendText(text) {
+    if (!text) return;
+    result.push(`/**`);
+    for (const line of text.split('\n')) result.push(` * ${line}`);
+    result.push(` */`);
   }
 
   function createSeparator() {
     let first = true;
     return function() {
-      if (!first)
-        result.push(``);
+      if (!first) result.push(``);
       first = false;
-    }
+    };
   }
 
-  const defs = {...standard.definitions, ...custom.definitions};
+  const defs = { ...standard.definitions, ...custom.definitions };
 
   function definition(name) {
     return name.substring('#/definitions/'.length);
@@ -74,8 +76,7 @@ async function generate() {
   const typesSet = new Set();
 
   function generateType(prop) {
-    if (prop._enum)
-      return `${prop._enum.map(value => `'${value}'`).join(' | ')}`;
+    if (prop._enum) return `${prop._enum.map(value => `'${value}'`).join(' | ')}`;
     if (prop['$ref']) {
       const def = definition(prop['$ref']);
       if (!typesSet.has(def)) {
@@ -85,7 +86,7 @@ async function generate() {
       return `${def}`;
     }
     if (Array.isArray(prop.type)) {
-      return `${prop.type.map(type => generateType({type})).join(' | ')}`;
+      return `${prop.type.map(type => generateType({ type })).join(' | ')}`;
     }
     if (prop.type === 'array') {
       const subtype = prop.items ? generateType(prop.items) : 'any';
@@ -94,21 +95,22 @@ async function generate() {
     return prop.type;
   }
 
-  function appendProps(props, required, indent) {
+  function appendProps(props, required) {
     required = new Set(required || []);
     const propSeparator = createSeparator();
     for (const name in props) {
       const prop = props[name];
       propSeparator();
-      appendText(prop.description, '    ');
+      appendText(prop.description);
       const generatedType = generateType(prop);
-      result.push(`${indent}${name}${required.has(name) ? '' : '?'}: ${generatedType};`);
+      result.push(`${name}${required.has(name) ? '' : '?'}: ${generatedType};`);
     }
   }
 
   function getExtends(def) {
-      const refs = (def.allOf.filter(x => x['$ref']) || [])
-                    .map(ref => definition(ref['$ref'])).join(', ');
+    const refs = (def.allOf.filter(x => x['$ref']) || [])
+      .map(ref => definition(ref['$ref']))
+      .join(', ');
     return 'extends ' + refs;
   }
 
@@ -121,82 +123,97 @@ async function generate() {
 
   // ============================ API ==============================
 
-  result.push(`  export interface Api {`);
+  result.push(`export interface Api {`);
   for (const name in defs) {
     const def = defs[name];
-    if (!def.allOf)
-      continue;
+    if (!def.allOf) continue;
     const ref = def.allOf.find(parent => !!parent['$ref']);
     const desc = def.allOf.find(parent => !parent['$ref']);
-    if (!ref)
-      continue;
+    if (!ref) continue;
     if (ref['$ref'] === '#/definitions/Event') {
       apiSeparator();
-      appendText(desc.description, '    ');
-      result.push(`    ${desc.properties.event.enum[0]}(params: ${name}Params): void;`);
-      stubs.push({type: 'event', name: `${name}Params`, value: desc.properties.body || {properties: {}}});
+      appendText(desc.description);
+      result.push(`${desc.properties.event.enum[0]}(params: ${name}Params): void;`);
+      stubs.push({
+        type: 'event',
+        name: `${name}Params`,
+        value: desc.properties.body || { properties: {} },
+      });
     }
     if (ref['$ref'] === '#/definitions/Request') {
       const short = desc.properties.command.enum[0];
       const title = toTitleCase(short);
       apiSeparator();
-      appendText(desc.description, '    ');
-      result.push(`    on(request: '${short}', handler: (params: ${title}Params) => Promise<${title}Result | Error>): () => void;`);
+      appendText(desc.description);
+      result.push(
+        `on(request: '${short}', handler: (params: ${title}Params) => Promise<${title}Result | Error>): () => void;`,
+      );
       const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
-      stubs.push({type: 'params', name: `${title}Params`, value: defs[definition(args)] || {properties: {}}});
-      stubs.push({type: 'result', name: `${title}Result`, value: defs[`${name.substring(0, name.length - 'Request'.length)}Response`]});
+      stubs.push({
+        type: 'params',
+        name: `${title}Params`,
+        value: defs[definition(args)] || { properties: {} },
+      });
+      stubs.push({
+        type: 'result',
+        name: `${title}Result`,
+        value: defs[`${name.substring(0, name.length - 'Request'.length)}Response`],
+      });
 
-      appendText(desc.description, '    ');
-      result.push(`    ${short}Request(params: ${title}Params): Promise<${title}Result>;`);
+      appendText(desc.description);
+      result.push(`${short}Request(params: ${title}Params): Promise<${title}Result>;`);
     }
   }
-  result.push(`  }`);
+  result.push(`}`);
 
   // ============================ TEST API ==============================
 
   interfaceSeparator();
 
-  result.push(`  export interface TestApi {`);
+  result.push(`export interface TestApi {`);
   for (const name in defs) {
     const def = defs[name];
-    if (!def.allOf)
-      continue;
+    if (!def.allOf) continue;
     const ref = def.allOf.find(parent => !!parent['$ref']);
     const desc = def.allOf.find(parent => !parent['$ref']);
-    if (!ref)
-      continue;
-      if (ref['$ref'] === '#/definitions/Event') {
-        apiSeparator();
-        appendText(desc.description, '    ');
-        result.push(`    on(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void): void;`);
-        result.push(`    off(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void): void;`);
-        result.push(`    once(request: '${desc.properties.event.enum[0]}', filter?: (event: ${name}Params) => boolean): Promise<${name}Params>;`);
-      }
-      if (ref['$ref'] === '#/definitions/Request') {
-        const short = desc.properties.command.enum[0];
-        const title = toTitleCase(short);
-        apiSeparator();
-        appendText(desc.description, '    ');
-        result.push(`    ${short}(params: ${title}Params): Promise<${title}Result>;`);
-        const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
-      }
+    if (!ref) continue;
+    if (ref['$ref'] === '#/definitions/Event') {
+      apiSeparator();
+      appendText(desc.description);
+      result.push(
+        `on(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void): void;`,
+      );
+      result.push(
+        `off(request: '${desc.properties.event.enum[0]}', handler: (params: ${name}Params) => void): void;`,
+      );
+      result.push(
+        `once(request: '${desc.properties.event.enum[0]}', filter?: (event: ${name}Params) => boolean): Promise<${name}Params>;`,
+      );
     }
-  result.push(`  }`);
+    if (ref['$ref'] === '#/definitions/Request') {
+      const short = desc.properties.command.enum[0];
+      const title = toTitleCase(short);
+      apiSeparator();
+      appendText(desc.description);
+      result.push(`${short}(params: ${title}Params): Promise<${title}Result>;`);
+      const args = desc.properties.arguments ? desc.properties.arguments['$ref'] : '#/definitions/';
+    }
+  }
+  result.push(`}`);
 
   // ============================ TYPES ==============================
 
-  stubs.sort((a, b) => a.name < b.name ? -1 : 1);
+  stubs.sort((a, b) => (a.name < b.name ? -1 : 1));
   for (const type of stubs) {
     interfaceSeparator();
-    result.push(`  export interface ${type.name} {`);
+    result.push(`export interface ${type.name} {`);
     if (type.type === 'result') {
       const desc = type.value.allOf.find(parent => !parent['$ref']);
-      type.value = desc.properties ? desc.properties.body : {properties: {}};
-      while (type.value['$ref'])
-        type.value = defs[definition(type.value['$ref'])];
+      type.value = desc.properties ? desc.properties.body : { properties: {} };
+      while (type.value['$ref']) type.value = defs[definition(type.value['$ref'])];
     }
-    appendProps(type.value.properties, type.value.required, '    ');
-    result.push(`  }`);
+    appendProps(type.value.properties, type.value.required);
+    result.push(`}`);
   }
 
   while (types.length) {
@@ -205,18 +222,18 @@ async function generate() {
     interfaceSeparator();
     appendText(def.description, '  ');
     if (def.type && def.type !== 'object') {
-      result.push(`  export type ${type} = ${def.type};`);
+      result.push(`export type ${type} = ${def.type};`);
     } else {
-      result.push(`  export interface ${type} ${(def.allOf) ? getExtends(def) : ''} {`);
+      result.push(`export interface ${type} ${def.allOf ? getExtends(def) : ''} {`);
 
-      if(def.allOf) {
+      if (def.allOf) {
         // def extends some other interface(s)
         const ownDescription = def.allOf.find(parent => !parent['$ref']);
-        appendProps(ownDescription.properties, ownDescription.required, '    ');
+        appendProps(ownDescription.properties, ownDescription.required);
       } else {
-        appendProps(def.properties, def.required, '    ');
+        appendProps(def.properties, def.required);
       }
-      result.push(`  }`);
+      result.push(`}`);
     }
   }
 
@@ -226,7 +243,13 @@ async function generate() {
   result.push(``);
 
   const fileName = path.join(__dirname, '../src/dap/api.d.ts');
-  fs.writeFileSync(fileName, result.join('\n'));
+  fs.writeFileSync(
+    fileName,
+    prettier.format(result.join('\n'), {
+      parser: 'typescript',
+      ...require('../package.json').prettier,
+    }),
+  );
 }
 
 generate();

@@ -23,6 +23,8 @@ export const enum Contributions {
   AddCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
   RemoveCustomBreakpointCommand = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
   RemoveAllCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
+  StartProfileCommand = 'extension.NAMESPACE(node-debug).startProfile',
+  StopProfileCommand = 'extension.NAMESPACE(node-debug).stopProfile',
 
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
 }
@@ -78,6 +80,8 @@ export interface ICommandTypes {
   [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
   [Contributions.PrettyPrintCommand]: { args: []; out: void };
   [Contributions.EnlistExperimentCommand]: { args: []; out: void };
+  [Contributions.StartProfileCommand]: { args: [string | undefined]; out: void };
+  [Contributions.StopProfileCommand]: { args: [string | undefined]; out: void };
 }
 
 /**

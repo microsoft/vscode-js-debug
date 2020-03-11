@@ -754,6 +754,35 @@ export namespace Dap {
      * Enable custom breakpoints.
      */
     killCompanionBrowser(params: KillCompanionBrowserEventParams): void;
+
+    /**
+     * Starts taking a profile of the target.
+     */
+    on(
+      request: 'startProfile',
+      handler: (params: StartProfileParams) => Promise<StartProfileResult | Error>,
+    ): () => void;
+    /**
+     * Starts taking a profile of the target.
+     */
+    startProfileRequest(params: StartProfileParams): Promise<StartProfileResult>;
+
+    /**
+     * Stops a running profile.
+     */
+    on(
+      request: 'stopProfile',
+      handler: (params: StopProfileParams) => Promise<StopProfileResult | Error>,
+    ): () => void;
+    /**
+     * Stops a running profile.
+     */
+    stopProfileRequest(params: StopProfileParams): Promise<StopProfileResult>;
+
+    /**
+     * Fired when a profiling state changes.
+     */
+    profilerStateUpdate(params: ProfilerStateUpdateEventParams): void;
   }
 
   export interface TestApi {
@@ -1234,6 +1263,32 @@ export namespace Dap {
       request: 'killCompanionBrowser',
       filter?: (event: KillCompanionBrowserEventParams) => boolean,
     ): Promise<KillCompanionBrowserEventParams>;
+
+    /**
+     * Starts taking a profile of the target.
+     */
+    startProfile(params: StartProfileParams): Promise<StartProfileResult>;
+
+    /**
+     * Stops a running profile.
+     */
+    stopProfile(params: StopProfileParams): Promise<StopProfileResult>;
+
+    /**
+     * Fired when a profiling state changes.
+     */
+    on(
+      request: 'profilerStateUpdate',
+      handler: (params: ProfilerStateUpdateEventParams) => void,
+    ): void;
+    off(
+      request: 'profilerStateUpdate',
+      handler: (params: ProfilerStateUpdateEventParams) => void,
+    ): void;
+    once(
+      request: 'profilerStateUpdate',
+      filter?: (event: ProfilerStateUpdateEventParams) => boolean,
+    ): Promise<ProfilerStateUpdateEventParams>;
   }
 
   export interface AttachParams {
@@ -2059,6 +2114,13 @@ export namespace Dap {
     pointerSize?: integer;
   }
 
+  export interface ProfilerStateUpdateEventParams {
+    /**
+     * Description of the current state
+     */
+    label: string;
+  }
+
   export interface ReadMemoryParams {
     /**
      * Memory reference to the base location from which data should be read.
@@ -2422,6 +2484,25 @@ export namespace Dap {
     totalFrames?: integer;
   }
 
+  export interface StartProfileParams {
+    /**
+     * Location where the profile should be saved.
+     */
+    file: string;
+
+    /**
+     * Type of profile that should be taken
+     */
+    type: string;
+
+    /**
+     * Additional arguments for the type of profiler
+     */
+    params?: object;
+  }
+
+  export interface StartProfileResult {}
+
   export interface StepBackParams {
     /**
      * Execute 'stepBack' for this thread.
@@ -2467,6 +2548,10 @@ export namespace Dap {
   }
 
   export interface StepOutResult {}
+
+  export interface StopProfileParams {}
+
+  export interface StopProfileResult {}
 
   export interface StoppedEventParams {
     /**
