@@ -119,6 +119,7 @@ describe('completion', () => {
         { label: '__b', sortText: '~~{{b', type: 'property' },
       ],
     ],
+    ['$returnV|', []],
   ];
 
   itIntegrates('completion', async ({ r }) => {
@@ -146,5 +147,75 @@ describe('completion', () => {
         `bad result evaluating ${completion}`,
       );
     }
+  });
+
+  itIntegrates('$returnValue', async ({ r }) => {
+    const getFrameId = async () =>
+      (
+        await p.dap.stackTrace({
+          threadId: threadId!,
+        })
+      ).stackFrames[0].id;
+
+    const p = await r.launchAndLoad(`
+      <script>
+        function foo() {
+          debugger;
+          return { a: { b: 2 }};
+        }
+      </script>
+    `);
+
+    p.dap.evaluate({ expression: 'foo() ' });
+
+    const { threadId } = await p.dap.once('stopped');
+    await p.dap.next({ threadId: threadId! }); // step past debugger;
+    await p.dap.once('stopped');
+
+    // no returnValue when not in a returned context
+    const a1 = await p.dap.completions({
+      text: '$returnValu',
+      column: 11,
+      frameId: await getFrameId(),
+    });
+    expect(a1.targets).to.not.containSubset([
+      {
+        sortText: '~$returnValue',
+      },
+    ]);
+
+    await p.dap.next({ threadId: threadId! }); // step past return;
+    await p.dap.once('stopped');
+
+    // returnValue is available
+    const frameId = await getFrameId();
+    const a2 = await p.dap.completions({
+      text: '$returnValu',
+      column: 11,
+      frameId,
+    });
+
+    expect(a2.targets).to.containSubset([
+      {
+        label: '$returnValue',
+        type: 'variable',
+        sortText: '~$returnValue',
+      },
+    ]);
+
+    // returnValue can be completed on
+    const a3 = await p.dap.completions({
+      text: '$returnValue.',
+      column: 14,
+      frameId,
+    });
+
+    expect(a3.targets).to.containSubset([
+      {
+        label: 'a',
+        sortText: '~~a',
+        type: 'property',
+      },
+    ]);
   });
 });

@@ -57,6 +57,8 @@ import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
 import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
+import { ICompletions, Completions } from './adapter/completions';
+import { IEvaluator, Evaluator } from './adapter/evaluator';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -96,6 +98,15 @@ export const createTargetContainer = (
     .to(ScriptSkipper)
     .inSingletonScope();
 
+  container
+    .bind(ICompletions)
+    .to(Completions)
+    .inSingletonScope();
+
+  container
+    .bind(IEvaluator)
+    .to(Evaluator)
+    .inSingletonScope();
   return container;
 };
 

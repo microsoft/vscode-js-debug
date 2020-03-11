@@ -25,6 +25,8 @@ import { Container } from 'inversify';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { IBreakpointsPredictor } from './breakpointPredictor';
 import { disposeContainer } from '../ioc-extras';
+import { ICompletions } from './completions';
+import { IEvaluator } from './evaluator';
 
 const localize = nls.loadMessageBundle();
 
@@ -269,6 +271,8 @@ export class DebugAdapter implements IDisposable {
       this.dap,
       delegate,
       this._services.get(ILogger),
+      this._services.get(IEvaluator),
+      this._services.get(ICompletions),
       this.launchConfig,
       this.breakpointManager,
     );

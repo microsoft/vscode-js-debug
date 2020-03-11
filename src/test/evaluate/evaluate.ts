@@ -394,4 +394,38 @@ describe('evaluate', () => {
     await logCompletions({ line: 1, column: 3, text: 'co' });
     p.assertLog();
   });
+
+  itIntegrates('returnValue', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+
+    const evaluateAtReturn = async (returnValue: string, expression = '$returnValue') => {
+      p.dap.evaluate({
+        expression: `(function () {
+          debugger;
+          return ${returnValue};
+        })();`,
+      });
+
+      const { threadId } = await p.dap.once('stopped');
+      await p.dap.next({ threadId: threadId! }); // step past debugger;
+      await p.dap.once('stopped');
+      await p.dap.next({ threadId: threadId! }); // step past return;
+      await p.dap.once('stopped');
+
+      const frameId = (
+        await p.dap.stackTrace({
+          threadId: threadId!,
+        })
+      ).stackFrames[0].id;
+
+      p.log(`return ${returnValue}:\n`);
+      await p.logger.evaluateAndLog(expression, { params: { frameId } });
+      await p.dap.continue({ threadId: threadId! });
+    };
+
+    await evaluateAtReturn('42');
+    await evaluateAtReturn('{ a: { b: true } }');
+    await evaluateAtReturn('undefined');
+    r.assertLog();
+  });
 });
