@@ -621,7 +621,7 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
-    itIntegrates.only('works in remote workspaces', async ({ r }) => {
+    itIntegrates('works in remote workspaces', async ({ r }) => {
       await r.initialize;
 
       const cwd = join(testWorkspace, 'tsNode');

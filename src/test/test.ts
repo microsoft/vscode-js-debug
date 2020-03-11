@@ -480,7 +480,12 @@ export class TestRoot {
     await this.initialize;
 
     filename = path.isAbsolute(filename) ? filename : path.join(testFixturesDir, filename);
-    const tmpPath = path.join(tmpdir(), 'js-debug-test');
+    let tmpPath = path.join(tmpdir(), 'js-debug-test');
+    if (process.platform === 'darwin' && tmpPath.startsWith('/var/folders')) {
+      // on OSX, tmpdir is 'virtually' inside /private. os.tmpdir() omits the
+      // private prefix, but Chrome sees it, so make sure it matches here.
+      tmpPath = `/private/${tmpPath}`;
+    }
     after(() => del(`${forceForwardSlashes(tmpPath)}/**`, { force: true }));
 
     await new Promise((resolve, reject) =>
