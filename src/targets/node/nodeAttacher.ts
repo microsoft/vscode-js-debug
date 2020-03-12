@@ -69,12 +69,13 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         }
       }
 
-      let inspectWs = "";
+      let inspectWs = '';
       if (runData.params.inspectUri) {
         inspectWs = constructInspectorWSUri(
           runData.params.inspectUri,
           `http://localhost:${runData.params.port}`,
-          inspectorURL);
+          inspectorURL,
+        );
       }
 
       const program = (this.program = new SubprocessProgram(
