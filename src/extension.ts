@@ -21,6 +21,7 @@ import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { tmpdir } from 'os';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { toggleOnExperiment } from './ui/experimentEnlist';
+import { registerProfilingCommand } from './ui/profiling';
 
 // eslint-disable-next-line
 const packageJson = require('../package.json');
@@ -63,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(sessionManager);
 
-  const debugSessionTracker = new DebugSessionTracker();
+  const debugSessionTracker = services.get(DebugSessionTracker);
   debugSessionTracker.attach();
 
   context.subscriptions.push(PrettyPrintTrackerFactory.register(debugSessionTracker));
@@ -72,6 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(context, services.get(DelegateLauncherFactory));
   registerNpmScriptLens(context);
+  registerProfilingCommand(context, services);
 }
 
 export function deactivate() {

@@ -4,7 +4,7 @@
 import { ILauncher, ILaunchResult, ITarget, IStopMetadata, ILaunchContext } from '../targets';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
-import { ObservableMap } from '../targetList';
+import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EventEmitter } from '../../common/events';
 import { IPendingDapApi } from '../../dap/pending-api';
 import { MutableTargetOrigin } from '../targetOrigin';

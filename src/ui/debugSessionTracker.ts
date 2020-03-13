@@ -5,10 +5,12 @@
 import * as vscode from 'vscode';
 import Dap from '../dap/api';
 import { DebugType } from '../common/contributionUtils';
+import { injectable } from 'inversify';
 
 /**
  * Keeps a list of known js-debug sessions.
  */
+@injectable()
 export class DebugSessionTracker implements vscode.Disposable {
   private _onSessionAddedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
   private _disposables: vscode.Disposable[] = [];

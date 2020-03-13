@@ -1064,6 +1064,10 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+    if (this._scripts.has(event.scriptId)) {
+      return;
+    }
+
     if (event.url) event.url = this._delegate.scriptUrlToUrl(event.url);
 
     let urlHashMap = this._scriptSources.get(event.url);

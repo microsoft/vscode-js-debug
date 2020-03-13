@@ -169,7 +169,9 @@
     "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
     "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
     "onDebugResolve:NAMESPACE(msedge)",
-    "onDebugResolve:NAMESPACE(extensionHost)"
+    "onDebugResolve:NAMESPACE(extensionHost)",
+    "onCommand:extension.NAMESPACE(node-debug).startProfile",
+    "onCommand:extension.NAMESPACE(node-debug).stopProfile"
   ],
   "extensionKind": [
     "workspace"
@@ -231,6 +233,16 @@
         "command": "extension.NAMESPACE(node-debug).createDebuggerTerminal",
         "title": "%debug.terminal.label%",
         "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).startProfile",
+        "title": "%profile.start%",
+        "category": "Debug"
+      },
+      {
+        "command": "extension.NAMESPACE(node-debug).stopProfile",
+        "title": "%profile.stop%",
+        "category": "Debug"
       }
     ],
     "menus": {
@@ -239,6 +251,16 @@
           "command": "extension.NAMESPACE(node-debug).prettyPrint",
           "title": "%pretty.print.script%",
           "when": "inDebugMode && debugType == NAMESPACE(chrome) && editorLangId == javascript"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).startProfile",
+          "title": "%profile.start%",
+          "when": "inDebugMode && debugType == NAMESPACE(chrome)"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).stopProfile",
+          "title": "%profile.stop%",
+          "when": "inDebugMode && debugType == NAMESPACE(chrome)"
         }
       ],
       "debug/callstack/context": [
@@ -250,7 +272,12 @@
         {
           "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
           "group": "navigation",
-          "when": "inDebugMode && debugType == NAMESPACE(chrome) && callStackItemType == 'stackFrame'"
+          "when": "inDebugMode && debugType == NAMESPACE(chrome) && callStackItemType == 'session'"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).startProfile",
+          "icon": "watch",
+          "group": "navigation"
         }
       ],
       "view/title": [
