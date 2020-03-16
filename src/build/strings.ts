@@ -206,6 +206,8 @@ const strings = {
     'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
+  'configuration.debugByLinkOptions':
+    'Options used when debugging open links clicked from inside the debug terminal. Can be set to "false" to disable this behavior.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

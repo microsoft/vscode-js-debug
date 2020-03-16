@@ -862,6 +862,19 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     description: refString('configuration.automaticallyTunnelRemoteServer'),
     default: true,
   },
+  [Configuration.DebugByLinkOptions]: {
+    default: {},
+    description: refString('configuration.debugByLinkOptions'),
+    oneOf: [
+      {
+        type: 'boolean',
+      },
+      {
+        type: 'object',
+        properties: chromeLaunchConfig.configurationAttributes as { [key: string]: JSONSchema6 },
+      },
+    ],
+  },
 };
 
 process.stdout.write(

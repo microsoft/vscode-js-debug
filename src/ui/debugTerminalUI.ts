@@ -20,6 +20,9 @@ import { createPendingDapApi } from '../dap/pending-api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { Logger } from '../common/logging/logger';
+import { URL } from 'url';
+
+const debugTerminals = new WeakSet<vscode.Terminal>();
 
 /**
  * See docblocks on {@link DelegateLauncher} for more information on
@@ -85,6 +88,10 @@ function launchTerminal(
     previousTargets = newTargets;
   });
 
+  launcher.onTerminalCreated(terminal => {
+    debugTerminals.add(terminal);
+  });
+
   // Create a 'fake' launch request to the terminal, and run it!
   launcher.launch(
     applyDefaults({
@@ -111,6 +118,57 @@ function launchTerminal(
 }
 
 /**
+ * Launches a browser debug session when a link is clicked from a debug terminal.
+ */
+function handleLink(terminal: vscode.Terminal, link: string) {
+  // Only handle links when the click is from inside a debug terminal, and
+  // the user hasn't disabled debugging via links.
+  if (!debugTerminals.has(terminal)) {
+    return false;
+  }
+
+  const baseConfig = readConfig(
+    vscode.workspace.getConfiguration(),
+    Configuration.DebugByLinkOptions,
+  );
+  if (baseConfig === false) {
+    return false;
+  }
+
+  // Don't debug things that explicitly aren't http, and prefix anything like `localhost:1234`
+  try {
+    const url = new URL(link);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return false;
+    }
+  } catch {
+    link = `http://${link}`;
+  }
+
+  // Do our best to resolve the right workspace folder to launch in, and debug
+  let cwd: vscode.WorkspaceFolder | undefined;
+  if ('cwd' in terminal.creationOptions && terminal.creationOptions.cwd) {
+    cwd = vscode.workspace.getWorkspaceFolder(
+      typeof terminal.creationOptions.cwd === 'string'
+        ? vscode.Uri.file(terminal.creationOptions.cwd)
+        : terminal.creationOptions.cwd,
+    );
+  }
+
+  if (!cwd) {
+    cwd = vscode.workspace.workspaceFolders?.[0];
+  }
+
+  return vscode.debug.startDebugging(cwd, {
+    ...(typeof baseConfig === 'boolean' ? {} : baseConfig),
+    type: DebugType.Chrome,
+    name: link,
+    request: 'launch',
+    url: link,
+  });
+}
+
+/**
  * Registers a command to launch the debugger terminal.
  */
 export function registerDebugTerminalUI(
@@ -121,5 +179,6 @@ export function registerDebugTerminalUI(
     registerCommand(vscode.commands, Contributions.CreateDebuggerTerminal, (command, folder) =>
       launchTerminal(delegateFactory, command, folder ?? vscode.workspace.workspaceFolders?.[0]),
     ),
+    vscode.window.registerTerminalLinkHandler({ handleLink }),
   );
 }

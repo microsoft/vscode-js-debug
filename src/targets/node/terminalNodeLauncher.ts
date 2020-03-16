@@ -9,6 +9,7 @@ import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { IProgram } from './program';
 import { IStopMetadata } from '../targets';
 import { ProtocolError, ErrorCodes } from '../../dap/errors';
+import { EventEmitter } from '../../common/events';
 
 class VSCodeTerminalProcess implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
@@ -39,6 +40,9 @@ class VSCodeTerminalProcess implements IProgram {
  * "debugger terminal" in the extension.
  */
 export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfiguration> {
+  private terminalCreatedEmitter = new EventEmitter<vscode.Terminal>();
+  public readonly onTerminalCreated = this.terminalCreatedEmitter.event;
+
   /**
    * @inheritdoc
    */
@@ -75,6 +79,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       cwd: runData.params.cwd,
       env: this.resolveEnvironment(runData).defined(),
     });
+    this.terminalCreatedEmitter.fire(terminal);
 
     terminal.show();
     this.program = new VSCodeTerminalProcess(terminal);
