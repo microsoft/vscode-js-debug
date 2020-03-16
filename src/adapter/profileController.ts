@@ -38,7 +38,8 @@ export class ProfileController implements IProfileController {
         throw err;
       });
 
-      return this.profile;
+      await this.profile;
+      return {};
     });
 
     dap.on('stopProfile', async () => {

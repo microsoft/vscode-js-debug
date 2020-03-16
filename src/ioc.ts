@@ -62,6 +62,7 @@ import { IEvaluator, Evaluator } from './adapter/evaluator';
 import { ProfilerFactory, IProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicProfiler';
 import { IProfileController, ProfileController } from './adapter/profileController';
+import { SourceContainer } from './adapter/sources';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -97,6 +98,11 @@ export const createTargetContainer = (
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver());
+
+  container
+    .bind(SourceContainer)
+    .toSelf()
+    .inSingletonScope();
 
   container
     .bind(IScriptSkipper)

@@ -16,13 +16,11 @@ import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { IDeferred, getDeferred } from '../common/promiseUtil';
-import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { ScriptSkipper, IScriptSkipper } from './scriptSkipper';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { LogTag, ILogger } from '../common/logging';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { Container } from 'inversify';
-import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { IBreakpointsPredictor } from './breakpointPredictor';
 import { disposeContainer } from '../ioc-extras';
 import { ICompletions } from './completions';
@@ -87,16 +85,7 @@ export class DebugAdapter implements IDisposable {
 
     _services.get<IProfileController>(IProfileController).connect(this.dap);
 
-    this.sourceContainer = new SourceContainer(
-      this.dap,
-      _services.get(ISourceMapFactory),
-      _services.get(ILogger),
-      rootPath,
-      sourcePathResolver,
-      _services.get(ISourceMapRepository),
-      _services.get(IScriptSkipper),
-    );
-
+    this.sourceContainer = _services.get(SourceContainer);
     this.breakpointManager = new BreakpointManager(
       this.dap,
       this.sourceContainer,

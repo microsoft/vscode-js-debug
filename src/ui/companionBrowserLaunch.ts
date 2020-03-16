@@ -11,6 +11,11 @@ import { URL } from 'url';
 const localize = nls.loadMessageBundle();
 const sessionTunnels = new Map<string, vscode.Tunnel>();
 
+const isTunnelForPort = (port: number) => (tunnel: vscode.TunnelDescription) =>
+  typeof tunnel.localAddress === 'string'
+    ? tunnel.localAddress.endsWith(`:${port}`)
+    : tunnel.localAddress.port === port;
+
 const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionEventParams) => {
   const urlStr = (args.params as { url?: string }).url;
   if (!urlStr) {
@@ -29,7 +34,7 @@ const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionE
   }
 
   const port = Number(url.port) || 80;
-  if ((await vscode.workspace.tunnels).some(t => t.localAddress.endsWith(`:${port}`))) {
+  if ((await vscode.workspace.tunnels).some(isTunnelForPort(port))) {
     return;
   }
 

@@ -10,6 +10,8 @@ import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
 import { ProtocolError, profileCaptureError } from '../../dap/errors';
 import { FS, FsPromises } from '../../ioc-extras';
+import { SourceContainer } from '../sources';
+import { AnyLaunchConfiguration } from '../../configuration';
 
 const localize = nls.loadMessageBundle();
 
@@ -38,6 +40,8 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
   constructor(
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(FS) private readonly fs: FsPromises,
+    @inject(SourceContainer) private readonly sources: SourceContainer,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
   ) {}
 
   /**
@@ -50,7 +54,13 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
       throw new ProtocolError(profileCaptureError());
     }
 
-    return new BasicProfile(this.cdp, this.fs, options);
+    return new BasicProfile(
+      this.cdp,
+      this.fs,
+      this.sources,
+      options,
+      this.launchConfig.__workspaceFolder,
+    );
   }
 }
 
@@ -71,7 +81,9 @@ class BasicProfile implements IProfile {
   constructor(
     private readonly cdp: Cdp.Api,
     private readonly fs: FsPromises,
+    private readonly sources: SourceContainer,
     private readonly options: StartProfileParams<IBasicProfileParams>,
+    private readonly workspaceFolder: string,
   ) {}
 
   /**
@@ -95,6 +107,38 @@ class BasicProfile implements IProfile {
     }
 
     await this.dispose();
-    await this.fs.writeFile(this.options.file, JSON.stringify(result.profile));
+
+    const annotated = await this.annotateSources(result.profile);
+    await this.fs.writeFile(this.options.file, JSON.stringify(annotated));
+  }
+
+  /**
+   * Adds source locations
+   */
+  private async annotateSources(profile: Cdp.Profiler.Profile) {
+    return {
+      $vscode: {
+        rootPath: this.workspaceFolder,
+        locations: await Promise.all(
+          profile.nodes.map(async node => {
+            const source = await this.sources.scriptsById.get(node.callFrame.scriptId)?.source;
+            if (!source) {
+              return;
+            }
+
+            const locations = this.sources.currentSiblingUiLocations({
+              lineNumber: node.callFrame.lineNumber + 1,
+              columnNumber: node.callFrame.columnNumber + 1,
+              source,
+            });
+
+            return Promise.all(
+              locations.map(async loc => ({ ...loc, source: await loc.source.toDap() })),
+            );
+          }),
+        ),
+      },
+      ...profile,
+    };
   }
 }

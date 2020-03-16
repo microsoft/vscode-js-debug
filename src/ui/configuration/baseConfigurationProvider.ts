@@ -48,7 +48,7 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     const castConfig = config as ResolvingConfiguration<T>;
     try {
       const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
-      return resolved && this.commonResolution(resolved);
+      return resolved && this.commonResolution(resolved, folder);
     } catch (err) {
       vscode.window.showErrorMessage(err.message, { modal: true });
     }
@@ -100,9 +100,13 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
   /**
    * Fulfills resolution common between all resolver configs.
    */
-  protected commonResolution(config: T): T {
+  protected commonResolution(config: T, folder: vscode.WorkspaceFolder | undefined): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
+    if (folder) {
+      config.__workspaceFolder = folder.uri.fsPath;
+    }
+
     return config;
   }
 

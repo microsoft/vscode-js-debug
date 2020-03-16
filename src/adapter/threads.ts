@@ -115,7 +115,6 @@ export class Thread implements IVariableStoreDelegate {
   private _pausedDetails?: IPausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
-  private _scripts: Map<string, Script> = new Map();
   private _executionContexts: Map<number, ExecutionContext> = new Map();
   private _delegate: IThreadDelegate;
   readonly replVariables: VariableStore;
@@ -713,7 +712,7 @@ export class Thread implements IVariableStoreDelegate {
    * possible script IDs; this waits if we see one that we don't.
    */
   private async getScriptByIdOrWait(scriptId: string, maxTime = 500) {
-    let script = this._scripts.get(scriptId);
+    let script = this._sourceContainer.scriptsById.get(scriptId);
     if (script) {
       return script;
     }
@@ -721,7 +720,7 @@ export class Thread implements IVariableStoreDelegate {
     const deadline = Date.now() + maxTime;
     do {
       await delay(50);
-      script = this._scripts.get(scriptId);
+      script = this._sourceContainer.scriptsById.get(scriptId);
     } while (!script && Date.now() < deadline);
 
     return script;
@@ -1047,8 +1046,8 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _removeAllScripts(silent = false) {
-    const scripts = Array.from(this._scripts.values());
-    this._scripts.clear();
+    const scripts = Array.from(this._sourceContainer.scriptsById.values());
+    this._sourceContainer.scriptsById.clear();
     this._scriptSources.clear();
     Promise.all(
       scripts.map(script =>
@@ -1064,7 +1063,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    if (this._scripts.has(event.scriptId)) {
+    if (this._sourceContainer.scriptsById.has(event.scriptId)) {
       return;
     }
 
@@ -1134,7 +1133,7 @@ export class Thread implements IVariableStoreDelegate {
       source: createSource(),
       hash: event.hash,
     };
-    this._scripts.set(event.scriptId, script);
+    this._sourceContainer.scriptsById.set(event.scriptId, script);
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
@@ -1151,7 +1150,7 @@ export class Thread implements IVariableStoreDelegate {
   async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
     const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
-    const script = this._scripts.get(scriptId);
+    const script = this._sourceContainer.scriptsById.get(scriptId);
     if (!script) {
       this._pausedForSourceMapScriptId = undefined;
       return false;

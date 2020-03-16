@@ -9,18 +9,22 @@ import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
-import { ScriptSkipper } from './scriptSkipper';
+import { ScriptSkipper, IScriptSkipper } from './scriptSkipper';
 import { delay, getDeferred } from '../common/promiseUtil';
 import { SourceMapConsumer } from 'source-map';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { CachingSourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
 import { isSubdirectoryOf, forceForwardSlashes } from '../common/pathUtils';
 import { relative } from 'path';
+import { inject, injectable } from 'inversify';
+import { IDapApi } from '../dap/connection';
+import { AnyLaunchConfiguration } from '../configuration';
+import { Script } from './threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -341,7 +345,18 @@ export enum UnmappedReason {
   CannotMap,
 }
 
+@injectable()
 export class SourceContainer {
+  /**
+   * Project root path, if set.
+   */
+  public readonly rootPath?: string;
+
+  /**
+   * Mapping of CDP script IDs to Script objects.
+   */
+  public scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
+
   private _dap: Dap.Api;
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, Source> = new Map();
@@ -359,15 +374,16 @@ export class SourceContainer {
   private _disabledSourceMaps = new Set<Source>();
 
   constructor(
-    dap: Dap.Api,
-    private readonly sourceMapFactory: CachingSourceMapFactory,
-    private readonly logger: ILogger,
-    public readonly rootPath: string | undefined,
-    public readonly sourcePathResolver: ISourcePathResolver,
-    public readonly localSourceMaps: ISourceMapRepository,
-    public readonly scriptSkipper: ScriptSkipper,
+    @inject(IDapApi) dap: Dap.Api,
+    @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
+    @inject(ISourceMapRepository) public readonly localSourceMaps: ISourceMapRepository,
+    @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
   ) {
     this._dap = dap;
+    this.rootPath = launchConfig.rootPath;
     scriptSkipper.setSourceContainer(this);
   }
 
