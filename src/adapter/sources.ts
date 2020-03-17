@@ -212,19 +212,33 @@ export class Source {
     return { map, source: [...this._sourceMapSourceByUrl!.values()][0] };
   }
 
+  /**
+   * Returns a DAP representation of the source.
+   */
   async toDap(): Promise<Dap.Source> {
+    const [shallow, sources] = await Promise.all([
+      this.toDapShallow(),
+      this._sourceMapSourceByUrl
+        ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
+        : undefined,
+    ]);
+
+    return sources ? { ...shallow, sources } : shallow;
+  }
+
+  /**
+   * Returns a DAP representation without including any nested sources.
+   */
+  public async toDapShallow(): Promise<Dap.Source> {
     const existingAbsolutePath = await this._existingAbsolutePath;
-    const sources = this._sourceMapSourceByUrl
-      ? await Promise.all(Array.from(this._sourceMapSourceByUrl.values()).map(s => s.toDap()))
-      : undefined;
     const dap: Dap.Source = {
       name: this._name,
       path: this._fqname,
       sourceReference: this._sourceReference,
-      sources,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
       origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
     };
+
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
       dap.path = existingAbsolutePath;

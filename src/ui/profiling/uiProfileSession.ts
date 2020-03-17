@@ -10,6 +10,12 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 
+const enum State {
+  Collecting,
+  Saving,
+  Stopped,
+}
+
 /**
  * UI-side tracker for profiling sessions.
  */
@@ -18,6 +24,7 @@ export class UiProfileSession implements IDisposable {
   private stopEmitter = new EventEmitter<void>();
   private _innerStatus?: string;
   private disposables = new DisposableList();
+  private state = State.Collecting;
 
   /**
    * Event that fires when the status changes.
@@ -78,6 +85,7 @@ export class UiProfileSession implements IDisposable {
    * @inheritdoc
    */
   public dispose() {
+    this.state = State.Stopped;
     this.disposables.dispose();
   }
 
@@ -86,6 +94,12 @@ export class UiProfileSession implements IDisposable {
    * saved in.
    */
   public async stop() {
+    if (this.state !== State.Collecting) {
+      return;
+    }
+
+    this.state = State.Saving;
+    this.setStatus('Saving');
     await this.session.customRequest('stopProfile', {});
     this.stopEmitter.fire();
     this.dispose();
