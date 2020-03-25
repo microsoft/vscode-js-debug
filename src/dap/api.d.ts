@@ -13,26 +13,34 @@ export namespace Dap {
 
   export interface Api {
     /**
-     * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
+     * The 'cancel' request is used by the frontend in two situations:
+     * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
+     * - to cancel a progress sequence. Clients should only call this request if the capability 'supportsCancelRequest' is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
      * The 'cancel' request may return an error if it could not cancel an operation but a frontend should refrain from presenting this error to end users.
      * A frontend client should only call this request if the capability 'supportsCancelRequest' is true.
-     * The request that got canceled still needs to send a response back.
-     * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
+     * The request that got canceled still needs to send a response back. This can either be a normal result ('success' attribute true)
+     * or an error response ('success' attribute false and the 'message' set to 'cancelled').
      * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
+     *  The progress that got cancelled still needs to send a 'progressEnd' event back.
+     *  A client should not assume that progress just got cancelled after sending the 'cancel' request.
      */
     on(
       request: 'cancel',
       handler: (params: CancelParams) => Promise<CancelResult | Error>,
     ): () => void;
     /**
-     * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
+     * The 'cancel' request is used by the frontend in two situations:
+     * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
+     * - to cancel a progress sequence. Clients should only call this request if the capability 'supportsCancelRequest' is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
      * The 'cancel' request may return an error if it could not cancel an operation but a frontend should refrain from presenting this error to end users.
      * A frontend client should only call this request if the capability 'supportsCancelRequest' is true.
-     * The request that got canceled still needs to send a response back.
-     * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
+     * The request that got canceled still needs to send a response back. This can either be a normal result ('success' attribute true)
+     * or an error response ('success' attribute false and the 'message' set to 'cancelled').
      * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
+     *  The progress that got cancelled still needs to send a 'progressEnd' event back.
+     *  A client should not assume that progress just got cancelled after sending the 'cancel' request.
      */
     cancelRequest(params: CancelParams): Promise<CancelResult>;
 
@@ -111,20 +119,47 @@ export namespace Dap {
     capabilities(params: CapabilitiesEventParams): void;
 
     /**
-     * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
+     * The event signals that a long running operation is about to start and
+     * provides additional information for the client to set up a corresponding progress and cancellation UI.
+     * The client is free to delay the showing of the UI in order to reduce flicker.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    progressStart(params: ProgressStartEventParams): void;
+
+    /**
+     * The event signals that the progress reporting needs to updated with a new message and/or percentage.
+     * The client does not have to update the UI immediately, but the clients needs to keep track of the message and/or percentage values.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    progressUpdate(params: ProgressUpdateEventParams): void;
+
+    /**
+     * The event signals the end of the progress reporting with an optional final message.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    progressEnd(params: ProgressEndEventParams): void;
+
+    /**
+     * This optional request is sent from the debug adapter to the client to run a command in a terminal.
+     * This is typically used to launch the debuggee in a terminal provided by the client.
+     * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
      */
     on(
       request: 'runInTerminal',
       handler: (params: RunInTerminalParams) => Promise<RunInTerminalResult | Error>,
     ): () => void;
     /**
-     * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
+     * This optional request is sent from the debug adapter to the client to run a command in a terminal.
+     * This is typically used to launch the debuggee in a terminal provided by the client.
+     * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
      */
     runInTerminalRequest(params: RunInTerminalParams): Promise<RunInTerminalResult>;
 
     /**
-     * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
-     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
+     * The 'initialize' request is sent as the first request from the client to the debug adapter
+     * in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
+     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter.
+     * In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
      * The 'initialize' request may only be sent once.
      */
     on(
@@ -132,80 +167,95 @@ export namespace Dap {
       handler: (params: InitializeParams) => Promise<InitializeResult | Error>,
     ): () => void;
     /**
-     * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
-     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
+     * The 'initialize' request is sent as the first request from the client to the debug adapter
+     * in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
+     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter.
+     * In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
      * The 'initialize' request may only be sent once.
      */
     initializeRequest(params: InitializeParams): Promise<InitializeResult>;
 
     /**
-     * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
+     * This optional request indicates that the client has finished initialization of the debug adapter.
+     * So it is the last request in the sequence of configuration requests (which was started by the 'initialized' event).
+     * Clients should only call this request if the capability 'supportsConfigurationDoneRequest' is true.
      */
     on(
       request: 'configurationDone',
       handler: (params: ConfigurationDoneParams) => Promise<ConfigurationDoneResult | Error>,
     ): () => void;
     /**
-     * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
+     * This optional request indicates that the client has finished initialization of the debug adapter.
+     * So it is the last request in the sequence of configuration requests (which was started by the 'initialized' event).
+     * Clients should only call this request if the capability 'supportsConfigurationDoneRequest' is true.
      */
     configurationDoneRequest(params: ConfigurationDoneParams): Promise<ConfigurationDoneResult>;
 
     /**
-     * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * This launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true).
+     * Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     on(
       request: 'launch',
       handler: (params: LaunchParams) => Promise<LaunchResult | Error>,
     ): () => void;
     /**
-     * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * This launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true).
+     * Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     launchRequest(params: LaunchParams): Promise<LaunchResult>;
 
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     on(
       request: 'attach',
       handler: (params: AttachParams) => Promise<AttachResult | Error>,
     ): () => void;
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     attachRequest(params: AttachParams): Promise<AttachResult>;
 
     /**
-     * Restarts a debug session. If the capability 'supportsRestartRequest' is missing or has the value false,
-     * the client will implement 'restart' by terminating the debug adapter first and then launching it anew.
-     * A debug adapter can override this default behaviour by implementing a restart request
-     * and setting the capability 'supportsRestartRequest' to true.
+     * Restarts a debug session. Clients should only call this request if the capability 'supportsRestartRequest' is true.
+     * If the capability is missing or has the value false, a typical client will emulate 'restart' by terminating the debug adapter first and then launching it anew.
      */
     on(
       request: 'restart',
       handler: (params: RestartParams) => Promise<RestartResult | Error>,
     ): () => void;
     /**
-     * Restarts a debug session. If the capability 'supportsRestartRequest' is missing or has the value false,
-     * the client will implement 'restart' by terminating the debug adapter first and then launching it anew.
-     * A debug adapter can override this default behaviour by implementing a restart request
-     * and setting the capability 'supportsRestartRequest' to true.
+     * Restarts a debug session. Clients should only call this request if the capability 'supportsRestartRequest' is true.
+     * If the capability is missing or has the value false, a typical client will emulate 'restart' by terminating the debug adapter first and then launching it anew.
      */
     restartRequest(params: RestartParams): Promise<RestartResult>;
 
     /**
-     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
+     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging.
+     * It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter.
+     * If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee.
+     * If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee.
+     * This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
      */
     on(
       request: 'disconnect',
       handler: (params: DisconnectParams) => Promise<DisconnectResult | Error>,
     ): () => void;
     /**
-     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
+     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging.
+     * It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter.
+     * If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee.
+     * If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee.
+     * This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
      */
     disconnectRequest(params: DisconnectParams): Promise<DisconnectResult>;
 
     /**
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
+     * Clients should only call this request if the capability 'supportsTerminateRequest' is true.
      */
     on(
       request: 'terminate',
@@ -213,11 +263,13 @@ export namespace Dap {
     ): () => void;
     /**
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
+     * Clients should only call this request if the capability 'supportsTerminateRequest' is true.
      */
     terminateRequest(params: TerminateParams): Promise<TerminateResult>;
 
     /**
      * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
+     * Clients should only call this request if the capability 'supportsBreakpointLocationsRequest' is true.
      */
     on(
       request: 'breakpointLocations',
@@ -225,6 +277,7 @@ export namespace Dap {
     ): () => void;
     /**
      * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
+     * Clients should only call this request if the capability 'supportsBreakpointLocationsRequest' is true.
      */
     breakpointLocationsRequest(
       params: BreakpointLocationsParams,
@@ -250,6 +303,7 @@ export namespace Dap {
      * Replaces all existing function breakpoints with new function breakpoints.
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsFunctionBreakpoints' is true.
      */
     on(
       request: 'setFunctionBreakpoints',
@@ -261,13 +315,16 @@ export namespace Dap {
      * Replaces all existing function breakpoints with new function breakpoints.
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsFunctionBreakpoints' is true.
      */
     setFunctionBreakpointsRequest(
       params: SetFunctionBreakpointsParams,
     ): Promise<SetFunctionBreakpointsResult>;
 
     /**
-     * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * The request configures the debuggers response to thrown exceptions.
+     * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
      */
     on(
       request: 'setExceptionBreakpoints',
@@ -276,7 +333,9 @@ export namespace Dap {
       ) => Promise<SetExceptionBreakpointsResult | Error>,
     ): () => void;
     /**
-     * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * The request configures the debuggers response to thrown exceptions.
+     * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
      */
     setExceptionBreakpointsRequest(
       params: SetExceptionBreakpointsParams,
@@ -284,6 +343,7 @@ export namespace Dap {
 
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     on(
       request: 'dataBreakpointInfo',
@@ -291,6 +351,7 @@ export namespace Dap {
     ): () => void;
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     dataBreakpointInfoRequest(params: DataBreakpointInfoParams): Promise<DataBreakpointInfoResult>;
 
@@ -298,6 +359,7 @@ export namespace Dap {
      * Replaces all existing data breakpoints with new data breakpoints.
      * To clear all data breakpoints, specify an empty array.
      * When a data breakpoint is hit, a 'stopped' event (with reason 'data breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     on(
       request: 'setDataBreakpoints',
@@ -307,6 +369,7 @@ export namespace Dap {
      * Replaces all existing data breakpoints with new data breakpoints.
      * To clear all data breakpoints, specify an empty array.
      * When a data breakpoint is hit, a 'stopped' event (with reason 'data breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     setDataBreakpointsRequest(params: SetDataBreakpointsParams): Promise<SetDataBreakpointsResult>;
 
@@ -371,7 +434,8 @@ export namespace Dap {
 
     /**
      * The request starts the debuggee to run one step backwards.
-     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     on(
       request: 'stepBack',
@@ -379,25 +443,29 @@ export namespace Dap {
     ): () => void;
     /**
      * The request starts the debuggee to run one step backwards.
-     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     stepBackRequest(params: StepBackParams): Promise<StepBackResult>;
 
     /**
-     * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The request starts the debuggee to run backward.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     on(
       request: 'reverseContinue',
       handler: (params: ReverseContinueParams) => Promise<ReverseContinueResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The request starts the debuggee to run backward.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     reverseContinueRequest(params: ReverseContinueParams): Promise<ReverseContinueResult>;
 
     /**
      * The request restarts execution of the specified stackframe.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
+     * Clients should only call this request if the capability 'supportsRestartFrame' is true.
      */
     on(
       request: 'restartFrame',
@@ -406,6 +474,7 @@ export namespace Dap {
     /**
      * The request restarts execution of the specified stackframe.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
+     * Clients should only call this request if the capability 'supportsRestartFrame' is true.
      */
     restartFrameRequest(params: RestartFrameParams): Promise<RestartFrameResult>;
 
@@ -414,6 +483,7 @@ export namespace Dap {
      * This makes it possible to skip the execution of code or to executed code again.
      * The code between the current location and the goto target is not executed but skipped.
      * The debug adapter first sends the response and then a 'stopped' event with reason 'goto'.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true (because only then goto targets exist that can be passed as arguments).
      */
     on(request: 'goto', handler: (params: GotoParams) => Promise<GotoResult | Error>): () => void;
     /**
@@ -421,6 +491,7 @@ export namespace Dap {
      * This makes it possible to skip the execution of code or to executed code again.
      * The code between the current location and the goto target is not executed but skipped.
      * The debug adapter first sends the response and then a 'stopped' event with reason 'goto'.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true (because only then goto targets exist that can be passed as arguments).
      */
     gotoRequest(params: GotoParams): Promise<GotoResult>;
 
@@ -477,14 +548,14 @@ export namespace Dap {
     variablesRequest(params: VariablesParams): Promise<VariablesResult>;
 
     /**
-     * Set the variable with the given name in the variable container to a new value.
+     * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
      */
     on(
       request: 'setVariable',
       handler: (params: SetVariableParams) => Promise<SetVariableResult | Error>,
     ): () => void;
     /**
-     * Set the variable with the given name in the variable container to a new value.
+     * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
      */
     setVariableRequest(params: SetVariableParams): Promise<SetVariableResult>;
 
@@ -514,6 +585,7 @@ export namespace Dap {
 
     /**
      * The request terminates the threads with the given ids.
+     * Clients should only call this request if the capability 'supportsTerminateThreadsRequest' is true.
      */
     on(
       request: 'terminateThreads',
@@ -521,23 +593,27 @@ export namespace Dap {
     ): () => void;
     /**
      * The request terminates the threads with the given ids.
+     * Clients should only call this request if the capability 'supportsTerminateThreadsRequest' is true.
      */
     terminateThreadsRequest(params: TerminateThreadsParams): Promise<TerminateThreadsResult>;
 
     /**
-     * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
+     * Modules can be retrieved from the debug adapter with this request which can either return all modules or a range of modules to support paging.
+     * Clients should only call this request if the capability 'supportsModulesRequest' is true.
      */
     on(
       request: 'modules',
       handler: (params: ModulesParams) => Promise<ModulesResult | Error>,
     ): () => void;
     /**
-     * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
+     * Modules can be retrieved from the debug adapter with this request which can either return all modules or a range of modules to support paging.
+     * Clients should only call this request if the capability 'supportsModulesRequest' is true.
      */
     modulesRequest(params: ModulesParams): Promise<ModulesResult>;
 
     /**
      * Retrieves the set of all sources currently loaded by the debugged process.
+     * Clients should only call this request if the capability 'supportsLoadedSourcesRequest' is true.
      */
     on(
       request: 'loadedSources',
@@ -545,6 +621,7 @@ export namespace Dap {
     ): () => void;
     /**
      * Retrieves the set of all sources currently loaded by the debugged process.
+     * Clients should only call this request if the capability 'supportsLoadedSourcesRequest' is true.
      */
     loadedSourcesRequest(params: LoadedSourcesParams): Promise<LoadedSourcesResult>;
 
@@ -565,6 +642,7 @@ export namespace Dap {
     /**
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
+     * Clients should only call this request if the capability 'supportsSetExpression' is true.
      */
     on(
       request: 'setExpression',
@@ -573,6 +651,7 @@ export namespace Dap {
     /**
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
+     * Clients should only call this request if the capability 'supportsSetExpression' is true.
      */
     setExpressionRequest(params: SetExpressionParams): Promise<SetExpressionResult>;
 
@@ -580,6 +659,7 @@ export namespace Dap {
      * This request retrieves the possible stepIn targets for the specified stack frame.
      * These targets can be used in the 'stepIn' request.
      * The StepInTargets may only be called if the 'supportsStepInTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsStepInTargetsRequest' is true.
      */
     on(
       request: 'stepInTargets',
@@ -589,13 +669,14 @@ export namespace Dap {
      * This request retrieves the possible stepIn targets for the specified stack frame.
      * These targets can be used in the 'stepIn' request.
      * The StepInTargets may only be called if the 'supportsStepInTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsStepInTargetsRequest' is true.
      */
     stepInTargetsRequest(params: StepInTargetsParams): Promise<StepInTargetsResult>;
 
     /**
      * This request retrieves the possible goto targets for the specified source location.
      * These targets can be used in the 'goto' request.
-     * The GotoTargets request may only be called if the 'supportsGotoTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true.
      */
     on(
       request: 'gotoTargets',
@@ -604,13 +685,13 @@ export namespace Dap {
     /**
      * This request retrieves the possible goto targets for the specified source location.
      * These targets can be used in the 'goto' request.
-     * The GotoTargets request may only be called if the 'supportsGotoTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true.
      */
     gotoTargetsRequest(params: GotoTargetsParams): Promise<GotoTargetsResult>;
 
     /**
      * Returns a list of possible completions for a given caret position and text.
-     * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsCompletionsRequest' is true.
      */
     on(
       request: 'completions',
@@ -618,12 +699,13 @@ export namespace Dap {
     ): () => void;
     /**
      * Returns a list of possible completions for a given caret position and text.
-     * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsCompletionsRequest' is true.
      */
     completionsRequest(params: CompletionsParams): Promise<CompletionsResult>;
 
     /**
      * Retrieves the details of the exception that caused this event to be raised.
+     * Clients should only call this request if the capability 'supportsExceptionInfoRequest' is true.
      */
     on(
       request: 'exceptionInfo',
@@ -631,11 +713,13 @@ export namespace Dap {
     ): () => void;
     /**
      * Retrieves the details of the exception that caused this event to be raised.
+     * Clients should only call this request if the capability 'supportsExceptionInfoRequest' is true.
      */
     exceptionInfoRequest(params: ExceptionInfoParams): Promise<ExceptionInfoResult>;
 
     /**
      * Reads bytes from memory at the provided location.
+     * Clients should only call this request if the capability 'supportsReadMemoryRequest' is true.
      */
     on(
       request: 'readMemory',
@@ -643,11 +727,13 @@ export namespace Dap {
     ): () => void;
     /**
      * Reads bytes from memory at the provided location.
+     * Clients should only call this request if the capability 'supportsReadMemoryRequest' is true.
      */
     readMemoryRequest(params: ReadMemoryParams): Promise<ReadMemoryResult>;
 
     /**
      * Disassembles code stored at the provided location.
+     * Clients should only call this request if the capability 'supportsDisassembleRequest' is true.
      */
     on(
       request: 'disassemble',
@@ -655,6 +741,7 @@ export namespace Dap {
     ): () => void;
     /**
      * Disassembles code stored at the provided location.
+     * Clients should only call this request if the capability 'supportsDisassembleRequest' is true.
      */
     disassembleRequest(params: DisassembleParams): Promise<DisassembleResult>;
 
@@ -787,13 +874,17 @@ export namespace Dap {
 
   export interface TestApi {
     /**
-     * The 'cancel' request is used by the frontend to indicate that it is no longer interested in the result produced by a specific request issued earlier.
+     * The 'cancel' request is used by the frontend in two situations:
+     * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
+     * - to cancel a progress sequence. Clients should only call this request if the capability 'supportsCancelRequest' is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
      * The 'cancel' request may return an error if it could not cancel an operation but a frontend should refrain from presenting this error to end users.
      * A frontend client should only call this request if the capability 'supportsCancelRequest' is true.
-     * The request that got canceled still needs to send a response back.
-     * This can either be a normal result ('success' attribute true) or an error response ('success' attribute false and the 'message' set to 'cancelled').
+     * The request that got canceled still needs to send a response back. This can either be a normal result ('success' attribute true)
+     * or an error response ('success' attribute false and the 'message' set to 'cancelled').
      * Returning partial results from a cancelled request is possible but please note that a frontend client has no generic way for detecting that a response is partial or not.
+     *  The progress that got cancelled still needs to send a 'progressEnd' event back.
+     *  A client should not assume that progress just got cancelled after sending the 'cancel' request.
      */
     cancel(params: CancelParams): Promise<CancelResult>;
 
@@ -932,52 +1023,100 @@ export namespace Dap {
     ): Promise<CapabilitiesEventParams>;
 
     /**
-     * This request is sent from the debug adapter to the client to run a command in a terminal. This is typically used to launch the debuggee in a terminal provided by the client.
+     * The event signals that a long running operation is about to start and
+     * provides additional information for the client to set up a corresponding progress and cancellation UI.
+     * The client is free to delay the showing of the UI in order to reduce flicker.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    on(request: 'progressStart', handler: (params: ProgressStartEventParams) => void): void;
+    off(request: 'progressStart', handler: (params: ProgressStartEventParams) => void): void;
+    once(
+      request: 'progressStart',
+      filter?: (event: ProgressStartEventParams) => boolean,
+    ): Promise<ProgressStartEventParams>;
+
+    /**
+     * The event signals that the progress reporting needs to updated with a new message and/or percentage.
+     * The client does not have to update the UI immediately, but the clients needs to keep track of the message and/or percentage values.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    on(request: 'progressUpdate', handler: (params: ProgressUpdateEventParams) => void): void;
+    off(request: 'progressUpdate', handler: (params: ProgressUpdateEventParams) => void): void;
+    once(
+      request: 'progressUpdate',
+      filter?: (event: ProgressUpdateEventParams) => boolean,
+    ): Promise<ProgressUpdateEventParams>;
+
+    /**
+     * The event signals the end of the progress reporting with an optional final message.
+     * This event should only be sent if the client has passed the value true for the 'supportsProgressReporting' capability of the 'initialize' request.
+     */
+    on(request: 'progressEnd', handler: (params: ProgressEndEventParams) => void): void;
+    off(request: 'progressEnd', handler: (params: ProgressEndEventParams) => void): void;
+    once(
+      request: 'progressEnd',
+      filter?: (event: ProgressEndEventParams) => boolean,
+    ): Promise<ProgressEndEventParams>;
+
+    /**
+     * This optional request is sent from the debug adapter to the client to run a command in a terminal.
+     * This is typically used to launch the debuggee in a terminal provided by the client.
+     * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
      */
     runInTerminal(params: RunInTerminalParams): Promise<RunInTerminalResult>;
 
     /**
-     * The 'initialize' request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
-     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter. In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
+     * The 'initialize' request is sent as the first request from the client to the debug adapter
+     * in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
+     * Until the debug adapter has responded to with an 'initialize' response, the client must not send any additional requests or events to the debug adapter.
+     * In addition the debug adapter is not allowed to send any requests or events to the client until it has responded with an 'initialize' response.
      * The 'initialize' request may only be sent once.
      */
     initialize(params: InitializeParams): Promise<InitializeResult>;
 
     /**
-     * The client of the debug protocol must send this request at the end of the sequence of configuration requests (which was started by the 'initialized' event).
+     * This optional request indicates that the client has finished initialization of the debug adapter.
+     * So it is the last request in the sequence of configuration requests (which was started by the 'initialized' event).
+     * Clients should only call this request if the capability 'supportsConfigurationDoneRequest' is true.
      */
     configurationDone(params: ConfigurationDoneParams): Promise<ConfigurationDoneResult>;
 
     /**
-     * The launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true). Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * This launch request is sent from the client to the debug adapter to start the debuggee with or without debugging (if 'noDebug' is true).
+     * Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     launch(params: LaunchParams): Promise<LaunchResult>;
 
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running. Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
+     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     attach(params: AttachParams): Promise<AttachResult>;
 
     /**
-     * Restarts a debug session. If the capability 'supportsRestartRequest' is missing or has the value false,
-     * the client will implement 'restart' by terminating the debug adapter first and then launching it anew.
-     * A debug adapter can override this default behaviour by implementing a restart request
-     * and setting the capability 'supportsRestartRequest' to true.
+     * Restarts a debug session. Clients should only call this request if the capability 'supportsRestartRequest' is true.
+     * If the capability is missing or has the value false, a typical client will emulate 'restart' by terminating the debug adapter first and then launching it anew.
      */
     restart(params: RestartParams): Promise<RestartResult>;
 
     /**
-     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging. It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter. If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee. If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee. This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
+     * The 'disconnect' request is sent from the client to the debug adapter in order to stop debugging.
+     * It asks the debug adapter to disconnect from the debuggee and to terminate the debug adapter.
+     * If the debuggee has been started with the 'launch' request, the 'disconnect' request terminates the debuggee.
+     * If the 'attach' request was used to connect to the debuggee, 'disconnect' does not terminate the debuggee.
+     * This behavior can be controlled with the 'terminateDebuggee' argument (if supported by the debug adapter).
      */
     disconnect(params: DisconnectParams): Promise<DisconnectResult>;
 
     /**
      * The 'terminate' request is sent from the client to the debug adapter in order to give the debuggee a chance for terminating itself.
+     * Clients should only call this request if the capability 'supportsTerminateRequest' is true.
      */
     terminate(params: TerminateParams): Promise<TerminateResult>;
 
     /**
      * The 'breakpointLocations' request returns all possible locations for source breakpoints in a given range.
+     * Clients should only call this request if the capability 'supportsBreakpointLocationsRequest' is true.
      */
     breakpointLocations(params: BreakpointLocationsParams): Promise<BreakpointLocationsResult>;
 
@@ -992,13 +1131,16 @@ export namespace Dap {
      * Replaces all existing function breakpoints with new function breakpoints.
      * To clear all function breakpoints, specify an empty array.
      * When a function breakpoint is hit, a 'stopped' event (with reason 'function breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsFunctionBreakpoints' is true.
      */
     setFunctionBreakpoints(
       params: SetFunctionBreakpointsParams,
     ): Promise<SetFunctionBreakpointsResult>;
 
     /**
-     * The request configures the debuggers response to thrown exceptions. If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * The request configures the debuggers response to thrown exceptions.
+     * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
+     * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
      */
     setExceptionBreakpoints(
       params: SetExceptionBreakpointsParams,
@@ -1006,6 +1148,7 @@ export namespace Dap {
 
     /**
      * Obtains information on a possible data breakpoint that could be set on an expression or variable.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     dataBreakpointInfo(params: DataBreakpointInfoParams): Promise<DataBreakpointInfoResult>;
 
@@ -1013,6 +1156,7 @@ export namespace Dap {
      * Replaces all existing data breakpoints with new data breakpoints.
      * To clear all data breakpoints, specify an empty array.
      * When a data breakpoint is hit, a 'stopped' event (with reason 'data breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     setDataBreakpoints(params: SetDataBreakpointsParams): Promise<SetDataBreakpointsResult>;
 
@@ -1045,18 +1189,21 @@ export namespace Dap {
 
     /**
      * The request starts the debuggee to run one step backwards.
-     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     stepBack(params: StepBackParams): Promise<StepBackResult>;
 
     /**
-     * The request starts the debuggee to run backward. Clients should only call this request if the capability 'supportsStepBack' is true.
+     * The request starts the debuggee to run backward.
+     * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     reverseContinue(params: ReverseContinueParams): Promise<ReverseContinueResult>;
 
     /**
      * The request restarts execution of the specified stackframe.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'restart') after the restart has completed.
+     * Clients should only call this request if the capability 'supportsRestartFrame' is true.
      */
     restartFrame(params: RestartFrameParams): Promise<RestartFrameResult>;
 
@@ -1065,6 +1212,7 @@ export namespace Dap {
      * This makes it possible to skip the execution of code or to executed code again.
      * The code between the current location and the goto target is not executed but skipped.
      * The debug adapter first sends the response and then a 'stopped' event with reason 'goto'.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true (because only then goto targets exist that can be passed as arguments).
      */
     goto(params: GotoParams): Promise<GotoResult>;
 
@@ -1091,7 +1239,7 @@ export namespace Dap {
     variables(params: VariablesParams): Promise<VariablesResult>;
 
     /**
-     * Set the variable with the given name in the variable container to a new value.
+     * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
      */
     setVariable(params: SetVariableParams): Promise<SetVariableResult>;
 
@@ -1107,16 +1255,19 @@ export namespace Dap {
 
     /**
      * The request terminates the threads with the given ids.
+     * Clients should only call this request if the capability 'supportsTerminateThreadsRequest' is true.
      */
     terminateThreads(params: TerminateThreadsParams): Promise<TerminateThreadsResult>;
 
     /**
-     * Modules can be retrieved from the debug adapter with the ModulesRequest which can either return all modules or a range of modules to support paging.
+     * Modules can be retrieved from the debug adapter with this request which can either return all modules or a range of modules to support paging.
+     * Clients should only call this request if the capability 'supportsModulesRequest' is true.
      */
     modules(params: ModulesParams): Promise<ModulesResult>;
 
     /**
      * Retrieves the set of all sources currently loaded by the debugged process.
+     * Clients should only call this request if the capability 'supportsLoadedSourcesRequest' is true.
      */
     loadedSources(params: LoadedSourcesParams): Promise<LoadedSourcesResult>;
 
@@ -1129,6 +1280,7 @@ export namespace Dap {
     /**
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
+     * Clients should only call this request if the capability 'supportsSetExpression' is true.
      */
     setExpression(params: SetExpressionParams): Promise<SetExpressionResult>;
 
@@ -1136,34 +1288,38 @@ export namespace Dap {
      * This request retrieves the possible stepIn targets for the specified stack frame.
      * These targets can be used in the 'stepIn' request.
      * The StepInTargets may only be called if the 'supportsStepInTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsStepInTargetsRequest' is true.
      */
     stepInTargets(params: StepInTargetsParams): Promise<StepInTargetsResult>;
 
     /**
      * This request retrieves the possible goto targets for the specified source location.
      * These targets can be used in the 'goto' request.
-     * The GotoTargets request may only be called if the 'supportsGotoTargetsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsGotoTargetsRequest' is true.
      */
     gotoTargets(params: GotoTargetsParams): Promise<GotoTargetsResult>;
 
     /**
      * Returns a list of possible completions for a given caret position and text.
-     * The CompletionsRequest may only be called if the 'supportsCompletionsRequest' capability exists and is true.
+     * Clients should only call this request if the capability 'supportsCompletionsRequest' is true.
      */
     completions(params: CompletionsParams): Promise<CompletionsResult>;
 
     /**
      * Retrieves the details of the exception that caused this event to be raised.
+     * Clients should only call this request if the capability 'supportsExceptionInfoRequest' is true.
      */
     exceptionInfo(params: ExceptionInfoParams): Promise<ExceptionInfoResult>;
 
     /**
      * Reads bytes from memory at the provided location.
+     * Clients should only call this request if the capability 'supportsReadMemoryRequest' is true.
      */
     readMemory(params: ReadMemoryParams): Promise<ReadMemoryResult>;
 
     /**
      * Disassembles code stored at the provided location.
+     * Clients should only call this request if the capability 'supportsDisassembleRequest' is true.
      */
     disassemble(params: DisassembleParams): Promise<DisassembleResult>;
 
@@ -1364,9 +1520,16 @@ export namespace Dap {
 
   export interface CancelParams {
     /**
-     * The ID (attribute 'seq') of the request to cancel.
+     * The ID (attribute 'seq') of the request to cancel. If missing no request is cancelled.
+     * Both a 'requestId' and a 'progressId' can be specified in one request.
      */
     requestId?: integer;
+
+    /**
+     * The ID (attribute 'progressId') of the progress to cancel. If missing no progress is cancelled.
+     * Both a 'requestId' and a 'progressId' can be specified in one request.
+     */
+    progressId?: string;
   }
 
   export interface CancelResult {}
@@ -1413,14 +1576,16 @@ export namespace Dap {
 
   export interface ContinueParams {
     /**
-     * Continue execution for the specified thread (if possible). If the backend cannot continue on a single thread but will continue on all threads, it should set the 'allThreadsContinued' attribute in the response to true.
+     * Continue execution for the specified thread (if possible).
+     * If the backend cannot continue on a single thread but will continue on all threads, it should set the 'allThreadsContinued' attribute in the response to true.
      */
     threadId: integer;
   }
 
   export interface ContinueResult {
     /**
-     * If true, the 'continue' request has ignored the specified thread and continued all threads instead. If this attribute is missing a value of 'true' is assumed for backward compatibility.
+     * If true, the 'continue' request has ignored the specified thread and continued all threads instead.
+     * If this attribute is missing a value of 'true' is assumed for backward compatibility.
      */
     allThreadsContinued?: boolean;
   }
@@ -1451,7 +1616,8 @@ export namespace Dap {
     variablesReference?: integer;
 
     /**
-     * The name of the Variable's child to obtain data breakpoint information for. If variableReference isn’t provided, this can be an expression.
+     * The name of the Variable's child to obtain data breakpoint information for.
+     * If variableReference isn’t provided, this can be an expression.
      */
     name: string;
   }
@@ -1504,7 +1670,8 @@ export namespace Dap {
     instructionOffset?: integer;
 
     /**
-     * Number of instructions to disassemble starting at the specified location and offset. An adapter must return exactly this number of instructions - any unavailable instructions should be replaced with an implementation-defined 'invalid instruction' value.
+     * Number of instructions to disassemble starting at the specified location and offset.
+     * An adapter must return exactly this number of instructions - any unavailable instructions should be replaced with an implementation-defined 'invalid instruction' value.
      */
     instructionCount: integer;
 
@@ -1530,7 +1697,7 @@ export namespace Dap {
     /**
      * Indicates whether the debuggee should be terminated when the debugger is disconnected.
      * If unspecified, the debug adapter is free to do whatever it thinks is best.
-     * A client can only rely on this attribute being properly honored if a debug adapter returns true for the 'supportTerminateDebuggee' capability.
+     * The attribute is only honored by a debug adapter if the capability 'supportTerminateDebuggee' is true.
      */
     terminateDebuggee?: boolean;
   }
@@ -1560,10 +1727,11 @@ export namespace Dap {
     /**
      * The context in which the evaluate request is run.
      */
-    context?: 'watch' | 'repl' | 'hover';
+    context?: 'watch' | 'repl' | 'hover' | 'clipboard';
 
     /**
      * Specifies details on how to format the Evaluate result.
+     * The attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true.
      */
     format?: ValueFormat;
   }
@@ -1576,6 +1744,7 @@ export namespace Dap {
 
     /**
      * The optional type of the evaluate result.
+     * This attribute should only be returned by a debug adapter if the client has passed the value true for the 'supportsVariableType' capability of the 'initialize' request.
      */
     type?: string;
 
@@ -1585,24 +1754,29 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     variablesReference: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     indexedVariables?: integer;
 
     /**
-     * Memory reference to a location appropriate for this result. For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
+     * Optional memory reference to a location appropriate for this result.
+     * For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
+     * This attribute should be returned by a debug adapter if the client has passed the value true for the 'supportsMemoryReferences' capability of the 'initialize' request.
      */
     memoryReference?: string;
   }
@@ -1736,6 +1910,11 @@ export namespace Dap {
      * Client supports memory references.
      */
     supportsMemoryReferences?: boolean;
+
+    /**
+     * Client supports progress reporting.
+     */
+    supportsProgressReporting?: boolean;
   }
 
   export interface InitializeResult {
@@ -1898,6 +2077,11 @@ export namespace Dap {
      * The debug adapter supports the 'breakpointLocations' request.
      */
     supportsBreakpointLocationsRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'clipboard' context value in the 'evaluate' request.
+     */
+    supportsClipboardContext?: boolean;
   }
 
   export interface InitializedEventParams {}
@@ -2121,6 +2305,72 @@ export namespace Dap {
     label: string;
   }
 
+  export interface ProgressEndEventParams {
+    /**
+     * The ID that was introduced in the initial 'ProgressStartEvent'.
+     */
+    progressId: string;
+
+    /**
+     * Optional, more detailed progress message. If omitted, the previous message (if any) is used.
+     */
+    message?: string;
+  }
+
+  export interface ProgressStartEventParams {
+    /**
+     * An ID that must be used in subsequent 'progressUpdate' and 'progressEnd' events to make them refer to the same progress reporting.
+     * IDs must be unique within a debug session.
+     */
+    progressId: string;
+
+    /**
+     * Mandatory (short) title of the progress reporting. Shown in the UI to describe the long running operation.
+     */
+    title: string;
+
+    /**
+     * The request ID that this progress report is related to. If specified a debug adapter is expected to emit
+     * progress events for the long running request until the request has been either completed or cancelled.
+     * If the request ID is omitted, the progress report is assumed to be related to some general activity of the debug adapter.
+     */
+    requestId?: number;
+
+    /**
+     * If true, the request that reports progress may be canceled with a 'cancel' request.
+     * So this property basically controls whether the client should use UX that supports cancellation.
+     * Clients that don't support cancellation are allowed to ignore the setting.
+     */
+    cancellable?: boolean;
+
+    /**
+     * Optional, more detailed progress message.
+     */
+    message?: string;
+
+    /**
+     * Optional progress percentage to display (value range: 0 to 100). If omitted no percentage will be shown.
+     */
+    percentage?: number;
+  }
+
+  export interface ProgressUpdateEventParams {
+    /**
+     * The ID that was introduced in the initial 'progressStart' event.
+     */
+    progressId: string;
+
+    /**
+     * Optional, more detailed progress message. If omitted, the previous message (if any) is used.
+     */
+    message?: string;
+
+    /**
+     * Optional progress percentage to display (value range: 0 to 100). If omitted no percentage will be shown.
+     */
+    percentage?: number;
+  }
+
   export interface ReadMemoryParams {
     /**
      * Memory reference to the base location from which data should be read.
@@ -2140,12 +2390,14 @@ export namespace Dap {
 
   export interface ReadMemoryResult {
     /**
-     * The address of the first byte of data returned. Treated as a hex value if prefixed with '0x', or as a decimal value otherwise.
+     * The address of the first byte of data returned.
+     * Treated as a hex value if prefixed with '0x', or as a decimal value otherwise.
      */
     address: string;
 
     /**
-     * The number of unreadable bytes encountered after the last successfully read byte. This can be used to determine the number of bytes that must be skipped before a subsequent 'readMemory' request will succeed.
+     * The number of unreadable bytes encountered after the last successfully read byte.
+     * This can be used to determine the number of bytes that must be skipped before a subsequent 'readMemory' request will succeed.
      */
     unreadableBytes?: integer;
 
@@ -2271,7 +2523,8 @@ export namespace Dap {
 
   export interface SetBreakpointsResult {
     /**
-     * Information about the breakpoints. The array elements are in the same order as the elements of the 'breakpoints' (or the deprecated 'lines') array in the arguments.
+     * Information about the breakpoints.
+     * The array elements are in the same order as the elements of the 'breakpoints' (or the deprecated 'lines') array in the arguments.
      */
     breakpoints: Breakpoint[];
   }
@@ -2298,6 +2551,7 @@ export namespace Dap {
 
     /**
      * Configuration options for selected exceptions.
+     * The attribute is only honored by a debug adapter if the capability 'supportsExceptionOptions' is true.
      */
     exceptionOptions?: ExceptionOptions[];
   }
@@ -2334,6 +2588,7 @@ export namespace Dap {
 
     /**
      * The optional type of the value.
+     * This attribute should only be returned by a debug adapter if the client has passed the value true for the 'supportsVariableType' capability of the 'initialize' request.
      */
     type?: string;
 
@@ -2343,19 +2598,22 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     variablesReference?: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     indexedVariables?: integer;
   }
@@ -2408,19 +2666,22 @@ export namespace Dap {
     type?: string;
 
     /**
-     * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     variablesReference?: integer;
 
     /**
      * The number of named child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
-     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     indexedVariables?: integer;
   }
@@ -2432,7 +2693,8 @@ export namespace Dap {
     source?: Source;
 
     /**
-     * The reference to the source. This is the same as source.sourceReference. This is provided for backward compatibility since old backends do not understand the 'source' attribute.
+     * The reference to the source. This is the same as source.sourceReference.
+     * This is provided for backward compatibility since old backends do not understand the 'source' attribute.
      */
     sourceReference: integer;
   }
@@ -2467,6 +2729,7 @@ export namespace Dap {
 
     /**
      * Specifies details on how to format the stack frames.
+     * The attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true.
      */
     format?: StackFrameFormat;
   }
@@ -2680,6 +2943,7 @@ export namespace Dap {
 
     /**
      * Specifies details on how to format the Variable values.
+     * The attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true.
      */
     format?: ValueFormat;
   }
@@ -2712,6 +2976,7 @@ export namespace Dap {
 
     /**
      * The type of the variable's value. Typically shown in the UI when hovering over the value.
+     * This attribute should only be returned by a debug adapter if the client has passed the value true for the 'supportsVariableType' capability of the 'initialize' request.
      */
     type?: string;
 
@@ -2744,6 +3009,7 @@ export namespace Dap {
 
     /**
      * Optional memory reference for the variable if the variable represents executable code, such as a function pointer.
+     * This attribute is only required if the client has passed the value true for the 'supportsMemoryReferences' capability of the 'initialize' request.
      */
     memoryReference?: string;
   }
@@ -2783,7 +3049,8 @@ export namespace Dap {
    */
   export interface StackFrame {
     /**
-     * An identifier for the stack frame. It must be unique across all threads. This id can be used to retrieve the scopes of the frame with the 'scopesRequest' or to restart the execution of a stackframe.
+     * An identifier for the stack frame. It must be unique across all threads.
+     * This id can be used to retrieve the scopes of the frame with the 'scopesRequest' or to restart the execution of a stackframe.
      */
     id: integer;
 
@@ -2828,7 +3095,8 @@ export namespace Dap {
     moduleId?: integer | string;
 
     /**
-     * An optional hint for how to present this frame in the UI. A value of 'label' can be used to indicate that the frame is an artificial frame that is used as a visual label or separator. A value of 'subtle' can be used to change the appearance of a frame in a 'subtle' way.
+     * An optional hint for how to present this frame in the UI.
+     * A value of 'label' can be used to indicate that the frame is an artificial frame that is used as a visual label or separator. A value of 'subtle' can be used to change the appearance of a frame in a 'subtle' way.
      */
     presentationHint?: string;
   }
@@ -2881,11 +3149,14 @@ export namespace Dap {
 
     /**
      * An optional expression for conditional breakpoints.
+     * It is only honored by a debug adapter if the capability 'supportsConditionalBreakpoints' is true.
      */
     condition?: string;
 
     /**
-     * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
+     * An optional expression that controls how many hits of the breakpoint are ignored.
+     * The backend is expected to interpret the expression as needed.
+     * The attribute is only honored by a debug adapter if the capability 'supportsHitConditionalBreakpoints' is true.
      */
     hitCondition?: string;
   }
@@ -2895,7 +3166,8 @@ export namespace Dap {
    */
   export interface ExceptionOptions {
     /**
-     * A path that selects a single or multiple exceptions in a tree. If 'path' is missing, the whole tree is selected. By convention the first segment of the path is a category that is used to group exceptions in the UI.
+     * A path that selects a single or multiple exceptions in a tree. If 'path' is missing, the whole tree is selected.
+     * By convention the first segment of the path is a category that is used to group exceptions in the UI.
      */
     path?: ExceptionPathSegment[];
 
@@ -2906,7 +3178,9 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionPathSegment represents a segment in a path that is used to match leafs or nodes in a tree of exceptions. If a segment consists of more than one name, it matches the names provided if 'negate' is false or missing or it matches anything except the names provided if 'negate' is true.
+   * An ExceptionPathSegment represents a segment in a path that is used to match leafs or nodes in a tree of exceptions.
+   * If a segment consists of more than one name, it matches the names provided if 'negate' is false or missing or
+   * it matches anything except the names provided if 'negate' is true.
    */
   export interface ExceptionPathSegment {
     /**
@@ -2940,7 +3214,8 @@ export namespace Dap {
     condition?: string;
 
     /**
-     * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
+     * An optional expression that controls how many hits of the breakpoint are ignored.
+     * The backend is expected to interpret the expression as needed.
      */
     hitCondition?: string;
   }
@@ -2961,16 +3236,21 @@ export namespace Dap {
 
     /**
      * An optional expression for conditional breakpoints.
+     * It is only honored by a debug adapter if the capability 'supportsConditionalBreakpoints' is true.
      */
     condition?: string;
 
     /**
-     * An optional expression that controls how many hits of the breakpoint are ignored. The backend is expected to interpret the expression as needed.
+     * An optional expression that controls how many hits of the breakpoint are ignored.
+     * The backend is expected to interpret the expression as needed.
+     * The attribute is only honored by a debug adapter if the capability 'supportsHitConditionalBreakpoints' is true.
      */
     hitCondition?: string;
 
     /**
-     * If this attribute exists and is non-empty, the backend must not 'break' (stop) but log the message instead. Expressions within {} are interpolated.
+     * If this attribute exists and is non-empty, the backend must not 'break' (stop)
+     * but log the message instead. Expressions within {} are interpolated.
+     * The attribute is only honored by a debug adapter if the capability 'supportsLogPoints' is true.
      */
     logMessage?: string;
   }
@@ -3108,7 +3388,8 @@ export namespace Dap {
   export type ChecksumAlgorithm = string;
 
   /**
-   * A ColumnDescriptor specifies what module attribute to show in a column of the ModulesView, how to format it, and what the column's label should be.
+   * A ColumnDescriptor specifies what module attribute to show in a column of the ModulesView, how to format it,
+   * and what the column's label should be.
    * It is only used if the underlying UI actually supports this level of customization.
    */
   export interface ColumnDescriptor {
@@ -3316,7 +3597,9 @@ export namespace Dap {
     symbol?: string;
 
     /**
-     * Source location that corresponds to this instruction, if any. Should always be set (if available) on the first instruction returned, but can be omitted afterwards if this instruction maps to the same source file as the previous instruction.
+     * Source location that corresponds to this instruction, if any.
+     * Should always be set (if available) on the first instruction returned,
+     * but can be omitted afterwards if this instruction maps to the same source file as the previous instruction.
      */
     location?: Source;
 
@@ -3565,6 +3848,11 @@ export namespace Dap {
      * The debug adapter supports the 'breakpointLocations' request.
      */
     supportsBreakpointLocationsRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'clipboard' context value in the 'evaluate' request.
+     */
+    supportsClipboardContext?: boolean;
   }
 
   /**
@@ -3593,26 +3881,32 @@ export namespace Dap {
   }
 
   /**
-   * A Source is a descriptor for source code. It is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.
+   * A Source is a descriptor for source code.
+   * It is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.
    */
   export interface Source {
     /**
-     * The short name of the source. Every source returned from the debug adapter has a name. When sending a source to the debug adapter this name is optional.
+     * The short name of the source. Every source returned from the debug adapter has a name.
+     * When sending a source to the debug adapter this name is optional.
      */
     name?: string;
 
     /**
-     * The path of the source to be shown in the UI. It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
+     * The path of the source to be shown in the UI.
+     * It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
      */
     path?: string;
 
     /**
-     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified). A sourceReference is only valid for a session, so it must not be used to persist a source. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified).
+     * A sourceReference is only valid for a session, so it must not be used to persist a source.
+     * The value should be less than or equal to 2147483647 (2^31 - 1).
      */
     sourceReference?: integer;
 
     /**
-     * An optional hint for how to present the source in the UI. A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
+     * An optional hint for how to present the source in the UI.
+     * A value of 'deemphasize' can be used to indicate that the source is not available or that it is skipped on stepping.
      */
     presentationHint?: string;
 
@@ -3627,7 +3921,8 @@ export namespace Dap {
     sources?: Source[];
 
     /**
-     * Optional data that a debug adapter might want to loop through the client. The client should leave the data intact and persist it across sessions. The client should not interpret the data.
+     * Optional data that a debug adapter might want to loop through the client.
+     * The client should leave the data intact and persist it across sessions. The client should not interpret the data.
      */
     adapterData?: any[] | boolean | integer | null | number | object | string;
 
@@ -3667,7 +3962,8 @@ export namespace Dap {
     verified: boolean;
 
     /**
-     * An optional message about the state of the breakpoint. This is shown to the user and can be used to explain why a breakpoint could not be verified.
+     * An optional message about the state of the breakpoint.
+     * This is shown to the user and can be used to explain why a breakpoint could not be verified.
      */
     message?: string;
 
@@ -3692,7 +3988,8 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * An optional end column of the actual range covered by the breakpoint. If no end line is given, then the end column is assumed to be in the start line.
+     * An optional end column of the actual range covered by the breakpoint.
+     * If no end line is given, then the end column is assumed to be in the start line.
      */
     endColumn?: integer;
   }
