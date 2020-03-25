@@ -50,6 +50,23 @@ describe('SourceMapOverrides', () => {
       const r = new SourceMapOverrides({ 'file:///./foo/*': '/b/*' }, logger);
       expect(r.apply('file:///foo/bar')).to.equal('/b/bar');
     });
+
+    it('normalizes slashes in returned paths (issue #401)', () => {
+      const r = new SourceMapOverrides(
+        {
+          'webpack:/*': '${webRoot}/*',
+          '/./*': '${webRoot}/*',
+          '/src/*': '${webRoot}/*',
+          '/*': '*',
+          '/./~/*': '${webRoot}/node_modules/*',
+        },
+        logger,
+      );
+
+      expect(r.apply('webpack:///src/app/app.component.ts')).to.equal(
+        path.join('${webRoot}/src/app/app.component.ts'),
+      );
+    });
   });
 
   describe('defaults', () => {
@@ -62,11 +79,15 @@ describe('SourceMapOverrides', () => {
     });
 
     it('resolves webpack paths', () => {
-      expect(r.apply('webpack:///src/index.ts')).to.equal('${workspaceFolder}/src/index.ts');
+      expect(r.apply('webpack:///src/index.ts')).to.equal(
+        path.join('${workspaceFolder}/src/index.ts'),
+      );
     });
 
     it('replaces webpack namespaces', () => {
-      expect(r.apply('webpack://lib/src/index.ts')).to.equal('${workspaceFolder}/src/index.ts');
+      expect(r.apply('webpack://lib/src/index.ts')).to.equal(
+        path.join('${workspaceFolder}/src/index.ts'),
+      );
     });
   });
 

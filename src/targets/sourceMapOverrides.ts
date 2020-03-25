@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { forceForwardSlashes } from '../common/pathUtils';
+import { forceForwardSlashes, properJoin } from '../common/pathUtils';
 import { LogTag, ILogger } from '../common/logging';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
 import { URL } from 'url';
@@ -120,7 +120,7 @@ export class SourceMapOverrides {
         `SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${re.toString()}`,
       );
 
-      return mappedPath;
+      return properJoin(mappedPath); // normalization, see #401
     }
 
     return sourcePath;

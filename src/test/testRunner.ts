@@ -37,6 +37,11 @@ export async function run(): Promise<void> {
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   };
 
+  const grep = mochaOpts.grep || mochaOpts.g;
+  if (grep) {
+    mochaOpts.grep = new RegExp(grep, 'i');
+  }
+
   // Paths are relative to Mocha
   const logTestReporter = '../../../out/src/test/reporters/logTestReporter';
   // const goldenTextReporter =
