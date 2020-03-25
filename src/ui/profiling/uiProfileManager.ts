@@ -92,6 +92,10 @@ export class UiProfileManager implements IDisposable {
     }
 
     const sourceFile = await uiSession.stop();
+    if (!sourceFile) {
+      return;
+    }
+
     const targetFile = await vscode.window.showSaveDialog({
       defaultUri: session.workspaceFolder?.uri.with({
         path: session.workspaceFolder.uri.path + '/' + basename(sourceFile),
