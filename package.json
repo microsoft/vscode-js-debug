@@ -237,12 +237,14 @@
       {
         "command": "extension.NAMESPACE(node-debug).startProfile",
         "title": "%profile.start%",
-        "category": "Debug"
+        "category": "Debug",
+        "icon": "$(circle-outline)"
       },
       {
         "command": "extension.NAMESPACE(node-debug).stopProfile",
         "title": "%profile.stop%",
-        "category": "Debug"
+        "category": "Debug",
+        "icon": "resources/dark/stop-profiling.svg"
       }
     ],
     "menus": {
@@ -276,8 +278,19 @@
         },
         {
           "command": "extension.NAMESPACE(node-debug).startProfile",
-          "icon": "watch",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "debugType == NAMESPACE(chrome) && !jsDebugIsProfiling"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).stopProfile",
+          "group": "navigation",
+          "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
+        }
+      ],
+      "debug/toolBar": [
+        {
+          "command": "extension.NAMESPACE(node-debug).stopProfile",
+          "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
         }
       ],
       "view/title": [

@@ -127,6 +127,7 @@ export class UiProfileManager implements IDisposable {
   private updateStatusBar() {
     if (this.activeSessions.size === 0) {
       this.statusBarItem?.hide();
+      vscode.commands.executeCommand('setContext', 'jsDebugIsProfiling', false);
       return;
     }
 
@@ -134,6 +135,8 @@ export class UiProfileManager implements IDisposable {
       this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 500);
       this.statusBarItem.command = Contributions.StopProfileCommand;
     }
+
+    vscode.commands.executeCommand('setContext', 'jsDebugIsProfiling', true);
 
     if (this.activeSessions.size === 1) {
       const session: UiProfileSession = this.activeSessions.values().next().value;
