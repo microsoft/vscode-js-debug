@@ -11,6 +11,7 @@ import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { ITargetOrigin } from '../targetOrigin';
 import { ITarget } from '../targets';
+import { ILogger, LogTag } from '../../common/logging';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -48,6 +49,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
+    private readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
     this.connection = connection;
@@ -153,10 +155,17 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return this._serialize;
   }
 
-  async _doAttach(): Promise<Cdp.Api> {
+  async _doAttach(): Promise<Cdp.Api | undefined> {
     this._waitingForDebugger = false;
     this._attached = true;
     const result = await this._cdp.Target.attachToTarget({ targetId: this._targetId });
+    if (!result) {
+      this.logger.info(LogTag.RuntimeLaunch, 'Failed to attach to target', {
+        targetId: this._targetId,
+      });
+      return; // timed out or cancelled, may have been a short-lived process
+    }
+
     if (result && '__dynamicAttach' in result) {
       await this._cdp.Debugger.enable({});
       await this._cdp.Runtime.enable({});

@@ -338,6 +338,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       connection,
       cdp,
       targetInfo,
+      this.logger,
       this.createLifecycle(cdp, this.run, targetInfo),
     );
 
