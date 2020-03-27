@@ -30,14 +30,18 @@ export class ChromeDebugConfigurationProvider
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingChromeConfiguration,
-  ): Promise<AnyChromeConfiguration | undefined> {
+  ): Promise<AnyChromeConfiguration | null | undefined> {
+    if ('__pendingTargetId' in config) {
+      return config as AnyChromeConfiguration;
+    }
+
     if (!config.name && !config.type && !config.request) {
       const fromContext = this.createLaunchConfigFromContext();
       if (!fromContext) {
         // Return null so it will create a launch.json and fall back on
         // provideDebugConfigurations - better to point the user towards
         // the config than try to work automagically for complex scenarios.
-        return;
+        return null;
       }
 
       config = fromContext;

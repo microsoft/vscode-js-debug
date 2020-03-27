@@ -755,15 +755,15 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
       throw assertNever(config, 'Unknown config: {value}');
   }
 
-  return resolveWorkspaceRoot(configWithDefaults);
+  return resolveWorkspaceInConfig(configWithDefaults);
 }
 
-function resolveWorkspaceRoot<T>(config: AnyLaunchConfiguration): AnyLaunchConfiguration {
+export function resolveWorkspaceInConfig<T extends AnyLaunchConfiguration>(config: T): T {
   config = resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
   config = resolveVariableInConfig(
     config,
     'webRoot',
-    'webRoot' in config ? config.webRoot : config.__workspaceFolder,
+    'webRoot' in config ? (config as AnyChromiumConfiguration).webRoot : config.__workspaceFolder,
   );
 
   return config;

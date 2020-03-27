@@ -291,7 +291,11 @@ function createLaunchConfigFromContext(
   }
 
   if (program) {
-    config['program'] = program;
+    config.program = program;
+
+    if (!folder) {
+      config.__workspaceFolder = path.dirname(program);
+    }
   }
 
   // prepare for source maps by adding 'outFiles' if typescript or coffeescript is detected

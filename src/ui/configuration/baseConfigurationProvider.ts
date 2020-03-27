@@ -3,7 +3,11 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { ResolvingConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import {
+  ResolvingConfiguration,
+  AnyLaunchConfiguration,
+  resolveWorkspaceInConfig,
+} from '../../configuration';
 import { fulfillLoggerOptions } from '../../common/logging';
 import { injectable, inject } from 'inversify';
 import { ExtensionContext } from '../../ioc-extras';
@@ -44,7 +48,7 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
-  ): Promise<T | undefined> {
+  ): Promise<T | null | undefined> {
     const castConfig = config as ResolvingConfiguration<T>;
     try {
       const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
@@ -95,7 +99,7 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingConfiguration<T>,
     token?: vscode.CancellationToken,
-  ): Promise<T | undefined>;
+  ): Promise<T | null | undefined>;
 
   /**
    * Fulfills resolution common between all resolver configs.
@@ -105,6 +109,8 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     config.__workspaceCachePath = this.extensionContext.storagePath;
     if (folder) {
       config.__workspaceFolder = folder.uri.fsPath;
+    } else if (config.__workspaceFolder) {
+      config = resolveWorkspaceInConfig(config);
     }
 
     return config;
