@@ -22,6 +22,10 @@ export const enumerateProperties = remoteFunction(function(
       return defaultType;
     }
 
+    if (name === 'constructor') {
+      return CompletionKind.Class;
+    }
+
     // Say this value is a class if either it stringifies into a native ES6
     // class declaration, or it's native that starts with a capital letter.
     // No, there's not really a better way to do this.

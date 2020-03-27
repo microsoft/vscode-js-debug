@@ -14,10 +14,12 @@ describe('completion', () => {
       [
         {
           label: '[index]',
-          text: '[',
+          text: '[index]',
           type: 'property',
           sortText: '~~[',
           length: 1,
+          selectionLength: 5,
+          selectionStart: 1,
           start: 3,
         },
         {
@@ -85,11 +87,13 @@ describe('completion', () => {
       [
         {
           label: '[index]',
-          length: 1,
-          sortText: '~~[',
-          start: 13,
-          text: '[',
+          text: '[index]',
           type: 'property',
+          sortText: '~~[',
+          length: 1,
+          selectionLength: 5,
+          selectionStart: 1,
+          start: 13,
         },
         {
           label: 'length',
@@ -108,7 +112,7 @@ describe('completion', () => {
       [
         { label: 'bar', sortText: '~~bar', type: 'property' },
         { label: 'foo', sortText: '~~foo', type: 'property' },
-        { label: 'constructor', sortText: '~~~constructor', type: 'method' },
+        { label: 'constructor', sortText: '~~~constructor', type: 'class' },
       ],
     ],
     [
@@ -117,6 +121,21 @@ describe('completion', () => {
         { label: 'c', sortText: '~~c', type: 'property' },
         { label: '_a', sortText: '~~{a', type: 'property' },
         { label: '__b', sortText: '~~{{b', type: 'property' },
+      ],
+    ],
+    [
+      'complexProp.|',
+      [
+        {
+          label: 'complex prop',
+          text: '["complex prop"]',
+          start: 11,
+          length: 1,
+          type: 'property',
+          sortText: '~~complex prop',
+        },
+        { label: 'constructor', sortText: '~~~constructor', type: 'class' },
+        { label: 'hasOwnProperty', sortText: '~~~hasOwnProperty', type: 'method' },
       ],
     ],
     ['$returnV|', []],
@@ -132,6 +151,7 @@ describe('completion', () => {
         function myNeatFunction() {}
         var hasPrivate = { _a: 1, __b: 2, c: 3 };
         var poison = { get foo() { throw new Error('oh no!') }, bar: true };
+        var complexProp = { 'complex prop': true };
       </script>
     `);
 

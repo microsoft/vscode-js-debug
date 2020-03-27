@@ -266,14 +266,30 @@ export class Completions {
       throwOnSideEffect: maybeHasSideEffects(node.expression),
     });
 
+    const start = node.name.getStart() - 1;
+
+    // For any properties are aren't valid identifiers, (erring on the side of
+    // caution--not checking unicode and such), quote them as foo['bar!']
+    const validIdentifierRe = /^[$a-z_][0-9a-z_$]*$/i;
+    for (const item of result) {
+      if (!validIdentifierRe.test(item.label)) {
+        item.text = `[${JSON.stringify(item.label)}]`;
+        item.start = start;
+        item.length = 1;
+      }
+    }
+
     if (isArray) {
       const start = node.name.getStart() - 1;
+      const placeholder = 'index';
       result.unshift({
-        label: '[index]',
-        text: '[',
+        label: `[${placeholder}]`,
+        text: `[${placeholder}]`,
         type: 'property',
         sortText: '~~[',
         start,
+        selectionStart: 1,
+        selectionLength: placeholder.length,
         length: 1,
       });
     }
