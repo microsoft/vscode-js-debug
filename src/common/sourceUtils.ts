@@ -274,6 +274,12 @@ export function positionToOffset(text: string, line: number, column: number): nu
   return offset;
 }
 
+interface INotNullRange {
+  line: number;
+  column: number;
+  lastColumn: number | null;
+}
+
 /**
  * When calling `generatedPositionFor`, we may find non-exact matches. The
  * bias passed to the method controls which of the matches we choose.
@@ -301,17 +307,28 @@ export function getOptimalCompiledPosition(
     return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
   };
 
-  const nextVariance = getVariance(prevLocation);
-  if (nextVariance === 0) {
+  const prevVariance = getVariance(prevLocation);
+  if (prevVariance === 0) {
     return prevLocation; // exact match, no need to work harder
   }
 
-  const nextLocation = map.generatedPositionFor({
-    source: sourceUrl,
-    line: uiLocation.lineNumber,
-    column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
-    bias: sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND,
-  });
+  // allGeneratedLocations similar to a LEAST_UPPER_BOUND, except that it gets
+  // all possible locations. From those, we choose the first-best option.
+  const allLocations = map
+    .allGeneratedPositionsFor({
+      source: sourceUrl,
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
+    })
+    .filter((loc): loc is INotNullRange => loc.line !== null && loc.column !== null)
+    .sort((a, b) => (a.line !== b.line ? a.line - b.line : a.column - b.column))
+    .map((position): [INotNullRange, number] => [position, getVariance(position)]);
 
-  return getVariance(nextLocation) < nextVariance ? nextLocation : prevLocation;
+  allLocations.push([prevLocation as INotNullRange, prevVariance]);
+
+  // Sort again--sort is stable (de facto for a while, formalized in ECMA 2019),
+  // so we get the first location that has the least variance.
+  allLocations.sort(([, varA], [, varB]) => varA - varB);
+
+  return allLocations[0][0];
 }

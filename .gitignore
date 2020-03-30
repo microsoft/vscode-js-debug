@@ -14,3 +14,4 @@ demos/web-worker/vscode-pwa-cdp.log
 .dynamic-testWorkspace
 **/test/**/*.actual
 /testWorkspace/web/tmp
+/testWorkspace/webview/win/true/

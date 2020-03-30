@@ -695,6 +695,29 @@ describe('breakpoints', () => {
     });
   });
 
+  itIntegrates('gets correct line number with babel code (#407)', async ({ r }) => {
+    await r.initialize;
+    const cwd = join(testWorkspace, 'babelLineNumbers');
+
+    const handle = await r.runScript(join(cwd, `compiled.js`));
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'compiled.js') },
+      breakpoints: [{ line: 1 }],
+    });
+
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'app.tsx') },
+      breakpoints: [{ line: 2 }],
+    });
+
+    handle.load();
+
+    const { threadId } = handle.log(await handle.dap.once('stopped'));
+    await handle.dap.continue({ threadId });
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
+
   itIntegrates('vue projects', async ({ r }) => {
     const p = await r.launchUrl('vue/index.html');
     await p.dap.setBreakpoints({
