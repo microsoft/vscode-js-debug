@@ -22,6 +22,7 @@ export const enum ErrorCodes {
   AsyncScopesNotAvailable,
   ProfileCaptureError,
   InvalidConcurrentProfile,
+  InvalidBreakpointCondition,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -167,11 +168,20 @@ export const invalidLogPointSyntax = (error: string) =>
 
 export const asyncScopesNotAvailable = () =>
   createSilentError(
+    localize('asyncScopesNotAvailable', 'Variables not available in async stacks'),
+    ErrorCodes.AsyncScopesNotAvailable,
+  );
+
+export const invalidBreakPointCondition = (params: Dap.SourceBreakpoint, error: string) =>
+  createUserError(
     localize(
-      'asyncScopesNotAvailable',
-      'Variables not available in async stacks',
-      ErrorCodes.AsyncScopesNotAvailable,
+      'breakpointSyntaxError',
+      'Syntax error setting breakpoint with condition {0} on line {1}: {2}',
+      JSON.stringify(params.condition),
+      params.line,
+      error,
     ),
+    ErrorCodes.InvalidBreakpointCondition,
   );
 
 export class ProtocolError extends Error {

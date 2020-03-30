@@ -64,7 +64,7 @@ describe('sourceUtils', () => {
       const [input, expected] = cases[name];
       it(name, async () => {
         const compiler = new LogPointCompiler(await Logger.test());
-        const compiled = compiler.compile(input).breakCondition as string;
+        const compiled = compiler.compile({ line: 0 }, input).breakCondition as string;
         expect(compiled.slice(0, compiled.lastIndexOf('\n'))).to.equal(expected);
       });
     }

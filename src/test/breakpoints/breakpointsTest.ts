@@ -510,6 +510,7 @@ describe('breakpoints', () => {
     itIntegrates('ignores bp with invalid condition', async ({ r }) => {
       // Breakpoint in separate script set before launch.
       const p = await r.launchUrl('condition.html');
+      const output = p.dap.once('output');
       const source: Dap.Source = {
         path: p.workspacePath('web/condition.js'),
       };
@@ -518,6 +519,8 @@ describe('breakpoints', () => {
         breakpoints: [{ line: 2, column: 0, condition: ')(}{][.&' }],
       });
       p.load();
+
+      await r.log(await output); // an error message
       await waitForPause(p); // falls through to debugger statement
       p.assertLog();
     });

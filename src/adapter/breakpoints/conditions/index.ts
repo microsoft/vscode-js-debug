@@ -28,7 +28,7 @@ export interface IBreakpointCondition {
 /**
  * Condition that indicates we should always break at the give spot.
  */
-export const AlwaysBreak = new SimpleCondition(undefined);
+export const AlwaysBreak = new SimpleCondition({ line: 0 }, undefined);
 
 export class BreakpointConditionFactory {
   private logPointCompiler: LogPointCompiler;
@@ -39,11 +39,11 @@ export class BreakpointConditionFactory {
 
   public getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition {
     if (params.condition) {
-      return new SimpleCondition(params.condition);
+      return new SimpleCondition(params, params.condition);
     }
 
     if (params.logMessage) {
-      return this.logPointCompiler.compile(params.logMessage);
+      return this.logPointCompiler.compile(params, params.logMessage);
     }
 
     if (params.hitCondition) {

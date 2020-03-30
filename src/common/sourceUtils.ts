@@ -332,3 +332,14 @@ export function getOptimalCompiledPosition(
 
   return allLocations[0][0];
 }
+
+/**
+ * Returns the syntax error in the given code, if any.
+ */
+export function getSyntaxErrorIn(code: string): Error | void {
+  try {
+    new Function(code);
+  } catch (e) {
+    return e;
+  }
+}

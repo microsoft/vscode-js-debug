@@ -1,4 +1,8 @@
 {
+    category : stderr
+    output : Syntax error setting breakpoint with condition ")(}{][.&" on line 2: Unexpected token ')'
+}
+{
     allThreadsStopped : false
     description : Paused on debugger statement
     reason : pause
