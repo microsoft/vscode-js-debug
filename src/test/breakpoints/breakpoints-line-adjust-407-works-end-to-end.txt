@@ -1,0 +1,13 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+App @ ${workspaceFolder}/babelLineNumbers/app.tsx:2:3

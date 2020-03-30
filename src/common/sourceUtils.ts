@@ -6,9 +6,11 @@ import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import * as fsUtils from './fsUtils';
+import { createReadStream } from 'fs';
 import { SourceMap } from './sourceMaps/sourceMap';
 import { verifyBytes, verifyFile } from './hash';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
+import split2 from 'split2';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -272,6 +274,49 @@ export function positionToOffset(text: string, line: number, column: number): nu
   for (let l = 1; l < line; ++l) offset += lines[l - 1].length + 1;
   offset += column - 1;
   return offset;
+}
+
+/**
+ * A list of the column numbers of the first characters (1-indexed) of the
+ * 1-indexed line in the file. We use this to adjust line breakpoint columns
+ * to the first character, because Babel's sourcemaps are fussy and don't
+ * include the leading whitespace in sourcemapped ranges, causing us to
+ * sometimes put breakpoints at the wrong place when they're the first
+ * statement in a block.
+ */
+export async function getColumnsOfFirstCharacter(file: string, toLine: number): Promise<number[]> {
+  const charRe = /\S/;
+  const result = [1 /* dummy 0-index */];
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const stream = createReadStream(file);
+
+      stream
+        .on('error', reject)
+        .pipe(split2())
+        .on('data', line => {
+          // there may be stuff in the buffer after we stream.destroy(),
+          // we can just ignore it.
+          if (toLine === 0) {
+            return;
+          }
+
+          const match = charRe.exec(line);
+          result.push(match ? match.index + 1 : 1);
+
+          if (!--toLine) {
+            stream.destroy();
+            resolve();
+          }
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+    return result;
+  } catch (e) {
+    return result;
+  }
 }
 
 /**
