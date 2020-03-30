@@ -325,6 +325,10 @@ export function getOptimalCompiledPosition(
     .map((position): [INotNullRange, number] => [position, getVariance(position)]);
 
   allLocations.push([prevLocation as INotNullRange, prevVariance]);
+
+  // Sort again--sort is stable (de facto for a while, formalized in ECMA 2019),
+  // so we get the first location that has the least variance.
   allLocations.sort(([, varA], [, varB]) => varA - varB);
+
   return allLocations[0][0];
 }
