@@ -22,7 +22,6 @@ import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { BreakpointConditionFactory } from './breakpoints/conditions';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { bisectArray } from '../common/objUtils';
-import { getColumnsOfFirstCharacter } from '../common/sourceUtils';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -358,12 +357,6 @@ export class BreakpointManager {
       await promise;
     }
 
-    let columnChars: number[] = [];
-    if (params.breakpoints && params.source.path) {
-      const maxLine = params.breakpoints.reduce((max, bp) => Math.max(max, bp.line), 0);
-      columnChars = await getColumnsOfFirstCharacter(params.source.path, maxLine);
-    }
-
     // Creates new breakpoints for the parameters, unsetting any previous
     // breakpoints that don't still exist in the params.
     const mergeInto = (previous: UserDefinedBreakpoint[]): ISetBreakpointResult => {
@@ -374,9 +367,6 @@ export class BreakpointManager {
 
       for (let index = 0; index < params.breakpoints.length; index++) {
         const bpParams = params.breakpoints[index];
-        if (!bpParams.column) {
-          bpParams.column = columnChars[bpParams.line];
-        }
 
         let created: UserDefinedBreakpoint;
         try {

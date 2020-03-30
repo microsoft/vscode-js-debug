@@ -10,7 +10,6 @@ import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
-import { getColumnsOfFirstCharacter } from '../../common/sourceUtils';
 
 describe('breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
@@ -696,49 +695,27 @@ describe('breakpoints', () => {
     });
   });
 
-  describe('line adjust (#407)', () => {
+  itIntegrates('gets correct line number with babel code (#407)', async ({ r }) => {
+    await r.initialize;
     const cwd = join(testWorkspace, 'babelLineNumbers');
 
-    itIntegrates('works end to end', async ({ r }) => {
-      await r.initialize;
-
-      const handle = await r.runScript(join(cwd, `compiled.js`));
-      await handle.dap.setBreakpoints({
-        source: { path: join(cwd, 'compiled.js') },
-        breakpoints: [{ line: 1 }],
-      });
-
-      await handle.dap.setBreakpoints({
-        source: { path: join(cwd, 'app.tsx') },
-        breakpoints: [{ line: 2 }],
-      });
-
-      handle.load();
-
-      const { threadId } = handle.log(await handle.dap.once('stopped'));
-      await handle.dap.continue({ threadId });
-      await waitForPause(handle);
-      handle.assertLog({ substring: true });
+    const handle = await r.runScript(join(cwd, `compiled.js`));
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'compiled.js') },
+      breakpoints: [{ line: 1 }],
     });
 
-    it('calculates first character positions', async () => {
-      const mapping = await getColumnsOfFirstCharacter(join(cwd, 'columns-test.txt'), 7);
-      expect(mapping).to.deep.equal([
-        1, // stub 0-index
-        1, // Sit
-        3, //   culpa ea
-        1, //
-        1, // exercitation qui qui,
-        1, //
-        5, //     fugiat velit reprehenderit
-        1, // officia
-      ]);
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'app.tsx') },
+      breakpoints: [{ line: 2 }],
     });
 
-    it('ignores file not found in line adjust', async () => {
-      const mapping = await getColumnsOfFirstCharacter(join(cwd, 'does not exist.js'), 10);
-      expect(mapping).to.deep.equal([1]);
-    });
+    handle.load();
+
+    const { threadId } = handle.log(await handle.dap.once('stopped'));
+    await handle.dap.continue({ threadId });
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
   });
 
   itIntegrates('vue projects', async ({ r }) => {
