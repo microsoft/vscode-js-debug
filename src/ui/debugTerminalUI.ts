@@ -21,6 +21,7 @@ import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { Logger } from '../common/logging/logger';
 import { URL } from 'url';
+import { isMetaAddress } from '../common/urlUtils';
 
 const debugTerminals = new WeakSet<vscode.Terminal>();
 
@@ -140,6 +141,11 @@ function handleLink(terminal: vscode.Terminal, link: string) {
     const url = new URL(link);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') {
       return false;
+    }
+
+    if (isMetaAddress(link)) {
+      url.hostname = 'localhost';
+      link = url.toString();
     }
   } catch {
     link = `http://${link}`;

@@ -70,6 +70,11 @@ export const nearestDirectoryContaining = (rootDir: string, file: string) =>
 
 // todo: not super correct, and most node libraries don't handle this accurately
 const knownLoopbacks = new Set<string>(['localhost', '127.0.0.1', '::1']);
+const knownMetaAddresses = new Set<string>([
+  '0.0.0.0',
+  '::',
+  '0000:0000:0000:0000:0000:0000:0000:0000',
+]);
 
 /**
  * Checks if the given address, well-formed loopback IPs. We don't need exotic
@@ -80,18 +85,29 @@ const knownLoopbacks = new Set<string>(['localhost', '127.0.0.1', '::1']);
 const isLoopbackIp = (ipOrLocalhost: string) => knownLoopbacks.has(ipOrLocalhost.toLowerCase());
 
 /**
+ * If given a URL, returns its hostname.
+ */
+const getHostnameFromMaybeUrl = (maybeUrl: string) => {
+  try {
+    const url = new URL(maybeUrl);
+    // replace brackets in ipv6 addresses:
+    return url.hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    return maybeUrl;
+  }
+};
+
+/**
+ * Gets whether the IP address is a meta-address like 0.0.0.0.
+ */
+export const isMetaAddress = (address: string) =>
+  knownMetaAddresses.has(getHostnameFromMaybeUrl(address));
+
+/**
  * Gets whether the IP is a loopback address.
  */
 export const isLoopback = memoize(async (address: string) => {
-  let ipOrHostname: string;
-  try {
-    const url = new URL(address);
-    // replace brackets in ipv6 addresses:
-    ipOrHostname = url.hostname.replace(/^\[|\]$/g, '');
-  } catch {
-    ipOrHostname = address;
-  }
-
+  const ipOrHostname = getHostnameFromMaybeUrl(address);
   if (isLoopbackIp(ipOrHostname)) {
     return true;
   }
