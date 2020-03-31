@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import {
   Contributions,
   registerCommand,
@@ -23,6 +24,7 @@ import { Logger } from '../common/logging/logger';
 import { URL } from 'url';
 import { isMetaAddress } from '../common/urlUtils';
 
+const localize = nls.loadMessageBundle();
 const debugTerminals = new WeakSet<vscode.Terminal>();
 
 /**
@@ -118,10 +120,12 @@ function launchTerminal(
   return Promise.resolve();
 }
 
+let notifiedCantOpenOnWeb = false;
+
 /**
  * Launches a browser debug session when a link is clicked from a debug terminal.
  */
-function handleLink(terminal: vscode.Terminal, link: string) {
+async function handleLink(terminal: vscode.Terminal, link: string) {
   // Only handle links when the click is from inside a debug terminal, and
   // the user hasn't disabled debugging via links.
   if (!debugTerminals.has(terminal)) {
@@ -133,6 +137,22 @@ function handleLink(terminal: vscode.Terminal, link: string) {
     Configuration.DebugByLinkOptions,
   );
   if (baseConfig === false) {
+    return false;
+  }
+
+  if (vscode.env.uiKind === vscode.UIKind.Web) {
+    if (notifiedCantOpenOnWeb) {
+      return false;
+    }
+
+    vscode.window.showInformationMessage(
+      localize(
+        'cantOpenChromeOnWeb',
+        "We can't launch a browser in debug mode from here. If you want to debug this webpage, open this workspace from VS Code on your desktop.",
+      ),
+    );
+
+    notifiedCantOpenOnWeb = true;
     return false;
   }
 
