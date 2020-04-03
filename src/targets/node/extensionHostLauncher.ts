@@ -42,7 +42,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
     const port = runData.params.port || (await findOpenPort());
     await (runData.context.dap as any).launchVSCodeRequest({
       args: resolveCodeLaunchArgs(runData.params, port),
-      env: this.getConfiguredEnvironment(runData.params),
+      env: this.getConfiguredEnvironment(runData.params).defined(),
     });
 
     this.program = new StubProgram();
