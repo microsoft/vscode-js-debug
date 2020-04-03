@@ -603,14 +603,14 @@ export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
   showAsyncStacks: { onceBreakpointResolved: 16 },
   type: DebugType.Terminal,
   request: 'launch',
-  name: 'Debugger Terminal',
+  name: 'JavaScript Debug Terminal',
 };
 
 export const delegateDefaults: ITerminalDelegateConfiguration = {
   ...nodeBaseDefaults,
   type: DebugType.Terminal,
   request: 'attach',
-  name: 'Debugger Terminal',
+  name: terminalBaseDefaults.name,
   showAsyncStacks: { onceBreakpointResolved: 16 },
   delegateId: -1,
 };

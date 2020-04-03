@@ -15,7 +15,11 @@ import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodePathProvider } from '../targets/node/nodePathProvider';
 import { ITarget } from '../targets/targets';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
-import { applyDefaults, ITerminalLaunchConfiguration } from '../configuration';
+import {
+  applyDefaults,
+  ITerminalLaunchConfiguration,
+  terminalBaseDefaults,
+} from '../configuration';
 import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
 import { TelemetryReporter } from '../telemetry/telemetryReporter';
@@ -100,7 +104,7 @@ function launchTerminal(
     applyDefaults({
       ...baseDebugOptions,
       type: DebugType.Terminal,
-      name: 'Debugger Terminal',
+      name: terminalBaseDefaults.name,
       request: 'launch',
       command,
     }),

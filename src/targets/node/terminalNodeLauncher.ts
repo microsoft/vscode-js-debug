@@ -75,7 +75,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     }
 
     const terminal = vscode.window.createTerminal({
-      name: 'Debugger Terminal',
+      name: runData.params.name,
       cwd: runData.params.cwd,
       env: this.resolveEnvironment(runData).defined(),
     });
