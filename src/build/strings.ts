@@ -208,6 +208,8 @@ const strings = {
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
   'configuration.debugByLinkOptions':
     'Options used when debugging open links clicked from inside the debug terminal. Can be set to "false" to disable this behavior.',
+  'configuration.pickAndAttachOptions':
+    'Default options used when debugging a process through the `Debug: Attach to Node Process` command',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

@@ -875,6 +875,12 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
       },
     ],
   },
+  [Configuration.PickAndAttachDebugOptions]: {
+    type: 'object',
+    default: {},
+    markdownDescription: refString('configuration.pickAndAttachOptions'),
+    properties: nodeAttachConfig.configurationAttributes as { [key: string]: JSONSchema6 },
+  },
 };
 
 process.stdout.write(

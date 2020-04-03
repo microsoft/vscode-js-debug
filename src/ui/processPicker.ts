@@ -12,6 +12,7 @@ import {
   ResolvingNodeAttachConfiguration,
 } from '../configuration';
 import { processTree, analyseArguments } from './processTree/processTree';
+import { readConfig, Configuration } from '../common/contributionUtils';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -33,8 +34,14 @@ export async function attachProcess() {
     return;
   }
 
+  const userDefaults = readConfig(
+    vscode.workspace.getConfiguration(),
+    Configuration.PickAndAttachDebugOptions,
+  );
+
   const config: INodeAttachConfiguration = {
     ...nodeAttachConfigDefaults,
+    ...userDefaults,
     name: 'process',
     processId,
   };

@@ -9,7 +9,11 @@ import {
   commands,
   ConfigurationTarget,
 } from 'vscode';
-import { ITerminalLaunchConfiguration, IChromeLaunchConfiguration } from '../configuration';
+import {
+  ITerminalLaunchConfiguration,
+  IChromeLaunchConfiguration,
+  INodeAttachConfiguration,
+} from '../configuration';
 
 export const enum Contributions {
   PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
@@ -56,6 +60,7 @@ export const enum Configuration {
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
   WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
+  PickAndAttachDebugOptions = 'debug.javascript.pickAndAttachOptions',
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
@@ -69,6 +74,7 @@ export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
+  [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
   [Configuration.SuggestPrettyPrinting]: boolean;
   [Configuration.AutoServerTunnelOpen]: boolean;
   [Configuration.DebugByLinkOptions]: boolean | Partial<IChromeLaunchConfiguration>;
