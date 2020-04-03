@@ -86,7 +86,7 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration,
     } else if (processId) {
       const inferredWd = await processTree.getWorkingDirectory(result.pid);
       if (inferredWd) {
-        config.cwd = await processTree.getWorkingDirectory(result.pid);
+        config.cwd = inferredWd;
       }
     }
   }
