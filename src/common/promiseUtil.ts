@@ -11,6 +11,30 @@ export interface IDeferred<T> {
   promise: Promise<T>;
 }
 
+/**
+ * Returns a promise that resolves as soon as any of the given promises
+ * returns a truthy value.
+ */
+export function some<T>(
+  promises: ReadonlyArray<Promise<T | undefined | null | false | ''>>,
+): Promise<T | undefined> {
+  return new Promise<T>((resolve, reject) => {
+    let remaining = promises.length;
+    for (const prom of promises) {
+      prom
+        .then(p => {
+          if (p) {
+            resolve(p);
+            remaining = -1;
+          } else if (--remaining === 0) {
+            resolve(undefined);
+          }
+        })
+        .catch(reject);
+    }
+  });
+}
+
 export function getDeferred<T>(): IDeferred<T> {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let resolve: IDeferred<T>['resolve'] = null!;

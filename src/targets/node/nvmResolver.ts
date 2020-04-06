@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound } from '../../dap/errors';
 import { injectable } from 'inversify';
+import { exists } from '../../common/fsUtils';
+import { some } from '../../common/promiseUtil';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -15,7 +17,7 @@ export interface INvmResolver {
    * Returns a PATH segment to add by loading the given nvm version.
    * Throws a ProtocolError if the requested version is not found in the path.
    */
-  resolveNvmVersionPath(version: string): Promise<string>;
+  resolveNvmVersionPath(version: string): Promise<{ directory: string; binary: string }>;
 }
 
 export const INvmResolver = Symbol('INvmResolver');
@@ -28,8 +30,8 @@ export class NvmResolver implements INvmResolver {
     private readonly platform = process.platform,
   ) {}
 
-  public async resolveNvmVersionPath(version: string): Promise<string> {
-    let bin: string | undefined = undefined;
+  public async resolveNvmVersionPath(version: string) {
+    let directory: string | undefined = undefined;
     let versionManagerName: string | undefined = undefined;
 
     // first try the Node Version Switcher 'nvs'
@@ -52,21 +54,21 @@ export class NvmResolver implements INvmResolver {
         throw nvmNotFound();
       }
 
-      bin = path.join(nvsHome, remoteName, semanticVersion, arch);
+      directory = path.join(nvsHome, remoteName, semanticVersion, arch);
       if (this.platform !== 'win32') {
-        bin = path.join(bin, 'bin');
+        directory = path.join(directory, 'bin');
       }
       versionManagerName = 'nvs';
     }
 
-    if (!bin) {
+    if (!directory) {
       // now try the Node Version Manager 'nvm'
       if (this.platform === 'win32') {
         const nvmHome = this.env['NVM_HOME'];
         if (!nvmHome) {
           throw nvmHomeNotFound();
         }
-        bin = this.findBinFolderForVersion(nvmHome, `v${version}`);
+        directory = this.findBinFolderForVersion(nvmHome, `v${version}`);
         versionManagerName = 'nvm-windows';
       } else {
         // macOS and linux
@@ -74,7 +76,7 @@ export class NvmResolver implements INvmResolver {
         if (!nvmHome) {
           // if NVM_DIR is not set. Probe for '.nvm' directory instead
           const nvmDir = path.join(this.env['HOME'] || '', '.nvm');
-          if (fs.existsSync(nvmDir)) {
+          if (await exists(nvmDir)) {
             nvmHome = nvmDir;
           }
         }
@@ -82,18 +84,34 @@ export class NvmResolver implements INvmResolver {
           throw nvmNotFound();
         }
         versionManagerName = 'nvm';
-        bin = this.findBinFolderForVersion(path.join(nvmHome, 'versions', 'node'), `v${version}`);
-        if (bin) {
-          bin = path.join(bin, 'bin');
+        directory = this.findBinFolderForVersion(
+          path.join(nvmHome, 'versions', 'node'),
+          `v${version}`,
+        );
+        if (directory) {
+          directory = path.join(directory, 'bin');
         }
       }
     }
 
-    if (!bin || !fs.existsSync(bin)) {
+    if (!directory || !(await exists(directory))) {
       throw nvmVersionNotFound(version, versionManagerName || 'nvm');
     }
 
-    return bin;
+    return { directory, binary: await this.getBinaryInFolder(directory) };
+  }
+
+  /**
+   * Returns the Node binary in the given folder. In recent versions of x64
+   * nvm on windows, nvm installs the exe as "node64" rather than "node".
+   * This detects that.
+   */
+  private async getBinaryInFolder(dir: string) {
+    if (await some(['node64.exe', 'node64'].map(exe => exists(path.join(dir, exe))))) {
+      return 'node64';
+    }
+
+    return 'node;';
   }
 
   private findBinFolderForVersion(dir: string, version: string): string | undefined {

@@ -108,10 +108,14 @@ export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNode
 
     if (config.request === 'launch') {
       // nvm support
-      if (typeof config.runtimeVersion === 'string' && config.runtimeVersion !== 'default') {
-        config.env = new EnvironmentVars(config.env).addToPath(
-          await this.nvmResolver.resolveNvmVersionPath(config.runtimeVersion),
-        ).value;
+      const nvmVersion = config.runtimeVersion;
+      if (typeof nvmVersion === 'string' && nvmVersion !== 'default') {
+        const { directory, binary } = await this.nvmResolver.resolveNvmVersionPath(nvmVersion);
+        config.env = new EnvironmentVars(config.env).addToPath(directory).value;
+        config.runtimeExecutable =
+          !config.runtimeExecutable || config.runtimeExecutable === 'node'
+            ? binary
+            : config.runtimeExecutable;
       }
 
       // when using "integratedTerminal" ensure that debug console doesn't get activated; see https://github.com/Microsoft/vscode/issues/43164
