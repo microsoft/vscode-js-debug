@@ -9,27 +9,39 @@ import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 import { IWatchdogInfo } from './watchdogSpawn';
 import { NeverCancelled } from '../../common/cancellation';
 import { Logger } from '../../common/logging/logger';
+import { LogLevel, LogTag } from '../../common/logging';
+import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
+import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
+import { FileLogSink } from '../../common/logging/fileLogSink';
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
+const logger = new Logger();
+logger.setup({
+  level: LogLevel.Info,
+  sinks: [new FileLogSink(require('path').join(require('os').homedir(), 'watchdog.txt'))],
+});
 
-function debugLog(text: string) {
-  // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'watchdog.txt'), `WATCHDOG [${info.pid}] ${text} (${info.scriptName})\n`);
-}
-
-process.on('uncaughtException', e => debugLog(`Uncaught exception: ${e.stack || e}`));
-process.on('unhandledRejection', e => debugLog(`Unhandled rejection: ${e}`));
+installUnhandledErrorReporter(logger, new NullTelemetryReporter());
 
 process.on('exit', () => {
-  debugLog('KILL');
+  logger.info(LogTag.Runtime, 'Process exiting');
+  logger.dispose();
+
   if (info.pid && !info.dynamicAttach) {
     process.kill(Number(info.pid));
   }
 });
 
 (async () => {
-  debugLog('CONNECTED TO TARGET');
-  let pipe: any;
-  await new Promise(f => (pipe = net.createConnection(process.env.NODE_INSPECTOR_IPC!, f)));
+  logger.info(LogTag.Runtime, 'Connected to target');
+  const pipe: net.Socket = await new Promise(resolve => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const cnx: net.Socket = net.createConnection(process.env.NODE_INSPECTOR_IPC!, () =>
+      resolve(cnx),
+    );
+  });
+
   const server = new PipeTransport(Logger.null, pipe);
 
   const targetInfo = {
@@ -41,21 +53,26 @@ process.on('exit', () => {
   };
 
   server.send(JSON.stringify({ method: 'Target.targetCreated', params: { targetInfo } }));
-  debugLog('CONNECTED TO SERVER');
+  logger.info(LogTag.Runtime, 'Connected to server');
 
   let target: WebSocketTransport | undefined;
 
   server.onmessage = async data => {
-    if (!data.includes('Target.attachToTarget') && !data.includes('Target.detachFromTarget')) {
-      target!.send(data);
+    // Fast-path to check if we might need to parse it:
+    if (
+      target &&
+      !data.includes('Target.attachToTarget') &&
+      !data.includes('Target.detachFromTarget')
+    ) {
+      target.send(data);
       return;
     }
 
-    let result: any = {};
+    let result: unknown = {};
     const object = JSON.parse(data);
 
     if (object.method === 'Target.attachToTarget') {
-      debugLog('ATTACH TO TARGET');
+      logger.info(LogTag.Runtime, 'Attached to target', object);
       if (target) {
         target.close();
         target = undefined;
@@ -72,22 +89,22 @@ process.on('exit', () => {
             }),
           );
       };
-      result = { sessionId: targetInfo.targetId };
-      if (info.dynamicAttach) {
-        result.__dynamicAttach = true;
-      }
+      result = {
+        sessionId: targetInfo.targetId,
+        __dynamicAttach: info.dynamicAttach ? true : undefined,
+      };
     } else if (object.method === 'Target.detachFromTarget') {
-      debugLog('DETACH FROM TARGET');
+      logger.info(LogTag.Runtime, 'Detach from target', object);
       if (target) {
         const t = target;
         target = undefined;
         t.close();
       } else {
-        debugLog('DETACH WITHOUT ATTACH');
+        logger.warn(LogTag.Runtime, 'Detach without attach', object);
       }
       result = {};
     } else {
-      target!.send(data);
+      target?.send(data);
       return;
     }
 
@@ -95,7 +112,7 @@ process.on('exit', () => {
   };
 
   server.onend = () => {
-    debugLog('SERVER CLOSED');
-    if (target) target.close();
+    logger.info(LogTag.Runtime, 'SERVER CLOSED');
+    target?.close();
   };
 })();

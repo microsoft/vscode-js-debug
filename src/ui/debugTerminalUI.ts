@@ -22,11 +22,11 @@ import {
 } from '../configuration';
 import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { Logger } from '../common/logging/logger';
 import { URL } from 'url';
 import { isMetaAddress } from '../common/urlUtils';
+import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 
 const localize = nls.loadMessageBundle();
 const debugTerminals = new WeakSet<vscode.Terminal>();
@@ -41,7 +41,7 @@ function launchTerminal(
   workspaceFolder?: vscode.WorkspaceFolder,
 ) {
   const launcher = new TerminalNodeLauncher(new NodePathProvider(), new Logger());
-  const telemetry = new TelemetryReporter();
+  const telemetry = new DapTelemetryReporter();
   const baseDebugOptions: Partial<ITerminalLaunchConfiguration> = {
     ...readConfig(vscode.workspace.getConfiguration(), Configuration.TerminalDebugConfig),
     // Prevent switching over the the Debug Console whenever a process starts

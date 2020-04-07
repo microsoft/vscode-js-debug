@@ -6,7 +6,7 @@ import * as childProcess from 'child_process';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/transport';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';
 import { launchUnelevatedChrome } from './unelevatedChome';
 import {
@@ -48,7 +48,7 @@ export async function launch(
   dap: Dap.Api,
   executablePath: string,
   logger: ILogger,
-  telemetryReporter: TelemetryReporter,
+  telemetryReporter: ITelemetryReporter,
   clientCapabilities: IDapInitializeParamsWithExtensions,
   cancellationToken: CancellationToken,
   options: ILaunchOptions | undefined = {},
@@ -177,7 +177,7 @@ export async function attach(
   options: IAttachOptions,
   cancellationToken: CancellationToken,
   logger: ILogger,
-  telemetryReporter: TelemetryReporter,
+  telemetryReporter: ITelemetryReporter,
 ): Promise<CdpConnection> {
   const { browserWSEndpoint, browserURL } = options;
 

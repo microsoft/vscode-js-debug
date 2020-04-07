@@ -9,16 +9,7 @@ import { existsSync, lstatSync } from 'fs';
 import { findOpenPort } from '../../common/findOpenPort';
 import { StubProgram } from './program';
 import { injectable } from 'inversify';
-
-/**
- * This interface represents a single command line argument split into a "prefix" and a "path" half.
- * The optional "prefix" contains arbitrary text and the optional "path" contains a file system path.
- * Concatenating both results in the original command line argument.
- */
-interface ILaunchVSCodeArgument {
-  prefix?: string;
-  path?: string;
-}
+import Dap from '../../dap/api';
 
 /**
  * Boots an instance of VS Code for extension debugging. Once this happens,
@@ -40,7 +31,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
    */
   protected async launchProgram(runData: IRunData<IExtensionHostConfiguration>): Promise<void> {
     const port = runData.params.port || (await findOpenPort());
-    await (runData.context.dap as any).launchVSCodeRequest({
+    await runData.context.dap.launchVSCodeRequest({
       args: resolveCodeLaunchArgs(runData.params, port),
       env: this.getConfiguredEnvironment(runData.params).defined(),
     });
@@ -52,7 +43,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
 
 const resolveCodeLaunchArgs = (launchArgs: IExtensionHostConfiguration, port: number) => {
   // Separate all "paths" from an arguments into separate attributes.
-  const args = launchArgs.args.map<ILaunchVSCodeArgument>(arg => {
+  const args = launchArgs.args.map<Dap.LaunchVSCodeArgument>(arg => {
     if (arg.startsWith('-')) {
       // arg is an option
       const pair = arg.split('=', 2);

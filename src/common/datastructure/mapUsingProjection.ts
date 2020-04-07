@@ -38,7 +38,12 @@ export class MapUsingProjection<K, V, P = K> implements Map<K, V> {
     return this.projectionToKeyAndValue.delete(keyProjected);
   }
 
-  public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
+  public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void): void;
+  public forEach<T>(
+    callbackfn: (this: T, value: V, key: K, map: Map<K, V>) => void,
+    thisArg: T,
+  ): void;
+  public forEach<T>(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: T): void {
     this.projectionToKeyAndValue.forEach(keyAndValue => {
       callbackfn.call(thisArg, keyAndValue.value, keyAndValue.key, this);
     }, thisArg);

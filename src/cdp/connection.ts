@@ -5,7 +5,7 @@
 import { ITransport } from './transport';
 import { EventEmitter } from '../common/events';
 import Cdp from './api';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
 
@@ -55,7 +55,7 @@ export default class Connection {
   constructor(
     transport: ITransport,
     private readonly logger: ILogger,
-    private readonly telemetryReporter: TelemetryReporter,
+    private readonly telemetryReporter: ITelemetryReporter,
   ) {
     this._lastId = 0;
     this._transport = transport;

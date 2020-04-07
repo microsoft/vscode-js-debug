@@ -9,6 +9,7 @@ import { Container } from 'inversify';
 import { SessionManager, SessionLauncher } from '../sessionManager';
 import { StreamDapTransport } from '../dap/transport';
 import { pick } from '../common/objUtils';
+import { IChromeAttachConfiguration } from '../configuration';
 
 const preservedProperties = [
   // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
@@ -59,7 +60,11 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
 
     const debugServer = net.createServer(socket => {
       const transport = new StreamDapTransport(socket, socket);
-      this.sessionManager.createNewSession(debugSession, debugSession.configuration, transport);
+      this.sessionManager.createNewSession(
+        debugSession,
+        debugSession.configuration as Partial<IChromeAttachConfiguration>,
+        transport,
+      );
     });
     debugServer.listen(0);
     this.servers.set(debugSession.id, debugServer);

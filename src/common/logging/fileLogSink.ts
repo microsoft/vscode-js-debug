@@ -28,7 +28,7 @@ const replacer = (_key: string, value: unknown): unknown => {
 export class FileLogSink implements ILogSink {
   private stream?: WriteStream;
 
-  constructor(private readonly file: string, private readonly dap: Dap.Api) {
+  constructor(private readonly file: string, private readonly dap?: Dap.Api) {
     try {
       mkdirSync(dirname(file), { recursive: true });
     } catch {
@@ -42,7 +42,7 @@ export class FileLogSink implements ILogSink {
    * @inheritdoc
    */
   public async setup() {
-    this.dap.output({
+    this.dap?.output({
       category: 'console',
       output: `Verbose logs are written to:\n${this.file}\n`,
     });

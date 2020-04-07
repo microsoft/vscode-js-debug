@@ -7,7 +7,7 @@ import Dap from '../../dap/api';
 import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
-import { IUiLocation, base1To0, Source } from '../sources';
+import { IUiLocation, base1To0, Source, SourceFromMap } from '../sources';
 import { urlToRegex, absolutePathToFileUrl } from '../../common/urlUtils';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -351,8 +351,8 @@ export abstract class Breakpoint {
 
     // If the source has been mapped in-place, don't set anything by path,
     // we'll depend only on the mapped locations.
-    if (sourceByPath?._compiledToSourceUrl) {
-      const mappedInPlace = [...sourceByPath._compiledToSourceUrl.keys()].some(
+    if (sourceByPath instanceof SourceFromMap) {
+      const mappedInPlace = [...sourceByPath.compiledToSourceUrl.keys()].some(
         s => s.absolutePath() === this.source.path,
       );
 
@@ -370,11 +370,7 @@ export abstract class Breakpoint {
     if (!url) return;
     await this._setByUrl(thread, url, lineColumn);
     if (this.source.path !== url && this.source.path !== undefined) {
-      await this._setByUrl(
-        thread,
-        absolutePathToFileUrl(this.source.path)?.toString()!,
-        lineColumn,
-      );
+      await this._setByUrl(thread, absolutePathToFileUrl(this.source.path), lineColumn);
     }
   }
 

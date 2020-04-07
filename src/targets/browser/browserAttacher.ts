@@ -10,12 +10,11 @@ import { BrowserTargetManager } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
-import { ITargetOrigin } from '../targetOrigin';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
@@ -27,9 +26,8 @@ export class BrowserAttacher implements ILauncher {
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
-  private _launchParams: IChromeAttachConfiguration | undefined;
-  private _targetOrigin?: ITargetOrigin;
   private _disposables: IDisposable[] = [];
+  private _lastLaunchParams?: IChromeAttachConfiguration;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -47,37 +45,29 @@ export class BrowserAttacher implements ILauncher {
     if (this._targetManager) this._targetManager.dispose();
   }
 
-  async launch(
-    params: AnyLaunchConfiguration,
-    { targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
-  ): Promise<ILaunchResult> {
+  async launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<ILaunchResult> {
     if (params.type !== DebugType.Chrome || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
 
-    this._launchParams = params;
-    this._targetOrigin = targetOrigin;
+    this._lastLaunchParams = params;
 
-    const error = await this._attemptToAttach(telemetryReporter, cancellationToken);
+    const error = await this._attemptToAttach(params, context);
     return error ? { error } : { blockSessionTermination: false };
   }
 
-  _scheduleAttach(rawTelemetryReporter: TelemetryReporter) {
+  _scheduleAttach(params: IChromeAttachConfiguration, context: ILaunchContext) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
-      this._attemptToAttach(rawTelemetryReporter, NeverCancelled);
+      this._attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
     }, 1000);
   }
 
-  async _attemptToAttach(
-    rawTelemetryReporter: TelemetryReporter,
-    cancellationToken: CancellationToken,
-  ) {
-    const params = this._launchParams!;
+  async _attemptToAttach(params: IChromeAttachConfiguration, context: ILaunchContext) {
     const connection = await this.acquireConnectionForBrowser(
-      rawTelemetryReporter,
+      context.telemetryReporter,
       params,
-      cancellationToken,
+      context.cancellationToken,
     );
     if (typeof connection === 'string') {
       return connection; // an error
@@ -92,8 +82,8 @@ export class BrowserAttacher implements ILauncher {
           this._targetManager = undefined;
           this._onTargetListChangedEmitter.fire();
         }
-        if (this._launchParams === params) {
-          this._scheduleAttach(rawTelemetryReporter);
+        if (this._lastLaunchParams === params) {
+          this._scheduleAttach(params, context);
         }
       },
       undefined,
@@ -106,8 +96,8 @@ export class BrowserAttacher implements ILauncher {
       this.pathResolver,
       params,
       this.logger,
-      rawTelemetryReporter,
-      this._targetOrigin!,
+      context.telemetryReporter,
+      context.targetOrigin,
     );
     if (!this._targetManager) return;
 
@@ -138,12 +128,12 @@ export class BrowserAttacher implements ILauncher {
   }
 
   private async acquireConnectionForBrowser(
-    rawTelemetryReporter: TelemetryReporter,
+    rawTelemetryReporter: ITelemetryReporter,
     params: IChromeAttachConfiguration,
     cancellationToken: CancellationToken,
   ) {
     const browserURL = `http://${params.address}:${params.port}`;
-    while (this._launchParams === params) {
+    while (this._lastLaunchParams === params) {
       try {
         return await launcher.attach(
           { browserURL },
@@ -174,8 +164,8 @@ export class BrowserAttacher implements ILauncher {
   }
 
   async terminate(): Promise<void> {
-    this._launchParams = undefined;
-    if (this._connection) this._connection.close();
+    this._lastLaunchParams = undefined;
+    this._connection?.close();
   }
 
   async disconnect(): Promise<void> {

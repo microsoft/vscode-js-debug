@@ -8,7 +8,7 @@ import { tmpdir } from 'os';
 import CdpConnection from '../../cdp/connection';
 import { IEdgeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { IWebViewConnectionInfo } from '../targets';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { getDeferred } from '../../common/promiseUtil';
 import { WebSocketTransport } from '../../cdp/transport';
 import { NeverCancelled } from '../../common/cancellation';
@@ -57,7 +57,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     params: IEdgeLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
-    telemetryReporter: TelemetryReporter,
+    telemetryReporter: ITelemetryReporter,
   ) {
     return super.launchBrowser(
       params,
@@ -76,7 +76,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
   private async getWebviewPort(
     params: IEdgeLaunchConfiguration,
     filter: (info: IWebViewConnectionInfo) => boolean,
-    telemetryReporter: TelemetryReporter,
+    telemetryReporter: ITelemetryReporter,
   ): Promise<number> {
     const promisedPort = getDeferred<number>();
 

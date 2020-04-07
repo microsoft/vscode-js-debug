@@ -44,7 +44,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
   protected async launchProgram(
     runData: IRunData<IExtensionHostConfiguration>,
   ): Promise<string | void> {
-    const inspectorUrl = await retryGetWSEndpoint(
+    const inspectorURL = await retryGetWSEndpoint(
       `http://localhost:${runData.params.port}`,
       runData.context.cancellationToken,
     );
@@ -52,7 +52,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
     const wd = spawnWatchdog(await this.resolveNodePath(runData.params), {
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
-      inspectorURL: inspectorUrl!,
+      inspectorURL,
       waitForDebugger: true,
       dynamicAttach: true,
     });

@@ -3,28 +3,32 @@
  *--------------------------------------------------------*/
 
 import micromatch from 'micromatch';
-import { Cdp } from '../cdp/api';
-import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { EventEmitter } from '../common/events';
-import { LogTag, ILogger } from '../common/logging';
-import { debounce } from '../common/objUtils';
-import * as pathUtils from '../common/pathUtils';
-import { escapeRegexSpecialChars } from '../common/stringUtils';
-import * as urlUtils from '../common/urlUtils';
-import Dap from '../dap/api';
-import { ITarget } from '../targets/targets';
-import { Source, SourceContainer } from './sources';
+import { Cdp } from '../../cdp/api';
+import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
+import { EventEmitter } from '../../common/events';
+import { LogTag, ILogger } from '../../common/logging';
+import { debounce } from '../../common/objUtils';
+import * as pathUtils from '../../common/pathUtils';
+import { escapeRegexSpecialChars } from '../../common/stringUtils';
+import * as urlUtils from '../../common/urlUtils';
+import Dap from '../../dap/api';
+import { ITarget } from '../../targets/targets';
+import {
+  Source,
+  SourceContainer,
+  ISourceWithMap,
+  SourceFromMap,
+  isSourceWithMap,
+} from '../sources';
 import { injectable, inject } from 'inversify';
-import { ICdpApi } from '../cdp/connection';
-import { AnyLaunchConfiguration } from '../configuration';
+import { ICdpApi } from '../../cdp/connection';
+import { AnyLaunchConfiguration } from '../../configuration';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
   targetId: string;
   params: Dap.ToggleSkipFileStatusParams;
 }
-
-export const IScriptSkipper = Symbol('IScriptSkipper');
 
 @injectable()
 export class ScriptSkipper {
@@ -48,7 +52,7 @@ export class ScriptSkipper {
    */
   private _scriptsWithSkipping = new Set<string>();
 
-  private _sourceContainer: SourceContainer | undefined;
+  private _sourceContainer!: SourceContainer;
 
   private _targetId: string;
   private _rootTargetId: string;
@@ -159,14 +163,14 @@ export class ScriptSkipper {
   }
 
   private async _updateSourceWithSkippedSourceMappedSources(
-    source: Source,
+    source: ISourceWithMap,
     ...scriptIds: Cdp.Runtime.ScriptId[]
   ): Promise<void> {
     // Order "should" be correct
     const parentIsSkipped = this.isScriptSkipped(source.url);
     const skipRanges: Cdp.Debugger.ScriptPosition[] = [];
     let inSkipRange = parentIsSkipped;
-    Array.from(source._sourceMapSourceByUrl!.values()).forEach(authoredSource => {
+    Array.from(source.sourceMap.sourceByUrl.values()).forEach(authoredSource => {
       let isSkippedSource = this.isScriptSkipped(authoredSource.url);
       if (typeof isSkippedSource === 'undefined') {
         // If not toggled or specified in launch config, inherit the parent's status
@@ -174,7 +178,7 @@ export class ScriptSkipper {
       }
 
       if (isSkippedSource !== inSkipRange) {
-        const locations = this._sourceContainer!.currentSiblingUiLocations(
+        const locations = this._sourceContainer.currentSiblingUiLocations(
           { source: authoredSource, lineNumber: 1, columnNumber: 1 },
           source,
         );
@@ -187,7 +191,7 @@ export class ScriptSkipper {
         } else {
           this.logger.error(
             LogTag.Internal,
-            'Could not map script beginning for ' + authoredSource._name,
+            'Could not map script beginning for ' + authoredSource.sourceReference(),
           );
         }
       }
@@ -229,7 +233,7 @@ export class ScriptSkipper {
     source: Source,
     scriptId: Cdp.Runtime.ScriptId,
   ): Promise<boolean> {
-    const map = isAuthored(source) ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
+    const map = source instanceof SourceFromMap ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
 
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
@@ -246,17 +250,17 @@ export class ScriptSkipper {
       }
 
       if (this.isScriptSkipped(source.url)) {
-        if (source._sourceMapSourceByUrl) {
+        if (isSourceWithMap(source)) {
           // if compiled and skipped, also skip authored sources
-          const authoredSources = Array.from(source._sourceMapSourceByUrl.values());
+          const authoredSources = Array.from(source.sourceMap.sourceByUrl.values());
           authoredSources.forEach(authoredSource => {
             this._isAuthoredUrlSkipped.set(authoredSource.url, true);
           });
         }
       }
 
-      if (source._sourceMapSourceByUrl) {
-        const sourceMapSources = Array.from(source._sourceMapSourceByUrl.values());
+      if (isSourceWithMap(source)) {
+        const sourceMapSources = Array.from(source.sourceMap.sourceByUrl.values());
         await Promise.all(
           sourceMapSources.map(s => this._initializeSkippingValueForSource(s, scriptId)),
         );
@@ -293,14 +297,14 @@ export class ScriptSkipper {
     }
     const sourceParams: Dap.Source = { path: path, sourceReference: params.sourceReference };
 
-    const source = this._sourceContainer!.source(sourceParams);
+    const source = this._sourceContainer.source(sourceParams);
     if (source) {
       const newSkipValue = !this.isScriptSkipped(source.url);
-      if (isAuthored(source)) {
+      if (source instanceof SourceFromMap) {
         this._isAuthoredUrlSkipped.set(source.url, newSkipValue);
 
         // Changed the skip value for an authored source, update it for all its compiled sources
-        const compiledSources = Array.from(source._compiledToSourceUrl!.keys());
+        const compiledSources = Array.from(source.compiledToSourceUrl.keys());
         await Promise.all(
           compiledSources.map(compiledSource =>
             this._updateSourceWithSkippedSourceMappedSources(
@@ -311,9 +315,9 @@ export class ScriptSkipper {
         );
       } else {
         this._isUrlSkipped.set(source.url, newSkipValue);
-        if (source._sourceMapSourceByUrl) {
+        if (isSourceWithMap(source)) {
           // if compiled, get authored sources
-          for (const authoredSource of source._sourceMapSourceByUrl.values()) {
+          for (const authoredSource of source.sourceMap.sourceByUrl.values()) {
             this._isAuthoredUrlSkipped.set(authoredSource.url, newSkipValue);
           }
         }
@@ -336,10 +340,6 @@ export class ScriptSkipper {
     });
     return result;
   }
-}
-
-function isAuthored(source: Source) {
-  return source._compiledToSourceUrl;
 }
 
 function getRootTarget(target: ITarget): ITarget {

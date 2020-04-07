@@ -25,7 +25,7 @@ import { IProgram } from './program';
 import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { findInPath } from '../../common/pathUtils';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { ILogger } from '../../common/logging';
 import { inject, injectable } from 'inversify';
@@ -296,7 +296,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     return {};
   }
 
-  protected async _startServer(telemetryReporter: TelemetryReporter) {
+  protected async _startServer(telemetryReporter: ITelemetryReporter) {
     const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
     const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
     const server = await new Promise<net.Server>((resolve, reject) => {
@@ -324,7 +324,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     this.serverConnections = [];
   }
 
-  protected async _startSession(socket: net.Socket, telemetryReporter: TelemetryReporter) {
+  protected async _startSession(socket: net.Socket, telemetryReporter: ITelemetryReporter) {
     const { connection, cdp, targetInfo } = await this.acquireTarget(socket, telemetryReporter);
     if (!this.run) {
       // if we aren't running a session, discard the socket.
@@ -351,7 +351,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Acquires the CDP session and target info from the connecting socket.
    */
 
-  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: TelemetryReporter) {
+  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: ITelemetryReporter) {
     const connection = new Connection(
       new PipeTransport(this.logger, socket),
       this.logger,

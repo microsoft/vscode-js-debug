@@ -8,7 +8,7 @@ import 'reflect-metadata';
 import { Container, interfaces } from 'inversify';
 import * as vscode from 'vscode';
 import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
-import { IScriptSkipper, ScriptSkipper } from './adapter/scriptSkipper';
+import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
 import Cdp from './cdp/api';
 import { ICdpApi } from './cdp/connection';
 import { ILogger } from './common/logging';
@@ -63,6 +63,10 @@ import { ProfilerFactory, IProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicProfiler';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { SourceContainer } from './adapter/sources';
+import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
+import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
+import { ITelemetryReporter } from './telemetry/telemetryReporter';
+import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -98,6 +102,12 @@ export const createTargetContainer = (
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver());
+
+  container
+    .bind(ITelemetryReporter)
+    .to(process.env.DA_TEST_DISABLE_TELEMETRY ? NullTelemetryReporter : DapTelemetryReporter)
+    .inSingletonScope()
+    .onActivation(trackDispose);
 
   container
     .bind(SourceContainer)
@@ -151,6 +161,12 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container
     .bind(ILogger)
     .to(Logger)
+    .inSingletonScope()
+    .onActivation(trackDispose);
+
+  container
+    .bind(ITelemetryReporter)
+    .to(process.env.DA_TEST_DISABLE_TELEMETRY ? NullTelemetryReporter : DapTelemetryReporter)
     .inSingletonScope()
     .onActivation(trackDispose);
 

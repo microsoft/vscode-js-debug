@@ -8,7 +8,7 @@ import { BrowserLauncher } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
 import Dap from '../../dap/api';
 import { CancellationToken } from 'vscode';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createServer, Socket, Server, AddressInfo } from 'net';
 import { getDeferred } from '../../common/promiseUtil';
 import Connection from '../../cdp/connection';
@@ -44,7 +44,7 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
     params: AnyChromiumLaunchConfiguration,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
-    telemetryReporter: TelemetryReporter,
+    telemetryReporter: ITelemetryReporter,
   ): Promise<ILaunchResult> {
     if (this.server) {
       this.server.close();

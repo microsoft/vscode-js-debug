@@ -29,7 +29,6 @@ import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './reporters/logReporterUtils';
 import { TargetOrigin } from '../targets/targetOrigin';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
@@ -83,12 +82,10 @@ class Session {
 
     this.adapterConnection = new DapConnection(
       new StreamDapTransport(testToAdapter, adapterToTest, logger),
-      new TelemetryReporter(),
       logger,
     );
     const testConnection = new DapConnection(
       new StreamDapTransport(adapterToTest, testToAdapter, logger),
-      new TelemetryReporter(),
       logger,
     );
     this.dap = testConnection.createTestApi();
@@ -359,13 +356,7 @@ export class TestRoot {
       });
     });
 
-    this.binder = new Binder(
-      this,
-      this._root.adapterConnection,
-      new TelemetryReporter(),
-      services,
-      new TargetOrigin('0'),
-    );
+    this.binder = new Binder(this, this._root.adapterConnection, services, new TargetOrigin('0'));
 
     this.initialize = this._root._init();
 

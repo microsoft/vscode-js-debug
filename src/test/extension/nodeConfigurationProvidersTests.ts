@@ -191,7 +191,10 @@ describe('NodeDebugConfigurationProvider', () => {
       'hello.js': '',
     });
 
-    nvmResolver.resolveNvmVersionPath.resolves('/my/node/location');
+    nvmResolver.resolveNvmVersionPath.resolves({
+      directory: '/my/node/location',
+      binary: 'node64',
+    });
     const result = await provider.resolveDebugConfiguration(folder, {
       type: DebugType.Node,
       name: '',
@@ -202,6 +205,7 @@ describe('NodeDebugConfigurationProvider', () => {
     });
 
     expect(result).to.containSubset({
+      runtimeExecutable: 'node64',
       env: {
         hello: 'world',
         PATH: '/usr/bin:/my/node/location',

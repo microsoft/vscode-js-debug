@@ -496,6 +496,108 @@
           "required": ["event", "body"]
         }
       ]
+    },
+
+
+    "LaunchVSCodeRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Launches a VS Code extension host in debug mode.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["launchVSCode"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/LaunchVSCodeArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "LaunchVSCodeArguments": {
+      "type": "object",
+      "description": "Arguments for 'LaunchVSCode' request.",
+      "required": ["args", "env"],
+      "properties": {
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LaunchVSCodeArgument"
+          }
+        },
+        "env": {
+          "type": "object"
+        }
+      }
+    },
+    "LaunchVSCodeArgument": {
+      "type": "object",
+      "description": "This interface represents a single command line argument split into a \"prefix\" and a \"path\" half. The optional \"prefix\" contains arbitrary text and the optional \"path\" contains a file system path. Concatenating both results in the original command line argument.",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        }
+      }
+    },
+    "LaunchVSCodeResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'LaunchVSCode' request."
+        }
+      ]
+    },
+
+    "LaunchUnelevatedRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Launches Chrome unelevated, used in VS.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["launchUnelevated"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/LaunchUnelevatedArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "LaunchUnelevatedArguments": {
+      "type": "object",
+      "description": "Arguments for 'LaunchUnelevated' request.",
+      "properties": {
+        "process": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LaunchUnelevatedResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'LaunchUnelevated' request."
+        }
+      ]
     }
   }
 }

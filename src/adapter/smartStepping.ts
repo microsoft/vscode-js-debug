@@ -6,13 +6,13 @@ import { StackFrame } from './stackTrace';
 import { IPausedDetails } from './threads';
 import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
-import { UnmappedReason } from './sources';
+import { UnmappedReason, isSourceWithMap } from './sources';
 
 export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
   const uiLocation = await stackFrame.uiLocation();
   if (!uiLocation) return false;
 
-  if (!uiLocation.source._sourceMapUrl) return false;
+  if (!isSourceWithMap(uiLocation.source)) return false;
 
   if (!uiLocation.isMapped && uiLocation.unmappedReason !== UnmappedReason.MapDisabled) return true;
 

@@ -292,11 +292,11 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 }
 
 // TODO: this does not escape/unescape special characters, but it should.
-export function absolutePathToFileUrl(absolutePath: string): string | undefined {
-  try {
-    if (process.platform === 'win32') return 'file:///' + platformPathToUrlPath(absolutePath);
-    return 'file://' + platformPathToUrlPath(absolutePath);
-  } catch (e) {}
+export function absolutePathToFileUrl(absolutePath: string): string {
+  if (process.platform === 'win32') {
+    return 'file:///' + platformPathToUrlPath(absolutePath);
+  }
+  return 'file://' + platformPathToUrlPath(absolutePath);
 }
 
 /**
@@ -366,7 +366,7 @@ export function maybeAbsolutePathToFileUrl(
     platformPathToPreferredCase(sourceUrl).startsWith(rootPath) &&
     !isValidUrl(sourceUrl)
   )
-    return absolutePathToFileUrl(sourceUrl) || sourceUrl;
+    return absolutePathToFileUrl(sourceUrl);
   return sourceUrl;
 }
 

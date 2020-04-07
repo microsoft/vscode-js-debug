@@ -173,13 +173,13 @@ function renderObjectPreview(
 
   // Promise handling.
   const promiseStatus = map.get('[[PromiseStatus]]');
-  if (promiseStatus) {
-    const promiseValue = map.get('[[PromiseValue]]');
+  const promiseValue = map.get('[[PromiseValue]]');
+  if (promiseStatus && promiseValue) {
     if (promiseStatus.value === 'pending') builder.append(`{<${promiseStatus.value}>}`);
     else
       builder.append(
         `{${renderPropertyPreview(
-          promiseValue!,
+          promiseValue,
           builder.budget() - 2,
           `<${promiseStatus.value}>`,
         )}}`,

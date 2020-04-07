@@ -342,7 +342,7 @@ const runPrettier = (onlyStaged, fix, callback) => {
 const runEslint = (fix, callback) => {
   const child = cp.fork(
     './node_modules/eslint/bin/eslint.js',
-    ['--color', 'src/**/*.ts', fix ? '--fix' : ''],
+    ['--color', 'src/**/*.ts', fix ? '--fix' : ['--max-warnings=0']],
     { stdio: 'inherit' },
   );
 

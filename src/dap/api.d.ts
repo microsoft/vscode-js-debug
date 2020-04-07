@@ -870,6 +870,30 @@ export namespace Dap {
      * Fired when a profiling state changes.
      */
     profilerStateUpdate(params: ProfilerStateUpdateEventParams): void;
+
+    /**
+     * Launches a VS Code extension host in debug mode.
+     */
+    on(
+      request: 'launchVSCode',
+      handler: (params: LaunchVSCodeParams) => Promise<LaunchVSCodeResult | Error>,
+    ): () => void;
+    /**
+     * Launches a VS Code extension host in debug mode.
+     */
+    launchVSCodeRequest(params: LaunchVSCodeParams): Promise<LaunchVSCodeResult>;
+
+    /**
+     * Launches Chrome unelevated, used in VS.
+     */
+    on(
+      request: 'launchUnelevated',
+      handler: (params: LaunchUnelevatedParams) => Promise<LaunchUnelevatedResult | Error>,
+    ): () => void;
+    /**
+     * Launches Chrome unelevated, used in VS.
+     */
+    launchUnelevatedRequest(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
   }
 
   export interface TestApi {
@@ -1445,6 +1469,16 @@ export namespace Dap {
       request: 'profilerStateUpdate',
       filter?: (event: ProfilerStateUpdateEventParams) => boolean,
     ): Promise<ProfilerStateUpdateEventParams>;
+
+    /**
+     * Launches a VS Code extension host in debug mode.
+     */
+    launchVSCode(params: LaunchVSCodeParams): Promise<LaunchVSCodeResult>;
+
+    /**
+     * Launches Chrome unelevated, used in VS.
+     */
+    launchUnelevated(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
   }
 
   export interface AttachParams {
@@ -2132,6 +2166,22 @@ export namespace Dap {
   }
 
   export interface LaunchResult {}
+
+  export interface LaunchUnelevatedParams {
+    process?: string;
+
+    args?: string[];
+  }
+
+  export interface LaunchUnelevatedResult {}
+
+  export interface LaunchVSCodeParams {
+    args: LaunchVSCodeArgument[];
+
+    env: object;
+  }
+
+  export interface LaunchVSCodeResult {}
 
   export interface LoadedSourceEventParams {
     /**
@@ -3380,6 +3430,15 @@ export namespace Dap {
      * Address range covered by this module.
      */
     addressRange?: string;
+  }
+
+  /**
+   * This interface represents a single command line argument split into a "prefix" and a "path" half. The optional "prefix" contains arbitrary text and the optional "path" contains a file system path. Concatenating both results in the original command line argument.
+   */
+  export interface LaunchVSCodeArgument {
+    path?: string;
+
+    prefix?: string;
   }
 
   /**

@@ -12,10 +12,10 @@ import * as urlUtils from '../../common/urlUtils';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { ScriptSkipper } from '../../adapter/scriptSkipper';
+import { ScriptSkipper } from '../../adapter/scriptSkipper/implementation';
 import { AnyChromiumConfiguration } from '../../configuration';
 import { LogTag, ILogger } from '../../common/logging';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBrowserProcess } from './spawn/browserProcess';
@@ -47,7 +47,7 @@ export class BrowserTargetManager implements IDisposable {
     sourcePathResolver: ISourcePathResolver,
     launchParams: AnyChromiumConfiguration,
     logger: ILogger,
-    telemetry: TelemetryReporter,
+    telemetry: ITelemetryReporter,
     targetOrigin: ITargetOrigin,
   ): Promise<BrowserTargetManager | undefined> {
     const rootSession = connection.rootSession();
@@ -72,7 +72,7 @@ export class BrowserTargetManager implements IDisposable {
     browserSession: Cdp.Api,
     sourcePathResolver: ISourcePathResolver,
     private readonly logger: ILogger,
-    private readonly telemetry: TelemetryReporter,
+    private readonly telemetry: ITelemetryReporter,
     private readonly launchParams: AnyChromiumConfiguration,
     targetOrigin: ITargetOrigin,
   ) {

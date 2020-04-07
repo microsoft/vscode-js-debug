@@ -16,7 +16,6 @@ import { generateBreakpointIds } from './adapter/breakpoints';
 import { IDisposable } from './common/disposable';
 import * as nls from 'vscode-nls';
 import { TargetOrigin } from './targets/targetOrigin';
-import { TelemetryReporter } from './telemetry/telemetryReporter';
 import { ILogger } from './common/logging';
 import { StreamDapTransport } from './dap/transport';
 
@@ -110,16 +109,9 @@ export function startDebugServer(port: number): Promise<IDisposable> {
           },
         };
 
-        const telemetry = new TelemetryReporter();
         const transport = new StreamDapTransport(socket, socket, services.get(ILogger));
-        const connection = new DapConnection(transport, telemetry, services.get(ILogger));
-        new Binder(
-          binderDelegate,
-          connection,
-          telemetry,
-          services,
-          new TargetOrigin('targetOrigin'),
-        );
+        const connection = new DapConnection(transport, services.get(ILogger));
+        new Binder(binderDelegate, connection, services, new TargetOrigin('targetOrigin'));
         const configurator = new Configurator(connection.dap());
       })
       .on('error', reject)

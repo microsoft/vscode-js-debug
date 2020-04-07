@@ -8,7 +8,7 @@ import { ITarget } from './targets/targets';
 import { IDisposable } from './common/events';
 import { DebugType } from './common/contributionUtils';
 import { TargetOrigin } from './targets/targetOrigin';
-import { TelemetryReporter } from './telemetry/telemetryReporter';
+import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { ILogger } from './common/logging';
 import { Container } from 'inversify';
 import { createTopLevelSessionContainer } from './ioc';
@@ -38,7 +38,6 @@ export type SessionLauncher<T extends IDebugSessionLike> = (
  */
 export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposable {
   public readonly connection: DapConnection;
-  protected readonly telemetryReporter = new TelemetryReporter();
   private subscription?: IDisposable;
 
   constructor(
@@ -47,7 +46,7 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
     public readonly logger: ILogger,
   ) {
     transport.setLogger(logger);
-    this.connection = new DapConnection(transport, this.telemetryReporter, this.logger);
+    this.connection = new DapConnection(transport, this.logger);
   }
 
   listenToTarget(target: ITarget) {
@@ -68,13 +67,13 @@ export class RootSession<TSessionImpl extends IDebugSessionLike> extends Session
     private readonly services: Container,
   ) {
     super(debugSession, transport, services.get(ILogger));
+    this.connection.attachTelemetry(services.get(ITelemetryReporter));
   }
 
   createBinder(delegate: IBinderDelegate) {
     this._binder = new Binder(
       delegate,
       this.connection,
-      this.telemetryReporter,
       this.services,
       new TargetOrigin(this.debugSession.id),
     );
@@ -114,12 +113,12 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
    */
   public createNewSession(
     debugSession: TSessionImpl,
-    config: any,
+    config: Partial<IChromeAttachConfiguration>,
     transport: IDapTransport,
   ): Session<TSessionImpl> {
     let session: Session<TSessionImpl>;
 
-    const pendingTargetId: string | undefined = config.__pendingTargetId;
+    const pendingTargetId = config.__pendingTargetId;
     if (pendingTargetId) {
       const pending = this._pendingTarget.get(pendingTargetId);
       if (!pending) {
@@ -153,14 +152,14 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
    * @inheritdoc
    */
   public async acquireDap(target: ITarget): Promise<DapConnection> {
-    const session = await this.launchNewSession(target);
+    const session = await this.getOrLaunchSession(target);
     return session.connection;
   }
 
   /**
    * Creates a debug session for the given target.
    */
-  public launchNewSession(target: ITarget): Promise<Session<TSessionImpl>> {
+  public getOrLaunchSession(target: ITarget): Promise<Session<TSessionImpl>> {
     const existingSession = this._sessionForTarget.get(target);
     if (existingSession) {
       return existingSession;
@@ -170,7 +169,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       let parentSession: Session<TSessionImpl> | undefined;
       const parentTarget = target.parent();
       if (parentTarget) {
-        parentSession = await this.launchNewSession(parentTarget);
+        parentSession = await this.getOrLaunchSession(parentTarget);
       } else {
         parentSession = this._sessions.get(target.targetOrigin().id);
       }

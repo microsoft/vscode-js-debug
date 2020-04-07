@@ -36,7 +36,7 @@ export async function watchAllChildren(
   const todo: Promise<ChildProcess | void>[] = [];
   let queue = node.children.slice();
   while (queue.length) {
-    const child = queue.pop()!;
+    const child = queue.pop() as IProcessTreeNode;
     queue = queue.concat(child.children);
 
     const { port } = analyseArguments(child.args);

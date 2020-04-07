@@ -11,7 +11,7 @@ export async function launchUnelevatedChrome(
   chromeArgs: string[],
   cancellationToken: CancellationToken,
 ): Promise<void> {
-  const response: any = (dap as any).launchUnelevatedRequest({
+  const response = dap.launchUnelevatedRequest({
     process: chromePath,
     args: chromeArgs,
   });

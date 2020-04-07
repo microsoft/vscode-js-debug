@@ -8,7 +8,7 @@ import { IDisposable, IEvent } from '../common/events';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ITargetOrigin } from './targetOrigin';
 
 export const ITarget = Symbol('ITarget');
@@ -55,7 +55,7 @@ export interface ILaunchContext {
   dap: Dap.Api;
   cancellationToken: CancellationToken;
   targetOrigin: ITargetOrigin;
-  telemetryReporter: TelemetryReporter;
+  telemetryReporter: ITelemetryReporter;
 }
 
 export interface ILaunchResult {

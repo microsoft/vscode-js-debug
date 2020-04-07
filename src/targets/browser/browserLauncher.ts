@@ -14,7 +14,7 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
-import { TelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import * as launcher from './launcher';
 import { ILogger } from '../../common/logging';
@@ -80,7 +80,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     }: T,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
-    telemetryReporter: TelemetryReporter,
+    telemetryReporter: ITelemetryReporter,
     promisedPort?: Promise<number>,
   ): Promise<launcher.ILaunchResult> {
     const executablePath = await this.findBrowserPath(executable || Quality.Stable);

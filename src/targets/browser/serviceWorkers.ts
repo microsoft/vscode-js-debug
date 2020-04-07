@@ -137,7 +137,11 @@ export class ServiceWorkerModel implements IDisposable {
 
   _workerVersionsUpdated(payloads: Cdp.ServiceWorker.ServiceWorkerVersion[]): void {
     for (const payload of payloads) {
-      const registration = this._registrations.get(payload.registrationId)!;
+      const registration = this._registrations.get(payload.registrationId);
+      if (!registration) {
+        continue;
+      }
+
       let version = registration.versions.get(payload.versionId);
       if (!version) {
         version = new ServiceWorkerVersion(registration, payload);

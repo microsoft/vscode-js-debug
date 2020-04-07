@@ -19,6 +19,7 @@ import { getDeferred } from './common/promiseUtil';
 import DapConnection from './dap/connection';
 import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
 import { Readable, Writable } from 'stream';
+import { IChromeAttachConfiguration } from './configuration';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -79,7 +80,11 @@ class VSSessionManager {
     };
   }
 
-  createSession(sessionId: string | undefined, name: string, config: any) {
+  createSession(
+    sessionId: string | undefined,
+    name: string,
+    config: Partial<IChromeAttachConfiguration>,
+  ) {
     const deferredConnection = getDeferred<DapConnection>();
     const newSession = this.sessionManager.createNewSession(
       new VSDebugSession(sessionId || 'root', name, deferredConnection.promise),

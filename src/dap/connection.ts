@@ -4,7 +4,7 @@
 
 import Dap from './api';
 
-import { TelemetryReporter } from '../telemetry/telemetryReporter';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
 import { isDapError, isExternalError, ProtocolError } from './errors';
 import { Message, IDapTransport } from './transport';
@@ -23,6 +23,7 @@ export default class Connection {
   private static readonly logOmittedCalls = new WeakSet<object>();
   private _sequence: number;
 
+  private telemetryReporter?: ITelemetryReporter;
   private _pendingRequests = new Map<number, (result: string | object) => void>();
   private _requestHandlers = new Map<string, (params: object) => Promise<object>>();
   private _eventListeners = new Map<string, Set<(params: object) => void>>();
@@ -37,17 +38,17 @@ export default class Connection {
     return this._initialized.promise;
   }
 
-  constructor(
-    protected readonly transport: IDapTransport,
-    protected readonly telemetryReporter: TelemetryReporter,
-    protected readonly logger: ILogger,
-  ) {
+  constructor(protected readonly transport: IDapTransport, protected readonly logger: ILogger) {
     this._sequence = 1;
 
     this.disposables.push(
       this.transport.messageReceived(event => this._onMessage(event.message, event.receivedTime)),
     );
     this._dap = Promise.resolve(this._createApi());
+  }
+
+  public attachTelemetry(telemetryReporter: ITelemetryReporter) {
+    this.telemetryReporter = telemetryReporter;
     this._dap.then(dap => telemetryReporter.attachDap(dap));
   }
 

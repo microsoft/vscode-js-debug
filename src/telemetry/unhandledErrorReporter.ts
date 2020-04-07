@@ -3,13 +3,13 @@
  *--------------------------------------------------------*/
 
 import * as path from 'path';
-import { TelemetryReporter } from './telemetryReporter';
+import { ITelemetryReporter } from './telemetryReporter';
 import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
 
 export function installUnhandledErrorReporter(
   logger: ILogger,
-  telemetryReporter: TelemetryReporter,
+  telemetryReporter: ITelemetryReporter,
 ): IDisposable {
   const exceptionListener = (exception: unknown) => {
     if (shouldReportThisError(exception)) {

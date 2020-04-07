@@ -107,7 +107,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   scriptUrlToUrl(url: string): string {
     const isPath =
       url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
-    return isPath ? absolutePathToFileUrl(url) || url : url;
+    return isPath ? absolutePathToFileUrl(url) : url;
   }
 
   sourcePathResolver(): ISourcePathResolver {
