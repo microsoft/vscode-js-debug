@@ -26,23 +26,20 @@ steps:
     targets: compile
     publishJUnitResults: true
 
-- task: Npm@1
+# A shell script here due to https://github.com/microsoft/azure-pipelines-tasks/issues/12650
+- task: CmdLine@2
   displayName: npm test
   inputs:
-    command: custom
-    verbose: false
-    customCommand: test
-  timeoutInMinutes: 15
+    script: npm test
+  timeoutInMinutes: 12
   condition: eq(${{ parameters.runTests }}, true)
   env:
     DISPLAY: ':99.0'
 
-- task: Npm@1
+- task: CmdLine@2
   displayName: npm test (framework tests)
   inputs:
-    command: custom
-    verbose: false
-    customCommand: test
+    script: npm test
   timeoutInMinutes: 10
   condition: eq(${{ parameters.runFrameworkTests }}, true)
   env:
