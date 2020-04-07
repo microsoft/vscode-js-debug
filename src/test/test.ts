@@ -35,6 +35,7 @@ import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import { StreamDapTransport } from '../dap/transport';
 import { tmpdir } from 'os';
 import { forceForwardSlashes } from '../common/pathUtils';
+import playwright from 'playwright';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -303,7 +304,6 @@ export class NodeTestHandle implements ITestHandle {
 
   async load() {
     await this.dap.configurationDone({});
-    await this.dap.attach({});
   }
 }
 
@@ -428,6 +428,8 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
       trace: { logFile: tmpLogPath },
+      runtimeExecutable:
+        process.platform === 'darwin' ? playwright.chromium.executablePath() : 'stable',
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       ...options,
     } as AnyChromiumLaunchConfiguration);
@@ -579,6 +581,7 @@ export class TestRoot {
           cb();
         }
         this._root.dap.disconnect({});
+        this.binder.dispose();
       });
     });
   }

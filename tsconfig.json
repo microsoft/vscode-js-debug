@@ -13,6 +13,7 @@
     "alwaysStrict": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "types": ["node", "chai-subset", "mocha"]
   },
   "include": ["src"]

@@ -102,8 +102,8 @@
     },
 		{
 			"name": "Run Tests",
-			"type": "extensionHost",
-			"request": "launch",
+			"type": "pwa-extensionHost",
+      "request": "launch",
       "runtimeExecutable": "${execPath}",
       "skipFiles": ["<node_internals>/**"],
 			"args": [

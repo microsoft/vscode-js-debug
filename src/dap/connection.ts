@@ -6,7 +6,7 @@ import Dap from './api';
 
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
-import { isDapError, isExternalError, ProtocolError } from './errors';
+import { isDapError, ProtocolError } from './errors';
 import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
 import { getDeferred } from '../common/promiseUtil';
@@ -159,7 +159,7 @@ export default class Connection {
       };
 
       try {
-        const callback = msg.command && this._requestHandlers.get(msg.command);
+        const callback = this._requestHandlers.get(msg.command);
         if (!callback) {
           console.error(`Unknown request: ${msg.command}`);
         } else {
@@ -184,10 +184,6 @@ export default class Connection {
           Number(process.hrtime.bigint() - receivedTime) / 1e6,
         );
       } catch (e) {
-        const format = isExternalError(e)
-          ? e.message
-          : `Error processing ${msg.command}: ${e.stack || e.message}`;
-
         if (e instanceof ProtocolError) {
           this._send({
             ...response,
@@ -202,7 +198,7 @@ export default class Connection {
             body: {
               error: {
                 id: 9221,
-                format,
+                format: `Error processing ${msg.command}: ${e.stack || e.message}`,
                 showUser: false,
                 sendTelemetry: false,
               },

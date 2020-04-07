@@ -380,8 +380,8 @@ export abstract class Breakpoint {
    * requests to avoid triggering any logpoint breakpoints multiple times,
    * as would happen if we set a breakpoint both by script and URL.
    */
-  private hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn): boolean {
-    return this.cdpBreakpoints.some(
+  private hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
+    return this.cdpBreakpoints.find(
       bp =>
         (script.url &&
           isSetByUrl(bp.args) &&
@@ -396,7 +396,13 @@ export abstract class Breakpoint {
 
   private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
     lineColumn = base1To0(lineColumn);
-    if (this.hasSetOnLocation({ url }, lineColumn)) {
+
+    const previous = this.hasSetOnLocation({ url }, lineColumn);
+    if (previous) {
+      if (previous.state === CdpReferenceState.Pending) {
+        await previous.done;
+      }
+
       return;
     }
 
@@ -415,7 +421,12 @@ export abstract class Breakpoint {
     lineColumn = base1To0(lineColumn);
 
     // Avoid setting duplicate breakpoints
-    if (this.hasSetOnLocation(script, lineColumn)) {
+    const previous = this.hasSetOnLocation(script, lineColumn);
+    if (previous) {
+      if (previous.state === CdpReferenceState.Pending) {
+        await previous.done;
+      }
+
       return;
     }
 

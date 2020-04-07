@@ -23,6 +23,7 @@ export const enum ErrorCodes {
   ProfileCaptureError,
   InvalidConcurrentProfile,
   InvalidBreakpointCondition,
+  ReplError,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -141,6 +142,8 @@ export const invalidConcurrentProfile = () =>
     ErrorCodes.InvalidConcurrentProfile,
   );
 
+export const replError = (message: string) => createSilentError(message, ErrorCodes.ReplError);
+
 export const browserNotFound = (
   browserType: string,
   requested: string,
@@ -198,14 +201,3 @@ export class ProtocolError extends Error {
  */
 export const isDapError = (value: unknown): value is Dap.Error =>
   typeof value === 'object' && !!value && '__errorMarker' in value;
-
-/**
- * Use this error to fail a request with an error that came from user code or the runtime.
- * The original stack will be preserved, instead of attaching the stack from debug adapter code.
- */
-export class ExternalError extends Error {
-  __externalError = true;
-}
-
-export const isExternalError = (value: unknown): value is ExternalError =>
-  typeof value === 'object' && !!value && '__externalError' in value;

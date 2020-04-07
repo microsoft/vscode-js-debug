@@ -33,13 +33,14 @@ export class RawPipeTransport implements ITransport {
     this.pipeRead?.destroy();
     this.streams.write.removeListener('end', this.onceEnded);
     this.streams.write.removeListener('error', this.onWriteError);
+    // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
+    this.streams.write.on('error', () => undefined);
     this.streams.write.end();
     this.streams = undefined;
     this.endEmitter.fire();
   });
 
   private readonly onWriteError = (error: Error) => {
-    // Suppress pipe errors, e.g. EPIPE when pipe is destroyed with buffered data
     this.logger.error(LogTag.Internal, 'pipeWrite error', { error });
   };
 
@@ -54,10 +55,10 @@ export class RawPipeTransport implements ITransport {
     const read = pipeRead || pipeWrite;
     this.streams = {
       read: read
+        .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error }))
         .pipe(split('\0'))
         .on('data', json => this.messageEmitter.fire([json, process.hrtime.bigint()]))
-        .on('end', this.onceEnded)
-        .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error })),
+        .on('end', this.onceEnded),
       write: pipeWrite.on('end', this.onceEnded).on('error', this.onWriteError),
     };
   }

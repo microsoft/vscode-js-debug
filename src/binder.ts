@@ -150,7 +150,11 @@ export class Binder implements IDisposable {
   }
 
   private async _disconnect() {
-    await Promise.all([...this.getLaunchers()].map(l => l.disconnect()));
+    if (!this._launchers) {
+      return;
+    }
+
+    await Promise.all([...this._launchers].map(l => l.disconnect()));
 
     const didTerminate = () => !this.targetList.length && this._terminationCount === 0;
     if (didTerminate()) {

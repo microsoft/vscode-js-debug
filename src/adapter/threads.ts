@@ -414,7 +414,7 @@ export class Thread implements IVariableStoreDelegate {
 
     if (response.exceptionDetails) {
       const formattedException = await this._formatException(response.exceptionDetails);
-      throw new errors.ExternalError(formattedException.output);
+      throw new errors.ProtocolError(errors.replError(formattedException.output));
     } else {
       const contextName =
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
