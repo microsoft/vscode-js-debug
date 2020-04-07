@@ -373,9 +373,6 @@ export interface ISourceWithMap extends Source {
   };
 }
 
-export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
-  source instanceof Source && !!source.sourceMap;
-
 /**
  * A Source generated from a sourcemap. For example, a TypeScript input file
  * discovered from its compiled JavaScript code.
@@ -386,6 +383,9 @@ export class SourceFromMap extends Source {
   // source map, which was used to produce this source for each compiled.
   public readonly compiledToSourceUrl = new Map<ISourceWithMap, string>();
 }
+
+export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
+  source instanceof Source && !!source.sourceMap;
 
 export interface IPreferredUiLocation extends IUiLocation {
   isMapped: boolean;

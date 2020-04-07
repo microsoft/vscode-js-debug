@@ -32,7 +32,7 @@ steps:
     command: custom
     verbose: false
     customCommand: test
-  timeoutInMinutes: 10
+  timeoutInMinutes: 15
   condition: eq(${{ parameters.runTests }}, true)
   env:
     DISPLAY: ':99.0'

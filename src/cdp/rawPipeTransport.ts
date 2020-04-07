@@ -26,8 +26,11 @@ export class RawPipeTransport implements ITransport {
       return;
     }
 
+    this.beforeClose();
     this.streams.read.removeAllListeners();
-    this.streams.read.destroy();
+    // destroy pipeRead, not streams.read, since that will cause any buffered
+    // data left in the `split()` transform to error when written.
+    this.pipeRead?.destroy();
     this.streams.write.removeListener('end', this.onceEnded);
     this.streams.write.removeListener('error', this.onWriteError);
     this.streams.write.end();

@@ -4,7 +4,7 @@ trigger:
 
 jobs:
 - job: macOS
-  timeoutInMinutes: 15
+  timeoutInMinutes: 20
   pool:
     vmImage: 'macOS-10.15'
   steps:

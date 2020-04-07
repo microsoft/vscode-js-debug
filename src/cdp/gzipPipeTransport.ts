@@ -5,7 +5,7 @@
 import { ILogger } from '../common/logging';
 import { Duplex, Readable, Writable } from 'stream';
 import { RawPipeTransport } from './rawPipeTransport';
-import { createGzip, createGunzip, Gzip } from 'zlib';
+import { createGzip, createGunzip, Gzip, constants } from 'zlib';
 
 export class GzipPipeTransport extends RawPipeTransport {
   constructor(logger: ILogger, socket: Duplex);
@@ -20,13 +20,13 @@ export class GzipPipeTransport extends RawPipeTransport {
    */
   public send(message: string) {
     super.send(message);
-    (this.pipeWrite as Gzip).flush(2 /* Z_SYNC_FLUSH */);
+    (this.pipeWrite as Gzip).flush(constants.Z_SYNC_FLUSH);
   }
 
   /**
    * @override
    */
   protected beforeClose() {
-    (this.pipeWrite as Gzip).flush(2 /* Z_FINISH */);
+    (this.pipeWrite as Gzip).flush(constants.Z_FINISH);
   }
 }
