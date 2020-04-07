@@ -12,11 +12,11 @@ import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createServer, Socket, Server, AddressInfo } from 'net';
 import { getDeferred } from '../../common/promiseUtil';
 import Connection from '../../cdp/connection';
-import { PipeTransport } from '../../cdp/transport';
 import { timeoutPromise } from '../../common/cancellation';
 import { ILaunchResult, defaultArgs } from './launcher';
 import { EventEmitter } from '../../common/events';
 import { BrowserArgs } from './browserArgs';
+import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
 
 @injectable()
 export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConfiguration> {
@@ -76,7 +76,7 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
     );
 
     const logger = this.logger;
-    const transport = new PipeTransport(logger, socket);
+    const transport = new GzipPipeTransport(logger, socket);
     return {
       cdp: new Connection(transport, logger, telemetryReporter),
       process: {

@@ -27,6 +27,15 @@ export class DisposableList {
   }
 
   /**
+   * Adds a callback fires when the list is disposed of.
+   */
+  public callback(...disposals: ReadonlyArray<() => void>) {
+    for (const dispose of disposals) {
+      this.push({ dispose });
+    }
+  }
+
+  /**
    * Adds new items to the disposable list.
    */
   public push(...newItems: ReadonlyArray<IDisposable>) {
@@ -50,8 +59,9 @@ export class DisposableList {
    * @inheritdoc
    */
   public dispose() {
-    this.items.forEach(i => i.dispose());
+    const r = Promise.all(this.items.map(i => i.dispose()));
     this.items = [];
     this.disposed = true;
+    return r;
   }
 }

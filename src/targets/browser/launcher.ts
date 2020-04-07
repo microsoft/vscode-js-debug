@@ -4,7 +4,7 @@
 
 import * as childProcess from 'child_process';
 import CdpConnection from '../../cdp/connection';
-import { WebSocketTransport } from '../../cdp/transport';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { CancellationToken } from 'vscode';

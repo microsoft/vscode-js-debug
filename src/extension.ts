@@ -35,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
       process.platform === 'win32' ? tmpdir() : context.storagePath || context.extensionPath,
     isVsCode: true,
     isRemote:
+      !!process.env.JS_DEBUG_USE_COMPANION ||
       vscode.extensions.getExtension(extensionId)?.extensionKind === vscode.ExtensionKind.Workspace,
     context,
   });

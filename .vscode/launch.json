@@ -86,6 +86,9 @@
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-debug-companion",
         "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
+      "env": {
+        "JS_DEBUG_USE_COMPANION": "1"
+      },
       "trace": true,
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",

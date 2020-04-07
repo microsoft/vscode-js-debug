@@ -10,7 +10,7 @@ import { IEdgeLaunchConfiguration, AnyLaunchConfiguration } from '../../configur
 import { IWebViewConnectionInfo } from '../targets';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { getDeferred } from '../../common/promiseUtil';
-import { WebSocketTransport } from '../../cdp/transport';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
 import { join } from 'path';
 import Dap from '../../dap/api';

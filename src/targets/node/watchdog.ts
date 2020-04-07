@@ -5,7 +5,6 @@
 import 'reflect-metadata';
 
 import * as net from 'net';
-import { WebSocketTransport, PipeTransport } from '../../cdp/transport';
 import { IWatchdogInfo } from './watchdogSpawn';
 import { NeverCancelled } from '../../common/cancellation';
 import { Logger } from '../../common/logging/logger';
@@ -13,6 +12,8 @@ import { LogLevel, LogTag } from '../../common/logging';
 import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { FileLogSink } from '../../common/logging/fileLogSink';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
@@ -42,7 +43,7 @@ process.on('exit', () => {
     );
   });
 
-  const server = new PipeTransport(Logger.null, pipe);
+  const server = new RawPipeTransport(Logger.null, pipe);
 
   const targetInfo = {
     targetId: info.pid || '0',
@@ -57,7 +58,7 @@ process.on('exit', () => {
 
   let target: WebSocketTransport | undefined;
 
-  server.onmessage = async data => {
+  server.onMessage(async ([data]) => {
     // Fast-path to check if we might need to parse it:
     if (
       target &&
@@ -74,12 +75,12 @@ process.on('exit', () => {
     if (object.method === 'Target.attachToTarget') {
       logger.info(LogTag.Runtime, 'Attached to target', object);
       if (target) {
-        target.close();
+        target.dispose();
         target = undefined;
       }
       target = await WebSocketTransport.create(info.inspectorURL, NeverCancelled);
-      target.onmessage = data => server.send(data);
-      target.onend = () => {
+      target.onMessage(([data]) => server.send(data));
+      target.onEnd(() => {
         if (target)
           // Could be due us closing.
           server.send(
@@ -88,7 +89,7 @@ process.on('exit', () => {
               params: { targetId: targetInfo.targetId, sessionId: targetInfo.targetId },
             }),
           );
-      };
+      });
       result = {
         sessionId: targetInfo.targetId,
         __dynamicAttach: info.dynamicAttach ? true : undefined,
@@ -98,7 +99,7 @@ process.on('exit', () => {
       if (target) {
         const t = target;
         target = undefined;
-        t.close();
+        t.dispose();
       } else {
         logger.warn(LogTag.Runtime, 'Detach without attach', object);
       }
@@ -109,10 +110,10 @@ process.on('exit', () => {
     }
 
     server.send(JSON.stringify({ id: object.id, result }));
-  };
+  });
 
-  server.onend = () => {
+  server.onEnd(() => {
     logger.info(LogTag.Runtime, 'SERVER CLOSED');
-    target?.close();
-  };
+    target?.dispose();
+  });
 })();

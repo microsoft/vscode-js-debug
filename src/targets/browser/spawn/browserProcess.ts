@@ -4,7 +4,6 @@
 
 import { Event, CancellationToken } from 'vscode';
 import { ChildProcessWithoutNullStreams } from 'child_process';
-import { ITransport, WebSocketTransport, PipeTransport } from '../../../cdp/transport';
 import { retryGetWSEndpoint } from './endpoints';
 import { constructInspectorWSUri } from '../constructInspectorWSUri';
 import { EventEmitter } from '../../../common/events';
@@ -15,6 +14,9 @@ import { TaskCancelledError } from '../../../common/cancellation';
 import { DisposableList } from '../../../common/disposable';
 import { killTree } from '../../node/killTree';
 import { delay } from '../../../common/promiseUtil';
+import { ITransport } from '../../../cdp/transport';
+import { WebSocketTransport } from '../../../cdp/webSocketTransport';
+import { RawPipeTransport } from '../../../cdp/rawPipeTransport';
 
 interface ITransportOptions {
   connection: 'pipe' | number;
@@ -143,7 +145,7 @@ export class ChildProcessBrowserProcess implements IBrowserProcess {
     cancellationToken: CancellationToken,
   ): Promise<ITransport> {
     if (options.connection === 'pipe') {
-      return new PipeTransport(
+      return new RawPipeTransport(
         this.logger,
         this.cp.stdio[3] as Writable,
         this.cp.stdio[4] as Readable,

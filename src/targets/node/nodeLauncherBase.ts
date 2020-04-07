@@ -9,7 +9,6 @@ import * as fs from 'fs';
 import { EventEmitter, IDisposable } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
-import { PipeTransport } from '../../cdp/transport';
 import {
   ILauncher,
   ITarget,
@@ -30,6 +29,7 @@ import { NodePathProvider, INodePathProvider } from './nodePathProvider';
 import { ILogger } from '../../common/logging';
 import { inject, injectable } from 'inversify';
 import { CancellationTokenSource } from '../../common/cancellation';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 
 /**
  * Telemetry received from the nested process.
@@ -353,7 +353,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
   protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: ITelemetryReporter) {
     const connection = new Connection(
-      new PipeTransport(this.logger, socket),
+      new RawPipeTransport(this.logger, socket),
       this.logger,
       rawTelemetryReporter,
     );

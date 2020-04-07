@@ -10,6 +10,7 @@ import { GoldenText } from './goldenText';
 import { testFixturesDir, TestRoot, testWorkspace } from './test';
 import { forceForwardSlashes } from '../common/pathUtils';
 import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
+import { delay } from '../common/promiseUtil';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -80,6 +81,22 @@ itIntegratesBasic.only = (test: string, fn: (s: IIntegrationState) => Promise<vo
 itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<void> | void) =>
   itIntegratesBasic(test, fn, it.skip);
 export const itIntegrates = itIntegratesBasic;
+
+export const eventuallyOk = async (fn: () => unknown, timeout = 1000, wait = 10): Promise<void> => {
+  const deadline = Date.now() + timeout;
+  while (true) {
+    try {
+      await fn();
+      return;
+    } catch (e) {
+      if (Date.now() + wait > deadline) {
+        throw e;
+      }
+
+      await delay(wait);
+    }
+  }
+};
 
 afterEach(async () => {
   await del([`${forceForwardSlashes(testFixturesDir)}/**`], {
