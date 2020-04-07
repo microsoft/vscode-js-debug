@@ -23,11 +23,7 @@ export class DarwinProcessTree extends BaseProcessTree {
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const cwd = stdout
-        .trim()
-        .split('\n')
-        .pop()!
-        .slice(1);
+      const cwd = stdout.trim().split('\n').pop()!.slice(1);
 
       return cwd && isAbsolute(cwd) && (await exists(cwd)) ? cwd : undefined;
     } catch (e) {

@@ -109,37 +109,19 @@ export const createTargetContainer = (
     .inSingletonScope()
     .onActivation(trackDispose);
 
-  container
-    .bind(SourceContainer)
-    .toSelf()
-    .inSingletonScope();
+  container.bind(SourceContainer).toSelf().inSingletonScope();
 
-  container
-    .bind(IScriptSkipper)
-    .to(ScriptSkipper)
-    .inSingletonScope();
+  container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
 
-  container
-    .bind(ICompletions)
-    .to(Completions)
-    .inSingletonScope();
+  container.bind(ICompletions).to(Completions).inSingletonScope();
 
-  container
-    .bind(IEvaluator)
-    .to(Evaluator)
-    .inSingletonScope();
+  container.bind(IEvaluator).to(Evaluator).inSingletonScope();
 
   container.bind(BasicCpuProfiler).toSelf();
 
-  container
-    .bind(IProfilerFactory)
-    .to(ProfilerFactory)
-    .inSingletonScope();
+  container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
 
-  container
-    .bind(IProfileController)
-    .to(ProfileController)
-    .inSingletonScope();
+  container.bind(IProfileController).to(ProfileController).inSingletonScope();
 
   return container;
 };
@@ -158,11 +140,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(IContainer).toConstantValue(container);
 
   // Core services:
-  container
-    .bind(ILogger)
-    .to(Logger)
-    .inSingletonScope()
-    .onActivation(trackDispose);
+  container.bind(ILogger).to(Logger).inSingletonScope().onActivation(trackDispose);
 
   container
     .bind(ITelemetryReporter)
@@ -177,10 +155,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .inSingletonScope()
     .onActivation(trackDispose);
 
-  container
-    .bind(IBreakpointsPredictor)
-    .to(BreakpointsPredictor)
-    .inSingletonScope();
+  container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
 
   container
     .bind(ISourceMapRepository)
@@ -193,18 +168,9 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   // Launcher logic:
   container.bind(RestartPolicyFactory).toSelf();
-  container
-    .bind(ILauncher)
-    .to(ExtensionHostAttacher)
-    .onActivation(trackDispose);
-  container
-    .bind(ILauncher)
-    .to(ExtensionHostLauncher)
-    .onActivation(trackDispose);
-  container
-    .bind(ILauncher)
-    .to(NodeLauncher)
-    .onActivation(trackDispose);
+  container.bind(ILauncher).to(ExtensionHostAttacher).onActivation(trackDispose);
+  container.bind(ILauncher).to(ExtensionHostLauncher).onActivation(trackDispose);
+  container.bind(ILauncher).to(NodeLauncher).onActivation(trackDispose);
   container.bind(IProgramLauncher).to(SubprocessProgramLauncher);
   container.bind(IProgramLauncher).to(TerminalProgramLauncher);
 
@@ -216,23 +182,12 @@ export const createTopLevelSessionContainer = (parent: Container) => {
       .onActivation(trackDispose);
   }
 
-  container
-    .bind(ILauncher)
-    .to(NodeAttacher)
-    .onActivation(trackDispose);
+  container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);
 
   if (container.get<ExtensionLocation>(ExtensionLocation) === 'local') {
-    container
-      .bind(ChromeLauncher)
-      .toSelf()
-      .inSingletonScope()
-      .onActivation(trackDispose);
+    container.bind(ChromeLauncher).toSelf().inSingletonScope().onActivation(trackDispose);
     container.bind(ILauncher).toService(ChromeLauncher);
-    container
-      .bind(ILauncher)
-      .to(EdgeLauncher)
-      .inSingletonScope()
-      .onActivation(trackDispose);
+    container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
   } else {
     container
       .bind(ILauncher)
@@ -241,10 +196,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
       .onActivation(trackDispose);
   }
 
-  container
-    .bind(ILauncher)
-    .to(BrowserAttacher)
-    .onActivation(trackDispose);
+  container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
   container
     .bind(ILauncher)
     .toDynamicValue(() => parent.get(DelegateLauncherFactory).createLauncher())
@@ -276,10 +228,7 @@ export const createGlobalContainer = (options: {
   const container = new Container();
   container.bind(IContainer).toConstantValue(container);
 
-  container
-    .bind(DelegateLauncherFactory)
-    .toSelf()
-    .inSingletonScope();
+  container.bind(DelegateLauncherFactory).toSelf().inSingletonScope();
 
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
@@ -307,10 +256,7 @@ export const createGlobalContainer = (options: {
 export const provideLaunchParams = (container: Container, params: AnyLaunchConfiguration) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
 
-  container
-    .bind(SourcePathResolverFactory)
-    .toSelf()
-    .inSingletonScope();
+  container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
 
   container
     .bind(ISourcePathResolver)

@@ -12,10 +12,7 @@ describe('BrowserArgs', () => {
   });
 
   it('add', () => {
-    const actual = new BrowserArgs(['--a', '--b=foo'])
-      .add('--a')
-      .add('--b', 'bar')
-      .add('--c');
+    const actual = new BrowserArgs(['--a', '--b=foo']).add('--a').add('--b', 'bar').add('--c');
     expect(actual.toArray()).to.deep.equal(['--a', '--b=bar', '--c']);
   });
 

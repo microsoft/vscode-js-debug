@@ -347,8 +347,9 @@ export class Source {
     }
 
     if (this.inlineScriptOffset) {
-      fqname += `\uA789${this.inlineScriptOffset.lineOffset + 1}:${this.inlineScriptOffset
-        .columnOffset + 1}`;
+      fqname += `\uA789${this.inlineScriptOffset.lineOffset + 1}:${
+        this.inlineScriptOffset.columnOffset + 1
+      }`;
     }
     return fqname;
   }
@@ -484,12 +485,7 @@ export class SourceContainer {
    * rewritten to source reference ID 0.
    */
   public getSourceReference(url: string): number {
-    let id = Math.abs(
-      createHash('sha1')
-        .update(url)
-        .digest()
-        .readInt32BE(0),
-    );
+    let id = Math.abs(createHash('sha1').update(url).digest().readInt32BE(0));
 
     for (let i = 0; i < 0xffff; i++) {
       if (!this._sourceByReference.has(id)) {

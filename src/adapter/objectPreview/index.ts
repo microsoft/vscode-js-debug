@@ -461,22 +461,14 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 
   const table: string[] = [];
   table.push(
-    rowTemplate
-      .replace('[', '╭')
-      .replace(/\|/g, '┬')
-      .replace(']', '╮')
-      .replace(/-/g, '┄'),
+    rowTemplate.replace('[', '╭').replace(/\|/g, '┬').replace(']', '╮').replace(/-/g, '┄'),
   );
   const header: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   for (const name of colNames.values()) header.push(pad(name || '', colLengths.get(name)!));
   table.push('┊ ' + header.join(' ┊ ') + ' ┊');
   table.push(
-    rowTemplate
-      .replace('[', '├')
-      .replace(/\|/g, '┼')
-      .replace(']', '┤')
-      .replace(/-/g, '┄'),
+    rowTemplate.replace('[', '├').replace(/\|/g, '┼').replace(']', '┤').replace(/-/g, '┄'),
   );
 
   for (const value of rows) {
@@ -488,11 +480,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
     table.push('┊ ' + row.join(' ┊ ') + ' ┊');
   }
   table.push(
-    rowTemplate
-      .replace('[', '╰')
-      .replace(/\|/g, '┴')
-      .replace(']', '╯')
-      .replace(/-/g, '┄'),
+    rowTemplate.replace('[', '╰').replace(/\|/g, '┴').replace(']', '╯').replace(/-/g, '┄'),
   );
   return table.map(row => stringUtils.trimEnd(row, maxTableWidth)).join('\n');
 }

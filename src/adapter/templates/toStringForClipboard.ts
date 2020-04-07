@@ -7,7 +7,7 @@ import { remoteFunction } from '.';
 /**
  * Stringifies the current object for the clipboard.
  */
-export const toStringForClipboard = remoteFunction(function(
+export const toStringForClipboard = remoteFunction(function (
   this: unknown,
   subtype: string | undefined,
 ) {

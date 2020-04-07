@@ -15,7 +15,7 @@ function debugLog(text: string) {
   // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
 }
 
-(function() {
+(function () {
   debugLog('args: ' + process.argv.join(' '));
   if (!process.env.NODE_INSPECTOR_IPC) return;
 

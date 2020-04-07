@@ -10,7 +10,7 @@ import { ICompletionWithSort, CompletionKind } from '../completions';
 /**
  * Enumerates completion items of the property.
  */
-export const enumerateProperties = remoteFunction(function(
+export const enumerateProperties = remoteFunction(function (
   this: unknown,
   target: unknown,
   prefix: string,

@@ -19,7 +19,7 @@ describe('CancellationToken', () => {
     expect(typeof NeverCancelled.onCancellationRequested).to.equal('function');
   });
 
-  it('cancel before token', function(done) {
+  it('cancel before token', function (done) {
     const source = new CancellationTokenSource();
     expect(source.token.isCancellationRequested).to.equal(false);
     source.cancel();

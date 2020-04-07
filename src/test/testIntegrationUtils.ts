@@ -51,7 +51,7 @@ const itIntegratesBasic = (
   fn: (s: IIntegrationState) => Promise<void> | void,
   testFunction: TestFunction | ExclusiveTestFunction = it,
 ) =>
-  testFunction(test, async function() {
+  testFunction(test, async function () {
     const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
     const root = new TestRoot(golden, this.test!.fullTitle());
     await root.initialize;

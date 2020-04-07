@@ -138,10 +138,9 @@ export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) =>
     Cdp.Runtime.CallFunctionOnParams,
     'functionDeclaration' | 'arguments' | 'returnByValue'
   > &
-    (ByValue extends true ? { returnByValue: ByValue } : {})): Promise<RemoteObjectWithType<
-    R,
-    ByValue
-  >> => {
+    (ByValue extends true ? { returnByValue: ByValue } : {})): Promise<
+    RemoteObjectWithType<R, ByValue>
+  > => {
     const result = await cdp.Runtime.callFunctionOn({
       functionDeclaration: stringified,
       arguments: args.map(value => ({ value })),

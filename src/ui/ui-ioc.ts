@@ -30,14 +30,6 @@ export const registerUiComponents = (container: Container) => {
     container.bind(IDebugConfigurationProvider).to(cls);
   });
 
-  container
-    .bind(DebugSessionTracker)
-    .toSelf()
-    .inSingletonScope()
-    .onActivation(trackDispose);
-  container
-    .bind(UiProfileManager)
-    .toSelf()
-    .inSingletonScope()
-    .onActivation(trackDispose);
+  container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
+  container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
 };
