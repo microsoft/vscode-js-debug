@@ -24,7 +24,8 @@ const create = () => {
 
   instance = fork(join(__dirname, 'hash.js'), [], { env: {}, silent: true, execArgv: [] });
   instance.setMaxListeners(Infinity);
-  instance.addListener('message', msg => {
+  instance.addListener('message', raw => {
+    const msg = raw as HashResponse<HashRequest>;
     const deferred = deferredMap[msg.id];
     delete deferredMap[msg.id];
     deferred?.resolve(msg);
