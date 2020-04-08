@@ -67,6 +67,7 @@ import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
+import { IDefaultBrowserProvider, DefaultBrowserProvider } from './common/defaultBrowserProvider';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -230,6 +231,7 @@ export const createGlobalContainer = (options: {
 
   container.bind(DelegateLauncherFactory).toSelf().inSingletonScope();
 
+  container.bind(IDefaultBrowserProvider).to(DefaultBrowserProvider).inSingletonScope();
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
   container.bind(INvmResolver).to(NvmResolver);

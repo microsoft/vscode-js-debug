@@ -14,6 +14,7 @@ import {
 import { UiProfileManager } from './profiling/uiProfileManager';
 import { DebugSessionTracker } from './debugSessionTracker';
 import { trackDispose } from '../ioc-extras';
+import { TerminalLinkHandler } from './terminalLinkHandler';
 
 export const registerUiComponents = (container: Container) => {
   [
@@ -32,4 +33,5 @@ export const registerUiComponents = (container: Container) => {
 
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
+  container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
 };

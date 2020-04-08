@@ -3,11 +3,21 @@
  *--------------------------------------------------------*/
 
 import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
+import { ExecaReturnValue } from 'execa';
 
 /**
  * Thrown from {@link spawnAsync} if an error or non-zero exit code occurs.
  */
 export class ChildProcessError extends Error {
+  public static fromExeca(result: ExecaReturnValue<string | Buffer>) {
+    return new ChildProcessError(
+      result.command,
+      result.stderr.toString(),
+      result.stdout.toString(),
+      result.exitCode,
+    );
+  }
+
   constructor(
     public readonly command: string,
     public readonly stderr: string,
