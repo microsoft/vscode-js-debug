@@ -23,6 +23,7 @@
     supportedChecksumAlgorithms : [
     ]
     supportsBreakpointLocationsRequest : true
+    supportsClipboardContext : true
     supportsCompletionsRequest : true
     supportsConditionalBreakpoints : true
     supportsConfigurationDoneRequest : true

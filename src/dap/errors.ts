@@ -10,7 +10,8 @@ const localize = nls.loadMessageBundle();
 export const enum ErrorCodes {
   SilentError = 9222,
   UserError,
-  NvmNotFound,
+  NvmOrNvsNotFound,
+  NvsNotFound,
   NvmHomeNotFound,
   CannotLaunchInTerminal,
   CannotLoadEnvironmentVariables,
@@ -59,9 +60,18 @@ export const nvmNotFound = () =>
   createUserError(
     localize(
       'NVS_HOME.not.found.message',
-      "Attribute 'runtimeVersion' requires Node.js version manager 'nvs'.",
+      "Attribute 'runtimeVersion' requires Node.js version manager 'nvs' or 'nvm' to be installed.",
     ),
-    ErrorCodes.NvmNotFound,
+    ErrorCodes.NvmOrNvsNotFound,
+  );
+
+export const nvsNotFound = () =>
+  createUserError(
+    localize(
+      'NVS_HOME.not.found.message',
+      "Attribute 'runtimeVersion' with a flavor/architecture requires 'nvs' to be installed.",
+    ),
+    ErrorCodes.NvsNotFound,
   );
 
 export const nvmHomeNotFound = () =>
@@ -77,7 +87,7 @@ export const nvmVersionNotFound = (version: string, versionManager: string) =>
   createUserError(
     localize(
       'runtime.version.not.found.message',
-      "Node.js version '{0}' not installed for '{1}'.",
+      "Node.js version '{0}' not installed using version manager {1}.",
       version,
       versionManager,
     ),

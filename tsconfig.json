@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node", "chai-subset", "mocha"]
+    "types": ["node", "chai-subset", "chai-as-promised", "mocha"]
   },
   "include": ["src"]
 }

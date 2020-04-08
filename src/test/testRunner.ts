@@ -9,6 +9,7 @@ import { join } from 'path';
 import 'reflect-metadata';
 
 use(require('chai-subset'));
+use(require('chai-as-promised'));
 
 function setupCoverage() {
   const NYC = require('nyc');
