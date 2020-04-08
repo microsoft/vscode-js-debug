@@ -1,0 +1,24 @@
+{
+    text : hello
+}
+{
+    text : 123n
+}
+{
+    text : NaN
+}
+{
+    text : {   "foo": "bar",   "baz": {     "a": [       1,       2,       3,       4,       5,       6,       7,       8,       9     ],     "b": 123   } }
+}
+{
+    text : function hello() { return "world" }
+}
+{
+    text : {   "foo": true,   "recurse": "[Circular ~]" }
+}
+{
+    text : 1267650600228229401496703205376n
+}
+{
+    text : <div>hi</div>
+}

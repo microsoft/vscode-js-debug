@@ -43,7 +43,12 @@ export function templateFunction<Args extends unknown[]>(fn: string): (...args: 
 export function templateFunction<Args extends unknown[]>(
   fn: string | ((...args: Args) => void),
 ): (...args: string[]) => string {
-  const stringified = '' + fn;
+  return templateFunctionStr('' + fn);
+}
+
+export function templateFunctionStr<Args extends string[]>(
+  stringified: string,
+): (...args: Args) => string {
   const sourceFile = ts.createSourceFile('test.js', stringified, ts.ScriptTarget.ESNext, true);
 
   // 1. Find the function.
@@ -57,7 +62,7 @@ export function templateFunction<Args extends unknown[]>(
   });
 
   if (!decl || !('body' in decl) || !decl.body) {
-    throw new Error(`Could not find function declaration for ${fn}`);
+    throw new Error(`Could not find function declaration for:\n\n${stringified}`);
   }
 
   // 2. Get parameter names.
@@ -123,7 +128,7 @@ type RemoteObjectWithType<R, ByValue> = ByValue extends true
  * that takes the CDP and arguments with which to invoke the function. The
  * arguments should be simple objects.
  */
-export function remoteFunction<Args extends unknown[], R>(fn: (...args: Args) => R) {
+export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args: Args) => R)) {
   const stringified = '' + fn;
 
   // Some ugly typing here, but it gets us type safety. Mainly we want to:

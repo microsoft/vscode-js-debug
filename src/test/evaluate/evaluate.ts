@@ -148,16 +148,34 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('copy', async ({ r }) => {
+  const copyExpressions = [
+    '123n',
+    'NaN',
+    '{foo: "bar", baz: { a: [1, 2, 3, 4, 5, 6, 7, 8, 9], b: 123n }}',
+    'function hello() { return "world" }',
+    '(() => { const n = { foo: true }; n.recurse = n; return n })()',
+    '1n << 100n',
+    '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()',
+  ];
+
+  itIntegrates('copy via function', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.dap.evaluate({ expression: 'var x = "hello"; copy(x)' });
     p.log(await p.dap.once('copyRequested'));
-    p.dap.evaluate({ expression: 'copy(123n)' });
-    p.log(await p.dap.once('copyRequested'));
-    p.dap.evaluate({ expression: 'copy(NaN)' });
-    p.log(await p.dap.once('copyRequested'));
-    p.dap.evaluate({ expression: 'copy({foo: "bar"})' });
-    p.log(await p.dap.once('copyRequested'));
+    for (const expression of copyExpressions) {
+      p.dap.evaluate({ expression: `copy(${expression})` });
+      p.log(await p.dap.once('copyRequested'));
+    }
+
+    p.assertLog();
+  });
+
+  itIntegrates('copy via evaluate context', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    for (const expression of copyExpressions) {
+      p.log(await p.dap.evaluate({ expression, context: 'clipboard' }));
+    }
+
     p.assertLog();
   });
 

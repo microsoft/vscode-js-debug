@@ -1,0 +1,35 @@
+{
+    result : 123
+    type : string
+    variablesReference : <number>
+}
+{
+    result : null
+    type : string
+    variablesReference : <number>
+}
+{
+    result : {   "foo": "bar",   "baz": {     "a": [       1,       2,       3,       4,       5,       6,       7,       8,       9     ],     "b": 123   } }
+    type : string
+    variablesReference : <number>
+}
+{
+    result : function hello() { return "world" }
+    type : string
+    variablesReference : <number>
+}
+{
+    result : {   "foo": true,   "recurse": "[Circular ~]" }
+    type : string
+    variablesReference : <number>
+}
+{
+    result : "1267650600228229401496703205376"
+    type : string
+    variablesReference : <number>
+}
+{
+    result : <div>hi</div>
+    type : string
+    variablesReference : <number>
+}

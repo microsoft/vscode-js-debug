@@ -19,12 +19,15 @@ import { SmartStepper } from './smartStepping';
 import { IPreferredUiLocation, Source, SourceContainer, IUiLocation, base1To0 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
-import { toStringForClipboard } from './templates/toStringForClipboard';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ILogger } from '../common/logging';
 import { AnyObject } from './objectPreview/betterTypes';
 import { IEvaluator } from './evaluator';
+import {
+  serializeForClipboardTmpl,
+  serializeForClipboard,
+} from './templates/serializeForClipboard';
 
 const localize = nls.loadMessageBundle();
 
@@ -345,14 +348,24 @@ export class Thread implements IVariableStoreDelegate {
         }
       }
     }
-    // TODO: consider checking expression for side effects on hover.
-    const params: Cdp.Runtime.EvaluateParams = {
-      expression: args.expression,
-      includeCommandLineAPI: true,
-      objectGroup: 'console',
-      generatePreview: true,
-      timeout: args.context === 'hover' ? 500 : undefined,
-    };
+
+    // For clipboard evaluations, return a safe JSON-stringified string.
+    const params: Cdp.Runtime.EvaluateParams =
+      args.context === 'clipboard'
+        ? {
+            expression: serializeForClipboardTmpl(args.expression, '2'),
+            includeCommandLineAPI: true,
+            returnByValue: true,
+            objectGroup: 'console',
+          }
+        : {
+            expression: args.expression,
+            includeCommandLineAPI: true,
+            objectGroup: 'console',
+            generatePreview: true,
+            timeout: args.context === 'hover' ? 500 : undefined,
+          };
+
     if (args.context === 'repl') {
       params.expression = sourceUtils.wrapObjectLiteral(params.expression);
       if (params.expression.indexOf('await') !== -1) {
@@ -1233,10 +1246,10 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     try {
-      const result = await toStringForClipboard({
+      const result = await serializeForClipboard({
         cdp: this.cdp(),
         objectId: object.objectId,
-        args: [object.subtype],
+        args: [2],
         silent: true,
         returnByValue: true,
       });

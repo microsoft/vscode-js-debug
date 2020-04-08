@@ -152,6 +152,7 @@ export class DebugAdapter implements IDisposable {
       supportsTerminateRequest: false,
       completionTriggerCharacters: ['.', '[', '"', "'"],
       supportsBreakpointLocationsRequest: true,
+      supportsClipboardContext: true,
       //supportsDataBreakpoints: false,
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,
