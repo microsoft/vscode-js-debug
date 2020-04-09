@@ -712,6 +712,19 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.cwd.description'),
       default: null,
     },
+    browserLaunchLocation: {
+      description: refString('browser.browserLaunchLocation.description'),
+      default: null,
+      oneOf: [
+        {
+          type: 'null',
+        },
+        {
+          type: 'string',
+          enum: ['ui', 'workspace'],
+        },
+      ],
+    },
   },
 };
 

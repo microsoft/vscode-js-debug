@@ -185,17 +185,10 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);
 
-  if (container.get<ExtensionLocation>(ExtensionLocation) === 'local') {
-    container.bind(ChromeLauncher).toSelf().inSingletonScope().onActivation(trackDispose);
-    container.bind(ILauncher).toService(ChromeLauncher);
-    container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
-  } else {
-    container
-      .bind(ILauncher)
-      .to(RemoteBrowserLauncher)
-      .inSingletonScope()
-      .onActivation(trackDispose);
-  }
+  container.bind(ChromeLauncher).toSelf().inSingletonScope().onActivation(trackDispose);
+  container.bind(ILauncher).toService(ChromeLauncher);
+  container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
+  container.bind(ILauncher).to(RemoteBrowserLauncher).inSingletonScope().onActivation(trackDispose);
 
   container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
   container

@@ -47,7 +47,11 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration) {
-    return params.type === DebugType.Edge && params.request === 'launch' ? params : undefined;
+    return params.type === DebugType.Edge &&
+      params.request === 'launch' &&
+      params.browserLaunchLocation === 'workspace'
+      ? params
+      : undefined;
   }
 
   /**

@@ -7,13 +7,18 @@ import {
   INodeLaunchConfiguration,
   AnyChromiumConfiguration,
   ResolvingConfiguration,
+  IChromiumLaunchConfiguration,
 } from '../../configuration';
 import { NodeConfigurationProvider } from './nodeDebugConfigurationProvider';
 import { DebugType } from '../../common/contributionUtils';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
 import { injectable, inject } from 'inversify';
-import { ExtensionContext } from '../../ioc-extras';
+import { ExtensionContext, ExtensionLocation } from '../../ioc-extras';
+
+const isLaunch = (
+  value: ResolvingConfiguration<unknown>,
+): value is ResolvingConfiguration<IChromiumLaunchConfiguration> => value.request === 'launch';
 
 /**
  * Configuration provider for Chrome debugging.
@@ -28,6 +33,7 @@ export abstract class ChromiumDebugConfigurationProvider<T extends AnyChromiumCo
     private readonly nodeProvider: NodeConfigurationProvider,
     @inject(TerminalDebugConfigurationProvider)
     private readonly terminalProvider: TerminalDebugConfigurationProvider,
+    @inject(ExtensionLocation) private readonly location: ExtensionLocation,
   ) {
     super(context);
 
@@ -63,6 +69,10 @@ export abstract class ChromiumDebugConfigurationProvider<T extends AnyChromiumCo
         request: 'launch',
         name: `${config.name}: Server`,
       });
+    }
+
+    if (isLaunch(config) && !config.browserLaunchLocation) {
+      config.browserLaunchLocation = this.location === 'remote' ? 'ui' : 'workspace';
     }
   }
 

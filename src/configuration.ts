@@ -399,7 +399,7 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   continueOnAttach: boolean;
 }
 
-interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
+export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
   request: 'launch';
 
   /**
@@ -451,6 +451,13 @@ interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
    * Internal use only. Do not include in contrib.
    */
   skipNavigateForTest?: boolean;
+
+  /**
+   * Forces the browser to be launched in one location. In a remote workspace
+   * (through ssh or WSL, for example) this can be used to open the browser
+   * on the remote machine rather than locally.
+   */
+  browserLaunchLocation: 'workspace' | 'ui' | null;
 }
 
 /**
@@ -672,6 +679,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeArgs: null,
   runtimeExecutable: 'stable',
   userDataDir: true,
+  browserLaunchLocation: null,
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {

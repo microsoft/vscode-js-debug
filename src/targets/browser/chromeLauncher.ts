@@ -35,7 +35,11 @@ export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> 
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration) {
-    return params.type === DebugType.Chrome && params.request === 'launch' ? params : undefined;
+    return params.type === DebugType.Chrome &&
+      params.request === 'launch' &&
+      params.browserLaunchLocation === 'workspace'
+      ? params
+      : undefined;
   }
 
   /**

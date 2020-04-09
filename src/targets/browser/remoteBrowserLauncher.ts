@@ -32,7 +32,8 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
    */
   protected resolveParams(params: AnyLaunchConfiguration) {
     return (params.type === DebugType.Chrome || params.type === DebugType.Edge) &&
-      params.request === 'launch'
+      params.request === 'launch' &&
+      params.browserLaunchLocation === 'ui'
       ? params
       : undefined;
   }
