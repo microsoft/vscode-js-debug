@@ -45,6 +45,14 @@ export const testSources = path.join(workspaceFolder, 'src');
 export const testFixturesDirName = '.dynamic-testWorkspace';
 export const testFixturesDir = path.join(workspaceFolder, testFixturesDirName);
 
+/**
+ * Replaces the `/private` folder prefix, which OS X likes to add for the
+ * user's tmpdir while require('os').tmpdir() returns the path without
+ * the prefix, which causes mismatch.
+ */
+export const removePrivatePrefix = (folder: string) =>
+  process.platform === 'darwin' ? folder.replace(/^\/private/, '') : folder;
+
 class Stream extends stream.Duplex {
   _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
     Promise.resolve()

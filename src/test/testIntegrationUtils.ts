@@ -82,12 +82,15 @@ itIntegratesBasic.skip = (test: string, fn: (s: IIntegrationState) => Promise<vo
   itIntegratesBasic(test, fn, it.skip);
 export const itIntegrates = itIntegratesBasic;
 
-export const eventuallyOk = async (fn: () => unknown, timeout = 1000, wait = 10): Promise<void> => {
+export const eventuallyOk = async <T>(
+  fn: () => Promise<T> | T,
+  timeout = 1000,
+  wait = 10,
+): Promise<T> => {
   const deadline = Date.now() + timeout;
   while (true) {
     try {
-      await fn();
-      return;
+      return await fn();
     } catch (e) {
       if (Date.now() + wait > deadline) {
         throw e;
