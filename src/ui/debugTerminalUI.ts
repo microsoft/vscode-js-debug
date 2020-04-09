@@ -131,6 +131,6 @@ export function registerDebugTerminalUI(
     registerCommand(vscode.commands, Contributions.CreateDebuggerTerminal, (command, folder) =>
       launchTerminal(delegateFactory, command, folder ?? vscode.workspace.workspaceFolders?.[0]),
     ),
-    vscode.window.registerTerminalLinkHandler(linkHandler),
+    vscode.window.registerTerminalLinkHandler?.(linkHandler),
   );
 }
