@@ -13,6 +13,7 @@ import {
   moduleAwarePathMappingResolver,
   getFullSourceEntry,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
+import { URL } from 'url';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath: string;
@@ -29,15 +30,25 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return this.rebaseRemoteToLocal(absolutePath);
     }
 
-    if (!path.isAbsolute(url)) {
+    // It's possible the source might be an HTTP if using the `sourceURL`
+    // attribute. If this is the case, apply a source map override if it
+    // applies, otherwise just assume it's relative to the basePath.
+    if (urlUtils.isValidUrl(url)) {
+      const mapped = this.sourceMapOverrides.apply(url);
+      url = mapped === url ? new URL(url).pathname.slice(1) : mapped;
+    }
+    // Node internals are given us us as relative path, for example
+    // require('cluster') will import a file simply named "cluster". For these
+    // paths, prefix them as internal.
+    else if (!path.isAbsolute(url)) {
       return `<node_internals>/${url}`;
     }
-
-    if (!this.options.basePath) {
-      return '';
+    // Otherwise, use default overrides.
+    else {
+      url = this.sourceMapOverrides.apply(url);
     }
 
-    const withBase = properResolve(this.options.basePath, this.sourceMapOverrides.apply(url));
+    const withBase = properResolve(this.options.basePath, url);
     return this.rebaseRemoteToLocal(withBase);
   }
 

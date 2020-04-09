@@ -425,4 +425,17 @@ describe('node runtime', () => {
 
     expect(result).to.include('Can\'t find Node.js binary "does-not-exist"');
   });
+
+  itIntegrates('scripts with http urls', async ({ r }) => {
+    await r.initialize;
+    const cwd = join(testWorkspace, 'web', 'urlSourcemap');
+    const handle = await r.runScript(join(cwd, 'index.js'), {
+      cwd: testWorkspace,
+      skipFiles: ['<node_internals>/**'],
+      sourceMapPathOverrides: { 'http://localhost:8001/*': `${testWorkspace}/web/*` },
+    });
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
 });
