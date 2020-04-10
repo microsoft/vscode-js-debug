@@ -679,7 +679,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeArgs: null,
   runtimeExecutable: 'stable',
   userDataDir: true,
-  browserLaunchLocation: null,
+  browserLaunchLocation: 'workspace',
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
