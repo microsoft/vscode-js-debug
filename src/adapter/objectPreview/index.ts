@@ -283,13 +283,9 @@ function renderPropertyPreview(
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
 }
 
-function renderValue(
-  object: Cdp.Runtime.RemoteObject,
-  objectCharacterBudget: number,
-  quote: boolean,
-): string {
+function renderValue(object: Cdp.Runtime.RemoteObject, budget: number, quote: boolean): string {
   if (object.type === 'string') {
-    const value = stringUtils.trimMiddle(object.value, Math.max(objectCharacterBudget, 100000));
+    const value = stringUtils.trimMiddle(object.value, quote ? budget - 2 : budget);
     return quote ? `'${value}'` : value;
   }
 
@@ -297,10 +293,9 @@ function renderValue(
 
   if (object.subtype === 'null') return 'null';
 
-  if (object.description)
-    return stringUtils.trimEnd(object.description, Math.max(objectCharacterBudget, 100000));
+  if (object.description) return stringUtils.trimEnd(object.description, Math.max(budget, 100000));
 
-  return stringUtils.trimEnd(String(object.value), objectCharacterBudget);
+  return stringUtils.trimEnd(String(object.value), budget);
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {

@@ -5,7 +5,7 @@
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('console format', () => {
-  itIntegrates.skip('string', async ({ r }) => {
+  itIntegrates('string', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <script>
           var array = ["test", "test2"];array.length = 10;
@@ -14,6 +14,7 @@ describe('console format', () => {
         </script>`);
     await p.logger.evaluateAndLog([
       `console.log(array)`,
+      `console.log("hello world".repeat(10000))`,
       `console.log("%o", array)`,
       `console.log("%O", array)`,
       `console.log("Test for zero \\"%f\\" in formatter", 0)`,
