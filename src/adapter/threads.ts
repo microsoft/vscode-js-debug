@@ -191,8 +191,12 @@ export class Thread implements IVariableStoreDelegate {
 
   async resume(): Promise<Dap.ContinueResult | Dap.Error> {
     this._sourceContainer.clearDisabledSourceMaps();
-    if (!(await this._cdp.Debugger.resume({})))
-      return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
+    if (!(await this._cdp.Debugger.resume({}))) {
+      // We don't report the failure if the target wasn't paused. VS relies on this behavior.
+      if (this._pausedDetails !== undefined) {
+        return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
+      }
+    }
     return { allThreadsContinued: false };
   }
 
