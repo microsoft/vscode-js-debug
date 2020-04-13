@@ -13,7 +13,7 @@ describe('resourceProvider', () => {
     return p.dap.continue({ threadId });
   }
 
-  itIntegrates.only('applies cookies', async ({ r }) => {
+  itIntegrates('applies cookies', async ({ r }) => {
     // Breakpoint in source mapped script set before launch.
     // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
     // on 'pause before executing script with source map' functionality in CDP.

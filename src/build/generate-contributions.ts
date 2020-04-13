@@ -470,6 +470,11 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
   ],
   configurationAttributes: {
     ...nodeBaseConfigurationAttributes,
+    cwd: {
+      type: 'string',
+      description: refString('node.launch.cwd.description'),
+      default: '${workspaceFolder}',
+    },
     program: {
       type: 'string',
       description: refString('node.launch.program.description'),

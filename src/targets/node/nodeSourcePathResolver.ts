@@ -16,7 +16,7 @@ import {
 import { URL } from 'url';
 
 interface IOptions extends ISourcePathResolverOptions {
-  basePath: string;
+  basePath?: string;
 }
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
@@ -48,7 +48,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       url = this.sourceMapOverrides.apply(url);
     }
 
-    const withBase = properResolve(this.options.basePath, url);
+    const withBase = properResolve(this.options.basePath ?? '', url);
     return this.rebaseRemoteToLocal(withBase);
   }
 
@@ -71,7 +71,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return urlUtils.fileUrlToAbsolutePath(url);
     }
 
-    if (!path.isAbsolute(url)) {
+    if (!path.isAbsolute(url) && this.options.basePath) {
       url = properResolve(
         await getComputedSourceRoot(
           map.sourceRoot,

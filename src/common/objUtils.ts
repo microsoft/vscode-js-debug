@@ -22,8 +22,16 @@ export const assertNever = (value: never, message: string): never => {
 export function filterValues<V, F extends V>(
   obj: Readonly<{ [key: string]: V }>,
   predicate: (value: V, key: string) => value is F,
-): { [key: string]: F } {
-  const next: { [key: string]: F } = {};
+): { [key: string]: F };
+export function filterValues<V>(
+  obj: Readonly<{ [key: string]: V }>,
+  predicate: (value: V, key: string) => boolean,
+): { [key: string]: V };
+export function filterValues<V>(
+  obj: Readonly<{ [key: string]: V }>,
+  predicate: (value: V, key: string) => boolean,
+): { [key: string]: V } {
+  const next: { [key: string]: V } = {};
   for (const key of Object.keys(obj)) {
     const value = obj[key];
     if (predicate(value, key)) {

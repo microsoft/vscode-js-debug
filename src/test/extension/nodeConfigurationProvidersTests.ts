@@ -102,7 +102,7 @@ describe('NodeDebugConfigurationProvider', () => {
       });
 
       const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
-      result.cwd = result.cwd.toLowerCase();
+      result.cwd = result.cwd!.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',
@@ -120,7 +120,7 @@ describe('NodeDebugConfigurationProvider', () => {
       });
 
       const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
-      result.cwd = result.cwd.toLowerCase();
+      result.cwd = result.cwd!.toLowerCase();
 
       expect(result).to.containSubset({
         type: 'pwa-node',

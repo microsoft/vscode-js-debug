@@ -66,8 +66,8 @@ export interface IBreakpointsPredictor {
 @injectable()
 export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations: PredictedLocation[] = [];
-  private readonly patterns: string[];
-  private readonly rootPath: string;
+  private readonly patterns?: string[];
+  private readonly rootPath?: string;
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
   private cache?: CorrelatedCache<number, DiscoveredMetadata[]>;
@@ -85,15 +85,14 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     @inject(ISourcePathResolver)
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
   ) {
-    this.rootPath = launchConfig.rootPath;
-    this.patterns = launchConfig.outFiles.map(p =>
-      path.isAbsolute(p) ? path.relative(launchConfig.rootPath, p) : p,
-    );
+    const { rootPath, outFiles, __workspaceCachePath } = launchConfig;
+    if (rootPath) {
+      this.rootPath = rootPath;
+      this.patterns = outFiles.map(p => (path.isAbsolute(p) ? path.relative(rootPath, p) : p));
+    }
 
-    if (launchConfig.__workspaceCachePath) {
-      this.cache = new CorrelatedCache(
-        path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
-      );
+    if (__workspaceCachePath) {
+      this.cache = new CorrelatedCache(path.join(__workspaceCachePath, 'bp-predict.json'));
     }
   }
 
@@ -104,7 +103,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   }
 
   private async createInitialMappingInner(): Promise<MetadataMap> {
-    if (this.patterns.length === 0) {
+    if (!this.patterns?.length) {
       return new Map();
     }
 

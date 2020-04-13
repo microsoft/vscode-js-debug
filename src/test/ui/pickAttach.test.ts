@@ -5,7 +5,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { findOpenPort } from '../../common/findOpenPort';
 import * as vscode from 'vscode';
-import { Contributions } from '../../common/contributionUtils';
+import { Contributions, DebugType } from '../../common/contributionUtils';
 import { SinonSandbox, createSandbox } from 'sinon';
 import { eventuallyOk } from '../testIntegrationUtils';
 import { expect } from 'chai';
@@ -46,7 +46,7 @@ describe('pick and attach', () => {
       child = spawn('node', ['foo.js'], { cwd: testDir });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
       await resolveProcessId(config, true);
-      expect(removePrivatePrefix(config.cwd)).to.equal(testDir);
+      expect(removePrivatePrefix(config.cwd!)).to.equal(testDir);
     });
 
     it('adjusts to the package root', async () => {
@@ -58,7 +58,7 @@ describe('pick and attach', () => {
       child = spawn('node', ['foo.js'], { cwd: path.join(testDir, 'nested') });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
       await resolveProcessId(config, true);
-      expect(removePrivatePrefix(config.cwd)).to.equal(testDir);
+      expect(removePrivatePrefix(config.cwd!)).to.equal(testDir);
     });
 
     it('limits inference to workspace root', async () => {
@@ -77,7 +77,7 @@ describe('pick and attach', () => {
       child = spawn('node', ['foo.js'], { cwd: path.join(testDir, 'nested') });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
       await resolveProcessId(config, true);
-      expect(removePrivatePrefix(config.cwd)).to.equal(path.join(testDir, 'nested'));
+      expect(removePrivatePrefix(config.cwd!)).to.equal(path.join(testDir, 'nested'));
     });
   }
 
@@ -92,7 +92,7 @@ describe('pick and attach', () => {
     });
 
     it('end to end', async function () {
-      this.timeout(60 * 1000);
+      this.timeout(30 * 1000);
 
       const createQuickPick = sandbox.spy(vscode.window, 'createQuickPick');
       vscode.commands.executeCommand(Contributions.AttachProcessCommand);
@@ -112,6 +112,20 @@ describe('pick and attach', () => {
 
       picker.selectedItems = [item];
       await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
+      await eventuallyOk(
+        () => expect(attached).to.equal(true, 'expected to have attached'),
+        10 * 1000,
+      );
+    });
+
+    it('works without a defined workspace', async () => {
+      vscode.debug.startDebugging(undefined, {
+        type: DebugType.Node,
+        request: 'attach',
+        name: 'attach',
+        processId: `${child.pid}:${port}`,
+      });
+
       await eventuallyOk(
         () => expect(attached).to.equal(true, 'expected to have attached'),
         10 * 1000,

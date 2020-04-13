@@ -371,7 +371,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * since Node does not support paths with spaces in them < 13 (nodejs/node#12971),
    * so if our installation path has spaces, we need to fall back somewhere.
    */
-  private getBootloaderFile(cwd: string) {
+  private getBootloaderFile(cwd?: string) {
     const targetPath = path.join(__dirname, 'bootloader.js');
 
     // 1. If the path doesn't have a space, we're OK to use it.
@@ -381,7 +381,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
     // 2. Try the tmpdir, if it's space-free.
     const contents = `require(${JSON.stringify(targetPath)})`;
-    if (!os.tmpdir().includes(' ')) {
+    if (!os.tmpdir().includes(' ') || !cwd) {
       const tmpPath = path.join(os.tmpdir(), 'vscode-js-debug-bootloader.js');
       fs.writeFileSync(tmpPath, contents);
       return { path: tmpPath, dispose: () => fs.unlinkSync(tmpPath) };

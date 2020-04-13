@@ -7,6 +7,7 @@ import {
   ResolvingConfiguration,
   AnyLaunchConfiguration,
   resolveWorkspaceInConfig,
+  removeOptionalWorkspaceFolderUsages,
 } from '../../configuration';
 import { fulfillLoggerOptions } from '../../common/logging';
 import { injectable, inject } from 'inversify';
@@ -105,12 +106,18 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
    * Fulfills resolution common between all resolver configs.
    */
   protected commonResolution(config: T, folder: vscode.WorkspaceFolder | undefined): T {
+    if ('__pendingTargetId' in config) {
+      return config;
+    }
+
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
     if (folder) {
       config.__workspaceFolder = folder.uri.fsPath;
     } else if (config.__workspaceFolder) {
       config = resolveWorkspaceInConfig(config);
+    } else {
+      config = removeOptionalWorkspaceFolderUsages(config);
     }
 
     return config;

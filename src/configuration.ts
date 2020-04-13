@@ -4,7 +4,7 @@
 
 import Dap from './dap/api';
 import { DebugType } from './common/contributionUtils';
-import { assertNever } from './common/objUtils';
+import { assertNever, filterValues } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
@@ -153,7 +153,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
    * Location where sources can be found.
    */
-  rootPath: string;
+  rootPath?: string;
 
   /**
    * From where to capture output messages: The debug API, or stdout/stderr streams.
@@ -206,7 +206,7 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
   /**
    * Absolute path to the working directory of the program being debugged.
    */
-  cwd: string;
+  cwd?: string;
   /**
    * If source maps are enabled, these glob patterns specify the generated
    * JavaScript files. If a pattern starts with `!` the files are excluded.
@@ -250,6 +250,11 @@ export interface IConfigurationWithEnv {
 export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfigurationWithEnv {
   type: DebugType.Node;
   request: 'launch';
+
+  /**
+   * @override
+   */
+  cwd: string;
 
   /**
    * Program to use to launch the debugger.
@@ -639,6 +644,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   type: DebugType.Node,
   request: 'launch',
   program: '',
+  cwd: '${workspaceFolder}',
   stopOnEntry: false,
   console: 'internalConsole',
   restart: false,
@@ -766,7 +772,40 @@ export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfi
   return resolveWorkspaceInConfig(configWithDefaults);
 }
 
+/**
+ * Removes optional properties from the config where ${workspaceFolder} is
+ * used by default. This enables some limited types of debugging without
+ * workspaces set.
+ */
+export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfiguration>(
+  config: T,
+): T {
+  const token = '${workspaceFolder}';
+  config = {
+    ...config,
+    rootPath: undefined,
+    outFiles: config.outFiles.filter(o => !o.includes(token)),
+    sourceMapPathOverrides: filterValues(
+      config.sourceMapPathOverrides,
+      (v): v is string => !v.includes('${workspaceFolder}'),
+    ),
+  };
+
+  if (config.type === DebugType.ExtensionHost) {
+    config.resolveSourceMapLocations =
+      config.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
+  } else if (config.type === DebugType.Node && config.request === 'attach') {
+    (config as INodeAttachConfiguration).cwd = undefined;
+  }
+
+  return config;
+}
+
 export function resolveWorkspaceInConfig<T extends AnyLaunchConfiguration>(config: T): T {
+  if (!config.__workspaceFolder) {
+    config = removeOptionalWorkspaceFolderUsages(config);
+  }
+
   config = resolveVariableInConfig(config, 'workspaceFolder', config.__workspaceFolder);
   config = resolveVariableInConfig(
     config,
@@ -777,10 +816,21 @@ export function resolveWorkspaceInConfig<T extends AnyLaunchConfiguration>(confi
   return config;
 }
 
-export function resolveVariableInConfig<T>(config: T, varName: string, varValue: string): T {
+export function resolveVariableInConfig<T>(
+  config: T,
+  varName: string,
+  varValue: string | undefined,
+): T {
   let out: unknown;
   if (typeof config === 'string') {
-    out = config.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), varValue);
+    out = config.replace(new RegExp(`\\$\\{${varName}\\}`, 'g'), () => {
+      if (!varValue) {
+        throw new Error(
+          `Unable to resolve \${${varName}} in configuration (${JSON.stringify(varName)})`,
+        );
+      }
+      return varValue;
+    });
   } else if (config instanceof Array) {
     out = config.map(cfg => resolveVariableInConfig(cfg, varName, varValue));
   } else if (typeof config === 'object' && config) {

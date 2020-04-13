@@ -50,7 +50,7 @@ export async function attachProcess() {
 
   await resolveProcessId(config, true);
   await vscode.debug.startDebugging(
-    vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.cwd)),
+    config.cwd ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.cwd)) : undefined,
     config,
   );
 }
