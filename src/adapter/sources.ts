@@ -27,6 +27,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import { Script } from './threads';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { once } from '../common/objUtils';
+import { IResourceProvider } from './resourceProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -439,6 +440,7 @@ export class SourceContainer {
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
     @inject(ISourceMapRepository) public readonly localSourceMaps: ISourceMapRepository,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
+    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {
     this._dap = dap;
     this.rootPath = launchConfig.rootPath;
@@ -829,7 +831,7 @@ export class SourceContainer {
         content !== undefined
           ? () => Promise.resolve(content)
           : fileUrl
-          ? () => utils.fetch(fileUrl)
+          ? () => this.resourceProvider.fetch(fileUrl)
           : () => compiled.content(),
       );
       source.compiledToSourceUrl.set(compiled, url);

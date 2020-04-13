@@ -166,9 +166,9 @@ gulp.task('compile:static', () =>
 gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
 async function runWebpack(packages) {
-
   // add the entrypoints common to both vscode and vs here
-  packages = [...packages,
+  packages = [
+    ...packages,
     { entry: `${buildSrcDir}/common/hash/hash.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
@@ -200,6 +200,15 @@ async function runWebpack(packages) {
       config.output.libraryTarget = 'commonjs2';
     }
 
+    if (process.argv.includes('--analyze-size')) {
+      config.plugins = [
+        new (require('webpack-bundle-analyzer').BundleAnalyzerPlugin)({
+          analyzerMode: 'static',
+          reportFilename: path.resolve(distSrcDir, path.basename(entry) + '.html'),
+        }),
+      ];
+    }
+
     await new Promise((resolve, reject) =>
       webpack(config, (err, stats) => {
         if (err) {
@@ -216,17 +225,13 @@ async function runWebpack(packages) {
 
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
-  const packages = [
-    { entry: `${buildSrcDir}/extension.js`, library: true }
-  ];
+  const packages = [{ entry: `${buildSrcDir}/extension.js`, library: true }];
   return runWebpack(packages);
 });
 
 /** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
 gulp.task('flatSessionBundle:webpack-bundle', async () => {
-  const packages = [
-    { entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true }
-  ];
+  const packages = [{ entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true }];
   return runWebpack(packages);
 });
 

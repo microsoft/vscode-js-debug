@@ -5,7 +5,8 @@
 import { CancellationToken } from 'vscode';
 import * as URL from 'url';
 import { delay } from '../../../common/promiseUtil';
-import { fetchJson } from '../../../common/urlUtils';
+import { BasicResourceProvider } from '../../../adapter/resourceProvider/basicResourceProvider';
+import { promises as fs } from 'fs';
 
 /**
  * Returns the debugger websocket URL a process listening at the given address.
@@ -16,7 +17,8 @@ export async function getWSEndpoint(
   browserURL: string,
   cancellationToken: CancellationToken,
 ): Promise<string> {
-  const jsonVersion = await fetchJson<{ webSocketDebuggerUrl?: string }>(
+  const provider = new BasicResourceProvider(fs);
+  const jsonVersion = await provider.fetchJson<{ webSocketDebuggerUrl?: string }>(
     URL.resolve(browserURL, '/json/version'),
     cancellationToken,
   );
@@ -26,7 +28,7 @@ export async function getWSEndpoint(
 
   // Chrome its top-level debugg on /json/version, while Node does not.
   // Request both and return whichever one got us a string.
-  const jsonList = await fetchJson<{ webSocketDebuggerUrl: string }[]>(
+  const jsonList = await provider.fetchJson<{ webSocketDebuggerUrl: string }[]>(
     URL.resolve(browserURL, '/json/list'),
     cancellationToken,
   );

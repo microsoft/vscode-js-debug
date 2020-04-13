@@ -4,11 +4,12 @@
 
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
 import { IDisposable } from '../disposable';
-import { fetch, fileUrlToAbsolutePath } from '../urlUtils';
+import { fileUrlToAbsolutePath } from '../urlUtils';
 import { LogTag, ILogger } from '../logging';
 import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
 import { injectable, inject } from 'inversify';
 import { ISourcePathResolver } from '../sourcePathResolver';
+import { IResourceProvider } from '../../adapter/resourceProvider';
 
 export const ISourceMapFactory = Symbol('ISourceMapFactory');
 
@@ -33,6 +34,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
   constructor(
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
+    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {}
 
   /**
@@ -88,7 +90,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
     }
 
     try {
-      let content = await fetch(absolutePath || sourceMapUrl);
+      let content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
       if (content.slice(0, 3) === ')]}') {
         content = content.substring(content.indexOf('\n'));
       }

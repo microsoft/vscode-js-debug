@@ -475,6 +475,7 @@ export class Thread implements IVariableStoreDelegate {
       else this._revealObject(event.object);
     });
     this._cdp.Runtime.enable({});
+    this._cdp.Network.enable({});
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this._onResumed());

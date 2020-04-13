@@ -1,0 +1,12 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/cookies/module1.ts:3:3
+bar @ ${workspaceFolder}/web/cookies/module2.ts:3:3
+3../module1 @ ${workspaceFolder}/web/cookies/pause.ts:4:4
+o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+<anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1

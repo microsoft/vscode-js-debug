@@ -3,19 +3,13 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import * as fs from 'fs';
 import * as path from 'path';
-import * as http from 'http';
-import * as https from 'https';
 import { fixDriveLetterAndSlashes } from './pathUtils';
 import { AnyChromiumConfiguration } from '../configuration';
 import { escapeRegexSpecialChars } from './stringUtils';
 import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import { exists } from './fsUtils';
-import { IDisposable } from './disposable';
-import { TaskCancelledError, NeverCancelled } from './cancellation';
-import { CancellationToken } from 'vscode';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -119,75 +113,6 @@ export const isLoopback = memoize(async (address: string) => {
     return false;
   }
 });
-
-/**
- * Fetches JSON content from the given URL.
- */
-export async function fetchJson<T>(url: string, cancellationToken: CancellationToken): Promise<T> {
-  const data = await fetch(url, cancellationToken);
-  return JSON.parse(data);
-}
-
-/**
- * Fetches content from the given URL.
- */
-export async function fetch(
-  url: string,
-  cancellationToken: CancellationToken = NeverCancelled,
-): Promise<string> {
-  if (url.startsWith('data:')) {
-    const prefix = url.substring(0, url.indexOf(','));
-    const match = prefix.match(/data:[^;]*(;[^;]*)?(;[^;]*)?(;[^;]*)?/);
-    if (!match) throw new Error(`Malformed data url prefix '${prefix}'`);
-    const params = new Set<string>(match.slice(1));
-    const data = url.substring(prefix.length + 1);
-    const result = Buffer.from(data, params.has(';base64') ? 'base64' : undefined).toString();
-    return result;
-  }
-
-  const absolutePath = isAbsolute(url) ? url : fileUrlToAbsolutePath(url);
-  if (absolutePath) {
-    return new Promise<string>((fulfill, reject) => {
-      fs.readFile(absolutePath, (err, data) => {
-        if (err) reject(err);
-        else fulfill(data.toString());
-      });
-    });
-  }
-
-  const isSecure = !url.startsWith('http://');
-  const driver = isSecure ? https : http;
-  const targetAddressIsLoopback = await isLoopback(url);
-  const disposables: IDisposable[] = [];
-
-  return new Promise<string>((fulfill, reject) => {
-    const requestOptions: https.RequestOptions = {};
-
-    if (isSecure && targetAddressIsLoopback) {
-      requestOptions.rejectUnauthorized = false;
-    }
-
-    const request = driver.get(url, requestOptions, response => {
-      disposables.push(cancellationToken.onCancellationRequested(() => response.destroy()));
-
-      let data = '';
-      response.setEncoding('utf8');
-      response.on('data', (chunk: string) => (data += chunk));
-      response.on('end', () => fulfill(data));
-      response.on('error', reject);
-    });
-
-    disposables.push(
-      cancellationToken.onCancellationRequested(() => {
-        request.destroy();
-        reject(new TaskCancelledError(`Cancelled GET ${url}`));
-      }),
-    );
-
-    request.on('error', reject);
-    request.end();
-  }).finally(() => disposables.forEach(d => d.dispose()));
-}
 
 export function completeUrl(base: string | undefined, relative: string): string | undefined {
   try {

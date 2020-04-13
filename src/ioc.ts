@@ -68,6 +68,9 @@ import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
 import { IDefaultBrowserProvider, DefaultBrowserProvider } from './common/defaultBrowserProvider';
+import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
+import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
+import { IResourceProvider } from './adapter/resourceProvider';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -97,12 +100,12 @@ export const createTargetContainer = (
   const container = new Container();
   container.parent = parent;
   container.bind(IContainer).toConstantValue(container);
-
   container.bind(IDapApi).toConstantValue(dap);
   container.bind(ICdpApi).toConstantValue(cdp);
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver());
+  container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
 
   container
     .bind(ITelemetryReporter)
@@ -142,7 +145,8 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   // Core services:
   container.bind(ILogger).to(Logger).inSingletonScope().onActivation(trackDispose);
-
+  container.bind(ResourceProviderState).toSelf().inSingletonScope();
+  container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
   container
     .bind(ITelemetryReporter)
     .to(process.env.DA_TEST_DISABLE_TELEMETRY ? NullTelemetryReporter : DapTelemetryReporter)
