@@ -76,12 +76,7 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       return; // shut down
     }
 
-    if (!telemetry) {
-      this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
-      return;
-    }
-
-    if (telemetry.exceptionDetails) {
+    if (telemetry?.exceptionDetails) {
       if (isProcessNotDefined(telemetry.exceptionDetails)) {
         this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
         await delay(10);
@@ -93,6 +88,11 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
         'Error getting telemetry',
         telemetry.exceptionDetails,
       );
+      return;
+    }
+
+    if (!telemetry || !telemetry.result.value) {
+      this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
       return;
     }
 

@@ -47,7 +47,7 @@ export class ResourceProviderState {
 
   private async applyCookies(cdp: Cdp.Api, url: string, options: AnyRequestOptions) {
     const cookies = await cdp.Network.getCookies({ urls: [url] });
-    if (!cookies?.cookies.length) {
+    if (!cookies?.cookies?.length) {
       return options;
     }
 
