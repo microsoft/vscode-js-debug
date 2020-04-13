@@ -439,6 +439,7 @@ export class TestRoot {
       runtimeExecutable:
         process.platform === 'darwin' ? playwright.chromium.executablePath() : 'stable',
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
+      __workspaceFolder: this._workspaceRoot,
       ...options,
     } as AnyChromiumLaunchConfiguration);
 

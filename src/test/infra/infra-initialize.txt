@@ -33,7 +33,7 @@
     supportsExceptionOptions : false
     supportsFunctionBreakpoints : false
     supportsGotoTargetsRequest : false
-    supportsHitConditionalBreakpoints : false
+    supportsHitConditionalBreakpoints : true
     supportsLoadedSourcesRequest : true
     supportsLogPoints : true
     supportsModulesRequest : false

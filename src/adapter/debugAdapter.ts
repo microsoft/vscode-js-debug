@@ -116,7 +116,7 @@ export class DebugAdapter implements IDisposable {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
       supportsConditionalBreakpoints: true,
-      supportsHitConditionalBreakpoints: false,
+      supportsHitConditionalBreakpoints: true,
       supportsEvaluateForHovers: true,
       exceptionBreakpointFilters: [
         {

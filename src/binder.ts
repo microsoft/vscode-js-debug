@@ -198,6 +198,7 @@ export class Binder implements IDisposable {
       type: rawParams.type,
       request: rawParams.request,
       name: '<string>',
+      __workspaceFolder: '<workspace>',
     } as AnyResolvingConfiguration) as unknown) as { [key: string]: unknown };
 
     // Sanitization function that strips non-default strings from the launch
