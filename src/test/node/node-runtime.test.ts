@@ -18,6 +18,7 @@ import { spawn, ChildProcess } from 'child_process';
 import Dap from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
 import { nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../../configuration';
+import split from 'split2';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -300,6 +301,23 @@ describe('node runtime', () => {
 
       await waitForPause(reconnect);
       handle.assertLog({ substring: true });
+    });
+
+    itIntegrates('does not restart if killed', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['setInterval(() => { debugger; }, 100)'],
+      });
+
+      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')], { stdio: 'pipe' });
+      const lines: string[] = [];
+      child.stderr?.pipe(split()).on('data', line => lines.push(line));
+
+      const handle = await r.attachNode(0, { port: 9229, restart: true });
+      await handle.dap.once('stopped');
+      await r.rootDap().disconnect({});
+
+      await delay(1000);
+      expect(lines.filter(l => l.includes('Debugger attached'))).to.have.lengthOf(1);
     });
   });
 
