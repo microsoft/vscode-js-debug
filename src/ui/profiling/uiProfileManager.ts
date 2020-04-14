@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { DebugSessionTracker } from '../debugSessionTracker';
-import { injectable, inject } from 'inversify';
+import { injectable, inject, multiInject } from 'inversify';
 import { ProfilerFactory } from '../../adapter/profiling';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
@@ -13,6 +13,7 @@ import { Contributions } from '../../common/contributionUtils';
 import { basename } from 'path';
 import { FS, FsPromises } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
+import { ITerminationConditionFactory } from './terminationCondition';
 
 const localize = nls.loadMessageBundle();
 
@@ -22,29 +23,34 @@ const isProfileCandidate = (session: vscode.DebugSession) =>
 @injectable()
 export class UiProfileManager implements IDisposable {
   private statusBarItem?: vscode.StatusBarItem;
+  private lastChosenType: string | undefined;
+  private lastChosenTermination: string | undefined;
   private readonly activeSessions = new Set<UiProfileSession>();
 
   constructor(
     @inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker,
     @inject(FS) private readonly fs: FsPromises,
+    @multiInject(ITerminationConditionFactory)
+    private readonly terminationConditions: ReadonlyArray<ITerminationConditionFactory>,
   ) {}
 
   /**
    * Starts a profiling session.
    */
   public async start(sessionId?: string) {
-    let session: vscode.DebugSession | undefined;
+    let maybeSession: vscode.DebugSession | undefined;
     const candidates = [...this.tracker.sessions.values()].filter(isProfileCandidate);
     if (sessionId) {
-      session = candidates.find(s => s.id === sessionId);
+      maybeSession = candidates.find(s => s.id === sessionId);
     } else {
-      session = await this.pickSession(candidates);
+      maybeSession = await this.pickSession(candidates);
     }
 
-    if (!session) {
+    if (!maybeSession) {
       return; // cancelled or invalid
     }
 
+    const session = maybeSession;
     const existing = [...this.activeSessions].find(s => s.session === session);
     if (existing) {
       if (!(await this.alreadyRunningSession(existing))) {
@@ -57,14 +63,23 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
-    const uiSession = await UiProfileSession.start(session, impl);
+    const termination = await this.pickTermination();
+    if (!termination) {
+      return;
+    }
+
+    const uiSession = await UiProfileSession.start(session, impl, termination);
     if (!uiSession) {
       return;
     }
 
     this.activeSessions.add(uiSession);
     uiSession.onStatusChange(() => this.updateStatusBar());
-    uiSession.onStop(() => {
+    uiSession.onStop(file => {
+      if (file) {
+        this.openProfileFile(uiSession, session, file);
+      }
+
       this.activeSessions.delete(uiSession);
       this.updateStatusBar();
     });
@@ -91,11 +106,29 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
-    const sourceFile = await uiSession.stop();
-    if (!sourceFile) {
-      return;
+    await uiSession.stop();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
+    for (const session of this.activeSessions) {
+      session.dispose();
     }
 
+    this.activeSessions.clear();
+  }
+
+  /**
+   * Opens the profile file within the UI, called
+   * when a session ends gracefully.
+   */
+  private async openProfileFile(
+    uiSession: UiProfileSession,
+    session: vscode.DebugSession,
+    sourceFile: string,
+  ) {
     const targetFile = await vscode.window.showSaveDialog({
       defaultUri: session.workspaceFolder?.uri.with({
         path: session.workspaceFolder.uri.path + '/' + basename(sourceFile),
@@ -108,17 +141,6 @@ export class UiProfileManager implements IDisposable {
     if (targetFile) {
       this.fs.rename(sourceFile, targetFile.fsPath);
     }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public dispose() {
-    for (const session of this.activeSessions) {
-      session.dispose();
-    }
-
-    this.activeSessions.clear();
   }
 
   /**
@@ -205,12 +227,57 @@ export class UiProfileManager implements IDisposable {
    */
   private async pickType(session: vscode.DebugSession) {
     const params = session.configuration as AnyLaunchConfiguration;
-    const chosen = await vscode.window.showQuickPick(
-      ProfilerFactory.ctors
-        .filter(ctor => ctor.canApplyTo(params))
-        .map(ctor => ({ type: ctor.type, label: ctor.label, description: ctor.description })),
+    const chosen = await this.pickWithLastDefault(
+      localize('profile.type.title', 'Type of profile:'),
+      ProfilerFactory.ctors.filter(ctor => ctor.canApplyTo(params)),
+      this.lastChosenType,
     );
+    if (chosen) {
+      this.lastChosenType = chosen.label;
+    }
 
-    return chosen && ProfilerFactory.ctors.find(c => c.type === chosen.type);
+    return chosen;
+  }
+
+  /**
+   * Picks the termination condition to use for the session.
+   */
+  private async pickTermination() {
+    const chosen = await this.pickWithLastDefault(
+      localize('profile.termination.title', 'How long to run the profile:'),
+      this.terminationConditions,
+      this.lastChosenTermination,
+    );
+    if (chosen) {
+      this.lastChosenTermination = chosen.label;
+    }
+
+    return chosen?.onPick();
+  }
+
+  private async pickWithLastDefault<T extends { label: string; description?: string }>(
+    title: string,
+    items: ReadonlyArray<T>,
+    lastLabel?: string,
+  ): Promise<T | undefined> {
+    const quickpick = vscode.window.createQuickPick();
+    quickpick.title = title;
+    quickpick.items = items
+      .map(ctor => ({ label: ctor.label, description: ctor.description }))
+      .sort((a, b) => -(a.label === lastLabel) + +(b.label === lastLabel));
+
+    const chosen = await new Promise<string | undefined>(resolve => {
+      quickpick.onDidAccept(() => resolve(quickpick.selectedItems[0]?.label));
+      quickpick.onDidHide(() => resolve());
+      quickpick.show();
+    });
+
+    quickpick.dispose();
+
+    if (!chosen) {
+      return;
+    }
+
+    return items.find(c => c.label === chosen);
   }
 }

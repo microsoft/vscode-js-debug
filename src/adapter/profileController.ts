@@ -45,6 +45,7 @@ export class ProfileController implements IProfileController {
     dap.on('stopProfile', async () => {
       const profile = await this.profile?.catch(() => undefined);
       await profile?.stop();
+      dap.profilerStateUpdate({ label: '', running: false });
       this.profile = undefined;
       return {};
     });
@@ -53,7 +54,7 @@ export class ProfileController implements IProfileController {
   private async startProfile(dap: Dap.Api, params: Dap.StartProfileParams) {
     await this.cdp.Debugger.disable({});
     const profile = await this.factory.get(params.type).start(params);
-    profile.onUpdate(label => dap.profilerStateUpdate({ label }));
+    profile.onUpdate(label => dap.profilerStateUpdate({ label, running: true }));
     profile.onStop(() => this.stopProfile(profile));
     return profile;
   }

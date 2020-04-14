@@ -2353,6 +2353,11 @@ export namespace Dap {
      * Description of the current state
      */
     label: string;
+
+    /**
+     * Set to false if the profile has now ended
+     */
+    running: boolean;
   }
 
   export interface ProgressEndEventParams {

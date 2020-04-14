@@ -484,11 +484,15 @@
             "body": {
               "type": "object",
               "description": "Body for 'ProfilerStateUpdateEvent' event.",
-              "required": ["label"],
+              "required": ["label", "running"],
               "properties": {
                 "label": {
                   "type": "string",
                   "description": "Description of the current state"
+                },
+                "running": {
+                  "type": "boolean",
+                  "description": "Set to false if the profile has now ended"
                 }
               }
             }
