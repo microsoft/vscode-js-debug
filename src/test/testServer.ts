@@ -25,7 +25,7 @@ app.use(
   express.static(path.join(webRoot, 'browserify')),
 );
 
-app.use('/cookies', express.static(path.join(webRoot, 'browserify')));
+app.use('/', express.static(path.join(webRoot)));
 
 app.listen(port, () => {
   process.send!('ready');
