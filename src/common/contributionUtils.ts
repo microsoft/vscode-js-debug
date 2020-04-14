@@ -66,6 +66,8 @@ export const enum Configuration {
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
 }
 
+export type DebugByLinkState = 'on' | 'off' | 'always';
+
 /**
  * Type map for {@link Configuration} properties.
  */
@@ -77,7 +79,9 @@ export interface IConfigurationTypes {
   [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
   [Configuration.SuggestPrettyPrinting]: boolean;
   [Configuration.AutoServerTunnelOpen]: boolean;
-  [Configuration.DebugByLinkOptions]: boolean | Partial<IChromeLaunchConfiguration>;
+  [Configuration.DebugByLinkOptions]:
+    | DebugByLinkState
+    | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
 }
 
 export interface ICommandTypes {

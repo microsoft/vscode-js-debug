@@ -794,8 +794,11 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
   if (config.type === DebugType.ExtensionHost) {
     config.resolveSourceMapLocations =
       config.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
-  } else if (config.type === DebugType.Node && config.request === 'attach') {
-    (config as INodeAttachConfiguration).cwd = undefined;
+  } else if (
+    (config.type === DebugType.Node && config.request === 'attach') ||
+    config.type === DebugType.Terminal
+  ) {
+    (config as INodeBaseConfiguration).cwd = undefined;
   }
 
   return config;

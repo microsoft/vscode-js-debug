@@ -6,7 +6,12 @@ import { injectable, inject } from 'inversify';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { IDefaultBrowserProvider, DefaultBrowser } from '../common/defaultBrowserProvider';
-import { readConfig, Configuration, DebugType } from '../common/contributionUtils';
+import {
+  readConfig,
+  Configuration,
+  DebugType,
+  DebugByLinkState,
+} from '../common/contributionUtils';
 import { URL } from 'url';
 import { isMetaAddress } from '../common/urlUtils';
 
@@ -30,18 +35,17 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
    * Launches a browser debug session when a link is clicked from a debug terminal.
    */
   public async handleLink(terminal: vscode.Terminal, link: string) {
-    // Only handle links when the click is from inside a debug terminal, and
-    // the user hasn't disabled debugging via links.
-    if (!this.enabledTerminals.has(terminal)) {
-      return false;
-    }
-
-    const baseConfig = readConfig(
-      vscode.workspace.getConfiguration(),
-      Configuration.DebugByLinkOptions,
-    );
-    if (baseConfig === false) {
-      return false;
+    const baseConfig = this.readConfig();
+    switch (baseConfig.enabled) {
+      case 'off':
+        return false;
+      case 'always':
+        break;
+      case 'on':
+      default:
+        if (!this.enabledTerminals.has(terminal)) {
+          return false;
+        }
     }
 
     if (vscode.env.uiKind === vscode.UIKind.Web) {
@@ -99,7 +103,7 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
     }
 
     vscode.debug.startDebugging(cwd, {
-      ...(typeof baseConfig === 'boolean' ? {} : baseConfig),
+      ...baseConfig,
       type: debugType,
       name: link,
       request: 'launch',
@@ -107,5 +111,23 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
     });
 
     return true;
+  }
+
+  private readConfig() {
+    let baseConfig = readConfig(
+      vscode.workspace.getConfiguration(),
+      Configuration.DebugByLinkOptions,
+    );
+
+    if (typeof baseConfig === 'boolean') {
+      // old setting
+      baseConfig = (baseConfig ? 'on' : 'off') as DebugByLinkState;
+    }
+
+    if (typeof baseConfig === 'string') {
+      return { enabled: baseConfig };
+    }
+
+    return { enabled: 'on' as DebugByLinkState, ...baseConfig };
   }
 }

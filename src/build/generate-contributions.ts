@@ -881,15 +881,22 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: true,
   },
   [Configuration.DebugByLinkOptions]: {
-    default: {},
+    default: 'on',
     description: refString('configuration.debugByLinkOptions'),
     oneOf: [
       {
-        type: 'boolean',
+        type: 'string',
+        enum: ['on', 'off', 'always'],
       },
       {
         type: 'object',
-        properties: chromeLaunchConfig.configurationAttributes as { [key: string]: JSONSchema6 },
+        properties: {
+          ...chromeLaunchConfig.configurationAttributes,
+          enabled: {
+            type: 'string',
+            enum: ['on', 'off', 'always'],
+          },
+        } as { [key: string]: JSONSchema6 },
       },
     ],
   },

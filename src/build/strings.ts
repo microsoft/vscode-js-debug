@@ -209,7 +209,7 @@ const strings = {
   'configuration.automaticallyTunnelRemoteServer':
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
   'configuration.debugByLinkOptions':
-    'Options used when debugging open links clicked from inside the debug terminal. Can be set to "false" to disable this behavior.',
+    'Options used when debugging open links clicked from inside the JavaScript Debug Terminal. Can be set to "off" to disable this behavior, or "always" to enable debugging in all terminals.',
   'configuration.pickAndAttachOptions':
     'Default options used when debugging a process through the `Debug: Attach to Node Process` command',
 

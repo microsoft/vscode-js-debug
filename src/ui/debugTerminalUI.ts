@@ -110,6 +110,7 @@ export function registerDebugTerminalUI(
         name: terminalBaseDefaults.name,
         request: 'launch',
         command,
+        __workspaceFolder: workspaceFolder?.uri.fsPath,
       }),
       {
         dap,
