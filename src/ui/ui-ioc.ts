@@ -18,6 +18,7 @@ import { TerminalLinkHandler } from './terminalLinkHandler';
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
 import { ManualTerminationConditionFactory } from './profiling/manualTerminationCondition';
+import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 
 export const registerUiComponents = (container: Container) => {
   [
@@ -45,5 +46,9 @@ export const registerUiComponents = (container: Container) => {
   container
     .bind(ITerminationConditionFactory)
     .to(ManualTerminationConditionFactory)
+    .inSingletonScope();
+  container
+    .bind(ITerminationConditionFactory)
+    .to(BreakpointTerminationConditionFactory)
     .inSingletonScope();
 };

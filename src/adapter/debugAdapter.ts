@@ -10,7 +10,7 @@ import * as errors from '../dap/errors';
 import { SourceContainer } from './sources';
 import { Thread, IThreadDelegate, PauseOnExceptionsState } from './threads';
 import { VariableStore } from './variables';
-import { BreakpointManager, generateBreakpointIds } from './breakpoints';
+import { BreakpointManager } from './breakpoints';
 import { Cdp } from '../cdp/api';
 import { AnyLaunchConfiguration } from '../configuration';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
@@ -20,7 +20,6 @@ import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { LogTag, ILogger } from '../common/logging';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { Container } from 'inversify';
-import { IBreakpointsPredictor } from './breakpointPredictor';
 import { disposeContainer } from '../ioc-extras';
 import { ICompletions } from './completions';
 import { IEvaluator } from './evaluator';
@@ -40,6 +39,7 @@ export class DebugAdapter implements IDisposable {
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
   private _configurationDoneDeferred: IDeferred<void>;
+  private lastBreakpointId = 0;
 
   constructor(
     dap: Dap.Api,
@@ -51,6 +51,7 @@ export class DebugAdapter implements IDisposable {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
+    this.dap.on('getBreakpoints', () => this._onGetBreakpoints());
     this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
     this.dap.on('configurationDone', () => this.configurationDone());
     this.dap.on('loadedSources', () => this._onLoadedSources());
@@ -80,16 +81,8 @@ export class DebugAdapter implements IDisposable {
       })),
     );
 
-    _services.get<IProfileController>(IProfileController).connect(this.dap);
-
     this.sourceContainer = _services.get(SourceContainer);
-    this.breakpointManager = new BreakpointManager(
-      this.dap,
-      this.sourceContainer,
-      _services.get(ILogger),
-      launchConfig.pauseForSourceMap,
-      _services.get(IBreakpointsPredictor),
-    );
+    this.breakpointManager = _services.get(BreakpointManager);
 
     const telemetry = _services.get<ITelemetryReporter>(ITelemetryReporter);
     telemetry.onFlush(() => {
@@ -159,11 +152,17 @@ export class DebugAdapter implements IDisposable {
     };
   }
 
-  async _onSetBreakpoints(
+  private async _onSetBreakpoints(
     params: Dap.SetBreakpointsParams,
   ): Promise<Dap.SetBreakpointsResult | Dap.Error> {
-    const ids = generateBreakpointIds(params);
-    return this.breakpointManager.setBreakpoints(params, ids);
+    return this.breakpointManager.setBreakpoints(
+      params,
+      params.breakpoints?.map(() => ++this.lastBreakpointId) ?? [],
+    );
+  }
+
+  private _onGetBreakpoints(): Promise<Dap.GetBreakpointsResult> {
+    return this.breakpointManager.getBreakpoints();
   }
 
   async setExceptionBreakpoints(
@@ -264,6 +263,9 @@ export class DebugAdapter implements IDisposable {
       this.launchConfig,
       this.breakpointManager,
     );
+
+    this._services.get<IProfileController>(IProfileController).connect(this.dap, this._thread);
+
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);
 

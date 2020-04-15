@@ -5,6 +5,7 @@
 import Dap from '../../dap/api';
 import { UiProfileSession } from './uiProfileSession';
 import { IDisposable } from '../../common/disposable';
+import { DebugSession } from 'vscode';
 
 /**
  * Item displayed to the user when picking when their profile should end.
@@ -12,12 +13,13 @@ import { IDisposable } from '../../common/disposable';
 export interface ITerminationConditionFactory {
   readonly label: string;
   readonly description?: string;
+  readonly sortOrder: number;
 
   /**
    * Called when the user picks this termination factory. Can return undefined
    * to cancel the picking process.
    */
-  onPick(): Promise<ITerminationCondition | undefined>;
+  onPick(session: DebugSession): Promise<ITerminationCondition | undefined>;
 }
 
 export const ITerminationConditionFactory = Symbol('ITerminationConditionFactory');
@@ -31,5 +33,5 @@ export interface ITerminationCondition extends IDisposable {
   /**
    * Called when the profile starts running.
    */
-  attachTo(session: UiProfileSession): void;
+  attachTo?(session: UiProfileSession): void;
 }

@@ -894,6 +894,18 @@ export namespace Dap {
      * Launches Chrome unelevated, used in VS.
      */
     launchUnelevatedRequest(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
+
+    /**
+     * Gets all defined breakpoints.
+     */
+    on(
+      request: 'getBreakpoints',
+      handler: (params: GetBreakpointsParams) => Promise<GetBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Gets all defined breakpoints.
+     */
+    getBreakpointsRequest(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
   }
 
   export interface TestApi {
@@ -1479,6 +1491,11 @@ export namespace Dap {
      * Launches Chrome unelevated, used in VS.
      */
     launchUnelevated(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
+
+    /**
+     * Gets all defined breakpoints.
+     */
+    getBreakpoints(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
   }
 
   export interface AttachParams {
@@ -1849,6 +1866,12 @@ export namespace Dap {
      * The exit code returned from the debuggee.
      */
     exitCode: integer;
+  }
+
+  export interface GetBreakpointsParams {}
+
+  export interface GetBreakpointsResult {
+    breakpoints: Breakpoint[];
   }
 
   export interface GotoParams {
@@ -2807,6 +2830,11 @@ export namespace Dap {
      * Location where the profile should be saved.
      */
     file: string;
+
+    /**
+     * Breakpoints where we should stop once hit.
+     */
+    stopAtBreakpoint?: number[];
 
     /**
      * Type of profile that should be taken

@@ -108,7 +108,7 @@
       "runtimeExecutable": "${execPath}",
       "skipFiles": ["<node_internals>/**"],
 			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionDevelopmentPath=${workspaceFolder}/out",
 				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
 			],
 			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],

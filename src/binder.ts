@@ -4,7 +4,6 @@
 
 import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
-import { generateBreakpointIds } from './adapter/breakpoints';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
@@ -81,6 +80,8 @@ export class Binder implements IDisposable {
     connection.attachTelemetry(_rootServices.get(ITelemetryReporter));
 
     this._dap.then(dap => {
+      let lastBreakpointId = 0;
+
       dap.on('initialize', async clientCapabilities => {
         this._rootServices.bind(IInitializeParams).toConstantValue(clientCapabilities);
         const capabilities = DebugAdapter.capabilities();
@@ -96,11 +97,12 @@ export class Binder implements IDisposable {
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
         return {
-          breakpoints: generateBreakpointIds(params).map(id => ({
-            id,
-            verified: false,
-            message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
-          })),
+          breakpoints:
+            params.breakpoints?.map(() => ({
+              id: ++lastBreakpointId,
+              verified: false,
+              message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+            })) ?? [],
         }; // TODO: Put a useful message here
       });
       dap.on('configurationDone', async () => ({}));

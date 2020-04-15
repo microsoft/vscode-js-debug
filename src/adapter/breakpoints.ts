@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import Cdp from '../cdp/api';
 import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
 import { IDisposable } from '../common/events';
-import { BreakpointsPredictor } from './breakpointPredictor';
+import { BreakpointsPredictor, IBreakpointsPredictor } from './breakpointPredictor';
 import * as urlUtils from '../common/urlUtils';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { LogTag, ILogger } from '../common/logging';
@@ -22,6 +22,9 @@ import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { BreakpointConditionFactory } from './breakpoints/conditions';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { bisectArray } from '../common/objUtils';
+import { injectable, inject } from 'inversify';
+import { IDapApi } from '../dap/connection';
+import { AnyLaunchConfiguration } from '../configuration';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -44,6 +47,11 @@ interface ISetBreakpointResult {
 const isSetAtEntry = (bp: Breakpoint) =>
   bp.originalPosition.columnNumber === 1 && bp.originalPosition.lineNumber === 1;
 
+export type BreakpointEnableFilter = (breakpoint: Breakpoint) => boolean;
+
+const DontCompare = Symbol('DontCompare');
+
+@injectable()
 export class BreakpointManager {
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
@@ -56,6 +64,22 @@ export class BreakpointManager {
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
   private readonly conditionFactory = new BreakpointConditionFactory(this.logger);
+  private readonly pauseForSourceMaps: boolean;
+
+  /**
+   * Gets a flat list of all registered breakpoints.
+   */
+  private get allUserBreakpoints() {
+    return [...this._byPath.values(), ...this._byRef.values()].reduce(
+      (acc, bp) => acc.concat(bp),
+      [],
+    );
+  }
+
+  /**
+   * A filter function that enables/disables breakpoints.
+   */
+  private _enabledFilter: BreakpointEnableFilter = () => true;
 
   /**
    * User-defined breakpoints by path on disk.
@@ -77,14 +101,15 @@ export class BreakpointManager {
   );
 
   constructor(
-    dap: Dap.Api,
-    sourceContainer: SourceContainer,
-    public readonly logger: ILogger,
-    private readonly pauseForSourceMaps: boolean,
-    public readonly _breakpointsPredictor?: BreakpointsPredictor,
+    @inject(IDapApi) dap: Dap.Api,
+    @inject(SourceContainer) sourceContainer: SourceContainer,
+    @inject(ILogger) public readonly logger: ILogger,
+    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: BreakpointsPredictor,
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
+    this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
 
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
@@ -156,6 +181,33 @@ export class BreakpointManager {
       this._byRef.set(fromSource.sourceReference(), remaining);
       this._byRef.set(toSource.sourceReference(), moved);
     }
+  }
+
+  /**
+   * Adds and applies a filter to enable/disable breakpoints based on
+   * the predicate function. If a "compare" is provided, the filter will
+   * only be updated if the current filter matches the given one.
+   */
+  public async applyEnabledFilter(
+    filter: BreakpointEnableFilter | undefined,
+    compare: BreakpointEnableFilter | typeof DontCompare = DontCompare,
+  ) {
+    if (compare !== DontCompare && this._enabledFilter !== compare) {
+      return;
+    }
+
+    this._enabledFilter = filter || (() => true);
+
+    const thread = this._thread;
+    if (!thread) {
+      return;
+    }
+
+    await Promise.all(
+      this.allUserBreakpoints.map(bp =>
+        this._enabledFilter(bp) ? bp.enable(thread) : bp.disable(),
+      ),
+    );
   }
 
   /**
@@ -328,10 +380,14 @@ export class BreakpointManager {
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
-    this._launchBlocker = Promise.all([this._launchBlocker, b.set(thread)]);
+    if (!this._enabledFilter(b)) {
+      return;
+    }
+
+    this._launchBlocker = Promise.all([this._launchBlocker, b.enable(thread)]);
   }
 
-  async setBreakpoints(
+  public async setBreakpoints(
     params: Dap.SetBreakpointsParams,
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
@@ -413,7 +469,7 @@ export class BreakpointManager {
 
     // Cleanup existing breakpoints before setting new ones.
     this._totalBreakpointsCount -= result.unbound.length;
-    await Promise.all(result.unbound.map(b => b.remove()));
+    await Promise.all(result.unbound.map(b => b.disable()));
 
     this._totalBreakpointsCount += result.new.length;
 
@@ -424,7 +480,7 @@ export class BreakpointManager {
 
       await (this._launchBlocker = Promise.all([
         this._launchBlocker,
-        ...result.new.map(b => b.set(thread)),
+        ...result.new.filter(this._enabledFilter).map(b => b.enable(thread)),
       ]));
     }
 
@@ -438,22 +494,29 @@ export class BreakpointManager {
     return { breakpoints: dapBreakpoints };
   }
 
-  public async notifyBreakpointResolved(
-    breakpointId: number,
-    location: IUiLocation,
+  /**
+   * Gets all user-defined breakpoints
+   */
+  public async getBreakpoints(): Promise<Dap.GetBreakpointsResult> {
+    return { breakpoints: await Promise.all(this.allUserBreakpoints.map(bp => bp.toDap())) };
+  }
+
+  /**
+   * Emits a message on DAP notifying of a state update in this breakpoint.
+   */
+  public async notifyBreakpointChange(
+    breakpoint: UserDefinedBreakpoint,
     emitChange: boolean,
   ): Promise<void> {
-    this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpointId);
+    const dap = await breakpoint.toDap();
+    if (dap.verified) {
+      this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpoint.dapId);
+    }
+
     if (emitChange) {
       this._dap.breakpoint({
         reason: 'changed',
-        breakpoint: {
-          id: breakpointId,
-          verified: true,
-          source: await location.source.toDap(),
-          line: location.lineNumber,
-          column: location.columnNumber,
-        },
+        breakpoint: dap,
       });
     }
   }
@@ -488,7 +551,7 @@ export class BreakpointManager {
         // we intentionally don't remove the record from the map; it's kept as
         // an indicator that it did exist and was hit, so that if further
         // breakpoints are set in the file it doesn't get re-applied.
-        breakpoint.remove();
+        breakpoint.disable();
         votesForContinue++;
         continue;
       }
@@ -542,9 +605,4 @@ export class BreakpointManager {
     this.moduleEntryBreakpoints.set(source.path, bp);
     this._setBreakpoint(bp, thread);
   }
-}
-
-let lastBreakpointId = 0;
-export function generateBreakpointIds(params: Dap.SetBreakpointsParams): number[] {
-  return params.breakpoints?.map(() => ++lastBreakpointId) ?? [];
 }
