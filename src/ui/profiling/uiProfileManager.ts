@@ -10,10 +10,11 @@ import { ProfilerFactory } from '../../adapter/profiling';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
 import { Contributions } from '../../common/contributionUtils';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { FS, FsPromises } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
 import { ITerminationConditionFactory } from './terminationCondition';
+import { homedir } from 'os';
 
 const localize = nls.loadMessageBundle();
 
@@ -129,18 +130,19 @@ export class UiProfileManager implements IDisposable {
     session: vscode.DebugSession,
     sourceFile: string,
   ) {
-    const targetFile = await vscode.window.showSaveDialog({
-      defaultUri: session.workspaceFolder?.uri.with({
-        path: session.workspaceFolder.uri.path + '/' + basename(sourceFile),
-      }),
-      filters: {
-        [uiSession.impl.label]: [uiSession.impl.extension.slice(1)],
-      },
-    });
+    const directory =
+      session.workspaceFolder?.uri.fsPath ??
+      vscode.workspace.workspaceFolders?.[0].uri.fsPath ??
+      homedir();
 
-    if (targetFile) {
-      this.fs.rename(sourceFile, targetFile.fsPath);
-    }
+    const fileUri = vscode.Uri.parse(`untitled:${join(directory, basename(sourceFile))}`);
+    const contents = await this.fs.readFile(sourceFile, 'utf-8');
+    const document = await vscode.workspace.openTextDocument(fileUri);
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(fileUri, new vscode.Position(0, 0), contents);
+    vscode.workspace.applyEdit(edit);
+    await vscode.window.showTextDocument(document);
   }
 
   /**
