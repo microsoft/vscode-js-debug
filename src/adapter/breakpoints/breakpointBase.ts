@@ -79,6 +79,15 @@ export type BreakpointCdpReference =
   | Readonly<IBreakpointCdpReferenceApplied>;
 
 export abstract class Breakpoint {
+  private isEnabled = false;
+
+  /**
+   * Returns whether this breakpoint is enabled.
+   */
+  public get enabled() {
+    return this.isEnabled;
+  }
+
   /**
    * Gets all CDP breakpoint IDs under which this breakpoint currently exists.
    */
@@ -142,9 +151,14 @@ export abstract class Breakpoint {
   }
 
   /**
-   * Sets the breakpoint in the provided thread.
+   * Sets the breakpoint in the provided thread and marks the "enabled" bit.
    */
-  public async set(thread: Thread): Promise<void> {
+  public async enable(thread: Thread): Promise<void> {
+    if (this.isEnabled) {
+      return;
+    }
+
+    this.isEnabled = true;
     const promises: Promise<void>[] = [
       // For breakpoints set before launch, we don't know whether they are in a compiled or
       // a source map source. To make them work, we always set by url to not miss compiled.
@@ -222,7 +236,15 @@ export abstract class Breakpoint {
       : lca.columnNumber - lcb.columnNumber;
   }
 
-  public async remove(): Promise<void> {
+  /**
+   * Removes the breakpoint from CDP and sets the "enabled" bit to false.
+   */
+  public async disable(): Promise<void> {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    this.isEnabled = false;
     const promises: Promise<unknown>[] = this.cdpBreakpoints.map(bp =>
       this.removeCdpBreakpoint(bp),
     );

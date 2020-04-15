@@ -10,7 +10,12 @@ const localize = nls.loadMessageBundle();
 
 @injectable()
 export class ManualTerminationConditionFactory implements ITerminationConditionFactory {
-  public readonly label = localize('profile.termination.manual.name', 'Until manually stopped');
+  public readonly sortOrder = 0;
+  public readonly label = localize('profile.termination.duration.label', 'Manual');
+  public readonly description = localize(
+    'profile.termination.duration.description',
+    'Run until manually stopped',
+  );
 
   public async onPick() {
     return new ManualTerminationCondition();
@@ -18,10 +23,6 @@ export class ManualTerminationConditionFactory implements ITerminationConditionF
 }
 
 class ManualTerminationCondition implements ITerminationCondition {
-  public attachTo() {
-    // no-op
-  }
-
   public dispose() {
     // no-op
   }

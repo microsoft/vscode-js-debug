@@ -7,8 +7,6 @@ import * as nls from 'vscode-nls';
 import { BreakpointManager } from '../breakpoints';
 import Dap from '../../dap/api';
 import { getDeferred } from '../../common/promiseUtil';
-import { Thread } from '../threads';
-import Cdp from '../../cdp/api';
 import { IBreakpointCondition } from './conditions';
 
 const localize = nls.loadMessageBundle();
@@ -76,7 +74,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * resolved, this will be fulfilled with the complete source location.
    */
   public async toDap(): Promise<Dap.Breakpoint> {
-    const location = this.getResolvedUiLocation();
+    const location = this.enabled && this.getResolvedUiLocation();
     if (location) {
       return {
         id: this.dapId,
@@ -92,21 +90,6 @@ export class UserDefinedBreakpoint extends Breakpoint {
       verified: false,
       message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`), // TODO: Put a useful message here
     };
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async updateUiLocations(
-    thread: Thread,
-    cdpId: Cdp.Debugger.BreakpointId,
-    resolvedLocations: Cdp.Debugger.Location[],
-  ) {
-    const hadPreviousLocation = !!this.getResolvedUiLocation();
-    await super.updateUiLocations(thread, cdpId, resolvedLocations);
-    if (!hadPreviousLocation) {
-      this.notifyResolved();
-    }
   }
 
   /**
@@ -148,13 +131,6 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * used for statistics and notifying the UI.
    */
   private async notifyResolved(): Promise<void> {
-    const location = this.getResolvedUiLocation();
-    if (location) {
-      await this._manager.notifyBreakpointResolved(
-        this.dapId,
-        location,
-        this.completedSet.hasSettled(),
-      );
-    }
+    await this._manager.notifyBreakpointChange(this, this.completedSet.hasSettled());
   }
 }

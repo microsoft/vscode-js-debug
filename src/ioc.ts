@@ -71,6 +71,7 @@ import { IDefaultBrowserProvider, DefaultBrowserProvider } from './common/defaul
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { IResourceProvider } from './adapter/resourceProvider';
+import { BreakpointManager } from './adapter/breakpoints';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -112,6 +113,8 @@ export const createTargetContainer = (
     .to(process.env.DA_TEST_DISABLE_TELEMETRY ? NullTelemetryReporter : DapTelemetryReporter)
     .inSingletonScope()
     .onActivation(trackDispose);
+
+  container.bind(BreakpointManager).toSelf().inSingletonScope();
 
   container.bind(SourceContainer).toSelf().inSingletonScope();
 

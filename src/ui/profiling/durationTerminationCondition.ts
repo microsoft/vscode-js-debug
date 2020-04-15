@@ -15,7 +15,12 @@ const localize = nls.loadMessageBundle();
 export class DurationTerminationConditionFactory implements ITerminationConditionFactory {
   private lastDuration = 10;
 
-  public readonly label = localize('profile.termination.manual.name', 'For a specific duration');
+  public readonly sortOrder = 1;
+  public readonly label = localize('profile.termination.duration.label', 'Duration');
+  public readonly description = localize(
+    'profile.termination.duration.description',
+    'Run for a specific amount of time',
+  );
 
   public async onPick() {
     const input = vscode.window.createInputBox();

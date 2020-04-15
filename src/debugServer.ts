@@ -12,7 +12,6 @@ import { Binder, IBinderDelegate } from './binder';
 import DapConnection from './dap/connection';
 import { DebugAdapter } from './adapter/debugAdapter';
 import Dap from './dap/api';
-import { generateBreakpointIds } from './adapter/breakpoints';
 import { IDisposable } from './common/disposable';
 import * as nls from 'vscode-nls';
 import { TargetOrigin } from './targets/targetOrigin';
@@ -27,6 +26,7 @@ class Configurator {
   private _setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   private _setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
   private _customBreakpoints = new Set<string>();
+  private lastBreakpointId = 0;
 
   constructor(dapPromise: Promise<Dap.Api>) {
     this._setBreakpointsParams = [];
@@ -35,7 +35,7 @@ class Configurator {
 
   _listen(dap: Dap.Api) {
     dap.on('setBreakpoints', async params => {
-      const ids = generateBreakpointIds(params);
+      const ids = params.breakpoints?.map(() => ++this.lastBreakpointId) ?? [];
       this._setBreakpointsParams.push({ params, ids });
       const breakpoints = ids.map(id => ({
         id,

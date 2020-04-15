@@ -28,6 +28,7 @@ import {
   serializeForClipboardTmpl,
   serializeForClipboard,
 } from './templates/serializeForClipboard';
+import { EventEmitter } from '../common/events';
 
 const localize = nls.loadMessageBundle();
 
@@ -132,12 +133,14 @@ export class Thread implements IVariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
-  private _smartStepper: SmartStepper;
+  private readonly _smartStepper: SmartStepper;
   private _expectedPauseReason?: { reason: PausedReason; description?: string };
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
+  private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
+  private readonly _dap: DeferredContainer<Dap.Api>;
 
-  private _dap: DeferredContainer<Dap.Api>;
+  public readonly onPaused = this._onPausedEmitter.event;
 
   constructor(
     sourceContainer: SourceContainer,
@@ -189,7 +192,7 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  async resume(): Promise<Dap.ContinueResult | Dap.Error> {
+  public async resume(): Promise<Dap.ContinueResult | Dap.Error> {
     this._sourceContainer.clearDisabledSourceMaps();
     if (!(await this._cdp.Debugger.resume({}))) {
       // We don't report the failure if the target wasn't paused. VS relies on this behavior.
@@ -200,7 +203,7 @@ export class Thread implements IVariableStoreDelegate {
     return { allThreadsContinued: false };
   }
 
-  async pause(): Promise<Dap.PauseResult | Dap.Error> {
+  public async pause(): Promise<Dap.PauseResult | Dap.Error> {
     if (await this._cdp.Debugger.pause({})) this._expectedPauseReason = { reason: 'pause' };
     else return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
     return {};
@@ -478,7 +481,7 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Network.enable({});
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
-    this._cdp.Debugger.on('resumed', () => this._onResumed());
+    this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
@@ -566,7 +569,7 @@ export class Thread implements IVariableStoreDelegate {
 
   _executionContextsCleared() {
     this._removeAllScripts();
-    if (this._pausedDetails) this._onResumed();
+    if (this._pausedDetails) this.onResumed();
     this._executionContexts.clear();
   }
 
@@ -660,7 +663,13 @@ export class Thread implements IVariableStoreDelegate {
     await this._onThreadPaused(this._pausedDetails);
   }
 
-  _onResumed() {
+  /**
+   * Called when CDP indicates that we resumed. This is marked as public since
+   * we also call this from the {@link ProfileController} when we disable
+   * the debugger domain (which continues the thread but doesn't result in
+   * a "resumed" event getting sent).
+   */
+  onResumed() {
     this._pausedDetails = undefined;
     this._pausedVariables = undefined;
     this.evaluator.setReturnedValue(undefined);
@@ -1304,8 +1313,9 @@ export class Thread implements IVariableStoreDelegate {
     slot(output);
   }
 
-  async _onThreadPaused(details: IPausedDetails) {
+  private async _onThreadPaused(details: IPausedDetails) {
     this._expectedPauseReason = undefined;
+    this._onPausedEmitter.fire(details);
 
     // If we hit breakpoints, try to make sure they all get resolved before we
     // send the event to the UI. This should generally only happen if the UI
@@ -1334,7 +1344,7 @@ export class Thread implements IVariableStoreDelegate {
     );
   }
 
-  _onThreadResumed() {
+  private _onThreadResumed() {
     this._dap.with(dap =>
       dap.continued({
         threadId: this.id,
@@ -1343,7 +1353,7 @@ export class Thread implements IVariableStoreDelegate {
     );
   }
 
-  async setScriptSourceMapHandler(
+  public async setScriptSourceMapHandler(
     pause: boolean,
     handler?: ScriptWithSourceMapHandler,
   ): Promise<void> {

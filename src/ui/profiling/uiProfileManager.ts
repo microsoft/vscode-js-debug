@@ -63,7 +63,7 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
-    const termination = await this.pickTermination();
+    const termination = await this.pickTermination(session);
     if (!termination) {
       return;
     }
@@ -242,7 +242,7 @@ export class UiProfileManager implements IDisposable {
   /**
    * Picks the termination condition to use for the session.
    */
-  private async pickTermination() {
+  private async pickTermination(session: vscode.DebugSession) {
     const chosen = await this.pickWithLastDefault(
       localize('profile.termination.title', 'How long to run the profile:'),
       this.terminationConditions,
@@ -252,19 +252,24 @@ export class UiProfileManager implements IDisposable {
       this.lastChosenTermination = chosen.label;
     }
 
-    return chosen?.onPick();
+    return chosen?.onPick(session);
   }
 
-  private async pickWithLastDefault<T extends { label: string; description?: string }>(
-    title: string,
-    items: ReadonlyArray<T>,
-    lastLabel?: string,
-  ): Promise<T | undefined> {
+  private async pickWithLastDefault<
+    T extends { label: string; description?: string; sortOrder?: number }
+  >(title: string, items: ReadonlyArray<T>, lastLabel?: string): Promise<T | undefined> {
     const quickpick = vscode.window.createQuickPick();
     quickpick.title = title;
     quickpick.items = items
-      .map(ctor => ({ label: ctor.label, description: ctor.description }))
-      .sort((a, b) => -(a.label === lastLabel) + +(b.label === lastLabel));
+      .slice()
+      .sort((a, b) => {
+        if (a.label === lastLabel || b.label === lastLabel) {
+          return a.label === lastLabel ? -1 : 1;
+        }
+
+        return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      })
+      .map(ctor => ({ label: ctor.label, description: ctor.description }));
 
     const chosen = await new Promise<string | undefined>(resolve => {
       quickpick.onDidAccept(() => resolve(quickpick.selectedItems[0]?.label));

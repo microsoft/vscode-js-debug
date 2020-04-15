@@ -69,7 +69,11 @@ export class UiProfileSession implements IDisposable {
     );
 
     try {
-      await session.customRequest('startProfile', { file, type: impl.type });
+      await session.customRequest('startProfile', {
+        file,
+        type: impl.type,
+        ...termination.customData,
+      });
     } catch (e) {
       vscode.window.showErrorMessage(e.message);
       termination.dispose();
@@ -99,7 +103,7 @@ export class UiProfileSession implements IDisposable {
       }),
     );
 
-    termination.attachTo(this);
+    termination.attachTo?.(this);
   }
 
   /**
