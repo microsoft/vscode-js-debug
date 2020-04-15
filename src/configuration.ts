@@ -637,6 +637,7 @@ export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
   port: 0,
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   runtimeExecutable: '${execPath}',
+  autoAttachChildProcesses: false,
 };
 
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
