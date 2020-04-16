@@ -1,38 +1,25 @@
-console.log('hi');console.log('hi2');
+const crypto = require('crypto');
+const micromatch = require('micromatch');
 
-const mm = require('./micromatch');
+function doBusyWork() {
+  let n = 0;
+  for (let i = 0; i < 10; i++) {
+    const input = crypto.randomBytes(8).toString('hex');
+    for (let i = 0; i < 200; i++) {
+      n += micromatch([input], [`${i}*`]).length;
+    }
+  }
 
-mm(['foo', 'bar', 'baz', 'qux'], ['f*', 'b*']);
-
-async function bar() {
-  return 42;
+  return n;
 }
 
-async function foo() {
-  const result1 = await bar();
-  const result2 = await bar();
-  console.log(result1 + result2);
-}
-
-function throwIt() {
-  setTimeout(() => {
-    throw new Error('Oh my!');
-  }, 0);
-}
-
-let counter = 0;
 setInterval(() => {
-  setTimeout(() => {
-    //console.log("a\nb\nc\nd" + (++counter));
-  }, 0);
-}, 2000);
+  const start = Date.now();
+  const busyStuff = doBusyWork();
+  console.log(`hello, took ${Date.now() - start}ms`);
+}, 100);
 
-console.log('Hello world!');
 
-var path = './.vscode/launch.json:4:2';
-console.log(path);
-var obj = {foo: path};
-console.log(obj);
-var arr = [path, obj];
-console.log(arr);
-foo();
+setTimeout(() => {
+  console.log('stop');
+}, 10000);

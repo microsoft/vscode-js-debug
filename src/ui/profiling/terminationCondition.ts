@@ -11,6 +11,7 @@ import { DebugSession } from 'vscode';
  * Item displayed to the user when picking when their profile should end.
  */
 export interface ITerminationConditionFactory {
+  readonly id: string;
   readonly label: string;
   readonly description?: string;
   readonly sortOrder: number;
@@ -19,7 +20,10 @@ export interface ITerminationConditionFactory {
    * Called when the user picks this termination factory. Can return undefined
    * to cancel the picking process.
    */
-  onPick(session: DebugSession): Promise<ITerminationCondition | undefined>;
+  onPick(
+    session: DebugSession,
+    ...args: ReadonlyArray<unknown>
+  ): Promise<ITerminationCondition | undefined>;
 }
 
 export const ITerminationConditionFactory = Symbol('ITerminationConditionFactory');

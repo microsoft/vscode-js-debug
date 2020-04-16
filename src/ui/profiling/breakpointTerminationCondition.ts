@@ -18,13 +18,18 @@ type BreakpointPickItem = { id: number } & vscode.QuickPickItem;
 @injectable()
 export class BreakpointTerminationConditionFactory implements ITerminationConditionFactory {
   public readonly sortOrder = 2;
+  public readonly id = 'breakpoint';
   public readonly label = localize('profile.termination.breakpoint.label', 'Pick Breakpoint');
   public readonly description = localize(
     'profile.termination.breakpoint.description',
     'Run until a specific breakpoint is hit',
   );
 
-  public async onPick(session: vscode.DebugSession) {
+  public async onPick(session: vscode.DebugSession, breakpointIds?: ReadonlyArray<number>) {
+    if (breakpointIds) {
+      return new BreakpointTerminationCondition(breakpointIds);
+    }
+
     const quickPick = vscode.window.createQuickPick<BreakpointPickItem>();
     quickPick.canSelectMany = true;
     quickPick.busy = true;

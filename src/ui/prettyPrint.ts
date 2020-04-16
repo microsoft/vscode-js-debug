@@ -113,7 +113,7 @@ class PrettyPrintSession implements IDisposable, vscode.DebugAdapterTracker {
    * @inheritdoc
    */
   public onDidSendMessage(message: DapMessage) {
-    if (message.type !== 'response' || message.command !== 'stackTrace') {
+    if (message.type !== 'response' || message.command !== 'stackTrace' || !message.body) {
       return;
     }
 

@@ -6,7 +6,7 @@ import { Event } from 'vscode';
 import { IDisposable } from '../../common/disposable';
 import Dap from '../../dap/api';
 import { AnyLaunchConfiguration } from '../../configuration';
-import { BasicCpuProfiler } from './basicProfiler';
+import { BasicCpuProfiler } from './basicCpuProfiler';
 import { inject, Container, injectable } from 'inversify';
 import { IContainer } from '../../ioc-extras';
 
