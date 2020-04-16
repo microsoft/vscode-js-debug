@@ -21,6 +21,53 @@ const localize = nls.loadMessageBundle();
 const isProfileCandidate = (session: vscode.DebugSession) =>
   '__pendingTargetId' in session.configuration;
 
+/**
+ * Arguments provided in the `startProfile` command.
+ */
+export interface IStartProfileArguments {
+  /**
+   * Session ID to capture. If not provided, the user may be asked to pick
+   * an available session.
+   */
+  sessionId?: string;
+  /**
+   * Type of profile to take. One of the "IProfiler.type" types. Currently,
+   * only 'cpu' is available. If not provided, the user will be asked to pick.
+   */
+  type?: string;
+  /**
+   * Termination condition. If not provided, the user will be asked to pick.
+   * Optionally pass arguments:
+   *  - `manual` takes no arguments
+   *  - `duration` takes a [number] of seconds
+   *  - `breakpoint` takes a `[Array<number>]` of DAP breakpoint IDs. These can
+   *    be found by calling the custom `getBreakpoints` method on a debug session.
+   */
+  termination?: string | { type: string; args?: ReadonlyArray<unknown> };
+
+  /**
+   * Command to run when the profile has completed. If not provided, the
+   * profile will be opened in a new untitled editor. The command will receive
+   * an `IProfileCallbackArguments` object.
+   */
+  onCompleteCommand?: string;
+}
+
+/**
+ * Arguments given to the `onCompleteCommand`.
+ */
+export interface IProfileCallbackArguments {
+  /**
+   * String contents of the profile.
+   */
+  contents: string;
+
+  /**
+   * Suggested file name of the profile.
+   */
+  basename: string;
+}
+
 @injectable()
 export class UiProfileManager implements IDisposable {
   private statusBarItem?: vscode.StatusBarItem;
@@ -38,11 +85,11 @@ export class UiProfileManager implements IDisposable {
   /**
    * Starts a profiling session.
    */
-  public async start(sessionId?: string) {
+  public async start(args: IStartProfileArguments) {
     let maybeSession: vscode.DebugSession | undefined;
     const candidates = [...this.tracker.sessions.values()].filter(isProfileCandidate);
-    if (sessionId) {
-      maybeSession = candidates.find(s => s.id === sessionId);
+    if (args.sessionId) {
+      maybeSession = candidates.find(s => s.id === args.sessionId);
     } else {
       maybeSession = await this.pickSession(candidates);
     }
@@ -59,12 +106,12 @@ export class UiProfileManager implements IDisposable {
       }
     }
 
-    const impl = await this.pickType(session);
+    const impl = await this.pickType(session, args.type);
     if (!impl) {
       return;
     }
 
-    const termination = await this.pickTermination(session);
+    const termination = await this.pickTermination(session, args.termination);
     if (!termination) {
       return;
     }
@@ -78,7 +125,7 @@ export class UiProfileManager implements IDisposable {
     uiSession.onStatusChange(() => this.updateStatusBar());
     uiSession.onStop(file => {
       if (file) {
-        this.openProfileFile(uiSession, session, file);
+        this.openProfileFile(args, session, file);
       }
 
       this.activeSessions.delete(uiSession);
@@ -126,23 +173,34 @@ export class UiProfileManager implements IDisposable {
    * when a session ends gracefully.
    */
   private async openProfileFile(
-    uiSession: UiProfileSession,
+    args: IStartProfileArguments,
     session: vscode.DebugSession,
     sourceFile: string,
   ) {
+    const contents = await this.fs.readFile(sourceFile, 'utf-8');
+    if (args.onCompleteCommand) {
+      return Promise.all([
+        vscode.commands.executeCommand(args.onCompleteCommand, {
+          contents,
+          basename: basename(sourceFile),
+        } as IProfileCallbackArguments),
+        this.fs.unlink(sourceFile),
+      ]);
+    }
+
     const directory =
       session.workspaceFolder?.uri.fsPath ??
       vscode.workspace.workspaceFolders?.[0].uri.fsPath ??
       homedir();
 
     const fileUri = vscode.Uri.parse(`untitled:${join(directory, basename(sourceFile))}`);
-    const contents = await this.fs.readFile(sourceFile, 'utf-8');
     const document = await vscode.workspace.openTextDocument(fileUri);
 
     const edit = new vscode.WorkspaceEdit();
     edit.insert(fileUri, new vscode.Position(0, 0), contents);
     vscode.workspace.applyEdit(edit);
     await vscode.window.showTextDocument(document);
+    await this.fs.unlink(sourceFile);
   }
 
   /**
@@ -227,8 +285,12 @@ export class UiProfileManager implements IDisposable {
   /**
    * Picks the profiler type to run in the session.
    */
-  private async pickType(session: vscode.DebugSession) {
+  private async pickType(session: vscode.DebugSession, suggestedType?: string) {
     const params = session.configuration as AnyLaunchConfiguration;
+    if (suggestedType) {
+      return ProfilerFactory.ctors.find(t => t.type === suggestedType && t.canApplyTo(params));
+    }
+
     const chosen = await this.pickWithLastDefault(
       localize('profile.type.title', 'Type of profile:'),
       ProfilerFactory.ctors.filter(ctor => ctor.canApplyTo(params)),
@@ -244,7 +306,17 @@ export class UiProfileManager implements IDisposable {
   /**
    * Picks the termination condition to use for the session.
    */
-  private async pickTermination(session: vscode.DebugSession) {
+  private async pickTermination(
+    session: vscode.DebugSession,
+    suggested: IStartProfileArguments['termination'],
+  ) {
+    if (suggested) {
+      const s = typeof suggested === 'string' ? { type: suggested } : suggested;
+      return this.terminationConditions
+        .find(t => t.id === s.type)
+        ?.onPick(session, ...(s.args ?? []));
+    }
+
     const chosen = await this.pickWithLastDefault(
       localize('profile.termination.title', 'How long to run the profile:'),
       this.terminationConditions,

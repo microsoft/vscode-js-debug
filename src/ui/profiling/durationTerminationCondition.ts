@@ -16,13 +16,18 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
   private lastDuration = 10;
 
   public readonly sortOrder = 1;
+  public readonly id = 'duration';
   public readonly label = localize('profile.termination.duration.label', 'Duration');
   public readonly description = localize(
     'profile.termination.duration.description',
     'Run for a specific amount of time',
   );
 
-  public async onPick() {
+  public async onPick(_session: vscode.DebugSession, duration?: number) {
+    if (duration) {
+      return new DurationTerminationCondition(duration * 1000);
+    }
+
     const input = vscode.window.createInputBox();
     input.title = localize(
       'profile.termination.duration.inputTitle',

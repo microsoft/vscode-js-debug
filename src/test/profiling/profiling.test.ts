@@ -11,8 +11,9 @@ import { promises as fs } from 'fs';
 import { delay } from '../../common/promiseUtil';
 import { stub, SinonSpy } from 'sinon';
 import * as vscode from 'vscode';
-import { DebugType, Contributions } from '../../common/contributionUtils';
+import { DebugType, Contributions, runCommand } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
+import { DisposableList } from '../../common/disposable';
 
 describe('profiling', () => {
   const cwd = join(testWorkspace, 'simpleNode');
@@ -278,6 +279,50 @@ describe('profiling', () => {
           label: 'profilePlayground.js:20:1',
         },
       ]);
+
+      breakpointPicker.dispose();
+
+      session.customRequest('disconnect', {});
+      await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
+    });
+
+    it('works with pure command API', async () => {
+      const callback = stub();
+      const disposable = new DisposableList();
+      disposable.push(vscode.commands.registerCommand('js-debug.test.callback', callback));
+      after(() => disposable.dispose());
+
+      vscode.debug.startDebugging(undefined, {
+        type: DebugType.Node,
+        request: 'launch',
+        name: 'test',
+        program: script,
+      });
+
+      const session = await new Promise<vscode.DebugSession>(resolve =>
+        vscode.debug.onDidStartDebugSession(s =>
+          '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
+        ),
+      );
+
+      await runCommand(vscode.commands, Contributions.StartProfileCommand, {
+        sessionId: session.id,
+        type: 'cpu',
+        termination: { type: 'manual' },
+        onCompleteCommand: 'js-debug.test.callback',
+      });
+
+      await delay(1000);
+
+      await runCommand(vscode.commands, Contributions.StopProfileCommand, session.id);
+
+      const args = await eventuallyOk(() => {
+        expect(callback.called).to.be.true;
+        return callback.getCall(0).args[0];
+      }, 2000);
+
+      expect(() => JSON.parse(args.contents)).to.not.throw;
+      expect(args.basename).to.match(/\.cpuprofile$/);
 
       session.customRequest('disconnect', {});
       await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));

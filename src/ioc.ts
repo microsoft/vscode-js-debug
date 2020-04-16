@@ -60,7 +60,7 @@ import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
 import { ICompletions, Completions } from './adapter/completions';
 import { IEvaluator, Evaluator } from './adapter/evaluator';
 import { ProfilerFactory, IProfilerFactory } from './adapter/profiling';
-import { BasicCpuProfiler } from './adapter/profiling/basicProfiler';
+import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { SourceContainer } from './adapter/sources';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';

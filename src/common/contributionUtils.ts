@@ -2,18 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import {
+import type {
   Command,
   WorkspaceConfiguration,
   WorkspaceFolder,
   commands,
   ConfigurationTarget,
 } from 'vscode';
-import {
+import type {
   ITerminalLaunchConfiguration,
   IChromeLaunchConfiguration,
   INodeAttachConfiguration,
 } from '../configuration';
+import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 
 export const enum Contributions {
   PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
@@ -92,7 +93,10 @@ export interface ICommandTypes {
   [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
   [Contributions.PrettyPrintCommand]: { args: []; out: void };
   [Contributions.EnlistExperimentCommand]: { args: []; out: void };
-  [Contributions.StartProfileCommand]: { args: [string | undefined]; out: void };
+  [Contributions.StartProfileCommand]: {
+    args: [string | undefined | IStartProfileArguments];
+    out: void;
+  };
   [Contributions.StopProfileCommand]: { args: [string | undefined]; out: void };
 }
 

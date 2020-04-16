@@ -14,8 +14,12 @@ export const registerProfilingCommand = (
   const manager = container.get(UiProfileManager);
 
   context.subscriptions.push(
-    registerCommand(vscode.commands, Contributions.StartProfileCommand, sessionId =>
-      manager.start(sessionId),
+    registerCommand(vscode.commands, Contributions.StartProfileCommand, sessionIdOrArgs =>
+      manager.start(
+        typeof sessionIdOrArgs === 'string'
+          ? { sessionId: sessionIdOrArgs }
+          : sessionIdOrArgs ?? {},
+      ),
     ),
     registerCommand(vscode.commands, Contributions.StopProfileCommand, sessionId =>
       manager.stop(sessionId),
