@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IRPCMetrics } from './classification';
+import { IRPCMetrics, IRPCMetricsAndErrorsMap } from './classification';
 
 /**
  * Batches reported metrics per method call, giving performance information.
@@ -32,8 +32,8 @@ export class ReporterBatcher {
    * Returns a summary of collected measurements taken
    * since the last flush() call.
    */
-  public flush() {
-    const results: IRPCMetrics[] = [];
+  public flush(): IRPCMetricsAndErrorsMap {
+    const results: IRPCMetricsAndErrorsMap = { errors: [] };
     for (const key in this.measurements) {
       const { times, errors } = this.measurements[key];
       const item: IRPCMetrics = {
@@ -44,7 +44,6 @@ export class ReporterBatcher {
         stddev: 0,
         count: times.length,
         failed: errors.length,
-        errors,
       };
 
       for (const t of times) {
@@ -58,7 +57,8 @@ export class ReporterBatcher {
       }
 
       item.stddev = Math.sqrt(item.stddev / (times.length - 1));
-      results.push(item);
+      results[item.operation] = item;
+      results[item.operation + '.errors'] = errors;
     }
 
     this.measurements = Object.create(null);

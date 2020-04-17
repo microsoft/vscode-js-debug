@@ -3,13 +3,15 @@
  *--------------------------------------------------------*/
 
 import { IDisposable } from '../common/disposable';
-import { LogFunctions, IRPCOperation } from './classification';
+import { LogFunctions, IRPCMetricsAndErrorsMap } from './classification';
 import Dap from '../dap/api';
 import { IEvent } from '../common/events';
 
 // For each logger that takes an IRPCOperation, an OpsBatchReporter
 export type Batchable = {
-  [K in keyof LogFunctions]: LogFunctions[K] extends (metrics: IRPCOperation) => void ? K : never;
+  [K in keyof LogFunctions]: LogFunctions[K] extends (metrics: IRPCMetricsAndErrorsMap) => void
+    ? K
+    : never;
 }[keyof LogFunctions];
 
 export interface ITelemetryReporter extends IDisposable {

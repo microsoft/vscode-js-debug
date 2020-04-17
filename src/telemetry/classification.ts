@@ -55,7 +55,10 @@ export interface IGlobalMetrics {
 }
 
 interface IRPCOperationClassification {
-  performance: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  [key: string]: {
+    classification: 'SystemMetaData' | 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
 }
 
 export interface IRPCMetrics {
@@ -66,7 +69,10 @@ export interface IRPCMetrics {
   stddev: number;
   count: number;
   failed: number;
-  errors: Error[];
+}
+
+export interface IRPCMetricsAndErrorsMap {
+  [key: string]: IRPCMetrics | Error[] | string | undefined;
 }
 
 export interface IRPCOperation {
@@ -176,17 +182,17 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     });
   }
 
-  const dapOperation = (metrics: IRPCOperation) =>
-    publicLog2<IGlobalMetrics & IRPCOperation, IRPCOperationClassification & IGlobalClassification>(
-      'js-debug/dap/operation',
-      { ...globalMetrics, ...metrics },
-    );
+  const dapOperation = (metrics: IRPCMetricsAndErrorsMap) =>
+    publicLog2<
+      IGlobalMetrics & IRPCMetricsAndErrorsMap,
+      IRPCOperationClassification & IGlobalClassification
+    >('js-debug/dap/operation', { ...globalMetrics, ...metrics });
 
-  const cdpOperation = (metrics: IRPCOperation) =>
-    publicLog2<IGlobalMetrics & IRPCOperation, IRPCOperationClassification & IGlobalClassification>(
-      'js-debug/cdp/operation',
-      { ...globalMetrics, ...metrics },
-    );
+  const cdpOperation = (metrics: IRPCMetricsAndErrorsMap) =>
+    publicLog2<
+      IGlobalMetrics & IRPCMetricsAndErrorsMap,
+      IRPCOperationClassification & IGlobalClassification
+    >('js-debug/cdp/operation', { ...globalMetrics, ...metrics });
 
   const error = (metrics: IErrorMetrics) =>
     publicLog2<IGlobalMetrics & IErrorMetrics, IErrorClassification & IGlobalClassification>(
