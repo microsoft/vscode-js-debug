@@ -7,7 +7,12 @@ import * as utils from '../../common/urlUtils';
 import * as fsUtils from '../../common/fsUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
-import { properResolve, fixDriveLetterAndSlashes, properRelative } from '../../common/pathUtils';
+import {
+  properResolve,
+  fixDriveLetterAndSlashes,
+  properRelative,
+  isSubdirectoryOf,
+} from '../../common/pathUtils';
 import { PathMapping } from '../../configuration';
 import { URL } from 'url';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
@@ -25,15 +30,28 @@ interface IOptions extends ISourcePathResolverOptions {
 
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
   absolutePathToUrl(absolutePath: string): string | undefined {
-    const baseUrl = this.options.baseUrl;
-    const webRoot = this.options.pathMapping['/'];
-
     absolutePath = path.normalize(absolutePath);
-    // Note: we do not check that absolutePath belongs to basePath to
-    // allow source map sources reference outside of web root.
-    if (!baseUrl || !webRoot) return utils.absolutePathToFileUrl(absolutePath);
-    const relative = path.relative(webRoot, absolutePath);
-    return utils.completeUrlEscapingRoot(baseUrl, utils.platformPathToUrlPath(relative));
+    const { baseUrl, pathMapping } = this.options;
+    if (!baseUrl) {
+      return utils.absolutePathToFileUrl(absolutePath);
+    }
+
+    const defaultMapping = ['/', pathMapping['/']] as const;
+    const bestMatch =
+      Object.entries(pathMapping)
+        .sort(([, directoryA], [, directoryB]) => directoryB.length - directoryA.length)
+        .find(([, directory]) => isSubdirectoryOf(directory, absolutePath)) || defaultMapping;
+    if (!bestMatch) {
+      return utils.absolutePathToFileUrl(absolutePath);
+    }
+
+    let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch[1], absolutePath));
+    const urlPrefix = bestMatch[0].replace(/\/$|^\//g, '');
+    if (urlPrefix) {
+      urlPath = urlPrefix + '/' + urlPath;
+    }
+
+    return utils.completeUrlEscapingRoot(baseUrl, urlPath);
   }
 
   async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {

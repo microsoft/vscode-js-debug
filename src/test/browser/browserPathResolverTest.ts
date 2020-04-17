@@ -3,12 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as fs from 'fs';
+import * as path from 'path';
 import { stub, SinonStub } from 'sinon';
 import { expect } from 'chai';
 import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
 import { fsModule } from '../../common/fsUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { Logger } from '../../common/logging/logger';
+import { testFixturesDir } from '../test';
 
 describe('browserPathResolver.urlToAbsolutePath', () => {
   let fsExistStub: SinonStub<[fs.PathLike, (cb: boolean) => void], void>;
@@ -22,6 +24,39 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
         default:
           throw Error(`Unknown path ${path}`);
       }
+    });
+  });
+
+  describe('absolutePathToUrl', () => {
+    const resolver = new BrowserSourcePathResolver(
+      {
+        pathMapping: {
+          '/': path.join(testFixturesDir, 'web'),
+          '/sibling': path.join(testFixturesDir, 'sibling-dir'),
+        },
+        clientID: 'vscode',
+        baseUrl: 'http://localhost:1234/',
+        sourceMapOverrides: defaultSourceMapPathOverrides(path.join(testFixturesDir, 'web')),
+        localRoot: null,
+        remoteRoot: null,
+        resolveSourceMapLocations: null,
+      },
+      Logger.null,
+    );
+
+    it('selects webRoot correctly', () => {
+      expect(
+        resolver.absolutePathToUrl(path.join(testFixturesDir, 'web', 'foo', 'bar.html')),
+      ).to.equal('http://localhost:1234/foo/bar.html');
+      expect(
+        resolver.absolutePathToUrl(path.join(testFixturesDir, 'sibling-dir', 'foo', 'bar.html')),
+      ).to.equal('http://localhost:1234/sibling/foo/bar.html');
+    });
+
+    it('falls back if not in any webroot', () => {
+      expect(resolver.absolutePathToUrl(path.join(testFixturesDir, 'foo', 'bar.html'))).to.equal(
+        'http://localhost:1234/../foo/bar.html',
+      );
     });
   });
 
