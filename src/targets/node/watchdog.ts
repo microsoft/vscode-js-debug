@@ -11,7 +11,6 @@ import { Logger } from '../../common/logging/logger';
 import { LogLevel, LogTag } from '../../common/logging';
 import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
-import { FileLogSink } from '../../common/logging/fileLogSink';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 
@@ -20,7 +19,9 @@ const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 const logger = new Logger();
 logger.setup({
   level: LogLevel.Info,
-  sinks: [new FileLogSink(require('path').join(require('os').homedir(), 'watchdog.txt'))],
+  sinks: [
+    /*new FileLogSink(require('path').join(require('os').homedir(), 'watchdog.txt'))*/
+  ],
 });
 
 installUnhandledErrorReporter(logger, new NullTelemetryReporter());

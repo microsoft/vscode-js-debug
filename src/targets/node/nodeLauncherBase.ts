@@ -30,6 +30,7 @@ import { ILogger } from '../../common/logging';
 import { inject, injectable } from 'inversify';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { IBootloaderEnvironment } from './bootloader/environment';
 
 /**
  * Telemetry received from the nested process.
@@ -264,7 +265,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     callbackFile?: string,
   ) {
     const baseEnv = this.getConfiguredEnvironment(params);
-    return baseEnv.merge({
+    const env = {
       NODE_INSPECTOR_IPC: serverAddress,
       NODE_INSPECTOR_PPID: '',
       // todo: look at reimplementing the filter
@@ -279,7 +280,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       VSCODE_DEBUGGER_FILE_CALLBACK: callbackFile,
       VSCODE_DEBUGGER_ONLY_ENTRYPOINT: params.autoAttachChildProcesses ? 'false' : 'true',
       ELECTRON_RUN_AS_NODE: null,
-    });
+    } as IBootloaderEnvironment;
+
+    return baseEnv.merge({ ...env });
   }
 
   /**
