@@ -54,7 +54,9 @@ export interface IGlobalMetrics {
   browser?: string;
 }
 
-interface IRPCOperationClassification {
+interface IRPCOperationClassification
+  extends IDAPOperationClassification,
+    ICDPOperationClassification {
   [key: string]: {
     classification: 'SystemMetaData' | 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
