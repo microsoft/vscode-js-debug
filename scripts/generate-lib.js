@@ -10,7 +10,6 @@ function writeCodeToFile(code, relativeFilePath) {
   const fileName = path.join(__dirname, relativeFilePath);
   fs.writeFileSync(
     fileName,
-    code,
     prettier.format(result.join('\n'), {
       parser: 'typescript',
       ...require('../package.json').prettier,
