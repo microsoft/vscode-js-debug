@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
-import { Contributions, runCommand } from '../common/contributionUtils';
+import { runCommand, Commands } from '../common/contributionUtils';
 import { readfile } from '../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
@@ -43,7 +43,7 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
     const { script } = quickPick.selectedItems[0];
     runCommand(
       vscode.commands,
-      Contributions.CreateDebuggerTerminal,
+      Commands.CreateDebuggerTerminal,
       `npm run ${script.name}`,
       script.directory,
     );

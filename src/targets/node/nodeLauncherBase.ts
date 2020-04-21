@@ -37,6 +37,11 @@ import { IBootloaderEnvironment } from './bootloader/environment';
  */
 export interface IProcessTelemetry {
   /**
+   * Process working directory.
+   */
+  cwd: string;
+
+  /**
    * Target process ID.
    */
   processId: number;

@@ -9,7 +9,7 @@ const logger = new Logger();
 logger.setup({
   level: LogLevel.Info,
   sinks: [
-    // new FileLogSink(require('path').join(require('os').homedir(), 'bootloader.txt'))
+    //new FileLogSink(require('path').join(require('os').homedir(), 'bootloader.txt'))
   ],
 });
 

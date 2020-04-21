@@ -5,7 +5,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { findOpenPort } from '../../common/findOpenPort';
 import * as vscode from 'vscode';
-import { Contributions, DebugType } from '../../common/contributionUtils';
+import { DebugType, Commands } from '../../common/contributionUtils';
 import { SinonSandbox, createSandbox } from 'sinon';
 import { eventuallyOk } from '../testIntegrationUtils';
 import { expect } from 'chai';
@@ -95,7 +95,7 @@ describe('pick and attach', () => {
       this.timeout(30 * 1000);
 
       const createQuickPick = sandbox.spy(vscode.window, 'createQuickPick');
-      vscode.commands.executeCommand(Contributions.AttachProcessCommand);
+      vscode.commands.executeCommand(Commands.AttachProcess);
 
       const picker = await eventuallyOk(() => {
         expect(createQuickPick.called).to.be.true;

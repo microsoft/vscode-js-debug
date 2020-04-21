@@ -41,9 +41,16 @@
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-profile-visualizer/packages/vscode-js-profile-table",
+        "--extensionDevelopmentPath=${workspaceFolder}/../vscode/extensions/debug-auto-launch",
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/**",
+        "!**/node_modules/**"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js",
       ],
       // "preLaunchTask": "npm: watch"
     },

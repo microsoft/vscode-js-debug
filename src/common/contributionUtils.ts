@@ -15,23 +15,28 @@ import type {
   INodeAttachConfiguration,
 } from '../configuration';
 import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
+import type { IAutoAttachInfo } from '../targets/node/bootloader/environment';
 
 export const enum Contributions {
-  PrettyPrintCommand = 'extension.NAMESPACE(node-debug).prettyPrint',
-  ToggleSkippingCommand = 'extension.NAMESPACE(node-debug).toggleSkippingFile',
-  PickProcessCommand = 'extension.NAMESPACE(node-debug).pickNodeProcess',
-  AttachProcessCommand = 'extension.NAMESPACE(node-debug).attachNodeProcess',
-  DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
-  CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
-
-  EnlistExperimentCommand = 'extension.js-debug.experimentEnlist',
-  AddCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
-  RemoveCustomBreakpointCommand = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
-  RemoveAllCustomBreakpointsCommand = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
-  StartProfileCommand = 'extension.NAMESPACE(node-debug).startProfile',
-  StopProfileCommand = 'extension.NAMESPACE(node-debug).stopProfile',
-
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
+}
+
+export const enum Commands {
+  AddCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
+  AttachProcess = 'extension.NAMESPACE(node-debug).attachNodeProcess',
+  AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
+  AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
+  AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
+  CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
+  DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
+  EnlistExperiment = 'extension.js-debug.experimentEnlist',
+  PickProcess = 'extension.NAMESPACE(node-debug).pickNodeProcess',
+  PrettyPrint = 'extension.NAMESPACE(node-debug).prettyPrint',
+  RemoveAllCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
+  RemoveCustomBreakpoint = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
+  StartProfile = 'extension.NAMESPACE(node-debug).startProfile',
+  StopProfile = 'extension.NAMESPACE(node-debug).stopProfile',
+  ToggleSkipping = 'extension.NAMESPACE(node-debug).toggleSkippingFile',
 }
 
 export const enum DebugType {
@@ -50,6 +55,29 @@ const debugTypes: { [K in DebugType]: null } = {
   [DebugType.Chrome]: null,
   [DebugType.Edge]: null,
 };
+
+const commandsObj: { [K in Commands]: null } = {
+  [Commands.AddCustomBreakpoints]: null,
+  [Commands.AttachProcess]: null,
+  [Commands.AutoAttachClearVariables]: null,
+  [Commands.AutoAttachSetVariables]: null,
+  [Commands.AutoAttachToProcess]: null,
+  [Commands.CreateDebuggerTerminal]: null,
+  [Commands.DebugNpmScript]: null,
+  [Commands.EnlistExperiment]: null,
+  [Commands.PickProcess]: null,
+  [Commands.PrettyPrint]: null,
+  [Commands.RemoveAllCustomBreakpoints]: null,
+  [Commands.RemoveCustomBreakpoint]: null,
+  [Commands.StartProfile]: null,
+  [Commands.StopProfile]: null,
+  [Commands.ToggleSkipping]: null,
+};
+
+/**
+ * Set of all known commands.
+ */
+export const allCommands: ReadonlySet<Commands> = new Set(Object.keys(commandsObj));
 
 /**
  * Set of all known debug types.
@@ -86,18 +114,21 @@ export interface IConfigurationTypes {
 }
 
 export interface ICommandTypes {
-  [Contributions.DebugNpmScript]: { args: [WorkspaceFolder?]; out: void };
-  [Contributions.PickProcessCommand]: { args: []; out: string | null };
-  [Contributions.AttachProcessCommand]: { args: []; out: void };
-  [Contributions.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
-  [Contributions.ToggleSkippingCommand]: { args: [string | number]; out: void };
-  [Contributions.PrettyPrintCommand]: { args: []; out: void };
-  [Contributions.EnlistExperimentCommand]: { args: []; out: void };
-  [Contributions.StartProfileCommand]: {
+  [Commands.DebugNpmScript]: { args: [WorkspaceFolder?]; out: void };
+  [Commands.PickProcess]: { args: []; out: string | null };
+  [Commands.AttachProcess]: { args: []; out: void };
+  [Commands.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
+  [Commands.ToggleSkipping]: { args: [string | number]; out: void };
+  [Commands.PrettyPrint]: { args: []; out: void };
+  [Commands.EnlistExperiment]: { args: []; out: void };
+  [Commands.StartProfile]: {
     args: [string | undefined | IStartProfileArguments];
     out: void;
   };
-  [Contributions.StopProfileCommand]: { args: [string | undefined]; out: void };
+  [Commands.StopProfile]: { args: [string | undefined]; out: void };
+  [Commands.AutoAttachSetVariables]: { args: []; out: { ipcAddress: string } };
+  [Commands.AutoAttachClearVariables]: { args: []; out: void };
+  [Commands.AutoAttachToProcess]: { args: [IAutoAttachInfo]; out: void };
 }
 
 /**

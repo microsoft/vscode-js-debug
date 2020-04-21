@@ -9,7 +9,7 @@
       "request": "launch",
       "trace": true,
       "name": "[Node] Launch program",
-      "program": "${workspaceFolder}/parent.js"
+      "program": "${workspaceFolder}/main.js"
     },
     {
       "type": "pwa-node",

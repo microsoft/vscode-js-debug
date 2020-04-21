@@ -8,7 +8,7 @@ import { createGlobalContainer } from './ioc';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
-import { Contributions, registerCommand, allDebugTypes } from './common/contributionUtils';
+import { registerCommand, allDebugTypes, Commands } from './common/contributionUtils';
 import { pickProcess, attachProcess } from './ui/processPicker';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
@@ -23,6 +23,7 @@ import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { toggleOnExperiment } from './ui/experimentEnlist';
 import { registerProfilingCommand } from './ui/profiling';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
+import { registerAutoAttach } from './ui/autoAttach';
 
 // eslint-disable-next-line
 const packageJson = require('../package.json');
@@ -42,11 +43,11 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(
-    registerCommand(vscode.commands, Contributions.DebugNpmScript, debugNpmScript),
-    registerCommand(vscode.commands, Contributions.PickProcessCommand, pickProcess),
-    registerCommand(vscode.commands, Contributions.AttachProcessCommand, attachProcess),
-    registerCommand(vscode.commands, Contributions.ToggleSkippingCommand, toggleSkippingFile),
-    registerCommand(vscode.commands, Contributions.EnlistExperimentCommand, toggleOnExperiment),
+    registerCommand(vscode.commands, Commands.DebugNpmScript, debugNpmScript),
+    registerCommand(vscode.commands, Commands.PickProcess, pickProcess),
+    registerCommand(vscode.commands, Commands.AttachProcess, attachProcess),
+    registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
+    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment),
   );
 
   context.subscriptions.push(
@@ -80,6 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   registerNpmScriptLens(context);
   registerProfilingCommand(context, services);
+  registerAutoAttach(context, services.get(DelegateLauncherFactory));
 }
 
 export function deactivate() {
