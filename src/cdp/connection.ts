@@ -101,8 +101,11 @@ export default class Connection {
       error = e;
     }
 
-    const duration = Number(process.hrtime.bigint() - receivedTime) / 1e6; // ns to ms
-    this.telemetryReporter.reportOperation('cdpOperation', eventName, duration, error);
+    // if eventName is undefined is because this is a response to a cdp request, so we don't report it
+    if (eventName) {
+      const duration = Number(process.hrtime.bigint() - receivedTime) / 1e6; // ns to ms
+      this.telemetryReporter.reportOperation('cdpOperation', eventName, duration, error);
+    }
   }
 
   _onTransportClose() {

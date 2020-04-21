@@ -58,7 +58,7 @@ export class DapTelemetryReporter implements ITelemetryReporter {
 
     if (this.batchFlushTimeout[key] === undefined) {
       this.batchFlushTimeout[key] = setTimeout(() => {
-        this.report(key, { performance: this.batchers[key].flush() });
+        this.report(key, this.batchers[key].flush());
         this.batchFlushTimeout[key] = undefined;
       }, DapTelemetryReporter.batchFlushInterval);
     }
@@ -83,9 +83,9 @@ export class DapTelemetryReporter implements ITelemetryReporter {
 
     const pending = Object.entries(this.batchFlushTimeout) as [Batchable, NodeJS.Timeout][];
     for (const [key, value] of pending) {
-      const performance = this.batchers[key].flush();
-      if (performance.length) {
-        this.report(key, { performance });
+      const metrics = this.batchers[key].flush();
+      if (metrics.length) {
+        this.report(key, metrics);
       }
 
       this.batchFlushTimeout[key] = undefined;
