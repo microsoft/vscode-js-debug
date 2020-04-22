@@ -154,14 +154,20 @@ export class VariableStore {
 
     const variables = await this._getObjectProperties(object);
     if (object.scopeRef) {
+      const existingVariables = new Set(variables.map(v => v.name));
       for (const extraProperty of object.extraProperties || [])
-        variables.push(
-          this._createVariable(
-            extraProperty.name,
-            object.wrap(extraProperty.name, extraProperty.value),
-            'propertyValue',
-          ),
-        );
+        /* Normally we add the "this" variable as en extra propertie because it's not included in the variables
+         * that come from v8. Blazor does include it, and we don't know what other CDP debuggers will do, so we
+         * avoid adding duplicated variables.
+         */
+        if (!existingVariables.has(extraProperty.name))
+          variables.push(
+            this._createVariable(
+              extraProperty.name,
+              object.wrap(extraProperty.name, extraProperty.value),
+              'propertyValue',
+            ),
+          );
       object.scopeVariables = variables;
     }
     return variables;
