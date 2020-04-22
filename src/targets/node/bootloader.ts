@@ -41,6 +41,12 @@ const telemetry: IProcessTelemetry = {
   }
 
   inspectOrQueue(env);
+
+  if (env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
+    bootloaderEnv.NODE_INSPECTOR_IPC = undefined;
+  } else {
+    env.NODE_INSPECTOR_PPID = String(process.pid);
+  }
 })();
 
 const enum Mode {
