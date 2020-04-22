@@ -883,6 +883,10 @@ export class Thread implements IVariableStoreDelegate {
           const isStopOnEntry =
             event.hitBreakpoints.length === 1 &&
             this._delegate.entryBreakpointId === event.hitBreakpoints[0];
+
+          if (!isStopOnEntry) {
+            this._breakpointManager.registerBreakpointsHit(event.hitBreakpoints);
+          }
           return {
             thread: this,
             stackTrace,
