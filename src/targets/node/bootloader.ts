@@ -67,7 +67,12 @@ function inspectOrQueue(env: IBootloaderEnvironment) {
     return;
   }
 
-  inspector.open(0, undefined, false); // first call to get the inspector.url()
+  // inspector.url() will be defined if --inspect is passed to the process.
+  // Don't call it again to avoid https://github.com/nodejs/node/issues/33012
+  const openedFromCli = inspector.url() !== undefined;
+  if (!openedFromCli) {
+    inspector.open(0, undefined, false); // first call to set the inspector.url()
+  }
 
   const info: IAutoAttachInfo = {
     ipcAddress: env.NODE_INSPECTOR_IPC || '',
@@ -100,7 +105,7 @@ function inspectOrQueue(env: IBootloaderEnvironment) {
     );
   }
 
-  inspector.open(0, undefined, true);
+  inspector.open(openedFromCli ? undefined : 0, undefined, true);
 }
 
 function isPipeAvailable(pipe?: string): pipe is string {

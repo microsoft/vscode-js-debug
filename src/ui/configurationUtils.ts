@@ -5,8 +5,8 @@
 import { ResolvingNodeLaunchConfiguration } from '../configuration';
 
 /**
- * Removes and handles any --inspect or --inspect-brk flags from the launch
- * configuration. These aren't needed and don't work with the new debugger.
+ * Removes any --inspect-brk flags from the launch configuration and sets
+ * stopOnEntry instead, otherwise we break inside the bootloader.
  */
 export function fixInspectFlags(config: ResolvingNodeLaunchConfiguration) {
   if (!config.runtimeArgs) {
@@ -15,14 +15,10 @@ export function fixInspectFlags(config: ResolvingNodeLaunchConfiguration) {
 
   const resolved: string[] = [];
   for (const arg of config.runtimeArgs) {
-    const flags = /^--inspect(-brk)?(=|$)/.exec(arg);
-    if (!flags) {
-      resolved.push(arg);
-    } else if (flags[1]) {
-      // --inspect-brk
+    if (/^--inspect-brk(=|$)/.test(arg)) {
       config.stopOnEntry = config.stopOnEntry || true;
     } else {
-      // simple --inspect, ignored
+      resolved.push(arg);
     }
   }
 

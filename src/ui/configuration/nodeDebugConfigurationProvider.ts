@@ -123,7 +123,7 @@ export class NodeConfigurationProvider extends BaseConfigurationProvider<AnyNode
         config.internalConsoleOptions = 'neverOpen';
       }
 
-      // remove manual --inspect flags, which are no longer needed and interfere
+      // remove manual --inspect-brk flags, which are no longer needed and interfere
       fixInspectFlags(config);
 
       // update outfiles to the nearest package root
