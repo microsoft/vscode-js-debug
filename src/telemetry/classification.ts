@@ -165,6 +165,7 @@ export interface ILaunchMetrics {
  */
 export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void) => {
   const globalMetrics: Partial<IGlobalMetrics> = {};
+  setJsDebugCommitId(globalMetrics);
 
   /**
    * Warning! The naming of this method is required to be exactly `publicLog2`
@@ -209,7 +210,6 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
   const browserVersion = (metrics: IBrowserVersionMetrics) => {
     globalMetrics.browser =
       (metrics.targetProject || metrics.targetProject) + '/' + metrics.targetVersion;
-    setJsDebugCommitId(globalMetrics);
 
     publicLog2<
       IGlobalMetrics & IBrowserVersionMetrics,
@@ -225,7 +225,6 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
 
   const nodeRuntime = (metrics: INodeRuntimeMetrics) => {
     globalMetrics.nodeVersion = metrics.version;
-    setJsDebugCommitId(globalMetrics);
 
     publicLog2<
       IGlobalMetrics & INodeRuntimeMetrics,
