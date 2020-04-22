@@ -14,7 +14,7 @@ import {
   Position,
   EventEmitter,
 } from 'vscode';
-import { readConfig, Contributions, Configuration, asCommand } from '../common/contributionUtils';
+import { readConfig, Configuration, asCommand, Commands } from '../common/contributionUtils';
 import { JSONVisitor, visit } from 'jsonc-parser';
 import { IDisposable } from '../common/disposable';
 import * as nls from 'vscode-nls';
@@ -71,7 +71,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
           new Range(tokens.scriptStart, tokens.scriptStart),
           asCommand({
             title,
-            command: Contributions.DebugNpmScript,
+            command: Commands.DebugNpmScript,
             arguments: [workspaceFolder],
           }),
         ),
@@ -85,7 +85,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             new Range(position, position),
             asCommand({
               title,
-              command: Contributions.CreateDebuggerTerminal,
+              command: Commands.CreateDebuggerTerminal,
               arguments: [`npm run ${name}`, workspaceFolder],
             }),
           ),

@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import { Container } from 'inversify';
-import { registerCommand, Contributions } from '../common/contributionUtils';
+import { registerCommand, Commands } from '../common/contributionUtils';
 import { UiProfileManager } from './profiling/uiProfileManager';
 
 export const registerProfilingCommand = (
@@ -14,15 +14,13 @@ export const registerProfilingCommand = (
   const manager = container.get(UiProfileManager);
 
   context.subscriptions.push(
-    registerCommand(vscode.commands, Contributions.StartProfileCommand, sessionIdOrArgs =>
+    registerCommand(vscode.commands, Commands.StartProfile, sessionIdOrArgs =>
       manager.start(
         typeof sessionIdOrArgs === 'string'
           ? { sessionId: sessionIdOrArgs }
           : sessionIdOrArgs ?? {},
       ),
     ),
-    registerCommand(vscode.commands, Contributions.StopProfileCommand, sessionId =>
-      manager.stop(sessionId),
-    ),
+    registerCommand(vscode.commands, Commands.StopProfile, sessionId => manager.stop(sessionId)),
   );
 };

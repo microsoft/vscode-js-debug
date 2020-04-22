@@ -5,96 +5,127 @@
 import 'reflect-metadata';
 
 import * as inspector from 'inspector';
-import { writeFileSync } from 'fs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
-import { LeaseFile } from './lease-file';
+import { LogTag } from '../../common/logging';
+import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
+import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
+import { checkAll } from './bootloader/filters';
+import { bootloaderEnv, IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
+import { bootloaderLogger } from './bootloader/logger';
+import { spawnSync } from 'child_process';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function debugLog(text: string) {
-  // require('fs').appendFileSync(require('path').join(require('os').homedir(), 'bootloader.txt'), `BOOTLOADER [${process.pid}] ${text}\n`);
-}
+const telemetry: IProcessTelemetry = {
+  cwd: process.cwd(),
+  processId: process.pid,
+  nodeVersion: process.version,
+  architecture: process.arch,
+};
 
-(function () {
-  debugLog('args: ' + process.argv.join(' '));
-  if (!process.env.NODE_INSPECTOR_IPC) return;
+(() => {
+  installUnhandledErrorReporter(bootloaderLogger, new NullTelemetryReporter());
 
-  const leaseFile = process.env.NODE_INSPECTOR_REQUIRE_LEASE;
-  if (leaseFile && !LeaseFile.isValid(leaseFile)) {
-    process.env.NODE_INSPECTOR_IPC = undefined; // save work for any children
+  const env = bootloaderEnv;
+  bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', { env, args: process.argv });
+  if (!checkAll(env)) {
+    env.NODE_INSPECTOR_IPC = undefined; // save work for any children
     return;
   }
 
-  // Electron support
-  // Do not enable for Electron and other hybrid environments.
-  try {
-    eval('window');
-    return;
-  } catch (e) {}
+  reportTelemetry();
 
-  // If we wanted to only debug the entrypoint, unset environment variables
-  // so that nested processes do not inherit them.
-  if (process.env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
-    process.env.NODE_OPTIONS = undefined;
+  if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {
+    env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
   }
 
-  if (process.env.VSCODE_DEBUGGER_FILE_CALLBACK) {
-    const data: IProcessTelemetry = {
-      processId: process.pid,
-      nodeVersion: process.version,
-      architecture: process.arch,
-    };
+  inspectOrQueue(env);
 
-    writeFileSync(process.env.VSCODE_DEBUGGER_FILE_CALLBACK, JSON.stringify(data));
-    delete process.env.VSCODE_DEBUGGER_FILE_CALLBACK;
-  }
-
-  // Do not run watchdog using electron executable, stick with the cli's one.
-  if (process.execPath.endsWith('node')) process.env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
-
-  let scriptName = '';
-  try {
-    scriptName = require.resolve(process.argv[1]);
-  } catch (e) {}
-
-  let waitForDebugger = true;
-  try {
-    waitForDebugger = new RegExp(process.env.NODE_INSPECTOR_WAIT_FOR_DEBUGGER || '').test(
-      scriptName,
-    );
-  } catch (e) {}
-
-  if (!waitForDebugger) return;
-
-  const ppid = process.env.NODE_INSPECTOR_PPID || '';
-  if (ppid === '' + process.pid) {
-    // When we have two of our bootloaders in NODE_OPTIONS,
-    // let the first one attach.
-    return;
-  }
-  process.env.NODE_INSPECTOR_PPID = '' + process.pid;
-
-  debugLog('args: ' + process.argv.join(' '));
-  inspector.open(0, undefined, false);
-
-  const info = {
-    ipcAddress: process.env.NODE_INSPECTOR_IPC,
-    pid: String(process.pid),
-    scriptName,
-    inspectorURL: inspector.url() as string,
-    waitForDebugger,
-    ppid,
-  };
-
-  debugLog('args: ' + process.argv.join(' '));
-  const execPath = process.env.NODE_INSPECTOR_EXEC_PATH || process.execPath;
-  debugLog('Spawning: ' + execPath);
-
-  spawnWatchdog(execPath, info);
-
-  if (waitForDebugger) {
-    debugLog('Will wait for debugger');
-    inspector.open(0, undefined, true);
-    debugLog('Got debugger');
+  if (env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
+    bootloaderEnv.NODE_INSPECTOR_IPC = undefined;
+  } else {
+    env.NODE_INSPECTOR_PPID = String(process.pid);
   }
 })();
+
+const enum Mode {
+  Immediate,
+  Deferred,
+  Inactive,
+}
+
+function inspectOrQueue(env: IBootloaderEnvironment) {
+  const mode = !isPipeAvailable(env.NODE_INSPECTOR_IPC)
+    ? Mode.Inactive
+    : env.NODE_INSPECTOR_DEFERRED_MODE === 'true'
+    ? Mode.Deferred
+    : Mode.Immediate;
+
+  bootloaderLogger.info(LogTag.Runtime, 'Set debug mode', { mode });
+  if (mode === Mode.Inactive) {
+    return;
+  }
+
+  inspector.open(0, undefined, false); // first call to get the inspector.url()
+
+  const info: IAutoAttachInfo = {
+    ipcAddress: env.NODE_INSPECTOR_IPC || '',
+    pid: String(process.pid),
+    telemetry,
+    scriptName: process.argv[1],
+    inspectorURL: inspector.url() as string,
+    waitForDebugger: true,
+    ppid: env.NODE_INSPECTOR_PPID || '',
+  };
+
+  if (mode === Mode.Immediate) {
+    spawnWatchdog(env.NODE_INSPECTOR_EXEC_PATH || process.execPath, info);
+  } else {
+    // The bootloader must call inspector.open() synchronously, which will block
+    // the event loop. Spawn the watchdog handoff in a new process to debug this.
+    spawnSync(
+      env.NODE_INSPECTOR_EXEC_PATH || process.execPath,
+      [
+        '-e',
+        `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC)` +
+          `.on("connect",()=>{c.write(process.env.NODE_INSPECTOR_INFO,'utf-8',()=>c.end())})`,
+      ],
+      {
+        env: {
+          NODE_INSPECTOR_INFO: JSON.stringify(info),
+          NODE_INSPECTOR_IPC: env.NODE_INSPECTOR_IPC,
+        },
+      },
+    );
+  }
+
+  inspector.open(0, undefined, true);
+}
+
+function isPipeAvailable(pipe?: string): pipe is string {
+  if (!pipe) {
+    return false;
+  }
+
+  try {
+    // normally we'd use l/stat, but doing so with pipes on windows actually
+    // triggers a 'connection', so do this instead...
+    return fs.readdirSync(path.dirname(pipe)).includes(path.basename(pipe));
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Adds process telemetry to the debugger file if necessary.
+ */
+function reportTelemetry() {
+  const callbackFile = bootloaderEnv.VSCODE_DEBUGGER_FILE_CALLBACK;
+  if (!callbackFile) {
+    return;
+  }
+
+  fs.writeFileSync(callbackFile, JSON.stringify(telemetry));
+  bootloaderEnv.VSCODE_DEBUGGER_FILE_CALLBACK = undefined;
+}

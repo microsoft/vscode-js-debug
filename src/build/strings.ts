@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { sortKeys } from '../common/objUtils';
-import { Contributions } from '../common/contributionUtils';
+import { Commands } from '../common/contributionUtils';
 
 const strings = {
   'attach.node.process': 'Attach to Node Process (preview)',
@@ -97,7 +97,9 @@ const strings = {
   'debug.terminal.program.description':
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
-  'debug.terminal.welcome': `[Node.js Debug Terminal](command:${Contributions.CreateDebuggerTerminal})\n\nYou can use the Node.js Debug Terminal to instantly debug JavaScript you run from the command line.`,
+  'debug.terminal.welcome': `[Node.js Debug Terminal](command:${Commands.CreateDebuggerTerminal})\n\nYou can use the Node.js Debug Terminal to instantly debug JavaScript you run from the command line.`,
+  'debug.terminal.toggleAuto': 'Toggle Terminal Node.js Auto Attach',
+  'debug.terminal.attach': 'Attach to Node.js Terminal Process',
 
   'node.pauseForSourceMap.description':
     'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',

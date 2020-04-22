@@ -11,7 +11,7 @@ import { promises as fs } from 'fs';
 import { delay } from '../../common/promiseUtil';
 import { stub, SinonSpy } from 'sinon';
 import * as vscode from 'vscode';
-import { DebugType, Contributions, runCommand } from '../../common/contributionUtils';
+import { DebugType, runCommand, Commands } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { DisposableList } from '../../common/disposable';
 
@@ -206,7 +206,7 @@ describe('profiling', () => {
 
   describe('ui', () => {
     const pickTermination = async (session: vscode.DebugSession, labelRe: RegExp) => {
-      vscode.commands.executeCommand(Contributions.StartProfileCommand, session.id);
+      vscode.commands.executeCommand(Commands.StartProfile, session.id);
 
       const typePicker = await eventuallyOk(() => {
         expect(createQuickPick.callCount).to.equal(1);
@@ -305,7 +305,7 @@ describe('profiling', () => {
         ),
       );
 
-      await runCommand(vscode.commands, Contributions.StartProfileCommand, {
+      await runCommand(vscode.commands, Commands.StartProfile, {
         sessionId: session.id,
         type: 'cpu',
         termination: { type: 'manual' },
@@ -314,7 +314,7 @@ describe('profiling', () => {
 
       await delay(1000);
 
-      await runCommand(vscode.commands, Contributions.StopProfileCommand, session.id);
+      await runCommand(vscode.commands, Commands.StopProfile, session.id);
 
       const args = await eventuallyOk(() => {
         expect(callback.called).to.be.true;

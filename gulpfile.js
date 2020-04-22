@@ -20,6 +20,7 @@ const execSync = require('child_process').execSync;
 const fs = require('fs');
 const cp = require('child_process');
 const util = require('util');
+const deepmerge = require('deepmerge');
 
 const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
@@ -138,7 +139,7 @@ gulp.task('compile:dynamic', async () => {
     runBuildScript('strings'),
   ]);
 
-  const packageJson = await readJson(`${buildDir}/package.json`);
+  let packageJson = await readJson(`${buildDir}/package.json`);
   packageJson.name = extensionId;
   if (isNightly) {
     const date = new Date();
@@ -148,7 +149,7 @@ gulp.task('compile:dynamic', async () => {
     await fixNightlyReadme();
   }
 
-  Object.assign(packageJson.contributes, contributions);
+  packageJson = deepmerge(packageJson, contributions);
 
   return Promise.all([
     writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson, null, 2)),

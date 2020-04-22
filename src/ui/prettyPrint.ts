@@ -8,9 +8,9 @@ import {
   DebugType,
   readConfig,
   Configuration,
-  Contributions,
   writeConfig,
   registerCommand,
+  Commands,
 } from '../common/contributionUtils';
 import Dap from '../dap/api';
 import { Message as DapMessage } from '../dap/transport';
@@ -29,9 +29,7 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
   public static register(tracker: DebugSessionTracker): PrettyPrintTrackerFactory {
     const factory = new PrettyPrintTrackerFactory(tracker);
     vscode.debug.registerDebugAdapterTrackerFactory(DebugType.Chrome, factory);
-    registerCommand(vscode.commands, Contributions.PrettyPrintCommand, () =>
-      factory.prettifyActive(),
-    );
+    registerCommand(vscode.commands, Commands.PrettyPrint, () => factory.prettifyActive());
 
     return factory;
   }

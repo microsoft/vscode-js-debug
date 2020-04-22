@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import {
-  Contributions,
   DebugType,
   IConfigurationTypes,
   Configuration,
+  allCommands,
+  Commands,
 } from '../common/contributionUtils';
 import {
   IMandatedConfiguration,
@@ -71,7 +72,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   program?: string;
   runtime?: string;
   languages?: string[];
-  variables?: { [key: string]: Contributions };
+  variables?: { [key: string]: Commands };
   required?: (keyof T)[];
   configurationSnippets: ({
     label: MappedReferenceString;
@@ -264,7 +265,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
   request: 'attach',
   label: refString('node.label'),
   variables: {
-    PickProcess: Contributions.PickProcessCommand,
+    PickProcess: Commands.PickProcess,
   },
   configurationSnippets: [
     {
@@ -374,7 +375,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
   request: 'launch',
   label: refString('node.label'),
   variables: {
-    PickProcess: Contributions.PickProcessCommand,
+    PickProcess: Commands.PickProcess,
   },
   configurationSnippets: [
     {
@@ -809,18 +810,18 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   },
 };
 
-function buildDebuggers() {
-  const debuggers = [
-    nodeAttachConfig,
-    nodeLaunchConfig,
-    nodeTerminalConfiguration,
-    extensionHostConfig,
-    chromeLaunchConfig,
-    chromeAttachConfig,
-    edgeLaunchConfig,
-    edgeAttachConfig,
-  ];
+const debuggers = [
+  nodeAttachConfig,
+  nodeLaunchConfig,
+  nodeTerminalConfiguration,
+  extensionHostConfig,
+  chromeLaunchConfig,
+  chromeAttachConfig,
+  edgeLaunchConfig,
+  edgeAttachConfig,
+];
 
+function buildDebuggers() {
   // eslint-disable-next-line
   const output: any[] = [];
   for (const d of debuggers) {
@@ -908,12 +909,79 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   },
 };
 
+const commands: ReadonlyArray<{
+  command: Commands;
+  title: MappedReferenceString;
+  category?: string;
+  icon?: string;
+}> = [
+  {
+    command: Commands.PrettyPrint,
+    title: refString('pretty.print.script'),
+    category: 'Debug',
+  },
+  {
+    command: Commands.ToggleSkipping,
+    title: refString('toggle.skipping.this.file'),
+    category: 'Debug',
+  },
+  {
+    command: Commands.AddCustomBreakpoints,
+    title: refString('add.browser.breakpoint'),
+    icon: '$(add)',
+  },
+  {
+    command: Commands.RemoveCustomBreakpoint,
+    title: refString('remove.browser.breakpoint'),
+    icon: '$(remove)',
+  },
+  {
+    command: Commands.RemoveAllCustomBreakpoints,
+    title: refString('remove.browser.breakpoint.all'),
+    icon: '$(close-all)',
+  },
+  {
+    command: Commands.AttachProcess,
+    title: refString('attach.node.process'),
+    category: 'Debug',
+  },
+  {
+    command: Commands.DebugNpmScript,
+    title: refString('debug.npm.script'),
+    category: 'Debug',
+  },
+  {
+    command: Commands.CreateDebuggerTerminal,
+    title: refString('debug.terminal.label'),
+    category: 'Debug',
+  },
+  {
+    command: Commands.StartProfile,
+    title: refString('profile.start'),
+    category: 'Debug',
+    icon: '$(circle-outline)',
+  },
+  {
+    command: Commands.StopProfile,
+    title: refString('profile.stop'),
+    category: 'Debug',
+    icon: 'resources/dark/stop-profiling.svg',
+  },
+];
+
 process.stdout.write(
   JSON.stringify({
-    debuggers: buildDebuggers(),
-    configuration: {
-      title: 'JavaScript Debugger',
-      properties: configurationSchema,
+    activationEvents: [
+      ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+      ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
+    ],
+    contributes: {
+      debuggers: buildDebuggers(),
+      commands,
+      configuration: {
+        title: 'JavaScript Debugger',
+        properties: configurationSchema,
+      },
     },
   }),
 );

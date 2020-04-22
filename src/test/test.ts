@@ -291,7 +291,7 @@ export class NodeTestHandle implements ITestHandle {
 
   waitForSource(filter?: string): Promise<Dap.LoadedSourceEventParams> {
     return this.dap.once('loadedSource', event => {
-      return filter === undefined || (event.source.path || '').indexOf(filter) !== -1;
+      return filter === undefined || forceForwardSlashes(event.source.path || '').includes(filter);
     });
   }
 

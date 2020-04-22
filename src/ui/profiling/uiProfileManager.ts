@@ -9,7 +9,7 @@ import { injectable, inject, multiInject } from 'inversify';
 import { ProfilerFactory } from '../../adapter/profiling';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
-import { Contributions } from '../../common/contributionUtils';
+import { Commands } from '../../common/contributionUtils';
 import { basename } from 'path';
 import { FS, FsPromises } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
@@ -213,7 +213,7 @@ export class UiProfileManager implements IDisposable {
 
     if (!this.statusBarItem) {
       this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 500);
-      this.statusBarItem.command = Contributions.StopProfileCommand;
+      this.statusBarItem.command = Commands.StopProfile;
     }
 
     vscode.commands.executeCommand('setContext', 'jsDebugIsProfiling', true);

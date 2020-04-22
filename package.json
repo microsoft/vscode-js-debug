@@ -106,6 +106,7 @@
     "chai-as-promised": "^7.1.1",
     "chai-string": "^1.5.0",
     "chai-subset": "^1.6.0",
+    "deepmerge": "^4.2.2",
     "del": "^5.1.0",
     "eslint": "^6.8.0",
     "eslint-plugin-header": "^3.0.0",
@@ -150,26 +151,7 @@
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
     "onDebugResolve:extensionHost",
-    "onDebugResolve:chrome",
-    "onDebugResolve:NAMESPACE(node)",
-    "onDebugResolve:NAMESPACE(node-terminal)",
-    "onCommand:extension.js-debug.experimentEnlist",
-    "onCommand:extension.NAMESPACE(node-debug).pickNodeProcess",
-    "onCommand:extension.NAMESPACE(node-debug).prettyPrint",
-    "onCommand:extension.NAMESPACE(node-debug).toggleSkippingFile",
-    "onCommand:extension.NAMESPACE(node-debug).attachNodeProcess",
-    "onCommand:extension.NAMESPACE(node-debug).startAutoAttach",
-    "onCommand:extension.NAMESPACE(node-debug).startWithStopOnEntry",
-    "onCommand:extension.NAMESPACE(node-debug).npmScript",
-    "onCommand:extension.NAMESPACE(node-debug).createDebuggerTerminal",
-    "onDebugResolve:NAMESPACE(chrome)",
-    "onCommand:extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
-    "onCommand:extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-    "onDebugResolve:NAMESPACE(msedge)",
-    "onDebugResolve:NAMESPACE(extensionHost)",
-    "onCommand:extension.NAMESPACE(node-debug).startProfile",
-    "onCommand:extension.NAMESPACE(node-debug).stopProfile"
+    "onDebugResolve:chrome"
   ],
   "extensionKind": [
     "workspace"
@@ -191,60 +173,6 @@
         "when": "debugStartLanguage == javascript || debugStartLanguage == typescript"
       }
     ],
-    "commands": [
-      {
-        "command": "extension.NAMESPACE(node-debug).prettyPrint",
-        "title": "%pretty.print.script%",
-        "category": "Debug"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).toggleSkippingFile",
-        "title": "%toggle.skipping.this.file%",
-        "category": "Debug"
-      },
-      {
-        "command": "extension.NAMESPACE(chrome-debug).addCustomBreakpoints",
-        "title": "%add.browser.breakpoint%",
-        "icon": "$(add)"
-      },
-      {
-        "command": "extension.NAMESPACE(chrome-debug).removeCustomBreakpoint",
-        "title": "%remove.browser.breakpoint%",
-        "icon": "$(remove)"
-      },
-      {
-        "command": "extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints",
-        "title": "%remove.browser.breakpoint.all%",
-        "icon": "$(close-all)"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).attachNodeProcess",
-        "title": "%attach.node.process%",
-        "category": "Debug"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).npmScript",
-        "title": "%debug.npm.script%",
-        "category": "Debug"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).createDebuggerTerminal",
-        "title": "%debug.terminal.label%",
-        "category": "Debug"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).startProfile",
-        "title": "%profile.start%",
-        "category": "Debug",
-        "icon": "$(circle-outline)"
-      },
-      {
-        "command": "extension.NAMESPACE(node-debug).stopProfile",
-        "title": "%profile.stop%",
-        "category": "Debug",
-        "icon": "resources/dark/stop-profiling.svg"
-      }
-    ],
     "menus": {
       "commandPalette": [
         {
@@ -260,7 +188,7 @@
         {
           "command": "extension.NAMESPACE(node-debug).stopProfile",
           "title": "%profile.stop%",
-          "when": "inDebugMode && debugType == NAMESPACE(chrome)"
+          "when": "inDebugMode && debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
         }
       ],
       "debug/callstack/context": [

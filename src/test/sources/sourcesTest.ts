@@ -117,7 +117,7 @@ describe('sources', () => {
   itIntegrates('allows module wrapper in node code', async ({ r }) => {
     const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'index.js'));
     handle.load();
-    handle.log(await handle.waitForSource('test'), undefined, []);
+    handle.log(await handle.waitForSource('moduleWrapper/index.js'), undefined, []);
     handle.assertLog();
   });
 

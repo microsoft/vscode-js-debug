@@ -10,7 +10,7 @@ import {
 } from '../adapter/customBreakpoints';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
-import { Contributions } from '../common/contributionUtils';
+import { Contributions, Commands } from '../common/contributionUtils';
 
 class Breakpoint {
   id: CustomBreakpointId;
@@ -93,7 +93,7 @@ export function registerCustomBreakpointsUI(
     treeDataProvider: provider,
   });
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.AddCustomBreakpointsCommand, () => {
+    vscode.commands.registerCommand(Commands.AddCustomBreakpoints, () => {
       const quickPick = vscode.window.createQuickPick();
       const items = provider.breakpoints.filter(b => !b.enabled);
       quickPick.items = items;
@@ -106,14 +106,14 @@ export function registerCustomBreakpointsUI(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(Contributions.RemoveAllCustomBreakpointsCommand, () => {
+    vscode.commands.registerCommand(Commands.RemoveAllCustomBreakpoints, () => {
       provider.removeBreakpoints(provider.breakpoints.filter(b => b.enabled).map(b => b.id));
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      Contributions.RemoveCustomBreakpointCommand,
+      Commands.RemoveCustomBreakpoint,
       (treeItem: vscode.TreeItem) => {
         provider.removeBreakpoints([treeItem.id as string]);
       },
