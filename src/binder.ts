@@ -375,6 +375,7 @@ export class Binder implements IDisposable {
     } else {
       dap.on('attach', startThread);
       dap.on('disconnect', async () => {
+        container.get<ITelemetryReporter>(ITelemetryReporter).flush();
         this._rootServices.get<ITelemetryReporter>(ITelemetryReporter).flush();
         if (target.canStop()) target.stop();
         return {};
