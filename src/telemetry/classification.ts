@@ -3,6 +3,8 @@
  *--------------------------------------------------------*/
 
 import Dap from '../dap/api';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /******************************************************************************
  * GDPR tooling definitions
@@ -47,11 +49,13 @@ export interface IGlobalProperties {
 interface IGlobalClassification {
   nodeVersion: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
   browser: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
+  jsDebugCommitId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
 }
 
 export interface IGlobalMetrics {
   nodeVersion?: string;
   browser?: string;
+  jsDebugCommitId?: string;
 }
 
 interface IRPCOperationClassification
@@ -161,6 +165,7 @@ export interface ILaunchMetrics {
  */
 export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void) => {
   const globalMetrics: Partial<IGlobalMetrics> = {};
+  setJsDebugCommitId(globalMetrics);
 
   /**
    * Warning! The naming of this method is required to be exactly `publicLog2`
@@ -220,6 +225,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
 
   const nodeRuntime = (metrics: INodeRuntimeMetrics) => {
     globalMetrics.nodeVersion = metrics.version;
+
     publicLog2<
       IGlobalMetrics & INodeRuntimeMetrics,
       INodeRuntimeClassification & IGlobalClassification
@@ -232,6 +238,19 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
       { ...globalMetrics, ...metrics, parameters: JSON.stringify(metrics.parameters) },
     );
   };
+
+  /**
+   * VS contains a file .gitcommit with the exact commit version being shipped.
+   * We want to be able to easily track which commit telemetry came from, specially to translate error call stacks
+   */
+  function setJsDebugCommitId(globalMetrics: IGlobalMetrics) {
+    try {
+      const filePath = path.resolve(path.dirname(__filename), '..', '..', '.gitcommit');
+      globalMetrics.jsDebugCommitId = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      // We don't do anything if we don't have the file, or can't read it
+    }
+  }
 
   return {
     breakpointStats,
