@@ -61,6 +61,8 @@ const strings = {
   'browser.port.description': 'Port to use for remote debugging the browser.',
   'browser.runtimeExecutable.description':
     "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.",
+  'browser.runtimeExecutable.edge.description':
+    "Either 'canary', 'stable', dev, 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.",
   'browser.skipFiles.description':
     'An array of file or folder names, or path globs, to skip when debugging.',
   'browser.smartStep.description':

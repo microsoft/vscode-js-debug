@@ -775,6 +775,11 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
   ],
   configurationAttributes: {
     ...chromeLaunchConfig.configurationAttributes,
+    runtimeExecutable: {
+      type: ['string', 'null'],
+      description: refString('browser.runtimeExecutable.edge.description'),
+      default: 'stable',
+    },
     useWebView: {
       type: 'boolean',
       description: refString('edge.useWebView.description'),
