@@ -90,7 +90,7 @@ export default class Connection {
 
     const session = this._sessions.get(object.sessionId || '');
     if (!session) {
-      throw new Error(`Unknown session id: ${object.sessionId}`);
+      throw new Error(`Unknown session id: ${object.sessionId} while processing: ${object.method}`);
     }
 
     const eventName = object.method;
