@@ -220,7 +220,7 @@ describe('NodeDebugConfigurationProvider', () => {
         name: '',
         request: 'launch',
         program: 'hello.js',
-        runtimeArgs: ['--inspect=8080', '-a', '--inspect-brk', '--b'],
+        runtimeArgs: ['-a', '--inspect-brk', '--b'],
       })) as INodeLaunchConfiguration;
 
       expect(result.runtimeArgs).to.deep.equal(['-a', '--b']);
@@ -234,7 +234,7 @@ describe('NodeDebugConfigurationProvider', () => {
         request: 'launch',
         program: 'hello.js',
         stopOnEntry: 'hello.js',
-        runtimeArgs: ['--inspect=8080', '-a', '--inspect-brk', '--b'],
+        runtimeArgs: ['-a', '--inspect-brk', '--b'],
       })) as INodeLaunchConfiguration;
 
       expect(result.runtimeArgs).to.deep.equal(['-a', '--b']);
