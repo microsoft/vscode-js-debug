@@ -21,7 +21,7 @@ export class DebugSessionTracker implements vscode.Disposable {
   public attach() {
     vscode.debug.onDidStartDebugSession(
       session => {
-        if (session.type === DebugType.Chrome && session.configuration.request === 'attach') {
+        if (session.type === DebugType.Chrome && !!session.configuration.__pendingTargetId) {
           this.sessions.set(session.id, session);
           this._onSessionAddedEmitter.fire(session);
         }

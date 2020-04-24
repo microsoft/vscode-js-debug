@@ -9,7 +9,7 @@ import { Container } from 'inversify';
 import { SessionManager, SessionLauncher } from '../sessionManager';
 import { StreamDapTransport } from '../dap/transport';
 import { pick } from '../common/objUtils';
-import { IChromeAttachConfiguration } from '../configuration';
+import { IPseudoAttachConfiguration } from '../configuration';
 
 const preservedProperties = [
   // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
@@ -62,7 +62,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
       const transport = new StreamDapTransport(socket, socket);
       this.sessionManager.createNewSession(
         debugSession,
-        debugSession.configuration as Partial<IChromeAttachConfiguration>,
+        debugSession.configuration as IPseudoAttachConfiguration,
         transport,
       );
     });

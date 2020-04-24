@@ -19,7 +19,9 @@ import { getDeferred } from './common/promiseUtil';
 import DapConnection from './dap/connection';
 import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
 import { Readable, Writable } from 'stream';
-import { IChromeAttachConfiguration } from './configuration';
+import { IPseudoAttachConfiguration } from './configuration';
+import { DebugConfiguration } from 'vscode';
+import { DebugType } from './common/contributionUtils';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -28,6 +30,7 @@ class VSDebugSession implements IDebugSessionLike {
     public id: string,
     name: string,
     private readonly childConnection: Promise<DapConnection>,
+    public readonly configuration: DebugConfiguration,
   ) {
     this._name = name;
   }
@@ -58,8 +61,12 @@ class VSSessionManager {
       this.buildVSSessionLauncher(),
     );
     this.rootTransport = new StreamDapTransport(inputStream, outputStream);
-    const root = this.createSession(undefined, 'rootSession', {});
-    root.debugSession.name = 'javascript debugger root session';
+    this.createSession(undefined, 'rootSession', {
+      type: DebugType.Chrome,
+      name: 'javascript debugger root session',
+      request: 'launch',
+      __pendingTargetId: '',
+    });
   }
 
   buildVSSessionLauncher(): SessionLauncher<VSDebugSession> {
@@ -80,14 +87,10 @@ class VSSessionManager {
     };
   }
 
-  createSession(
-    sessionId: string | undefined,
-    name: string,
-    config: Partial<IChromeAttachConfiguration>,
-  ) {
+  createSession(sessionId: string | undefined, name: string, config: IPseudoAttachConfiguration) {
     const deferredConnection = getDeferred<DapConnection>();
     const newSession = this.sessionManager.createNewSession(
-      new VSDebugSession(sessionId || 'root', name, deferredConnection.promise),
+      new VSDebugSession(sessionId || 'root', name, deferredConnection.promise, config),
       config,
       new SessionIdDapTransport(sessionId, this.rootTransport),
     );

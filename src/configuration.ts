@@ -470,6 +470,7 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
  */
 export interface IChromeLaunchConfiguration extends IChromiumLaunchConfiguration {
   type: DebugType.Chrome;
+  __pendingTargetId?: string;
 }
 
 /**
@@ -479,6 +480,16 @@ export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
   type: DebugType.Chrome;
   request: 'attach';
   __pendingTargetId?: string;
+}
+
+/**
+ * Fake 'attach' config used in the binder.
+ */
+export interface IPseudoAttachConfiguration {
+  type: DebugType.Chrome;
+  request: 'attach' | 'launch';
+  name: string;
+  __pendingTargetId: string;
 }
 
 /**

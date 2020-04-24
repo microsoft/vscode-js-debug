@@ -12,15 +12,17 @@ import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { ILogger } from './common/logging';
 import { Container } from 'inversify';
 import { createTopLevelSessionContainer } from './ioc';
-import { IChromeAttachConfiguration } from './configuration';
+import { IPseudoAttachConfiguration } from './configuration';
 import { IDapTransport } from './dap/transport';
+import { DebugConfiguration } from 'vscode';
 
 /**
  * Interface for abstracting the details of a particular (e.g. vscode vs VS) debug session
  */
 export interface IDebugSessionLike {
-  id: string;
+  readonly id: string;
   name: string;
+  readonly configuration: DebugConfiguration;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface IDebugSessionLike {
 export type SessionLauncher<T extends IDebugSessionLike> = (
   parentSession: Session<T>,
   target: ITarget,
-  config: Partial<IChromeAttachConfiguration>,
+  config: IPseudoAttachConfiguration,
 ) => void;
 
 /**
@@ -113,7 +115,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
    */
   public createNewSession(
     debugSession: TSessionImpl,
-    config: Partial<IChromeAttachConfiguration>,
+    config: IPseudoAttachConfiguration,
     transport: IDapTransport,
   ): Session<TSessionImpl> {
     let session: Session<TSessionImpl>;
@@ -181,10 +183,10 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       this._pendingTarget.set(target.id(), { target, parent: parentSession });
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
-      const config: Partial<IChromeAttachConfiguration> = {
+      const config: IPseudoAttachConfiguration = {
         type: DebugType.Chrome,
         name: target.name(),
-        request: 'attach',
+        request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),
       };
 

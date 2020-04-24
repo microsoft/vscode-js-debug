@@ -31,10 +31,6 @@ export class ChromeDebugConfigurationProvider
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingChromeConfiguration,
   ): Promise<AnyChromeConfiguration | null | undefined> {
-    if ('__pendingTargetId' in config) {
-      return config as AnyChromeConfiguration;
-    }
-
     if (!config.name && !config.type && !config.request) {
       const fromContext = this.createLaunchConfigFromContext();
       if (!fromContext) {

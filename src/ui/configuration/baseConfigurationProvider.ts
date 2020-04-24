@@ -50,6 +50,10 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
   ): Promise<T | null | undefined> {
+    if ('__pendingTargetId' in config) {
+      return config as T;
+    }
+
     const castConfig = config as ResolvingConfiguration<T>;
     try {
       const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
@@ -106,10 +110,6 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
    * Fulfills resolution common between all resolver configs.
    */
   protected commonResolution(config: T, folder: vscode.WorkspaceFolder | undefined): T {
-    if ('__pendingTargetId' in config) {
-      return config;
-    }
-
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
     if (folder) {
