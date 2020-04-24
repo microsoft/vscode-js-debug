@@ -53,7 +53,7 @@ export class DelegateLauncher implements ILauncher {
   public readonly onTargetListChanged = this.targets.onChanged;
 
   constructor(private readonly parentList: ObservableMap<number, IDelegateRef>) {
-    parentList.onAdd(ref => {
+    parentList.onAdd(([, ref]) => {
       // we don't need to recurse upwards for the parents, since we know we
       // will have previously seen and `add()`ed its direct parent.
       if (ref.parent && this.targets.get(ref.parent.id)) {

@@ -11,7 +11,7 @@ import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
 import { Commands } from '../../common/contributionUtils';
 import { basename } from 'path';
-import { FS, FsPromises } from '../../ioc-extras';
+import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
 import { ITerminationConditionFactory } from './terminationCondition';
 
@@ -77,6 +77,7 @@ export class UiProfileManager implements IDisposable {
   constructor(
     @inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker,
     @inject(FS) private readonly fs: FsPromises,
+    @inject(SessionSubStates) private readonly sessionStates: SessionSubStates,
     @multiInject(ITerminationConditionFactory)
     private readonly terminationConditions: ReadonlyArray<ITerminationConditionFactory>,
   ) {}
@@ -121,6 +122,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     this.activeSessions.add(uiSession);
+    this.sessionStates.add(session.id, localize('profile.sessionState', 'Profiling'));
     uiSession.onStatusChange(() => this.updateStatusBar());
     uiSession.onStop(file => {
       if (file) {
@@ -153,6 +155,7 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
+    this.sessionStates.remove(session.id);
     await uiSession.stop();
   }
 

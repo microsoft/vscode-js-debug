@@ -36,6 +36,7 @@ import {
   BrowserFinder,
   ExtensionLocation,
   IContainer,
+  SessionSubStates,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -72,6 +73,7 @@ import { ResourceProviderState } from './adapter/resourceProvider/resourceProvid
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { IResourceProvider } from './adapter/resourceProvider';
 import { BreakpointManager } from './adapter/breakpoints';
+import { ObservableMap } from './common/datastructure/observableMap';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -231,6 +233,7 @@ export const createGlobalContainer = (options: {
 
   container.bind(DelegateLauncherFactory).toSelf().inSingletonScope();
 
+  container.bind(SessionSubStates).toConstantValue(new ObservableMap());
   container.bind(IDefaultBrowserProvider).to(DefaultBrowserProvider).inSingletonScope();
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);

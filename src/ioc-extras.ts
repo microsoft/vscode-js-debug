@@ -5,6 +5,7 @@
 import { interfaces } from 'inversify';
 import { IDisposable } from './common/disposable';
 import { promises as fsPromises } from 'fs';
+import { ObservableMap } from './common/datastructure/observableMap';
 
 /**
  * The IOC container itself.
@@ -66,6 +67,18 @@ export const BrowserFinder = Symbol('IBrowserFinder');
  * Location the extension is running in.
  */
 export type ExtensionLocation = 'local' | 'remote';
+
+export type SessionSubStates = ObservableMap<string, string>;
+
+/**
+ * An ObservableMap<string, string> containing custom substates for sessions.
+ * This is used to add the "profiling" state to session names. Eventually, this
+ * handling may move to DAP.
+ *
+ * @see https://github.com/microsoft/vscode/issues/94812
+ * @see https://github.com/microsoft/debug-adapter-protocol/issues/108
+ */
+export const SessionSubStates = Symbol('SessionSubStates');
 
 const toDispose = new WeakMap<interfaces.Container, IDisposable[]>();
 

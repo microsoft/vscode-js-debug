@@ -231,6 +231,11 @@ describe('profiling', () => {
       acceptQuickPick.fire();
     };
 
+    const terminate = async (session: vscode.DebugSession) => {
+      session.customRequest('disconnect', {});
+      await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
+    };
+
     it('allows picking breakpoints', async () => {
       vscode.debug.addBreakpoints([
         new vscode.SourceBreakpoint(
@@ -286,11 +291,40 @@ describe('profiling', () => {
       await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
     });
 
+    it('sets substate correctly', async () => {
+      const disposable = new DisposableList();
+      disposable.push(vscode.commands.registerCommand('js-debug.test.callback', () => undefined));
+
+      vscode.debug.startDebugging(undefined, {
+        type: DebugType.Node,
+        request: 'launch',
+        name: 'test',
+        program: script,
+      });
+
+      const session = await new Promise<vscode.DebugSession>(resolve =>
+        vscode.debug.onDidStartDebugSession(s =>
+          '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
+        ),
+      );
+
+      await runCommand(vscode.commands, Commands.StartProfile, {
+        sessionId: session.id,
+        type: 'cpu',
+        termination: { type: 'manual' },
+      });
+
+      await eventuallyOk(() => expect(session.name).to.contain('Profiling'), 2000);
+      await runCommand(vscode.commands, Commands.StopProfile, session.id);
+      await eventuallyOk(() => expect(session.name).to.not.contain('Profiling'), 2000);
+      await terminate(session);
+      disposable.dispose();
+    });
+
     it('works with pure command API', async () => {
       const callback = stub();
       const disposable = new DisposableList();
       disposable.push(vscode.commands.registerCommand('js-debug.test.callback', callback));
-      after(() => disposable.dispose());
 
       vscode.debug.startDebugging(undefined, {
         type: DebugType.Node,
@@ -324,8 +358,8 @@ describe('profiling', () => {
       expect(() => JSON.parse(args.contents)).to.not.throw;
       expect(args.basename).to.match(/\.cpuprofile$/);
 
-      session.customRequest('disconnect', {});
-      await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
+      await terminate(session);
+      disposable.dispose();
     });
   });
 });

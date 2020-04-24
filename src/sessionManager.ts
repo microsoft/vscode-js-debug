@@ -15,6 +15,8 @@ import { createTopLevelSessionContainer } from './ioc';
 import { IPseudoAttachConfiguration } from './configuration';
 import { IDapTransport } from './dap/transport';
 import { DebugConfiguration } from 'vscode';
+import { SessionSubStates } from './ioc-extras';
+import { DisposableList } from './common/disposable';
 
 /**
  * Interface for abstracting the details of a particular (e.g. vscode vs VS) debug session
@@ -40,23 +42,39 @@ export type SessionLauncher<T extends IDebugSessionLike> = (
  */
 export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposable {
   public readonly connection: DapConnection;
-  private subscription?: IDisposable;
+  private readonly subscriptions = new DisposableList();
 
   constructor(
     public readonly debugSession: TSessionImpl,
     transport: IDapTransport,
     public readonly logger: ILogger,
+    public readonly sessionStates: SessionSubStates,
   ) {
     transport.setLogger(logger);
     this.connection = new DapConnection(transport, this.logger);
   }
 
   listenToTarget(target: ITarget) {
-    this.subscription = target.onNameChanged(() => (this.debugSession.name = target.name()));
+    this.subscriptions.push(
+      target.onNameChanged(() => this.setName(target)),
+      this.sessionStates.onAdd(
+        ([sessionId]) => sessionId === this.debugSession.id && this.setName(target),
+      ),
+      this.sessionStates.onRemove(
+        ([sessionId]) => sessionId === this.debugSession.id && this.setName(target),
+      ),
+    );
+
+    this.setName(target);
   }
 
   dispose() {
-    this.subscription?.dispose();
+    this.subscriptions.dispose();
+  }
+
+  private setName(target: ITarget) {
+    const substate = this.sessionStates.get(this.debugSession.id);
+    this.debugSession.name = substate ? `${target.name()} (${substate})` : target.name();
   }
 }
 
@@ -68,7 +86,7 @@ export class RootSession<TSessionImpl extends IDebugSessionLike> extends Session
     transport: IDapTransport,
     private readonly services: Container,
   ) {
-    super(debugSession, transport, services.get(ILogger));
+    super(debugSession, transport, services.get(ILogger), services.get(SessionSubStates));
     this.connection.attachTelemetry(services.get(ITelemetryReporter));
   }
 
@@ -128,7 +146,12 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       }
 
       const { target, parent } = pending;
-      session = new Session<TSessionImpl>(debugSession, transport, parent.logger);
+      session = new Session<TSessionImpl>(
+        debugSession,
+        transport,
+        parent.logger,
+        parent.sessionStates,
+      );
 
       this._pendingTarget.delete(pendingTargetId);
       session.debugSession.name = target.name();
