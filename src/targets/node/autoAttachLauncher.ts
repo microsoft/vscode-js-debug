@@ -5,13 +5,16 @@
 import { ITerminalLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import * as vscode from 'vscode';
 import { StubProgram } from './program';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { IRunData, NodeLauncherBase, IProcessTelemetry } from './nodeLauncherBase';
 import { DebugType } from '../../common/contributionUtils';
 import { IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
 import { spawnWatchdog } from './watchdogSpawn';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { ITarget } from '../targets';
+import { ExtensionContext } from '../../ioc-extras';
+import { INodePathProvider, NodePathProvider } from './nodePathProvider';
+import { ILogger } from '../../common/logging';
 
 const deferredSuffix = '.deferred';
 
@@ -24,11 +27,19 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   implements ITerminalLauncherLike {
   private telemetryItems = new Map<number, IProcessTelemetry>();
 
+  constructor(
+    @inject(INodePathProvider) pathProvider: NodePathProvider,
+    @inject(ILogger) logger: ILogger,
+    @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
+  ) {
+    super(pathProvider, logger);
+  }
+
   /**
    * Gets the address of the socket server that children must use to connect.
    */
   public get deferredSocketName() {
-    return vscode.window.getEnvironmentVariableCollection(true).get('NODE_INSPECTOR_IPC')?.value;
+    return this.extensionContext.environmentVariableCollection.get('NODE_INSPECTOR_IPC')?.value;
   }
 
   /**
@@ -55,13 +66,15 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    * Launches the program.
    */
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
-    const variables = vscode.window.getEnvironmentVariableCollection(true);
+    const variables = this.extensionContext.environmentVariableCollection;
     if (!variables.get('NODE_INSPECTOR_DEFERRED_MODE')) {
       const debugVars = this.resolveEnvironment(runData).defined() as Required<
         IBootloaderEnvironment
       >;
       debugVars.NODE_INSPECTOR_DEFERRED_MODE = 'true';
       debugVars.NODE_INSPECTOR_IPC = debugVars.NODE_INSPECTOR_IPC + deferredSuffix;
+
+      variables.persistent = true;
       for (const [key, value] of Object.entries(debugVars)) {
         variables.replace(key, value);
       }
@@ -89,8 +102,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     wd.on('exit', () => this.telemetryItems.delete(pid));
   }
 
-  public static clearVariables() {
-    const variables = vscode.window.getEnvironmentVariableCollection();
-    variables.clear();
+  public static clearVariables(context: vscode.ExtensionContext) {
+    context.environmentVariableCollection.clear();
   }
 }

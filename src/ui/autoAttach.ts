@@ -22,7 +22,7 @@ export function registerAutoAttach(
     }
 
     launcher = (async () => {
-      const inst = new AutoAttachLauncher(new NodePathProvider(), new Logger());
+      const inst = new AutoAttachLauncher(new NodePathProvider(), new Logger(), context);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {
@@ -53,7 +53,7 @@ export function registerAutoAttach(
       launcher.spawnForChild(info);
     }),
     registerCommand(vscode.commands, Commands.AutoAttachClearVariables, async () => {
-      AutoAttachLauncher.clearVariables();
+      AutoAttachLauncher.clearVariables(context);
     }),
   );
 }
