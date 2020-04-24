@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+require('source-map-support').install(); // Enable TypeScript stack traces translation
 import 'reflect-metadata';
 
 /**

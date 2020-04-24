@@ -185,6 +185,7 @@ async function runWebpack(packages) {
         filename: path.basename(entry),
         devtoolModuleFilenameTemplate: '../[resource-path]',
       },
+      devtool: 'nosources-source-map',
       resolve: {
         extensions: ['.js', '.json'],
       },
