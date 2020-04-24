@@ -16,3 +16,4 @@ demos/web-worker/vscode-pwa-cdp.log
 /testWorkspace/web/tmp
 /testWorkspace/**/debug.log
 /testWorkspace/webview/win/true/
+*.cpuprofile

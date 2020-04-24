@@ -10,10 +10,11 @@ import { ProfilerFactory } from '../../adapter/profiling';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
 import { Commands } from '../../common/contributionUtils';
-import { basename } from 'path';
+import { basename, join, extname } from 'path';
 import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
 import { ITerminationConditionFactory } from './terminationCondition';
+import { homedir } from 'os';
 
 const localize = nls.loadMessageBundle();
 
@@ -190,18 +191,31 @@ export class UiProfileManager implements IDisposable {
       ]);
     }
 
-    const targetFile = await vscode.window.showSaveDialog({
-      defaultUri: session.workspaceFolder?.uri.with({
-        path: session.workspaceFolder.uri.path + '/' + basename(sourceFile),
-      }),
-      filters: {
-        [uiSession.impl.label]: [uiSession.impl.extension.slice(1)],
-      },
-    });
+    const directory =
+      session.workspaceFolder?.uri.fsPath ??
+      vscode.workspace.workspaceFolders?.[0].uri.fsPath ??
+      homedir();
 
-    if (targetFile) {
-      this.fs.rename(sourceFile, targetFile.fsPath);
-    }
+    const now = new Date();
+    const filename =
+      [
+        'vscode-profile',
+        now.getFullYear(),
+        now.getMonth() + 1,
+        now.getDate(),
+        now.getHours(),
+        now.getMinutes(),
+        now.getSeconds(),
+      ]
+        .map(n => String(n).padStart(2, '0'))
+        .join('-') + extname(sourceFile);
+
+    // todo: open as untitled, see: https://github.com/microsoft/vscode/issues/93441
+    const fileUri = vscode.Uri.file(join(directory, filename));
+    await this.fs.rename(sourceFile, fileUri.fsPath);
+
+    const document = await vscode.workspace.openTextDocument(fileUri);
+    await vscode.window.showTextDocument(document);
   }
 
   /**
