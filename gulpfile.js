@@ -166,7 +166,7 @@ gulp.task('compile:static', () =>
 
 gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
 
-async function runWebpack(packages) {
+async function runWebpack(packages, devtool) {
   // add the entrypoints common to both vscode and vs here
   packages = [
     ...packages,
@@ -185,6 +185,7 @@ async function runWebpack(packages) {
         filename: path.basename(entry),
         devtoolModuleFilenameTemplate: '../[resource-path]',
       },
+      devtool: devtool,
       resolve: {
         extensions: ['.js', '.json'],
       },
@@ -227,13 +228,13 @@ async function runWebpack(packages) {
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
   const packages = [{ entry: `${buildSrcDir}/extension.js`, library: true }];
-  return runWebpack(packages);
+  return runWebpack(packages, undefined /* No sourcemaps */);
 });
 
 /** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
 gulp.task('flatSessionBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true }];
-  return runWebpack(packages);
+  return runWebpack(packages, /* Sourcemaps to convert stack traces to TS */ 'nosources-source-map');
 });
 
 /** Copy the extension static files */
