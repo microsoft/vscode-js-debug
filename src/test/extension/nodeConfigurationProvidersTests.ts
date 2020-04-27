@@ -6,14 +6,14 @@ import * as vscode from 'vscode';
 import { stub, SinonStub } from 'sinon';
 import { join } from 'path';
 import { expect } from 'chai';
-import { NodeConfigurationProvider } from '../../ui/configuration/nodeDebugConfigurationProvider';
+import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
 import { createFileTree, testFixturesDir } from '../test';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeLaunchConfiguration } from '../../configuration';
 
 describe('NodeDebugConfigurationProvider', () => {
-  let provider: NodeConfigurationProvider;
+  let provider: NodeConfigurationResolver;
   let nvmResolver: { resolveNvmVersionPath: SinonStub };
   const folder: vscode.WorkspaceFolder = {
     uri: vscode.Uri.file(testFixturesDir),
@@ -23,7 +23,7 @@ describe('NodeDebugConfigurationProvider', () => {
 
   beforeEach(() => {
     nvmResolver = { resolveNvmVersionPath: stub() };
-    provider = new NodeConfigurationProvider({ logPath: testFixturesDir } as any, nvmResolver);
+    provider = new NodeConfigurationResolver({ logPath: testFixturesDir } as any, nvmResolver);
     EnvironmentVars.platform = 'linux';
   });
 

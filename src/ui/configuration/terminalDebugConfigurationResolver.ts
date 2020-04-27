@@ -8,8 +8,8 @@ import {
   terminalBaseDefaults,
   ITerminalLaunchConfiguration,
 } from '../../configuration';
-import { BaseConfigurationProvider } from './baseConfigurationProvider';
-import { guessWorkingDirectory } from './nodeDebugConfigurationProvider';
+import { BaseConfigurationResolver } from './baseConfigurationResolver';
+import { guessWorkingDirectory } from './nodeDebugConfigurationResolver';
 import { DebugType } from '../../common/contributionUtils';
 
 /**
@@ -17,8 +17,8 @@ import { DebugType } from '../../common/contributionUtils';
  * close to 1:1 drop-in, this is nearly identical to the original vscode-
  * node-debug, with support for some legacy options (mern, useWSL) removed.
  */
-export class TerminalDebugConfigurationProvider
-  extends BaseConfigurationProvider<ITerminalLaunchConfiguration>
+export class TerminalDebugConfigurationResolver
+  extends BaseConfigurationResolver<ITerminalLaunchConfiguration>
   implements vscode.DebugConfigurationProvider {
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,

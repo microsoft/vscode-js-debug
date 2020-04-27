@@ -8,7 +8,7 @@ import {
   IExtensionHostConfiguration,
   ResolvingExtensionHostConfiguration,
 } from '../../configuration';
-import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { BaseConfigurationResolver } from './baseConfigurationResolver';
 import { injectable } from 'inversify';
 import { DebugType } from '../../common/contributionUtils';
 
@@ -16,8 +16,8 @@ import { DebugType } from '../../common/contributionUtils';
  * Configuration provider for Extension host debugging.
  */
 @injectable()
-export class ExtensionHostConfigurationProvider
-  extends BaseConfigurationProvider<IExtensionHostConfiguration>
+export class ExtensionHostConfigurationResolver
+  extends BaseConfigurationResolver<IExtensionHostConfiguration>
   implements vscode.DebugConfigurationProvider {
   protected async resolveDebugConfigurationAsync(
     _folder: vscode.WorkspaceFolder | undefined,

@@ -41,11 +41,6 @@
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out",
       ],
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/**",
-        "!**/node_modules/**"
-      ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js",
         "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js",

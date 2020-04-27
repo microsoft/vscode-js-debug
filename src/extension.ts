@@ -16,7 +16,7 @@ import { registerLongBreakpointUI } from './ui/longPredictionUI';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
-import { IDebugConfigurationProvider } from './ui/configuration';
+import { IDebugConfigurationResolver, IDebugConfigurationProvider } from './ui/configuration';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { tmpdir } from 'os';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
@@ -52,8 +52,23 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     ...services
+      .getAll<IDebugConfigurationResolver>(IDebugConfigurationResolver)
+      .map(provider =>
+        vscode.debug.registerDebugConfigurationProvider(
+          provider.type,
+          provider as vscode.DebugConfigurationProvider,
+        ),
+      ),
+
+    ...services
       .getAll<IDebugConfigurationProvider>(IDebugConfigurationProvider)
-      .map(provider => vscode.debug.registerDebugConfigurationProvider(provider.type, provider)),
+      .map(provider =>
+        vscode.debug.registerDebugConfigurationProvider(
+          provider.type,
+          provider as vscode.DebugConfigurationProvider,
+          provider.triggerKind,
+        ),
+      ),
   );
 
   const sessionManager = new VSCodeSessionManager(services);

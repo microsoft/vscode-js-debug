@@ -3540,6 +3540,13 @@ declare module 'vscode' {
 		parameters: ParameterInformation[];
 
 		/**
+		 * The index of the active parameter.
+		 *
+		 * If provided, this is used in place of [`SignatureHelp.activeSignature`](#SignatureHelp.activeSignature).
+		 */
+		activeParameter?: number;
+
+		/**
 		 * Creates a new signature information object.
 		 *
 		 * @param label A label string.
@@ -3692,7 +3699,9 @@ declare module 'vscode' {
 		Struct = 21,
 		Event = 22,
 		Operator = 23,
-		TypeParameter = 24
+		TypeParameter = 24,
+		User = 25,
+		Issue = 26,
 	}
 
 	/**
@@ -5509,6 +5518,26 @@ declare module 'vscode' {
 		 * @param value A value. MUST not contain cyclic references.
 		 */
 		update(key: string, value: any): Thenable<void>;
+	}
+
+	/**
+	 * Represents a color theme kind.
+	 */
+	export enum ColorThemeKind {
+		Light = 1,
+		Dark = 2,
+		HighContrast = 3
+	}
+
+	/**
+	 * Represents a color theme.
+	 */
+	export interface ColorTheme {
+
+		/**
+		 * The kind of this color theme: light, dark or high contrast.
+		 */
+		readonly kind: ColorThemeKind;
 	}
 
 	/**
@@ -7657,14 +7686,6 @@ declare module 'vscode' {
 		export function createTerminal(options: ExtensionTerminalOptions): Terminal;
 
 		/**
-		 * Register a [TerminalLinkHandler](#TerminalLinkHandler) that can be used to intercept and
-		 * handle links that are activated within terminals.
-		 * @param handler The link handler being registered.
-		 * @return A disposable that unregisters the link handler.
-		 */
-		export function registerTerminalLinkHandler(handler: TerminalLinkHandler): Disposable;
-
-		/**
 		 * Register a [TreeDataProvider](#TreeDataProvider) for the view contributed using the extension point `views`.
 		 * This will allow you to contribute data to the [TreeView](#TreeView) and update if the data changes.
 		 *
@@ -7733,6 +7754,17 @@ declare module 'vscode' {
 		 * @return Disposable that unregisters the provider.
 		 */
 		export function registerCustomEditorProvider(viewType: string, provider: CustomTextEditorProvider, options?: { readonly webviewOptions?: WebviewPanelOptions; }): Disposable;
+
+		/**
+		 * The currently active color theme as configured in the settings. The active
+		 * theme can be changed via the `workbench.colorTheme` setting.
+		 */
+		export let activeColorTheme: ColorTheme;
+
+		/**
+		 * An [event](#Event) which fires when the active color theme is changed or has changes.
+		 */
+		export const onDidChangeActiveColorTheme: Event<ColorTheme>;
 	}
 
 	/**
@@ -8141,6 +8173,7 @@ declare module 'vscode' {
 		 *   }
 		 * };
 		 * vscode.window.createTerminal({ name: 'Exit example', pty });
+		 * ```
 		 */
 		onDidClose?: Event<void | number>;
 
@@ -8222,21 +8255,6 @@ declare module 'vscode' {
 		 *   without providing an exit code.
 		 */
 		readonly code: number | undefined;
-	}
-
-	/**
-	 * Describes how to handle terminal links.
-	 */
-	export interface TerminalLinkHandler {
-		/**
-		 * Handles a link that is activated within the terminal.
-		 *
-		 * @param terminal The terminal the link was activated on.
-		 * @param link The text of the link activated.
-		 * @return Whether the link was handled, if the link was handled this link will not be
-		 * considered by any other extension or by the default built-in link handler.
-		 */
-		handleLink(terminal: Terminal, link: string): ProviderResult<boolean>;
 	}
 
 	/**
@@ -10109,13 +10127,13 @@ declare module 'vscode' {
 	}
 
 	/**
-	 * A debug configuration provider allows to add the initial debug configurations to a newly created launch.json
-	 * and to resolve a launch configuration before it is used to start a new debug session.
+	 * A debug configuration provider allows to add debug configurations to the debug service
+	 * and to resolve launch configurations before they are used to start a debug session.
 	 * A debug configuration provider is registered via #debug.registerDebugConfigurationProvider.
 	 */
 	export interface DebugConfigurationProvider {
 		/**
-		 * Provides initial [debug configuration](#DebugConfiguration). If more than one debug configuration provider is
+		 * Provides [debug configuration](#DebugConfiguration) to the debug service. If more than one debug configuration provider is
 		 * registered for the same type, debug configurations are concatenated in arbitrary order.
 		 *
 		 * @param folder The workspace folder for which the configurations are used or `undefined` for a folderless setup.
@@ -10518,7 +10536,6 @@ declare module 'vscode' {
 		 * An [event](#Event) that is emitted when the set of breakpoints is added, removed, or changed.
 		 */
 		export const onDidChangeBreakpoints: Event<BreakpointsChangeEvent>;
-
 
 		/**
 		 * Register a [debug configuration provider](#DebugConfigurationProvider) for a specific debug type.

@@ -8,13 +8,19 @@ import {
   AnyChromiumConfiguration,
   ResolvingConfiguration,
   IChromiumLaunchConfiguration,
+  AnyChromiumLaunchConfiguration,
 } from '../../configuration';
-import { NodeConfigurationProvider } from './nodeDebugConfigurationProvider';
+import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
 import { DebugType } from '../../common/contributionUtils';
-import { BaseConfigurationProvider } from './baseConfigurationProvider';
-import { TerminalDebugConfigurationProvider } from './terminalDebugConfigurationProvider';
+import { BaseConfigurationResolver } from './baseConfigurationResolver';
+import { TerminalDebugConfigurationResolver } from './terminalDebugConfigurationResolver';
 import { injectable, inject } from 'inversify';
 import { ExtensionContext, ExtensionLocation } from '../../ioc-extras';
+import { basename } from 'path';
+import * as nls from 'vscode-nls';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
+
+const localize = nls.loadMessageBundle();
 
 const isLaunch = (
   value: ResolvingConfiguration<unknown>,
@@ -24,22 +30,18 @@ const isLaunch = (
  * Configuration provider for Chrome debugging.
  */
 @injectable()
-export abstract class ChromiumDebugConfigurationProvider<T extends AnyChromiumConfiguration>
-  extends BaseConfigurationProvider<T>
+export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumConfiguration>
+  extends BaseConfigurationResolver<T>
   implements vscode.DebugConfigurationProvider {
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
-    @inject(NodeConfigurationProvider)
-    private readonly nodeProvider: NodeConfigurationProvider,
-    @inject(TerminalDebugConfigurationProvider)
-    private readonly terminalProvider: TerminalDebugConfigurationProvider,
+    @inject(NodeConfigurationResolver)
+    private readonly nodeProvider: NodeConfigurationResolver,
+    @inject(TerminalDebugConfigurationResolver)
+    private readonly terminalProvider: TerminalDebugConfigurationResolver,
     @inject(ExtensionLocation) private readonly location: ExtensionLocation,
   ) {
     super(context);
-
-    this.setProvideDefaultConfiguration(
-      () => this.createLaunchConfigFromContext() || this.getDefaultAttachment(),
-    );
   }
 
   protected async resolveBrowserCommon(
@@ -75,8 +77,41 @@ export abstract class ChromiumDebugConfigurationProvider<T extends AnyChromiumCo
       config.browserLaunchLocation = this.location === 'remote' ? 'ui' : 'workspace';
     }
   }
+}
 
-  protected abstract getDefaultAttachment(): ResolvingConfiguration<T>;
+@injectable()
+export abstract class ChromiumDebugConfigurationProvider<
+  T extends AnyChromiumLaunchConfiguration
+> extends BaseConfigurationProvider<T> {
+  protected provide() {
+    return this.createLaunchConfigFromContext() || this.getDefaultLaunch();
+  }
 
-  protected abstract createLaunchConfigFromContext(): ResolvingConfiguration<T> | void;
+  protected getTriggerKind() {
+    return vscode.DebugConfigurationProviderTrigger.Initial;
+  }
+
+  public createLaunchConfigFromContext() {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.languageId === 'html') {
+      return {
+        type: this.getType(),
+        request: 'launch',
+        name: `Open ${basename(editor.document.uri.fsPath)}`,
+        file: editor.document.uri.fsPath,
+      } as ResolvingConfiguration<T>;
+    }
+
+    return undefined;
+  }
+
+  protected getDefaultLaunch() {
+    return {
+      type: this.getType(),
+      request: 'launch',
+      name: localize('chrome.launch.name', 'Launch Chrome against localhost'),
+      url: 'http://localhost:8080',
+      webRoot: '${workspaceFolder}',
+    } as ResolvingConfiguration<T>;
+  }
 }

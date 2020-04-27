@@ -3,26 +3,26 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import {
   edgeAttachConfigDefaults,
   edgeLaunchConfigDefaults,
   ResolvingEdgeConfiguration,
   AnyEdgeConfiguration,
+  IEdgeLaunchConfiguration,
 } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
-import { basename } from 'path';
-import { ChromiumDebugConfigurationProvider } from './chromiumDebugConfigurationProvider';
+import {
+  ChromiumDebugConfigurationResolver,
+  ChromiumDebugConfigurationProvider,
+} from './chromiumDebugConfigurationProvider';
 import { injectable } from 'inversify';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Configuration provider for Chrome debugging.
  */
 @injectable()
-export class EdgeDebugConfigurationProvider
-  extends ChromiumDebugConfigurationProvider<AnyEdgeConfiguration>
+export class EdgeDebugConfigurationResolver
+  extends ChromiumDebugConfigurationResolver<AnyEdgeConfiguration>
   implements vscode.DebugConfigurationProvider {
   /**
    * @override
@@ -32,7 +32,7 @@ export class EdgeDebugConfigurationProvider
     config: ResolvingEdgeConfiguration,
   ): Promise<AnyEdgeConfiguration | undefined> {
     if (!config.name && !config.type && !config.request) {
-      const fromContext = this.createLaunchConfigFromContext();
+      const fromContext = new EdgeDebugConfigurationProvider().createLaunchConfigFromContext();
       if (!fromContext) {
         // Return null so it will create a launch.json and fall back on
         // provideDebugConfigurations - better to point the user towards
@@ -57,30 +57,15 @@ export class EdgeDebugConfigurationProvider
       : { ...edgeLaunchConfigDefaults, ...config };
   }
 
-  protected createLaunchConfigFromContext(): ResolvingEdgeConfiguration | void {
-    const editor = vscode.window.activeTextEditor;
-    if (editor && editor.document.languageId === 'html') {
-      return {
-        type: DebugType.Edge,
-        request: 'launch',
-        name: `Open ${basename(editor.document.uri.fsPath)}`,
-        file: editor.document.uri.fsPath,
-      };
-    }
-
-    return undefined;
+  protected getType() {
+    return DebugType.Edge as const;
   }
+}
 
-  protected getDefaultAttachment(): ResolvingEdgeConfiguration {
-    return {
-      type: DebugType.Edge,
-      request: 'launch',
-      name: localize('edge.launch.name', 'Launch Chrome against localhost'),
-      url: 'http://localhost:8080',
-      webRoot: '${workspaceFolder}',
-    };
-  }
-
+@injectable()
+export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<
+  IEdgeLaunchConfiguration
+> {
   protected getType() {
     return DebugType.Edge as const;
   }

@@ -4,11 +4,9 @@
 
 import { Container } from 'inversify';
 import {
-  ChromeDebugConfigurationProvider,
-  EdgeDebugConfigurationProvider,
-  ExtensionHostConfigurationProvider,
-  NodeConfigurationProvider,
-  TerminalDebugConfigurationProvider,
+  IDebugConfigurationResolver,
+  allConfigurationResolvers,
+  allConfigurationProviders,
   IDebugConfigurationProvider,
 } from './configuration';
 import { UiProfileManager } from './profiling/uiProfileManager';
@@ -21,19 +19,17 @@ import { ManualTerminationConditionFactory } from './profiling/manualTermination
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 
 export const registerUiComponents = (container: Container) => {
-  [
-    ChromeDebugConfigurationProvider,
-    EdgeDebugConfigurationProvider,
-    ExtensionHostConfigurationProvider,
-    NodeConfigurationProvider,
-    TerminalDebugConfigurationProvider,
-  ].forEach(cls => {
+  allConfigurationResolvers.forEach(cls => {
     container
       .bind(cls as { new (...args: unknown[]): unknown })
       .toSelf()
       .inSingletonScope();
-    container.bind(IDebugConfigurationProvider).to(cls);
+    container.bind(IDebugConfigurationResolver).to(cls);
   });
+
+  allConfigurationProviders.forEach(cls =>
+    container.bind(IDebugConfigurationProvider).to(cls).inSingletonScope(),
+  );
 
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
