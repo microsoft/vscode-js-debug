@@ -4,7 +4,7 @@
 
 import { injectable } from 'inversify';
 import { AnyLaunchConfiguration, ResolvingConfiguration } from '../../configuration';
-import { IDebugConfigurationProvider } from '.';
+import { IDebugConfigurationProvider } from './configurationProvider';
 import * as vscode from 'vscode';
 
 /**
@@ -47,7 +47,7 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
 
   protected abstract getType(): T['type'];
 
-  protected abstract getTriggerKind(): vscode.DebugConfigurationProviderTrigger;
+  protected abstract getTriggerKind(): vscode.DebugConfigurationProviderTriggerKind;
 
   protected abstract provide(
     folder: vscode.WorkspaceFolder | undefined,

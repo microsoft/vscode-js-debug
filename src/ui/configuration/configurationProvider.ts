@@ -33,7 +33,7 @@ export const IDebugConfigurationResolver = Symbol('IDebugConfigurationResolver')
 
 export interface IDebugConfigurationProvider {
   readonly type: string;
-  readonly triggerKind: vscode.DebugConfigurationProviderTrigger;
+  readonly triggerKind: vscode.DebugConfigurationProviderTriggerKind;
 
   /**
    * @see DebugConfigurationProvider.provideDebugConfigurations

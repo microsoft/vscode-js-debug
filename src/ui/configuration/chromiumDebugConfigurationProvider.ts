@@ -88,7 +88,7 @@ export abstract class ChromiumDebugConfigurationProvider<
   }
 
   protected getTriggerKind() {
-    return vscode.DebugConfigurationProviderTrigger.Initial;
+    return vscode.DebugConfigurationProviderTriggerKind.Initial;
   }
 
   public createLaunchConfigFromContext() {

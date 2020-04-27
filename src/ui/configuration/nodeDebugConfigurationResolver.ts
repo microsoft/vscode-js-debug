@@ -26,7 +26,7 @@ import { ExtensionContext } from '../../ioc-extras';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
 import { resolveProcessId } from '../processPicker';
-import { breakpointLanguages } from '.';
+import { breakpointLanguages } from './configurationProvider';
 
 const localize = nls.loadMessageBundle();
 

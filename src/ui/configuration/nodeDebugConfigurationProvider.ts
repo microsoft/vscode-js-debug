@@ -14,7 +14,7 @@ import {
   AnyResolvingConfiguration,
   AnyTerminalConfiguration,
 } from '../../configuration';
-import { breakpointLanguages } from '.';
+import { breakpointLanguages } from './configurationProvider';
 import { findScripts } from '../debugNpmScript';
 import { flatten } from '../../common/objUtils';
 
@@ -33,7 +33,7 @@ export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProv
   }
 
   protected getTriggerKind() {
-    return vscode.DebugConfigurationProviderTrigger.Initial;
+    return vscode.DebugConfigurationProviderTriggerKind.Initial;
   }
 }
 
@@ -57,7 +57,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   }
 
   protected getTriggerKind() {
-    return vscode.DebugConfigurationProviderTrigger.Dynamic;
+    return vscode.DebugConfigurationProviderTriggerKind.Dynamic;
   }
 
   /**
