@@ -54,6 +54,12 @@ export function registerAutoAttach(
     }),
     registerCommand(vscode.commands, Commands.AutoAttachClearVariables, async () => {
       AutoAttachLauncher.clearVariables(context);
+
+      const inst = await launcher;
+      if (inst) {
+        inst.terminate();
+        launcher = undefined;
+      }
     }),
   );
 }
