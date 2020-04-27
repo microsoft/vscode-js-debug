@@ -26,15 +26,9 @@ import { ExtensionContext } from '../../ioc-extras';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
 import { resolveProcessId } from '../processPicker';
-
-// eslint-disable-next-line
-const config = require('../../../package.json');
+import { breakpointLanguages } from '.';
 
 const localize = nls.loadMessageBundle();
-
-const breakpointLanguages: ReadonlyArray<string> = config.contributes.breakpoints.map(
-  (b: { language: string }) => b.language,
-);
 
 type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration

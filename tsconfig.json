@@ -11,7 +11,6 @@
     "noUnusedLocals": true,
     "experimentalDecorators": true,
     "alwaysStrict": true,
-    "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node", "chai-subset", "chai-as-promised", "mocha"]

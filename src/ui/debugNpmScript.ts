@@ -70,17 +70,22 @@ const updateEditCandidate = (existing: IEditCandidate, updated: IEditCandidate) 
 /**
  * Finds configured npm scripts in the workspace.
  */
-async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[] | void> {
+export async function findScripts(
+  inFolder?: vscode.WorkspaceFolder,
+  silent = false,
+): Promise<IScript[] | undefined> {
   const folders = inFolder ? [inFolder] : vscode.workspace.workspaceFolders;
 
   // 1. If there are no open folders, show an error and abort.
   if (!folders || folders.length === 0) {
-    vscode.window.showErrorMessage(
-      localize(
-        'debug.npm.noWorkspaceFolder',
-        'You need to open a workspace folder to debug npm scripts.',
-      ),
-    );
+    if (!silent) {
+      vscode.window.showErrorMessage(
+        localize(
+          'debug.npm.noWorkspaceFolder',
+          'You need to open a workspace folder to debug npm scripts.',
+        ),
+      );
+    }
     return;
   }
 
@@ -109,11 +114,13 @@ async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[]
     try {
       parsed = JSON.parse(await readfile(packageJson));
     } catch (e) {
-      promptToOpen(
-        'showWarningMessage',
-        localize('debug.npm.parseError', 'Could not read {0}: {1}', packageJson, e.message),
-        packageJson,
-      );
+      if (!silent) {
+        promptToOpen(
+          'showWarningMessage',
+          localize('debug.npm.parseError', 'Could not read {0}: {1}', packageJson, e.message),
+          packageJson,
+        );
+      }
       // set the candidate to 'undefined', since we already displayed an error
       // and if there are no other candidates then that alone is fine.
       editCandidate = updateEditCandidate(editCandidate, { path: undefined, score: 3 });
@@ -137,7 +144,7 @@ async function findScripts(inFolder?: vscode.WorkspaceFolder): Promise<IScript[]
   }
 
   if (scripts.length === 0) {
-    if (editCandidate.path) {
+    if (editCandidate.path && !silent) {
       promptToOpen(
         'showErrorMessage',
         localize('debug.npm.noScripts', 'No npm scripts found in your package.json'),

@@ -149,6 +149,7 @@
   "enableProposedApi": true,
   "activationEvents": [
     "onLanguage:json",
+    "onDebugDynamicConfigurations",
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
     "onDebugResolve:extensionHost",
