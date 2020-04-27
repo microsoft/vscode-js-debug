@@ -212,6 +212,16 @@
           "command": "extension.NAMESPACE(node-debug).stopProfile",
           "group": "navigation",
           "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).startProfile",
+          "group": "inline",
+          "when": " debugType == NAMESPACE(chrome) && !jsDebugIsProfiling"
+        },
+        {
+          "command": "extension.NAMESPACE(node-debug).stopProfile",
+          "group": "inline",
+          "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
         }
       ],
       "debug/toolBar": [
