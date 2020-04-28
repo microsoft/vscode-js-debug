@@ -13,7 +13,7 @@ import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { resolve, extname } from 'path';
 import Cdp from '../../cdp/api';
-import { NodePathProvider, INodePathProvider } from './nodePathProvider';
+import { NodeBinaryProvider, INodeBinaryProvider } from './nodeBinaryProvider';
 import { exists } from '../../common/fsUtils';
 import { LogTag, ILogger } from '../../common/logging';
 import { fixInspectFlags } from '../../ui/configurationUtils';
@@ -54,7 +54,7 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
 @injectable()
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   constructor(
-    @inject(INodePathProvider) pathProvider: NodePathProvider,
+    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
@@ -97,22 +97,23 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         this.program.stop(); // intentionally not awaited on
       }
 
+      const binary = await this.resolveNodePath(
+        runData.params,
+        runData.params.runtimeExecutable || undefined,
+      );
       const callbackFile = new CallbackFile<IProcessTelemetry>();
       const options: INodeLaunchConfiguration = {
         ...runData.params,
-        env: this.resolveEnvironment(runData, callbackFile.path).value,
+        env: this.resolveEnvironment(runData, binary.canUseSpacesInRequirePath, callbackFile.path)
+          .value,
       };
       const launcher = this.launchers.find(l => l.canLaunch(options));
       if (!launcher) {
         throw new Error('Cannot find an appropriate launcher for the given set of options');
       }
 
-      const binary = await this.resolveNodePath(
-        runData.params,
-        runData.params.runtimeExecutable || undefined,
-      );
       const program = (this.program = await launcher.launchProgram(
-        binary,
+        binary.path,
         options,
         runData.context,
       ));

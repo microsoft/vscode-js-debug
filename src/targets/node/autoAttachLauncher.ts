@@ -13,7 +13,7 @@ import { spawnWatchdog } from './watchdogSpawn';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { ITarget } from '../targets';
 import { ExtensionContext } from '../../ioc-extras';
-import { INodePathProvider, NodePathProvider } from './nodePathProvider';
+import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
 
 const deferredSuffix = '.deferred';
@@ -28,7 +28,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   private telemetryItems = new Map<number, IProcessTelemetry>();
 
   constructor(
-    @inject(INodePathProvider) pathProvider: NodePathProvider,
+    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
   ) {
@@ -68,7 +68,8 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
     const variables = this.extensionContext.environmentVariableCollection;
     if (!variables.get('NODE_INSPECTOR_DEFERRED_MODE')) {
-      const debugVars = this.resolveEnvironment(runData).defined() as Required<
+      const useSpaces = await this.canUseSpacesInBootloaderPath(runData.params);
+      const debugVars = this.resolveEnvironment(runData, useSpaces).defined() as Required<
         IBootloaderEnvironment
       >;
       debugVars.NODE_INSPECTOR_DEFERRED_MODE = 'true';
@@ -94,7 +95,8 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
 
     const pid = Number(data.pid ?? '0');
     this.telemetryItems.set(pid, data.telemetry);
-    const wd = spawnWatchdog(await this.resolveNodePath(this.run.params), {
+    const binary = await this.resolveNodePath(this.run.params);
+    const wd = spawnWatchdog(binary.path, {
       ...data,
       ipcAddress: this.run.serverAddress, // may be outdated from a previous set of vars
     });

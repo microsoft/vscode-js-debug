@@ -16,7 +16,7 @@ import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { delay } from '../../common/promiseUtil';
-import { NodePathProvider } from './nodePathProvider';
+import { NodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { IStopMetadata } from '../targets';
 import { injectable } from 'inversify';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
@@ -33,7 +33,7 @@ const localize = nls.loadMessageBundle();
 @injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
-    pathProvider: NodePathProvider,
+    pathProvider: NodeBinaryProvider,
     logger: ILogger,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
@@ -71,8 +71,9 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         }
       }
 
+      const binary = await this.resolveNodePath(runData.params);
       const program = (this.program = new SubprocessProgram(
-        spawnWatchdog(await this.resolveNodePath(runData.params), {
+        spawnWatchdog(binary.path, {
           ipcAddress: runData.serverAddress,
           scriptName: 'Remote Process',
           inspectorURL,
@@ -129,16 +130,17 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     // close, but this isn't reliable as it's always possible
     const leaseFile = new LeaseFile();
 
+    const binary = await this.resolveNodePath(run.params);
     const [telemetry] = await Promise.all([
       this.gatherTelemetry(cdp, run),
-      this.setEnvironmentVariables(cdp, run, leaseFile.path),
+      this.setEnvironmentVariables(cdp, run, leaseFile.path, binary),
     ]);
 
     if (telemetry && run.params.attachSpawnedProcesses) {
       watchAllChildren(
         {
           pid: telemetry.processId,
-          nodePath: await this.resolveNodePath(run.params),
+          nodePath: binary.path,
           hostname: run.params.address,
           ipcAddress: run.serverAddress,
         },
@@ -153,6 +155,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     cdp: Cdp.Api,
     run: IRunData<INodeAttachConfiguration>,
     leasePath: string,
+    binary: NodeBinary,
   ) {
     if (!run.params.attachSpawnedProcesses) {
       return;
@@ -163,7 +166,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = this.resolveEnvironment(run).merge({
+    const vars = this.resolveEnvironment(run, binary.canUseSpacesInRequirePath).merge({
       NODE_INSPECTOR_PPID: '0',
       NODE_INSPECTOR_REQUIRE_LEASE: leasePath,
     });

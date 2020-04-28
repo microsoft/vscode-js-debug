@@ -15,7 +15,7 @@ import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { injectable, inject } from 'inversify';
 import { FS, FsPromises } from '../../ioc-extras';
-import { INodePathProvider, NodePathProvider } from './nodePathProvider';
+import { INodeBinaryProvider, NodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
 
 class VSCodeTerminalProcess implements IProgram {
@@ -64,7 +64,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
   public readonly onTerminalCreated = this.terminalCreatedEmitter.event;
 
   constructor(
-    @inject(INodePathProvider) pathProvider: NodePathProvider,
+    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
   ) {
@@ -105,8 +105,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
     // Make sure that, if we can _find_ a in their path, it's the right
     // version so that we don't mysteriously never connect fail.
+    let binary: NodeBinary | undefined;
     try {
-      await this.resolveNodePath(runData.params);
+      binary = await this.resolveNodePath(runData.params);
     } catch (err) {
       if (err instanceof ProtocolError && err.cause.id === ErrorCodes.NodeBinaryOutOfDate) {
         throw err;
@@ -116,7 +117,11 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const terminal = vscode.window.createTerminal({
       name: runData.params.name,
       cwd: runData.params.cwd,
-      env: this.resolveEnvironment(runData, this.callbackFile).defined(),
+      env: this.resolveEnvironment(
+        runData,
+        binary?.canUseSpacesInRequirePath ?? true,
+        this.callbackFile,
+      ).defined(),
     });
     this.terminalCreatedEmitter.fire(terminal);
 

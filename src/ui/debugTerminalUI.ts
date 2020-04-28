@@ -11,7 +11,7 @@ import {
   Commands,
 } from '../common/contributionUtils';
 import { TerminalNodeLauncher, ITerminalLauncherLike } from '../targets/node/terminalNodeLauncher';
-import { NodePathProvider } from '../targets/node/nodePathProvider';
+import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { ITarget } from '../targets/targets';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import {
@@ -141,7 +141,7 @@ export function registerDebugTerminalUI(
     command?: string,
     workspaceFolder?: vscode.WorkspaceFolder,
   ) {
-    const launcher = new TerminalNodeLauncher(new NodePathProvider(), new Logger(), fs);
+    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(), new Logger(), fs);
     launcher.onTerminalCreated(terminal => {
       linkHandler.enableHandlingInTerminal(terminal);
     });

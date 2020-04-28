@@ -50,7 +50,8 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
       runData.context.cancellationToken,
     );
 
-    const wd = spawnWatchdog(await this.resolveNodePath(runData.params), {
+    const binary = await this.resolveNodePath(runData.params);
+    const wd = spawnWatchdog(binary.path, {
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
       inspectorURL,
@@ -98,7 +99,8 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
       return;
     }
 
-    const vars = this.resolveEnvironment(run).merge({
+    // We know VS Code uses Node 12 (right now) so spaces are gucci
+    const vars = this.resolveEnvironment(run, true).merge({
       NODE_INSPECTOR_PPID: '0',
     });
 

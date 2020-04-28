@@ -9,25 +9,36 @@ import { cannotFindNodeBinary, nodeBinaryOutOfDate, ProtocolError } from '../../
 import { spawnAsync } from '../../common/processUtils';
 import { injectable } from 'inversify';
 
-export const INodePathProvider = Symbol('INodePathProvider');
+export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
+
+/**
+ * DTO returned from the NodeBinaryProvider.
+ */
+export class NodeBinary {
+  public get canUseSpacesInRequirePath() {
+    return this.majorVersion ? this.majorVersion >= 12 : true;
+  }
+
+  constructor(public readonly path: string, public majorVersion: number | undefined) {}
+}
 
 /**
  * Utility that resolves a path to Node.js and validates
  * it's a debuggable version./
  */
 @injectable()
-export class NodePathProvider {
+export class NodeBinaryProvider {
   /**
    * A set of binary paths we know are good and which can skip additional
    * validation. We don't store bad mappings, because a user might reinstall
    * or upgrade node in-place after we tell them it's outdated.
    */
-  private readonly knownGoodMappings = new Set<string>();
+  private readonly knownGoodMappings = new Map<string, NodeBinary>();
 
   /**
    * Validates the path and returns an absolute path to the Node binary to run.
    */
-  public async resolveAndValidate(env: EnvironmentVars, executable = 'node'): Promise<string> {
+  public async resolveAndValidate(env: EnvironmentVars, executable = 'node'): Promise<NodeBinary> {
     const location =
       executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
     if (!location) {
@@ -36,13 +47,13 @@ export class NodePathProvider {
 
     // If the runtime executable doesn't look like Node.js (could be a shell
     // script that boots Node by itself, for instance) skip further validation.
-    if (basename(location) !== 'node' && basename(location) !== 'node.exe') {
-      return location;
+    if (!/^node(64)?(\.exe)?$/.test(basename(location))) {
+      return new NodeBinary(location, undefined);
     }
 
-    const knownGood = this.knownGoodMappings.has(location);
+    const knownGood = this.knownGoodMappings.get(location);
     if (knownGood) {
-      return location;
+      return knownGood;
     }
 
     // match the "12" in "v12.34.56"
@@ -52,8 +63,9 @@ export class NodePathProvider {
       throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));
     }
 
-    this.knownGoodMappings.add(location);
-    return location;
+    const entry = new NodeBinary(location, Number(majorVersion[1]));
+    this.knownGoodMappings.set(location, entry);
+    return entry;
   }
 
   public async getVersionText(binary: string) {

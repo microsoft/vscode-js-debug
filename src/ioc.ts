@@ -46,7 +46,7 @@ import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { NodeAttacher } from './targets/node/nodeAttacher';
 import { NodeLauncher } from './targets/node/nodeLauncher';
-import { INodePathProvider, NodePathProvider } from './targets/node/nodePathProvider';
+import { INodeBinaryProvider, NodeBinaryProvider } from './targets/node/nodeBinaryProvider';
 import { INvmResolver, NvmResolver } from './targets/node/nvmResolver';
 import { IProgramLauncher } from './targets/node/processLauncher';
 import { RestartPolicyFactory } from './targets/node/restartPolicy';
@@ -174,7 +174,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     )
     .inSingletonScope();
 
-  container.bind(INodePathProvider).to(NodePathProvider);
+  container.bind(INodeBinaryProvider).to(NodeBinaryProvider);
 
   // Launcher logic:
   container.bind(RestartPolicyFactory).toSelf();

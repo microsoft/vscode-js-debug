@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { NodePathProvider } from '../../targets/node/nodePathProvider';
+import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { join } from 'path';
 import { expect } from 'chai';
 import { testWorkspace } from '../test';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ProtocolError, ErrorCodes } from '../../dap/errors';
 
-describe('NodePathProvider', () => {
-  let p: NodePathProvider;
+describe('NodeBinaryProvider', () => {
+  let p: NodeBinaryProvider;
   const env = (name: string) =>
     EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider', name));
   const binaryLocation = (name: string) =>
@@ -21,7 +21,7 @@ describe('NodePathProvider', () => {
       process.platform === 'win32' ? 'node.exe' : 'node',
     );
 
-  beforeEach(() => (p = new NodePathProvider()));
+  beforeEach(() => (p = new NodeBinaryProvider()));
 
   it('rejects not found', async () => {
     try {
@@ -44,14 +44,16 @@ describe('NodePathProvider', () => {
   });
 
   it('resolves absolute paths', async () => {
-    expect(
-      await p.resolveAndValidate(EnvironmentVars.empty, binaryLocation('up-to-date')),
-    ).to.equal(binaryLocation('up-to-date'));
+    const binary = await p.resolveAndValidate(EnvironmentVars.empty, binaryLocation('up-to-date'));
+    expect(binary.path).to.equal(binaryLocation('up-to-date'));
+    expect(binary.majorVersion).to.equal(12);
+    expect(binary.canUseSpacesInRequirePath).to.be.true;
   });
 
   it('works if up to date', async () => {
-    expect(await p.resolveAndValidate(env('up-to-date'))).to.equal(binaryLocation('up-to-date'));
+    const binary = await p.resolveAndValidate(env('up-to-date'));
+    expect(binary.path).to.equal(binaryLocation('up-to-date'));
     // hit the cached path:
-    await p.resolveAndValidate(env('up-to-date'));
+    expect(await p.resolveAndValidate(env('up-to-date'))).to.equal(binary);
   });
 });

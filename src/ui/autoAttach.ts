@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { registerCommand, Commands } from '../common/contributionUtils';
 import { AutoAttachLauncher } from '../targets/node/autoAttachLauncher';
-import { NodePathProvider } from '../targets/node/nodePathProvider';
+import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { Logger } from '../common/logging/logger';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
@@ -22,7 +22,7 @@ export function registerAutoAttach(
     }
 
     launcher = (async () => {
-      const inst = new AutoAttachLauncher(new NodePathProvider(), new Logger(), context);
+      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new Logger(), context);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {
