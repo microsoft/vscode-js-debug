@@ -4,10 +4,12 @@
 
 import { ITerminationConditionFactory, ITerminationCondition } from './terminationCondition';
 import * as nls from 'vscode-nls';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import Dap from '../../dap/api';
+import { FS, FsPromises } from '../../ioc-extras';
+import { forceForwardSlashes } from '../../common/pathUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -25,6 +27,8 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     'Run until a specific breakpoint is hit',
   );
 
+  constructor(@inject(FS) private readonly fs: FsPromises) {}
+
   public async onPick(session: vscode.DebugSession, breakpointIds?: ReadonlyArray<number>) {
     if (breakpointIds) {
       return new BreakpointTerminationCondition(breakpointIds);
@@ -39,10 +43,13 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       quickPick.onDidHide(() => resolve());
       quickPick.show();
 
-      session.customRequest('getBreakpoints').then(({ breakpoints }) => {
-        quickPick.items = quickPick.selectedItems = this.getCandidates(breakpoints);
+      (async () => {
+        const { breakpoints } = await session.customRequest('getBreakpoints');
+        const candidates = await this.getCandidates(breakpoints);
+        quickPick.items = candidates;
+        quickPick.selectedItems = candidates;
         quickPick.busy = false;
-      });
+      })();
     });
 
     quickPick.dispose();
@@ -54,14 +61,17 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     return new BreakpointTerminationCondition(chosen.map(c => Number(c.id)));
   }
 
-  private getCandidates(breakpoints: Dap.Breakpoint[]): BreakpointPickItem[] {
+  private getCandidates(breakpoints: Dap.Breakpoint[]): Promise<BreakpointPickItem[]> {
     const filteredBps: {
       relpath: string;
       line: number;
       column: number;
       id: number;
+      lines?: Promise<string[]>;
       verified: boolean;
     }[] = [];
+
+    const fileLines = new Map<string, Promise<string[]>>();
 
     for (const breakpoint of breakpoints) {
       if (!breakpoint.source || !breakpoint.id) {
@@ -69,10 +79,13 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       }
 
       let relpath: string;
+      let lines: Promise<string[]> | undefined;
       if (!breakpoint.source.path) {
         relpath = `<unknown>${path.sep}${breakpoint.source.name}`;
       } else if (breakpoint.source.sourceReference === 0 && breakpoint.source.path) {
         const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(breakpoint.source.path));
+        lines = fileLines.get(breakpoint.source.path) || this.getFileLines(breakpoint.source.path);
+        fileLines.set(breakpoint.source.path, lines);
         relpath = folder
           ? path.relative(folder.uri.fsPath, breakpoint.source.path)
           : breakpoint.source.path;
@@ -82,6 +95,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
 
       filteredBps.push({
         relpath,
+        lines,
         verified: breakpoint.verified,
         id: breakpoint.id,
         line: breakpoint.line ?? 1,
@@ -89,19 +103,30 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       });
     }
 
-    return filteredBps
-      .sort(
-        (a, b) =>
-          boolToInt(b.verified) - boolToInt(a.verified) ||
-          a.relpath.localeCompare(b.relpath) ||
-          a.line - b.line ||
-          a.column - b.column,
-      )
-      .map(c => ({
-        id: c.id,
-        label: [path.basename(c.relpath), c.line, c.column].join(':'),
-        description: c.relpath,
-      }));
+    return Promise.all(
+      filteredBps
+        .sort(
+          (a, b) =>
+            boolToInt(b.verified) - boolToInt(a.verified) ||
+            a.relpath.localeCompare(b.relpath) ||
+            a.line - b.line ||
+            a.column - b.column,
+        )
+        .map(async c => ({
+          id: c.id,
+          label: [forceForwardSlashes(c.relpath), c.line, c.column].join(':'),
+          description: (await c.lines)?.[c.line - 1].trim(),
+        })),
+    );
+  }
+
+  private async getFileLines(path: string): Promise<string[]> {
+    try {
+      const contents = await this.fs.readFile(path, 'utf-8');
+      return contents.split('\n');
+    } catch {
+      return [];
+    }
   }
 }
 

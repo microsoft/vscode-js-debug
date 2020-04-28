@@ -285,10 +285,12 @@ describe('profiling', () => {
 
       expect(breakpointPicker.items).to.containSubset([
         {
-          label: 'profilePlayground.js:6:16',
+          description: 'for (let i = 0; i < 10; i++) {',
+          label: 'testWorkspace/simpleNode/profilePlayground.js:6:16',
         },
         {
-          label: 'profilePlayground.js:20:1',
+          description: 'setInterval(() => {',
+          label: 'testWorkspace/simpleNode/profilePlayground.js:20:1',
         },
       ]);
 
