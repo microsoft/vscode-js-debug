@@ -66,7 +66,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.debug.registerDebugConfigurationProvider(
           provider.type,
           provider as vscode.DebugConfigurationProvider,
-          provider.triggerKind,
+          vscode.DebugConfigurationProviderTriggerKind !== undefined
+            ? provider.triggerKind
+            : undefined,
         ),
       ),
   );
