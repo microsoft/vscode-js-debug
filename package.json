@@ -207,12 +207,12 @@
         {
           "command": "extension.NAMESPACE(node-debug).startProfile",
           "group": "navigation",
-          "when": "debugType == NAMESPACE(chrome) && !jsDebugIsProfiling"
+          "when": "debugType == NAMESPACE(chrome) && !jsDebugIsProfiling && callStackItemType == 'session'"
         },
         {
           "command": "extension.NAMESPACE(node-debug).stopProfile",
           "group": "navigation",
-          "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling"
+          "when": "debugType == NAMESPACE(chrome) && jsDebugIsProfiling && callStackItemType == 'session'"
         },
         {
           "command": "extension.NAMESPACE(node-debug).startProfile",
