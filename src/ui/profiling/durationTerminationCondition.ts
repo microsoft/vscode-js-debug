@@ -13,7 +13,7 @@ const localize = nls.loadMessageBundle();
 
 @injectable()
 export class DurationTerminationConditionFactory implements ITerminationConditionFactory {
-  private lastDuration = 10;
+  private lastDuration?: number;
 
   public readonly sortOrder = 1;
   public readonly id = 'duration';
@@ -29,11 +29,15 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
     }
 
     const input = vscode.window.createInputBox();
-    input.title = localize(
-      'profile.termination.duration.inputTitle',
-      'Duration of Profile in Seconds',
+    input.title = localize('profile.termination.duration.inputTitle', 'Duration of Profile');
+    input.placeholder = localize(
+      'profile.termination.duration.placeholder',
+      'Profile duration in seconds, e.g "5"',
     );
-    input.value = String(this.lastDuration);
+
+    if (this.lastDuration) {
+      input.value = String(this.lastDuration);
+    }
 
     input.onDidChangeValue(value => {
       if (!/^[0-9]+$/.test(value)) {
