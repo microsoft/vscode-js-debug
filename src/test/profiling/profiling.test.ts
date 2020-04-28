@@ -205,10 +205,33 @@ describe('profiling', () => {
   });
 
   describe('ui', () => {
+    let session: vscode.DebugSession | undefined;
+
+    afterEach(async () => {
+      if (session) {
+        session.customRequest('disconnect', {});
+        session = undefined;
+        await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
+      }
+    });
+
     const pickTermination = async (session: vscode.DebugSession, labelRe: RegExp) => {
       vscode.commands.executeCommand(Commands.StartProfile, session.id);
 
-      const typePicker = await eventuallyOk(() => {
+      // we skip this step while "cpu" is the only profile:
+      // const typePicker = await eventuallyOk(() => {
+      //   expect(createQuickPick.callCount).to.equal(1);
+      //   const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(0)
+      //     .returnValue;
+      //   expect(picker.items).to.not.be.empty;
+      //   return picker;
+      // }, 2000);
+
+      // typePicker.selectedItems = typePicker.items.filter(i => /CPU/i.test(i.label));
+      // acceptQuickPick.fire();
+
+      const terminationPicker = await eventuallyOk(() => {
+        // expect(createQuickPick.callCount).to.equal(2);
         expect(createQuickPick.callCount).to.equal(1);
         const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(0)
           .returnValue;
@@ -216,24 +239,8 @@ describe('profiling', () => {
         return picker;
       }, 2000);
 
-      typePicker.selectedItems = typePicker.items.filter(i => /CPU/i.test(i.label));
-      acceptQuickPick.fire();
-
-      const terminationPicker = await eventuallyOk(() => {
-        expect(createQuickPick.callCount).to.equal(2);
-        const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(1)
-          .returnValue;
-        expect(picker.items).to.not.be.empty;
-        return picker;
-      }, 2000);
-
       terminationPicker.selectedItems = terminationPicker.items.filter(i => labelRe.test(i.label));
       acceptQuickPick.fire();
-    };
-
-    const terminate = async (session: vscode.DebugSession) => {
-      session.customRequest('disconnect', {});
-      await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
     };
 
     it('allows picking breakpoints', async () => {
@@ -269,12 +276,12 @@ describe('profiling', () => {
       await pickTermination(session, /breakpoint/i);
 
       const breakpointPicker = await eventuallyOk(() => {
-        expect(createQuickPick.callCount).to.equal(3);
-        const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(2)
+        expect(createQuickPick.callCount).to.equal(2);
+        const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(1)
           .returnValue;
         expect(picker.items).to.not.be.empty;
         return picker;
-      }, 2000);
+      }, 5000);
 
       expect(breakpointPicker.items).to.containSubset([
         {
@@ -286,9 +293,6 @@ describe('profiling', () => {
       ]);
 
       breakpointPicker.dispose();
-
-      session.customRequest('disconnect', {});
-      await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
     });
 
     it('sets substate correctly', async () => {
@@ -317,7 +321,6 @@ describe('profiling', () => {
       await eventuallyOk(() => expect(session.name).to.contain('Profiling'), 2000);
       await runCommand(vscode.commands, Commands.StopProfile, session.id);
       await eventuallyOk(() => expect(session.name).to.not.contain('Profiling'), 2000);
-      await terminate(session);
       disposable.dispose();
     });
 
@@ -357,8 +360,6 @@ describe('profiling', () => {
 
       expect(() => JSON.parse(args.contents)).to.not.throw;
       expect(args.basename).to.match(/\.cpuprofile$/);
-
-      await terminate(session);
       disposable.dispose();
     });
   });
