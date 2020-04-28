@@ -362,7 +362,7 @@ export class UiProfileManager implements IDisposable {
 
         return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
       })
-      .map(ctor => ({ label: ctor.label, description: ctor.description }));
+      .map(ctor => ({ label: ctor.label, description: ctor.description, alwaysShow: true }));
 
     const chosen = await new Promise<string | undefined>(resolve => {
       quickpick.onDidAccept(() => resolve(quickpick.selectedItems[0]?.label));
