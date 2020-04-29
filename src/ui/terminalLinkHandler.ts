@@ -64,19 +64,21 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
       return false;
     }
 
-    // Don't debug things that explicitly aren't http, and prefix anything like `localhost:1234`
+    // Don't debug things that explicitly aren't http/s
+    let url: URL;
     try {
-      const url = new URL(link);
-      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-        return false;
-      }
-
-      if (isMetaAddress(link)) {
-        url.hostname = 'localhost';
-        link = url.toString();
-      }
+      url = new URL(link);
     } catch {
-      link = `http://${link}`;
+      return false; // invalid URL
+    }
+
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return false;
+    }
+
+    if (isMetaAddress(link)) {
+      url.hostname = 'localhost';
+      link = url.toString();
     }
 
     // Do our best to resolve the right workspace folder to launch in, and debug
