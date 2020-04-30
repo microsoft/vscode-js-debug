@@ -17,7 +17,7 @@ export interface INodeTargetLifecycleHooks {
   /**
    * Invoked when the adapter thread is first initialized.
    */
-  initialized?(target: NodeTarget): Promise<string | undefined>;
+  initialized?(target: NodeTarget): Promise<string | void>;
 
   /**
    * Invoked when the target is stopped.
@@ -96,7 +96,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   public async initialize() {
     if (this.lifecycle.initialized) {
-      this.entryBreakpointId = await this.lifecycle.initialized(this);
+      this.entryBreakpointId = (await this.lifecycle.initialized(this)) || undefined;
     }
   }
 

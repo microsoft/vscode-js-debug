@@ -4,10 +4,7 @@
 
 import { AnyNodeConfiguration } from '../../configuration';
 import { NodeLauncherBase, IRunData, IProcessTelemetry } from './nodeLauncherBase';
-import { IProgram } from './program';
 import Cdp from '../../cdp/api';
-import { INodeTargetLifecycleHooks } from './nodeTarget';
-import { IDisposable } from '../../common/disposable';
 import { LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { injectable } from 'inversify';
@@ -17,48 +14,6 @@ import { injectable } from 'inversify';
  */
 @injectable()
 export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends NodeLauncherBase<T> {
-  /**
-   * Tracker for whether we're waiting to break and instrument into the main
-   * process. This is used to avoid instrumenting unecessarily into subsequent
-   * children.
-   */
-  private capturedEntryProgram?: IProgram;
-
-  /**
-   * @inheritdoc
-   */
-  protected createLifecycle(cdp: Cdp.Api, run: IRunData<T>): INodeTargetLifecycleHooks {
-    if (this.program === this.capturedEntryProgram) {
-      return {};
-    }
-
-    let toDispose: Promise<ReadonlyArray<IDisposable>> = Promise.resolve([]);
-    this.capturedEntryProgram = this.program;
-
-    return {
-      initialized: async () => {
-        toDispose = this.onFirstInitialize(cdp, run);
-        await toDispose;
-        return undefined;
-      },
-      close: async () => {
-        (await toDispose).forEach(d => d.dispose());
-      },
-    };
-  }
-
-  /**
-   * Called the first time, for each program, we get an attachment. Can
-   * return disposables to clean up when the run finishes.
-   */
-  protected async onFirstInitialize(
-    cdp: Cdp.Api,
-    run: IRunData<T>,
-  ): Promise<ReadonlyArray<IDisposable>> {
-    await this.gatherTelemetry(cdp, run);
-    return [];
-  }
-
   /**
    * Reads telemetry from the process.
    */

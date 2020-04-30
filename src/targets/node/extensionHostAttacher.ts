@@ -8,7 +8,6 @@ import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
 import { spawnWatchdog } from './watchdogSpawn';
 import Cdp from '../../cdp/api';
-import { IDisposable } from '../../common/disposable';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { injectable } from 'inversify';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
@@ -68,13 +67,21 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
   }
 
   /**
+   * @override
+   */
+  protected createLifecycle(
+    cdp: Cdp.Api,
+    run: IRunData<IExtensionHostConfiguration>,
+    target: Cdp.Target.TargetInfo,
+  ) {
+    return target.openerId ? {} : { initialized: () => this.onFirstInitialize(cdp, run) };
+  }
+
+  /**
    * Called the first time, for each program, we get an attachment. Can
    * return disposables to clean up when the run finishes.
    */
-  protected async onFirstInitialize(
-    cdp: Cdp.Api,
-    run: IRunData<IExtensionHostConfiguration>,
-  ): Promise<ReadonlyArray<IDisposable>> {
+  protected async onFirstInitialize(cdp: Cdp.Api, run: IRunData<IExtensionHostConfiguration>) {
     this.setEnvironmentVariables(cdp, run);
     const telemetry = await this.gatherTelemetry(cdp, run);
 
@@ -90,8 +97,6 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
         }
       });
     }
-
-    return [];
   }
 
   private async setEnvironmentVariables(cdp: Cdp.Api, run: IRunData<IExtensionHostConfiguration>) {

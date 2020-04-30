@@ -123,6 +123,35 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     return doLaunch(this.restarters.create(runData.params.restart));
   }
 
+  /**
+   * @override
+   */
+  protected createLifecycle(
+    cdp: Cdp.Api,
+    run: IRunData<INodeAttachConfiguration>,
+    target: Cdp.Target.TargetInfo,
+  ) {
+    if (target.openerId) {
+      return {};
+    }
+
+    let leaseFile: Promise<LeaseFile>;
+    return {
+      initialized: async () => {
+        leaseFile = this.onFirstInitialize(cdp, run);
+        await leaseFile;
+      },
+      close: () => {
+        // A close while we're still attach indicates a graceful shutdown.
+        if (this.targetList().length) {
+          this.program?.stop();
+        }
+
+        leaseFile?.then(l => l.dispose());
+      },
+    };
+  }
+
   protected async onFirstInitialize(cdp: Cdp.Api, run: IRunData<INodeAttachConfiguration>) {
     // We use a lease file to indicate to the process that the debugger is
     // still running. This is needed because once we attach, we set the
@@ -148,7 +177,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       ).catch(err => this.logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
     }
 
-    return [leaseFile];
+    return leaseFile;
   }
 
   private async setEnvironmentVariables(
