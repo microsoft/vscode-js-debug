@@ -8,6 +8,7 @@ import Cdp from './api';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
+import { HrTime } from '../common/hrnow';
 
 interface IProtocolCommand {
   id?: number;
@@ -81,7 +82,7 @@ export default class Connection {
     return id;
   }
 
-  async _onMessage(message: string, receivedTime: bigint) {
+  async _onMessage(message: string, receivedTime: HrTime) {
     const object = JSON.parse(message);
     this.logger.verbose(LogTag.CdpReceive, undefined, {
       connectionId: this._connectionId,
@@ -103,8 +104,12 @@ export default class Connection {
 
     // if eventName is undefined is because this is a response to a cdp request, so we don't report it
     if (eventName) {
-      const duration = Number(process.hrtime.bigint() - receivedTime) / 1e6; // ns to ms
-      this.telemetryReporter.reportOperation('cdpOperation', eventName, duration, error);
+      this.telemetryReporter.reportOperation(
+        'cdpOperation',
+        eventName,
+        receivedTime.elapsed().ms,
+        error,
+      );
     }
   }
 

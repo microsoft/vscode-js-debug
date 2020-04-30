@@ -7,6 +7,7 @@ import { Event } from 'vscode';
 import { EventEmitter } from '../common/events';
 import { IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
+import { HrTime } from '../common/hrnow';
 
 const _TWO_CRLF = '\r\n\r\n';
 
@@ -44,7 +45,7 @@ export interface IDapTransport {
   close(): void;
 
   /** Message received event. Will fire when a new DAP message has been received on this transport */
-  messageReceived: Event<{ message: Message; receivedTime: bigint }>;
+  messageReceived: Event<{ message: Message; receivedTime: HrTime }>;
 
   /** Set the logger implementation for the transport */
   setLogger(logger: ILogger): IDapTransport;
@@ -59,7 +60,7 @@ export class StreamDapTransport implements IDapTransport {
   private logger?: ILogger;
   private _connectionId = connectionId++;
 
-  private msgEmitter = new EventEmitter<{ message: Message; receivedTime: bigint }>();
+  private msgEmitter = new EventEmitter<{ message: Message; receivedTime: HrTime }>();
   messageReceived = this.msgEmitter.event;
 
   private endedEmitter = new EventEmitter<void>();
@@ -102,7 +103,7 @@ export class StreamDapTransport implements IDapTransport {
   }
 
   _handleData = (data: Buffer): void => {
-    const receivedTime = process.hrtime.bigint();
+    const receivedTime = new HrTime();
     this._rawData = Buffer.concat([this._rawData, data]);
     while (true) {
       if (this._contentLength >= 0) {
@@ -149,7 +150,7 @@ export class StreamDapTransport implements IDapTransport {
  * and only emits messages with this transport's session id
  */
 export class SessionIdDapTransport implements IDapTransport {
-  sessionIdMessageEmitter = new EventEmitter<{ message: Message; receivedTime: bigint }>();
+  sessionIdMessageEmitter = new EventEmitter<{ message: Message; receivedTime: HrTime }>();
   messageReceived = this.sessionIdMessageEmitter.event;
   closedEmitter = new EventEmitter<void>();
   closed = this.closedEmitter.event;
@@ -178,7 +179,7 @@ export class SessionIdDapTransport implements IDapTransport {
     return this;
   }
 
-  onMessage(event: { message: Message; receivedTime: bigint }) {
+  onMessage(event: { message: Message; receivedTime: HrTime }) {
     if (!this._isClosed && event.message.sessionId === this.sessionId) {
       this.sessionIdMessageEmitter.fire(event);
     }

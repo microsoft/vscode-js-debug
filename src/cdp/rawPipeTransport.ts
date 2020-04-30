@@ -8,9 +8,10 @@ import { Duplex, Readable, Writable } from 'stream';
 import split from 'split2';
 import { once } from '../common/objUtils';
 import { EventEmitter } from '../common/events';
+import { HrTime } from '../common/hrnow';
 
 export class RawPipeTransport implements ITransport {
-  private readonly messageEmitter = new EventEmitter<[string, bigint]>();
+  private readonly messageEmitter = new EventEmitter<[string, HrTime]>();
   private readonly endEmitter = new EventEmitter<void>();
 
   public readonly onMessage = this.messageEmitter.event;
@@ -57,7 +58,7 @@ export class RawPipeTransport implements ITransport {
       read: read
         .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error }))
         .pipe(split('\0'))
-        .on('data', json => this.messageEmitter.fire([json, process.hrtime.bigint()]))
+        .on('data', json => this.messageEmitter.fire([json, new HrTime()]))
         .on('end', this.onceEnded),
       write: pipeWrite.on('end', this.onceEnded).on('error', this.onWriteError),
     };

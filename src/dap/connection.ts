@@ -10,6 +10,7 @@ import { isDapError, ProtocolError } from './errors';
 import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
 import { getDeferred } from '../common/promiseUtil';
+import { HrTime } from '../common/hrnow';
 
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
@@ -147,7 +148,7 @@ export default class Connection {
     this.transport.send(message, shouldLog);
   }
 
-  async _onMessage(msg: Message, receivedTime: bigint): Promise<void> {
+  async _onMessage(msg: Message, receivedTime: HrTime): Promise<void> {
     if (msg.type === 'request') {
       const response = {
         seq: 0,
@@ -181,7 +182,7 @@ export default class Connection {
         this.telemetryReporter?.reportOperation(
           'dapOperation',
           msg.command,
-          Number(process.hrtime.bigint() - receivedTime) / 1e6,
+          receivedTime.elapsed().ms,
         );
       } catch (e) {
         if (e instanceof ProtocolError) {
@@ -209,7 +210,7 @@ export default class Connection {
         this.telemetryReporter?.reportOperation(
           'dapOperation',
           msg.command,
-          Number(process.hrtime.bigint() - receivedTime) / 1e6,
+          receivedTime.elapsed().ms,
           e,
         );
       }

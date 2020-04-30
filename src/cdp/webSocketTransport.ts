@@ -8,10 +8,11 @@ import { isLoopback } from '../common/urlUtils';
 import { timeoutPromise } from '../common/cancellation';
 import { EventEmitter } from '../common/events';
 import type { CancellationToken } from 'vscode';
+import { HrTime } from '../common/hrnow';
 
 export class WebSocketTransport implements ITransport {
   private _ws: WebSocket | undefined;
-  private readonly messageEmitter = new EventEmitter<[string, bigint]>();
+  private readonly messageEmitter = new EventEmitter<[string, HrTime]>();
   private readonly endEmitter = new EventEmitter<void>();
 
   public readonly onMessage = this.messageEmitter.event;
@@ -50,7 +51,7 @@ export class WebSocketTransport implements ITransport {
   constructor(ws: WebSocket) {
     this._ws = ws;
     this._ws.addEventListener('message', event => {
-      this.messageEmitter.fire([event.data, process.hrtime.bigint()]);
+      this.messageEmitter.fire([event.data, new HrTime()]);
     });
     this._ws.addEventListener('close', () => {
       this.endEmitter.fire();
