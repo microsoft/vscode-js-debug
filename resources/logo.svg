@@ -1,31 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 630 630">
-<!--
-The MIT License (MIT)
-
-Copyright (c) 2011 Christopher Williams <chris@iterativedesigns.com>,
-                     Manuel Strehl <boldewyn@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
--->
-<g id="logo">
-  <rect id="background" x="0" y="0" width="630" height="630" fill="#f7df1e" />
-  <path id="j" d="m 165.65,526.47375 48.2125,-29.1775 C 223.16375,513.7875 231.625,527.74 251.92,527.74 c 19.45375,0 31.71875,-7.60975 31.71875,-37.21 l 0,-201.3 59.20375,0 0,202.1375 c 0,61.32 -35.94375,89.23125 -88.385,89.23125 -47.36125,0 -74.8525,-24.52875 -88.8075,-54.13" />
-  <path id="s" d="m 375,520.13 48.20625,-27.91125 c 12.69,20.72375 29.1825,35.9475 58.36125,35.9475 24.53125,0 40.17375,-12.26475 40.17375,-29.18125 0,-20.29875 -16.06875,-27.48875 -43.135,-39.32625 l -14.7975,-6.3475 c -42.715,-18.18125 -71.05,-41.0175 -71.05,-89.2275 0,-44.40375 33.83125,-78.2375 86.695,-78.2375 37.6375,0 64.7025,13.11125 84.15375,47.36625 l -46.09625,29.60125 c -10.15,-18.1825 -21.1425,-25.37125 -38.0575,-25.37125 -17.33875,0 -28.335,10.995 -28.335,25.37125 0,17.7625 10.99625,24.9525 36.3675,35.94875 l 14.8,6.3425 c 50.325,21.56875 78.66,43.5575 78.66,93.03375 0,53.2875 -41.86625,82.465 -98.11,82.465 -54.97625,0 -90.5,-26.2175 -107.83625,-60.47375" />
-</g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 52.916665 52.916668"
+   height="200"
+   width="200">
+  <defs
+     id="defs2" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(0,-244.08332)"
+     id="layer1">
+    <rect
+       style="stroke-width:0.32142162;fill:#f7df1e;fill-opacity:1"
+       y="244.08331"
+       x="-2.220446e-16"
+       height="52.916668"
+       width="52.916668"
+       id="rect10" />
+    <g
+       transform="matrix(1.0577399,0,0,1.0577399,23.540292,268.08388)"
+       id="g4543"
+       style="fill:#000000;fill-opacity:1">
+      <path
+         style="fill:#000000;fill-opacity:1"
+         d="M 3.46279,12.86 3.45815,12.79 c 0.00149,0.0234 0.00304,0.0467 0.00464,0.07 z"
+         id="path4526" />
+      <path
+         style="fill:#000000;fill-opacity:1"
+         d="M 10.7275,13.5509 7.69304,10.501 8.70723,9.4868 l 3.20867,3.2249 3.163,-3.16295 1.0142,1.01415 -3.0342,3.0343 3.0345,3.0498 -1.0142,1.0142 -3.2087,-3.225 -3.16302,3.1631 -1.01419,-1.0142 z"
+         id="path4528" />
+      <path
+         style="clip-rule:evenodd;fill:#000000;fill-opacity:1;fill-rule:evenodd"
+         d="M 16.9329,5.00286 V 6 h 1.3455 l 2.8421,-2.84212 1.0142,1.01419 -2.6912,2.69114 0.0325,0.08484 c 0.5664,1.47792 0.8854,3.14595 0.8854,4.91195 0,0.3355 -0.0115,0.6674 -0.034,0.9952 L 20.3222,12.93 h 3.5407 v 1.4343 H 20.142 l -0.0105,0.0574 c -0.3023,1.6533 -0.8906,3.1608 -1.6917,4.4293 l -0.0596,0.0944 3.4225,3.4398 -1.0168,1.0116 -3.2739,-3.2905 -0.0989,0.1106 c -1.4791,1.6543 -3.3954,2.646 -5.4831,2.646 -2.11999,0 -4.06347,-1.0227 -5.55158,-2.7234 L 6.27988,20.0268 3.07125,23.2355 2.05706,22.2213 5.42258,18.8558 5.36431,18.7615 C 4.59172,17.5118 4.02373,16.0363 3.72847,14.4217 L 3.71797,14.3643 H 0 V 12.93 H 3.53777 L 3.53262,12.8552 C 3.51009,12.5274 3.49858,12.1955 3.49858,11.86 c 0,-1.743 0.31077,-3.39049 0.86336,-4.85401 L 4.39377,6.92168 1.63228,4.14621 2.64904,3.13457 5.50003,6 H 6.92715 V 5.00286 C 6.92715,2.23986 9.16701,0 11.93,0 c 2.763,0 5.0029,2.23986 5.0029,5.00286 z m -8.57146,0 V 6 H 15.4986 V 5.00286 c 0,-1.97087 -1.5977,-3.56857 -3.5686,-3.56857 -1.97086,0 -3.56856,1.5977 -3.56856,3.56857 z M 18.1609,7.52498 18.1267,7.43429 H 5.73328 L 5.69915,7.52498 C 5.21331,8.81605 4.93286,10.2859 4.93286,11.86 c 0,2.7599 0.86224,5.201 2.18405,6.9193 1.32064,1.7169 3.03599,2.6493 4.81309,2.6493 1.7772,0 3.4925,-0.9324 4.8131,-2.6493 1.3218,-1.7183 2.184,-4.1594 2.184,-6.9193 0,-1.5741 -0.2804,-3.04395 -0.7662,-4.33502 z"
+         id="path4530" />
+    </g>
+  </g>
 </svg>

@@ -1,99 +1,131 @@
-# js-debug
+<h1>
+  <img alt="vscode-js-debug" src="./resources/readme/logo-with-text.png" width="500">
+  <br>
+  <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
+    <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
+    <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg">
+  </a>
+</h1>
 
-This repo contains the new, upcoming JavaScript debugger for VS Code. It's currently a work in progress, expect minor bugs and incompatibilities at this stage.
+The new, upcoming JavaScript debugger for VS Code. This extension debugs Node.js and web applications (in Edge and Chrome), and will eventually become the built-in debugger for VS Code. You can install this extension by:
 
-## Installation
+1. Installing the `js-debug-nightly` extension from the marketplace.
+1. Adding `"debug.javascript.usePreview": true` to your user settings.
 
-You can use this extension from the marketplace by:
+Then you should be able to run and debug your existing programs without changing your launch config. If you can't, then please file an issue.
 
-1. Installing the `js-debug-nightly` extension,
-2. Adding `"debug.node.useV3": true` and `"debug.chrome.useV3": true` to your user settings,
-3. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
+## What's new?
 
-Or alternatively by self-hosting:
+In `js-debug` we aim to provide rich debugging for modern applications, with no or minimal configuration required. Here are a few new features that js-debug brings:
 
-1. Clone this repository and run `npm install`,
-1. Then either:
-   - Run `gulp package` to package a `.vsix` you can install manually, or
-   - Run `npm run compile`, then open the repository in VS Code and select "Run Extension"
-1. Then you should be able to run and debug your programs without changing your launch config. If you can't, then please file an issue.
+### Debug child process and workers
 
-## Features
+In Node.js, child processes will automatically be debugged. In browsers, service workers, webworkers, and iframes will be debugged as well.
 
-### Multiple threads
+<img src="./resources/readme/web-worker.png" width="302">
 
-- Attaching to relevant browser threads: page, out of process iframes, web workers, related service workers
+While debugging workers, you can also step through `postMessage()` calls.
 
-    <img width="359" alt="Screen Shot 2019-07-25 at 9 27 36 AM" src="https://user-images.githubusercontent.com/883973/61891435-803cd380-aebe-11e9-8c27-1af5d1fdab43.png">
+### Debug Node.js processes in the terminal
 
-- Node debugging auto-attaches to all Node sub-processes
+You can debug any Node.js process you run in the terminal with our revamped Auto Attach. If auto attach isn't on, you can run the command `Debug: Toggle Auto Attach` to turn it on. Next time you run a command like `npm start`, we'll debug it.
 
-    <img width="273" alt="Screen Shot 2019-07-30 at 4 16 15 PM" src="https://user-images.githubusercontent.com/883973/62171895-67308a00-b2e5-11e9-832a-0867cf2ea411.png">
+<img src="./resources/readme/auto-attach.png" width="554">
 
-* Full stack debugging with all targets at a glance.
+Once enabled, you can toggle Auto Attach by clicking the `Auto Attach: On/Off` button in the status bar on the bottom of your screen.
 
-    <img width="320" alt="Screen Shot 2019-07-30 at 4 13 21 PM" src="https://user-images.githubusercontent.com/883973/62171782-03a65c80-b2e5-11e9-958b-73582efd513c.png">
+You can also create a one-off terminal for debugging via the `Debug: Create JavaScript Debug Terminal` command.
 
-### Console
+In the previous debugger, you had to remember to add the `--inspect` flag when you ran a command, and couldn't hit breakpoints early in the program since attachment was asynchronous.
 
-- Evaluate in selected execution context
+### Profiling Support
 
-    <img width="652" alt="Screen Shot 2019-07-25 at 9 29 47 AM" src="https://user-images.githubusercontent.com/883973/61891554-c2feab80-aebe-11e9-9f30-38f057c7f722.png">
+You can capture and view performance profiles natively in VS Code, by clicking on the ⚪ button in the Call Stack view, or through the `Debug: Take Performance Profile` command. The profile information collected through VS Code is sourcemap-aware.
 
-- Unified console for everything: service workers, page, workers
+<img src="./resources/readme/flame-chart.png?" width="845">
 
-    <img width="504" alt="Screen Shot 2019-07-22 at 9 54 30 PM" src="https://user-images.githubusercontent.com/883973/61683685-4d7eb980-accb-11e9-959a-cc33eff6f9c6.png">
+### Easy npm script debugging
 
-- Top-level await in console
+You can debug npm scripts by clicking the code lens shown in the package.json, or by running the `Debug: Debug NPM Script` command/
 
-    <img width="743" alt="Screen Shot 2019-07-22 at 9 40 36 PM" src="https://user-images.githubusercontent.com/883973/61683166-61292080-acc9-11e9-8416-e997d8ed3afc.png">
+<img src="./resources/readme/npm-code-lens.png" width="306">
 
-- Serialized console output
+You can configure where and if the code lens is displayed in the `debug.javascript.codelens.npmScripts` setting.
 
-    <img width="245" alt="Screen Shot 2019-07-22 at 9 42 03 PM" src="https://user-images.githubusercontent.com/883973/61683220-97ff3680-acc9-11e9-98db-e6d199023647.png">
+### Automatic browser debugging
 
-- Console message formatting improvements from CDT
+By default, any links you click through the JavaScript debug terminal (`Debug: Create JavaScript Debug Terminal` command) will open in debug mode. If you'd like, you can enable this for all terminals, or disable it, by setting `debug.javascript.debugByLinkOptions` to `always` or `off`, respectively.
 
-    <img width="612" alt="Screen Shot 2019-07-22 at 10 01 08 PM" src="https://user-images.githubusercontent.com/883973/61683910-3be9e180-accc-11e9-9a48-8930f0db3f9b.png">
+<img src="./resources/readme/link-debugging.gif">
 
-- Per-thread Output with timestamps available post-session
+### Instrumentation breakpoints
 
-    <img width="324" alt="Screen Shot 2019-07-24 at 10 28 05 PM" src="https://user-images.githubusercontent.com/883973/61848257-5ce43b00-ae62-11e9-922c-a93073c0266b.png">
+When debugging web apps, you can configure instrumentation breakpoints from VS Code in the "Browser Breakpoints" view.
 
-    <img width="751" alt="Screen Shot 2019-07-24 at 10 29 43 PM" src="https://user-images.githubusercontent.com/883973/61848317-8e5d0680-ae62-11e9-88db-5017ed58a430.png">
+<img src="./resources/readme/instrumentation-breakpoints.png" width="367">
+<img src="./resources/readme/instrumentation-breakpoints2.png" width="602">
 
-- Complete command line API:
+### Better autocompletion in debug console
 
-  - `inspect(function)` - reveal function definition
-  - `copy(value)` - copies value into clipboard
-  - `queryObjects(prototype)` - returns all heap objects of type
+Autocomplete in the debug console has been significantly improved. You can expect better suggestions for more complex expressions than VS Code was able to handle before.
 
-    <img width="259" alt="Screen Shot 2019-07-22 at 10 32 03 PM" src="https://user-images.githubusercontent.com/883973/61685138-8bcaa780-acd0-11e9-99d9-151c2839b5f6.png">
+<img src="./resources/readme/repl-improvements.png" width="507">
 
-### Debugging
+### Return value interception
 
-- Instrumentation breakpoints
+On a function's return statement, you can use, inspect, and modify the `$returnValue`.
 
-    <img width="285" alt="Screen Shot 2019-07-22 at 9 50 35 PM" src="https://user-images.githubusercontent.com/883973/61683560-c16c9200-acca-11e9-9d63-483b9c3d48ee.png">
+<img src="./resources/readme/returnvalue.png">
 
-    <img width="604" alt="Screen Shot 2019-07-22 at 9 50 10 PM" src="https://user-images.githubusercontent.com/883973/61683564-c4678280-acca-11e9-959a-dbeb49fc8716.png">
+Note that you can use and modify properties on the `$returnValue`, but not assign it to--it is effectively a `const` variable.
 
-- Pretty print minified source with complete debugging support
+### Top-Level `await`
 
-    <!--img width="464" alt="Screen Shot 2019-07-22 at 9 55 22 PM" src="https://user-images.githubusercontent.com/883973/61683714-6c7d4b80-accb-11e9-92ae-084e3b4f36e7.png"-->
+You can use `await` at the top level in the debug console.
 
-  ![pretty_print](https://user-images.githubusercontent.com/883973/61990381-71f0d380-aff4-11e9-95ae-10f2b1a732ec.gif)
+<img src="./resources/readme/top-level-await.png" width="861">
 
+However, like the Chrome devtools, if you use `await` while paused on a breakpoint, you'll only get a pending `Promise` back. This is because the JavaScript event loop is paused while on a breakpoint.
 
-    <img width="553" alt="Screen Shot 2019-07-22 at 9 56 12 PM" src="https://user-images.githubusercontent.com/883973/61683776-a9e1d900-accb-11e9-9884-f7494b1d8fc4.png">
+### Pretty-print minified sources
 
-- Step into async, step into Worker, etc
+The debugger can now pretty print files, especially useful when dealing with minified sources. It will show a prompt when you step into or open a file that looks minified, and you can also trigger pretty printing manually via the `Debug: Pretty print for debugging` command.
 
-  ![step_into](https://user-images.githubusercontent.com/883973/61990326-2c7fd680-aff3-11e9-9602-ba4b25c7f138.gif)
+[Click to view gif](https://code.visualstudio.com/assets/updates/1_43/js-debug-pretty-printing.gif)
 
-- All locations go through source maps: stack trace on pause, console methods, exceptions, function locations
-- Breakpoints set in source maps are guranteed to be resolved in time (in newer V8 versions).
+You can turn off the suggestion prompt by selecting Never, or changing the setting debug.javascript.suggestPrettyPrinting to false.
 
-## Contributing
+### Support for Microsoft Edge and WebView2
 
-This project welcomes contributions and suggestions. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+We support launching the [new Microsoft Edge browser](https://www.microsoft.com/edge), via the `pwa-msedge` debug type. It supports all the same configuration settings as `chrome` does.
+
+<img src="./resources/readme/webview2.png" width="584">
+
+With this comes support for the [WebView2](https://docs.microsoft.com/microsoft-edge/hosting/webview2) control in desktop Windows applications. Check out our [webview demo](https://github.com/microsoft/vscode-js-debug/tree/master/demos/webview) to learn how to set this up.
+
+### Better sourcemap and breakpoint behavior
+
+Js-debug has a rewritten suite of sourcemap handling and breakpoint resolution logic. This results in more reliable breakpoint behavior in more cases. For example:
+
+- We are guaranteed to set breakpoints before hitting them, where there were previously scenarios where this did not happen.
+- We can handle sources present in multiple compiled files. This is common when dealing with split bundles in web apps.
+- We now support in-place transpilation (such as `ts-node` and `@babel/register`).
+
+### Copy values in call stack view
+
+VS Code has long had an action to "Copy Value" from the Variables view. However, previously this was truncated for object or long values. Changes in VS Code and js-debug allow us to losslessly copy the full expressions as JSON.
+
+### Other small things
+
+js-debug is a cleanroom rewrite of a JavaScript debugger, so there are a large number of small improvements. Here are some more that are unworthy of their own heading:
+
+- Console output is now improved. Promises, ArrayViews/ArrayBuffers, and other complex data structures are better supported.
+- Logpoint breakpoints now support complex expressions and statements. Errors thrown will be printed, rather than silently eaten.
+- You can now specify partial versions in the Node.js `runtimeVersion`. Previously you needed to specify the full version, such as `12.3.4`. Now, you can specify `12` and we'll use the most recent `12.*` installed on the system.
+- Sourcemaps are now supported when attaching via the `Attach to Node.js Process` command.
+- Several improvements have been made for faster performance and better out-of-the-box behavior in monorepos and multi-part applications.
+- The `console.group()` set of APIs are now supported.
+- You can pass `stable`, `canary`, or `dev` as `runtimeExecutable`s when launching browsers. We'll do our best to discover and use the specified version on your machine.
+- You can now set the Node.js `program` to files with other or no extensions without workarounds.
+- Restart frame requests are now supported.
+- Command line APIs like `inpect()` and `copy()` are now available.
