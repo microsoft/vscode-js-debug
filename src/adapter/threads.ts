@@ -29,6 +29,8 @@ import {
   serializeForClipboard,
 } from './templates/serializeForClipboard';
 import { EventEmitter } from '../common/events';
+import { IBreakpointPathAndId } from '../targets/targets';
+import { fileUrlToAbsolutePath } from '../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -77,7 +79,7 @@ export interface IThreadDelegate {
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   initialize(): Promise<void>;
-  entryBreakpointId: string | undefined;
+  entryBreakpoint: IBreakpointPathAndId | undefined;
 }
 
 export type ScriptWithSourceMapHandler = (
@@ -893,9 +895,32 @@ export class Thread implements IVariableStoreDelegate {
         };
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
-          const isStopOnEntry =
+          let isStopOnEntry = false; // By default we assume breakpoints aren't stop on entry
+          if (
             event.hitBreakpoints.length === 1 &&
-            this._delegate.entryBreakpointId === event.hitBreakpoints[0];
+            this._delegate.entryBreakpoint?.cdtpId === event.hitBreakpoints[0]
+          ) {
+            isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
+            const entryBreakpointAbsolutePath = fileUrlToAbsolutePath(
+              this._delegate.entryBreakpoint.path,
+            );
+            const entryBreakpointSource = this._sourceContainer.source({
+              path: entryBreakpointAbsolutePath,
+            });
+
+            if (entryBreakpointSource !== undefined) {
+              const entryBreakpointLocations = this._sourceContainer.currentSiblingUiLocations({
+                lineNumber: 1,
+                columnNumber: 1,
+                source: entryBreakpointSource,
+              });
+
+              // But if there is a user breakpoint on the same location that the stop on entry breakpoint, then we consider it an user breakpoint
+              isStopOnEntry = !entryBreakpointLocations.some(location =>
+                this._breakpointManager.hasAtLocation(location),
+              );
+            }
+          }
 
           if (!isStopOnEntry) {
             this._breakpointManager.registerBreakpointsHit(event.hitBreakpoints);

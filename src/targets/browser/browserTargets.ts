@@ -363,7 +363,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   private _attached = false;
   _onNameChangedEmitter = new EventEmitter<void>();
   readonly onNameChanged = this._onNameChangedEmitter.event;
-  public readonly entryBreakpointId = undefined;
+  public readonly entryBreakpoint = undefined;
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 

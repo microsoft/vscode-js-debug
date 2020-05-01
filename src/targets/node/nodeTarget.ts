@@ -10,14 +10,14 @@ import { EventEmitter } from '../../common/events';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { ITargetOrigin } from '../targetOrigin';
-import { ITarget } from '../targets';
+import { ITarget, IBreakpointPathAndId } from '../targets';
 import { ILogger, LogTag } from '../../common/logging';
 
 export interface INodeTargetLifecycleHooks {
   /**
    * Invoked when the adapter thread is first initialized.
    */
-  initialized?(target: NodeTarget): Promise<string | void>;
+  initialized?(target: NodeTarget): Promise<IBreakpointPathAndId | void>;
 
   /**
    * Invoked when the target is stopped.
@@ -38,7 +38,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   private _onNameChangedEmitter = new EventEmitter<void>();
   private _onDisconnectEmitter = new EventEmitter<void>();
 
-  public entryBreakpointId: string | undefined = undefined;
+  public entryBreakpoint: IBreakpointPathAndId | undefined = undefined;
 
   public readonly onDisconnect = this._onDisconnectEmitter.event;
   public readonly onNameChanged = this._onNameChangedEmitter.event;
@@ -96,7 +96,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   public async initialize() {
     if (this.lifecycle.initialized) {
-      this.entryBreakpointId = (await this.lifecycle.initialized(this)) || undefined;
+      this.entryBreakpoint = (await this.lifecycle.initialized(this)) || undefined;
     }
   }
 
