@@ -42,7 +42,7 @@ In the previous debugger, you had to remember to add the `--inspect` flag when y
 
 You can capture and view performance profiles natively in VS Code, by clicking on the ⚪ button in the Call Stack view, or through the `Debug: Take Performance Profile` command. The profile information collected through VS Code is sourcemap-aware.
 
-<img src="resources/readme/flame-chart.png?" width="845">
+<img src="resources/readme/flame-chart.png" width="845">
 
 ### Easy npm script debugging
 
