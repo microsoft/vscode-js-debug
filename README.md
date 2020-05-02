@@ -1,5 +1,5 @@
 <h1>
-  <img alt="vscode-js-debug" src="./resources/readme/logo-with-text.png" width="500">
+  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
   <br>
   <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
     <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
@@ -22,7 +22,7 @@ In `js-debug` we aim to provide rich debugging for modern applications, with no 
 
 In Node.js, child processes will automatically be debugged. In browsers, service workers, webworkers, and iframes will be debugged as well.
 
-<img src="./resources/readme/web-worker.png" width="302">
+<img src="resources/readme/web-worker.png" width="302">
 
 While debugging workers, you can also step through `postMessage()` calls.
 
@@ -30,7 +30,7 @@ While debugging workers, you can also step through `postMessage()` calls.
 
 You can debug any Node.js process you run in the terminal with our revamped Auto Attach. If auto attach isn't on, you can run the command `Debug: Toggle Auto Attach` to turn it on. Next time you run a command like `npm start`, we'll debug it.
 
-<img src="./resources/readme/auto-attach.png" width="554">
+<img src="resources/readme/auto-attach.png" width="554">
 
 Once enabled, you can toggle Auto Attach by clicking the `Auto Attach: On/Off` button in the status bar on the bottom of your screen.
 
@@ -42,13 +42,13 @@ In the previous debugger, you had to remember to add the `--inspect` flag when y
 
 You can capture and view performance profiles natively in VS Code, by clicking on the ⚪ button in the Call Stack view, or through the `Debug: Take Performance Profile` command. The profile information collected through VS Code is sourcemap-aware.
 
-<img src="./resources/readme/flame-chart.png?" width="845">
+<img src="resources/readme/flame-chart.png?" width="845">
 
 ### Easy npm script debugging
 
 You can debug npm scripts by clicking the code lens shown in the package.json, or by running the `Debug: Debug NPM Script` command/
 
-<img src="./resources/readme/npm-code-lens.png" width="306">
+<img src="resources/readme/npm-code-lens.png" width="306">
 
 You can configure where and if the code lens is displayed in the `debug.javascript.codelens.npmScripts` setting.
 
@@ -56,26 +56,26 @@ You can configure where and if the code lens is displayed in the `debug.javascri
 
 By default, any links you click through the JavaScript debug terminal (`Debug: Create JavaScript Debug Terminal` command) will open in debug mode. If you'd like, you can enable this for all terminals, or disable it, by setting `debug.javascript.debugByLinkOptions` to `always` or `off`, respectively.
 
-<img src="./resources/readme/link-debugging.gif">
+<img src="resources/readme/link-debugging.gif">
 
 ### Instrumentation breakpoints
 
 When debugging web apps, you can configure instrumentation breakpoints from VS Code in the "Browser Breakpoints" view.
 
-<img src="./resources/readme/instrumentation-breakpoints.png" width="367">
-<img src="./resources/readme/instrumentation-breakpoints2.png" width="602">
+<img src="resources/readme/instrumentation-breakpoints.png" width="367">
+<img src="resources/readme/instrumentation-breakpoints2.png" width="602">
 
 ### Better autocompletion in debug console
 
 Autocomplete in the debug console has been significantly improved. You can expect better suggestions for more complex expressions than VS Code was able to handle before.
 
-<img src="./resources/readme/repl-improvements.png" width="507">
+<img src="resources/readme/repl-improvements.png" width="507">
 
 ### Return value interception
 
 On a function's return statement, you can use, inspect, and modify the `$returnValue`.
 
-<img src="./resources/readme/returnvalue.png">
+<img src="resources/readme/returnvalue.png">
 
 Note that you can use and modify properties on the `$returnValue`, but not assign it to--it is effectively a `const` variable.
 
@@ -83,7 +83,7 @@ Note that you can use and modify properties on the `$returnValue`, but not assig
 
 You can use `await` at the top level in the debug console.
 
-<img src="./resources/readme/top-level-await.png" width="861">
+<img src="resources/readme/top-level-await.png" width="861">
 
 However, like the Chrome devtools, if you use `await` while paused on a breakpoint, you'll only get a pending `Promise` back. This is because the JavaScript event loop is paused while on a breakpoint.
 
@@ -99,7 +99,7 @@ You can turn off the suggestion prompt by selecting Never, or changing the setti
 
 We support launching the [new Microsoft Edge browser](https://www.microsoft.com/edge), via the `pwa-msedge` debug type. It supports all the same configuration settings as `chrome` does.
 
-<img src="./resources/readme/webview2.png" width="584">
+<img src="resources/readme/webview2.png" width="584">
 
 With this comes support for the [WebView2](https://docs.microsoft.com/microsoft-edge/hosting/webview2) control in desktop Windows applications. Check out our [webview demo](https://github.com/microsoft/vscode-js-debug/tree/master/demos/webview) to learn how to set this up.
 
