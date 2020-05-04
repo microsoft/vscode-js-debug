@@ -273,13 +273,18 @@ describe('profiling', () => {
         ),
       );
 
+      await eventuallyOk(async () => {
+        const { breakpoints } = await session.customRequest('getBreakpoints');
+        expect(breakpoints.length).to.be.greaterThan(0, 'expected to set breakpoints');
+      }, 5000);
+
       await pickTermination(session, /breakpoint/i);
 
       const breakpointPicker = await eventuallyOk(() => {
         expect(createQuickPick.callCount).to.equal(2);
         const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(1)
           .returnValue;
-        expect(picker.items).to.not.be.empty;
+        expect(picker.items.length).to.be.greaterThan(0, 'expected to have picker items');
         return picker;
       }, 5000);
 

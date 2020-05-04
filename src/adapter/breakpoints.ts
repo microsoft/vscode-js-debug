@@ -21,7 +21,7 @@ import { logPerf } from '../telemetry/performance';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { BreakpointConditionFactory } from './breakpoints/conditions';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
-import { bisectArray } from '../common/objUtils';
+import { bisectArray, flatten } from '../common/objUtils';
 import { injectable, inject } from 'inversify';
 import { IDapApi } from '../dap/connection';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -70,10 +70,7 @@ export class BreakpointManager {
    * Gets a flat list of all registered breakpoints.
    */
   private get allUserBreakpoints() {
-    return [...this._byPath.values(), ...this._byRef.values()].reduce(
-      (acc, bp) => acc.concat(bp),
-      [],
-    );
+    return flatten([...this._byPath.values(), ...this._byRef.values()]);
   }
 
   /**
