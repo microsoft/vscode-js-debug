@@ -56,7 +56,7 @@ export class BrowserAttacher implements ILauncher {
     this._lastLaunchParams = params;
 
     const error = await this._attemptToAttach(params, context);
-    return error ? { error } : { blockSessionTermination: false };
+    return error ? { error } : { blockSessionTermination: true };
   }
 
   _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
@@ -85,8 +85,11 @@ export class BrowserAttacher implements ILauncher {
           this._targetManager = undefined;
           this._onTargetListChangedEmitter.fire();
         }
+
         if (this._lastLaunchParams === params) {
           this._scheduleAttach(params, context);
+        } else {
+          this._onTerminatedEmitter.fire({ killed: true, code: 0 });
         }
       },
       undefined,
@@ -171,8 +174,8 @@ export class BrowserAttacher implements ILauncher {
     this._connection?.close();
   }
 
-  async disconnect(): Promise<void> {
-    // no-op
+  public disconnect(): Promise<void> {
+    return this.terminate();
   }
 
   async restart(): Promise<void> {

@@ -156,6 +156,7 @@ export class Binder implements IDisposable {
       return;
     }
 
+    this._rootServices.get<ITelemetryReporter>(ITelemetryReporter).flush();
     await Promise.all([...this._launchers].map(l => l.disconnect()));
 
     const didTerminate = () => !this.targetList.length && this._terminationCount === 0;
@@ -375,16 +376,8 @@ export class Binder implements IDisposable {
     } else {
       dap.on('attach', startThread);
       dap.on('launch', startThread);
-      dap.on('disconnect', async () => {
-        container.get<ITelemetryReporter>(ITelemetryReporter).flush();
-        this._rootServices.get<ITelemetryReporter>(ITelemetryReporter).flush();
-        if (target.canStop()) target.stop();
-        return {};
-      });
-      dap.on('terminate', async () => {
-        if (target.canStop()) target.stop();
-        return {};
-      });
+      dap.on('disconnect', () => this.stopTarget(target, container));
+      dap.on('terminate', () => this.stopTarget(target, container));
       dap.on('restart', async () => {
         if (target.canRestart()) target.restart();
         else await this._restart();
@@ -401,7 +394,23 @@ export class Binder implements IDisposable {
     this._releaseTarget(target);
   }
 
-  _attachToNewTargets(targets: ITarget[], launcher: ILauncher) {
+  /**
+   * Called when we get a disconnect/terminate for a target. We stop the
+   * specific target if we can, otherwise we just tear down the session.
+   */
+  private stopTarget(target: ITarget, container: Container) {
+    container.get<ITelemetryReporter>(ITelemetryReporter).flush();
+
+    if (target.canStop()) {
+      target.stop();
+    } else {
+      this._disconnect();
+    }
+
+    return Promise.resolve({});
+  }
+
+  private _attachToNewTargets(targets: ITarget[], launcher: ILauncher) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger()) {
         continue;
