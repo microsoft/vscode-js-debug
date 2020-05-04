@@ -8,7 +8,7 @@ import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
 import { BrowserTargetManager } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
-import { AnyLaunchConfiguration, IChromeAttachConfiguration } from '../../configuration';
+import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { createTargetFilterForConfig } from '../../common/urlUtils';
@@ -27,7 +27,7 @@ export class BrowserAttacher implements ILauncher {
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _disposables: IDisposable[] = [];
-  private _lastLaunchParams?: IChromeAttachConfiguration;
+  private _lastLaunchParams?: AnyChromiumAttachConfiguration;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -46,7 +46,10 @@ export class BrowserAttacher implements ILauncher {
   }
 
   async launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<ILaunchResult> {
-    if (params.type !== DebugType.Chrome || params.request !== 'attach') {
+    if (
+      (params.type !== DebugType.Chrome && params.type !== DebugType.Edge) ||
+      params.request !== 'attach'
+    ) {
       return { blockSessionTermination: false };
     }
 
@@ -56,14 +59,14 @@ export class BrowserAttacher implements ILauncher {
     return error ? { error } : { blockSessionTermination: false };
   }
 
-  _scheduleAttach(params: IChromeAttachConfiguration, context: ILaunchContext) {
+  _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
       this._attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
     }, 1000);
   }
 
-  async _attemptToAttach(params: IChromeAttachConfiguration, context: ILaunchContext) {
+  async _attemptToAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
     const connection = await this.acquireConnectionForBrowser(
       context.telemetryReporter,
       params,
@@ -129,7 +132,7 @@ export class BrowserAttacher implements ILauncher {
 
   private async acquireConnectionForBrowser(
     rawTelemetryReporter: ITelemetryReporter,
-    params: IChromeAttachConfiguration,
+    params: AnyChromiumAttachConfiguration,
     cancellationToken: CancellationToken,
   ) {
     const browserURL = `http://${params.address}:${params.port}`;
