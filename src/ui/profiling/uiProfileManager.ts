@@ -15,6 +15,7 @@ import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
 import { IDisposable } from '../../common/disposable';
 import { ITerminationConditionFactory } from './terminationCondition';
 import { homedir } from 'os';
+import { moveFile } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -212,7 +213,7 @@ export class UiProfileManager implements IDisposable {
 
     // todo: open as untitled, see: https://github.com/microsoft/vscode/issues/93441
     const fileUri = vscode.Uri.file(join(directory, filename));
-    await this.fs.rename(sourceFile, fileUri.fsPath);
+    await moveFile(this.fs, sourceFile, fileUri.fsPath);
 
     const document = await vscode.workspace.openTextDocument(fileUri);
     await vscode.window.showTextDocument(document);

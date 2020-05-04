@@ -4,14 +4,14 @@
 
 import * as fs from 'fs';
 import * as util from 'util';
-const readFileAsync = util.promisify(fs.readFile);
+import { FsPromises } from '../ioc-extras';
 
 export const fsModule = fs;
 
 /**
  * Returns whether the user can access the given file path.
  */
-export async function canAccess({ access }: typeof fs.promises, file: string | undefined | null) {
+export async function canAccess({ access }: FsPromises, file: string | undefined | null) {
   if (!file) {
     return false;
   }
@@ -21,6 +21,22 @@ export async function canAccess({ access }: typeof fs.promises, file: string | u
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+/**
+ * Moves the file from the source to destination.
+ */
+export async function moveFile(
+  { copyFile, rename, unlink }: FsPromises,
+  src: string,
+  dest: string,
+) {
+  try {
+    await rename(src, dest);
+  } catch {
+    await copyFile(src, dest);
+    await unlink(src);
   }
 }
 
@@ -51,7 +67,7 @@ export function readfile(path: string): Promise<string> {
 export const writeFile = util.promisify(fs.writeFile);
 
 export function readFileRaw(path: string): Promise<Buffer> {
-  return readFileAsync(path).catch(() => Buffer.alloc(0));
+  return fs.promises.readFile(path).catch(() => Buffer.alloc(0));
 }
 
 export function exists(path: string): Promise<boolean> {
