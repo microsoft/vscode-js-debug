@@ -725,9 +725,16 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
 }
 
 export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
-  return config.request === 'attach'
-    ? { ...nodeAttachConfigDefaults, ...config }
-    : { ...nodeLaunchConfigDefaults, ...config };
+  const filled =
+    config.request === 'attach'
+      ? { ...nodeAttachConfigDefaults, ...config }
+      : { ...nodeLaunchConfigDefaults, ...config };
+
+  if (!config.sourceMapPathOverrides && config.cwd) {
+    filled.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
+  }
+
+  return filled;
 }
 
 export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyChromeConfiguration {

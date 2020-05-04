@@ -36,6 +36,7 @@ import { StreamDapTransport } from '../dap/transport';
 import { tmpdir } from 'os';
 import { forceForwardSlashes } from '../common/pathUtils';
 import playwright from 'playwright';
+import { DebugType } from '../common/contributionUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -456,7 +457,9 @@ export class TestRoot {
 
     const tmpLogPath = getLogFileForTest(this._testTitlePath);
     this._root.dap.launch({
-      ...nodeLaunchConfigDefaults,
+      type: DebugType.Node,
+      request: 'launch',
+      name: 'Test Case',
       cwd: path.dirname(testFixturesDir),
       program: this._launchUrl,
       rootPath: this._workspaceRoot,

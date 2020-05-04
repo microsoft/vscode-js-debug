@@ -8,13 +8,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { writeToConsole } from '../../common/console';
 import {
-  nodeAttachConfigDefaults,
-  nodeLaunchConfigDefaults,
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
   AnyNodeConfiguration,
   resolveVariableInConfig,
   baseDefaults,
+  applyNodeDefaults,
 } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { INvmResolver } from '../../targets/node/nvmResolver';
@@ -123,9 +122,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       await guessOutFiles(folder, config);
     }
 
-    return config.request === 'attach'
-      ? { ...nodeAttachConfigDefaults, ...config }
-      : { ...nodeLaunchConfigDefaults, ...config };
+    return applyNodeDefaults(config);
   }
 
   protected getType() {

@@ -3,8 +3,6 @@
  *--------------------------------------------------------*/
 
 import * as mocha from 'mocha';
-import * as fs from 'fs';
-import * as util from 'util';
 import { TestWithLogfile, getLogFileForTest as getLogPathForTest } from './logReporterUtils';
 
 class LoggingReporter extends mocha.reporters.Spec {
@@ -28,11 +26,7 @@ class LoggingReporter extends mocha.reporters.Spec {
     if (!(test instanceof mocha.Test)) return;
 
     const logPath = getLogPathForTest(test.fullTitle());
-    try {
-      const contents = (await util.promisify(fs.readFile)(logPath)).toString();
-      console.log(`##vso[build.uploadlog]${logPath}`);
-      contents.split('\n').forEach(s => console.error(s.substr(0, 1000))); // Can't log very large strings in a single console.error call
-    } catch (e) {}
+    console.log(`##vso[build.uploadlog]${logPath}`);
   }
 }
 

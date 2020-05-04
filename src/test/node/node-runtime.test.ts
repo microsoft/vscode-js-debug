@@ -385,6 +385,16 @@ describe('node runtime', () => {
     await evaluate(handle, 'process.cwd()');
   });
 
+  itIntegrates('sets sourceMapOverrides from the cwd', async ({ r }) => {
+    const handle = await r.runScript(join(testWorkspace, 'simpleNode', 'simpleWebpack.js'), {
+      cwd: join(testWorkspace, 'simpleNode'),
+    });
+
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
+
   itIntegrates('sets environment variables', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {

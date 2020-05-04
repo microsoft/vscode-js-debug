@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+./index.ts @ ${workspaceFolder}/simpleNode/simpleWebpack.ts:1:1
