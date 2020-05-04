@@ -479,6 +479,7 @@ export interface IChromeLaunchConfiguration extends IChromiumLaunchConfiguration
 export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
   type: DebugType.Chrome;
   request: 'attach';
+  restart: boolean;
   __pendingTargetId?: string;
 }
 
@@ -511,6 +512,7 @@ export interface IEdgeAttachConfiguration extends IChromiumBaseConfiguration {
   type: DebugType.Edge;
   request: 'attach';
   useWebView: boolean;
+  restart: boolean;
 }
 
 /**
@@ -674,6 +676,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   disableNetworkCache: true,
   pathMapping: {},
   url: null,
+  restart: false,
   urlFilter: '',
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',

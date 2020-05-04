@@ -24,6 +24,45 @@ import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
 
+export const enum BrowserTargetType {
+  Page = 'page',
+  ServiceWorker = 'service_worker',
+  Worker = 'worker',
+  IFrame = 'iframe',
+  Other = 'other',
+}
+
+/**
+ * Types that can run JavaScript.
+ */
+const jsTypes: ReadonlySet<BrowserTargetType> = new Set([
+  BrowserTargetType.Page,
+  BrowserTargetType.IFrame,
+  BrowserTargetType.Worker,
+  BrowserTargetType.ServiceWorker,
+]);
+
+/**
+ * Types for which we should attach DOM debug handlers.
+ */
+const domDebuggerTypes: ReadonlySet<BrowserTargetType> = new Set([
+  BrowserTargetType.Page,
+  BrowserTargetType.IFrame,
+]);
+
+/**
+ * Types that can be restarted.
+ */
+const restartableTypes: ReadonlySet<BrowserTargetType> = new Set([
+  BrowserTargetType.Page,
+  BrowserTargetType.IFrame,
+]);
+
+/**
+ * Types that can be stopped.
+ */
+const stoppableTypes = restartableTypes;
+
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export class BrowserTargetManager implements IDisposable {
@@ -85,7 +124,9 @@ export class BrowserTargetManager implements IDisposable {
     this._targetOrigin = targetOrigin;
     this.serviceWorkerModel.onDidChange(() => {
       for (const target of this._targets.values()) {
-        if (target.isServiceWorker()) target._onNameChangedEmitter.fire();
+        if (target.type() === BrowserTargetType.ServiceWorker) {
+          target._onNameChangedEmitter.fire();
+        }
       }
     });
   }
@@ -95,30 +136,36 @@ export class BrowserTargetManager implements IDisposable {
   }
 
   targetList(): ITarget[] {
-    return Array.from(this._targets.values()).filter(target =>
-      jsTypes.has(target._targetInfo.type),
-    );
+    return Array.from(this._targets.values()).filter(target => jsTypes.has(target.type()));
   }
 
   async closeBrowser(): Promise<void> {
-    await this._browser.Browser.close({});
-    this.process?.kill();
-    this.process = undefined;
+    if (this.launchParams.request === 'launch') {
+      await this._browser.Browser.close({});
+      this.process?.kill();
+      this.process = undefined;
+    }
   }
 
-  waitForMainTarget(
+  /**
+   * Returns a promise that pends until the first target matching the given
+   * filter attaches.
+   */
+  public waitForMainTarget(
     filter?: (target: Cdp.Target.TargetInfo) => boolean,
   ): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
     const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
-      if (this._targets.size) {
-        return;
+      if (this._targets.has(targetInfo.targetId)) {
+        return; // targetInfoChanged on something we're already connected to
       }
+
       if (targetInfo.type !== 'page') {
         return;
       }
+
       if (filter && !filter(targetInfo)) {
         return;
       }
@@ -172,8 +219,16 @@ export class BrowserTargetManager implements IDisposable {
     parentTarget?: BrowserTarget,
   ): BrowserTarget {
     const cdp = this._connection.createSession(sessionId);
-    const target = new BrowserTarget(this, targetInfo, cdp, parentTarget, waitingForDebugger, () =>
-      this._connection.disposeSession(sessionId),
+    const target = new BrowserTarget(
+      this,
+      targetInfo,
+      cdp,
+      parentTarget,
+      waitingForDebugger,
+      () => {
+        this._connection.disposeSession(sessionId);
+        this._detachedFromTarget(targetInfo.targetId);
+      },
     );
     this._targets.set(targetInfo.targetId, target);
     if (parentTarget) parentTarget._children.set(targetInfo.targetId, target);
@@ -199,13 +254,14 @@ export class BrowserTargetManager implements IDisposable {
       this.retrieveBrowserTelemetry(cdp);
     }
 
-    if (domDebuggerTypes.has(targetInfo.type)) this.frameModel.attached(cdp, targetInfo.targetId);
+    const type = targetInfo.type as BrowserTargetType;
+    if (domDebuggerTypes.has(type)) this.frameModel.attached(cdp, targetInfo.targetId);
     this.serviceWorkerModel.attached(cdp);
 
     this._onTargetAddedEmitter.fire(target);
 
     // For targets that we don't report to the system, auto-resume them on our on.
-    if (!jsTypes.has(targetInfo.type)) cdp.Runtime.runIfWaitingForDebugger({});
+    if (!jsTypes.has(type)) cdp.Runtime.runIfWaitingForDebugger({});
 
     return target;
   }
@@ -262,7 +318,7 @@ export class BrowserTargetManager implements IDisposable {
 
     this._onTargetRemovedEmitter.fire(target);
 
-    if (!this._targets.size) {
+    if (!this._targets.size && this.launchParams.request === 'launch') {
       try {
         await this._browser.Browser.close({});
       } catch {
@@ -277,9 +333,6 @@ export class BrowserTargetManager implements IDisposable {
     target._updateFromInfo(targetInfo);
   }
 }
-
-const jsTypes = new Set(['page', 'iframe', 'worker', 'service_worker']);
-const domDebuggerTypes = new Set(['page', 'iframe']);
 
 export class BrowserTarget implements ITarget, IThreadDelegate {
   readonly parentTarget: BrowserTarget | undefined;
@@ -334,8 +387,8 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     return this._targetInfo.url;
   }
 
-  type(): string {
-    return this._targetInfo.type;
+  type(): BrowserTargetType {
+    return this._targetInfo.type as BrowserTargetType;
   }
 
   afterBind() {
@@ -363,18 +416,26 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   canStop(): boolean {
-    return this.isServiceWorker();
+    return stoppableTypes.has(this.type());
   }
 
   stop() {
-    // Stop both dedicated and parent service worker scopes for present and future browsers.
-    this._manager.serviceWorkerModel.stopWorker(this.id());
-    if (!this.parentTarget) return;
-    this._manager.serviceWorkerModel.stopWorker(this.parentTarget.id());
+    if (!this._manager.targetList().includes(this)) {
+      return;
+    }
+
+    if (this.type() === BrowserTargetType.ServiceWorker) {
+      // Stop both dedicated and parent service worker scopes for present and future browsers.
+      this._manager.serviceWorkerModel.stopWorker(this.id());
+      if (!this.parentTarget) return;
+      this._manager.serviceWorkerModel.stopWorker(this.parentTarget.id());
+    } else {
+      this._cdp.Target.closeTarget({ targetId: this._targetInfo.targetId });
+    }
   }
 
   canRestart() {
-    return this._targetInfo.type === 'page';
+    return restartableTypes.has(this.type());
   }
 
   restart() {
@@ -401,6 +462,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
 
   async detach(): Promise<void> {
     this._attached = false;
+    this._manager._detachedFromTarget(this.id());
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
@@ -416,7 +478,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   supportsCustomBreakpoints(): boolean {
-    return domDebuggerTypes.has(this._targetInfo.type);
+    return domDebuggerTypes.has(this.type());
   }
 
   shouldCheckContentHash(): boolean {
@@ -433,17 +495,17 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     return this._manager._sourcePathResolver;
   }
 
-  isServiceWorker(): boolean {
-    return this._targetInfo.type === 'service_worker';
-  }
-
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {
-    this._targetInfo = targetInfo;
+    // there seems to be a behavior (bug?) in Chrome where the target type is
+    // set to 'other' before shutdown which causes us to lose some behavior.
+    // Preserve the original type; it should never change (e.g. a page can't
+    // become an iframe or a sevice worker).
+    this._targetInfo = { ...targetInfo, type: this._targetInfo.type };
     this._onNameChangedEmitter.fire();
   }
 
   _computeName(): string {
-    if (this.isServiceWorker()) {
+    if (this.type() === BrowserTargetType.ServiceWorker) {
       const version = this._manager.serviceWorkerModel.version(this.id());
       if (version) return version.label() + ' [Service Worker]';
     }

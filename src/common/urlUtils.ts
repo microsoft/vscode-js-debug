@@ -321,20 +321,23 @@ export function platformPathToPreferredCase(p: string | undefined): string | und
  */
 export const createTargetFilterForConfig = (
   config: AnyChromiumConfiguration,
+  additonalMatches: ReadonlyArray<string> = [],
 ): ((t: { url: string }) => boolean) => {
   const filter = config.urlFilter || config.url || ('file' in config && config.file);
   if (!filter) {
     return () => true;
   }
 
-  const tester = createTargetFilter(filter);
+  const tester = createTargetFilter(filter, ...additonalMatches);
   return t => tester(t.url);
 };
 
 /**
  * Creates a function to filter a target URL.
  */
-export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boolean) => {
+export const createTargetFilter = (
+  ...targetUrls: ReadonlyArray<string>
+): ((testUrl: string) => boolean) => {
   const standardizeMatch = (aUrl: string) => {
     aUrl = aUrl.toLowerCase();
 
@@ -355,8 +358,10 @@ export const createTargetFilter = (targetUrl: string): ((testUrl: string) => boo
     return aUrl;
   };
 
-  targetUrl = escapeRegexSpecialChars(standardizeMatch(targetUrl), '/*').replace(/\*/g, '.*');
-  const targetUrlRegex = new RegExp('^' + targetUrl + '$', 'g');
+  const escaped = targetUrls.map(url =>
+    escapeRegexSpecialChars(standardizeMatch(url), '/*').replace(/\*/g, '.*'),
+  );
+  const targetUrlRegex = new RegExp('^(' + escaped.join('|') + ')$', 'g');
 
   return testUrl => {
     targetUrlRegex.lastIndex = 0;

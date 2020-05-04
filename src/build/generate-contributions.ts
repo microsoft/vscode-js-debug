@@ -753,6 +753,11 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   ],
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
+    restart: {
+      type: 'boolean',
+      markdownDescription: refString('browser.restart'),
+      default: false,
+    },
   },
 };
 
@@ -807,6 +812,11 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   ],
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
+    restart: {
+      type: 'boolean',
+      markdownDescription: refString('browser.restart'),
+      default: false,
+    },
     useWebView: {
       type: 'boolean',
       description: refString('edge.useWebView.description'),

@@ -89,6 +89,7 @@ const strings = {
     ' - `port` is the debug port that Chrome is listening on.\n' +
     ' - `browserInspectUri` is the inspector URI on the launched browser\n' +
     ' - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if the original URL is `https`, or `ws` otherwise.\n',
+  'browser.restart': 'Whether to reconnect if the browser connection is closed',
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',

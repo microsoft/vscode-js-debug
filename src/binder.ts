@@ -376,7 +376,7 @@ export class Binder implements IDisposable {
     } else {
       dap.on('attach', startThread);
       dap.on('launch', startThread);
-      dap.on('disconnect', () => this.stopTarget(target, container));
+      dap.on('disconnect', () => this.detachTarget(target, container));
       dap.on('terminate', () => this.stopTarget(target, container));
       dap.on('restart', async () => {
         if (target.canRestart()) target.restart();
@@ -388,18 +388,35 @@ export class Binder implements IDisposable {
     await target.afterBind();
   }
 
-  async detach(target: ITarget) {
-    if (!target.canDetach()) return;
-    await target.detach();
-    this._releaseTarget(target);
+  /**
+   * Called when we get a disconnect for a target. We stop the
+   * specific target if we can, otherwise we just tear down the session.
+   */
+  private async detachTarget(target: ITarget, container: Container) {
+    container.get<ITelemetryReporter>(ITelemetryReporter).flush();
+    if (!this.targetList().includes(target)) {
+      return {};
+    }
+
+    if (target.canDetach()) {
+      await target.detach();
+      this._releaseTarget(target);
+    } else {
+      this._disconnect();
+    }
+
+    return {};
   }
 
   /**
-   * Called when we get a disconnect/terminate for a target. We stop the
+   * Called when we get a terminate for a target. We stop the
    * specific target if we can, otherwise we just tear down the session.
    */
   private stopTarget(target: ITarget, container: Container) {
     container.get<ITelemetryReporter>(ITelemetryReporter).flush();
+    if (!this.targetList().includes(target)) {
+      return Promise.resolve({});
+    }
 
     if (target.canStop()) {
       target.stop();

@@ -86,7 +86,7 @@ export class BrowserAttacher implements ILauncher {
           this._onTargetListChangedEmitter.fire();
         }
 
-        if (this._lastLaunchParams === params) {
+        if (this._lastLaunchParams === params && params.restart) {
           this._scheduleAttach(params, context);
         } else {
           this._onTerminatedEmitter.fire({ killed: true, code: 0 });
@@ -96,7 +96,7 @@ export class BrowserAttacher implements ILauncher {
       this._disposables,
     );
 
-    this._targetManager = await BrowserTargetManager.connect(
+    const targetManager = (this._targetManager = await BrowserTargetManager.connect(
       connection,
       undefined,
       this.pathResolver,
@@ -104,22 +104,24 @@ export class BrowserAttacher implements ILauncher {
       this.logger,
       context.telemetryReporter,
       context.targetOrigin,
-    );
-    if (!this._targetManager) return;
+    ));
+    if (!targetManager) return;
 
-    this._targetManager.serviceWorkerModel.onDidChange(() =>
-      this._onTargetListChangedEmitter.fire(),
-    );
-    this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
-    this._targetManager.onTargetAdded(() => {
+    targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
+    targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
+    targetManager.onTargetAdded(() => {
       this._onTargetListChangedEmitter.fire();
     });
-    this._targetManager.onTargetRemoved(() => {
+    targetManager.onTargetRemoved(target => {
       this._onTargetListChangedEmitter.fire();
+      if (!targetManager.targetList().length && target.canAttach()) {
+        // graceful exit
+        this._onTerminatedEmitter.fire({ killed: true, code: 0 });
+      }
     });
 
     const result = await Promise.race([
-      this._targetManager.waitForMainTarget(createTargetFilterForConfig(params)),
+      targetManager.waitForMainTarget(createTargetFilterForConfig(params)),
       delay(params.timeout).then(() =>
         localize(
           'chrome.attach.noMatchingTarget',
