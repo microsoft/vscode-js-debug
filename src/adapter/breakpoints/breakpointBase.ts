@@ -344,7 +344,7 @@ export abstract class Breakpoint {
     this._cdpIds = nextIdSet;
   }
 
-  private async _setPredicted(thread: Thread): Promise<void> {
+  protected async _setPredicted(thread: Thread): Promise<void> {
     if (!this.source.path || !this._manager._breakpointsPredictor) return;
     const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this.source.path,
@@ -368,7 +368,7 @@ export abstract class Breakpoint {
     await Promise.all(promises);
   }
 
-  private async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
+  protected async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
     const sourceByPath = this._manager._sourceContainer.source({ path: this.source.path });
 
     // If the source has been mapped in-place, don't set anything by path,
@@ -416,7 +416,7 @@ export abstract class Breakpoint {
     );
   }
 
-  private async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
+  protected async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
     lineColumn = base1To0(lineColumn);
 
     const previous = this.hasSetOnLocation({ url }, lineColumn);
@@ -465,7 +465,7 @@ export abstract class Breakpoint {
    * Sets a breakpoint on the thread using the given set of arguments
    * to Debugger.setBreakpoint or Debugger.setBreakpointByUrl.
    */
-  private async _setAny(thread: Thread, args: AnyCdpBreakpointArgs) {
+  protected async _setAny(thread: Thread, args: AnyCdpBreakpointArgs) {
     const state: Partial<IBreakpointCdpReferencePending> = {
       state: CdpReferenceState.Pending,
       args,

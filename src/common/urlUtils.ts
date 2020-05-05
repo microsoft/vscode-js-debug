@@ -120,6 +120,16 @@ export function completeUrl(base: string | undefined, relative: string): string 
   } catch (e) {}
 }
 
+export function removeQueryString(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 // This function allows relative path to escape the root:
 // "http://example.com/foo/bar.js" + "../../baz/qux.js" => "http://example.com/../baz/qux.js"
 // This allows relative source map sources to reference outside of webRoot.

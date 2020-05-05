@@ -10,7 +10,7 @@ import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
-import { BreakpointManager } from './breakpoints';
+import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { ICompletions } from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import * as messageFormat from './messageFormat';
@@ -594,6 +594,10 @@ export class Thread implements IVariableStoreDelegate {
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
+
+      if (this._isWebpackModuleEvalPause(event)) {
+        await this._handleWebpackModuleEval();
+      }
 
       // Set shouldPause=true if we just resolved a breakpoint that's on this
       // location; this won't have existed before now.
@@ -1374,6 +1378,37 @@ export class Thread implements IVariableStoreDelegate {
       this._pauseOnSourceMapBreakpointId = undefined;
       await this._cdp.Debugger.removeBreakpoint({ breakpointId });
     }
+  }
+
+  /**
+   * Handles a paused event that is an instrumentation breakpoint on what
+   * looks like a webpack module eval bundle. These bundles are made up of
+   * separate `eval()` calls for each different module, each of which has their
+   * own source map. Because of this, pausing when we see a script with a
+   * sourcemap becomes incredibly slow.
+   *
+   * If we enounter this, we remove the instrumentation breakpoint and instead
+   * tell our breakpoint manager to set very aggressively-matched entrypoint
+   * breakpoints and use those instead. It's not quite as accurate, but it's
+   * far better than takes minutes to load simple apps.
+   *
+   * (You might ask "what does Chrome devtools do here?" The answer is:
+   * nothing. They don't seem to have special logic to ensure we set
+   * breakpoints before evaluating code, they just work as fast as they can and
+   * hope the breakpoints get set in time.)
+   */
+  private async _handleWebpackModuleEval() {
+    await this._breakpointManager.updateEntryBreakpointMode(this, EntryBreakpointMode.Greedy);
+    await this.setScriptSourceMapHandler(false, this._scriptWithSourceMapHandler);
+  }
+
+  private _isWebpackModuleEvalPause(event: Cdp.Debugger.PausedEvent) {
+    return (
+      event.reason === 'instrumentation' &&
+      event.data &&
+      event.data.url?.startsWith('webpack') &&
+      event.data.sourceMapURL?.startsWith('data:')
+    );
   }
 
   setSourceMapDisabler(sourceMapDisabler?: SourceMapDisabler) {
