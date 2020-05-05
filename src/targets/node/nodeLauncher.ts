@@ -102,11 +102,12 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         runData.params.runtimeExecutable || undefined,
       );
       const callbackFile = new CallbackFile<IProcessTelemetry>();
-      const options: INodeLaunchConfiguration = {
-        ...runData.params,
-        env: this.resolveEnvironment(runData, binary.canUseSpacesInRequirePath, callbackFile.path)
-          .value,
-      };
+      const env = await this.resolveEnvironment(
+        runData,
+        binary.canUseSpacesInRequirePath,
+        callbackFile.path,
+      );
+      const options: INodeLaunchConfiguration = { ...runData.params, env: env.value };
       const launcher = this.launchers.find(l => l.canLaunch(options));
       if (!launcher) {
         throw new Error('Cannot find an appropriate launcher for the given set of options');

@@ -8,7 +8,6 @@
       "type": "pwa-node",
       "request": "launch",
       "trace": true,
-      "runtimeVersion": "10.0.0",
       "name": "[Node] Launch program",
       "program": "${workspaceFolder}/main.js"
     },

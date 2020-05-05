@@ -4,17 +4,19 @@
 
 import { ITerminalLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { StubProgram } from './program';
 import { injectable, inject } from 'inversify';
 import { IRunData, NodeLauncherBase, IProcessTelemetry } from './nodeLauncherBase';
 import { DebugType } from '../../common/contributionUtils';
 import { IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
-import { spawnWatchdog } from './watchdogSpawn';
+import { spawnWatchdog, bootloaderDefaultPath } from './watchdogSpawn';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { ITarget } from '../targets';
-import { ExtensionContext } from '../../ioc-extras';
+import { ExtensionContext, FsPromises, FS } from '../../ioc-extras';
 import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
+import { canAccess } from '../../common/fsUtils';
 
 const deferredSuffix = '.deferred';
 
@@ -31,6 +33,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
+    @inject(FS) private readonly fs: FsPromises,
   ) {
     super(pathProvider, logger);
   }
@@ -69,7 +72,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     const variables = this.extensionContext.environmentVariableCollection;
     if (!variables.get('NODE_INSPECTOR_DEFERRED_MODE')) {
       const useSpaces = await this.canUseSpacesInBootloaderPath(runData.params);
-      const debugVars = this.resolveEnvironment(runData, useSpaces).defined() as Required<
+      const debugVars = (await this.resolveEnvironment(runData, useSpaces)).defined() as Required<
         IBootloaderEnvironment
       >;
       debugVars.NODE_INSPECTOR_DEFERRED_MODE = 'true';
@@ -83,6 +86,35 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
 
     this.program = new StubProgram();
     this.program.stopped.then(data => this.onProgramTerminated(data));
+  }
+
+  /**
+   * Stores the bootloader in the storage path so that it doesn't change
+   * location between the extension version updating.
+   * @override
+   */
+  protected async getBootloaderFile(
+    cwd: string | undefined,
+    canUseSpacesInBootloaderPath: boolean,
+  ) {
+    const storagePath =
+      this.extensionContext.storagePath || this.extensionContext.globalStoragePath;
+    if (!canUseSpacesInBootloaderPath && storagePath.includes(' ')) {
+      return super.getBootloaderFile(cwd, canUseSpacesInBootloaderPath);
+    }
+
+    const bootloaderPath = path.join(storagePath, 'bootloader.js');
+    if (!(await canAccess(this.fs, bootloaderPath))) {
+      try {
+        await this.fs.mkdir(storagePath);
+      } catch {
+        // already exists, most likely
+      }
+
+      await this.fs.copyFile(bootloaderDefaultPath, bootloaderPath);
+    }
+
+    return { path: bootloaderPath, dispose: () => undefined };
   }
 
   /**

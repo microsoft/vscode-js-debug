@@ -6,6 +6,7 @@ import Dap from './dap/api';
 import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
+import pkg from '../package.json';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -875,12 +876,17 @@ export function resolveVariableInConfig<T>(
   return out as T;
 }
 
-export function isNightly(): boolean {
-  try {
-    // eslint-disable-next-line
-    const packageJson = require('../package.json');
-    return packageJson && (packageJson.name as string).includes('nightly');
-  } catch (e) {
-    return false;
-  }
-}
+export const breakpointLanguages: ReadonlyArray<string> = [
+  'javascript',
+  'typescript',
+  'typescriptreact',
+  'javascriptreact',
+  'fsharp',
+  'html',
+];
+
+export const packageName: string = pkg.name;
+export const packageVersion: string = pkg.version;
+export const packagePublisher: string = pkg.publisher;
+export const isNightly = packageName.includes('nightly');
+export const extensionId = `${packagePublisher}.${packageName}`;

@@ -10,10 +10,9 @@ const nls = require('vscode-nls-dev');
 const path = require('path');
 const replace = require('gulp-replace');
 const sourcemaps = require('gulp-sourcemaps');
-const ts = require('gulp-typescript');
+const tsb = require('gulp-tsb');
 const rename = require('gulp-rename');
 const merge = require('merge2');
-const typescript = require('typescript');
 const vsce = require('vsce');
 const webpack = require('webpack');
 const execSync = require('child_process').execSync;
@@ -50,7 +49,7 @@ const isNightly = process.argv.includes('--nightly') || process.argv.includes('w
 /**
  * Extension ID to build. Appended with '-nightly' as necessary.
  */
-const extensionId = isNightly ? 'js-debug-nightly' : 'js-debug';
+const extensionName = isNightly ? 'js-debug-nightly' : 'js-debug';
 
 function runBuildScript(name) {
   return new Promise((resolve, reject) =>
@@ -83,8 +82,7 @@ async function readJson(file) {
 }
 
 const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
-const tsProject = ts.createProject('./tsconfig.json', { typescript });
-const prettierOptions = require('./package.json').prettier;
+const tsProject = tsb.create('./tsconfig.json');
 
 gulp.task('clean-assertions', () => del(['src/test/**/*.txt.actual']));
 
@@ -98,7 +96,7 @@ gulp.task('compile:ts', () =>
     .pipe(sourcemaps.init())
     .pipe(replaceNamespace())
     .pipe(tsProject())
-    .js.pipe(
+    .pipe(
       sourcemaps.write('.', {
         includeContent: false,
         sourceRoot: '.',
@@ -140,12 +138,10 @@ gulp.task('compile:dynamic', async () => {
   ]);
 
   let packageJson = await readJson(`${buildDir}/package.json`);
-  packageJson.name = extensionId;
+  packageJson.name = extensionName;
   if (isNightly) {
-    const date = new Date();
     packageJson.displayName += ' (Nightly)';
     packageJson.version = getVersionNumber();
-
     await fixNightlyReadme();
   }
 
@@ -164,9 +160,29 @@ gulp.task('compile:static', () =>
   ).pipe(gulp.dest(buildDir)),
 );
 
-gulp.task('compile', gulp.series('compile:ts', 'compile:static', 'compile:dynamic'));
+/** Compiles supporting libraries to single bundles in the output */
+gulp.task(
+  'compile:webpack-supporting',
+  gulp.parallel(
+    () => runWebpack({ devtool: 'source-map', compileInPlace: true }),
+    () =>
+      gulp
+        .src('node_modules/@c4312/chromehash/pkg/*.wasm')
+        .pipe(gulp.dest(`${buildSrcDir}/common/hash`)),
+  ),
+);
 
-async function runWebpack(packages, devtool) {
+gulp.task(
+  'compile',
+  gulp.series('compile:ts', 'compile:static', 'compile:dynamic', 'compile:webpack-supporting'),
+);
+
+async function runWebpack({
+  packages = [],
+  devtool = false,
+  compileInPlace = false,
+  mode = process.argv.includes('watch') ? 'development' : 'production',
+} = options) {
   // add the entrypoints common to both vscode and vs here
   packages = [
     ...packages,
@@ -175,14 +191,15 @@ async function runWebpack(packages, devtool) {
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
   ];
 
-  for (const { entry, library } of packages) {
+  let configs = [];
+  for (const { entry, library, filename } of packages) {
     const config = {
-      mode: 'production',
+      mode,
       target: 'node',
       entry: path.resolve(entry),
       output: {
-        path: path.resolve(distSrcDir),
-        filename: path.basename(entry),
+        path: compileInPlace ? path.resolve(path.dirname(entry)) : path.resolve(distSrcDir),
+        filename: filename || path.basename(entry).replace('.js', '.bundle.js'),
         devtoolModuleFilenameTemplate: '../[resource-path]',
       },
       devtool: devtool,
@@ -211,30 +228,34 @@ async function runWebpack(packages, devtool) {
       ];
     }
 
-    await new Promise((resolve, reject) =>
-      webpack(config, (err, stats) => {
-        if (err) {
-          reject(err);
-        } else if (stats.hasErrors()) {
-          reject(stats);
-        } else {
-          resolve();
-        }
-      }),
-    );
+    configs.push(config);
   }
+
+  await new Promise((resolve, reject) =>
+    webpack(configs, (err, stats) => {
+      if (err) {
+        reject(err);
+      } else if (stats.hasErrors()) {
+        reject(stats);
+      } else {
+        resolve();
+      }
+    }),
+  );
 }
 
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
-  const packages = [{ entry: `${buildSrcDir}/extension.js`, library: true }];
-  return runWebpack(packages, undefined /* No sourcemaps */);
+  const packages = [
+    { entry: `${buildSrcDir}/extension.js`, filename: 'extension.js', library: true },
+  ];
+  return runWebpack({ packages });
 });
 
 /** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
 gulp.task('flatSessionBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${buildSrcDir}/flatSessionLauncher.js`, library: true }];
-  return runWebpack(packages, /* Sourcemaps to convert stack traces to TS */ 'nosources-source-map');
+  return runWebpack({ packages, devtool: 'nosources-source-map' });
 });
 
 /** Copy the extension static files */
@@ -264,7 +285,7 @@ gulp.task('package:createVSIX', () =>
   vsce.createVSIX({
     cwd: distDir,
     useYarn: true,
-    packagePath: path.join(distDir, `${extensionId}.vsix`),
+    packagePath: path.join(distDir, `${extensionName}.vsix`),
   }),
 );
 
@@ -273,7 +294,9 @@ gulp.task(
   'package',
   gulp.series(
     'clean',
-    'compile',
+    'compile:ts',
+    'compile:static',
+    'compile:dynamic',
     'package:webpack-bundle',
     'package:copy-extension-files',
     'package:createVSIX',
@@ -319,7 +342,7 @@ gulp.task(
       .pipe(sourcemaps.init())
       .pipe(tsProject())
       .js.pipe(nls.createMetaDataFiles())
-      .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionId}`, 'out'))
+      .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, 'out'))
       .pipe(nls.bundleLanguageFiles())
       .pipe(filter('**/nls.*.json'))
       .pipe(gulp.dest('out')),

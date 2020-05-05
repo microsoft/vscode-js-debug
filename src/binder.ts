@@ -15,6 +15,7 @@ import {
   AnyResolvingConfiguration,
   applyDefaults,
   isNightly,
+  packageVersion,
 } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
@@ -35,9 +36,6 @@ import { createTargetContainer, provideLaunchParams } from './ioc';
 import { disposeContainer, IInitializeParams } from './ioc-extras';
 
 const localize = nls.loadMessageBundle();
-
-// eslint-disable-next-line
-const packageJson = require('../../package.json');
 
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
@@ -227,7 +225,7 @@ export class Binder implements IDisposable {
       request: rawParams.request,
       os: `${os.platform()} ${os.arch()}`,
       nodeVersion: process.version,
-      adapterVersion: packageJson.version,
+      adapterVersion: packageVersion,
       parameters: mapValues((rawParams as unknown) as { [key: string]: unknown }, sanitizer),
     });
   }
@@ -459,7 +457,7 @@ export class Binder implements IDisposable {
 }
 
 function warnNightly(dap: Dap.Api): void {
-  if (isNightly()) {
+  if (isNightly) {
     dap.output({
       category: 'console',
       output: `Note: Using the "preview" debug extension\n`,

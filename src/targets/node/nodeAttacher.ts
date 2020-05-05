@@ -195,7 +195,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = this.resolveEnvironment(run, binary.canUseSpacesInRequirePath).merge({
+    const vars = (await this.resolveEnvironment(run, binary.canUseSpacesInRequirePath)).merge({
       NODE_INSPECTOR_PPID: '0',
       NODE_INSPECTOR_REQUIRE_LEASE: leasePath,
     });

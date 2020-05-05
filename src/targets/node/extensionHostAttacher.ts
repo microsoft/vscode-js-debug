@@ -105,7 +105,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
     }
 
     // We know VS Code uses Node 12 (right now) so spaces are gucci
-    const vars = this.resolveEnvironment(run, true).merge({
+    const vars = (await this.resolveEnvironment(run, true)).merge({
       NODE_INSPECTOR_PPID: '0',
     });
 

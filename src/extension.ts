@@ -24,10 +24,7 @@ import { toggleOnExperiment } from './ui/experimentEnlist';
 import { registerProfilingCommand } from './ui/profiling';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { registerAutoAttach } from './ui/autoAttach';
-
-// eslint-disable-next-line
-const packageJson = require('../package.json');
-const extensionId = `${packageJson.publisher}.${packageJson.name}`;
+import { extensionId } from './configuration';
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({

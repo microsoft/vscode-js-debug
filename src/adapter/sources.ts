@@ -11,7 +11,7 @@ import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { delay, getDeferred } from '../common/promiseUtil';
-import { SourceMapConsumer } from 'source-map';
+import { SourceMapConsumer, NullableMappedPosition } from 'source-map';
 import { SourceMap, ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
@@ -643,7 +643,10 @@ export class SourceContainer {
   /**
    * Gets the best original position for the location in the source map.
    */
-  public getOptiminalOriginalPosition(sourceMap: SourceMapConsumer, uiLocation: LineColumn) {
+  public getOptiminalOriginalPosition(
+    sourceMap: SourceMapConsumer,
+    uiLocation: LineColumn,
+  ): NullableMappedPosition {
     const glb = sourceMap.originalPositionFor({
       line: uiLocation.lineNumber,
       column: uiLocation.columnNumber - 1,

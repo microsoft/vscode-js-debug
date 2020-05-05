@@ -6,7 +6,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { EventEmitter, IDisposable } from '../../common/events';
+import { EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import {
@@ -31,6 +31,8 @@ import { inject, injectable } from 'inversify';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { IBootloaderEnvironment } from './bootloader/environment';
+import { bootloaderDefaultPath } from './watchdogSpawn';
+import { once } from '../../common/objUtils';
 
 /**
  * Telemetry received from the nested process.
@@ -56,8 +58,6 @@ export interface IProcessTelemetry {
    */
   architecture: string;
 }
-
-type BootloaderFile = IDisposable & { path: string };
 
 /**
  * Data stored for a currently running debug session within the Node launcher.
@@ -114,7 +114,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Bootloader file, if created.
    */
-  private bootloaderFile?: BootloaderFile;
+  private bootloaderFile = once(this.getBootloaderFile.bind(this));
 
   constructor(
     @inject(INodeBinaryProvider) private readonly pathProvider: NodeBinaryProvider,
@@ -286,13 +286,13 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Gets the environment variables for the session.
    */
-  protected resolveEnvironment(
+  protected async resolveEnvironment(
     { params, serverAddress }: IRunData<T>,
     canUseSpacesInBootloaderPath: boolean,
     callbackFile?: string,
   ) {
     const baseEnv = this.getConfiguredEnvironment(params);
-    const bootloader = this.getBootloaderFile(params.cwd, canUseSpacesInBootloaderPath);
+    const bootloader = await this.bootloaderFile(params.cwd, canUseSpacesInBootloaderPath);
     const interpolatedPath = canUseSpacesInBootloaderPath
       ? `"${forceForwardSlashes(bootloader.path)}"`
       : bootloader.path;
@@ -345,13 +345,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   protected _stopServer() {
-    if (this.run) {
-      this.run.server.close();
-      this.bootloaderFile?.dispose();
-    }
-
+    this.run?.server.close();
     this.run = undefined;
-    this.bootloaderFile = undefined;
+    this.bootloaderFile.value?.then(f => f.dispose());
+    this.bootloaderFile.forget();
     this.closeAllConnections();
   }
 
@@ -407,34 +404,33 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * since Node does not support paths with spaces in them < 13 (nodejs/node#12971),
    * so if our installation path has spaces, we need to fall back somewhere.
    */
-  private getBootloaderFile(cwd: string | undefined, canUseSpacesInBootloaderPath: boolean) {
-    if (this.bootloaderFile) {
-      return this.bootloaderFile;
-    }
-
-    const targetPath = path.join(__dirname, 'bootloader.js');
+  protected async getBootloaderFile(
+    cwd: string | undefined,
+    canUseSpacesInBootloaderPath: boolean,
+  ) {
+    const targetPath = bootloaderDefaultPath;
 
     // 1. If the path doesn't have a space, we're OK to use it.
     if (canUseSpacesInBootloaderPath || !targetPath.includes(' ')) {
-      return (this.bootloaderFile = { path: targetPath, dispose: () => undefined });
+      return { path: targetPath, dispose: () => undefined };
     }
 
     // 2. Try the tmpdir, if it's space-free.
     const contents = `require(${JSON.stringify(targetPath)})`;
     if (!os.tmpdir().includes(' ') || !cwd) {
       const tmpPath = path.join(os.tmpdir(), 'vscode-js-debug-bootloader.js');
-      fs.writeFileSync(tmpPath, contents);
-      return (this.bootloaderFile = { path: tmpPath, dispose: () => undefined });
+      await fs.promises.writeFile(tmpPath, contents);
+      return { path: tmpPath, dispose: () => undefined };
     }
 
     // 3. Worst case, write into the cwd. This is messy, but we have few options.
     const nearFilename = '.vscode-js-debug-bootloader.js';
     const nearPath = path.join(cwd, nearFilename);
-    fs.writeFileSync(nearPath, contents);
-    return (this.bootloaderFile = {
+    await fs.promises.writeFile(nearPath, contents);
+    return {
       path: `./${nearFilename}`,
       dispose: () => fs.unlinkSync(nearPath),
-    });
+    };
   }
 }
 

@@ -187,15 +187,26 @@ const unset = Symbol('unset');
  * Wraps a function so that it's called once, and never again, memoizing
  * the result.
  */
-export function once<T>(fn: () => T): () => T {
+export function once<T, Args extends unknown[]>(
+  fn: (...args: Args) => T,
+): ((...args: Args) => T) & { value?: T; forget(): void } {
   let value: T | typeof unset = unset;
-  return () => {
+  const onced = (...args: Args) => {
     if (value === unset) {
-      value = fn();
+      onced.value = value = fn(...args);
     }
 
     return value;
   };
+
+  onced.forget = () => {
+    value = unset;
+    onced.value = undefined;
+  };
+
+  onced.value = undefined as T | undefined;
+
+  return onced;
 }
 
 /**

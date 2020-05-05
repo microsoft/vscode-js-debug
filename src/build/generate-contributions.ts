@@ -25,6 +25,7 @@ import {
   baseDefaults,
   IEdgeLaunchConfiguration,
   IEdgeAttachConfiguration,
+  breakpointLanguages,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
@@ -991,6 +992,7 @@ process.stdout.write(
       ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
     ],
     contributes: {
+      breakpoints: breakpointLanguages.map(language => ({ language })),
       debuggers: buildDebuggers(),
       commands,
       configuration: {

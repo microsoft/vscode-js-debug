@@ -7,9 +7,7 @@ import { injectable } from 'inversify';
 import * as os from 'os';
 import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
 import { TestLogSink } from './testLogSink';
-
-// eslint-disable-next-line
-const packageJson = require('../../../package.json');
+import { packageName, packageVersion } from '../../configuration';
 
 /**
  * Implementation of ILogger for the extension.
@@ -214,10 +212,10 @@ const createWelcomeMessage = (): ILogItem<unknown> => ({
   timestamp: Date.now(),
   tag: LogTag.RuntimeWelcome,
   level: LogLevel.Info,
-  message: `${packageJson.name} v${packageJson.version} started`,
+  message: `${packageName} v${packageVersion} started`,
   metadata: {
     os: `${os.platform()} ${os.arch()}`,
     nodeVersion: process.version,
-    adapterVersion: packageJson.version,
+    adapterVersion: packageVersion,
   },
 });

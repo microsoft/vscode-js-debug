@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { contributes } from '../../../package.json';
 
 // Here we create separate sets of interfaces for providing and resolving
 // debug configuration.
@@ -44,7 +43,3 @@ export interface IDebugConfigurationProvider {
 }
 
 export const IDebugConfigurationProvider = Symbol('IDebugConfigurationProvider');
-
-export const breakpointLanguages: ReadonlyArray<string> = contributes.breakpoints.map(
-  (b: { language: string }) => b.language,
-);

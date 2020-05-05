@@ -13,8 +13,8 @@ import {
   ResolvingNodeLaunchConfiguration,
   AnyResolvingConfiguration,
   AnyTerminalConfiguration,
+  breakpointLanguages,
 } from '../../configuration';
-import { breakpointLanguages } from './configurationProvider';
 import { findScripts } from '../debugNpmScript';
 import { flatten } from '../../common/objUtils';
 

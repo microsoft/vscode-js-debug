@@ -22,7 +22,7 @@ const create = () => {
     return instance;
   }
 
-  instance = fork(join(__dirname, 'hash.js'), [], { env: {}, silent: true, execArgv: [] });
+  instance = fork(join(__dirname, 'hash.bundle.js'), [], { env: {}, silent: true, execArgv: [] });
   instance.setMaxListeners(Infinity);
   instance.addListener('message', raw => {
     const msg = raw as HashResponse<HashRequest>;

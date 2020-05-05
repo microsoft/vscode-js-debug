@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import * as vscode from 'vscode';
+import { promises as fs } from 'fs';
 import { registerCommand, Commands } from '../common/contributionUtils';
 import { AutoAttachLauncher } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
@@ -22,7 +23,7 @@ export function registerAutoAttach(
     }
 
     launcher = (async () => {
-      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new Logger(), context);
+      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new Logger(), context, fs);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {

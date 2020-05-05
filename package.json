@@ -120,7 +120,7 @@
     "gulp-rename": "^2.0.0",
     "gulp-replace": "^1.0.0",
     "gulp-sourcemaps": "^2.6.5",
-    "gulp-typescript": "^5.0.1",
+    "gulp-tsb": "^4.0.5",
     "gulp-util": "^3.0.8",
     "husky": "^4.2.3",
     "lodash": "^4.17.15",
@@ -258,26 +258,6 @@
           "when": "view == jsBrowserBreakpoints"
         }
       ]
-    },
-    "breakpoints": [
-      {
-        "language": "javascript"
-      },
-      {
-        "language": "typescript"
-      },
-      {
-        "language": "typescriptreact"
-      },
-      {
-        "language": "javascriptreact"
-      },
-      {
-        "language": "fsharp"
-      },
-      {
-        "language": "html"
-      }
-    ]
+    }
   }
 }

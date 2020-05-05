@@ -14,6 +14,7 @@ import {
   resolveVariableInConfig,
   baseDefaults,
   applyNodeDefaults,
+  breakpointLanguages,
 } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { INvmResolver } from '../../targets/node/nvmResolver';
@@ -25,7 +26,6 @@ import { ExtensionContext } from '../../ioc-extras';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
 import { resolveProcessId } from '../processPicker';
-import { breakpointLanguages } from './configurationProvider';
 
 const localize = nls.loadMessageBundle();
 

@@ -43,7 +43,8 @@ export interface IWatchdogInfo {
   ppid?: string;
 }
 
-const watchdogPath = join(__dirname, 'watchdog.js');
+export const watchdogPath = join(__dirname, 'watchdog.bundle.js');
+export const bootloaderDefaultPath = join(__dirname, 'bootloader.bundle.js');
 
 /**
  * Spawns a watchdog attached to the given process.
