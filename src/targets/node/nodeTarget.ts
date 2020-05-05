@@ -137,7 +137,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     if (this._parent) this._parent._children.push(this);
   }
 
-  async _disconnected() {
+  private async _disconnected() {
     this._children.forEach(child => child.setParent(this._parent));
     this.setParent(undefined);
     this._onDisconnectEmitter.fire();
@@ -199,6 +199,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   async _doDetach() {
     await this._cdp.Target.detachFromTarget({ targetId: this._targetId });
+    this.connection.close();
     this._attached = false;
   }
 
