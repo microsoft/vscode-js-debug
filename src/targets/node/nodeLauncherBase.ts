@@ -300,6 +300,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const env = {
       NODE_INSPECTOR_IPC: serverAddress,
       NODE_INSPECTOR_PPID: '',
+      NODE_INSPECTOR_DEFERRED_MODE: 'false',
       // todo: look at reimplementing the filter
       // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
       NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',

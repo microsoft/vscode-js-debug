@@ -99,7 +99,7 @@ gulp.task('compile:ts', () =>
     .pipe(
       sourcemaps.write('.', {
         includeContent: false,
-        sourceRoot: '.',
+        sourceRoot: '../../src',
       }),
     )
     .pipe(gulp.dest(buildSrcDir)),
