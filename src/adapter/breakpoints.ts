@@ -51,6 +51,15 @@ export type BreakpointEnableFilter = (breakpoint: Breakpoint) => boolean;
 
 const DontCompare = Symbol('DontCompare');
 
+/**
+ * Determines the coarseness at which entry breakpoints are set.
+ * @see Thread._handleWebpackModuleEval for usage information.
+ */
+export const enum EntryBreakpointMode {
+  Exact,
+  Greedy,
+}
+
 @injectable()
 export class BreakpointManager {
   _dap: Dap.Api;
@@ -65,6 +74,7 @@ export class BreakpointManager {
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
   private readonly conditionFactory = new BreakpointConditionFactory(this.logger);
   private readonly pauseForSourceMaps: boolean;
+  private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
   /**
    * Gets a flat list of all registered breakpoints.
@@ -178,6 +188,22 @@ export class BreakpointManager {
       this._byRef.set(fromSource.sourceReference(), remaining);
       this._byRef.set(toSource.sourceReference(), moved);
     }
+  }
+
+  /**
+   * Update the entry breakpoint mode. Returns a promise that resolves
+   * once all breakpoints are adjusted.
+   * @see Thread._handleWebpackModuleEval for usage information.
+   */
+  public async updateEntryBreakpointMode(thread: Thread, mode: EntryBreakpointMode) {
+    if (mode === this.entryBreakpointMode) {
+      return;
+    }
+
+    const previous = [...this.moduleEntryBreakpoints.values()];
+    this.moduleEntryBreakpoints.clear();
+    this.entryBreakpointMode = mode;
+    await Promise.all(previous.map(p => this.ensureModuleEntryBreakpoint(thread, p.source)));
   }
 
   /**
@@ -548,7 +574,9 @@ export class BreakpointManager {
         // we intentionally don't remove the record from the map; it's kept as
         // an indicator that it did exist and was hit, so that if further
         // breakpoints are set in the file it doesn't get re-applied.
-        breakpoint.disable();
+        if (this.entryBreakpointMode === EntryBreakpointMode.Exact) {
+          breakpoint.disable();
+        }
         votesForContinue++;
         continue;
       }
@@ -588,7 +616,12 @@ export class BreakpointManager {
    * one if there's not already one.
    */
   private ensureModuleEntryBreakpoint(thread: Thread, source: Dap.Source) {
-    if (!source.path || this.moduleEntryBreakpoints.has(source.path)) {
+    if (!source.path) {
+      return;
+    }
+
+    const key = EntryBreakpoint.getModeKeyForSource(this.entryBreakpointMode, source.path);
+    if (!source.path || this.moduleEntryBreakpoints.has(key)) {
       return;
     }
 
@@ -598,7 +631,7 @@ export class BreakpointManager {
       return;
     }
 
-    const bp = new EntryBreakpoint(this, source);
+    const bp = new EntryBreakpoint(this, source, this.entryBreakpointMode);
     this.moduleEntryBreakpoints.set(source.path, bp);
     this._setBreakpoint(bp, thread);
   }

@@ -55,6 +55,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   }
 
   async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
+    url = utils.removeQueryString(url);
     return map ? this.sourceMapSourceToAbsolute(url, map) : this.simpleUrlToAbsolute(url);
   }
 
