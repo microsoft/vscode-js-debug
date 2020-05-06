@@ -721,7 +721,9 @@ describe('breakpoints', () => {
     handle.assertLog({ substring: true });
   });
 
-  itIntegrates('vue projects', async ({ r }) => {
+  // todo: work with Vue on getting their stuff to normalize
+  // see https://github.com/microsoft/vscode-js-debug/issues/239
+  itIntegrates.skip('vue projects', async ({ r }) => {
     const p = await r.launchUrl('vue/index.html');
     await p.dap.setBreakpoints({
       source: { path: p.workspacePath('web/src/App.vue') },
