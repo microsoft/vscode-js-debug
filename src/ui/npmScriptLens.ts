@@ -79,6 +79,10 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
     }
 
     if (this.lensLocation === 'all') {
+      const packageManager = workspace
+        .getConfiguration('npm', workspaceFolder?.uri)
+        .get<string>('packageManager', 'npm');
+
       return tokens.scripts.map(
         ({ name, position }) =>
           new CodeLens(
@@ -86,7 +90,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [`npm run ${name}`, workspaceFolder],
+              arguments: [`${packageManager} run ${name}`, workspaceFolder],
             }),
           ),
       );
