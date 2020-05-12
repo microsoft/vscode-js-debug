@@ -8,12 +8,12 @@ import { injectable, inject } from 'inversify';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import Dap from '../../dap/api';
-import { FS, FsPromises } from '../../ioc-extras';
+import { FS, FsPromises, ExtensionContext } from '../../ioc-extras';
 import { forceForwardSlashes } from '../../common/pathUtils';
 
 const localize = nls.loadMessageBundle();
-
 const boolToInt = (v: boolean) => (v ? 1 : 0);
+const warnedKey = 'breakpointTerminationWarnedSlow';
 
 type BreakpointPickItem = { id: number } & vscode.QuickPickItem;
 
@@ -27,7 +27,10 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     'Run until a specific breakpoint is hit',
   );
 
-  constructor(@inject(FS) private readonly fs: FsPromises) {}
+  constructor(
+    @inject(FS) private readonly fs: FsPromises,
+    @inject(ExtensionContext) private readonly context: vscode.ExtensionContext,
+  ) {}
 
   public async onPick(session: vscode.DebugSession, breakpointIds?: ReadonlyArray<number>) {
     if (breakpointIds) {
@@ -58,7 +61,24 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       return;
     }
 
+    await this.warnSlowCode();
     return new BreakpointTerminationCondition(chosen.map(c => Number(c.id)));
+  }
+
+  private async warnSlowCode() {
+    if (this.context.workspaceState.get(warnedKey)) {
+      return;
+    }
+
+    vscode.window.showWarningMessage(
+      localize(
+        'breakpointTerminationWarnSlow',
+        'Profiling with breakpoints enabled can change the performance of your code. It can be ' +
+          'useful to validate your findings with the "duration" or "manual" termination conditions.',
+      ),
+      localize('breakpointTerminationWarnConfirm', 'Got it!'),
+    );
+    await this.context.workspaceState.update(warnedKey, true);
   }
 
   private getCandidates(breakpoints: Dap.Breakpoint[]): Promise<BreakpointPickItem[]> {
