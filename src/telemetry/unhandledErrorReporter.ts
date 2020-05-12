@@ -7,28 +7,17 @@ import { ITelemetryReporter } from './telemetryReporter';
 import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
 
+export const enum ErrorType {
+  Exception = 'uncaughtException',
+  Rejection = 'unhandledRejection',
+}
+
 export function installUnhandledErrorReporter(
   logger: ILogger,
   telemetryReporter: ITelemetryReporter,
 ): IDisposable {
-  const exceptionListener = (exception: unknown) => {
-    if (shouldReportThisError(exception)) {
-      telemetryReporter.report('error', {
-        '!error': exception,
-        exceptionType: 'uncaughtException',
-      });
-      logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', exception);
-    }
-  };
-  const rejectionListener = (rejection: unknown) => {
-    if (shouldReportThisError(rejection)) {
-      telemetryReporter.report('error', {
-        '!error': rejection,
-        exceptionType: 'unhandledRejection',
-      });
-      logger.error(LogTag.RuntimeException, 'Unhandled promise rejection', rejection);
-    }
-  };
+  const exceptionListener = onUncaughtError(logger, telemetryReporter, ErrorType.Exception);
+  const rejectionListener = onUncaughtError(logger, telemetryReporter, ErrorType.Rejection);
 
   process.addListener('uncaughtException', exceptionListener);
   process.addListener('unhandledRejection', rejectionListener);
@@ -40,6 +29,22 @@ export function installUnhandledErrorReporter(
     },
   };
 }
+
+export const onUncaughtError = (
+  logger: ILogger,
+  telemetryReporter: ITelemetryReporter,
+  src: ErrorType,
+) => (error: unknown) => {
+  if (!shouldReportThisError(error)) {
+    return;
+  }
+
+  telemetryReporter.report('error', {
+    '!error': error,
+    exceptionType: src,
+  });
+  logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', error);
+};
 
 const isErrorObjectLike = (err: unknown): err is Error =>
   typeof err === 'object' && !!err && 'stack' in err;

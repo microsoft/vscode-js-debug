@@ -43,6 +43,7 @@
     "fmt": "gulp format",
     "package": "gulp package",
     "publish": "gulp publish",
+    "updatetypes": "cd src/typings && vscode-dts dev && vscode-dts master",
     "test": "gulp && npm-run-all --parallel test:golden test:lint",
     "test:golden": "node ./out/src/test/runTest.js",
     "test:lint": "gulp lint"

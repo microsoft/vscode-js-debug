@@ -10,7 +10,7 @@ import * as path from 'path';
 import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { LogTag } from '../../common/logging';
-import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
+import { onUncaughtError, ErrorType } from '../../telemetry/unhandledErrorReporter';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { checkAll } from './bootloader/filters';
 import { bootloaderEnv, IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
@@ -25,27 +25,32 @@ const telemetry: IProcessTelemetry = {
 };
 
 (() => {
-  installUnhandledErrorReporter(bootloaderLogger, new NullTelemetryReporter());
+  try {
+    const env = bootloaderEnv;
+    bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', { env, args: process.argv });
+    if (!checkAll(env)) {
+      env.NODE_INSPECTOR_IPC = undefined; // save work for any children
+      return;
+    }
 
-  const env = bootloaderEnv;
-  bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', { env, args: process.argv });
-  if (!checkAll(env)) {
-    env.NODE_INSPECTOR_IPC = undefined; // save work for any children
-    return;
-  }
+    reportTelemetry();
 
-  reportTelemetry();
+    if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {
+      env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
+    }
 
-  if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {
-    env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
-  }
+    inspectOrQueue(env);
 
-  inspectOrQueue(env);
-
-  if (env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
-    bootloaderEnv.NODE_INSPECTOR_IPC = undefined;
-  } else {
-    env.NODE_INSPECTOR_PPID = String(process.pid);
+    if (env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
+      bootloaderEnv.NODE_INSPECTOR_IPC = undefined;
+    } else {
+      env.NODE_INSPECTOR_PPID = String(process.pid);
+    }
+  } catch (e) {
+    console.error(
+      `Error in the js-debug bootloader, please report to https://aka.ms/js-dbg-issue: ${e.stack}`,
+    );
+    onUncaughtError(bootloaderLogger, new NullTelemetryReporter(), ErrorType.Exception);
   }
 })();
 
