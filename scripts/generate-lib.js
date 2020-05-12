@@ -6,13 +6,14 @@ const prettier = require('prettier');
 const path = require('path');
 const fs = require('fs');
 
-function writeCodeToFile(code, relativeFilePath) {
+function writeCodeToFile(code, relativeFilePath, prettierOpts = {}) {
   const fileName = path.join(__dirname, relativeFilePath);
   fs.writeFileSync(
     fileName,
-    prettier.format(result.join('\n'), {
+    prettier.format(code, {
       parser: 'typescript',
       ...require('../package.json').prettier,
+      ...prettierOpts,
     }),
     { encoding: 'utf-8' },
   );

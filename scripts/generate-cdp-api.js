@@ -198,7 +198,7 @@ async function generate() {
       const eventLines = (domain.events || []).map(event => {
         const qualifiedEventName = `${domain.domain}.${event.name}`.toLowerCase();
         return `"${qualifiedEventName}": { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' },
-        "${qualifiedEventName}.errors": { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' },`;
+        "!${qualifiedEventName}.errors": { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' },`;
       });
         return `
         // Domain: ${domain.domain}
@@ -210,10 +210,10 @@ async function generate() {
       ${propertiesClassifications.join('\n')}
     }
     `
-    writeCodeToFile(interfaceCode, '../src/cdp/telemetryClassification.d.ts');
+    writeCodeToFile(interfaceCode, '../src/cdp/telemetryClassification.d.ts', { printWidth: 150 });
   }
 
   generateTelemetryClassifications(domains);
 }
 
-generate();
+generate().catch(console.error);
