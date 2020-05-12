@@ -13,13 +13,19 @@ export function installUnhandledErrorReporter(
 ): IDisposable {
   const exceptionListener = (exception: unknown) => {
     if (shouldReportThisError(exception)) {
-      telemetryReporter.report('error', { error: exception, exceptionType: 'uncaughtException' });
+      telemetryReporter.report('error', {
+        '!error': exception,
+        exceptionType: 'uncaughtException',
+      });
       logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', exception);
     }
   };
   const rejectionListener = (rejection: unknown) => {
     if (shouldReportThisError(rejection)) {
-      telemetryReporter.report('error', { error: rejection, exceptionType: 'unhandledRejection' });
+      telemetryReporter.report('error', {
+        '!error': rejection,
+        exceptionType: 'unhandledRejection',
+      });
       logger.error(LogTag.RuntimeException, 'Unhandled promise rejection', rejection);
     }
   };

@@ -87,12 +87,12 @@ export interface IRPCOperation {
 
 interface IErrorClassification {
   exceptionType: { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  error: { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!error': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }
 
 export interface IErrorMetrics {
   exceptionType: 'uncaughtException' | 'unhandledRejection';
-  error: unknown;
+  '!error': unknown;
 }
 
 interface IBreakpointClassification {
