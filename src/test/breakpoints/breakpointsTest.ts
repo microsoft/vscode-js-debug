@@ -380,6 +380,17 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
+    itIntegrates('returnValue', async ({ r }) => {
+      const p = await r.launchUrl('logging.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/logging.js') },
+        breakpoints: [{ line: 32, column: 100, logMessage: 'doubled: {$returnValue * 2}' }],
+      });
+      p.load();
+      await p.logger.logOutput(await p.dap.once('output'));
+      p.assertLog();
+    });
+
     itIntegrates('no double log', async ({ r }) => {
       const p = await r.launchUrlAndLoad('logging.html');
       const source: Dap.Source = {

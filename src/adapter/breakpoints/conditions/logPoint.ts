@@ -3,17 +3,25 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
-import { invalidLogPointSyntax, ProtocolError } from '../../../dap/errors';
+import {
+  invalidLogPointSyntax,
+  ProtocolError,
+  invalidBreakPointCondition,
+} from '../../../dap/errors';
 import { ILogger } from '../../../common/logging';
 import { IBreakpointCondition } from '.';
 import { SimpleCondition } from './simple';
 import { createHash } from 'crypto';
 import { getSyntaxErrorIn } from '../../../common/sourceUtils';
 import Dap from '../../../dap/api';
+import { injectable, inject } from 'inversify';
+import { IEvaluator } from '../../evaluator';
+import { RuntimeLogPoint } from './runtimeLogPoint';
 
 /**
  * Compiles log point expressions to breakpoints.
  */
+@injectable()
 export class LogPointCompiler {
   /**
    * Gets whether the url looks like a log point source.
@@ -22,14 +30,28 @@ export class LogPointCompiler {
     return /logpoint-[a-f0-9]+.vs$/.test(url);
   }
 
-  constructor(private readonly logger: ILogger) {}
+  constructor(
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(IEvaluator) private readonly evaluator: IEvaluator,
+  ) {}
 
   /**
-   * Compiles the log point to a
-   * @throws {ProtocolError}
+   * Compiles the log point to an IBreakpointCondition.
+   * @throws {ProtocolError} if the expression is invalid
    */
   public compile(params: Dap.SourceBreakpoint, logMessage: string): IBreakpointCondition {
-    return new SimpleCondition(params, this.logMessageToExpression(logMessage));
+    const expression = this.logMessageToExpression(logMessage);
+    const err = getSyntaxErrorIn(expression);
+    if (err) {
+      throw new ProtocolError(invalidBreakPointCondition(params, err.message));
+    }
+
+    const { canEvaluateDirectly, invoke } = this.evaluator.prepare(expression);
+    if (canEvaluateDirectly) {
+      return new SimpleCondition(params, this.logMessageToExpression(logMessage));
+    }
+
+    return new RuntimeLogPoint(invoke);
   }
 
   private serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {

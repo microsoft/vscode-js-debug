@@ -589,6 +589,7 @@ export class Thread implements IVariableStoreDelegate {
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
       this._breakpointManager.isEntrypointBreak(hitBreakpoints);
+    this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     let shouldPause: boolean;
     if (isSourceMapPause) {
@@ -605,7 +606,9 @@ export class Thread implements IVariableStoreDelegate {
       // Set shouldPause=true if there's a non-entry, user defined breakpoint
       // among the remaining points--or an inspect-brk.
       shouldPause =
-        shouldPause || isInspectBrk || this._breakpointManager.shouldPauseAt(hitBreakpoints, true);
+        shouldPause ||
+        isInspectBrk ||
+        (await this._breakpointManager.shouldPauseAt(event, hitBreakpoints, true));
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -628,7 +631,7 @@ export class Thread implements IVariableStoreDelegate {
         return;
       }
     } else {
-      shouldPause = this._breakpointManager.shouldPauseAt(hitBreakpoints, false);
+      shouldPause = await this._breakpointManager.shouldPauseAt(event, hitBreakpoints, false);
     }
 
     if (event.asyncCallStackTraceId) {
@@ -802,8 +805,6 @@ export class Thread implements IVariableStoreDelegate {
       event.asyncStackTrace,
       event.asyncStackTraceId,
     );
-
-    this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     switch (event.reason) {
       case 'assert':

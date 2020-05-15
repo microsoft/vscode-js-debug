@@ -3,10 +3,11 @@
  *--------------------------------------------------------*/
 
 import Dap from '../../../dap/api';
-import { ILogger } from '../../../common/logging';
 import { LogPointCompiler } from './logPoint';
 import { SimpleCondition } from './simple';
 import { HitCondition } from './hitCount';
+import Cdp from '../../../cdp/api';
+import { injectable, inject } from 'inversify';
 
 /**
  * A condition provided to the {@link UserDefinedBreakpoint}
@@ -22,7 +23,7 @@ export interface IBreakpointCondition {
    * Called when Chrome pauses on a breakpoint returns whether the debugger
    * should stay paused there.
    */
-  shouldStayPaused(): boolean;
+  shouldStayPaused(details: Cdp.Debugger.PausedEvent): Promise<boolean>;
 }
 
 /**
@@ -30,12 +31,21 @@ export interface IBreakpointCondition {
  */
 export const AlwaysBreak = new SimpleCondition({ line: 0 }, undefined);
 
-export class BreakpointConditionFactory {
-  private logPointCompiler: LogPointCompiler;
+/**
+ * Creates breakpoint conditions for source breakpoints.
+ */
+export interface IBreakpointConditionFactory {
+  /**
+   * Gets a condition for the given breakpoint.
+   */
+  getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition;
+}
 
-  constructor(logger: ILogger) {
-    this.logPointCompiler = new LogPointCompiler(logger);
-  }
+export const IBreakpointConditionFactory = Symbol('IBreakpointConditionFactory');
+
+@injectable()
+export class BreakpointConditionFactory implements IBreakpointConditionFactory {
+  constructor(@inject(LogPointCompiler) private readonly logPointCompiler: LogPointCompiler) {}
 
   public getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition {
     if (params.condition) {

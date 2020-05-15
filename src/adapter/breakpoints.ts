@@ -19,7 +19,7 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ProtocolError } from '../dap/errors';
 import { logPerf } from '../telemetry/performance';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
-import { BreakpointConditionFactory } from './breakpoints/conditions';
+import { IBreakpointConditionFactory } from './breakpoints/conditions';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import { bisectArray, flatten } from '../common/objUtils';
 import { injectable, inject } from 'inversify';
@@ -72,7 +72,6 @@ export class BreakpointManager {
   private _launchBlocker: Promise<unknown> = Promise.resolve();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
-  private readonly conditionFactory = new BreakpointConditionFactory(this.logger);
   private readonly pauseForSourceMaps: boolean;
   private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
@@ -112,6 +111,8 @@ export class BreakpointManager {
     @inject(SourceContainer) sourceContainer: SourceContainer,
     @inject(ILogger) public readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(IBreakpointConditionFactory)
+    private readonly conditionFactory: IBreakpointConditionFactory,
     @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: BreakpointsPredictor,
   ) {
     this._dap = dap;
@@ -558,7 +559,8 @@ export class BreakpointManager {
    * Handler that should be called *after* source map resolution on an entry
    * breakpoint. Returns whether the debugger should remain paused.
    */
-  public shouldPauseAt(
+  public async shouldPauseAt(
+    pausedEvent: Cdp.Debugger.PausedEvent,
     hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
     continueByDefault = false,
   ) {
@@ -568,29 +570,31 @@ export class BreakpointManager {
     let votesForPause = 0;
     let votesForContinue = continueByDefault ? 1 : 0;
 
-    for (const breakpointId of hitBreakpointIds) {
-      const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-      if (breakpoint instanceof EntryBreakpoint) {
-        // we intentionally don't remove the record from the map; it's kept as
-        // an indicator that it did exist and was hit, so that if further
-        // breakpoints are set in the file it doesn't get re-applied.
-        if (this.entryBreakpointMode === EntryBreakpointMode.Exact) {
-          breakpoint.disable();
+    await Promise.all(
+      hitBreakpointIds.map(async breakpointId => {
+        const breakpoint = this._resolvedBreakpoints.get(breakpointId);
+        if (breakpoint instanceof EntryBreakpoint) {
+          // we intentionally don't remove the record from the map; it's kept as
+          // an indicator that it did exist and was hit, so that if further
+          // breakpoints are set in the file it doesn't get re-applied.
+          if (this.entryBreakpointMode === EntryBreakpointMode.Exact) {
+            breakpoint.disable();
+          }
+          votesForContinue++;
+          return;
         }
-        votesForContinue++;
-        continue;
-      }
 
-      if (!(breakpoint instanceof UserDefinedBreakpoint)) {
-        continue;
-      }
+        if (!(breakpoint instanceof UserDefinedBreakpoint)) {
+          return;
+        }
 
-      if (breakpoint.testHitCondition()) {
-        votesForPause++;
-      } else {
-        votesForContinue++;
-      }
-    }
+        if (await breakpoint.testHitCondition(pausedEvent)) {
+          votesForPause++;
+        } else {
+          votesForContinue++;
+        }
+      }),
+    );
 
     return votesForPause > 0 || votesForContinue === 0;
   }
