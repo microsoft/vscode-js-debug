@@ -36,7 +36,7 @@ export interface IProfiler<T> {
   /**
    * Starts capturing a profile.
    */
-  start(options: StartProfileParams<T>): Promise<IProfile>;
+  start(options: StartProfileParams<T>, file: string): Promise<IProfile>;
 }
 
 export interface IProfilerCtor {

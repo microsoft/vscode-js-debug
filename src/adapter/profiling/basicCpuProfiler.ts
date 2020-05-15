@@ -54,7 +54,7 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
   /**
    * @inheritdoc
    */
-  public async start(options: StartProfileParams<IBasicProfileParams>) {
+  public async start(_options: StartProfileParams<IBasicProfileParams>, file: string) {
     await this.cdp.Profiler.enable({});
 
     if (!(await this.cdp.Profiler.start({}))) {
@@ -65,8 +65,8 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
       this.cdp,
       this.fs,
       this.sources,
-      options,
       this.launchConfig.__workspaceFolder,
+      file,
     );
   }
 }
@@ -89,8 +89,8 @@ class BasicProfile implements IProfile {
     private readonly cdp: Cdp.Api,
     private readonly fs: FsPromises,
     private readonly sources: SourceContainer,
-    private readonly options: StartProfileParams<IBasicProfileParams>,
     private readonly workspaceFolder: string,
+    private readonly file: string,
   ) {}
 
   /**
@@ -116,7 +116,7 @@ class BasicProfile implements IProfile {
     await this.dispose();
 
     const annotated = await this.annotateSources(result.profile);
-    await this.fs.writeFile(this.options.file, JSON.stringify(annotated));
+    await this.fs.writeFile(this.file, JSON.stringify(annotated));
   }
 
   /**

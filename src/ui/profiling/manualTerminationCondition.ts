@@ -23,7 +23,7 @@ export class ManualTerminationConditionFactory implements ITerminationConditionF
   }
 }
 
-class ManualTerminationCondition implements ITerminationCondition {
+export class ManualTerminationCondition implements ITerminationCondition {
   public dispose() {
     // no-op
   }

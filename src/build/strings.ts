@@ -90,6 +90,8 @@ const strings = {
     ' - `browserInspectUri` is the inspector URI on the launched browser\n' +
     ' - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if the original URL is `https`, or `ws` otherwise.\n',
   'browser.restart': 'Whether to reconnect if the browser connection is closed',
+  'browser.profileStartup.description':
+    'If true, will start profiling soon as the process launches',
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',
@@ -187,6 +189,7 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
+  'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
 
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",

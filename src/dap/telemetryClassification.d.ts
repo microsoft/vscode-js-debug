@@ -36,6 +36,8 @@ interface IDAPOperationClassification {
   '!databreakpointinfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setdatabreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setdatabreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  setinstructionbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setinstructionbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   continue: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!continue.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   next: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

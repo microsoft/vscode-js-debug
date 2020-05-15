@@ -60,7 +60,7 @@ export namespace Dap {
 
     /**
      * The event indicates that the execution of the debuggee has stopped due to some condition.
-     * This can be caused by a break point previously set, a stepping action has completed, by executing a debugger statement etc.
+     * This can be caused by a break point previously set, a stepping request has completed, by executing a debugger statement etc.
      */
     stopped(params: StoppedEventParams): void;
 
@@ -373,6 +373,28 @@ export namespace Dap {
      * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     setDataBreakpointsRequest(params: SetDataBreakpointsParams): Promise<SetDataBreakpointsResult>;
+
+    /**
+     * Replaces all existing instruction breakpoints. Typically, instruction breakpoints would be set from a diassembly window.
+     * To clear all instruction breakpoints, specify an empty array.
+     * When an instruction breakpoint is hit, a 'stopped' event (with reason 'instruction breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsInstructionBreakpoints' is true.
+     */
+    on(
+      request: 'setInstructionBreakpoints',
+      handler: (
+        params: SetInstructionBreakpointsParams,
+      ) => Promise<SetInstructionBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Replaces all existing instruction breakpoints. Typically, instruction breakpoints would be set from a diassembly window.
+     * To clear all instruction breakpoints, specify an empty array.
+     * When an instruction breakpoint is hit, a 'stopped' event (with reason 'instruction breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsInstructionBreakpoints' is true.
+     */
+    setInstructionBreakpointsRequest(
+      params: SetInstructionBreakpointsParams,
+    ): Promise<SetInstructionBreakpointsResult>;
 
     /**
      * The request starts the debuggee to run again.
@@ -870,6 +892,11 @@ export namespace Dap {
     /**
      * Fired when a profiling state changes.
      */
+    profileStarted(params: ProfileStartedEventParams): void;
+
+    /**
+     * Fired when a profiling state changes.
+     */
     profilerStateUpdate(params: ProfilerStateUpdateEventParams): void;
 
     /**
@@ -945,7 +972,7 @@ export namespace Dap {
 
     /**
      * The event indicates that the execution of the debuggee has stopped due to some condition.
-     * This can be caused by a break point previously set, a stepping action has completed, by executing a debugger statement etc.
+     * This can be caused by a break point previously set, a stepping request has completed, by executing a debugger statement etc.
      */
     on(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
     off(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
@@ -1196,6 +1223,16 @@ export namespace Dap {
      * Clients should only call this request if the capability 'supportsDataBreakpoints' is true.
      */
     setDataBreakpoints(params: SetDataBreakpointsParams): Promise<SetDataBreakpointsResult>;
+
+    /**
+     * Replaces all existing instruction breakpoints. Typically, instruction breakpoints would be set from a diassembly window.
+     * To clear all instruction breakpoints, specify an empty array.
+     * When an instruction breakpoint is hit, a 'stopped' event (with reason 'instruction breakpoint') is generated.
+     * Clients should only call this request if the capability 'supportsInstructionBreakpoints' is true.
+     */
+    setInstructionBreakpoints(
+      params: SetInstructionBreakpointsParams,
+    ): Promise<SetInstructionBreakpointsResult>;
 
     /**
      * The request starts the debuggee to run again.
@@ -1466,6 +1503,16 @@ export namespace Dap {
      * Stops a running profile.
      */
     stopProfile(params: StopProfileParams): Promise<StopProfileResult>;
+
+    /**
+     * Fired when a profiling state changes.
+     */
+    on(request: 'profileStarted', handler: (params: ProfileStartedEventParams) => void): void;
+    off(request: 'profileStarted', handler: (params: ProfileStartedEventParams) => void): void;
+    once(
+      request: 'profileStarted',
+      filter?: (event: ProfileStartedEventParams) => boolean,
+    ): Promise<ProfileStartedEventParams>;
 
     /**
      * Fired when a profiling state changes.
@@ -2140,6 +2187,16 @@ export namespace Dap {
      * The debug adapter supports the 'clipboard' context value in the 'evaluate' request.
      */
     supportsClipboardContext?: boolean;
+
+    /**
+     * The debug adapter supports stepping granularities (argument 'granularity') for the stepping requests.
+     */
+    supportsSteppingGranularity?: boolean;
+
+    /**
+     * The debug adapter supports adding breakpoints based on instruction references.
+     */
+    supportsInstructionBreakpoints?: boolean;
   }
 
   export interface InitializedEventParams {}
@@ -2271,6 +2328,11 @@ export namespace Dap {
      * Execute 'next' for this thread.
      */
     threadId: integer;
+
+    /**
+     * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
+     */
+    granularity?: SteppingGranularity;
   }
 
   export interface NextResult {}
@@ -2370,6 +2432,18 @@ export namespace Dap {
      * The size of a pointer or address for this process, in bits. This value may be used by clients when formatting addresses for display.
      */
     pointerSize?: integer;
+  }
+
+  export interface ProfileStartedEventParams {
+    /**
+     * Type of running profile
+     */
+    type: string;
+
+    /**
+     * Location where the profile is saved.
+     */
+    file: string;
   }
 
   export interface ProfilerStateUpdateEventParams {
@@ -2711,6 +2785,20 @@ export namespace Dap {
     breakpoints: Breakpoint[];
   }
 
+  export interface SetInstructionBreakpointsParams {
+    /**
+     * The instruction references of the breakpoints
+     */
+    breakpoints: InstructionBreakpoint[];
+  }
+
+  export interface SetInstructionBreakpointsResult {
+    /**
+     * Information about the breakpoints. The array elements correspond to the elements of the 'breakpoints' array.
+     */
+    breakpoints: Breakpoint[];
+  }
+
   export interface SetVariableParams {
     /**
      * The reference of the variable container.
@@ -2828,11 +2916,6 @@ export namespace Dap {
 
   export interface StartProfileParams {
     /**
-     * Location where the profile should be saved.
-     */
-    file: string;
-
-    /**
      * Breakpoints where we should stop once hit.
      */
     stopAtBreakpoint?: number[];
@@ -2855,6 +2938,11 @@ export namespace Dap {
      * Execute 'stepBack' for this thread.
      */
     threadId: integer;
+
+    /**
+     * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
+     */
+    granularity?: SteppingGranularity;
   }
 
   export interface StepBackResult {}
@@ -2869,6 +2957,11 @@ export namespace Dap {
      * Optional id of the target to step into.
      */
     targetId?: integer;
+
+    /**
+     * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
+     */
+    granularity?: SteppingGranularity;
   }
 
   export interface StepInResult {}
@@ -2892,6 +2985,11 @@ export namespace Dap {
      * Execute 'stepOut' for this thread.
      */
     threadId: integer;
+
+    /**
+     * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
+     */
+    granularity?: SteppingGranularity;
   }
 
   export interface StepOutResult {}
@@ -2913,7 +3011,8 @@ export namespace Dap {
       | 'entry'
       | 'goto'
       | 'function breakpoint'
-      | 'data breakpoint';
+      | 'data breakpoint'
+      | 'instruction breakpoint';
 
     /**
      * The full reason for the event, e.g. 'Paused on exception'. This string is shown in the UI as is and must be translated.
@@ -3223,6 +3322,36 @@ export namespace Dap {
   }
 
   /**
+   * Properties of a breakpoint passed to the setInstructionBreakpoints request
+   */
+  export interface InstructionBreakpoint {
+    /**
+     * The instruction reference of the breakpoint.
+     * This should be a memory or instruction pointer reference from an EvaluateResponse, Variable, StackFrame, GotoTarget, or Breakpoint.
+     */
+    instructionReference: string;
+
+    /**
+     * An optional offset from the instruction reference.
+     * This can be negative.
+     */
+    offset?: integer;
+
+    /**
+     * An optional expression for conditional breakpoints.
+     * It is only honored by a debug adapter if the capability 'supportsConditionalBreakpoints' is true.
+     */
+    condition?: string;
+
+    /**
+     * An optional expression that controls how many hits of the breakpoint are ignored.
+     * The backend is expected to interpret the expression as needed.
+     * The attribute is only honored by a debug adapter if the capability 'supportsHitConditionalBreakpoints' is true.
+     */
+    hitCondition?: string;
+  }
+
+  /**
    * Properties of a breakpoint passed to the setFunctionBreakpoints request.
    */
   export interface FunctionBreakpoint {
@@ -3400,6 +3529,11 @@ export namespace Dap {
      */
     endColumn?: integer;
   }
+
+  /**
+   * The granularity of one 'step' in the stepping requests 'next', 'stepIn', 'stepOut', and 'stepBack'.
+   */
+  export type SteppingGranularity = string;
 
   /**
    * A Module object represents a row in the modules view.
@@ -3946,6 +4080,16 @@ export namespace Dap {
      * The debug adapter supports the 'clipboard' context value in the 'evaluate' request.
      */
     supportsClipboardContext?: boolean;
+
+    /**
+     * The debug adapter supports stepping granularities (argument 'granularity') for the stepping requests.
+     */
+    supportsSteppingGranularity?: boolean;
+
+    /**
+     * The debug adapter supports adding breakpoints based on instruction references.
+     */
+    supportsInstructionBreakpoints?: boolean;
   }
 
   /**
@@ -4041,7 +4185,7 @@ export namespace Dap {
   }
 
   /**
-   * Information about a Breakpoint created in setBreakpoints or setFunctionBreakpoints.
+   * Information about a Breakpoint created in setBreakpoints, setFunctionBreakpoints, setInstructionBreakpoints, or setDataBreakpoints.
    */
   export interface Breakpoint {
     /**
@@ -4085,6 +4229,17 @@ export namespace Dap {
      * If no end line is given, then the end column is assumed to be in the start line.
      */
     endColumn?: integer;
+
+    /**
+     * An optional memory reference to where the breakpoint is set.
+     */
+    instructionReference?: string;
+
+    /**
+     * An optional offset from the instruction reference.
+     * This can be negative.
+     */
+    offset?: integer;
   }
 }
 

@@ -2,11 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testWorkspace, testFixturesDir, ITestHandle } from '../test';
+import { testWorkspace, ITestHandle } from '../test';
 import { itIntegrates, eventuallyOk } from '../testIntegrationUtils';
 import { expect } from 'chai';
 import { join } from 'path';
-import del = require('del');
 import { promises as fs } from 'fs';
 import { delay } from '../../common/promiseUtil';
 import { stub, SinonSpy } from 'sinon';
@@ -18,11 +17,10 @@ import { DisposableList } from '../../common/disposable';
 describe('profiling', () => {
   const cwd = join(testWorkspace, 'simpleNode');
   const script = join(cwd, 'profilePlayground.js');
-  const file = join(testFixturesDir, 'result.profile');
   let createQuickPick: SinonSpy;
   let acceptQuickPick: EventEmitter<void>;
 
-  const assertValidOutputFile = async () => {
+  const assertValidOutputFile = async (file: string) => {
     const contents = await fs.readFile(file, 'utf-8');
     expect(() => JSON.parse(contents)).to.not.throw(
       undefined,
@@ -43,8 +41,8 @@ describe('profiling', () => {
     });
   });
 
-  afterEach(async () => {
-    await del([file], { force: true }), createQuickPick.restore();
+  afterEach(() => {
+    createQuickPick.restore();
   });
 
   itIntegrates('cpu sanity test', async ({ r }) => {
@@ -52,10 +50,11 @@ describe('profiling', () => {
 
     const handle = await r.runScript(script);
     handle.load();
-    await handle.dap.startProfile({ file, type: 'cpu' });
+    const startedEvent = handle.dap.once('profileStarted');
+    await handle.dap.startProfile({ type: 'cpu' });
     await delay(300);
     await handle.dap.stopProfile({});
-    await assertValidOutputFile();
+    await assertValidOutputFile((await startedEvent).file);
   });
 
   describe('breakpoints', () => {
@@ -74,7 +73,7 @@ describe('profiling', () => {
       handle.log(await handle.dap.once('stopped'));
       const continued = handle.dap.once('continued');
       const output = handle.dap.once('output');
-      await handle.dap.startProfile({ file, type: 'cpu' });
+      await handle.dap.startProfile({ type: 'cpu' });
       handle.log(await continued);
       handle.log(await output); // make sure it *actually* continued
       handle.assertLog();
@@ -95,7 +94,7 @@ describe('profiling', () => {
       handle.log(await handle.dap.once('stopped'));
       const continued = handle.dap.once('continued');
       const output = handle.dap.once('output');
-      await handle.dap.startProfile({ file, type: 'cpu', stopAtBreakpoint: [-1] });
+      await handle.dap.startProfile({ type: 'cpu', stopAtBreakpoint: [-1] });
       handle.log(await continued);
       handle.log(await output); // make sure it *actually* continued
       handle.assertLog();
@@ -120,7 +119,7 @@ describe('profiling', () => {
       const logfn = stub().callsFake(data => handle.log(data, undefined, []));
       handle.dap.on('breakpoint', logfn);
 
-      await handle.dap.startProfile({ file, type: 'cpu' });
+      await handle.dap.startProfile({ type: 'cpu' });
       await eventuallyOk(() => expect(logfn.callCount).to.gte(1));
       await handle.dap.stopProfile({});
       await eventuallyOk(() => expect(logfn.callCount).to.gte(2));
@@ -150,7 +149,6 @@ describe('profiling', () => {
       handle.dap.on('breakpoint', logfn);
 
       await handle.dap.startProfile({
-        file,
         type: 'cpu',
         stopAtBreakpoint: [breakpoints[1].id],
       });
@@ -174,6 +172,8 @@ describe('profiling', () => {
 
       await handle.load();
 
+      const startedEvent = handle.dap.once('profileStarted');
+
       // Wait for the pause, and call noop after a second which will hit the BP
       const stopped = await handle.dap.once('stopped');
       await handle.dap.evaluate({
@@ -184,7 +184,6 @@ describe('profiling', () => {
 
       // Start a profile
       await handle.dap.startProfile({
-        file,
         type: 'cpu',
         stopAtBreakpoint: [breakpoints[1].id!],
       });
@@ -199,7 +198,7 @@ describe('profiling', () => {
       handle.log(await paused, 'paused event');
       handle.log(await profileFinished, 'finished profile');
       handle.log(await breakpointReenabled, 'reenabled breakpoint', []);
-      await assertValidOutputFile();
+      await assertValidOutputFile((await startedEvent).file);
       handle.assertLog();
     });
   });
@@ -368,6 +367,26 @@ describe('profiling', () => {
       expect(() => JSON.parse(args.contents)).to.not.throw;
       expect(args.basename).to.match(/\.cpuprofile$/);
       disposable.dispose();
+    });
+
+    it('profiles from launch', async () => {
+      vscode.debug.startDebugging(undefined, {
+        type: DebugType.Node,
+        request: 'launch',
+        name: 'test',
+        program: script,
+        profileStartup: true,
+      });
+
+      const session = await new Promise<vscode.DebugSession>(resolve =>
+        vscode.debug.onDidStartDebugSession(s =>
+          '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
+        ),
+      );
+
+      await eventuallyOk(() => expect(session.name).to.contain('Profiling'), 2000);
+      await runCommand(vscode.commands, Commands.StopProfile, session.id);
+      await eventuallyOk(() => expect(session.name).to.not.contain('Profiling'), 2000);
     });
   });
 });

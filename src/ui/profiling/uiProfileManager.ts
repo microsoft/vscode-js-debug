@@ -10,12 +10,14 @@ import { ProfilerFactory } from '../../adapter/profiling';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { UiProfileSession } from './uiProfileSession';
 import { Commands } from '../../common/contributionUtils';
-import { basename, join, extname } from 'path';
+import { basename, join } from 'path';
 import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
-import { IDisposable } from '../../common/disposable';
+import { IDisposable, DisposableList } from '../../common/disposable';
 import { ITerminationConditionFactory } from './terminationCondition';
 import { homedir } from 'os';
 import { moveFile } from '../../common/fsUtils';
+import Dap from '../../dap/api';
+import { ManualTerminationCondition } from './manualTerminationCondition';
 
 const localize = nls.loadMessageBundle();
 
@@ -74,7 +76,8 @@ export class UiProfileManager implements IDisposable {
   private statusBarItem?: vscode.StatusBarItem;
   private lastChosenType: string | undefined;
   private lastChosenTermination: string | undefined;
-  private readonly activeSessions = new Set<UiProfileSession>();
+  private readonly activeSessions = new Map<string /* debug session id */, UiProfileSession>();
+  private readonly disposables = new DisposableList();
 
   constructor(
     @inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker,
@@ -82,7 +85,28 @@ export class UiProfileManager implements IDisposable {
     @inject(SessionSubStates) private readonly sessionStates: SessionSubStates,
     @multiInject(ITerminationConditionFactory)
     private readonly terminationConditions: ReadonlyArray<ITerminationConditionFactory>,
-  ) {}
+  ) {
+    this.disposables.push(
+      vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+        if (event.event !== 'profileStarted') {
+          return;
+        }
+
+        const args = event.body as Dap.ProfileStartedEventParams;
+        let session = this.activeSessions.get(event.session.id);
+        if (!session) {
+          session = new UiProfileSession(
+            event.session,
+            ProfilerFactory.ctors.find(t => t.type === args.type) || ProfilerFactory.ctors[0],
+            new ManualTerminationCondition(),
+          );
+          this.registerSession(session);
+        }
+
+        session.setFile(args.file);
+      }),
+    );
+  }
 
   /**
    * Starts a profiling session.
@@ -101,7 +125,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     const session = maybeSession;
-    const existing = [...this.activeSessions].find(s => s.session === session);
+    const existing = this.activeSessions.get(session.id);
     if (existing) {
       if (!(await this.alreadyRunningSession(existing))) {
         return;
@@ -118,46 +142,32 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
-    const uiSession = await UiProfileSession.start(session, impl, termination);
+    const uiSession = new UiProfileSession(session, impl, termination);
     if (!uiSession) {
       return;
     }
 
-    this.activeSessions.add(uiSession);
-    this.sessionStates.add(session.id, localize('profile.sessionState', 'Profiling'));
-    uiSession.onStatusChange(() => this.updateStatusBar());
-    uiSession.onStop(file => {
-      if (file) {
-        this.openProfileFile(uiSession, args, session, file);
-      }
-
-      this.activeSessions.delete(uiSession);
-      this.updateStatusBar();
-    });
-    this.updateStatusBar();
+    this.registerSession(uiSession, args.onCompleteCommand);
+    await uiSession.start();
   }
 
   /**
    * Stops the profiling session if it exists.
    */
   public async stop(sessionId?: string) {
-    let session: vscode.DebugSession | undefined;
+    let uiSession: UiProfileSession | undefined;
     if (sessionId) {
-      session = [...this.activeSessions].find(s => s.session.id === sessionId)?.session;
+      uiSession = this.activeSessions.get(sessionId);
     } else {
-      session = await this.pickSession([...this.activeSessions].map(s => s.session));
+      const session = await this.pickSession([...this.activeSessions.values()].map(s => s.session));
+      uiSession = session && this.activeSessions.get(session.id);
     }
 
-    if (!session) {
-      return;
-    }
-
-    const uiSession = [...this.activeSessions].find(s => s.session === session);
     if (!uiSession) {
       return;
     }
 
-    this.sessionStates.remove(session.id);
+    this.sessionStates.remove(uiSession.session.id);
     await uiSession.stop();
   }
 
@@ -165,11 +175,31 @@ export class UiProfileManager implements IDisposable {
    * @inheritdoc
    */
   public dispose() {
-    for (const session of this.activeSessions) {
+    for (const session of this.activeSessions.values()) {
       session.dispose();
     }
 
     this.activeSessions.clear();
+    this.disposables.dispose();
+  }
+
+  /**
+   * Starts tracking a UI profile session in the manager.
+   */
+  private registerSession(uiSession: UiProfileSession, onCompleteCommand?: string) {
+    this.activeSessions.set(uiSession.session.id, uiSession);
+    this.sessionStates.add(uiSession.session.id, localize('profile.sessionState', 'Profiling'));
+    uiSession.onStatusChange(() => this.updateStatusBar());
+    uiSession.onStop(file => {
+      if (file) {
+        this.openProfileFile(uiSession, onCompleteCommand, uiSession.session, file);
+      }
+
+      this.activeSessions.delete(uiSession.session.id);
+      uiSession.dispose();
+      this.updateStatusBar();
+    });
+    this.updateStatusBar();
   }
 
   /**
@@ -178,15 +208,15 @@ export class UiProfileManager implements IDisposable {
    */
   private async openProfileFile(
     uiSession: UiProfileSession,
-    args: IStartProfileArguments,
+    onCompleteCommand: string | undefined,
     session: vscode.DebugSession,
     sourceFile: string,
   ) {
-    if (args.onCompleteCommand) {
+    if (onCompleteCommand) {
       return Promise.all([
-        vscode.commands.executeCommand(args.onCompleteCommand, {
+        vscode.commands.executeCommand(onCompleteCommand, {
           contents: await this.fs.readFile(sourceFile, 'utf-8'),
-          basename: basename(sourceFile),
+          basename: basename(sourceFile) + uiSession.impl.extension,
         } as IProfileCallbackArguments),
         this.fs.unlink(sourceFile),
       ]);
@@ -209,7 +239,7 @@ export class UiProfileManager implements IDisposable {
         now.getSeconds(),
       ]
         .map(n => String(n).padStart(2, '0'))
-        .join('-') + extname(sourceFile);
+        .join('-') + uiSession.impl.extension;
 
     // todo: open as untitled, see: https://github.com/microsoft/vscode/issues/93441
     const fileUri = vscode.Uri.file(join(directory, filename));
