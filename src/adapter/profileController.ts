@@ -11,17 +11,22 @@ import { ProtocolError, invalidConcurrentProfile } from '../dap/errors';
 import { Thread } from './threads';
 import { BreakpointManager, BreakpointEnableFilter } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomBytes } from 'crypto';
 
 /**
  * Provides profiling functionality for the debug adapter.
  */
 export interface IProfileController {
   connect(dap: Dap.Api, thread: Thread): void;
+  start(dap: Dap.Api, thread: Thread, params: Dap.StartProfileParams): Promise<void>;
 }
 
 export const IProfileController = Symbol('IProfileController');
 
 interface IRunningProfile {
+  file: string;
   profile: IProfile;
   keptDebuggerOn: boolean;
   enableFilter: BreakpointEnableFilter;
@@ -42,16 +47,7 @@ export class ProfileController implements IProfileController {
    */
   connect(dap: Dap.Api, thread: Thread) {
     dap.on('startProfile', async params => {
-      if (this.profile) {
-        throw new ProtocolError(invalidConcurrentProfile());
-      }
-
-      this.profile = this.startProfile(dap, thread, params).catch(err => {
-        this.profile = undefined;
-        throw err;
-      });
-
-      await this.profile;
+      await this.start(dap, thread, params);
       return {};
     });
 
@@ -59,7 +55,23 @@ export class ProfileController implements IProfileController {
     thread.onPaused(() => this.stopProfiling(dap));
   }
 
-  private async startProfile(dap: Dap.Api, thread: Thread, params: Dap.StartProfileParams) {
+  /**
+   * @inheritdoc
+   */
+  public async start(dap: Dap.Api, thread: Thread, params: Dap.StartProfileParams): Promise<void> {
+    if (this.profile) {
+      throw new ProtocolError(invalidConcurrentProfile());
+    }
+
+    this.profile = this.startProfileInner(dap, thread, params).catch(err => {
+      this.profile = undefined;
+      throw err;
+    });
+
+    await this.profile;
+  }
+
+  private async startProfileInner(dap: Dap.Api, thread: Thread, params: Dap.StartProfileParams) {
     let keepDebuggerOn = false;
     let enableFilter: BreakpointEnableFilter;
     if (params.stopAtBreakpoint?.length) {
@@ -72,8 +84,10 @@ export class ProfileController implements IProfileController {
 
     await this.breakpoints.applyEnabledFilter(enableFilter);
 
-    const profile = await this.factory.get(params.type).start(params);
+    const file = join(tmpdir(), `vscode-js-profile-${randomBytes(4).toString('hex')}`);
+    const profile = await this.factory.get(params.type).start(params, file);
     const runningProfile: IRunningProfile = {
+      file,
       profile,
       enableFilter,
       keptDebuggerOn: keepDebuggerOn,
@@ -93,6 +107,7 @@ export class ProfileController implements IProfileController {
       }
     }
 
+    dap.profileStarted({ file: runningProfile.file, type: params.type });
     return runningProfile;
   }
 

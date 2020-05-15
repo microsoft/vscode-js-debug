@@ -411,10 +411,6 @@
       "type": "object",
       "description": "Arguments for 'StartProfile' request.",
       "properties": {
-        "file": {
-          "type": "string",
-          "description": "Location where the profile should be saved."
-        },
         "stopAtBreakpoint": {
           "type": "array",
           "items": {
@@ -477,6 +473,37 @@
       ]
     },
 
+    "ProfileStartedEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/Event" },
+        {
+          "type": "object",
+          "description": "Fired when a profiling state changes.",
+          "properties": {
+            "event": {
+              "type": "string",
+              "enum": ["profileStarted"]
+            },
+            "body": {
+              "type": "object",
+              "description": "Body for 'ProfilerStateUpdateEvent' event.",
+              "required": ["type", "file"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Type of running profile"
+                },
+                "file": {
+                  "type": "string",
+                  "description": "Location where the profile is saved."
+                }
+              }
+            }
+          },
+          "required": ["event", "body"]
+        }
+      ]
+    },
     "ProfilerStateUpdateEvent": {
       "allOf": [
         { "$ref": "#/definitions/Event" },

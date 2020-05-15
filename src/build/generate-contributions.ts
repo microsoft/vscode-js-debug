@@ -528,6 +528,11 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       },
       default: [],
     },
+    profileStartup: {
+      type: 'boolean',
+      description: refString('node.profileStartup.description'),
+      default: true,
+    },
   },
 };
 
@@ -718,6 +723,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       type: 'string',
       description: refString('browser.cwd.description'),
       default: null,
+    },
+    profileStartup: {
+      type: 'boolean',
+      description: refString('browser.profileStartup.description'),
+      default: true,
     },
     browserLaunchLocation: {
       description: refString('browser.browserLaunchLocation.description'),

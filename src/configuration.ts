@@ -300,6 +300,11 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    * Optional arguments passed to the runtime executable.
    */
   runtimeArgs: ReadonlyArray<string>;
+
+  /**
+   * If true, will start profiling soon as the process launches.
+   */
+  profileStartup: boolean;
 }
 
 /**
@@ -464,6 +469,11 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
    * on the remote machine rather than locally.
    */
   browserLaunchLocation: 'workspace' | 'ui' | null;
+
+  /**
+   * If true, will start profiling soon as the page launches.
+   */
+  profileStartup: boolean;
 }
 
 /**
@@ -667,6 +677,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeExecutable: 'node',
   runtimeVersion: 'default',
   runtimeArgs: [],
+  profileStartup: false,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
@@ -702,6 +713,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeExecutable: 'stable',
   userDataDir: true,
   browserLaunchLocation: 'workspace',
+  profileStartup: false,
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {

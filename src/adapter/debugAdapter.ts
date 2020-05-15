@@ -25,6 +25,7 @@ import { ICompletions } from './completions';
 import { IEvaluator } from './evaluator';
 import { IProfileController } from './profileController';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 
 const localize = nls.loadMessageBundle();
 
@@ -264,7 +265,11 @@ export class DebugAdapter implements IDisposable {
       this.breakpointManager,
     );
 
-    this._services.get<IProfileController>(IProfileController).connect(this.dap, this._thread);
+    const profile = this._services.get<IProfileController>(IProfileController);
+    profile.connect(this.dap, this._thread);
+    if ('profileStartup' in this.launchConfig && this.launchConfig.profileStartup) {
+      profile.start(this.dap, this._thread, { type: BasicCpuProfiler.type });
+    }
 
     for (const breakpoint of this._customBreakpoints)
       this._thread.updateCustomBreakpoint(breakpoint, true);

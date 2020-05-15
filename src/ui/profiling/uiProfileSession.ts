@@ -6,9 +6,6 @@ import { EventEmitter } from '../../common/events';
 import * as vscode from 'vscode';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { IProfilerCtor } from '../../adapter/profiling';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
 import Dap from '../../dap/api';
 import * as nls from 'vscode-nls';
 import { ITerminationCondition } from './terminationCondition';
@@ -36,6 +33,7 @@ export class UiProfileSession implements IDisposable {
   private _innerStatus: string[] = [];
   private disposables = new DisposableList();
   private state = State.Collecting;
+  private file?: string;
 
   /**
    * Event that fires when the status changes.
@@ -55,39 +53,10 @@ export class UiProfileSession implements IDisposable {
     return this._innerStatus.filter(s => !!s).join(', ') || undefined;
   }
 
-  /**
-   * Starts the session and returns its ui-side tracker.
-   */
-  public static async start(
-    session: vscode.DebugSession,
-    impl: IProfilerCtor,
-    termination: ITerminationCondition,
-  ) {
-    const file = join(
-      tmpdir(),
-      `vscode-js-profile-${randomBytes(4).toString('hex')}${impl.extension}`,
-    );
-
-    try {
-      await session.customRequest('startProfile', {
-        file,
-        type: impl.type,
-        ...termination.customData,
-      });
-    } catch (e) {
-      vscode.window.showErrorMessage(e.message);
-      termination.dispose();
-      return;
-    }
-
-    return new UiProfileSession(session, impl, file, termination);
-  }
-
   constructor(
     public readonly session: vscode.DebugSession,
     public readonly impl: IProfilerCtor,
-    private readonly file: string,
-    termination: ITerminationCondition,
+    private readonly termination: ITerminationCondition,
   ) {
     this.disposables.push(
       termination,
@@ -107,11 +76,33 @@ export class UiProfileSession implements IDisposable {
   }
 
   /**
+   * Starts the session and returns its ui-side tracker.
+   */
+  public async start() {
+    try {
+      await this.session.customRequest('startProfile', {
+        type: this.impl.type,
+        ...this.termination.customData,
+      });
+    } catch (e) {
+      vscode.window.showErrorMessage(e.message);
+      this.stopEmitter.fire(undefined);
+    }
+  }
+
+  /**
    * @inheritdoc
    */
   public dispose() {
     this.state = State.Stopped;
     this.disposables.dispose();
+  }
+
+  /**
+   * Updates the file the profile is saved in.
+   */
+  public setFile(file: string) {
+    this.file = file;
   }
 
   /**
@@ -130,7 +121,7 @@ export class UiProfileSession implements IDisposable {
     // to finish up the session.
   }
 
-  private onStateUpdate(update: Dap.ProfilerStateUpdateEventParams) {
+  public onStateUpdate(update: Dap.ProfilerStateUpdateEventParams) {
     if (update.running) {
       this.setStatus(Category.Adapter, update.label);
       return;
