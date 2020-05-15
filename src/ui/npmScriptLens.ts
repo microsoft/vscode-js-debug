@@ -17,6 +17,7 @@ import {
 import { readConfig, Configuration, asCommand, Commands } from '../common/contributionUtils';
 import { JSONVisitor, visit } from 'jsonc-parser';
 import { IDisposable } from '../common/disposable';
+import { getRunScriptCommand } from './getRunScriptCommand';
 import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
@@ -79,10 +80,6 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
     }
 
     if (this.lensLocation === 'all') {
-      const packageManager = workspace
-        .getConfiguration('npm', workspaceFolder?.uri)
-        .get<string>('packageManager', 'npm');
-
       return tokens.scripts.map(
         ({ name, position }) =>
           new CodeLens(
@@ -90,7 +87,10 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [`${packageManager} run ${name}`, workspaceFolder],
+              arguments: [
+                getRunScriptCommand(name, workspaceFolder),
+                workspaceFolder
+              ],
             }),
           ),
       );
