@@ -15,9 +15,27 @@ const hoistedPrefix = '__js_debug_hoisted_';
 export const IEvaluator = Symbol('IEvaluator');
 
 /**
+ * Prepared call that can be invoked later on a callframe..
+ */
+export type PreparedCallFrameExpr = (
+  params: Omit<Cdp.Debugger.EvaluateOnCallFrameParams, 'expression'>,
+) => Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>;
+
+/**
  * Evaluation wraps CDP evaluation requests with additional functionality.
  */
 export interface IEvaluator {
+  /**
+   * Prepares an expression for later evaluation. Returns whether the
+   * expression could be run immediately against Chrome without passing through
+   * the evaluator, and an "invoke" used to call the function.
+   *
+   * The "canEvaluate" flag is used in logpoint breakpoints to determine
+   * whether we actually need to pause for a custom log evaluation, or whether
+   * we can just send the logpoint as the breakpoint condition directly.
+   */
+  prepare(expression: string): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr };
+
   /**
    * Evaluates the expression on a call frame. This allows
    * referencing the $returnValue
@@ -75,6 +93,34 @@ export class Evaluator implements IEvaluator {
   /**
    * @inheritdoc
    */
+  public prepare(
+    expression: string,
+  ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr } {
+    // CDP gives us a way to evaluate a function in the context of a given
+    // object ID. What we do to make returnValue work is to hoist the return
+    // object onto `globalThis`, replace reference in the expression, then
+    // evalute the expression and unhoist it from the globals.
+    const hoistedVar = hoistedPrefix + randomBytes(8).toString('hex');
+    const modified = this.replaceReturnValue(expression, hoistedVar);
+    if (!modified) {
+      return {
+        canEvaluateDirectly: true,
+        invoke: params => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression }),
+      };
+    }
+
+    return {
+      canEvaluateDirectly: false,
+      invoke: params =>
+        this.hoistReturnValue(hoistedVar).then(() =>
+          this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: modified }),
+        ),
+    };
+  }
+
+  /**
+   * @inheritdoc
+   */
   public evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams,
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
@@ -87,36 +133,23 @@ export class Evaluator implements IEvaluator {
       return this.cdp.Runtime.evaluate(params);
     }
 
-    // CDP gives us a way to evaluate a function in the context of a given
-    // object ID. What we do to make returnValue work is to hoist the return
-    // object onto `globalThis`, replace reference in the expression, then
-    // evalute the expression and unhoist it from the globals.
-    const hoistedVar = hoistedPrefix + randomBytes(8).toString('hex');
-    const modified = this.hasReturnValue && this.replaceReturnValue(params.expression, hoistedVar);
-    if (!modified) {
-      return this.cdp.Debugger.evaluateOnCallFrame(params);
-    }
-
-    await this.hoistReturnValue(params, hoistedVar);
-    return this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: modified });
+    return this.prepare(params.expression).invoke(params);
   }
 
   /**
    * Hoists the return value of the expression to the `globalThis`.
    */
-  private async hoistReturnValue(params: Cdp.Runtime.EvaluateParams, hoistedVar: string) {
+  private async hoistReturnValue(hoistedVar: string) {
     const objectId = this.returnValue?.objectId;
     const dehoist = `setTimeout(() => { delete globalThis.${hoistedVar} }, 0)`;
 
     if (objectId) {
       await this.cdp.Runtime.callFunctionOn({
-        executionContextId: params.contextId,
         objectId,
         functionDeclaration: `function() { globalThis.${hoistedVar} = this; ${dehoist}; }`,
       });
     } else {
       await this.cdp.Runtime.evaluate({
-        contextId: params.contextId,
         expression: `
           globalThis.${hoistedVar} = ${JSON.stringify(this.returnValue?.value)};
           ${dehoist};

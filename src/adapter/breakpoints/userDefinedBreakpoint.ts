@@ -8,6 +8,7 @@ import { BreakpointManager } from '../breakpoints';
 import Dap from '../../dap/api';
 import { getDeferred } from '../../common/promiseUtil';
 import { IBreakpointCondition } from './conditions';
+import Cdp from '../../cdp/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -65,8 +66,8 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * Returns whether the debugger should remain paused on this breakpoint
    * according to the hit condition.
    */
-  public testHitCondition() {
-    return this.condition.shouldStayPaused();
+  public testHitCondition(event: Cdp.Debugger.PausedEvent) {
+    return this.condition.shouldStayPaused(event);
   }
 
   /**

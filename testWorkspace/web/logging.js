@@ -27,3 +27,9 @@ f();
 function g() {
   1+2;
 }
+
+function z() {
+  return 4 + 3;
+}
+
+z();

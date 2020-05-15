@@ -39,6 +39,9 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
     label: multiDir ? `${path.basename(script.directory.name)}: ${script.name}` : script.name,
     description: script.command,
   }));
+  const packageManager = vscode.workspace
+    .getConfiguration('npm', inFolder?.uri)
+    .get<string>('packageManager', 'npm');
 
   quickPick.onDidAccept(() => {
     const { script } = quickPick.selectedItems[0];

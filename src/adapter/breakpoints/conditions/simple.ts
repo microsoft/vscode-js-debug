@@ -20,6 +20,6 @@ export class SimpleCondition implements IBreakpointCondition {
   }
 
   public shouldStayPaused() {
-    return true; // if Chrome paused on us, it means the expression passed
+    return Promise.resolve(true); // if Chrome paused on us, it means the expression passed
   }
 }

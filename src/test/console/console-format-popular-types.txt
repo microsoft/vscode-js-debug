@@ -23,30 +23,38 @@ Evaluating: 'console.log([str2])'
 stdout> > (1) ['test named "test"']
 
 Evaluating: 'console.log(error)'
-stdout> Error
-    at console-format:9:23
+stdout>
+> Error
+    at console-format:9:23 {stack: 'Error
+    at console-format:9:23'}
 
 Evaluating: 'console.log([error])'
-stdout> 
+stdout>
 > (1) [Error
     at console-format:9:23]
 
 Evaluating: 'console.log(errorWithMessage)'
-stdout> Error: my error message
-    at console-format:10:34
+stdout>
+> Error: my error message
+    at console-format:10:34 {stack: 'Error: my error message
+    at console-format:10:34', message: 'my error message'}
 
 Evaluating: 'console.log([errorWithMessage])'
-stdout> 
+stdout>
 > (1) [Error: my error message
     at console-format:10:34]
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
-stdout> Error: my multiline
+stdout>
+> Error: my multiline
 error message
-    at console-format:11:43
+    at console-format:11:43 {stack: 'Error: my multiline
+error message
+    at console-format:11:43', message: 'my multiline
+error message'}
 
 Evaluating: 'console.log([errorWithMultilineMessage])'
-stdout> 
+stdout>
 > (1) [Error: my multiline
 error message
     at console-format:11:43]
@@ -58,7 +66,7 @@ Evaluating: 'console.log([func])'
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(multilinefunc)'
-stdout> 
+stdout>
 > ƒ () {
               return 2;
           }
@@ -157,7 +165,7 @@ Evaluating: 'console.log([new String("abc")])'
 stdout> > (1) [String]
 
 Evaluating: 'console.log(arrayLikeFunction)'
-stdout> 
+stdout>
 > ƒ ( /**/ foo/**/, /*/**/bar,
           /**/baz) {}
 
@@ -195,7 +203,7 @@ Evaluating: 'console.log([throwingLengthGetter])'
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(domException())'
-stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+stdout> > DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: 'Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node.'}
 
 Evaluating: 'console.log([domException()])'
 stdout> > (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]

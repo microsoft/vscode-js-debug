@@ -58,7 +58,7 @@ export class ReporterBatcher {
 
       item.stddev = Math.sqrt(item.stddev / (times.length - 1));
       results[item.operation] = item;
-      results[item.operation + '.errors'] = errors;
+      results[`!${item.operation}.errors`] = errors;
     }
 
     this.measurements = Object.create(null);

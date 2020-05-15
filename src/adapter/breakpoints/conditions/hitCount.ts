@@ -28,7 +28,7 @@ export class HitCondition implements IBreakpointCondition {
    * @inheritdoc
    */
   public shouldStayPaused() {
-    return this.predicate(++this.hits);
+    return Promise.resolve(this.predicate(++this.hits));
   }
 
   /**
