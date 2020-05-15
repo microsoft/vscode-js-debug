@@ -74,6 +74,11 @@ import { StatefulResourceProvider } from './adapter/resourceProvider/statefulRes
 import { IResourceProvider } from './adapter/resourceProvider';
 import { BreakpointManager } from './adapter/breakpoints';
 import { ObservableMap } from './common/datastructure/observableMap';
+import {
+  IBreakpointConditionFactory,
+  BreakpointConditionFactory,
+} from './adapter/breakpoints/conditions';
+import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -109,6 +114,8 @@ export const createTargetContainer = (
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver());
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
+  container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
+  container.bind(LogPointCompiler).toSelf().inSingletonScope();
 
   container
     .bind(ITelemetryReporter)

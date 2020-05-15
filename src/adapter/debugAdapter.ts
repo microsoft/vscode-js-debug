@@ -186,7 +186,7 @@ export class DebugAdapter implements IDisposable {
 
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     if (!params.source) {
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+      params.source = { sourceReference: params.sourceReference };
     }
 
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);

@@ -1179,11 +1179,177 @@ export namespace Cdp {
      * Parameters of the 'Audits.issueAdded' event.
      */
     export interface IssueAddedEvent {
-      issue: Issue;
+      issue: InspectorIssue;
     }
 
-    export interface Issue {
-      code: string;
+    /**
+     * Information about a cookie that is affected by an inspector issue.
+     */
+    export interface AffectedCookie {
+      /**
+       * The following three properties uniquely identify a cookie
+       */
+      name: string;
+
+      path: string;
+
+      domain: string;
+    }
+
+    /**
+     * Information about a request that is affected by an inspector issue.
+     */
+    export interface AffectedRequest {
+      /**
+       * The unique request id.
+       */
+      requestId: Network.RequestId;
+
+      url?: string;
+    }
+
+    /**
+     * Information about the frame affected by an inspector issue.
+     */
+    export interface AffectedFrame {
+      frameId: Page.FrameId;
+    }
+
+    export type SameSiteCookieExclusionReason =
+      | 'ExcludeSameSiteUnspecifiedTreatedAsLax'
+      | 'ExcludeSameSiteNoneInsecure';
+
+    export type SameSiteCookieWarningReason =
+      | 'WarnSameSiteUnspecifiedCrossSiteContext'
+      | 'WarnSameSiteNoneInsecure'
+      | 'WarnSameSiteUnspecifiedLaxAllowUnsafe'
+      | 'WarnSameSiteStrictLaxDowngradeStrict'
+      | 'WarnSameSiteStrictCrossDowngradeStrict'
+      | 'WarnSameSiteStrictCrossDowngradeLax'
+      | 'WarnSameSiteLaxCrossDowngradeStrict'
+      | 'WarnSameSiteLaxCrossDowngradeLax';
+
+    export type SameSiteCookieOperation = 'SetCookie' | 'ReadCookie';
+
+    /**
+     * This information is currently necessary, as the front-end has a difficult
+     * time finding a specific cookie. With this, we can convey specific error
+     * information without the cookie.
+     */
+    export interface SameSiteCookieIssueDetails {
+      cookie: AffectedCookie;
+
+      cookieWarningReasons: SameSiteCookieWarningReason[];
+
+      cookieExclusionReasons: SameSiteCookieExclusionReason[];
+
+      /**
+       * Optionally identifies the site-for-cookies and the cookie url, which
+       * may be used by the front-end as additional context.
+       */
+      operation: SameSiteCookieOperation;
+
+      siteForCookies?: string;
+
+      cookieUrl?: string;
+
+      request?: AffectedRequest;
+    }
+
+    export type MixedContentResolutionStatus =
+      | 'MixedContentBlocked'
+      | 'MixedContentAutomaticallyUpgraded'
+      | 'MixedContentWarning';
+
+    export type MixedContentResourceType =
+      | 'Audio'
+      | 'Beacon'
+      | 'CSPReport'
+      | 'Download'
+      | 'EventSource'
+      | 'Favicon'
+      | 'Font'
+      | 'Form'
+      | 'Frame'
+      | 'Image'
+      | 'Import'
+      | 'Manifest'
+      | 'Ping'
+      | 'PluginData'
+      | 'PluginResource'
+      | 'Prefetch'
+      | 'Resource'
+      | 'Script'
+      | 'ServiceWorker'
+      | 'SharedWorker'
+      | 'Stylesheet'
+      | 'Track'
+      | 'Video'
+      | 'Worker'
+      | 'XMLHttpRequest'
+      | 'XSLT';
+
+    export interface MixedContentIssueDetails {
+      /**
+       * The type of resource causing the mixed content issue (css, js, iframe,
+       * form,...). Marked as optional because it is mapped to from
+       * blink::mojom::RequestContextType, which will be replaced
+       * by network::mojom::RequestDestination
+       */
+      resourceType?: MixedContentResourceType;
+
+      /**
+       * The way the mixed content issue is being resolved.
+       */
+      resolutionStatus: MixedContentResolutionStatus;
+
+      /**
+       * The unsafe http url causing the mixed content issue.
+       */
+      insecureURL: string;
+
+      /**
+       * The url responsible for the call to an unsafe url.
+       */
+      mainResourceURL: string;
+
+      /**
+       * The mixed content request.
+       * Does not always exist (e.g. for unsafe form submission urls).
+       */
+      request?: AffectedRequest;
+
+      /**
+       * Optional because not every mixed content issue is necessarily linked to a frame.
+       */
+      frame?: AffectedFrame;
+    }
+
+    /**
+     * A unique identifier for the type of issue. Each type may use one of the
+     * optional fields in InspectorIssueDetails to convey more specific
+     * information about the kind of issue.
+     */
+    export type InspectorIssueCode = 'SameSiteCookieIssue' | 'MixedContentIssue';
+
+    /**
+     * This struct holds a list of optional fields with additional information
+     * specific to the kind of issue. When adding a new issue code, please also
+     * add a new optional field to this type.
+     */
+    export interface InspectorIssueDetails {
+      sameSiteCookieIssueDetails?: SameSiteCookieIssueDetails;
+
+      mixedContentIssueDetails?: MixedContentIssueDetails;
+    }
+
+    /**
+     * An inspector issue reported from the back-end.
+     */
+    export interface InspectorIssue {
+      code: InspectorIssueCode;
+
+      details: InspectorIssueDetails;
     }
   }
 
@@ -1393,6 +1559,13 @@ export namespace Cdp {
     ): Promise<Browser.ResetPermissionsResult | undefined>;
 
     /**
+     * Set the behavior when downloading a file.
+     */
+    setDownloadBehavior(
+      params: Browser.SetDownloadBehaviorParams,
+    ): Promise<Browser.SetDownloadBehaviorResult | undefined>;
+
+    /**
      * Close browser gracefully.
      */
     close(params: Browser.CloseParams): Promise<Browser.CloseResult | undefined>;
@@ -1472,11 +1645,6 @@ export namespace Cdp {
      */
     export interface SetPermissionParams {
       /**
-       * Origin the permission applies to.
-       */
-      origin: string;
-
-      /**
        * Descriptor of permission to override.
        */
       permission: PermissionDescriptor;
@@ -1485,6 +1653,11 @@ export namespace Cdp {
        * Setting of the permission.
        */
       setting: PermissionSetting;
+
+      /**
+       * Origin the permission applies to, all origins if not specified.
+       */
+      origin?: string;
 
       /**
        * Context to override. When omitted, default browser context is used.
@@ -1501,9 +1674,12 @@ export namespace Cdp {
      * Parameters of the 'Browser.grantPermissions' method.
      */
     export interface GrantPermissionsParams {
-      origin: string;
-
       permissions: PermissionType[];
+
+      /**
+       * Origin the permission applies to, all origins if not specified.
+       */
+      origin?: string;
 
       /**
        * BrowserContext to override permissions. When omitted, default browser context is used.
@@ -1530,6 +1706,34 @@ export namespace Cdp {
      * Return value of the 'Browser.resetPermissions' method.
      */
     export interface ResetPermissionsResult {}
+
+    /**
+     * Parameters of the 'Browser.setDownloadBehavior' method.
+     */
+    export interface SetDownloadBehaviorParams {
+      /**
+       * Whether to allow all or deny all download requests, or use default Chrome behavior if
+       * available (otherwise deny). |allowAndName| allows download and names files according to
+       * their dowmload guids.
+       */
+      behavior: 'deny' | 'allow' | 'allowAndName' | 'default';
+
+      /**
+       * BrowserContext to set download behavior. When omitted, default browser context is used.
+       */
+      browserContextId?: BrowserContextID;
+
+      /**
+       * The default path to save downloaded files to. This is requred if behavior is set to 'allow'
+       * or 'allowAndName'.
+       */
+      downloadPath?: string;
+    }
+
+    /**
+     * Return value of the 'Browser.setDownloadBehavior' method.
+     */
+    export interface SetDownloadBehaviorResult {}
 
     /**
      * Parameters of the 'Browser.close' method.
@@ -3804,6 +4008,13 @@ export namespace Cdp {
     ): Promise<Debugger.EvaluateOnCallFrameResult | undefined>;
 
     /**
+     * Execute a Wasm Evaluator module on a given call frame.
+     */
+    executeWasmEvaluator(
+      params: Debugger.ExecuteWasmEvaluatorParams,
+    ): Promise<Debugger.ExecuteWasmEvaluatorResult | undefined>;
+
+    /**
      * Returns possible locations for breakpoint. scriptId in start and end range locations should be
      * the same.
      */
@@ -4132,6 +4343,41 @@ export namespace Cdp {
      * Return value of the 'Debugger.evaluateOnCallFrame' method.
      */
     export interface EvaluateOnCallFrameResult {
+      /**
+       * Object wrapper for the evaluation result.
+       */
+      result: Runtime.RemoteObject;
+
+      /**
+       * Exception details.
+       */
+      exceptionDetails?: Runtime.ExceptionDetails;
+    }
+
+    /**
+     * Parameters of the 'Debugger.executeWasmEvaluator' method.
+     */
+    export interface ExecuteWasmEvaluatorParams {
+      /**
+       * WebAssembly call frame identifier to evaluate on.
+       */
+      callFrameId: CallFrameId;
+
+      /**
+       * Code of the evaluator module.
+       */
+      evaluator: string;
+
+      /**
+       * Terminate execution after timing out (number of milliseconds).
+       */
+      timeout?: Runtime.TimeDelta;
+    }
+
+    /**
+     * Return value of the 'Debugger.executeWasmEvaluator' method.
+     */
+    export interface ExecuteWasmEvaluatorResult {
       /**
        * Object wrapper for the evaluation result.
        */
@@ -4854,6 +5100,16 @@ export namespace Cdp {
        * JavaScript top stack frame of where the script parsed event was triggered if available.
        */
       stackTrace?: Runtime.StackTrace;
+
+      /**
+       * If the scriptLanguage is WebAssembly, the code section offset in the module.
+       */
+      codeOffset?: integer;
+
+      /**
+       * The language of the script.
+       */
+      scriptLanguage?: Debugger.ScriptLanguage;
     }
 
     /**
@@ -4934,6 +5190,21 @@ export namespace Cdp {
        * JavaScript top stack frame of where the script parsed event was triggered if available.
        */
       stackTrace?: Runtime.StackTrace;
+
+      /**
+       * If the scriptLanguage is WebAssembly, the code section offset in the module.
+       */
+      codeOffset?: integer;
+
+      /**
+       * The language of the script.
+       */
+      scriptLanguage?: Debugger.ScriptLanguage;
+
+      /**
+       * If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
+       */
+      debugSymbols?: Debugger.DebugSymbols;
     }
 
     /**
@@ -5036,7 +5307,8 @@ export namespace Cdp {
         | 'block'
         | 'script'
         | 'eval'
-        | 'module';
+        | 'module'
+        | 'wasm-expression-stack';
 
       /**
        * Object representing the scope. For `global` and `with` scopes it represents the actual
@@ -5090,6 +5362,26 @@ export namespace Cdp {
       columnNumber?: integer;
 
       type?: 'debuggerStatement' | 'call' | 'return';
+    }
+
+    /**
+     * Enum of possible script languages.
+     */
+    export type ScriptLanguage = 'JavaScript' | 'WebAssembly';
+
+    /**
+     * Debug symbols available for a wasm script.
+     */
+    export interface DebugSymbols {
+      /**
+       * Type of the debug symbols.
+       */
+      type: 'None' | 'SourceMap' | 'EmbeddedDWARF' | 'ExternalDWARF';
+
+      /**
+       * URL of the external symbol source.
+       */
+      externalURL?: string;
     }
   }
 
@@ -8645,14 +8937,10 @@ export namespace Cdp {
        */
       type:
         | 'none'
-        | 'achromatomaly'
         | 'achromatopsia'
         | 'blurredVision'
-        | 'deuteranomaly'
         | 'deuteranopia'
-        | 'protanomaly'
         | 'protanopia'
-        | 'tritanomaly'
         | 'tritanopia';
     }
 
@@ -8861,6 +9149,11 @@ export namespace Cdp {
        * The platform navigator.platform should return.
        */
       platform?: string;
+
+      /**
+       * To be sent in Sec-CH-UA-* headers and returned in navigator.userAgentData
+       */
+      userAgentMetadata?: UserAgentMetadata;
     }
 
     /**
@@ -8901,6 +9194,34 @@ export namespace Cdp {
      * resource fetches.
      */
     export type VirtualTimePolicy = 'advance' | 'pause' | 'pauseIfNetworkFetchesPending';
+
+    /**
+     * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+     */
+    export interface UserAgentBrandVersion {
+      brand: string;
+
+      version: string;
+    }
+
+    /**
+     * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+     */
+    export interface UserAgentMetadata {
+      brands: UserAgentBrandVersion[];
+
+      fullVersion: string;
+
+      platform: string;
+
+      platformVersion: string;
+
+      architecture: string;
+
+      model: string;
+
+      mobile: boolean;
+    }
   }
 
   /**
@@ -9115,7 +9436,7 @@ export namespace Cdp {
       postData?: string;
 
       /**
-       * If set, overrides the request headrts.
+       * If set, overrides the request headers.
        */
       headers?: HeaderEntry[];
     }
@@ -11732,6 +12053,22 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
+     * Send a list of any messages that need to be delivered.
+     */
+    on(
+      event: 'playerMessagesLogged',
+      listener: (event: Media.PlayerMessagesLoggedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Send a list of any errors that need to be delivered.
+     */
+    on(
+      event: 'playerErrorsRaised',
+      listener: (event: Media.PlayerErrorsRaisedEvent) => void,
+    ): IDisposable;
+
+    /**
      * Called whenever a player is created, or when a new agent joins and recieves
      * a list of active players. If an agent is restored, it will recieve the full
      * list of player ids and all events again.
@@ -11782,6 +12119,24 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Media.playerMessagesLogged' event.
+     */
+    export interface PlayerMessagesLoggedEvent {
+      playerId: PlayerId;
+
+      messages: PlayerMessage[];
+    }
+
+    /**
+     * Parameters of the 'Media.playerErrorsRaised' event.
+     */
+    export interface PlayerErrorsRaisedEvent {
+      playerId: PlayerId;
+
+      errors: PlayerError[];
+    }
+
+    /**
      * Parameters of the 'Media.playersCreated' event.
      */
     export interface PlayersCreatedEvent {
@@ -11796,31 +12151,58 @@ export namespace Cdp {
     export type Timestamp = number;
 
     /**
-     * Player Property type
+     * Have one type per entry in MediaLogRecord::Type
+     * Corresponds to kMessage
+     */
+    export interface PlayerMessage {
+      /**
+       * Keep in sync with MediaLogMessageLevel
+       * We are currently keeping the message level 'error' separate from the
+       * PlayerError type because right now they represent different things,
+       * this one being a DVLOG(ERROR) style log message that gets printed
+       * based on what log level is selected in the UI, and the other is a
+       * representation of a media::PipelineStatus object. Soon however we're
+       * going to be moving away from using PipelineStatus for errors and
+       * introducing a new error type which should hopefully let us integrate
+       * the error log level into the PlayerError type.
+       */
+      level: 'error' | 'warning' | 'info' | 'debug';
+
+      message: string;
+    }
+
+    /**
+     * Corresponds to kMediaPropertyChange
      */
     export interface PlayerProperty {
       name: string;
 
-      value?: string;
+      value: string;
     }
 
     /**
-     * Break out events into different types
+     * Corresponds to kMediaEventTriggered
      */
-    export type PlayerEventType = 'errorEvent' | 'triggeredEvent' | 'messageEvent';
-
     export interface PlayerEvent {
-      type: PlayerEventType;
-
-      /**
-       * Events are timestamped relative to the start of the player creation
-       * not relative to the start of playback.
-       */
       timestamp: Timestamp;
 
-      name: string;
-
       value: string;
+    }
+
+    /**
+     * Corresponds to kMediaError
+     */
+    export interface PlayerError {
+      type: 'pipeline_error' | 'media_error';
+
+      /**
+       * When this switches to using media::Status instead of PipelineStatus
+       * we can remove "errorCode" and replace it with the fields from
+       * a Status instance. This also seems like a duplicate of the error
+       * level enum - there is a todo bug to have that level removed and
+       * use this instead. (crbug.com/1068454)
+       */
+      errorCode: string;
     }
   }
 
@@ -13055,6 +13437,11 @@ export namespace Cdp {
        * The platform navigator.platform should return.
        */
       platform?: string;
+
+      /**
+       * To be sent in Sec-CH-UA-* headers and returned in navigator.userAgentData
+       */
+      userAgentMetadata?: Emulation.UserAgentMetadata;
     }
 
     /**
@@ -13538,10 +13925,10 @@ export namespace Cdp {
       requestId: RequestId;
 
       /**
-       * A list of cookies which will not be sent with this request along with corresponding reasons
-       * for blocking.
+       * A list of cookies potentially associated to the requested URL. This includes both cookies sent with
+       * the request and the ones not sent; the latter are distinguished by having blockedReason field set.
        */
-      blockedCookies: BlockedCookieWithReason[];
+      associatedCookies: BlockedCookieWithReason[];
 
       /**
        * Raw request headers as they will be sent over the wire.
@@ -14716,6 +15103,13 @@ export namespace Cdp {
     ): Promise<Overlay.SetShowViewportSizeOnResizeResult | undefined>;
 
     /**
+     * Add a dual screen device hinge
+     */
+    setShowHinge(
+      params: Overlay.SetShowHingeParams,
+    ): Promise<Overlay.SetShowHingeResult | undefined>;
+
+    /**
      * Fired when the node should be inspected. This happens after call to `setInspectMode` or when
      * user manually inspects an element.
      */
@@ -14791,6 +15185,11 @@ export namespace Cdp {
        * Whether to include style info.
        */
       includeStyle?: boolean;
+
+      /**
+       * The color format to get config with (default: hex)
+       */
+      colorFormat?: ColorFormat;
     }
 
     /**
@@ -15095,6 +15494,21 @@ export namespace Cdp {
     export interface SetShowViewportSizeOnResizeResult {}
 
     /**
+     * Parameters of the 'Overlay.setShowHinge' method.
+     */
+    export interface SetShowHingeParams {
+      /**
+       * hinge data, null means hideHinge
+       */
+      hingeConfig?: HingeConfig;
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowHinge' method.
+     */
+    export interface SetShowHingeResult {}
+
+    /**
      * Parameters of the 'Overlay.inspectNodeRequested' event.
      */
     export interface InspectNodeRequestedEvent {
@@ -15125,6 +15539,56 @@ export namespace Cdp {
      * Parameters of the 'Overlay.inspectModeCanceled' event.
      */
     export interface InspectModeCanceledEvent {}
+
+    /**
+     * Configuration data for the highlighting of Grid elements.
+     */
+    export interface GridHighlightConfig {
+      /**
+       * Whether the extension lines from grid cells to the rulers should be shown (default: false).
+       */
+      showGridExtensionLines?: boolean;
+
+      /**
+       * The grid container border highlight color (default: transparent).
+       */
+      gridBorderColor?: DOM.RGBA;
+
+      /**
+       * The cell border color (default: transparent).
+       */
+      cellBorderColor?: DOM.RGBA;
+
+      /**
+       * Whether the grid border is dashed (default: false).
+       */
+      gridBorderDash?: boolean;
+
+      /**
+       * Whether the cell border is dashed (default: false).
+       */
+      cellBorderDash?: boolean;
+
+      /**
+       * The row gap highlight fill color (default: transparent).
+       */
+      rowGapColor?: DOM.RGBA;
+
+      /**
+       * The row gap hatching fill color (default: transparent).
+       */
+      rowHatchColor?: DOM.RGBA;
+
+      /**
+       * The column gap highlight fill color (default: transparent).
+       */
+      columnGapColor?: DOM.RGBA;
+
+      /**
+       * The column gap hatching fill color (default: transparent).
+       */
+      columnHatchColor?: DOM.RGBA;
+    }
 
     /**
      * Configuration data for the highlighting of page elements.
@@ -15189,6 +15653,38 @@ export namespace Cdp {
        * The grid layout color (default: transparent).
        */
       cssGridColor?: DOM.RGBA;
+
+      /**
+       * The color format used to format color styles (default: hex).
+       */
+      colorFormat?: ColorFormat;
+
+      /**
+       * The grid layout highlight configuration (default: all transparent).
+       */
+      gridHighlightConfig?: GridHighlightConfig;
+    }
+
+    export type ColorFormat = 'rgb' | 'hsl' | 'hex';
+
+    /**
+     * Configuration for dual screen hinge
+     */
+    export interface HingeConfig {
+      /**
+       * A rectangle represent hinge
+       */
+      rect: DOM.Rect;
+
+      /**
+       * The content box highlight fill color (default: a dark color).
+       */
+      contentColor?: DOM.RGBA;
+
+      /**
+       * The content box highlight outline color (default: transparent).
+       */
+      outlineColor?: DOM.RGBA;
     }
 
     export type InspectMode =
@@ -15453,6 +15949,7 @@ export namespace Cdp {
 
     /**
      * Set the behavior when downloading a file.
+     * @deprecated
      */
     setDownloadBehavior(
       params: Page.SetDownloadBehaviorParams,
@@ -15644,6 +16141,14 @@ export namespace Cdp {
     on(
       event: 'downloadWillBegin',
       listener: (event: Page.DownloadWillBeginEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when download makes progress. Last call has |done| == true.
+     */
+    on(
+      event: 'downloadProgress',
+      listener: (event: Page.DownloadProgressEvent) => void,
     ): IDisposable;
 
     /**
@@ -16941,6 +17446,11 @@ export namespace Cdp {
        * The destination URL for the requested navigation.
        */
       url: string;
+
+      /**
+       * The disposition for the navigation.
+       */
+      disposition: ClientNavigationDisposition;
     }
 
     /**
@@ -16999,9 +17509,44 @@ export namespace Cdp {
       frameId: FrameId;
 
       /**
+       * Global unique identifier of the download.
+       */
+      guid: string;
+
+      /**
        * URL of the resource being downloaded.
        */
       url: string;
+
+      /**
+       * Suggested file name of the resource (the actual name of the file saved on disk may differ).
+       */
+      suggestedFilename: string;
+    }
+
+    /**
+     * Parameters of the 'Page.downloadProgress' event.
+     */
+    export interface DownloadProgressEvent {
+      /**
+       * Global unique identifier of the download.
+       */
+      guid: string;
+
+      /**
+       * Total expected bytes to download.
+       */
+      totalBytes: number;
+
+      /**
+       * Total bytes received.
+       */
+      receivedBytes: number;
+
+      /**
+       * Download status.
+       */
+      state: 'inProgress' | 'completed' | 'canceled';
     }
 
     /**
@@ -17596,6 +18141,8 @@ export namespace Cdp {
       | 'pageBlockInterstitial'
       | 'reload'
       | 'anchorClick';
+
+    export type ClientNavigationDisposition = 'currentTab' | 'newTab' | 'newWindow' | 'download';
 
     export interface InstallabilityErrorArgument {
       /**
@@ -19316,10 +19863,11 @@ export namespace Cdp {
         | 'number'
         | 'boolean'
         | 'symbol'
-        | 'bigint';
+        | 'bigint'
+        | 'wasm';
 
       /**
-       * Object subtype hint. Specified for `object` type values only.
+       * Object subtype hint. Specified for `object` or `wasm` type values only.
        */
       subtype?:
         | 'array'
@@ -19338,7 +19886,13 @@ export namespace Cdp {
         | 'promise'
         | 'typedarray'
         | 'arraybuffer'
-        | 'dataview';
+        | 'dataview'
+        | 'i32'
+        | 'i64'
+        | 'f32'
+        | 'f64'
+        | 'v128'
+        | 'anyref';
 
       /**
        * Object class (constructor) name. Specified for `object` type values only.
