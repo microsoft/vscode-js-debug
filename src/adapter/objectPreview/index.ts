@@ -23,7 +23,6 @@ export const subtypesWithoutPreview: ReadonlySet<string | undefined> = new Set([
   'null',
   'regexp',
   'date',
-  'error',
 ]);
 
 /**
