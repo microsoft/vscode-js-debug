@@ -22,8 +22,7 @@ import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
 
-const getFreshLensLocation = () =>
-  readConfig(workspace.getConfiguration(), Configuration.NpmScriptLens);
+const getFreshLensLocation = () => readConfig(workspace, Configuration.NpmScriptLens);
 
 /**
  * Npm script lens provider implementation. Can show a "Debug" text above any

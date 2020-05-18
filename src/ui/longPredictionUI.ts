@@ -10,8 +10,7 @@ import { join } from 'path';
 const localize = nls.loadMessageBundle();
 
 async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
-  const config = vscode.workspace.getConfiguration();
-  if (!readConfig(config, Configuration.WarnOnLongPrediction)) {
+  if (!readConfig(vscode.workspace, Configuration.WarnOnLongPrediction)) {
     return;
   }
 
@@ -24,7 +23,7 @@ async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
   const result = await vscode.window.showWarningMessage(message, dontShow, openLaunch);
 
   if (result === dontShow) {
-    await writeConfig(config, Configuration.WarnOnLongPrediction, false);
+    await writeConfig(vscode.workspace, Configuration.WarnOnLongPrediction, false);
     return;
   }
 

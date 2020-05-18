@@ -116,10 +116,7 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
   }
 
   private readConfig() {
-    let baseConfig = readConfig(
-      vscode.workspace.getConfiguration(),
-      Configuration.DebugByLinkOptions,
-    );
+    let baseConfig = readConfig(vscode.workspace, Configuration.DebugByLinkOptions);
 
     if (typeof baseConfig === 'boolean') {
       // old setting

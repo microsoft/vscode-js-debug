@@ -1,0 +1,41 @@
+> result: {}
+    > set foo: ƒ foo(x) {}
+        > get arguments: ƒ ()
+        > set arguments: ƒ ()
+        > get caller: ƒ ()
+        > set caller: ƒ ()
+        length: 1
+        name: 'set foo'
+        [[FunctionLocation]]: @ <eval>/VM<xx>:1
+        > [[Scopes]]: Scopes[1]
+        > __proto__: function () { [native code] }
+    > __proto__: Object
+        > set foo: ƒ foo(x) {}
+        > __proto__: Object
+
+> result: {}
+    foo: 42
+    > __proto__: Object
+        foo: 42
+        > __proto__: Object
+
+> result: {}
+    > get foo: ƒ foo() { throw 'wat'; }
+        > get arguments: ƒ ()
+        > set arguments: ƒ ()
+        > get caller: ƒ ()
+        > set caller: ƒ ()
+        length: 0
+        name: 'get foo'
+        [[FunctionLocation]]: @ <eval>/VM<xx>:1
+        > [[Scopes]]: Scopes[1]
+        > __proto__: function () { [native code] }
+    > __proto__: Object
+        > get foo: ƒ foo() { throw 'wat'; }
+        > __proto__: Object
+
+> result: {}
+    > __proto__: Object
+        normalObject: true
+        > __proto__: Object
+

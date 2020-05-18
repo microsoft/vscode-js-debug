@@ -29,7 +29,7 @@ const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionE
     return;
   }
 
-  if (!readConfig(vscode.workspace.getConfiguration(), Configuration.AutoServerTunnelOpen)) {
+  if (!readConfig(vscode.workspace, Configuration.AutoServerTunnelOpen)) {
     return;
   }
 

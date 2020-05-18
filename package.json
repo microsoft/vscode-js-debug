@@ -34,7 +34,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run test:lint"
+      "pre-commit": "npm run test:lint && npm run test:types"
     }
   },
   "scripts": {

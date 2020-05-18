@@ -36,10 +36,7 @@ export async function attachProcess() {
     return;
   }
 
-  const userDefaults = readConfig(
-    vscode.workspace.getConfiguration(),
-    Configuration.PickAndAttachDebugOptions,
-  );
+  const userDefaults = readConfig(vscode.workspace, Configuration.PickAndAttachDebugOptions);
 
   const config: INodeAttachConfiguration = {
     ...nodeAttachConfigDefaults,

@@ -12,6 +12,7 @@ import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
 import { RemoteException } from './templates';
+import { flatten } from '../common/objUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -101,7 +102,11 @@ export class VariableStore {
   private _referenceToObject: Map<number, RemoteObject> = new Map();
   private _delegate: IVariableStoreDelegate;
 
-  constructor(cdp: Cdp.Api, delegate: IVariableStoreDelegate) {
+  constructor(
+    cdp: Cdp.Api,
+    delegate: IVariableStoreDelegate,
+    private readonly autoExpandGetters: boolean,
+  ) {
     this._cdp = cdp;
     this._delegate = delegate;
   }
@@ -368,24 +373,19 @@ export class VariableStore {
       else propertiesMap.set(property.name, property);
     }
 
-    const properties: { v: Dap.Variable; weight: number }[] = [];
+    const properties: (
+      | Promise<{ v: Dap.Variable; weight: number }[]>
+      | { v: Dap.Variable; weight: number }[]
+    )[] = [];
 
-    // Push own properties & accessors
-    for (const p of propertiesMap.values()) {
-      const weight = objectPreview.propertyWeight(p);
-      properties.push(...this._createVariablesForProperty(p, object).map(v => ({ v, weight })));
-    }
-
-    // Push symbols
-    for (const p of propertySymbols.values()) {
-      const weight = objectPreview.propertyWeight(p);
-      properties.push(...this._createVariablesForProperty(p, object).map(v => ({ v, weight })));
-    }
-
-    // Push private properties
-    for (const p of ownProperties.privateProperties || []) {
-      const weight = objectPreview.privatePropertyWeight(p);
-      properties.push({ v: this._createVariable(p.name, object.wrap(p.name, p.value)), weight });
+    // Push own properties & accessors and symbols
+    for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
+      for (const p of propertiesCollection) {
+        const weight = objectPreview.propertyWeight(p);
+        properties.push(
+          this._createVariablesForProperty(p, object).then(p => p.map(v => ({ v, weight }))),
+        );
+      }
     }
 
     // Push internal properties
@@ -412,11 +412,14 @@ export class VariableStore {
         variable = this._createVariable(p.name, object.wrap(p.name, p.value));
       }
 
-      properties.push({ v: { ...variable, presentationHint: { visibility: 'internal' } }, weight });
+      properties.push([
+        { v: { ...variable, presentationHint: { visibility: 'internal' } }, weight },
+      ]);
     }
 
     // Wrap up
-    properties.sort((a, b) => {
+    const resolved = flatten(await Promise.all(properties));
+    resolved.sort((a, b) => {
       const aname = a.v.name.includes(' ') ? a.v.name.split(' ')[1] : a.v.name;
       const bname = b.v.name.includes(' ') ? b.v.name.split(' ')[1] : b.v.name;
       if (!isNaN(+aname) && !isNaN(+bname)) return +aname - +bname;
@@ -425,7 +428,7 @@ export class VariableStore {
       return delta ? delta : aname.localeCompare(bname);
     });
 
-    return properties.map(p => p.v);
+    return resolved.map(p => p.v);
   }
 
   private async _getArrayProperties(object: RemoteObject): Promise<Dap.Variable[]> {
@@ -477,22 +480,48 @@ export class VariableStore {
     return reference;
   }
 
-  private _createVariablesForProperty(
+  private async _createVariablesForProperty(
     p: Cdp.Runtime.PropertyDescriptor,
     owner: RemoteObject,
-  ): Dap.Variable[] {
+  ): Promise<Dap.Variable[]> {
     const result: Dap.Variable[] = [];
-    if ('value' in p)
+
+    // If the value is simply present, add that
+    if ('value' in p) {
       result.push(this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
-    if (p.get && p.get.type !== 'undefined') {
-      const obj = owner.wrap(p.name, p.get);
-      obj.evaluteOnInspect = true;
-      result.push(this._createGetter(`get ${p.name}`, obj, 'propertyValue'));
     }
-    if (p.set && p.set.type !== 'undefined')
+
+    // if it's a getter, auto expand as requested
+    if (p.get && p.get.type !== 'undefined') {
+      let value: Cdp.Runtime.RemoteObject | undefined;
+      if (this.autoExpandGetters) {
+        try {
+          value = await invokeGetter({
+            cdp: owner.cdp,
+            objectId: owner.objectId,
+            args: [p.name],
+          });
+        } catch {
+          // fall through
+        }
+      }
+
+      if (value) {
+        result.push(this._createVariable(p.name, owner.wrap(p.name, value), 'propertyValue'));
+      } else {
+        const obj = owner.wrap(p.name, p.get);
+        obj.evaluteOnInspect = true;
+        result.push(this._createGetter(`get ${p.name}`, obj, 'propertyValue'));
+      }
+    }
+
+    // add setter if present
+    if (p.set && p.set.type !== 'undefined') {
       result.push(
         this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
       );
+    }
+
     return result;
   }
 

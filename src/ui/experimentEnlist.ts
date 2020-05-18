@@ -10,7 +10,7 @@ const localize = nls.loadMessageBundle();
 
 export const toggleOnExperiment = async () => {
   await writeConfig(
-    vscode.workspace.getConfiguration(),
+    vscode.workspace,
     Configuration.UsePreviewDebugger,
     true,
     vscode.ConfigurationTarget.Global,

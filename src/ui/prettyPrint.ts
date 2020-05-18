@@ -42,7 +42,7 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
   public createDebugAdapterTracker(
     session: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterTracker> {
-    if (!readConfig(vscode.workspace.getConfiguration(), Configuration.SuggestPrettyPrinting)) {
+    if (!readConfig(vscode.workspace, Configuration.SuggestPrettyPrinting)) {
       return;
     }
 
@@ -183,7 +183,7 @@ class PrettyPrintSession implements IDisposable, vscode.DebugAdapterTracker {
     if (response === yes) {
       sendPrintCommand(this.session, source, cursor);
     } else if (response === never) {
-      writeConfig(vscode.workspace.getConfiguration(), Configuration.SuggestPrettyPrinting, false);
+      writeConfig(vscode.workspace, Configuration.SuggestPrettyPrinting, false);
     }
   }
 }

@@ -170,6 +170,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    * Cache directory for workspace-related configuration.
    */
   __workspaceCachePath?: string;
+
+  /**
+   * Whether getters should be automatically expanded.
+   */
+  __autoExpandGetters: boolean;
 }
 
 export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
@@ -620,6 +625,7 @@ export const baseDefaults: IBaseConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   // Should always be determined upstream;
   __workspaceFolder: '',
+  __autoExpandGetters: false,
 };
 
 const nodeBaseDefaults: INodeBaseConfiguration = {

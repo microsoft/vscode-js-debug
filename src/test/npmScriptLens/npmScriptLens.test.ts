@@ -32,7 +32,7 @@ function prepareFileTree() {
 }
 
 const setLocation = (location: 'all' | 'top') =>
-  writeConfig(vscode.workspace.getConfiguration(), Configuration.NpmScriptLens, location);
+  writeConfig(vscode.workspace, Configuration.NpmScriptLens, location);
 
 describe('npmScriptLens', () => {
   describe('with location=top', () => {

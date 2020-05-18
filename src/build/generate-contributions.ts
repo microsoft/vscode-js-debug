@@ -45,7 +45,8 @@ type OmittedKeysFromAttributes =
   | keyof IMandatedConfiguration
   | 'rootPath'
   | '__workspaceFolder'
-  | '__workspaceCachePath';
+  | '__workspaceCachePath'
+  | '__autoExpandGetters';
 
 type DescribedAttribute<T> = JSONSchema6 &
   Described & {
@@ -949,6 +950,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: {},
     markdownDescription: refString('configuration.pickAndAttachOptions'),
     properties: nodeAttachConfig.configurationAttributes as { [key: string]: JSONSchema6 },
+  },
+  [Configuration.AutoExpandGetters]: {
+    type: 'boolean',
+    default: false,
+    markdownDescription: refString('configuration.autoExpandGetters'),
   },
 };
 

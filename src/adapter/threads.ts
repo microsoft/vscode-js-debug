@@ -160,7 +160,7 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp = cdp;
     this._name = threadName;
     this.id = Thread._lastThreadId++;
-    this.replVariables = new VariableStore(this._cdp, this);
+    this.replVariables = new VariableStore(this._cdp, this, launchConfig.__autoExpandGetters);
     this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
@@ -665,7 +665,11 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._pausedDetailsEvent.set(this._pausedDetails, event);
-    this._pausedVariables = new VariableStore(this._cdp, this);
+    this._pausedVariables = new VariableStore(
+      this._cdp,
+      this,
+      this.launchConfig.__autoExpandGetters,
+    );
     scheduledPauseOnAsyncCall = undefined;
     await this._onThreadPaused(this._pausedDetails);
   }

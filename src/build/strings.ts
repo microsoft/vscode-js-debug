@@ -220,6 +220,8 @@ const strings = {
     'Options used when debugging open links clicked from inside the JavaScript Debug Terminal. Can be set to "off" to disable this behavior, or "always" to enable debugging in all terminals.',
   'configuration.pickAndAttachOptions':
     'Default options used when debugging a process through the `Debug: Attach to Node Process` command',
+  'configuration.autoExpandGetters':
+    'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

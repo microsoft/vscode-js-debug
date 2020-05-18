@@ -446,4 +446,23 @@ describe('evaluate', () => {
     await evaluateAtReturn('undefined');
     r.assertLog();
   });
+
+  itIntegrates('auto expands getter (#447)', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('index.html', { __autoExpandGetters: true });
+
+    // prototype-free objs just to avoid adding prototype noise to tests:
+    await p.logger.evaluateAndLog(`Object.create({ set foo(x) {} })`, { depth: 2 });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`Object.create({ get foo() { return 42 } })`, { depth: 2 });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`Object.create({ get foo() { throw 'wat'; } })`, { depth: 2 });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`Object.create({ normalObject: true })`, { depth: 2 });
+    p.log('');
+
+    p.assertLog();
+  });
 });

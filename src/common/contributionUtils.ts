@@ -2,13 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import type {
-  Command,
-  WorkspaceConfiguration,
-  WorkspaceFolder,
-  commands,
-  ConfigurationTarget,
-} from 'vscode';
+import type { Command, WorkspaceFolder, commands, workspace, ConfigurationTarget } from 'vscode';
 import type {
   ITerminalLaunchConfiguration,
   IChromeLaunchConfiguration,
@@ -93,6 +87,7 @@ export const enum Configuration {
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
+  AutoExpandGetters = 'debug.javascript.autoExpandGetters',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -111,6 +106,7 @@ export interface IConfigurationTypes {
   [Configuration.DebugByLinkOptions]:
     | DebugByLinkState
     | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
+  [Configuration.AutoExpandGetters]: boolean;
 }
 
 export interface ICommandTypes {
@@ -163,16 +159,17 @@ export const asCommand = <K extends keyof ICommandTypes>(command: {
  * Typed guard for reading a contributed config.
  */
 export const readConfig = <K extends keyof IConfigurationTypes>(
-  config: WorkspaceConfiguration,
+  wsp: typeof workspace,
   key: K,
-) => config.get<IConfigurationTypes[K]>(key);
+  folder?: WorkspaceFolder,
+) => wsp.getConfiguration(undefined, folder).get<IConfigurationTypes[K]>(key);
 
 /**
  * Typed guard for updating a contributed config.
  */
 export const writeConfig = <K extends keyof IConfigurationTypes>(
-  config: WorkspaceConfiguration,
+  wsp: typeof workspace,
   key: K,
   value: IConfigurationTypes[K],
   target?: ConfigurationTarget,
-) => config.update(key, value, target);
+) => wsp.getConfiguration().update(key, value, target);
