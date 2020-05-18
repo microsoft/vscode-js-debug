@@ -17,6 +17,7 @@ import {
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
 import { flatten } from '../../common/objUtils';
+import { getRunScriptCommand } from '../getRunScriptCommand';
 
 const localize = nls.loadMessageBundle();
 
@@ -73,7 +74,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
       type: DebugType.Terminal,
       name: localize('node.launch.script', 'Run Script: {0}', script.name),
       request: 'launch',
-      command: script.command,
+      command: getRunScriptCommand(script.name, folder),
       cwd: script.directory.uri.fsPath,
     }));
   }

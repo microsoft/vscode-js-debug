@@ -17,6 +17,7 @@ import {
 import { readConfig, Configuration, asCommand, Commands } from '../common/contributionUtils';
 import { JSONVisitor, visit } from 'jsonc-parser';
 import { IDisposable } from '../common/disposable';
+import { getRunScriptCommand } from './getRunScriptCommand';
 import * as nls from 'vscode-nls';
 
 const localize = nls.loadMessageBundle();
@@ -86,7 +87,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [`npm run ${name}`, workspaceFolder],
+              arguments: [getRunScriptCommand(name, workspaceFolder), workspaceFolder],
             }),
           ),
       );
