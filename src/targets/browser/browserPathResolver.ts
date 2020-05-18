@@ -55,7 +55,13 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   }
 
   async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
-    url = utils.removeQueryString(url);
+    const queryCharacter = url.indexOf('?');
+
+    // Workaround for vue, see https://github.com/microsoft/vscode-js-debug/issues/239
+    if (queryCharacter !== -1 && url.slice(queryCharacter - 4, queryCharacter) !== '.vue') {
+      url = url.slice(0, queryCharacter);
+    }
+
     return map ? this.sourceMapSourceToAbsolute(url, map) : this.simpleUrlToAbsolute(url);
   }
 
