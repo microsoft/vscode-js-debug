@@ -898,7 +898,7 @@ export class Thread implements IVariableStoreDelegate {
           let isStopOnEntry = false; // By default we assume breakpoints aren't stop on entry
           if (
             event.hitBreakpoints.length === 1 &&
-            this._delegate.entryBreakpoint?.cdtpId === event.hitBreakpoints[0]
+            this._delegate.entryBreakpoint?.cdpId === event.hitBreakpoints[0]
           ) {
             isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
             const entryBreakpointAbsolutePath = fileUrlToAbsolutePath(

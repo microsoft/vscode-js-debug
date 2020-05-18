@@ -53,7 +53,7 @@ export interface ITarget {
 
 export interface IBreakpointPathAndId {
   path: string;
-  cdtpId: string;
+  cdpId: string;
 }
 
 export interface ILaunchContext {

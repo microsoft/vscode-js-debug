@@ -633,6 +633,12 @@ export class BreakpointManager {
       return;
     }
 
+    // Don't apply a custom breakpoint here if the user already has one.
+    const byPath = this._byPath.get(source.path) ?? [];
+    if (byPath.some(isSetAtEntry)) {
+      return;
+    }
+
     const key = EntryBreakpoint.getModeKeyForSource(this.entryBreakpointMode, source.path);
     if (!source.path || this.moduleEntryBreakpoints.has(key)) {
       return;

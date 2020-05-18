@@ -193,7 +193,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         });
 
         return breakpoint?.breakpointId
-          ? { cdtpId: breakpoint?.breakpointId, path: breakpointPath }
+          ? { cdpId: breakpoint?.breakpointId, path: breakpointPath }
           : undefined;
       },
       close: () => {
