@@ -65,18 +65,31 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
    * Adds suggestions discovered from npm scripts.
    */
   protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig> {
+    const openTerminal: AnyResolvingConfiguration = {
+      type: DebugType.Terminal,
+      name: localize('debug.terminal.label', 'Create JavaScript Debug Terminal'),
+      request: 'launch',
+      cwd: folder?.uri.fsPath,
+    };
+
     if (!folder) {
-      return;
+      return [openTerminal];
     }
 
     const scripts = await findScripts(folder, true);
-    return scripts?.map(script => ({
-      type: DebugType.Terminal,
-      name: localize('node.launch.script', 'Run Script: {0}', script.name),
-      request: 'launch',
-      command: getRunScriptCommand(script.name, folder),
-      cwd: script.directory.uri.fsPath,
-    }));
+    if (!scripts) {
+      return [openTerminal];
+    }
+
+    return scripts
+      .map<AnyResolvingConfiguration>(script => ({
+        type: DebugType.Terminal,
+        name: localize('node.launch.script', 'Run Script: {0}', script.name),
+        request: 'launch',
+        command: getRunScriptCommand(script.name, folder),
+        cwd: script.directory.uri.fsPath,
+      }))
+      .concat(openTerminal);
   }
 
   /**

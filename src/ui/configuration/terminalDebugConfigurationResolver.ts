@@ -10,7 +10,7 @@ import {
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 import { guessWorkingDirectory } from './nodeDebugConfigurationResolver';
-import { DebugType } from '../../common/contributionUtils';
+import { DebugType, runCommand, Commands } from '../../common/contributionUtils';
 
 /**
  * Configuration provider for node debugging. In order to allow for a
@@ -26,6 +26,11 @@ export class TerminalDebugConfigurationResolver
   ): Promise<ITerminalLaunchConfiguration | undefined> {
     if (!config.cwd) {
       config.cwd = guessWorkingDirectory(undefined, folder);
+    }
+
+    if (config.request === 'launch' && !config.command) {
+      await runCommand(vscode.commands, Commands.CreateDebuggerTerminal, undefined, folder);
+      return undefined;
     }
 
     // if a 'remoteRoot' is specified without a corresponding 'localRoot', set 'localRoot' to the workspace folder.
