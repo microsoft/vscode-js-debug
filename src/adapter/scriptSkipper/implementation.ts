@@ -103,9 +103,10 @@ export class ScriptSkipper {
   }
 
   private _setRegexForNonNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
-    const nonNodeInternalGlobs = userSkipPatterns.filter(
-      pattern => !pattern.includes('<node_internals>'),
-    );
+    const nonNodeInternalGlobs = userSkipPatterns
+      .filter(pattern => !pattern.includes('<node_internals>'))
+      .map(pattern => pathUtils.forceForwardSlashes(pattern))
+      .map(urlUtils.lowerCaseInsensitivePath);
 
     if (nonNodeInternalGlobs.length > 0) {
       this._nonNodeInternalGlobs = nonNodeInternalGlobs;
@@ -122,7 +123,12 @@ export class ScriptSkipper {
 
   private _testSkipNonNodeInternal(testString: string): boolean {
     if (this._nonNodeInternalGlobs) {
-      return micromatch([testString], this._nonNodeInternalGlobs).length > 0;
+      return (
+        micromatch(
+          [urlUtils.lowerCaseInsensitivePath(pathUtils.forceForwardSlashes(testString))],
+          this._nonNodeInternalGlobs,
+        ).length > 0
+      );
     }
     return false;
   }

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP } from '../test';
+import { TestP, testWorkspace } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 import { Dap } from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
@@ -181,6 +181,19 @@ describe('stacks', () => {
       await delay(500); // need to pause test to let debouncer update scripts
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module1.ts'),
+      };
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
+      p.load();
+      await waitForPausedThenDelayStackTrace(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('works with absolute paths (#470)', async ({ r }) => {
+      const p = await r.launchUrl('basic.html', {
+        skipFiles: [`${testWorkspace}/web/basic.js`],
+      });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/basic.js'),
       };
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
       p.load();

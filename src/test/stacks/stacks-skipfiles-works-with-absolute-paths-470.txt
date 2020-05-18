@@ -1,0 +1,4 @@
+plusTwo @ ${workspaceFolder}/web/basic.js:3:5 <hidden: Skipped by skipFiles>
+printArr @ ${workspaceFolder}/web/basic.js:7:21 <hidden: Skipped by skipFiles>
+abcdef @ ${workspaceFolder}/web/basic.js:17:5 <hidden: Skipped by skipFiles>
+<anonymous> @ ${workspaceFolder}/web/basic.js:19:1 <hidden: Skipped by skipFiles>
