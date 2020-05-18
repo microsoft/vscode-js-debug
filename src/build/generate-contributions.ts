@@ -26,6 +26,14 @@ import {
   IEdgeLaunchConfiguration,
   IEdgeAttachConfiguration,
   breakpointLanguages,
+  nodeAttachConfigDefaults,
+  nodeLaunchConfigDefaults,
+  terminalBaseDefaults,
+  extensionHostConfigDefaults,
+  chromeLaunchConfigDefaults,
+  chromeAttachConfigDefaults,
+  edgeLaunchConfigDefaults,
+  edgeAttachConfigDefaults,
 } from '../configuration';
 import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
@@ -80,6 +88,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
     body: ResolvingConfiguration<T & { preLaunchTask?: string }>;
   } & Described)[];
   configurationAttributes: ConfigurationAttributes<T>;
+  defaults: T;
 }
 
 const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> = {
@@ -366,6 +375,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       default: true,
     },
   },
+  defaults: nodeAttachConfigDefaults,
 };
 
 /**
@@ -534,6 +544,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       default: true,
     },
   },
+  defaults: nodeLaunchConfigDefaults,
 };
 
 const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
@@ -561,6 +572,7 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
       default: 'npm start',
     },
   },
+  defaults: terminalBaseDefaults,
 };
 
 /**
@@ -665,6 +677,7 @@ const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
       default: 'node',
     },
   },
+  defaults: extensionHostConfigDefaults,
 };
 
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
@@ -743,6 +756,7 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       ],
     },
   },
+  defaults: chromeLaunchConfigDefaults,
 };
 
 const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
@@ -770,6 +784,7 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
       default: false,
     },
   },
+  defaults: chromeAttachConfigDefaults,
 };
 
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
@@ -802,6 +817,7 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
       default: false,
     },
   },
+  defaults: edgeLaunchConfigDefaults,
 };
 
 const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
@@ -834,9 +850,10 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
       default: false,
     },
   },
+  defaults: edgeAttachConfigDefaults,
 };
 
-const debuggers = [
+export const debuggers = [
   nodeAttachConfig,
   nodeLaunchConfig,
   nodeTerminalConfiguration,
@@ -854,7 +871,7 @@ function buildDebuggers() {
     let entry = output.find(o => o.type === d.type);
     if (!entry) {
       // eslint-disable-next-line
-      const { request, configurationAttributes, required, ...rest } = d;
+      const { request, configurationAttributes, required, defaults, ...rest } = d;
       entry = {
         languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
         ...rest,
@@ -995,20 +1012,22 @@ const commands: ReadonlyArray<{
   },
 ];
 
-process.stdout.write(
-  JSON.stringify({
-    activationEvents: [
-      ...[...allCommands].map(cmd => `onCommand:${cmd}`),
-      ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
-    ],
-    contributes: {
-      breakpoints: breakpointLanguages.map(language => ({ language })),
-      debuggers: buildDebuggers(),
-      commands,
-      configuration: {
-        title: 'JavaScript Debugger',
-        properties: configurationSchema,
+if (require.main === module) {
+  process.stdout.write(
+    JSON.stringify({
+      activationEvents: [
+        ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+        ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
+      ],
+      contributes: {
+        breakpoints: breakpointLanguages.map(language => ({ language })),
+        debuggers: buildDebuggers(),
+        commands,
+        configuration: {
+          title: 'JavaScript Debugger',
+          properties: configurationSchema,
+        },
       },
-    },
-  }),
-);
+    }),
+  );
+}
