@@ -87,10 +87,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [
-                getRunScriptCommand(name, workspaceFolder),
-                workspaceFolder
-              ],
+              arguments: [getRunScriptCommand(name, workspaceFolder), workspaceFolder],
             }),
           ),
       );

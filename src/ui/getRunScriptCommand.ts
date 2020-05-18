@@ -1,10 +1,17 @@
-import { workspace } from 'vscode';
-import type { WorkspaceFolder } from 'vscode';
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
 
-const getPackageManager = (folder: WorkspaceFolder | undefined) => workspace
-  .getConfiguration('npm', folder?.uri)
-  .get<string>('packageManager', 'npm');
+import { workspace, WorkspaceFolder } from 'vscode';
 
-export const getRunScriptCommand = (name: string, folder?: WorkspaceFolder) => {
-  return `${getPackageManager(folder)} run ${name}`;
-};
+/**
+ * Gets the package manager the user configured in the folder.
+ */
+const getPackageManager = (folder: WorkspaceFolder | undefined) =>
+  workspace.getConfiguration('npm', folder?.uri).get<string>('packageManager', 'npm');
+
+/**
+ * Gets a command to run a script
+ */
+export const getRunScriptCommand = (name: string, folder?: WorkspaceFolder) =>
+  `${getPackageManager(folder)} run ${name}`;
