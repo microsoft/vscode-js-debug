@@ -1,0 +1,13 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : entry
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/tsNodeApp/app.ts:1:1
+Module._compile @ <node_internals>/internal/modules/cjs/loader.js:1156:30
+Module._extensions..js @ <node_internals>/internal/modules/cjs/loader.js:1176:10
+Module.load @ <node_internals>/internal/modules/cjs/loader.js:1000:32
+Module._load @ <node_internals>/internal/modules/cjs/loader.js:899:14
+executeUserEntryPoint @ <node_internals>/internal/modules/run_main.js:74:12
+<anonymous> @ <node_internals>/internal/main/run_main_module.js:18:47

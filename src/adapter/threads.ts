@@ -910,8 +910,8 @@ export class Thread implements IVariableStoreDelegate {
 
             if (entryBreakpointSource !== undefined) {
               const entryBreakpointLocations = this._sourceContainer.currentSiblingUiLocations({
-                lineNumber: 1,
-                columnNumber: 1,
+                lineNumber: event.callFrames[0].location.lineNumber + 1,
+                columnNumber: (event.callFrames[0].location.columnNumber || 0) + 1,
                 source: entryBreakpointSource,
               });
 
