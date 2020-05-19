@@ -165,7 +165,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       this.setEnvironmentVariables(cdp, run, leaseFile.path, binary),
     ]);
 
-    if (telemetry && run.params.attachSpawnedProcesses) {
+    if (telemetry && run.params.attachExistingChildren) {
       watchAllChildren(
         {
           pid: telemetry.processId,
@@ -186,7 +186,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     leasePath: string,
     binary: NodeBinary,
   ) {
-    if (!run.params.attachSpawnedProcesses) {
+    if (!run.params.autoAttachChildProcesses) {
       return;
     }
 

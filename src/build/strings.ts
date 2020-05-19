@@ -43,8 +43,16 @@ const strings = {
   'chrome.launch.description': 'Launch Chrome to debug a URL',
   'chrome.attach.label': 'Chrome: Attach',
   'chrome.attach.description': 'Attach to an instance of Chrome already in debug mode',
+  'edge.address.description':
+    'When debugging webviews, the IP address or hostname the webview is listening on. Will be automatically discovered if not set.',
+  'edge.port.description':
+    'When debugging webviews, the port the webview debugger is listening on. Will be automatically discovered if not set.',
 
-  'browser.address.description': 'TCP/IP address of debug port',
+  'browser.address.description': 'IP address or hostname the debugged browser is listening on.',
+  'browser.launch.port.description':
+    'Port for the browser to listen on. Defaults to "0", which will cause the browser to be debugged via pipes, which is generally more secure and should be chosen unless you need to attach to the browser from another tool.',
+  'browser.attach.port.description':
+    'Port to use to remote debugging the browser, given as `--remote-debugging-port` when launching the browser.',
   'browser.baseUrl.description':
     'Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.',
   'browser.cwd.description': 'Optional working directory for the runtime executable.',
@@ -58,7 +66,6 @@ const strings = {
   'browser.file.description': 'A local html file to open in the browser',
   'browser.pathMapping.description':
     'A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk',
-  'browser.port.description': 'Port to use for remote debugging the browser.',
   'browser.runtimeExecutable.description':
     "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.",
   'browser.runtimeExecutable.edge.description':
@@ -138,7 +145,7 @@ const strings = {
   'node.launch.logging.dap': 'Path to the log file for Debug Adapter Protocol messages',
   'node.launch.logging': 'Logging configuration',
   'node.launch.outputCapture.description':
-    'From where to capture output messages: The debug API, or stdout/stderr streams.',
+    'From where to capture output messages: the default debug API if set to `console`, or stdout/stderr streams if set to `std`.',
   'node.launch.program.description':
     'Absolute path to the program. Generated value is guessed by looking at package.json and opened files. Edit this attribute.',
   'node.launch.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',

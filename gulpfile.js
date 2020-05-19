@@ -135,6 +135,7 @@ gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
     runBuildScript('strings'),
+    runBuildScript('documentReadme'),
   ]);
 
   let packageJson = await readJson(`${buildDir}/package.json`);

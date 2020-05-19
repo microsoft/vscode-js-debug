@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
+import { AnyLaunchConfiguration, IExtensionHostLaunchConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { existsSync, lstatSync } from 'fs';
@@ -16,11 +16,13 @@ import Dap from '../../dap/api';
  * a separate "attach" request will come in.
  */
 @injectable()
-export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfiguration> {
+export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostLaunchConfiguration> {
   /**
    * @inheritdoc
    */
-  protected resolveParams(params: AnyLaunchConfiguration): IExtensionHostConfiguration | undefined {
+  protected resolveParams(
+    params: AnyLaunchConfiguration,
+  ): IExtensionHostLaunchConfiguration | undefined {
     return params.type === DebugType.ExtensionHost && params.request === 'launch'
       ? params
       : undefined;
@@ -29,7 +31,9 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
   /**
    * @inheritdoc
    */
-  protected async launchProgram(runData: IRunData<IExtensionHostConfiguration>): Promise<void> {
+  protected async launchProgram(
+    runData: IRunData<IExtensionHostLaunchConfiguration>,
+  ): Promise<void> {
     const port = runData.params.port || (await findOpenPort());
     await runData.context.dap.launchVSCodeRequest({
       args: resolveCodeLaunchArgs(runData.params, port),
@@ -41,7 +45,7 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostConfig
   }
 }
 
-const resolveCodeLaunchArgs = (launchArgs: IExtensionHostConfiguration, port: number) => {
+const resolveCodeLaunchArgs = (launchArgs: IExtensionHostLaunchConfiguration, port: number) => {
   // Separate all "paths" from an arguments into separate attributes.
   const args = launchArgs.args.map<Dap.LaunchVSCodeArgument>(arg => {
     if (arg.startsWith('-')) {

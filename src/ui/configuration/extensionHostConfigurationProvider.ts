@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import {
   extensionHostConfigDefaults,
-  IExtensionHostConfiguration,
+  IExtensionHostLaunchConfiguration,
   ResolvingExtensionHostConfiguration,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
@@ -17,12 +17,12 @@ import { DebugType } from '../../common/contributionUtils';
  */
 @injectable()
 export class ExtensionHostConfigurationResolver
-  extends BaseConfigurationResolver<IExtensionHostConfiguration>
+  extends BaseConfigurationResolver<IExtensionHostLaunchConfiguration>
   implements vscode.DebugConfigurationProvider {
   protected async resolveDebugConfigurationAsync(
     _folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingExtensionHostConfiguration,
-  ): Promise<IExtensionHostConfiguration | undefined> {
+  ): Promise<IExtensionHostLaunchConfiguration | undefined> {
     return Promise.resolve({
       ...extensionHostConfigDefaults,
       ...config,

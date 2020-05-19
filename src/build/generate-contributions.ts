@@ -17,7 +17,7 @@ import {
   IBaseConfiguration,
   OutputSource,
   INodeLaunchConfiguration,
-  IExtensionHostConfiguration,
+  IExtensionHostLaunchConfiguration,
   IChromiumBaseConfiguration,
   IChromeLaunchConfiguration,
   IChromeAttachConfiguration,
@@ -46,7 +46,8 @@ type OmittedKeysFromAttributes =
   | 'rootPath'
   | '__workspaceFolder'
   | '__workspaceCachePath'
-  | '__autoExpandGetters';
+  | '__autoExpandGetters'
+  | '__sessionId';
 
 type DescribedAttribute<T> = JSONSchema6 &
   Described & {
@@ -93,16 +94,6 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
 }
 
 const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> = {
-  address: {
-    type: 'string',
-    description: refString('node.address.description'),
-    default: 'localhost',
-  },
-  port: {
-    type: 'number',
-    description: refString('node.port.description'),
-    default: 9229,
-  },
   resolveSourceMapLocations: {
     type: ['array', 'null'],
     description: refString('node.resolveSourceMapLocations.description'),
@@ -219,7 +210,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   },
   outputCapture: {
     enum: [OutputSource.Console, OutputSource.Stdio],
-    description: refString('node.launch.outputCapture.description'),
+    markdownDescription: refString('node.launch.outputCapture.description'),
     default: OutputSource.Console,
   },
 };
@@ -318,6 +309,16 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
   ],
   configurationAttributes: {
     ...nodeBaseConfigurationAttributes,
+    address: {
+      type: 'string',
+      description: refString('node.address.description'),
+      default: 'localhost',
+    },
+    port: {
+      type: 'number',
+      description: refString('node.port.description'),
+      default: 9229,
+    },
     restart: {
       description: refString('node.attach.restart.description'),
       default: true,
@@ -359,11 +360,6 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       type: 'string',
       description: refString('node.attach.processId.description'),
       default: '${command:PickProcess}',
-    },
-    attachSpawnedProcesses: {
-      type: 'boolean',
-      description: refString('node.attach.attachSpawnedProcesses.description'),
-      default: true,
     },
     attachExistingChildren: {
       type: 'boolean',
@@ -410,7 +406,6 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         name: '${1:Launch via NPM}',
         runtimeExecutable: 'npm',
         runtimeArgs: ['run-script', 'debug'],
-        port: 9229,
         skipFiles: ['<node_internals>/**'],
       },
     },
@@ -581,16 +576,6 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
  */
 const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBaseConfiguration> = {
   ...baseConfigurationAttributes,
-  port: {
-    type: 'number',
-    description: refString('browser.port.description'),
-    default: 9222,
-  },
-  address: {
-    type: 'string',
-    description: refString('browser.address.description'),
-    default: '127.0.0.1',
-  },
   disableNetworkCache: {
     type: 'boolean',
     description: refString('browser.disableNetworkCache.description'),
@@ -642,7 +627,7 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
   } as any,
 };
 
-const extensionHostConfig: IDebugger<IExtensionHostConfiguration> = {
+const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
   type: DebugType.ExtensionHost,
   request: 'launch',
   label: refString('extensionHost.label'),
@@ -700,6 +685,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   ],
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
+    port: {
+      type: 'number',
+      description: refString('browser.launch.port.description'),
+      default: 0,
+    },
     file: {
       type: 'string',
       description: refString('browser.file.description'),
@@ -779,6 +769,16 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   ],
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
+    address: {
+      type: 'string',
+      description: refString('browser.address.description'),
+      default: 'localhost',
+    },
+    port: {
+      type: 'number',
+      description: refString('browser.attach.port.description'),
+      default: 9229,
+    },
     restart: {
       type: 'boolean',
       markdownDescription: refString('browser.restart'),
@@ -817,6 +817,16 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
       description: refString('edge.useWebView.description'),
       default: false,
     },
+    address: {
+      type: 'string',
+      description: refString('edge.address.description'),
+      default: 'localhost',
+    },
+    port: {
+      type: 'number',
+      description: refString('edge.port.description'),
+      default: 9229,
+    },
   },
   defaults: edgeLaunchConfigDefaults,
 };
@@ -849,6 +859,16 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
       type: 'boolean',
       description: refString('edge.useWebView.description'),
       default: false,
+    },
+    address: {
+      type: 'string',
+      description: refString('browser.address.description'),
+      default: 'localhost',
+    },
+    port: {
+      type: 'number',
+      description: refString('browser.attach.port.description'),
+      default: 9229,
     },
   },
   defaults: edgeAttachConfigDefaults,

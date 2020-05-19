@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, IExtensionHostConfiguration } from '../../configuration';
+import { AnyLaunchConfiguration, IExtensionHostAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { IRunData } from './nodeLauncherBase';
 import { SubprocessProgram, TerminalProcess } from './program';
@@ -17,7 +17,7 @@ import { LogTag } from '../../common/logging';
  * Attaches to an instance of VS Code for extension debugging.
  */
 @injectable()
-export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfiguration> {
+export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttachConfiguration> {
   protected restarting = false;
 
   /**
@@ -32,7 +32,9 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
   /**
    * @inheritdoc
    */
-  protected resolveParams(params: AnyLaunchConfiguration): IExtensionHostConfiguration | undefined {
+  protected resolveParams(
+    params: AnyLaunchConfiguration,
+  ): IExtensionHostAttachConfiguration | undefined {
     return params.type === DebugType.ExtensionHost && params.request === 'attach'
       ? params
       : undefined;
@@ -42,7 +44,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
    * @inheritdoc
    */
   protected async launchProgram(
-    runData: IRunData<IExtensionHostConfiguration>,
+    runData: IRunData<IExtensionHostAttachConfiguration>,
   ): Promise<string | void> {
     const inspectorURL = await retryGetWSEndpoint(
       `http://localhost:${runData.params.port}`,
@@ -71,7 +73,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
    */
   protected createLifecycle(
     cdp: Cdp.Api,
-    run: IRunData<IExtensionHostConfiguration>,
+    run: IRunData<IExtensionHostAttachConfiguration>,
     target: Cdp.Target.TargetInfo,
   ) {
     return target.openerId ? {} : { initialized: () => this.onFirstInitialize(cdp, run) };
@@ -81,7 +83,10 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
    * Called the first time, for each program, we get an attachment. Can
    * return disposables to clean up when the run finishes.
    */
-  protected async onFirstInitialize(cdp: Cdp.Api, run: IRunData<IExtensionHostConfiguration>) {
+  protected async onFirstInitialize(
+    cdp: Cdp.Api,
+    run: IRunData<IExtensionHostAttachConfiguration>,
+  ) {
     this.setEnvironmentVariables(cdp, run);
     const telemetry = await this.gatherTelemetry(cdp, run);
 
@@ -99,7 +104,10 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostConfig
     }
   }
 
-  private async setEnvironmentVariables(cdp: Cdp.Api, run: IRunData<IExtensionHostConfiguration>) {
+  private async setEnvironmentVariables(
+    cdp: Cdp.Api,
+    run: IRunData<IExtensionHostAttachConfiguration>,
+  ) {
     if (!run.params.autoAttachChildProcesses) {
       return;
     }

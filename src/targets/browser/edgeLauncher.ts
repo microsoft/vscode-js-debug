@@ -104,7 +104,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
         // and look something like '92202\n ...'
         const dtString = info.devtoolsActivePort || '';
         const dtPort = parseInt(dtString.split('\n').shift() || '');
-        const port = params.port || dtPort || params.port;
+        const port = params.port || dtPort;
 
         if (!this._mainTarget && filter(info)) {
           promisedPort.resolve(port);

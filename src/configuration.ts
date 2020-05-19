@@ -84,17 +84,6 @@ export type AsyncStackMode = boolean | { onAttach: number } | { onceBreakpointRe
 
 export interface IBaseConfiguration extends IMandatedConfiguration {
   /**
-   * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
-   * Default is 'localhost'.
-   */
-  address: string;
-
-  /**
-   * Debug port to attach to. Default is 5858.
-   */
-  port: number;
-
-  /**
    * A list of minimatch patterns for locations (folders and URLs) in which
    * source maps can be used to resolve local files. This can be used to avoid
    * incorrectly breaking in external source mapped code. Patterns can be
@@ -177,9 +166,8 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   __autoExpandGetters: boolean;
 }
 
-export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
+export interface IExtensionHostBaseConfiguration extends INodeBaseConfiguration {
   type: DebugType.ExtensionHost;
-  request: 'attach' | 'launch';
 
   /**
    * Command line arguments passed to the program.
@@ -198,11 +186,30 @@ export interface IExtensionHostConfiguration extends INodeBaseConfiguration {
    * Path to the VS Code binary.
    */
   runtimeExecutable: string | null;
+}
+
+export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseConfiguration {
+  request: 'launch';
+
+  /**
+   * Port the extension host is listening on.
+   */
+  port?: number;
 
   /**
    * Extension host session ID. A "magical" value set by VS Code.
    */
-  __sessionId?: string;
+  __sessionId: string;
+}
+
+export interface IExtensionHostAttachConfiguration extends IExtensionHostBaseConfiguration {
+  type: DebugType.ExtensionHost;
+  request: 'attach';
+
+  /**
+   * Port the extension host is listening on.
+   */
+  port: number;
 }
 
 /**
@@ -388,6 +395,16 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   request: 'attach';
 
   /**
+   * TCP/IP address of process to be debugged. Default is 'localhost'.
+   */
+  address: string;
+
+  /**
+   * Debug port to attach to. Default is 5858.
+   */
+  port: number;
+
+  /**
    * Restart session after Node.js has terminated.
    */
   restart: AnyRestartOptions;
@@ -396,12 +413,6 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    * ID of process to attach to.
    */
   processId?: string;
-
-  /**
-   * Whether to set environment variables in the attached process to track
-   * spawned children.
-   */
-  attachSpawnedProcesses: boolean;
 
   /**
    * Whether to attempt to attach to already-spawned child processes.
@@ -417,6 +428,11 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
 
 export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
   request: 'launch';
+
+  /**
+   * Port for the browser to listen on.
+   */
+  port: number;
 
   /**
    * Optional working directory for the runtime executable.
@@ -497,6 +513,17 @@ export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
   request: 'attach';
   restart: boolean;
   __pendingTargetId?: string;
+
+  /**
+   * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
+   * Default is 'localhost'.
+   */
+  address: string;
+
+  /**
+   * Debug port to attach to. Default is 5858.
+   */
+  port: number;
 }
 
 /**
@@ -519,6 +546,11 @@ export interface IEdgeLaunchConfiguration extends IChromiumLaunchConfiguration {
    * Enable web view debugging.
    */
   useWebView: boolean;
+
+  /**
+   * TCP/IP address of webview to be debugged. Default is 'localhost'.
+   */
+  address?: string;
 }
 
 /**
@@ -529,6 +561,16 @@ export interface IEdgeAttachConfiguration extends IChromiumBaseConfiguration {
   request: 'attach';
   useWebView: boolean;
   restart: boolean;
+
+  /**
+   * TCP/IP address of process to be debugged. Default is 'localhost'.
+   */
+  address: string;
+
+  /**
+   * Debug port to attach to. Default is 5858.
+   */
+  port: number;
 }
 
 /**
@@ -544,7 +586,8 @@ export type AnyNodeConfiguration =
   | INodeAttachConfiguration
   | INodeLaunchConfiguration
   | ITerminalLaunchConfiguration
-  | IExtensionHostConfiguration
+  | IExtensionHostLaunchConfiguration
+  | IExtensionHostAttachConfiguration
   | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyEdgeConfiguration = IEdgeAttachConfiguration | IEdgeLaunchConfiguration;
@@ -562,7 +605,7 @@ export type AnyTerminalConfiguration =
 export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 
 export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
-  IExtensionHostConfiguration
+  IExtensionHostLaunchConfiguration
 >;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
@@ -596,7 +639,7 @@ export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
 export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
   ? INodeAttachConfiguration
   : T extends ResolvingExtensionHostConfiguration
-  ? IExtensionHostConfiguration
+  ? IExtensionHostLaunchConfiguration
   : T extends ResolvingNodeLaunchConfiguration
   ? INodeLaunchConfiguration
   : T extends ResolvingChromeConfiguration
@@ -610,9 +653,7 @@ export const baseDefaults: IBaseConfiguration = {
   name: '',
   request: '',
   trace: false,
-  address: 'localhost',
   outputCapture: OutputSource.Console,
-  port: 9229,
   timeout: 10000,
   showAsyncStacks: true,
   skipFiles: [],
@@ -657,17 +698,17 @@ export const delegateDefaults: ITerminalDelegateConfiguration = {
   delegateId: -1,
 };
 
-export const extensionHostConfigDefaults: IExtensionHostConfiguration = {
+export const extensionHostConfigDefaults: IExtensionHostLaunchConfiguration = {
   ...nodeBaseDefaults,
   type: DebugType.ExtensionHost,
   name: 'Debug Extension',
   request: 'launch',
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
   outFiles: ['${workspaceFolder}/out/**/*.js'],
-  port: 0,
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   runtimeExecutable: '${execPath}',
   autoAttachChildProcesses: false,
+  __sessionId: '',
 };
 
 export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
@@ -690,6 +731,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   ...baseDefaults,
   type: DebugType.Chrome,
   request: 'attach',
+  address: 'localhost',
   port: 0,
   disableNetworkCache: true,
   pathMapping: {},
@@ -731,8 +773,9 @@ export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   ...nodeBaseDefaults,
   type: DebugType.Node,
-  attachSpawnedProcesses: true,
   attachExistingChildren: true,
+  address: 'localhost',
+  port: 9229,
   restart: false,
   request: 'attach',
   continueOnAttach: false,
@@ -773,7 +816,7 @@ export function applyEdgeDefaults(config: ResolvingEdgeConfiguration): AnyEdgeCo
 
 export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
-): IExtensionHostConfiguration {
+): IExtensionHostLaunchConfiguration {
   return { ...extensionHostConfigDefaults, ...config };
 }
 
