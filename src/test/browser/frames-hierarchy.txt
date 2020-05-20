@@ -1,11 +1,11 @@
-page "frames.html" [thread "http://localhost:8001/frames.html"] @ http://localhost:8001/frames.html
-  iframe "child.html" [thread "http://127.0.0.1:8002/child.html"] @ http://127.0.0.1:8002/child.html
-    iframe "grandchild.html" [thread "http://localhost:8001/grandchild.html"] @ http://localhost:8001/grandchild.html
-      worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
-    worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
-    worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
-  iframe "grandchild.html" [thread "http://127.0.0.1:8002/grandchild.html"] @ http://127.0.0.1:8002/grandchild.html
-    worker "worker.js" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
-  worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
-  worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
-  worker "worker.js" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
+page "localhost:8001/frames.html" [thread "http://localhost:8001/frames.html"] @ http://localhost:8001/frames.html
+  iframe "http://127.0.0.1:8002/child.html" [thread "http://127.0.0.1:8002/child.html"] @ http://127.0.0.1:8002/child.html
+    worker "http://127.0.0.1:8002/worker.js (127.0.0.1:8002/worker.js)" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
+    worker "http://127.0.0.1:8002/worker.js (127.0.0.1:8002/worker.js)" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
+    iframe "http://localhost:8001/grandchild.html" [thread "http://localhost:8001/grandchild.html"] @ http://localhost:8001/grandchild.html
+      worker "http://localhost:8001/worker.js (localhost:8001/worker.js)" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
+  iframe "http://127.0.0.1:8002/grandchild.html" [thread "http://127.0.0.1:8002/grandchild.html"] @ http://127.0.0.1:8002/grandchild.html
+    worker "http://127.0.0.1:8002/worker.js (127.0.0.1:8002/worker.js)" [thread "http://127.0.0.1:8002/worker.js"] @ http://127.0.0.1:8002/worker.js
+  worker "http://localhost:8001/worker.js (localhost:8001/worker.js)" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
+  worker "http://localhost:8001/worker.js (localhost:8001/worker.js)" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js
+  worker "http://localhost:8001/worker.js (localhost:8001/worker.js)" [thread "http://localhost:8001/worker.js"] @ http://localhost:8001/worker.js

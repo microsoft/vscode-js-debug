@@ -459,8 +459,6 @@ export class Thread implements IVariableStoreDelegate {
       this._ensureDebuggerEnabledAndRefreshDebuggerId();
       this.replVariables.clear();
       this._executionContextsCleared();
-      const slot = this._claimOutputSlot();
-      slot(this._clearDebuggerConsole());
     });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
       this._cdp.Runtime.on('consoleAPICalled', async event => {

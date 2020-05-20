@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as path from 'path';
 import { URL } from 'url';
 import { IDisposable, EventEmitter } from '../../common/events';
 import { ITarget } from '../../targets/targets';
@@ -20,9 +19,6 @@ import { IThreadDelegate } from '../../adapter/threads';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBrowserProcess } from './spawn/browserProcess';
 import { IBrowserVersionMetrics } from '../../telemetry/classification';
-import * as nls from 'vscode-nls';
-
-const localize = nls.loadMessageBundle();
 
 export const enum BrowserTargetType {
   Page = 'page',
@@ -329,8 +325,19 @@ export class BrowserTargetManager implements IDisposable {
 
   _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
     const target = this._targets.get(targetInfo.targetId);
-    if (!target) return;
+    if (!target) {
+      return;
+    }
+
     target._updateFromInfo(targetInfo);
+
+    // fire name changes for everyone since this might have caused a duplicate
+    // title that we want to disambiguate.
+    for (const otherTarget of this._targets.values()) {
+      if (target !== otherTarget) {
+        otherTarget._onNameChangedEmitter.fire();
+      }
+    }
   }
 }
 
@@ -510,18 +517,33 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
       if (version) return version.label() + ' [Service Worker]';
     }
 
-    let threadName = '';
+    let threadName = this._targetInfo.title;
+    const isAmbiguous = this._manager
+      .targetList()
+      .some(
+        target =>
+          target instanceof BrowserTarget &&
+          target !== this &&
+          target._targetInfo.title === this._targetInfo.title,
+      );
+
+    if (!isAmbiguous) {
+      return threadName;
+    }
+
     try {
       const parsedURL = new URL(this._targetInfo.url);
-      if (parsedURL.pathname === '/') threadName += parsedURL.host;
-      else if (parsedURL.protocol === 'data:') threadName = '<data>';
-      else
-        threadName += parsedURL
-          ? path.basename(parsedURL.pathname) + (parsedURL.hash ? parsedURL.hash : '')
-          : this._targetInfo.title;
+      if (parsedURL.protocol === 'data:') {
+        threadName = ' <data>';
+      } else if (parsedURL) {
+        threadName += ` (${this._targetInfo.url.replace(/^[a-z]+:\/\/|\/$/gi, '')})`;
+      } else {
+        threadName += ` (${this._targetInfo.url})`;
+      }
     } catch (e) {
-      threadName += this._targetInfo.url || localize('chrome.pagePlaceholder', 'Target Page');
+      threadName += ` (${this._targetInfo.url})`;
     }
+
     return threadName;
   }
 
