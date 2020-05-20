@@ -915,8 +915,8 @@ function buildDebuggers() {
 
 const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   [Configuration.UsePreviewDebugger]: {
-    type: ['boolean', 'null'],
-    default: null,
+    type: 'boolean',
+    default: false,
     description: refString('configuration.usePreview'),
   },
   [Configuration.NpmScriptLens]: {

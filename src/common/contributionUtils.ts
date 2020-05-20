@@ -96,7 +96,7 @@ export type DebugByLinkState = 'on' | 'off' | 'always';
  * Type map for {@link Configuration} properties.
  */
 export interface IConfigurationTypes {
-  [Configuration.UsePreviewDebugger]: boolean | null;
+  [Configuration.UsePreviewDebugger]: boolean;
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
