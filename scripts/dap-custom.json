@@ -684,6 +684,44 @@
           }
         }
       ]
+    },
+
+    "RevealPageRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "Gets all defined breakpoints.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["revealPage"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/RevealPageArguments"
+            }
+          },
+          "required": ["command", "arguments"]
+        }
+      ]
+    },
+    "RevealPageArguments": {
+      "type": "object",
+      "description": "Arguments for 'RevealPage' request.",
+      "properties": {}
+    },
+    "RevealPageResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'RevealPage' request.",
+          "required": ["body"],
+          "properties": {
+            "body": {}
+          }
+        }
+      ]
     }
   }
 }

@@ -28,6 +28,7 @@ export const enum Commands {
   PrettyPrint = 'extension.NAMESPACE(node-debug).prettyPrint',
   RemoveAllCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
   RemoveCustomBreakpoint = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
+  RevealPage = 'extension.js-debug.revealPage',
   StartProfile = 'extension.NAMESPACE(node-debug).startProfile',
   StopProfile = 'extension.NAMESPACE(node-debug).stopProfile',
   ToggleSkipping = 'extension.NAMESPACE(node-debug).toggleSkippingFile',
@@ -66,6 +67,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.StartProfile]: null,
   [Commands.StopProfile]: null,
   [Commands.ToggleSkipping]: null,
+  [Commands.RevealPage]: null,
 };
 
 /**
@@ -77,6 +79,12 @@ export const allCommands: ReadonlySet<Commands> = new Set(Object.keys(commandsOb
  * Set of all known debug types.
  */
 export const allDebugTypes: ReadonlySet<DebugType> = new Set(Object.keys(debugTypes));
+
+/**
+ * Gets whether the given debug type is one of the js-debug-handled debug types.
+ */
+export const isDebugType = (debugType: string): debugType is DebugType =>
+  allDebugTypes.has(debugType as DebugType);
 
 export const enum Configuration {
   UsePreviewDebugger = 'debug.javascript.usePreview',
@@ -125,6 +133,7 @@ export interface ICommandTypes {
   [Commands.AutoAttachSetVariables]: { args: []; out: { ipcAddress: string } };
   [Commands.AutoAttachClearVariables]: { args: []; out: void };
   [Commands.AutoAttachToProcess]: { args: [IAutoAttachInfo]; out: void };
+  [Commands.RevealPage]: { args: [string /* session id */]; out: void };
 }
 
 /**

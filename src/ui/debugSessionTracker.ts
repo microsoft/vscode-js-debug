@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import Dap from '../dap/api';
-import { DebugType } from '../common/contributionUtils';
+import { isDebugType } from '../common/contributionUtils';
 import { injectable } from 'inversify';
 
 /**
@@ -21,7 +21,7 @@ export class DebugSessionTracker implements vscode.Disposable {
   public attach() {
     vscode.debug.onDidStartDebugSession(
       session => {
-        if (session.type === DebugType.Chrome && !!session.configuration.__pendingTargetId) {
+        if (session.configuration.__pendingTargetId) {
           this.sessions.set(session.id, session);
           this._onSessionAddedEmitter.fire(session);
         }
@@ -40,7 +40,7 @@ export class DebugSessionTracker implements vscode.Disposable {
 
     vscode.debug.onDidReceiveDebugSessionCustomEvent(
       event => {
-        if (event.session.type !== DebugType.Chrome && event.session.type !== DebugType.Node) {
+        if (!isDebugType(event.session.type)) {
           return;
         }
 

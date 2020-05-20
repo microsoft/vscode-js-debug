@@ -5,12 +5,12 @@
 import * as vscode from 'vscode';
 import * as qs from 'querystring';
 import {
-  DebugType,
   readConfig,
   Configuration,
   writeConfig,
   registerCommand,
   Commands,
+  allDebugTypes,
 } from '../common/contributionUtils';
 import Dap from '../dap/api';
 import { Message as DapMessage } from '../dap/transport';
@@ -28,7 +28,10 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
    */
   public static register(tracker: DebugSessionTracker): PrettyPrintTrackerFactory {
     const factory = new PrettyPrintTrackerFactory(tracker);
-    vscode.debug.registerDebugAdapterTrackerFactory(DebugType.Chrome, factory);
+    for (const debugType of allDebugTypes) {
+      vscode.debug.registerDebugAdapterTrackerFactory(debugType, factory);
+    }
+
     registerCommand(vscode.commands, Commands.PrettyPrint, () => factory.prettifyActive());
 
     return factory;

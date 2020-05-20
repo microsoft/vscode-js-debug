@@ -76,6 +76,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
+    this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
     this.dap.on('breakpointLocations', params =>
       this._withThread(async thread => ({
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),

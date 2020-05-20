@@ -207,7 +207,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
       const config: IPseudoAttachConfiguration = {
-        type: DebugType.Chrome,
+        type: parentSession.debugSession.configuration.type as DebugType,
         name: target.name(),
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),

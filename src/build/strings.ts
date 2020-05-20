@@ -99,6 +99,7 @@ const strings = {
   'browser.restart': 'Whether to reconnect if the browser connection is closed',
   'browser.profileStartup.description':
     'If true, will start profiling soon as the process launches',
+  'browser.revealPage': 'Focus Tab',
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',

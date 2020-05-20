@@ -7,6 +7,7 @@ import {
   Configuration,
   allCommands,
   Commands,
+  allDebugTypes,
 } from '../common/contributionUtils';
 import {
   IMandatedConfiguration,
@@ -62,6 +63,21 @@ type Described =
   | { description: MappedReferenceString }
   | { enumDescriptions: MappedReferenceString[] }
   | { markdownDescription: MappedReferenceString };
+
+type Menus = {
+  [menuId: string]: {
+    command: Commands;
+    title?: MappedReferenceString;
+    when?: string;
+    group?: 'navigation' | 'inline';
+  }[];
+};
+
+const isAnyDebugType = (contextKey: string) =>
+  '(' + [...allDebugTypes].map(d => `${contextKey} == ${d}`).join(' || ') + ')';
+
+const isBrowserDebugType = (contextKey: string) =>
+  '(' + [DebugType.Chrome, DebugType.Edge].map(d => `${contextKey} == ${d}`).join(' || ') + ')';
 
 /**
  * Opaque type for a string passed through refString, ensuring all templates
@@ -1036,7 +1052,103 @@ const commands: ReadonlyArray<{
     category: 'Debug',
     icon: 'resources/dark/stop-profiling.svg',
   },
+  {
+    command: Commands.RevealPage,
+    title: refString('browser.revealPage'),
+    category: 'Debug',
+  },
 ];
+
+const menus: Menus = {
+  commandPalette: [
+    {
+      command: Commands.PrettyPrint,
+      title: refString('pretty.print.script'),
+      when: `inDebugMode && ${isAnyDebugType('debugType')}`,
+    },
+    {
+      command: Commands.StartProfile,
+      title: refString('profile.start'),
+      when: `inDebugMode && ${isAnyDebugType('debugType')} && !jsDebugIsProfiling`,
+    },
+    {
+      command: Commands.StartProfile,
+      title: refString('profile.stop'),
+      when: `inDebugMode && ${isAnyDebugType('debugType')} && jsDebugIsProfiling`,
+    },
+    {
+      command: Commands.RevealPage,
+      when: 'false',
+    },
+  ],
+  'debug/callstack/context': [
+    {
+      command: Commands.RevealPage,
+      group: 'navigation',
+      when: isBrowserDebugType('debugType').slice(1, -1),
+    },
+    {
+      command: Commands.ToggleSkipping,
+      group: 'navigation',
+      when: `inDebugMode && ${isAnyDebugType('debugType')} && callStackItemType == 'session'`,
+    },
+    {
+      command: Commands.StartProfile,
+      group: 'navigation',
+      when: `${isAnyDebugType(
+        'debugType',
+      )} && !jsDebugIsProfiling && callStackItemType == 'session'`,
+    },
+    {
+      command: Commands.StopProfile,
+      group: 'navigation',
+      when: `${isAnyDebugType(
+        'debugType',
+      )} && jsDebugIsProfiling && callStackItemType == 'session'`,
+    },
+    {
+      command: Commands.StartProfile,
+      group: 'inline',
+      when: `${isAnyDebugType('debugType')} && !jsDebugIsProfiling`,
+    },
+    {
+      command: Commands.StopProfile,
+      group: 'inline',
+      when: 'debugType == NAMESPACE(chrome) && jsDebugIsProfiling',
+    },
+  ],
+  'debug/toolBar': [
+    {
+      command: Commands.StopProfile,
+      when: `${isAnyDebugType('debugType')} && jsDebugIsProfiling`,
+    },
+  ],
+  'view/title': [
+    {
+      command: Commands.AddCustomBreakpoints,
+      when: 'view == jsBrowserBreakpoints',
+    },
+    {
+      command: Commands.RemoveAllCustomBreakpoints,
+      when: 'view == jsBrowserBreakpoints',
+    },
+  ],
+  'view/item/context': [
+    {
+      command: Commands.RemoveCustomBreakpoint,
+      when: 'view == jsBrowserBreakpoints',
+      group: 'inline',
+    },
+    {
+      command: Commands.AddCustomBreakpoints,
+      when: 'view == jsBrowserBreakpoints',
+    },
+    {
+      command: Commands.RemoveCustomBreakpoint,
+      when: 'view == jsBrowserBreakpoints',
+    },
+  ],
+};
 
 if (require.main === module) {
   process.stdout.write(
@@ -1046,6 +1158,7 @@ if (require.main === module) {
         ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
       ],
       contributes: {
+        menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),
         debuggers: buildDebuggers(),
         commands,

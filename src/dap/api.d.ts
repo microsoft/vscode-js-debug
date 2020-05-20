@@ -934,6 +934,18 @@ export namespace Dap {
      * Gets all defined breakpoints.
      */
     getBreakpointsRequest(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
+
+    /**
+     * Gets all defined breakpoints.
+     */
+    on(
+      request: 'revealPage',
+      handler: (params: RevealPageParams) => Promise<RevealPageResult | Error>,
+    ): () => void;
+    /**
+     * Gets all defined breakpoints.
+     */
+    revealPageRequest(params: RevealPageParams): Promise<RevealPageResult>;
   }
 
   export interface TestApi {
@@ -1544,6 +1556,11 @@ export namespace Dap {
      * Gets all defined breakpoints.
      */
     getBreakpoints(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
+
+    /**
+     * Gets all defined breakpoints.
+     */
+    revealPage(params: RevealPageParams): Promise<RevealPageResult>;
   }
 
   export interface AttachParams {
@@ -2589,6 +2606,10 @@ export namespace Dap {
      */
     column?: integer;
   }
+
+  export interface RevealPageParams {}
+
+  export interface RevealPageResult {}
 
   export interface ReverseContinueParams {
     /**

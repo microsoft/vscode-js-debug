@@ -530,7 +530,7 @@ export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
  * Fake 'attach' config used in the binder.
  */
 export interface IPseudoAttachConfiguration {
-  type: DebugType.Chrome;
+  type: DebugType;
   request: 'attach' | 'launch';
   name: string;
   __pendingTargetId: string;

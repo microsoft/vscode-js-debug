@@ -25,6 +25,7 @@ import { registerProfilingCommand } from './ui/profiling';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { registerAutoAttach } from './ui/autoAttach';
 import { extensionId } from './configuration';
+import { registerRevealPage } from './ui/revealPage';
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
@@ -96,6 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerNpmScriptLens(context);
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
+  registerRevealPage(context, debugSessionTracker);
 }
 
 export function deactivate() {
