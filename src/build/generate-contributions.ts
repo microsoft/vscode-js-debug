@@ -73,11 +73,17 @@ type Menus = {
   }[];
 };
 
-const isAnyDebugType = (contextKey: string) =>
-  '(' + [...allDebugTypes].map(d => `${contextKey} == ${d}`).join(' || ') + ')';
+const forSomeDebugTypes = (
+  types: Iterable<string>,
+  contextKey: string,
+  andExpr: string | undefined,
+) => [...types].map(d => `${contextKey} == ${d}` + (andExpr ? ` && ${andExpr}` : '')).join(' || ');
 
-const isBrowserDebugType = (contextKey: string) =>
-  '(' + [DebugType.Chrome, DebugType.Edge].map(d => `${contextKey} == ${d}`).join(' || ') + ')';
+const forAnyDebugType = (contextKey: string, andExpr?: string) =>
+  forSomeDebugTypes(allDebugTypes, contextKey, andExpr);
+
+const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
+  forSomeDebugTypes([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
 
 /**
  * Opaque type for a string passed through refString, ensuring all templates
@@ -1060,17 +1066,17 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       title: refString('pretty.print.script'),
-      when: `inDebugMode && ${isAnyDebugType('debugType')}`,
+      when: forAnyDebugType('debugType', 'inDebugMode'),
     },
     {
       command: Commands.StartProfile,
       title: refString('profile.start'),
-      when: `inDebugMode && ${isAnyDebugType('debugType')} && !jsDebugIsProfiling`,
+      when: forAnyDebugType('debugType', 'inDebugMode && !jsDebugIsProfiling'),
     },
     {
       command: Commands.StartProfile,
       title: refString('profile.stop'),
-      when: `inDebugMode && ${isAnyDebugType('debugType')} && jsDebugIsProfiling`,
+      when: forAnyDebugType('debugType', 'inDebugMode && jsDebugIsProfiling'),
     },
     {
       command: Commands.RevealPage,
@@ -1081,42 +1087,38 @@ const menus: Menus = {
     {
       command: Commands.RevealPage,
       group: 'navigation',
-      when: isBrowserDebugType('debugType').slice(1, -1),
+      when: forBrowserDebugType('debugType'),
     },
     {
       command: Commands.ToggleSkipping,
       group: 'navigation',
-      when: `inDebugMode && ${isAnyDebugType('debugType')} && callStackItemType == 'session'`,
+      when: forAnyDebugType('debugType', `callStackItemType == 'session'`),
     },
     {
       command: Commands.StartProfile,
       group: 'navigation',
-      when: `${isAnyDebugType(
-        'debugType',
-      )} && !jsDebugIsProfiling && callStackItemType == 'session'`,
+      when: forAnyDebugType('debugType', `!jsDebugIsProfiling && callStackItemType == 'session'`),
     },
     {
       command: Commands.StopProfile,
       group: 'navigation',
-      when: `${isAnyDebugType(
-        'debugType',
-      )} && jsDebugIsProfiling && callStackItemType == 'session'`,
+      when: forAnyDebugType('debugType', `jsDebugIsProfiling && callStackItemType == 'session'`),
     },
     {
       command: Commands.StartProfile,
       group: 'inline',
-      when: `${isAnyDebugType('debugType')} && !jsDebugIsProfiling`,
+      when: forAnyDebugType('debugType', '!jsDebugIsProfiling'),
     },
     {
       command: Commands.StopProfile,
       group: 'inline',
-      when: 'debugType == NAMESPACE(chrome) && jsDebugIsProfiling',
+      when: forAnyDebugType('debugType', 'jsDebugIsProfiling'),
     },
   ],
   'debug/toolBar': [
     {
       command: Commands.StopProfile,
-      when: `jsDebugIsProfiling && ${isAnyDebugType('debugType')}`,
+      when: forAnyDebugType('debugType', 'jsDebugIsProfiling'),
     },
   ],
   'view/title': [
