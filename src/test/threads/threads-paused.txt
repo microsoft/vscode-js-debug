@@ -2,7 +2,7 @@
     threads : [
         [0] : {
             id : <number>
-            name : blank
+            name : about:blank
         }
     ]
 }

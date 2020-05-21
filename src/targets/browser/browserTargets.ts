@@ -530,14 +530,16 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     }
 
     let threadName = this._targetInfo.title;
-    const isAmbiguous = this._manager
-      .targetList()
-      .some(
-        target =>
-          target instanceof BrowserTarget &&
-          target !== this &&
-          target._targetInfo.title === this._targetInfo.title,
-      );
+    const isAmbiguous =
+      threadName &&
+      this._manager
+        .targetList()
+        .some(
+          target =>
+            target instanceof BrowserTarget &&
+            target !== this &&
+            target._targetInfo.title === this._targetInfo.title,
+        );
 
     if (!isAmbiguous) {
       return threadName;
