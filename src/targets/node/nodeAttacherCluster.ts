@@ -3,10 +3,9 @@
  *--------------------------------------------------------*/
 
 import { LogTag, ILogger } from '../../common/logging';
-import { spawnWatchdog } from './watchdogSpawn';
+import { WatchDog } from './watchdogSpawn';
 import { NeverCancelled } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
-import { ChildProcess } from 'child_process';
 import { processTree, analyseArguments } from '../../ui/processTree/processTree';
 import { getWSEndpoint } from '../browser/spawn/endpoints';
 
@@ -27,13 +26,13 @@ export async function watchAllChildren(
   },
   logger: ILogger,
   cancellation: CancellationToken = NeverCancelled,
-): Promise<ChildProcess[]> {
+): Promise<WatchDog[]> {
   const node = await getProcessTree(options.pid, logger);
   if (!node) {
     return [];
   }
 
-  const todo: Promise<ChildProcess | void>[] = [];
+  const todo: Promise<WatchDog | void>[] = [];
   let queue = node.children.slice();
   while (queue.length) {
     const child = queue.pop() as IProcessTreeNode;
@@ -47,7 +46,7 @@ export async function watchAllChildren(
     todo.push(
       getWSEndpoint(`http://${options.hostname}:${port}`, cancellation)
         .then(inspectorURL =>
-          spawnWatchdog(options.nodePath, {
+          WatchDog.attach({
             ipcAddress: options.ipcAddress,
             scriptName: 'Child Process',
             inspectorURL,
@@ -67,7 +66,7 @@ export async function watchAllChildren(
     );
   }
 
-  return (await Promise.all(todo)).filter((wd): wd is ChildProcess => !!wd);
+  return (await Promise.all(todo)).filter((wd): wd is WatchDog => !!wd);
 }
 
 /**

@@ -12,6 +12,8 @@ import { NeverCancelled } from '../../common/cancellation';
 import { ITransport } from '../../cdp/transport';
 import { IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
+import { spawn } from 'child_process';
+import { IStopMetadata } from '../targets';
 
 export interface IWatchdogInfo {
   /**
@@ -61,8 +63,9 @@ const enum Method {
 }
 
 export class WatchDog implements IDisposable {
-  private readonly onEndEmitter = new EventEmitter<void>();
+  private readonly onEndEmitter = new EventEmitter<IStopMetadata>();
   private target?: WebSocketTransport;
+  private gracefulExit = false;
   private readonly targetInfo: Cdp.Target.TargetInfo = {
     targetId: this.info.pid || '0',
     type: this.info.waitForDebugger ? 'waitingForDebugger' : '',
@@ -91,13 +94,15 @@ export class WatchDog implements IDisposable {
     return new WatchDog(info, server);
   }
 
-  constructor(private readonly info: IWatchdogInfo, private readonly server: ITransport) {}
+  constructor(private readonly info: IWatchdogInfo, private readonly server: ITransport) {
+    this.listenToServer();
+  }
 
   /**
    * Attaches listeners to server messages to start passing them to the target.
    * Should be called once when the watchdog is created.
    */
-  public listenToServer() {
+  private listenToServer() {
     const { server, targetInfo } = this;
     server.send(JSON.stringify({ method: 'Target.targetCreated', params: { targetInfo } }));
     server.onMessage(async ([data]) => {
@@ -119,7 +124,7 @@ export class WatchDog implements IDisposable {
 
     server.onEnd(() => {
       this.disposeTarget();
-      this.onEndEmitter.fire();
+      this.onEndEmitter.fire({ killed: this.gracefulExit, code: this.gracefulExit ? 0 : 1 });
     });
   }
 
@@ -153,6 +158,7 @@ export class WatchDog implements IDisposable {
         };
 
       case Method.DetachFromTarget:
+        this.gracefulExit = true;
         this.disposeTarget();
         return { id: object.id, result: {} };
 
@@ -163,6 +169,7 @@ export class WatchDog implements IDisposable {
   }
 
   private async createTarget() {
+    this.gracefulExit = false; // reset
     const target = await WebSocketTransport.create(this.info.inspectorURL, NeverCancelled);
     target.onMessage(([data]) => this.server.send(data));
     target.onEnd(() => {
@@ -185,4 +192,19 @@ export class WatchDog implements IDisposable {
       this.target = undefined;
     }
   }
+}
+
+/**
+ * Spawns a watchdog attached to the given process.
+ */
+export function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
+  const p = spawn(execPath, [watchdogPath], {
+    env: { NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo) },
+    stdio: 'ignore',
+    detached: true,
+  });
+  p.unref();
+  process.on('exit', () => p.kill());
+
+  return p;
 }

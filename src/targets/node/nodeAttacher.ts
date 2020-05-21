@@ -5,9 +5,9 @@
 import * as nls from 'vscode-nls';
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
-import { spawnWatchdog } from './watchdogSpawn';
+import { WatchDog } from './watchdogSpawn';
 import { IRunData } from './nodeLauncherBase';
-import { SubprocessProgram, IProgram } from './program';
+import { IProgram, WatchDogProgram } from './program';
 import Cdp from '../../cdp/api';
 import { isLoopback } from '../../common/urlUtils';
 import { LeaseFile } from './lease-file';
@@ -71,18 +71,15 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         }
       }
 
-      const binary = await this.resolveNodePath(runData.params);
-      const program = (this.program = new SubprocessProgram(
-        spawnWatchdog(binary.path, {
-          ipcAddress: runData.serverAddress,
-          scriptName: 'Remote Process',
-          inspectorURL,
-          waitForDebugger: true,
-          dynamicAttach: true,
-        }),
-        this.logger,
-      ));
+      const watchdog = await WatchDog.attach({
+        ipcAddress: runData.serverAddress,
+        scriptName: 'Remote Process',
+        inspectorURL,
+        waitForDebugger: true,
+        dynamicAttach: true,
+      });
 
+      const program = (this.program = new WatchDogProgram(watchdog));
       program.stopped.then(r => restart(restartPolicy, program, r));
     };
 
@@ -200,24 +197,28 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       NODE_INSPECTOR_REQUIRE_LEASE: leasePath,
     });
 
-    const result = await cdp.Runtime.evaluate({
-      contextId: 1,
-      returnByValue: true,
-      expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
-    });
+    for (let retries = 0; retries < 5; retries++) {
+      const result = await cdp.Runtime.evaluate({
+        contextId: 1,
+        returnByValue: true,
+        expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
+      });
 
-    if (!result) {
-      this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
-      return;
-    }
+      if (!result) {
+        this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
+        return;
+      }
 
-    if (result.exceptionDetails) {
+      if (!result.exceptionDetails) {
+        return;
+      }
+
       this.logger.error(
         LogTag.RuntimeTarget,
         'Error setting child environment vars',
         result.exceptionDetails,
       );
-      return;
+      await delay(50);
     }
   }
 }

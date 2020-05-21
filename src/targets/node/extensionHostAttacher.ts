@@ -5,8 +5,8 @@
 import { AnyLaunchConfiguration, IExtensionHostAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { IRunData } from './nodeLauncherBase';
-import { SubprocessProgram, TerminalProcess } from './program';
-import { spawnWatchdog } from './watchdogSpawn';
+import { TerminalProcess, WatchDogProgram } from './program';
+import { WatchDog } from './watchdogSpawn';
 import Cdp from '../../cdp/api';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { injectable } from 'inversify';
@@ -51,8 +51,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       runData.context.cancellationToken,
     );
 
-    const binary = await this.resolveNodePath(runData.params);
-    const wd = spawnWatchdog(binary.path, {
+    const wd = await WatchDog.attach({
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
       inspectorURL,
@@ -60,7 +59,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       dynamicAttach: true,
     });
 
-    const program = (this.program = new SubprocessProgram(wd, this.logger));
+    const program = (this.program = new WatchDogProgram(wd));
     this.program.stopped.then(result => {
       if (program === this.program) {
         this.onProgramTerminated(result);

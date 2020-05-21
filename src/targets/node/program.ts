@@ -8,6 +8,7 @@ import Dap from '../../dap/api';
 import { IStopMetadata } from '../targets';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { ILogger } from '../../common/logging';
+import { WatchDog } from './watchdogSpawn';
 
 export interface IProgram {
   readonly stopped: Promise<IStopMetadata>;
@@ -54,7 +55,7 @@ export class SubprocessProgram implements IProgram {
  */
 export class StubProgram implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
-  private stopDefer!: (data: IStopMetadata) => void;
+  protected stopDefer!: (data: IStopMetadata) => void;
 
   constructor() {
     this.stopped = new Promise(resolve => (this.stopDefer = resolve));
@@ -67,6 +68,16 @@ export class StubProgram implements IProgram {
   public stop() {
     this.stopDefer({ code: 0, killed: true });
     return this.stopped;
+  }
+}
+
+/**
+ * Wrapper for the watchdog program.
+ */
+export class WatchDogProgram extends StubProgram {
+  constructor(wd: WatchDog) {
+    super();
+    wd.onEnd(this.stopDefer);
   }
 }
 

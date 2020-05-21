@@ -136,7 +136,6 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       ...data,
       ipcAddress: this.run.serverAddress, // may be outdated from a previous set of vars
     });
-    wd.listenToServer();
     wd.onEnd(() => this.telemetryItems.delete(pid));
   }
 
