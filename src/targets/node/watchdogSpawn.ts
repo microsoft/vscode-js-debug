@@ -1,8 +1,17 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { spawn } from 'child_process';
+
 import { join } from 'path';
+import * as net from 'net';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { Logger } from '../../common/logging/logger';
+import Cdp from '../../cdp/api';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
+import { NeverCancelled } from '../../common/cancellation';
+import { ITransport } from '../../cdp/transport';
+import { IDisposable } from '../../common/disposable';
+import { EventEmitter } from '../../common/events';
 
 export interface IWatchdogInfo {
   /**
@@ -46,20 +55,134 @@ export interface IWatchdogInfo {
 export const watchdogPath = join(__dirname, 'watchdog.bundle.js');
 export const bootloaderDefaultPath = join(__dirname, 'bootloader.bundle.js');
 
-/**
- * Spawns a watchdog attached to the given process.
- */
-export function spawnWatchdog(execPath: string, { ipcAddress, ...inspectorInfo }: IWatchdogInfo) {
-  const p = spawn(execPath, [watchdogPath], {
-    env: {
-      NODE_INSPECTOR_INFO: JSON.stringify(inspectorInfo),
-      NODE_INSPECTOR_IPC: ipcAddress,
-    },
-    stdio: 'ignore',
-    detached: true,
-  });
-  p.unref();
-  process.on('exit', () => p.kill());
+const enum Method {
+  AttachToTarget = 'Target.attachToTarget',
+  DetachFromTarget = 'Target.detachFromTarget',
+}
 
-  return p;
+export class WatchDog implements IDisposable {
+  private readonly onEndEmitter = new EventEmitter<void>();
+  private target?: WebSocketTransport;
+  private readonly targetInfo: Cdp.Target.TargetInfo = {
+    targetId: this.info.pid || '0',
+    type: this.info.waitForDebugger ? 'waitingForDebugger' : '',
+    title: this.info.scriptName,
+    url: 'file://' + this.info.scriptName,
+    openerId: this.info.ppid,
+    attached: true,
+  };
+
+  /**
+   * Event that fires when the watchdog stops.
+   */
+  public readonly onEnd = this.onEndEmitter.event;
+
+  /**
+   * Creates a watchdog and returns a promise that resolves once it's attached
+   * to the server.
+   */
+  public static async attach(info: IWatchdogInfo) {
+    const pipe: net.Socket = await new Promise((resolve, reject) => {
+      const cnx: net.Socket = net.createConnection(info.ipcAddress, () => resolve(cnx));
+      cnx.on('error', reject);
+    });
+
+    const server = new RawPipeTransport(Logger.null, pipe);
+    return new WatchDog(info, server);
+  }
+
+  constructor(private readonly info: IWatchdogInfo, private readonly server: ITransport) {}
+
+  /**
+   * Attaches listeners to server messages to start passing them to the target.
+   * Should be called once when the watchdog is created.
+   */
+  public listenToServer() {
+    const { server, targetInfo } = this;
+    server.send(JSON.stringify({ method: 'Target.targetCreated', params: { targetInfo } }));
+    server.onMessage(async ([data]) => {
+      // Fast-path to check if we might need to parse it:
+      if (
+        this.target &&
+        !data.includes(Method.AttachToTarget) &&
+        !data.includes(Method.DetachFromTarget)
+      ) {
+        this.target.send(data);
+        return;
+      }
+
+      const result = await this.execute(data);
+      if (result) {
+        server.send(JSON.stringify(result));
+      }
+    });
+
+    server.onEnd(() => {
+      this.disposeTarget();
+      this.onEndEmitter.fire();
+    });
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
+    this.disposeTarget();
+    this.server.dispose(); // will cause the end emitter to fire after teardown finishes
+  }
+
+  /**
+   * Dispatches a method call, invoked with a JSON string and returns a
+   * response to return.
+   */
+  private async execute(data: string): Promise<{} | void> {
+    const object = JSON.parse(data);
+    switch (object.method) {
+      case Method.AttachToTarget:
+        if (this.target) {
+          this.disposeTarget();
+        }
+        this.target = await this.createTarget();
+
+        return {
+          id: object.id,
+          result: {
+            sessionId: this.targetInfo.targetId,
+            __dynamicAttach: this.info.dynamicAttach ? true : undefined,
+          },
+        };
+
+      case Method.DetachFromTarget:
+        this.disposeTarget();
+        return { id: object.id, result: {} };
+
+      default:
+        this.target?.send(object);
+        return;
+    }
+  }
+
+  private async createTarget() {
+    const target = await WebSocketTransport.create(this.info.inspectorURL, NeverCancelled);
+    target.onMessage(([data]) => this.server.send(data));
+    target.onEnd(() => {
+      if (target)
+        // Could be due us closing.
+        this.server.send(
+          JSON.stringify({
+            method: 'Target.targetDestroyed',
+            params: { targetId: this.targetInfo.targetId, sessionId: this.targetInfo.targetId },
+          }),
+        );
+    });
+
+    return target;
+  }
+
+  private disposeTarget() {
+    if (this.target) {
+      this.target.dispose();
+      this.target = undefined;
+    }
+  }
 }

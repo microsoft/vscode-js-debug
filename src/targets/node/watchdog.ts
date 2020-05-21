@@ -16,6 +16,10 @@ import { WebSocketTransport } from '../../cdp/webSocketTransport';
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
+
+(async () => {
+  WatchD
+});
 const logger = new Logger();
 logger.setup({
   level: LogLevel.Info,

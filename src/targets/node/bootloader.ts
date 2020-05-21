@@ -7,7 +7,6 @@ import 'reflect-metadata';
 import * as inspector from 'inspector';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawnWatchdog } from './watchdogSpawn';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { LogTag } from '../../common/logging';
 import { onUncaughtError, ErrorType } from '../../telemetry/unhandledErrorReporter';
@@ -16,6 +15,7 @@ import { checkAll } from './bootloader/filters';
 import { bootloaderEnv, IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
 import { bootloaderLogger } from './bootloader/logger';
 import { spawnSync } from 'child_process';
+import { WatchDog } from './watchdogSpawn';
 
 const telemetry: IProcessTelemetry = {
   cwd: process.cwd(),
@@ -90,7 +90,7 @@ function inspectOrQueue(env: IBootloaderEnvironment) {
   };
 
   if (mode === Mode.Immediate) {
-    spawnWatchdog(env.NODE_INSPECTOR_EXEC_PATH || process.execPath, info);
+    WatchDog.(env.NODE_INSPECTOR_EXEC_PATH || process.execPath, info);
   } else {
     // The bootloader must call inspector.open() synchronously, which will block
     // the event loop. Spawn the watchdog handoff in a new process to debug this.

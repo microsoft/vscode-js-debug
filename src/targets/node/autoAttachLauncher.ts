@@ -10,7 +10,7 @@ import { injectable, inject } from 'inversify';
 import { IRunData, NodeLauncherBase, IProcessTelemetry } from './nodeLauncherBase';
 import { DebugType } from '../../common/contributionUtils';
 import { IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
-import { spawnWatchdog, bootloaderDefaultPath } from './watchdogSpawn';
+import { bootloaderDefaultPath, WatchDog } from './watchdogSpawn';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { ITarget } from '../targets';
 import { ExtensionContext, FsPromises, FS } from '../../ioc-extras';
@@ -132,13 +132,12 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
 
     const pid = Number(data.pid ?? '0');
     this.telemetryItems.set(pid, data.telemetry);
-    const binary = await this.resolveNodePath(this.run.params);
-    const wd = spawnWatchdog(binary.path, {
+    const wd = await WatchDog.attach({
       ...data,
       ipcAddress: this.run.serverAddress, // may be outdated from a previous set of vars
     });
-
-    wd.on('exit', () => this.telemetryItems.delete(pid));
+    wd.listenToServer();
+    wd.onEnd(() => this.telemetryItems.delete(pid));
   }
 
   public static clearVariables(context: vscode.ExtensionContext) {
