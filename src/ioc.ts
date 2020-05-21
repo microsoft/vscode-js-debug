@@ -37,6 +37,7 @@ import {
   ExtensionLocation,
   IContainer,
   SessionSubStates,
+  VSCodeApi,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -259,6 +260,8 @@ export const createGlobalContainer = (options: {
   // Dependency that pull from the vscode global--aren't safe to require at
   // a top level (e.g. in the debug server)
   if (options.isVsCode) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    container.bind(VSCodeApi).toConstantValue(require('vscode'));
     require('./ui/ui-ioc').registerUiComponents(container);
   }
 

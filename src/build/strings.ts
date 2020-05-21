@@ -100,6 +100,8 @@ const strings = {
   'browser.profileStartup.description':
     'If true, will start profiling soon as the process launches',
   'browser.revealPage': 'Focus Tab',
+  'browser.targetSelection':
+    'Whether to attach to all targets that match the URL filter ("automatic") or ask to pick one ("pick").',
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',

@@ -35,7 +35,7 @@ const endMarker = '<!-- option end marker, used by build steps, do not modify --
       a.localeCompare(b),
     );
     for (const [key, value] of entries) {
-      if (!value.description) {
+      if (!value.description && !value.markdownDescription) {
         continue;
       }
 

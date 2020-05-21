@@ -135,6 +135,18 @@ export class BrowserTargetManager implements IDisposable {
     return Array.from(this._targets.values()).filter(target => jsTypes.has(target.type()));
   }
 
+  /**
+   * Gets information of available page targets matching the filter.
+   */
+  public async getCandiateInfo(filter?: (target: Cdp.Target.TargetInfo) => boolean) {
+    const targets = await this._browser.Target.getTargets({});
+    if (!targets) {
+      return [];
+    }
+
+    return filter ? targets.targetInfos.filter(filter) : targets.targetInfos;
+  }
+
   async closeBrowser(): Promise<void> {
     if (this.launchParams.request === 'launch') {
       await this._browser.Browser.close({});
@@ -208,7 +220,7 @@ export class BrowserTargetManager implements IDisposable {
     return promise;
   }
 
-  _attachedToTarget(
+  private _attachedToTarget(
     targetInfo: Cdp.Target.TargetInfo,
     sessionId: Cdp.Target.SessionID,
     waitingForDebugger: boolean,
@@ -323,7 +335,7 @@ export class BrowserTargetManager implements IDisposable {
     }
   }
 
-  _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
+  private _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
     const target = this._targets.get(targetInfo.targetId);
     if (!target) {
       return;

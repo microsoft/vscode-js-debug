@@ -643,6 +643,34 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
   } as any,
 };
 
+/**
+ * Shared Chrome attach.
+ */
+const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAttachConfiguration> = {
+  ...chromiumBaseConfigurationAttributes,
+  address: {
+    type: 'string',
+    description: refString('browser.address.description'),
+    default: 'localhost',
+  },
+  port: {
+    type: 'number',
+    description: refString('browser.attach.port.description'),
+    default: 9229,
+  },
+  restart: {
+    type: 'boolean',
+    markdownDescription: refString('browser.restart'),
+    default: false,
+  },
+  targetSelection: {
+    type: 'string',
+    markdownDescription: refString('browser.targetSelection'),
+    enum: ['pick', 'automatic'],
+    default: 'automatic',
+  },
+};
+
 const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
   type: DebugType.ExtensionHost,
   request: 'launch',
@@ -783,24 +811,7 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
       },
     },
   ],
-  configurationAttributes: {
-    ...chromiumBaseConfigurationAttributes,
-    address: {
-      type: 'string',
-      description: refString('browser.address.description'),
-      default: 'localhost',
-    },
-    port: {
-      type: 'number',
-      description: refString('browser.attach.port.description'),
-      default: 9229,
-    },
-    restart: {
-      type: 'boolean',
-      markdownDescription: refString('browser.restart'),
-      default: false,
-    },
-  },
+  configurationAttributes: chromiumAttachConfigurationAttributes,
   defaults: chromeAttachConfigDefaults,
 };
 
@@ -865,26 +876,11 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
     },
   ],
   configurationAttributes: {
-    ...chromiumBaseConfigurationAttributes,
-    restart: {
-      type: 'boolean',
-      markdownDescription: refString('browser.restart'),
-      default: false,
-    },
+    ...chromiumAttachConfigurationAttributes,
     useWebView: {
       type: 'boolean',
       description: refString('edge.useWebView.description'),
       default: false,
-    },
-    address: {
-      type: 'string',
-      description: refString('browser.address.description'),
-      default: 'localhost',
-    },
-    port: {
-      type: 'number',
-      description: refString('browser.attach.port.description'),
-      default: 9229,
     },
   },
   defaults: edgeAttachConfigDefaults,
@@ -1120,7 +1116,7 @@ const menus: Menus = {
   'debug/toolBar': [
     {
       command: Commands.StopProfile,
-      when: `${isAnyDebugType('debugType')} && jsDebugIsProfiling`,
+      when: `jsDebugIsProfiling && ${isAnyDebugType('debugType')}`,
     },
   ],
   'view/title': [

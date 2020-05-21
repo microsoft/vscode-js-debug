@@ -6,18 +6,20 @@ import { IDisposable, EventEmitter } from '../../common/events';
 import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
-import { BrowserTargetManager } from './browserTargets';
+import type * as vscodeType from 'vscode';
+import { BrowserTargetManager, BrowserTargetType } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { createTargetFilterForConfig } from '../../common/urlUtils';
+import { createTargetFilterForConfig, TargetFilter } from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
 import { ILogger } from '../../common/logging';
-import { injectable, inject } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { VSCodeApi } from '../../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -36,6 +38,7 @@ export class BrowserAttacher implements ILauncher {
   constructor(
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
+    @optional() @inject(VSCodeApi) private readonly vscode?: typeof vscodeType,
   ) {}
 
   dispose() {
@@ -105,7 +108,10 @@ export class BrowserAttacher implements ILauncher {
       context.telemetryReporter,
       context.targetOrigin,
     ));
-    if (!targetManager) return;
+
+    if (!targetManager) {
+      return;
+    }
 
     targetManager.serviceWorkerModel.onDidChange(() => this._onTargetListChangedEmitter.fire());
     targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
@@ -121,7 +127,7 @@ export class BrowserAttacher implements ILauncher {
     });
 
     const result = await Promise.race([
-      targetManager.waitForMainTarget(createTargetFilterForConfig(params)),
+      targetManager.waitForMainTarget(await this.getTargetFilter(targetManager, params)),
       delay(params.timeout).then(() =>
         localize(
           'chrome.attach.noMatchingTarget',
@@ -133,6 +139,39 @@ export class BrowserAttacher implements ILauncher {
     ]);
 
     return typeof result === 'string' ? result : undefined;
+  }
+
+  private async getTargetFilter(
+    manager: BrowserTargetManager,
+    params: AnyChromiumAttachConfiguration,
+  ): Promise<TargetFilter> {
+    const baseFilter = createTargetFilterForConfig(params);
+    if (!this.vscode || params.targetSelection !== 'pick') {
+      return baseFilter;
+    }
+
+    const targets = await manager.getCandiateInfo(
+      t => t.type === BrowserTargetType.Page && baseFilter(t),
+    );
+    if (targets.length < 2) {
+      return baseFilter;
+    }
+
+    const placeHolder = localize('chrome.targets.placeholder', 'Select a tab');
+    const selected = await this.vscode.window.showQuickPick(
+      targets.map(target => ({
+        label: target.title,
+        detail: target.url,
+        targetId: target.targetId,
+      })),
+      { matchOnDescription: true, matchOnDetail: true, placeHolder },
+    );
+
+    if (!selected) {
+      return baseFilter;
+    }
+
+    return target => target.targetId === selected.targetId;
   }
 
   private async acquireConnectionForBrowser(

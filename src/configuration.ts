@@ -505,14 +505,8 @@ export interface IChromeLaunchConfiguration extends IChromiumLaunchConfiguration
   __pendingTargetId?: string;
 }
 
-/**
- * Configuration to attach to a Chrome instance.
- */
-export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
-  type: DebugType.Chrome;
+export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration {
   request: 'attach';
-  restart: boolean;
-  __pendingTargetId?: string;
 
   /**
    * TCP/IP address of process to be debugged (for Node.js >= 5.0 only).
@@ -524,6 +518,26 @@ export interface IChromeAttachConfiguration extends IChromiumBaseConfiguration {
    * Debug port to attach to. Default is 5858.
    */
   port: number;
+
+  /**
+   * Whether to restart whe attachment is list.
+   */
+  restart: boolean;
+
+  /**
+   * Whether to attach to all targets that match the URL filter ("automatic")
+   * or ask the user to pick one ("pick").
+   */
+  targetSelection: 'pick' | 'automatic';
+}
+
+/**
+ * Configuration to attach to a Chrome instance.
+ */
+export interface IChromeAttachConfiguration extends IChromiumAttachConfiguration {
+  type: DebugType.Chrome;
+  restart: boolean;
+  __pendingTargetId?: string;
 }
 
 /**
@@ -556,21 +570,10 @@ export interface IEdgeLaunchConfiguration extends IChromiumLaunchConfiguration {
 /**
  * Configuration to attach to a Edge instance.
  */
-export interface IEdgeAttachConfiguration extends IChromiumBaseConfiguration {
+export interface IEdgeAttachConfiguration extends IChromiumAttachConfiguration {
   type: DebugType.Edge;
   request: 'attach';
   useWebView: boolean;
-  restart: boolean;
-
-  /**
-   * TCP/IP address of process to be debugged. Default is 'localhost'.
-   */
-  address: string;
-
-  /**
-   * Debug port to attach to. Default is 5858.
-   */
-  port: number;
 }
 
 /**
@@ -741,6 +744,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
+  targetSelection: 'automatic',
 };
 
 export const edgeAttachConfigDefaults: IEdgeAttachConfiguration = {

@@ -23,6 +23,11 @@ export const StoragePath = Symbol('StoragePath');
 export const IInitializeParams = Symbol('IInitializeParams');
 
 /**
+ * Key for the VS Code API. Only available in the extension.
+ */
+export const VSCodeApi = Symbol('VSCodeApi');
+
+/**
  * Key for whether vs code services are available here.
  */
 export const IsVSCode = Symbol('IsVSCode');

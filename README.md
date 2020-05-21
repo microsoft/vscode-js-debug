@@ -148,14 +148,18 @@ The following options can be configured:
 <details><h4>address</h4><p>TCP/IP address of process to be debugged. Default is &#39;localhost&#39;.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>attachExistingChildren</h4><p>Whether to attempt to attach to already-spawned child processes.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
-<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>continueOnAttach</h4><p>If true, we&#39;ll automatically resume programs launched and waiting on <code>--inspect-brk</code></p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>port</h4><p>Debug port to attach to. Default is 5858.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>port</h4><p>Debug port to attach to. Default is 5858.</p>
 <h5>Default value:</h4><pre><code>9229</pre></code><h4>processId</h4><p>ID of process to attach to.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
@@ -179,19 +183,24 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>console</h4><p>Where to launch the debug target.</p>
 <h5>Default value:</h4><pre><code>"internalConsole"</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
-<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>program</h4><p>Absolute path to the program. Generated value is guessed by looking at package.json and opened files. Edit this attribute.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>restart</h4><p>Try to reconnect to the program if we lose connection.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
-<h5>Default value:</h4><pre><code>[]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>runtimeExecutable</h4><p>Runtime to use. Either an absolute path or the name of a runtime available on the PATH. If omitted <code>node</code> is assumed.</p>
+<h5>Default value:</h4><pre><code>"node"</pre></code><h4>runtimeVersion</h4><p>Version of <code>node</code> runtime to use. Requires <code>nvm</code>.</p>
+<h5>Default value:</h4><pre><code>"default"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
@@ -210,13 +219,16 @@ The following options can be configured:
 <details><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>command</h4><p>Command to run in the launched terminal. If not provided, the terminal will open without launching a program.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
-<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>{
@@ -240,17 +252,21 @@ The following options can be configured:
   "--extensionDevelopmentPath=${workspaceFolder}"
 ]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
-<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/out/**/*.js"
-]</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**",
   "!**/node_modules/**"
-]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+]</pre></code><h4>runtimeExecutable</h4><p>Absolute path to VS Code.</p>
+<h5>Default value:</h4><pre><code>"${execPath}"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
@@ -276,8 +292,10 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
-<h5>Default value:</h4><pre><code>{}</pre></code><h4>port</h4><p>Port for the browser to listen on. Defaults to &quot;0&quot;, which will cause the browser to be debugged via pipes, which is generally more secure and should be chosen unless you need to attach to the browser from another tool.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>port</h4><p>Port for the browser to listen on. Defaults to &quot;0&quot;, which will cause the browser to be debugged via pipes, which is generally more secure and should be chosen unless you need to attach to the browser from another tool.</p>
 <h5>Default value:</h4><pre><code>0</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
@@ -308,10 +326,13 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
-<h5>Default value:</h4><pre><code>{}</pre></code><h4>port</h4><p>Port to use to remote debugging the browser, given as <code>--remote-debugging-port</code> when launching the browser.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>port</h4><p>Port to use to remote debugging the browser, given as <code>--remote-debugging-port</code> when launching the browser.</p>
 <h5>Default value:</h4><pre><code>0</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>restart</h4><p>Whether to reconnect if the browser connection is closed</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
@@ -320,7 +341,8 @@ The following options can be configured:
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
+<h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
@@ -341,8 +363,10 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
-<h5>Default value:</h4><pre><code>{}</pre></code><h4>port</h4><p>When debugging webviews, the port the webview debugger is listening on. Will be automatically discovered if not set.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>port</h4><p>When debugging webviews, the port the webview debugger is listening on. Will be automatically discovered if not set.</p>
 <h5>Default value:</h4><pre><code>0</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
@@ -374,10 +398,13 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
-]</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
-<h5>Default value:</h4><pre><code>{}</pre></code><h4>port</h4><p>Port to use to remote debugging the browser, given as <code>--remote-debugging-port</code> when launching the browser.</p>
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>port</h4><p>Port to use to remote debugging the browser, given as <code>--remote-debugging-port</code> when launching the browser.</p>
 <h5>Default value:</h4><pre><code>0</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>restart</h4><p>Whether to reconnect if the browser connection is closed</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
@@ -386,7 +413,8 @@ The following options can be configured:
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
+<h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>

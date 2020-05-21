@@ -10,6 +10,7 @@ import { escapeRegexSpecialChars } from './stringUtils';
 import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import { exists } from './fsUtils';
+import Cdp from '../cdp/api';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -325,6 +326,8 @@ export function platformPathToPreferredCase(p: string | undefined): string | und
   if (p && process.platform === 'win32' && p[1] === ':') return p[0].toUpperCase() + p.substring(1);
   return p;
 }
+
+export type TargetFilter = (info: Cdp.Target.TargetInfo) => boolean;
 
 /**
  * Creates a target filter function for the given Chrome configuration.
