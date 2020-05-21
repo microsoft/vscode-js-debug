@@ -362,7 +362,7 @@ export class Binder implements IDisposable {
 
     // todo: move scriptskipper into services collection
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
-    const thread = debugAdapter.createThread(target.name(), cdp, target);
+    const thread = debugAdapter.createThread(cdp, target);
     this._threads.set(target, { thread, debugAdapter });
     const startThread = async () => {
       await debugAdapter.launchBlocker();

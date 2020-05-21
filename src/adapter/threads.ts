@@ -71,6 +71,7 @@ export class ExecutionContext {
 export type Script = { url: string; scriptId: string; hash: string; source: Promise<Source> };
 
 export interface IThreadDelegate {
+  name(): string;
   supportsCustomBreakpoints(): boolean;
   shouldCheckContentHash(): boolean;
   scriptUrlToUrl(url: string): string;
@@ -115,7 +116,6 @@ export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
   public readonly id: number;
   private _cdp: Cdp.Api;
-  private _name: string;
   private _pausedDetails?: IPausedDetails;
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
@@ -144,7 +144,6 @@ export class Thread implements IVariableStoreDelegate {
 
   constructor(
     sourceContainer: SourceContainer,
-    threadName: string,
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: IThreadDelegate,
@@ -158,7 +157,6 @@ export class Thread implements IVariableStoreDelegate {
     this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
-    this._name = threadName;
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this, launchConfig.__autoExpandGetters);
     this._serializedOutput = Promise.resolve();
@@ -171,7 +169,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   name(): string {
-    return this._name;
+    return this._delegate.name();
   }
 
   pausedDetails(): IPausedDetails | undefined {

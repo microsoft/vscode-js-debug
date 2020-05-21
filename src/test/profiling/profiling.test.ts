@@ -120,9 +120,9 @@ describe('profiling', () => {
       handle.dap.on('breakpoint', logfn);
 
       await handle.dap.startProfile({ type: 'cpu' });
-      await eventuallyOk(() => expect(logfn.callCount).to.gte(1));
+      await eventuallyOk(() => expect(logfn.callCount).to.gte(1), 2000);
       await handle.dap.stopProfile({});
-      await eventuallyOk(() => expect(logfn.callCount).to.gte(2));
+      await eventuallyOk(() => expect(logfn.callCount).to.gte(2), 2000);
       handle.assertLog();
     });
 

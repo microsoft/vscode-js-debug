@@ -3,7 +3,7 @@ Source event for
 {
     reason : new
     source : {
-        name : web/browserify/index.ts
+        name : browserify/index.ts
         path : ${workspaceFolder}/web/browserify/index.ts
         sourceReference : <number>
     }
@@ -27,7 +27,7 @@ Source event for
 {
     reason : new
     source : {
-        name : web/browserify/module1.ts
+        name : browserify/module1.ts
         path : ${workspaceFolder}/web/browserify/module1.ts
         sourceReference : <number>
     }
@@ -51,7 +51,7 @@ Source event for
 {
     reason : new
     source : {
-        name : web/browserify/module2.ts
+        name : browserify/module2.ts
         path : ${workspaceFolder}/web/browserify/module2.ts
         sourceReference : <number>
     }

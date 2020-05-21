@@ -252,10 +252,9 @@ export class DebugAdapter implements IDisposable {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  createThread(threadName: string, cdp: Cdp.Api, delegate: IThreadDelegate): Thread {
+  createThread(cdp: Cdp.Api, delegate: IThreadDelegate): Thread {
     this._thread = new Thread(
       this.sourceContainer,
-      threadName,
       cdp,
       this.dap,
       delegate,

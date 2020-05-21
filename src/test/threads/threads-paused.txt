@@ -2,7 +2,7 @@
     threads : [
         [0] : {
             id : <number>
-            name : about:blank
+            name : localhost:8001/index.html
         }
     ]
 }

@@ -18,7 +18,7 @@
 {
     reason : new
     source : {
-        name : web/pretty/ugly.js-pretty.js
+        name : pretty/ugly.js-pretty.js
         path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
         sourceReference : <number>
     }
