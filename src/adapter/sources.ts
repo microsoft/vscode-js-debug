@@ -443,7 +443,7 @@ export class SourceContainer {
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {
     this._dap = dap;
-    this.rootPath = launchConfig.rootPath;
+    this.rootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
     scriptSkipper.setSourceContainer(this);
   }
 
