@@ -76,18 +76,22 @@ describe('npmScriptLens', () => {
         expect(foo.range.start).to.deep.equal(expectedPosFoo);
         expect(foo.range.end).to.deep.equal(expectedPosFoo);
         expect(foo.isResolved).to.be.true;
-        expect(foo.command?.arguments).to.not.be.undefined;
-        expect(foo.command?.arguments).to.have.length(2);
-        expect(foo.command?.arguments![0]).to.equal('npm run foo');
+        expect(foo.command?.arguments).to.deep.equal([
+          'npm run foo',
+          vscode.workspace.workspaceFolders?.[0],
+          { cwd: testFixturesDir },
+        ]);
 
         const bar = result![1];
         const expectedPosBar = new vscode.Position(5, 5);
         expect(bar.range.start).to.deep.equal(expectedPosBar);
         expect(bar.range.end).to.deep.equal(expectedPosBar);
         expect(bar.isResolved).to.be.true;
-        expect(bar.command?.arguments).to.not.be.undefined;
-        expect(bar.command?.arguments).to.have.length(2);
-        expect(bar.command?.arguments![0]).to.equal('npm run bar');
+        expect(bar.command?.arguments).to.deep.equal([
+          'npm run bar',
+          vscode.workspace.workspaceFolders?.[0],
+          { cwd: testFixturesDir },
+        ]);
       } finally {
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
       }
