@@ -140,6 +140,7 @@ export function registerDebugTerminalUI(
     delegate: DelegateLauncherFactory,
     command?: string,
     workspaceFolder?: vscode.WorkspaceFolder,
+    defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
     const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(), new Logger(), fs);
     launcher.onTerminalCreated(terminal => {
@@ -148,6 +149,7 @@ export function registerDebugTerminalUI(
 
     launchVirtualTerminalParent(delegate, launcher, {
       command,
+      ...defaultConfig,
       __workspaceFolder: workspaceFolder?.uri.fsPath,
     });
 
@@ -155,8 +157,13 @@ export function registerDebugTerminalUI(
   }
 
   context.subscriptions.push(
-    registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder) =>
-      launchTerminal(delegateFactory, command, folder ?? vscode.workspace.workspaceFolders?.[0]),
+    registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder, config) =>
+      launchTerminal(
+        delegateFactory,
+        command,
+        folder ?? vscode.workspace.workspaceFolders?.[0],
+        config,
+      ),
     ),
     vscode.window.registerTerminalLinkHandler?.(linkHandler),
   );

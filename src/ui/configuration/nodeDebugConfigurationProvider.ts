@@ -76,7 +76,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
       return [openTerminal];
     }
 
-    const scripts = await findScripts(folder, true);
+    const scripts = await findScripts([folder.uri.fsPath], true);
     if (!scripts) {
       return [openTerminal];
     }
@@ -87,7 +87,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
         name: localize('node.launch.script', 'Run Script: {0}', script.name),
         request: 'launch',
         command: getRunScriptCommand(script.name, folder),
-        cwd: script.directory.uri.fsPath,
+        cwd: script.directory,
       }))
       .concat(openTerminal);
   }

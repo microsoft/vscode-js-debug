@@ -13,7 +13,7 @@ import { readfile } from '../common/fsUtils';
 const localize = nls.loadMessageBundle();
 
 interface IScript {
-  directory: vscode.WorkspaceFolder;
+  directory: string;
   name: string;
   command: string;
 }
@@ -24,8 +24,8 @@ type ScriptPickItem = vscode.QuickPickItem & { script: IScript };
  * Opens a quickpick and them subsequently debugs a configured npm script.
  * @param inFolder - Optionally scopes lookups to the given workspace folder
  */
-export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
-  const scripts = await findScripts(inFolder);
+export async function debugNpmScript(inFolder?: string) {
+  const scripts = await findScripts(inFolder ? [inFolder] : undefined);
   if (!scripts) {
     return; // cancelled
   }
@@ -36,17 +36,19 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
   const quickPick = vscode.window.createQuickPick<ScriptPickItem>();
   quickPick.items = scripts.map(script => ({
     script,
-    label: multiDir ? `${path.basename(script.directory.name)}: ${script.name}` : script.name,
+    label: multiDir ? `${path.basename(script.directory)}: ${script.name}` : script.name,
     description: script.command,
   }));
 
   quickPick.onDidAccept(() => {
     const { script } = quickPick.selectedItems[0];
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(script.directory));
     runCommand(
       vscode.commands,
       Commands.CreateDebuggerTerminal,
-      getRunScriptCommand(script.name, script.directory),
-      script.directory,
+      getRunScriptCommand(script.name, workspaceFolder),
+      workspaceFolder,
+      { cwd: script.directory },
     );
 
     quickPick.dispose();
@@ -55,13 +57,8 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder) {
   quickPick.show();
 }
 
-interface IPackage {
-  packageJson: string;
-  directory: vscode.WorkspaceFolder;
-}
-
 interface IEditCandidate {
-  path?: IPackage;
+  path?: string;
   score: number;
 }
 
@@ -72,10 +69,10 @@ const updateEditCandidate = (existing: IEditCandidate, updated: IEditCandidate) 
  * Finds configured npm scripts in the workspace.
  */
 export async function findScripts(
-  inFolder?: vscode.WorkspaceFolder,
+  inFolders: string[] | undefined,
   silent = false,
 ): Promise<IScript[] | undefined> {
-  const folders = inFolder ? [inFolder] : vscode.workspace.workspaceFolders;
+  const folders = inFolders ?? vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) ?? [];
 
   // 1. If there are no open folders, show an error and abort.
   if (!folders || folders.length === 0) {
@@ -91,23 +88,20 @@ export async function findScripts(
   }
 
   // Otherwise, go through all package.json's in the folder and pull all the npm scripts we find.
-  const candidates: IPackage[] = folders.map(directory => ({
-    packageJson: path.join(directory.uri.fsPath, 'package.json'),
-    directory,
-  }));
+  const candidates = folders.map(directory => path.join(directory, 'package.json'));
   const scripts: IScript[] = [];
 
   // editCandidate is the file we'll edit if we don't find any npm scripts.
   // We 'narrow' this as we parse to files that look more like a package.json we want
   let editCandidate: IEditCandidate = { path: candidates[0], score: 0 };
-  for (const { directory, packageJson } of candidates) {
+  for (const packageJson of candidates) {
     if (!fs.existsSync(packageJson)) {
       continue;
     }
 
     // update this now, because we know it exists
     editCandidate = updateEditCandidate(editCandidate, {
-      path: { packageJson, directory },
+      path: packageJson,
       score: 1,
     });
 
@@ -137,7 +131,7 @@ export async function findScripts(
 
     for (const key of Object.keys(parsed.scripts)) {
       scripts.push({
-        directory: directory,
+        directory: path.dirname(packageJson),
         name: key,
         command: parsed.scripts[key],
       });
@@ -149,7 +143,7 @@ export async function findScripts(
       promptToOpen(
         'showErrorMessage',
         localize('debug.npm.noScripts', 'No npm scripts found in your package.json'),
-        editCandidate.path.packageJson,
+        editCandidate.path,
       );
     }
     return;

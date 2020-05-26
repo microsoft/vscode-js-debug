@@ -118,22 +118,23 @@ export interface IConfigurationTypes {
 }
 
 export interface ICommandTypes {
-  [Commands.DebugNpmScript]: { args: [WorkspaceFolder?]; out: void };
-  [Commands.PickProcess]: { args: []; out: string | null };
-  [Commands.AttachProcess]: { args: []; out: void };
-  [Commands.CreateDebuggerTerminal]: { args: [string?, WorkspaceFolder?]; out: void };
-  [Commands.ToggleSkipping]: { args: [string | number]; out: void };
-  [Commands.PrettyPrint]: { args: []; out: void };
-  [Commands.EnlistExperiment]: { args: []; out: void };
-  [Commands.StartProfile]: {
-    args: [string | undefined | IStartProfileArguments];
-    out: void;
-  };
-  [Commands.StopProfile]: { args: [string | undefined]; out: void };
-  [Commands.AutoAttachSetVariables]: { args: []; out: { ipcAddress: string } };
-  [Commands.AutoAttachClearVariables]: { args: []; out: void };
-  [Commands.AutoAttachToProcess]: { args: [IAutoAttachInfo]; out: void };
-  [Commands.RevealPage]: { args: [string /* session id */]; out: void };
+  [Commands.DebugNpmScript](folderContainingPackageJson?: string): void;
+  [Commands.PickProcess](): string | null;
+  [Commands.AttachProcess](): void;
+  [Commands.CreateDebuggerTerminal](
+    commandToRun?: string,
+    workspaceFolder?: WorkspaceFolder,
+    config?: Partial<ITerminalLaunchConfiguration>,
+  ): void;
+  [Commands.ToggleSkipping](file: string | number): void;
+  [Commands.PrettyPrint](): void;
+  [Commands.EnlistExperiment](): void;
+  [Commands.StartProfile](args?: string | IStartProfileArguments): void;
+  [Commands.StopProfile](sessionId?: string): void;
+  [Commands.AutoAttachSetVariables](): { ipcAddress: string };
+  [Commands.AutoAttachClearVariables](): void;
+  [Commands.AutoAttachToProcess](info: IAutoAttachInfo): void;
+  [Commands.RevealPage](sessionId: string): void;
 }
 
 /**
@@ -142,7 +143,7 @@ export interface ICommandTypes {
 export const registerCommand = <K extends keyof ICommandTypes>(
   ns: typeof commands,
   key: K,
-  fn: (...args: ICommandTypes[K]['args']) => Promise<ICommandTypes[K]['out']>,
+  fn: (...args: Parameters<ICommandTypes[K]>) => Thenable<ReturnType<ICommandTypes[K]>>,
 ) => ns.registerCommand(key, fn);
 
 /**
@@ -151,8 +152,9 @@ export const registerCommand = <K extends keyof ICommandTypes>(
 export const runCommand = async <K extends keyof ICommandTypes>(
   ns: typeof commands,
   key: K,
-  ...args: ICommandTypes[K]['args']
-): Promise<ICommandTypes[K]['out']> => await ns.executeCommand(key, ...args);
+  ...args: Parameters<ICommandTypes[K]>
+): Promise<ReturnType<ICommandTypes[K]>> =>
+  (await ns.executeCommand(key, ...args)) as ReturnType<ICommandTypes[K]>;
 
 /**
  * Typed guard for creating a {@link Command} interface.
@@ -161,7 +163,7 @@ export const asCommand = <K extends keyof ICommandTypes>(command: {
   title: string;
   command: K;
   tooltip?: string;
-  arguments: ICommandTypes[K]['args'];
+  arguments: Parameters<ICommandTypes[K]>;
 }): Command => command;
 
 /**

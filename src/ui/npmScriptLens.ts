@@ -14,6 +14,7 @@ import {
   Position,
   EventEmitter,
 } from 'vscode';
+import * as path from 'path';
 import { readConfig, Configuration, asCommand, Commands } from '../common/contributionUtils';
 import { JSONVisitor, visit } from 'jsonc-parser';
 import { IDisposable } from '../common/disposable';
@@ -63,8 +64,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
     }
 
     const title = localize('codelens.debug', '{0} Debug', '$(debug-start)');
-
-    const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+    const cwd = path.dirname(document.uri.fsPath);
     if (this.lensLocation === 'top') {
       return [
         new CodeLens(
@@ -72,13 +72,14 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
           asCommand({
             title,
             command: Commands.DebugNpmScript,
-            arguments: [workspaceFolder],
+            arguments: [cwd],
           }),
         ),
       ];
     }
 
     if (this.lensLocation === 'all') {
+      const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
       return tokens.scripts.map(
         ({ name, position }) =>
           new CodeLens(
@@ -86,7 +87,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [getRunScriptCommand(name, workspaceFolder), workspaceFolder],
+              arguments: [getRunScriptCommand(name, workspaceFolder), workspaceFolder, { cwd }],
             }),
           ),
       );
