@@ -69,7 +69,7 @@ const strings = {
   'browser.runtimeExecutable.description':
     "Either 'canary', 'stable', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.",
   'browser.runtimeExecutable.edge.description':
-    "Either 'canary', 'stable', dev, 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.",
+    "Either 'canary', 'stable', 'dev', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.",
   'browser.skipFiles.description':
     'An array of file or folder names, or path globs, to skip when debugging.',
   'browser.smartStep.description':
@@ -229,7 +229,7 @@ const strings = {
   'configuration.debugByLinkOptions':
     'Options used when debugging open links clicked from inside the JavaScript Debug Terminal. Can be set to "off" to disable this behavior, or "always" to enable debugging in all terminals.',
   'configuration.pickAndAttachOptions':
-    'Default options used when debugging a process through the `Debug: Attach to Node Process` command',
+    'Default options used when debugging a process through the `Debug: Attach to Node.js Process` command',
   'configuration.autoExpandGetters':
     'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
 

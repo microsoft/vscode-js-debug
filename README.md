@@ -370,7 +370,7 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>0</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeExecutable</h4><p>Either &#39;canary&#39;, &#39;stable&#39;, dev, &#39;custom&#39; or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeExecutable</h4><p>Either &#39;canary&#39;, &#39;stable&#39;, &#39;dev&#39;, &#39;custom&#39; or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.</p>
 <h5>Default value:</h4><pre><code>"stable"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
