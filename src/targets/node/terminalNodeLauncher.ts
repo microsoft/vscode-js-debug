@@ -114,11 +114,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       }
     }
 
-    const env = await this.resolveEnvironment(
-      runData,
-      binary?.canUseSpacesInRequirePath ?? true,
-      this.callbackFile,
-    );
+    const env = await this.resolveEnvironment(runData, binary?.canUseSpacesInRequirePath ?? true, {
+      fileCallback: this.callbackFile,
+    });
 
     const terminal = vscode.window.createTerminal({
       name: runData.params.name,

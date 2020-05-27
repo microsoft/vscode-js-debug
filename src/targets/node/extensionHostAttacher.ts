@@ -112,10 +112,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     }
 
     // We know VS Code uses Node 12 (right now) so spaces are gucci
-    const vars = (await this.resolveEnvironment(run, true)).merge({
-      NODE_INSPECTOR_PPID: '0',
-    });
-
+    const vars = await this.resolveEnvironment(run, true, { ppid: 0 });
     const result = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,

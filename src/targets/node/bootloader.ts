@@ -12,7 +12,7 @@ import { LogTag } from '../../common/logging';
 import { onUncaughtError, ErrorType } from '../../telemetry/unhandledErrorReporter';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { checkAll } from './bootloader/filters';
-import { bootloaderEnv, IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
+import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootloader/environment';
 import { bootloaderLogger } from './bootloader/logger';
 import { spawnSync } from 'child_process';
 import { spawnWatchdog } from './watchdogSpawn';
@@ -26,25 +26,30 @@ const telemetry: IProcessTelemetry = {
 
 (() => {
   try {
-    const env = bootloaderEnv;
-    bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', { env, args: process.argv });
-    if (!checkAll(env)) {
-      env.NODE_INSPECTOR_IPC = undefined; // save work for any children
+    const env = new BootloaderEnvironment(process.env);
+    const inspectorOptions = env.inspectorOptions;
+    bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', {
+      env: inspectorOptions,
+      args: process.argv,
+    });
+
+    if (!checkAll(inspectorOptions)) {
+      env.inspectorOptions = undefined; // save work for any children
       return;
     }
 
-    reportTelemetry();
+    reportTelemetry(env);
 
     if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {
-      env.NODE_INSPECTOR_EXEC_PATH = process.execPath;
+      inspectorOptions.execPath = process.execPath;
     }
 
-    inspectOrQueue(env);
+    inspectOrQueue(inspectorOptions);
 
-    if (env.VSCODE_DEBUGGER_ONLY_ENTRYPOINT === 'true') {
-      bootloaderEnv.NODE_INSPECTOR_IPC = undefined;
+    if (inspectorOptions.onlyEntrypoint) {
+      env.inspectorOptions = undefined;
     } else {
-      env.NODE_INSPECTOR_PPID = String(process.pid);
+      env.updateInspectorOption('ppid', process.pid);
     }
   } catch (e) {
     console.error(
@@ -60,10 +65,10 @@ const enum Mode {
   Inactive,
 }
 
-function inspectOrQueue(env: IBootloaderEnvironment) {
-  const mode = !isPipeAvailable(env.NODE_INSPECTOR_IPC)
+function inspectOrQueue(env: IBootloaderInfo) {
+  const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
-    : env.NODE_INSPECTOR_DEFERRED_MODE === 'true'
+    : env.deferredMode
     ? Mode.Deferred
     : Mode.Immediate;
 
@@ -80,22 +85,22 @@ function inspectOrQueue(env: IBootloaderEnvironment) {
   }
 
   const info: IAutoAttachInfo = {
-    ipcAddress: env.NODE_INSPECTOR_IPC || '',
+    ipcAddress: env.inspectorIpc || '',
     pid: String(process.pid),
     telemetry,
     scriptName: process.argv[1],
     inspectorURL: inspector.url() as string,
     waitForDebugger: true,
-    ppid: env.NODE_INSPECTOR_PPID || '',
+    ppid: String(env.ppid ?? ''),
   };
 
   if (mode === Mode.Immediate) {
-    spawnWatchdog(env.NODE_INSPECTOR_EXEC_PATH || process.execPath, info);
+    spawnWatchdog(env.execPath || process.execPath, info);
   } else {
     // The bootloader must call inspector.open() synchronously, which will block
     // the event loop. Spawn the watchdog handoff in a new process to debug this.
     spawnSync(
-      env.NODE_INSPECTOR_EXEC_PATH || process.execPath,
+      env.execPath || process.execPath,
       [
         '-e',
         `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC)` +
@@ -104,7 +109,7 @@ function inspectOrQueue(env: IBootloaderEnvironment) {
       {
         env: {
           NODE_INSPECTOR_INFO: JSON.stringify(info),
-          NODE_INSPECTOR_IPC: env.NODE_INSPECTOR_IPC,
+          NODE_INSPECTOR_IPC: env.inspectorIpc,
         },
       },
     );
@@ -130,12 +135,12 @@ function isPipeAvailable(pipe?: string): pipe is string {
 /**
  * Adds process telemetry to the debugger file if necessary.
  */
-function reportTelemetry() {
-  const callbackFile = bootloaderEnv.VSCODE_DEBUGGER_FILE_CALLBACK;
+function reportTelemetry(env: BootloaderEnvironment) {
+  const callbackFile = env.inspectorOptions?.fileCallback;
   if (!callbackFile) {
     return;
   }
 
   fs.writeFileSync(callbackFile, JSON.stringify(telemetry));
-  bootloaderEnv.VSCODE_DEBUGGER_FILE_CALLBACK = undefined;
+  env.updateInspectorOption('fileCallback', undefined);
 }

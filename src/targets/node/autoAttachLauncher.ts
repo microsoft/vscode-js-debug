@@ -9,7 +9,12 @@ import { StubProgram } from './program';
 import { injectable, inject } from 'inversify';
 import { IRunData, NodeLauncherBase, IProcessTelemetry } from './nodeLauncherBase';
 import { DebugType } from '../../common/contributionUtils';
-import { IBootloaderEnvironment, IAutoAttachInfo } from './bootloader/environment';
+import {
+  IBootloaderEnvironment,
+  IAutoAttachInfo,
+  BootloaderEnvironment,
+  variableDelimiter,
+} from './bootloader/environment';
 import { bootloaderDefaultPath, WatchDog } from './watchdogSpawn';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { ITarget } from '../targets';
@@ -17,8 +22,6 @@ import { ExtensionContext, FsPromises, FS } from '../../ioc-extras';
 import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
 import { canAccess } from '../../common/fsUtils';
-
-const deferredSuffix = '.deferred';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment
@@ -42,11 +45,20 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    * Gets the address of the socket server that children must use to connect.
    */
   public get deferredSocketName() {
-    return this.extensionContext.environmentVariableCollection.get('NODE_INSPECTOR_IPC')?.value;
+    const options = this.extensionContext.environmentVariableCollection.get(
+      'VSCODE_INSPECTOR_OPTIONS',
+    );
+
+    if (!options) {
+      return;
+    }
+
+    const env = new BootloaderEnvironment({ VSCODE_INSPECTOR_OPTIONS: options.value });
+    return env.inspectorOptions?.inspectorIpc;
   }
 
   /**
-   * @inheritdoc
+   * @inheritdocF
    */
   public getProcessTelemetry(target: ITarget) {
     return Promise.resolve(this.telemetryItems.get(Number(target.id())));
@@ -70,18 +82,21 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    */
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
     const variables = this.extensionContext.environmentVariableCollection;
-    if (!variables.get('NODE_INSPECTOR_DEFERRED_MODE')) {
+    if (!variables.get('VSCODE_INSPECTOR_OPTIONS' as keyof IBootloaderEnvironment)) {
       const useSpaces = await this.canUseSpacesInBootloaderPath(runData.params);
-      const debugVars = (await this.resolveEnvironment(runData, useSpaces)).defined() as Required<
-        IBootloaderEnvironment
-      >;
-      debugVars.NODE_INSPECTOR_DEFERRED_MODE = 'true';
-      debugVars.NODE_INSPECTOR_IPC = debugVars.NODE_INSPECTOR_IPC + deferredSuffix;
+      const debugVars = ((
+        await this.resolveEnvironment(runData, useSpaces, {
+          deferredMode: true,
+          inspectorIpc: runData.serverAddress + '.deferred',
+        })
+      ).defined() as unknown) as IBootloaderEnvironment;
 
       variables.persistent = true;
-      for (const [key, value] of Object.entries(debugVars)) {
-        variables.replace(key, value);
-      }
+      variables.replace('NODE_OPTIONS', debugVars.NODE_OPTIONS);
+      variables.append(
+        'VSCODE_INSPECTOR_OPTIONS',
+        variableDelimiter + debugVars.VSCODE_INSPECTOR_OPTIONS,
+      );
     }
 
     this.program = new StubProgram();

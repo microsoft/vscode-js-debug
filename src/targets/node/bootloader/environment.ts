@@ -21,61 +21,66 @@ export const enum BootloaderAttachMode {
   Asynchronous = 'async',
 }
 
-type StringBoolean = 'true' | 'false';
-
-export interface IBootloaderEnvironment {
+export interface IBootloaderInfo {
   /**
    * Parent process ID that spawned this one. Can be:
    *  - undefined -- indicating we're the parent process
    *  - 0 -- indicating there's some parent (e.g. attach) that we shouldn't track/kill
-   *  - a string-encoded number
+   *  - a process ID as a number
    */
-  NODE_INSPECTOR_PPID?: string;
+  ppid?: number;
 
   /**
    * Address of the debugger pipe server.
    */
-  NODE_INSPECTOR_IPC: string;
+  inspectorIpc: string;
 
   /**
    * If given, watchdog info will be written to the NODE_INSPECTOR_IPC rather
    * than it being used.
    */
-  NODE_INSPECTOR_DEFERRED_MODE?: StringBoolean;
+  deferredMode?: boolean;
 
   /**
    * If present, requires the given file to exist on disk to enter debug mode.
    */
-  NODE_INSPECTOR_REQUIRE_LEASE?: string;
-
-  /**
-   * NODE_OPTIONS, standard variable read by Node.js which --require's this
-   * bootloader.
-   */
-  NODE_OPTIONS: string;
+  requireLease?: string;
 
   /**
    * Executable path that spawned the first process. Used to run the watchdog
    * under the same Node environment in the event children get spawned as
    * electron or other exotic things.
    */
-  NODE_INSPECTOR_EXEC_PATH?: string;
+  execPath?: string;
 
   /**
    * Regex that can be used to match and determine whether the process should
    * be debugged based on its script name.
    */
-  NODE_INSPECTOR_WAIT_FOR_DEBUGGER?: string;
+  waitForDebugger?: string;
 
   /**
    * If present, add process telemetry to the given file.
    */
-  VSCODE_DEBUGGER_FILE_CALLBACK: string;
+  fileCallback?: string;
 
   /**
    * Whether only the entrypoint should be debugged.
    */
-  VSCODE_DEBUGGER_ONLY_ENTRYPOINT: StringBoolean;
+  onlyEntrypoint: boolean;
+}
+
+export interface IBootloaderEnvironment {
+  /**
+   * (Originally json-encoded) options for the inspector
+   */
+  VSCODE_INSPECTOR_OPTIONS: string;
+
+  /**
+   * NODE_OPTIONS, standard variable read by Node.js which --require's this
+   * bootloader.
+   */
+  NODE_OPTIONS: string;
 }
 
 /**
@@ -86,34 +91,56 @@ export interface IAutoAttachInfo extends IWatchdogInfo {
   telemetry: IProcessTelemetry;
 }
 
-const processEnv = (process.env as unknown) as IBootloaderEnvironment;
+export const variableDelimiter = ':::';
 
-export const bootloaderEnv: Partial<IBootloaderEnvironment> = new Proxy(
-  {
-    NODE_INSPECTOR_PPID: processEnv.NODE_INSPECTOR_PPID,
-    NODE_INSPECTOR_IPC: processEnv.NODE_INSPECTOR_IPC,
-    NODE_INSPECTOR_REQUIRE_LEASE: processEnv.NODE_INSPECTOR_REQUIRE_LEASE,
-    NODE_INSPECTOR_DEFERRED_MODE: processEnv.NODE_INSPECTOR_DEFERRED_MODE,
-    NODE_OPTIONS: processEnv.NODE_OPTIONS,
-    VSCODE_DEBUGGER_FILE_CALLBACK: processEnv.VSCODE_DEBUGGER_FILE_CALLBACK,
-    VSCODE_DEBUGGER_ONLY_ENTRYPOINT: processEnv.VSCODE_DEBUGGER_ONLY_ENTRYPOINT,
-    NODE_INSPECTOR_EXEC_PATH: processEnv.NODE_INSPECTOR_EXEC_PATH,
-  },
-  {
-    set<K extends keyof IBootloaderEnvironment>(
-      target: IBootloaderEnvironment,
-      key: K,
-      value: IBootloaderEnvironment[K],
-    ) {
-      target[key] = value;
+export class BootloaderEnvironment {
+  constructor(private readonly processEnv: NodeJS.ProcessEnv) {}
 
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
+  public get nodeOptions() {
+    return this.processEnv.NODE_OPTIONS;
+  }
 
-      return true;
-    },
-  },
-);
+  public set nodeOptions(value: string | undefined) {
+    if (value === undefined) {
+      delete this.processEnv.NODE_OPTIONS;
+    } else {
+      this.processEnv.NODE_OPTIONS = value;
+    }
+  }
+
+  public get inspectorOptions() {
+    const value = this.processEnv.VSCODE_INSPECTOR_OPTIONS;
+    if (!value) {
+      return undefined;
+    }
+
+    const ownOptions = value.split(variableDelimiter).find(v => !!v);
+    if (!ownOptions) {
+      return;
+    }
+
+    try {
+      return JSON.parse(ownOptions) as Readonly<IBootloaderInfo>;
+    } catch {
+      return undefined;
+    }
+  }
+
+  public set inspectorOptions(value: IBootloaderInfo | undefined) {
+    if (value === undefined) {
+      delete this.processEnv.VSCODE_INSPECTOR_OPTIONS;
+    } else {
+      this.processEnv.VSCODE_INSPECTOR_OPTIONS = JSON.stringify(value);
+    }
+  }
+
+  /**
+   * Updates a single inspector option key/value.
+   */
+  public updateInspectorOption<K extends keyof IBootloaderInfo>(key: K, value: IBootloaderInfo[K]) {
+    const options = this.inspectorOptions;
+    if (options) {
+      this.inspectorOptions = { ...options, [key]: value };
+    }
+  }
+}

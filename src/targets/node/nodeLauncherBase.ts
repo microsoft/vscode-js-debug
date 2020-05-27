@@ -30,7 +30,7 @@ import { ILogger } from '../../common/logging';
 import { inject, injectable } from 'inversify';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
-import { IBootloaderEnvironment } from './bootloader/environment';
+import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
 import { bootloaderDefaultPath } from './watchdogSpawn';
 import { once } from '../../common/objUtils';
 
@@ -289,7 +289,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   protected async resolveEnvironment(
     { params, serverAddress }: IRunData<T>,
     canUseSpacesInBootloaderPath: boolean,
-    callbackFile?: string,
+    additionalOptions?: Partial<IBootloaderInfo>,
   ) {
     const baseEnv = this.getConfiguredEnvironment(params);
     const bootloader = await this.bootloaderFile(params.cwd, canUseSpacesInBootloaderPath);
@@ -297,21 +297,25 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       ? `"${forceForwardSlashes(bootloader.path)}"`
       : bootloader.path;
 
-    const env = {
-      NODE_INSPECTOR_IPC: serverAddress,
-      NODE_INSPECTOR_PPID: '',
-      NODE_INSPECTOR_DEFERRED_MODE: 'false',
+    const bootloaderInfo: IBootloaderInfo = {
+      inspectorIpc: serverAddress,
+      ppid: undefined,
+      deferredMode: false,
       // todo: look at reimplementing the filter
       // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
-      NODE_INSPECTOR_WAIT_FOR_DEBUGGER: '',
-      // Require our bootloader first, to run it before any other bootloader
-      // we could have injected in the parent process.
-      NODE_OPTIONS: `--require ${interpolatedPath} ${baseEnv.lookup('NODE_OPTIONS') || ''}`,
+      waitForDebugger: '',
       // Supply some node executable for running top-level watchdog in Electron
       // environments. Bootloader will replace this with actual node executable used if any.
-      NODE_INSPECTOR_EXEC_PATH: findInPath('node', process.env) || '',
-      VSCODE_DEBUGGER_FILE_CALLBACK: callbackFile,
-      VSCODE_DEBUGGER_ONLY_ENTRYPOINT: params.autoAttachChildProcesses ? 'false' : 'true',
+      execPath: findInPath('node', process.env),
+      onlyEntrypoint: !params.autoAttachChildProcesses,
+      ...additionalOptions,
+    };
+
+    const env = {
+      // Require our bootloader first, to run it before any other bootloader
+      // we could have injected in the parent process. Note: leading space is
+      NODE_OPTIONS: `--require ${interpolatedPath} ${baseEnv.lookup('NODE_OPTIONS') || ''}`,
+      VSCODE_INSPECTOR_OPTIONS: JSON.stringify(bootloaderInfo),
       ELECTRON_RUN_AS_NODE: null,
     } as IBootloaderEnvironment;
 
