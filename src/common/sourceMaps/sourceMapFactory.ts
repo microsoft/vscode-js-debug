@@ -76,10 +76,17 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
     const actualRoot = basic.sourceRoot;
     basic.sourceRoot = undefined;
 
+    // The source map library (also) "helpfully" normalizes source URLs, so
+    // preserve them in the same way. Then, rename the sources to prevent any
+    // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
+    const actualSources = basic.sources;
+    basic.sources = basic.sources.map((_, i) => `source${i}.js`);
+
     return new SourceMap(
       (await new SourceMapConsumer(basic)) as BasicSourceMapConsumer,
       metadata,
       actualRoot ?? '',
+      actualSources,
     );
   }
 

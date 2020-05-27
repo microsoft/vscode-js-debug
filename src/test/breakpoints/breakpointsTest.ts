@@ -4,7 +4,7 @@
 
 import { testWorkspace, ITestHandle, createFileTree, TestRoot, TestP } from '../test';
 import Dap from '../../dap/api';
-import { itIntegrates } from '../testIntegrationUtils';
+import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import { expect } from 'chai';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
@@ -12,13 +12,6 @@ import { forceForwardSlashes } from '../../common/pathUtils';
 import del = require('del');
 
 describe('breakpoints', () => {
-  async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
-    const { threadId } = p.log(await p.dap.once('stopped'));
-    await p.logger.logStackTrace(threadId);
-    if (cb) await cb(threadId);
-    return p.dap.continue({ threadId });
-  }
-
   describe('configure', () => {
     itIntegrates('inline', async ({ r }) => {
       // Breakpoint in inline script set before launch.

@@ -46,11 +46,6 @@ describe('SourceMapOverrides', () => {
       expect(r.apply('/a/foo')).to.equal('/b');
     });
 
-    it('normalizes mapped paths', () => {
-      const r = new SourceMapOverrides({ 'file:///./foo/*': '/b/*' }, logger);
-      expect(r.apply('file:///foo/bar')).to.equal('/b/bar');
-    });
-
     it('normalizes slashes in returned paths (issue #401)', () => {
       const r = new SourceMapOverrides(
         {

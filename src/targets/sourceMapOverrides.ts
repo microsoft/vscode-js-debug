@@ -5,7 +5,6 @@
 import { forceForwardSlashes, properJoin } from '../common/pathUtils';
 import { LogTag, ILogger } from '../common/logging';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
-import { URL } from 'url';
 
 // Patterns to match against various patterns:
 const capturingGroup = '*';
@@ -40,21 +39,9 @@ export class SourceMapOverrides {
     const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort((a, b) => b.length - a.length);
 
     // Iterate the key/vals, only apply the first one that matches.
-    for (let leftPattern of sortedOverrideKeys) {
+    for (const leftPattern of sortedOverrideKeys) {
       const rightPattern = sourceMapOverrides[leftPattern];
       const entryStr = `"${leftPattern}": "${rightPattern}"`;
-
-      // Normalize patterns as URLs when we can, needed for back compat: the
-      // old adapter read the literal source URLS like `webpack:///./foo.ts`,
-      // but the source map parser PWA uses normalizes those through URL.
-      // Do the same thing here.
-      // @see https://github.com/mozilla/source-map/blob/7a263408de1b60e60b6220ca3e36d9b3e4aa047d/lib/util.js#L412
-      try {
-        leftPattern = new URL(leftPattern).toString();
-      } catch {
-        // ignored
-      }
-
       const capturedGroups =
         occurencesInString(capturingGroupRe, leftPattern) -
         occurencesInString(nonCapturingGroupRe, leftPattern);

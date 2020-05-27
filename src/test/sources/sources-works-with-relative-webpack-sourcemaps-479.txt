@@ -1,0 +1,22 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+sayHello @ ${workspaceFolder}/greet.js:2:1
+./src/index.js @ ${workspaceFolder}/web/webpack/relative-paths.js:3:9
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:19:1
+<anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:83:1
+<anonymous> @ ${workspaceFolder}/web/webpack/relative-paths.bundle.js:87:10
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+sayGoodbye @ ${workspaceFolder}/web/webpack/farewell.js:2:1
+./src/index.js @ ${workspaceFolder}/web/webpack/relative-paths.js:4:11
+__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:19:1
+<anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:83:1
+<anonymous> @ ${workspaceFolder}/web/webpack/relative-paths.bundle.js:87:10

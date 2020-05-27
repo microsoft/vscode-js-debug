@@ -5,7 +5,7 @@
 import { createFileTree, testFixturesDir, testWorkspace, ITestHandle } from '../test';
 import Dap from '../../dap/api';
 import { hashBytes, hashFile, verifyFile } from '../../common/hash';
-import { itIntegrates } from '../testIntegrationUtils';
+import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import { join } from 'path';
 import { expect } from 'chai';
 
@@ -83,6 +83,47 @@ describe('sources', () => {
     await p.addScriptTag('browserify/bundle.js');
     p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });
     await p.logger.logOutput(await p.dap.once('output'));
+    p.assertLog();
+  });
+
+  itIntegrates('works with relative webpack sourcemaps (#479)', async ({ r }) => {
+    const p = await r.launchUrl('webpack/relative-paths.html');
+
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('greet.js') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('web/webpack/farewell.js') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+    p.load();
+
+    await waitForPause(p); // greet
+    await waitForPause(p); // farewell
+    p.assertLog();
+  });
+
+  itIntegrates('allows overrides for relative webpack paths (#479)', async ({ r }) => {
+    const p = await r.launchUrl('webpack/relative-paths.html', {
+      sourceMapPathOverrides: {
+        'webpack:///./*': '${webRoot}/*',
+        'webpack:///../*': '${webRoot}/was-nested/*',
+      },
+    });
+
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('web/was-nested/greet.js') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+    await p.dap.setBreakpoints({
+      source: { path: p.workspacePath('web/webpack/farewell.js') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+    p.load();
+
+    await waitForPause(p); // greet
+    await waitForPause(p); // farewell
     p.assertLog();
   });
 

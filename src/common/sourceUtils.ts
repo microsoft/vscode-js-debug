@@ -40,6 +40,7 @@ export async function prettyPrintAsSourceMap(
       compiledPath,
     },
     '',
+    [fileName],
   );
 }
 

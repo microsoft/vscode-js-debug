@@ -23,17 +23,37 @@ export interface ISourceMapMetadata {
  * Wrapper for a parsed sourcemap.
  */
 export class SourceMap implements BasicSourceMapConsumer {
+  /**
+   * Map of aliased source names to the names in the `original` map.
+   */
+  private sourceActualToOriginal = new Map<string, string>();
+  private sourceOriginalToActual = new Map<string, string>();
+
   constructor(
     private readonly original: BasicSourceMapConsumer,
     public readonly metadata: Readonly<ISourceMapMetadata>,
     private readonly actualRoot: string,
-  ) {}
+    public readonly actualSources: ReadonlyArray<string>,
+  ) {
+    if (actualSources.length !== original.sources.length) {
+      throw new Error(`Expected actualSources.length === original.source.length`);
+    }
+
+    for (let i = 0; i < actualSources.length; i++) {
+      this.sourceActualToOriginal.set(actualSources[i], original.sources[i]);
+      this.sourceOriginalToActual.set(original.sources[i], actualSources[i]);
+    }
+  }
 
   /**
-   * Gets the source filenames of the sourcemap.
+   * Gets the source filenames of the sourcemap. We preserve them out-of-bounds
+   * since the source-map library does normalization that destroys certain
+   * path segments.
+   *
+   * @see https://github.com/microsoft/vscode-js-debug/issues/479#issuecomment-634221103
    */
   public get sources() {
-    return this.original.sources;
+    return this.actualSources.slice();
   }
 
   /**
@@ -85,7 +105,12 @@ export class SourceMap implements BasicSourceMapConsumer {
   originalPositionFor(
     generatedPosition: Position & { bias?: number | undefined },
   ): NullableMappedPosition {
-    return this.original.originalPositionFor(generatedPosition);
+    const mapped = this.original.originalPositionFor(generatedPosition);
+    if (mapped.source) {
+      mapped.source = this.sourceOriginalToActual.get(mapped.source) ?? mapped.source;
+    }
+
+    return mapped;
   }
 
   /**
@@ -94,14 +119,20 @@ export class SourceMap implements BasicSourceMapConsumer {
   generatedPositionFor(
     originalPosition: MappedPosition & { bias?: number | undefined },
   ): NullablePosition {
-    return this.original.generatedPositionFor(originalPosition);
+    return this.original.generatedPositionFor({
+      ...originalPosition,
+      source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
+    });
   }
 
   /**
    * @inheritdoc
    */
   allGeneratedPositionsFor(originalPosition: MappedPosition): NullablePosition[] {
-    return this.original.allGeneratedPositionsFor(originalPosition);
+    return this.original.allGeneratedPositionsFor({
+      ...originalPosition,
+      source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
+    });
   }
 
   /**
@@ -115,7 +146,10 @@ export class SourceMap implements BasicSourceMapConsumer {
    * @inheritdoc
    */
   sourceContentFor(source: string, returnNullOnMissing?: boolean | undefined): string | null {
-    return this.original.sourceContentFor(source, returnNullOnMissing);
+    return this.original.sourceContentFor(
+      this.sourceActualToOriginal.get(source) ?? source,
+      returnNullOnMissing,
+    );
   }
 
   /**
