@@ -77,7 +77,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates.only('repl', async ({ r }) => {
+  itIntegrates('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     await p.logger.evaluateAndLog('42', undefined, 'repl');
