@@ -97,11 +97,13 @@ export class BreakpointManager {
   public hasAtLocation(location: IUiLocation) {
     const breakpointsAtPath = this._byPath.get(location.source.absolutePath()) || [];
     const breakpointsAtSource = this._byRef.get(location.source.sourceReference()) || [];
-    return breakpointsAtPath.concat(breakpointsAtSource).some(
-      bp =>
-        bp.originalPosition.columnNumber === location.columnNumber &&
-        bp.originalPosition.lineNumber === location.lineNumber,
-    );
+    return breakpointsAtPath
+      .concat(breakpointsAtSource)
+      .some(
+        bp =>
+          bp.originalPosition.columnNumber === location.columnNumber &&
+          bp.originalPosition.lineNumber === location.lineNumber,
+      );
   }
 
   /**
