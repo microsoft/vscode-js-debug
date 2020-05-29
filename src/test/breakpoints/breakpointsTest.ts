@@ -852,4 +852,43 @@ describe('breakpoints', () => {
       });
     });
   });
+
+  itIntegrates(
+    'user defined bp on first line with stop on entry on .ts file reports as breakpoint',
+    async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'tsNodeApp');
+      const handle = await r.runScript(join(cwd, 'app.ts'), {
+        stopOnEntry: true,
+        smartStep: false,
+      });
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'app.ts') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    },
+  );
+
+  itIntegrates('stop on entry on .ts file reports as entry', async ({ r }) => {
+    await r.initialize;
+
+    const cwd = join(testWorkspace, 'tsNodeApp');
+    const handle = await r.runScript(join(cwd, 'app.ts'), {
+      stopOnEntry: true,
+      smartStep: false,
+    });
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'app.tsx') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
 });

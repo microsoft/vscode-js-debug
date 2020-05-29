@@ -94,6 +94,18 @@ export class BreakpointManager {
     urlUtils.lowerCaseInsensitivePath,
   );
 
+  public hasAtLocation(location: IUiLocation) {
+    const breakpointsAtPath = this._byPath.get(location.source.absolutePath()) || [];
+    const breakpointsAtSource = this._byRef.get(location.source.sourceReference()) || [];
+    return breakpointsAtPath
+      .concat(breakpointsAtSource)
+      .some(
+        bp =>
+          bp.originalPosition.columnNumber === location.columnNumber &&
+          bp.originalPosition.lineNumber === location.lineNumber,
+      );
+  }
+
   /**
    * User-defined breakpoints by `sourceReference`.
    */
@@ -624,14 +636,14 @@ export class BreakpointManager {
       return;
     }
 
-    const key = EntryBreakpoint.getModeKeyForSource(this.entryBreakpointMode, source.path);
-    if (!source.path || this.moduleEntryBreakpoints.has(key)) {
-      return;
-    }
-
     // Don't apply a custom breakpoint here if the user already has one.
     const byPath = this._byPath.get(source.path) ?? [];
     if (byPath.some(isSetAtEntry)) {
+      return;
+    }
+
+    const key = EntryBreakpoint.getModeKeyForSource(this.entryBreakpointMode, source.path);
+    if (!source.path || this.moduleEntryBreakpoints.has(key)) {
       return;
     }
 
