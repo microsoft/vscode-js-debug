@@ -4,11 +4,7 @@
     reason : breakpoint
     threadId : <number>
 }
-./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue:11:1
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue?c53a:1:1
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-./src/App.vue @ ${workspaceFolder}/web/src/App.vue:1:1
+./src/App.vue @ ${workspaceFolder}/web/src/App.vue:9:17
 __webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
 __webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
@@ -23,11 +19,8 @@ checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
     reason : step
     threadId : <number>
 }
-./node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue:18:1
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-./src/App.vue?vue&type=script&lang=js& @ ${workspaceFolder}/web/src/App.vue?c53a:1:1
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-./src/App.vue @ ${workspaceFolder}/web/src/App.vue:1:1
+<anonymous> @ ${workspaceFolder}/web/node_modules/vue-loader/lib/runtime/componentNormalizer.js:1:1
+./src/App.vue @ ${workspaceFolder}/web/src/App.vue:9:17
 __webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
 __webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
