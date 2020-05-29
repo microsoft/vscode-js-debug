@@ -16,10 +16,15 @@ result: 1234567890n
 
 <error>: Uncaught ReferenceError: baz is not defined
 
+> result: Map(1) {hello => ƒ ()}
+    > get size: ƒ size()
+    > [[Entries]]: Array(1)
+    > __proto__: Map
+
 result: 42
 stderr> Uncaught Error: bar
 stderr> > Uncaught Error: bar
-stderr>     
+stderr>
 <anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
@@ -27,7 +32,7 @@ stderr>
 result: 42
 stderr> Uncaught Error: baz
 stderr> > Uncaught Error: baz
-stderr>     
+stderr>
 <anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
@@ -39,7 +44,7 @@ stderr>
 result: 42
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
-stderr>     
+stderr>
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
 <anonymous> @ <eval>/VM<xx>:1:27
 ◀ setTimeout ▶

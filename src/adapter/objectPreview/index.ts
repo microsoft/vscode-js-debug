@@ -104,7 +104,7 @@ function renderPreview(preview: ObjectPreview.AnyPreview, characterBudget: numbe
   }
 
   if (preview.type === 'function') {
-    return formatFunctionDescription(preview.value, characterBudget);
+    return formatFunctionDescription(preview.description, characterBudget);
   }
 
   if (previewAsObject(preview)) {

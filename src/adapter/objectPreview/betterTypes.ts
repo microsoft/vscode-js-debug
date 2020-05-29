@@ -26,7 +26,7 @@ export type TFunction = {
   className: string;
   description: string;
 };
-export type FunctionPreview = { type: 'function'; subtype: undefined; value: string };
+export type FunctionPreview = { type: 'function'; subtype: undefined; description: string };
 export type FunctionObj = TFunction;
 
 export type TNode = {

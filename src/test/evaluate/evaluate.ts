@@ -77,7 +77,7 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  itIntegrates('repl', async ({ r }) => {
+  itIntegrates.only('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
     await p.logger.evaluateAndLog('42', undefined, 'repl');
@@ -102,6 +102,14 @@ describe('evaluate', () => {
     p.log('');
 
     await p.logger.evaluateAndLog(`baz();`, undefined, 'repl');
+    p.log('');
+
+    // #490
+    await p.logger.evaluateAndLog(
+      `new Map([['hello', function() { return 'world' }]])`,
+      undefined,
+      'repl',
+    );
     p.log('');
 
     const [, e1] = await Promise.all([
