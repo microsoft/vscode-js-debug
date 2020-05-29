@@ -62,6 +62,22 @@ describe('SourceMapOverrides', () => {
         path.join('${webRoot}/src/app/app.component.ts'),
       );
     });
+
+    it('handles meteor paths (issue #491)', () => {
+      const r = new SourceMapOverrides(
+        {
+          'meteor:/💻app/*': '${webRoot}/*',
+          'meteor://💻app/*': '${webRoot}/*',
+          '~/dev/booker-meteor/meteor:/💻app/*': '${webRoot}/*',
+          'packages/meteor:/💻app/*': '${workspaceFolder}/.meteor/packages/*',
+        },
+        logger,
+      );
+
+      expect(r.apply('meteor://💻app/packages/base64/base64.js')).to.equal(
+        path.join('${webRoot}/packages/base64/base64.js'),
+      );
+    });
   });
 
   describe('defaults', () => {

@@ -19,7 +19,6 @@
   ],
   "search.exclude": {
     "**/testdata": true,
-    "**/testWorkspace": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
