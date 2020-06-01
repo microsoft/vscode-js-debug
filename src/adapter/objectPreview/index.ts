@@ -436,7 +436,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
   }
 
   // Shrink columns if necessary.
-  const columnsWidth = Array.from(colLengths.values()).reduce((a, c) => a + c);
+  const columnsWidth = Array.from(colLengths.values()).reduce((a, c) => a + c, 0);
   const maxColumnsWidth = maxTableWidth - 4 - (colNames.size - 1) * 3;
   if (columnsWidth > maxColumnsWidth) {
     const ratio = maxColumnsWidth / columnsWidth;
