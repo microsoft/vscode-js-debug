@@ -36,6 +36,9 @@ export function formatMillisForLog(millis: number): string {
 }
 
 const regexChars = '/\\.?*()^${}|[]+';
+
+export const isRegexSpecialChar = (chr: string) => regexChars.includes(chr);
+
 export function escapeRegexSpecialChars(str: string, except?: string): string {
   const useRegexChars = regexChars
     .split('')

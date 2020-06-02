@@ -6,7 +6,7 @@ import { URL } from 'url';
 import * as path from 'path';
 import { fixDriveLetterAndSlashes } from './pathUtils';
 import { AnyChromiumConfiguration } from '../configuration';
-import { escapeRegexSpecialChars } from './stringUtils';
+import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import { exists } from './fsUtils';
@@ -249,36 +249,82 @@ export function isDataUri(uri: string): boolean {
   return /^data:[a-z]+\/[a-z]/.test(uri);
 }
 
+const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) => {
+  if (escapeRegex && isRegexSpecialChar(char)) {
+    arr.add(`\\${char}`);
+  } else {
+    arr.add(char);
+  }
+
+  const encoded = encodeURI(char);
+  if (char !== '\\' && encoded !== char) {
+    arr.add(encoded); // will never have any regex special chars
+  }
+};
+
+const createReGroup = (patterns: ReadonlySet<string>): string => {
+  switch (patterns.size) {
+    case 0:
+      return '';
+    case 1:
+      return patterns.values().next().value;
+    default:
+      // Prefer the more compacy [aA] form if we're only matching single
+      // characters, produce a non-capturing group otherwise.
+      const arr = [...patterns];
+      return arr.some(p => p.length > 1) ? `(?:${arr.join('|')})` : `[${arr.join('')}]`;
+  }
+};
+
 /**
  * Converts and escape the file URL to a regular expression.
  */
 export function urlToRegex(aPath: string, escapeRegex = true) {
-  const absolutePath = fileUrlToAbsolutePath(aPath);
-  aPath = escapeRegex ? escapeRegexSpecialChars(aPath) : aPath;
-  if (absolutePath) {
-    aPath += `|${escapeRegex ? escapeRegexSpecialChars(absolutePath) : absolutePath}`;
-  }
+  const patterns: string[] = [];
 
-  // If we should resolve paths in a case-sensitive way, we still need to set
-  // the BP for either an upper or lowercased drive letter
-  if (isCaseSensitive) {
-    aPath = aPath.replace(
-      /(^|\|)(file:\\\/\\\/\\\/)?([a-zA-Z]):/g,
-      (_match, start = '', file = '', letter) => {
-        const upper = letter.toUpperCase();
-        const lower = letter.toLowerCase();
-        return `${start}${file}[${upper}${lower}]:`;
-      },
+  // aPath will often (always?) be provided as a file URI, or URL. Decode it
+  // --we'll reencode it as we go--and also create a match for its absolute
+  // path.
+  //
+  // This de- and re-encoding is important for special characters, since:
+  //  - It comes in like "file:///c:/foo/%F0%9F%92%A9.js"
+  //  - We decode it to file:///c:/foo/💩.js
+  //  - For case insensitive systems, we generate a regex like [fF][oO][oO]/(?:💩|%F0%9F%92%A9).[jJ][sS]
+  //  - If we didn't de-encode it, the percent would be case-insensitized as
+  //    well and we would not include the original character in the regex
+  for (const str of [decodeURI(aPath), fileUrlToAbsolutePath(aPath)]) {
+    if (!str) {
+      continue;
+    }
+
+    // Loop through each character of the string. Convert the char to a regex,
+    // creating a group, and then appent that to the match.
+    const chars = new Set<string>();
+    let re = '';
+    for (const char of str) {
+      if (isCaseSensitive) {
+        urlToRegexChar(char, chars, escapeRegex);
+      } else {
+        urlToRegexChar(char.toLowerCase(), chars, escapeRegex);
+        urlToRegexChar(char.toUpperCase(), chars, escapeRegex);
+      }
+
+      re += createReGroup(chars);
+      chars.clear();
+    }
+
+    // If we're on windows but not case sensitive (i.e. we didn't expand a
+    // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
+    // an insensitive drive letter.
+    patterns.push(
+      re.replace(
+        /^(file:\\\/\\\/\\\/)?([a-z]):/i,
+        (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
+      ),
     );
-  } else {
-    aPath = aPath.replace(/[a-z]/gi, letter => `[${letter.toLowerCase()}${letter.toUpperCase()}]`);
   }
 
-  // In some environments, Chrome(/Electron) doesn't escape spaces in paths.
-  // This was observed in the "Launch VS Code" configuration.
-  aPath = aPath.replace(/ |%20/g, '( |%20)');
-
-  return aPath;
+  return patterns.join('|');
 }
 
 /**
@@ -307,8 +353,11 @@ export function maybeAbsolutePathToFileUrl(
 }
 
 export function urlPathToPlatformPath(p: string): string {
-  if (process.platform === 'win32') return p.replace(/\//g, '\\');
-  return p;
+  if (process.platform === 'win32') {
+    p = p.replace(/\//g, '\\');
+  }
+
+  return decodeURI(p);
 }
 
 export function platformPathToUrlPath(p: string): string {
@@ -317,7 +366,7 @@ export function platformPathToUrlPath(p: string): string {
     p = p.replace(/\\/g, '/');
   }
 
-  return p.replace(/ /g, '%20');
+  return encodeURI(p);
 }
 
 export function platformPathToPreferredCase(p: string): string;
