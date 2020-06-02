@@ -242,6 +242,14 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
    * Attach debugger to new child processes automatically.
    */
   autoAttachChildProcesses: boolean;
+
+  /**
+   * A list of patterns at which to manually insert entrypoint breakpoints.
+   * This can be useful to give the debugger an opportunity to set breakpoints
+   * when using sourcemaps that don't exist or can't be detected before launch.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/492
+   */
+  runtimeSourcemapPausePatterns: ReadonlyArray<string>;
 }
 
 export interface IConfigurationWithEnv {
@@ -682,6 +690,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   localRoot: null,
   remoteRoot: null,
   autoAttachChildProcesses: true,
+  runtimeSourcemapPausePatterns: [],
 };
 
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {

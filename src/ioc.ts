@@ -210,7 +210,9 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
   container
     .bind(ILauncher)
-    .toDynamicValue(() => parent.get(DelegateLauncherFactory).createLauncher())
+    .toDynamicValue(() =>
+      parent.get(DelegateLauncherFactory).createLauncher(container.get(ILogger)),
+    )
     .inSingletonScope();
 
   const browserFinderFactory = (ctor: BrowserFinderCtor) => (ctx: interfaces.Context) =>

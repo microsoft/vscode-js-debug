@@ -233,6 +233,7 @@ export class BrowserTargetManager implements IDisposable {
       cdp,
       parentTarget,
       waitingForDebugger,
+      this.logger,
       () => {
         this._connection.disposeSession(sessionId);
         this._detachedFromTarget(targetInfo.targetId);
@@ -373,6 +374,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     cdp: Cdp.Api,
     parentTarget: BrowserTarget | undefined,
     waitingForDebugger: boolean,
+    public readonly logger: ILogger,
     ondispose: (t: BrowserTarget) => void,
   ) {
     this._cdp = cdp;

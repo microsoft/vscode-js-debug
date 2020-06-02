@@ -25,6 +25,7 @@ import { bisectArray, flatten } from '../common/objUtils';
 import { injectable, inject } from 'inversify';
 import { IDapApi } from '../dap/connection';
 import { AnyLaunchConfiguration } from '../configuration';
+import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -122,7 +123,7 @@ export class BreakpointManager {
     @inject(IDapApi) dap: Dap.Api,
     @inject(SourceContainer) sourceContainer: SourceContainer,
     @inject(ILogger) public readonly logger: ILogger,
-    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(IBreakpointConditionFactory)
     private readonly conditionFactory: IBreakpointConditionFactory,
     @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: BreakpointsPredictor,
@@ -382,15 +383,38 @@ export class BreakpointManager {
       breakpoints.forEach(b => this._setBreakpoint(b, thread));
     }
 
+    if (
+      'runtimeSourcemapPausePatterns' in this.launchConfig &&
+      this.launchConfig.runtimeSourcemapPausePatterns.length
+    ) {
+      this.setRuntimeSourcemapPausePatterns(
+        thread,
+        this.launchConfig.runtimeSourcemapPausePatterns,
+      ); // will update the launchblocker
+    }
+
     this._updateSourceMapHandler(this._thread);
   }
 
-  async launchBlocker(): Promise<void> {
+  /**
+   * Returns a promise that resolves when all breakpoints that can be set,
+   * have been set. The debugger waits on this to avoid running too early
+   * and missing breakpoints.
+   */
+  public async launchBlocker(): Promise<void> {
     logPerf(this.logger, 'BreakpointManager.launchBlocker', async () => {
       if (!this._predictorDisabledForTest) {
         await this._launchBlocker;
       }
     });
+  }
+
+  private setRuntimeSourcemapPausePatterns(thread: Thread, patterns: ReadonlyArray<string>) {
+    return Promise.all(
+      patterns.map(pattern =>
+        this._setBreakpoint(new PatternEntryBreakpoint(this, pattern), thread),
+      ),
+    );
   }
 
   setSourceMapPauseDisabledForTest() {
@@ -589,7 +613,10 @@ export class BreakpointManager {
           // we intentionally don't remove the record from the map; it's kept as
           // an indicator that it did exist and was hit, so that if further
           // breakpoints are set in the file it doesn't get re-applied.
-          if (this.entryBreakpointMode === EntryBreakpointMode.Exact) {
+          if (
+            this.entryBreakpointMode === EntryBreakpointMode.Exact &&
+            !(breakpoint instanceof PatternEntryBreakpoint)
+          ) {
             breakpoint.disable();
           }
           votesForContinue++;

@@ -43,7 +43,7 @@ export enum LogTag {
  */
 export const allLogTags = Object.keys(LogTag) as ReadonlyArray<keyof typeof LogTag>;
 
-export interface ILogItem<T> {
+export interface ILogItem<T = unknown> {
   timestamp: number;
   message?: string;
   metadata?: T;
@@ -64,6 +64,12 @@ export interface ILogger extends IDisposable {
   warn(tag: LogTag, msg?: string, metadata?: unknown): void;
   error(tag: LogTag, msg?: string, metadata?: unknown): void;
   fatal(tag: LogTag, msg?: string, metadata?: unknown): void;
+
+  /**
+   * Creates an instance of the logger for a child session. The logger
+   * may simply return the current instance if it does not need to do anything.
+   */
+  forTarget(): ILogger;
 
   /**
    * Makes an assertion, *logging* if it failed.

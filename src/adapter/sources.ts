@@ -748,6 +748,11 @@ export class SourceContainer {
     // Source map could have been detached while loading.
     if (this._sourceMaps.get(source.sourceMap.url) !== sourceMap) return deferred.resolve();
 
+    this.logger.verbose(LogTag.SourceMapParsing, 'Creating sources from source map', {
+      sourceMapId: loaded.id,
+      metadata: loaded.metadata,
+    });
+
     await Promise.all([...sourceMap.compiled].map(c => this._addSourceMapSources(c, loaded)));
     deferred.resolve();
   }
@@ -817,10 +822,9 @@ export class SourceContainer {
 
       this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
         inputUrl: url,
-        inputMap: map.metadata,
+        sourceMapId: map.id,
         absolutePath,
         resolvedUrl,
-        sourceMapSources: map.sources,
       });
 
       // Note: we can support recursive source maps here if we parse sourceMapUrl comment.

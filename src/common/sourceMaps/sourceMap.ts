@@ -23,11 +23,18 @@ export interface ISourceMapMetadata {
  * Wrapper for a parsed sourcemap.
  */
 export class SourceMap implements BasicSourceMapConsumer {
+  private static idCounter = 0;
+
   /**
    * Map of aliased source names to the names in the `original` map.
    */
   private sourceActualToOriginal = new Map<string, string>();
   private sourceOriginalToActual = new Map<string, string>();
+
+  /**
+   * Unique source map ID, used for cross-referencing.
+   */
+  public readonly id = SourceMap.idCounter++;
 
   constructor(
     private readonly original: BasicSourceMapConsumer,

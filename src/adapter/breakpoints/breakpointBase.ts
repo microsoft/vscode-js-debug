@@ -79,7 +79,7 @@ export type BreakpointCdpReference =
   | Readonly<IBreakpointCdpReferenceApplied>;
 
 export abstract class Breakpoint {
-  private isEnabled = false;
+  protected isEnabled = false;
 
   /**
    * Returns whether this breakpoint is enabled.
@@ -402,7 +402,7 @@ export abstract class Breakpoint {
    * requests to avoid triggering any logpoint breakpoints multiple times,
    * as would happen if we set a breakpoint both by script and URL.
    */
-  private hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
+  protected hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
         (script.url &&

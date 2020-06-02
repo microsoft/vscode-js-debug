@@ -279,6 +279,14 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.launch.envFile.description'),
     default: '${workspaceFolder}/.env',
   },
+  runtimeSourcemapPausePatterns: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+    markdownDescription: refString('node.launch.runtimeSourcemapPausePatterns'),
+    default: [],
+  },
 };
 
 /**

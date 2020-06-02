@@ -252,11 +252,11 @@ export function isDataUri(uri: string): boolean {
 /**
  * Converts and escape the file URL to a regular expression.
  */
-export function urlToRegex(aPath: string) {
+export function urlToRegex(aPath: string, escapeRegex = true) {
   const absolutePath = fileUrlToAbsolutePath(aPath);
-  aPath = escapeRegexSpecialChars(aPath);
+  aPath = escapeRegex ? escapeRegexSpecialChars(aPath) : aPath;
   if (absolutePath) {
-    aPath += `|${escapeRegexSpecialChars(absolutePath)}`;
+    aPath += `|${escapeRegex ? escapeRegexSpecialChars(absolutePath) : absolutePath}`;
   }
 
   // If we should resolve paths in a case-sensitive way, we still need to set

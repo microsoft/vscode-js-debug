@@ -10,6 +10,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ITargetOrigin } from './targetOrigin';
+import { ILogger } from '../common/logging';
 
 export const ITarget = Symbol('ITarget');
 
@@ -49,6 +50,7 @@ export interface ITarget {
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
   entryBreakpoint: IBreakpointPathAndId | undefined;
+  logger: ILogger;
 }
 
 export interface IBreakpointPathAndId {

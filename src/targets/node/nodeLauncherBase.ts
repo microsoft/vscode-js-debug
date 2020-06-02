@@ -67,6 +67,7 @@ export interface IRunData<T> {
   serverAddress: string;
   pathResolver: NodeSourcePathResolver;
   context: ILaunchContext;
+  logger: ILogger;
   params: T;
 }
 
@@ -136,11 +137,13 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     this._stopServer(); // clear any ongoing run
 
     const { server, pipe } = await this._startServer(context.telemetryReporter);
+    const logger = this.logger.forTarget();
     const run = (this.run = {
       server,
       serverAddress: pipe,
       params: resolved,
       context,
+      logger,
       pathResolver: new NodeSourcePathResolver(
         {
           resolveSourceMapLocations: resolved.resolveSourceMapLocations,
@@ -149,7 +152,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
           remoteRoot: resolved.remoteRoot,
           localRoot: resolved.localRoot,
         },
-        this.logger,
+        logger,
       ),
     });
 
@@ -363,7 +366,15 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   protected async _startSession(socket: net.Socket, telemetryReporter: ITelemetryReporter) {
-    const { connection, cdp, targetInfo } = await this.acquireTarget(socket, telemetryReporter);
+    if (!this.run) {
+      return;
+    }
+
+    const { connection, cdp, targetInfo } = await this.acquireTarget(
+      socket,
+      telemetryReporter,
+      this.run.logger,
+    );
     if (!this.run) {
       // if we aren't running a session, discard the socket.
       socket.destroy();
@@ -376,7 +387,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       connection,
       cdp,
       targetInfo,
-      this.logger,
+      this.run.logger,
       this.createLifecycle(cdp, this.run, targetInfo),
     );
 
@@ -389,10 +400,14 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Acquires the CDP session and target info from the connecting socket.
    */
 
-  protected async acquireTarget(socket: net.Socket, rawTelemetryReporter: ITelemetryReporter) {
+  protected async acquireTarget(
+    socket: net.Socket,
+    rawTelemetryReporter: ITelemetryReporter,
+    logger: ILogger,
+  ) {
     const connection = new Connection(
-      new RawPipeTransport(this.logger, socket),
-      this.logger,
+      new RawPipeTransport(logger, socket),
+      logger,
       rawTelemetryReporter,
     );
     this.serverConnections.push(connection);
@@ -401,7 +416,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       cdp.Target.on('targetCreated', f),
     );
 
-    return { targetInfo, cdp, connection };
+    return { targetInfo, cdp, connection, logger };
   }
 
   /**

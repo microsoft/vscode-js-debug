@@ -6,9 +6,9 @@ import { promises as fs } from 'fs';
 import { registerCommand, Commands } from '../common/contributionUtils';
 import { AutoAttachLauncher } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
-import { Logger } from '../common/logging/logger';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
+import { ProxyLogger } from '../common/logging/proxyLogger';
 
 export function registerAutoAttach(
   context: vscode.ExtensionContext,
@@ -23,7 +23,7 @@ export function registerAutoAttach(
     }
 
     launcher = (async () => {
-      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new Logger(), context, fs);
+      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new ProxyLogger(), context, fs);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {

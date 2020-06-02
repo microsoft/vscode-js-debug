@@ -7,6 +7,7 @@ import { ObservableMap } from '../../common/datastructure/observableMap';
 import { IDelegateRef, DelegateLauncher } from './delegateLauncher';
 import { IPendingDapApi } from '../../dap/pending-api';
 import { injectable } from 'inversify';
+import { ILogger } from '../../common/logging';
 
 let idCounter = 0;
 
@@ -22,8 +23,8 @@ export class DelegateLauncherFactory {
   /**
    * Returns a new launcher that references this delegate sessions.
    */
-  public createLauncher() {
-    return new DelegateLauncher(this.delegateSessions);
+  public createLauncher(logger: ILogger) {
+    return new DelegateLauncher(this.delegateSessions, logger);
   }
 
   /**

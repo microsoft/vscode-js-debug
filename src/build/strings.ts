@@ -131,6 +131,8 @@ const strings = {
   'node.label': 'Node.js (preview)',
   'node.launch.autoAttachChildProcesses.description':
     'Attach debugger to new child processes automatically.',
+  'node.launch.runtimeSourcemapPausePatterns':
+    "A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don't exist or can't be detected before launch, such as [with the Serverless framework](https://github.com/microsoft/vscode-js-debug/issues/492).",
   'node.launch.config.name': 'Launch',
   'node.launch.console.description': 'Where to launch the debug target.',
   'node.launch.console.externalTerminal.description':

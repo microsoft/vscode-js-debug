@@ -49,7 +49,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     public readonly connection: Connection,
     cdp: Cdp.Api,
     targetInfo: Cdp.Target.TargetInfo,
-    private readonly logger: ILogger,
+    public readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
     this.connection = connection;

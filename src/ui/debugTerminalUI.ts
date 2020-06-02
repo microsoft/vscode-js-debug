@@ -22,10 +22,10 @@ import {
 import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
-import { Logger } from '../common/logging/logger';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
 import { promises as fs } from 'fs';
+import { ProxyLogger } from '../common/logging/proxyLogger';
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -142,7 +142,7 @@ export function registerDebugTerminalUI(
     workspaceFolder?: vscode.WorkspaceFolder,
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
-    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(), new Logger(), fs);
+    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(), new ProxyLogger(), fs);
     launcher.onTerminalCreated(terminal => {
       linkHandler.enableHandlingInTerminal(terminal);
     });

@@ -8,6 +8,8 @@ import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EventEmitter } from '../../common/events';
 import { IPendingDapApi } from '../../dap/pending-api';
 import { MutableTargetOrigin } from '../targetOrigin';
+import { ILogger } from '../../common/logging';
+import { ProxyLogger } from '../../common/logging/proxyLogger';
 
 export interface IDelegateRef {
   id: number;
@@ -52,7 +54,10 @@ export class DelegateLauncher implements ILauncher {
    */
   public readonly onTargetListChanged = this.targets.onChanged;
 
-  constructor(private readonly parentList: ObservableMap<number, IDelegateRef>) {
+  constructor(
+    private readonly parentList: ObservableMap<number, IDelegateRef>,
+    private readonly logger: ILogger,
+  ) {
     parentList.onAdd(([, ref]) => {
       // we don't need to recurse upwards for the parents, since we know we
       // will have previously seen and `add()`ed its direct parent.
@@ -92,9 +97,17 @@ export class DelegateLauncher implements ILauncher {
       return { error: `Expected delegate session to have a mutable target origin` };
     }
 
+    const logger = delegate.target.logger;
+    if (!(logger instanceof ProxyLogger)) {
+      return { error: `Expected delegate session to have a proxy logger` };
+    }
+
     // Update the origin to 're-home' it under the current debug session,
     // initially the debug adater will set it to a garbage string.
     origin.id = context.targetOrigin.id;
+
+    // Update the target's logger to point to the one for the current session.
+    logger.connectTo(this.logger);
 
     setTimeout(() => {
       this.targets.add(params.delegateId, delegate.target);

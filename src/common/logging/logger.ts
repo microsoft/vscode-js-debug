@@ -112,6 +112,7 @@ export class Logger implements ILogger, IDisposable {
       level: LogLevel.Fatal,
     });
   }
+
   /**
    * Makes an assertion, *logging* if it failed.
    */
@@ -162,6 +163,13 @@ export class Logger implements ILogger, IDisposable {
       }
       this.logTarget = { queue: [] };
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  forTarget() {
+    return this;
   }
 
   /**
