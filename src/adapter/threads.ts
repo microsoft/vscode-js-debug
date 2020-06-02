@@ -659,25 +659,32 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    this._pausedDetails = this._createPausedDetails(event);
+    // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
+    const pausedDetails = (this._pausedDetails = this._createPausedDetails(event));
     if (!shouldPause) {
       this.resume();
       return;
     }
 
-    if (await this._smartStepper.shouldSmartStep(this._pausedDetails)) {
+    const shouldSmartStep = await this._smartStepper.shouldSmartStep(pausedDetails);
+    if (this._pausedDetails !== pausedDetails) {
+      return;
+    }
+
+    if (shouldSmartStep) {
       this.stepInto();
       return;
     }
 
-    this._pausedDetailsEvent.set(this._pausedDetails, event);
+    this._pausedDetailsEvent.set(pausedDetails, event);
     this._pausedVariables = new VariableStore(
       this._cdp,
       this,
       this.launchConfig.__autoExpandGetters,
     );
     scheduledPauseOnAsyncCall = undefined;
-    await this._onThreadPaused(this._pausedDetails);
+
+    await this._onThreadPaused(pausedDetails);
   }
 
   /**
