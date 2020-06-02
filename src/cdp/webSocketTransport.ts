@@ -38,7 +38,7 @@ export class WebSocketTransport implements ITransport {
     return timeoutPromise(
       new Promise<WebSocketTransport>((resolve, reject) => {
         ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
-        ws.addEventListener('error', reject);
+        ws.addEventListener('error', errorEvent => reject(errorEvent.error)); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
       }),
       cancellationToken,
       `Could not open ${url}`,
