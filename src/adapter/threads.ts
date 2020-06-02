@@ -666,24 +666,25 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    if (await this._smartStepper.shouldSmartStep(pausedDetails)) {
-      if (this._pausedDetails === pausedDetails) {
-        this.stepInto();
-      }
+    const shouldSmartStep = await this._smartStepper.shouldSmartStep(pausedDetails);
+    if (this._pausedDetails !== pausedDetails) {
       return;
     }
 
-    if (this._pausedDetails === pausedDetails) {
-      this._pausedDetailsEvent.set(pausedDetails, event);
-      this._pausedVariables = new VariableStore(
-        this._cdp,
-        this,
-        this.launchConfig.__autoExpandGetters,
-      );
-      scheduledPauseOnAsyncCall = undefined;
-
-      await this._onThreadPaused(pausedDetails);
+    if (shouldSmartStep) {
+      this.stepInto();
+      return;
     }
+
+    this._pausedDetailsEvent.set(pausedDetails, event);
+    this._pausedVariables = new VariableStore(
+      this._cdp,
+      this,
+      this.launchConfig.__autoExpandGetters,
+    );
+    scheduledPauseOnAsyncCall = undefined;
+
+    await this._onThreadPaused(pausedDetails);
   }
 
   /**
