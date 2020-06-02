@@ -206,8 +206,10 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       this._pendingTarget.set(target.id(), { target, parent: parentSession });
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
+      const parentType = parentSession.debugSession.configuration.type as DebugType;
       const config: IPseudoAttachConfiguration = {
-        type: parentSession.debugSession.configuration.type as DebugType,
+        // see https://github.com/microsoft/vscode/issues/98993
+        type: parentType === DebugType.ExtensionHost ? DebugType.Chrome : parentType,
         name: target.name(),
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),
