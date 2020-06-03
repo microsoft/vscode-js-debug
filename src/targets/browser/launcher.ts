@@ -19,6 +19,7 @@ import { ILogger } from '../../common/logging';
 import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 import { retryGetWSEndpoint } from './spawn/endpoints';
 import { BrowserArgs } from './browserArgs';
+import { constructInspectorWSUri } from './constructInspectorWSUri';
 
 const noop = () => undefined;
 
@@ -171,6 +172,8 @@ export function defaultArgs(
 interface IAttachOptions {
   browserURL?: string;
   browserWSEndpoint?: string;
+  pageURL?: string | null;
+  inspectUri?: string | null;
 }
 
 export async function attach(
@@ -189,7 +192,13 @@ export async function attach(
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   } else if (browserURL) {
     const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
-    const connectionTransport = await WebSocketTransport.create(connectionURL, cancellationToken);
+
+    const inspectWs =
+      options.inspectUri && options.pageURL
+        ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
+        : connectionURL;
+
+    const connectionTransport = await WebSocketTransport.create(inspectWs, cancellationToken);
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');
