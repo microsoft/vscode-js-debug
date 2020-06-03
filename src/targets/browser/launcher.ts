@@ -193,10 +193,9 @@ export async function attach(
   } else if (browserURL) {
     const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
 
-    const inspectWs =
-      options.inspectUri
-        ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
-        : connectionURL;
+    const inspectWs = options.inspectUri
+      ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
+      : connectionURL;
 
     const connectionTransport = await WebSocketTransport.create(inspectWs, cancellationToken);
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
