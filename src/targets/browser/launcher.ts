@@ -194,7 +194,7 @@ export async function attach(
     const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
 
     const inspectWs =
-      options.inspectUri && options.pageURL
+      options.inspectUri
         ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
         : connectionURL;
 
