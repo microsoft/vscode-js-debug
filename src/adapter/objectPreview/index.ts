@@ -3,11 +3,14 @@
  *--------------------------------------------------------*/
 
 import Cdp from '../../cdp/api';
+import * as nls from 'vscode-nls';
 import * as stringUtils from '../../common/stringUtils';
 import { BudgetStringBuilder } from '../../common/budgetStringBuilder';
 import * as messageFormat from '../messageFormat';
 import { getContextForType, IPreviewContext } from './contexts';
 import * as ObjectPreview from './betterTypes';
+
+const localize = nls.loadMessageBundle();
 
 const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 100;
@@ -298,6 +301,9 @@ function renderValue(object: Cdp.Runtime.RemoteObject, budget: number, quote: bo
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {
+  if (description === undefined)
+    return localize('objectPreview.functionWithoutDescription', '<function without description>');
+
   const builder = new BudgetStringBuilder(characterBudget);
   const text = description
     .replace(/^function [gs]et /, 'function ')
