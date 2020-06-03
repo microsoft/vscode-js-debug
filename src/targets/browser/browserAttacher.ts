@@ -183,7 +183,7 @@ export class BrowserAttacher implements ILauncher {
     while (this._lastLaunchParams === params) {
       try {
         return await launcher.attach(
-          { browserURL },
+          { browserURL, inspectUri: params.inspectUri, pageURL: params.url },
           cancellationToken,
           this.logger,
           rawTelemetryReporter,
