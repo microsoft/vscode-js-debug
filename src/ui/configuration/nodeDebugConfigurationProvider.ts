@@ -4,16 +4,18 @@
 
 import * as nls from 'vscode-nls';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { injectable } from 'inversify';
 import { DebugType } from '../../common/contributionUtils';
 import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import {
   AnyNodeConfiguration,
-  ResolvingNodeLaunchConfiguration,
   AnyResolvingConfiguration,
   AnyTerminalConfiguration,
   breakpointLanguages,
+  ResolvingNodeConfiguration,
+  ResolvingTerminalConfiguration,
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
 import { flatten } from '../../common/objUtils';
@@ -38,19 +40,33 @@ export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProv
   }
 }
 
-type DynamicConfig = AnyResolvingConfiguration[] | undefined;
+type DynamicConfig = ResolvingNodeConfiguration | ResolvingTerminalConfiguration;
+
+const keysToRelativize: ReadonlyArray<string> = ['cwd', 'program'];
 
 @injectable()
 export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProvider<
   AnyNodeConfiguration | AnyTerminalConfiguration
 > {
   protected async provide(folder?: vscode.WorkspaceFolder) {
-    const candidates = await Promise.all([
-      this.getFromNpmScripts(folder),
-      this.getFromActiveFile(),
-    ]);
+    const configs = flatten(
+      await Promise.all([this.getFromNpmScripts(folder), this.getFromActiveFile()]),
+    );
 
-    return flatten(candidates.filter((c): c is ResolvingNodeLaunchConfiguration[] => !!c));
+    // convert any absolute paths to directories or files to nicer ${workspaceFolder}-based paths
+    if (folder) {
+      for (const configRaw of configs) {
+        const config = (configRaw as unknown) as { [key: string]: string | undefined };
+        for (const key of keysToRelativize) {
+          const value = config[key];
+          if (value && path.isAbsolute(value)) {
+            config[key] = path.join('${workspaceFolder}', path.relative(folder.uri.fsPath, value));
+          }
+        }
+      }
+    }
+
+    return configs;
   }
 
   protected getType() {
@@ -64,7 +80,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   /**
    * Adds suggestions discovered from npm scripts.
    */
-  protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig> {
+  protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig[]> {
     const openTerminal: AnyResolvingConfiguration = {
       type: DebugType.Terminal,
       name: localize('debug.terminal.label', 'Create JavaScript Debug Terminal'),
@@ -82,7 +98,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     }
 
     return scripts
-      .map<AnyResolvingConfiguration>(script => ({
+      .map<DynamicConfig>(script => ({
         type: DebugType.Terminal,
         name: localize('node.launch.script', 'Run Script: {0}', script.name),
         request: 'launch',
@@ -95,14 +111,14 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   /**
    * Adds a suggestion to run the active file, if it's debuggable.
    */
-  protected getFromActiveFile(): DynamicConfig {
+  protected getFromActiveFile(): DynamicConfig[] {
     const editor = vscode.window.activeTextEditor;
     if (
       !editor ||
       !breakpointLanguages.includes(editor.document.languageId) ||
       editor.document.uri.scheme !== 'file'
     ) {
-      return;
+      return [];
     }
 
     return [
