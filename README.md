@@ -216,7 +216,7 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
-### pwa-node-terminal: launch
+### node-terminal: launch
 
 <details><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>command</h4><p>Command to run in the launched terminal. If not provided, the terminal will open without launching a program.</p>

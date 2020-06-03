@@ -36,7 +36,7 @@ export const enum Commands {
 
 export const enum DebugType {
   ExtensionHost = 'NAMESPACE(extensionHost)',
-  Terminal = 'NAMESPACE(node-terminal)',
+  Terminal = 'node-terminal',
   Node = 'NAMESPACE(node)',
   Chrome = 'NAMESPACE(chrome)',
   Edge = 'NAMESPACE(msedge)',
