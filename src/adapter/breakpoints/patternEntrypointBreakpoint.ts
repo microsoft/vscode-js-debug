@@ -28,7 +28,11 @@ export class PatternEntryBreakpoint extends EntryBreakpoint {
     this.isEnabled = true;
     const re = makeRe(forceForwardSlashes(this.pattern), { contains: true, lookbehinds: false });
     await this._setAny(thread, {
-      urlRegex: re.source,
+      // fix case sensitivity on drive letter:
+      urlRegex: re.source.replace(
+        /([a-z]):/i,
+        (m, drive) => `[${drive.toLowerCase()}${drive.toUpperCase()}]:`,
+      ),
       lineNumber: 0,
       columnNumber: 0,
     });
