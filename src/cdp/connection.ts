@@ -84,9 +84,16 @@ export default class Connection {
 
   async _onMessage(message: string, receivedTime: HrTime) {
     const object = JSON.parse(message);
+    let objectToLog = object;
+
+    // Don't print source code of getScriptSource responses
+    if (object.result && object.result.scriptSource) {
+      objectToLog = { ...object, result: { ...object.result, scriptSource: '<script source>' } };
+    }
+
     this.logger.verbose(LogTag.CdpReceive, undefined, {
       connectionId: this._connectionId,
-      message: object,
+      message: objectToLog,
     });
 
     const session = this._sessions.get(object.sessionId || '');

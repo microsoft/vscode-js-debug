@@ -80,9 +80,16 @@ export class StreamDapTransport implements IDapTransport {
   send(message: Message, shouldLog = true): void {
     const json = JSON.stringify(message);
     if (shouldLog) {
+      let objectToLog = message;
+
+      // Don't log the content for source responses
+      if (message.type === 'response' && message.command === 'source') {
+        objectToLog = { ...message, body: { ...message.body, content: '<script source>' } };
+      }
+
       this.logger?.verbose(LogTag.DapSend, undefined, {
         connectionId: this._connectionId,
-        message,
+        objectToLog,
       });
     }
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
