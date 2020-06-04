@@ -7548,7 +7548,7 @@ function updateChildComponent (
     var propKeys = vm.$options._propKeys || [];
     for (var i = 0; i < propKeys.length; i++) {
       var key = propKeys[i];
-      var propOptions = vm.$options.props; // wtf flow?
+      var propOptions = vm.$options.props;
       props[key] = validateProp(key, propOptions, propsData, vm);
     }
     toggleObserving(true);
