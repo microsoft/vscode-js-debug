@@ -38,6 +38,7 @@ interface ILaunchOptions {
   url?: string | null;
   promisedPort?: Promise<number>;
   inspectUri?: string | null;
+  cleanUp?: 'wholeBrowser' | 'onlyTab';
 }
 
 export interface ILaunchResult {
@@ -116,7 +117,11 @@ export async function launch(
     browserProcess.stdout?.on('data', d => onStdout(d.toString()));
   }
 
-  let exitListener = () => browserProcess.kill();
+  let exitListener = () => {
+    if (options.cleanUp === 'wholeBrowser') {
+      browserProcess.kill();
+    }
+  };
   process.on('exit', exitListener);
   browserProcess.onExit(() => process.removeListener('exit', exitListener));
 
@@ -136,8 +141,10 @@ export async function launch(
 
     const cdp = new CdpConnection(transport, logger, telemetryReporter);
     exitListener = async () => {
-      await cdp.rootSession().Browser.close({});
-      browserProcess.kill();
+      if (options.cleanUp === 'wholeBrowser') {
+        await cdp.rootSession().Browser.close({});
+        browserProcess.kill();
+      }
     };
     return { cdp: cdp, process: browserProcess };
   } catch (e) {

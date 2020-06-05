@@ -791,6 +791,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.profileStartup.description'),
       default: true,
     },
+    cleanUp: {
+      type: 'string',
+      description: refString('browser.cleanUp.description'),
+      default: null,
+    },
     browserLaunchLocation: {
       description: refString('browser.browserLaunchLocation.description'),
       default: null,
