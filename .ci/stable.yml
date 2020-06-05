@@ -1,0 +1,34 @@
+trigger:
+  tags:
+    include:
+    - '*'
+
+pr: none
+
+jobs:
+- job: stable_release
+  displayName: Stable Release
+  pool:
+    vmImage: 'ubuntu-18.04'
+  steps:
+  - template: common-validation.yml
+    parameters:
+      runTests: false
+
+  - task: Gulp@0
+    displayName: gulp package
+    inputs:
+      targets: package
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: dist/js-debug.vsix
+      artifactName: Extension
+
+  - task: Gulp@0
+    displayName: Publish to Marketplace
+    inputs:
+      targets: publish
+    env:
+      MARKETPLACE_TOKEN: $(vsce.token)
+    condition: and(succeeded(), eq(variables['dryrun'], 'false'))
