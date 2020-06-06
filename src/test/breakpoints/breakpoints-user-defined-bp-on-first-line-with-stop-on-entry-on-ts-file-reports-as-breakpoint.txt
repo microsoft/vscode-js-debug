@@ -5,9 +5,3 @@
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/tsNodeApp/app.ts:1:1
-Module._compile @ <node_internals>/internal/modules/cjs/loader.js:956:30
-Module._extensions..js @ <node_internals>/internal/modules/cjs/loader.js:973:10
-Module.load @ <node_internals>/internal/modules/cjs/loader.js:812:32
-Module._load @ <node_internals>/internal/modules/cjs/loader.js:724:14
-Module.runMain @ <node_internals>/internal/modules/cjs/loader.js:1025:10
-<anonymous> @ <node_internals>/internal/main/run_main_module.js:17:11
