@@ -89,7 +89,7 @@ export class StreamDapTransport implements IDapTransport {
 
       this.logger?.verbose(LogTag.DapSend, undefined, {
         connectionId: this._connectionId,
-        objectToLog,
+        message: objectToLog,
       });
     }
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
