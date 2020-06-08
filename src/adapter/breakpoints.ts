@@ -26,6 +26,7 @@ import { injectable, inject } from 'inversify';
 import { IDapApi } from '../dap/connection';
 import { AnyLaunchConfiguration } from '../configuration';
 import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
+import { IBreakpointPathAndId } from '../targets/targets';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -598,6 +599,7 @@ export class BreakpointManager {
   public async shouldPauseAt(
     pausedEvent: Cdp.Debugger.PausedEvent,
     hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
+    delegateEntryBreak: IBreakpointPathAndId | undefined,
     continueByDefault = false,
   ) {
     // To automatically continue, we need *no* breakpoints to want to pause and
@@ -608,6 +610,11 @@ export class BreakpointManager {
 
     await Promise.all(
       hitBreakpointIds.map(async breakpointId => {
+        if (delegateEntryBreak?.cdpId === breakpointId) {
+          votesForPause++;
+          return;
+        }
+
         const breakpoint = this._resolvedBreakpoints.get(breakpointId);
         if (breakpoint instanceof EntryBreakpoint) {
           // we intentionally don't remove the record from the map; it's kept as

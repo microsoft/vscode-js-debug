@@ -33,7 +33,7 @@ import { ILogger } from '../common/logging';
 import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
 import { BrowserLauncher } from '../targets/browser/browserLauncher';
 import { StreamDapTransport } from '../dap/transport';
-import { tmpdir } from 'os';
+import { tmpdir, EOL } from 'os';
 import { forceForwardSlashes } from '../common/pathUtils';
 import playwright from 'playwright';
 import { DebugType } from '../common/contributionUtils';
@@ -631,7 +631,7 @@ export function createFileTree(rootDir: string, tree: IFileTree) {
     } else if (value instanceof Buffer) {
       write = value;
     } else if (value instanceof Array) {
-      write = Buffer.from(value.join('\n'));
+      write = Buffer.from(value.join(EOL));
     } else {
       createFileTree(targetPath, value);
       continue;

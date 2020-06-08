@@ -4,4 +4,4 @@
     reason : entry
     threadId : <number>
 }
-<anonymous> @ ${fixturesDir}/test.js:1:1
+<anonymous> @ ${fixturesDir}/test.js:1:9

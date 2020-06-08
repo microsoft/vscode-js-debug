@@ -614,7 +614,12 @@ export class Thread implements IVariableStoreDelegate {
       shouldPause =
         shouldPause ||
         isInspectBrk ||
-        (await this._breakpointManager.shouldPauseAt(event, hitBreakpoints, true));
+        (await this._breakpointManager.shouldPauseAt(
+          event,
+          hitBreakpoints,
+          this._delegate.entryBreakpoint,
+          true,
+        ));
 
       if (
         scheduledPauseOnAsyncCall &&
@@ -637,7 +642,12 @@ export class Thread implements IVariableStoreDelegate {
         return;
       }
     } else {
-      shouldPause = await this._breakpointManager.shouldPauseAt(event, hitBreakpoints, false);
+      shouldPause = await this._breakpointManager.shouldPauseAt(
+        event,
+        hitBreakpoints,
+        this._delegate.entryBreakpoint,
+        false,
+      );
     }
 
     if (event.asyncCallStackTraceId) {
@@ -903,16 +913,11 @@ export class Thread implements IVariableStoreDelegate {
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
           let isStopOnEntry = false; // By default we assume breakpoints aren't stop on entry
-          if (
-            event.hitBreakpoints.length === 1 &&
-            this._delegate.entryBreakpoint?.cdpId === event.hitBreakpoints[0]
-          ) {
+          const userEntryBp = this._delegate.entryBreakpoint;
+          if (userEntryBp && event.hitBreakpoints.includes(userEntryBp.cdpId)) {
             isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
-            const entryBreakpointAbsolutePath = fileUrlToAbsolutePath(
-              this._delegate.entryBreakpoint.path,
-            );
             const entryBreakpointSource = this._sourceContainer.source({
-              path: entryBreakpointAbsolutePath,
+              path: fileUrlToAbsolutePath(userEntryBp.path),
             });
 
             if (entryBreakpointSource !== undefined) {

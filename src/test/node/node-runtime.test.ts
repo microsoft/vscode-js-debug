@@ -153,8 +153,27 @@ describe('node runtime', () => {
 
   describe('stopOnEntry', () => {
     beforeEach(() =>
-      createFileTree(testFixturesDir, { 'test.js': '', 'bar.js': 'require("./test")' }),
+      createFileTree(testFixturesDir, {
+        'test.js': ['let i = 0;', 'i++;', 'i++;'],
+        'bar.js': 'require("./test")',
+      }),
     );
+
+    itIntegrates('stops with a breakpoint elsewhere (#515)', async ({ r }) => {
+      const handle = await r.runScript('test.js', {
+        cwd: testFixturesDir,
+        stopOnEntry: true,
+      });
+
+      await handle.dap.setBreakpoints({
+        source: { path: join(testFixturesDir, 'test.js') },
+        breakpoints: [{ line: 3, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      r.assertLog({ substring: true });
+    });
 
     itIntegrates('stops with a program provided', async ({ r }) => {
       const handle = await r.runScript('test.js', {
