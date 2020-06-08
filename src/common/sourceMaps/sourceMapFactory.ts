@@ -5,7 +5,6 @@
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
 import { IDisposable } from '../disposable';
 import { fileUrlToAbsolutePath } from '../urlUtils';
-import { LogTag, ILogger } from '../logging';
 import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
 import { injectable, inject } from 'inversify';
 import { ISourcePathResolver } from '../sourcePathResolver';
@@ -19,8 +18,9 @@ export const ISourceMapFactory = Symbol('ISourceMapFactory');
 export interface ISourceMapFactory extends IDisposable {
   /**
    * Loads the provided source map.
+   * @throws a {@link ProtocolError} if it cannot be parsed
    */
-  load(metadata: ISourceMapMetadata): Promise<SourceMap | undefined>;
+  load(metadata: ISourceMapMetadata): Promise<SourceMap>;
 }
 
 /**
@@ -29,18 +29,17 @@ export interface ISourceMapFactory extends IDisposable {
  */
 @injectable()
 export class CachingSourceMapFactory implements ISourceMapFactory {
-  private readonly knownMaps = new Map<string, Promise<SourceMap | undefined>>();
+  private readonly knownMaps = new Map<string, Promise<SourceMap>>();
 
   constructor(
-    @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {}
 
   /**
-   * Loads the provided source map.
+   * @inheritdoc
    */
-  public load(metadata: ISourceMapMetadata): Promise<SourceMap | undefined> {
+  public load(metadata: ISourceMapMetadata): Promise<SourceMap> {
     const existing = this.knownMaps.get(metadata.sourceMapUrl);
     if (existing) {
       return existing;
@@ -56,17 +55,17 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
    */
   public dispose() {
     for (const map of this.knownMaps.values()) {
-      map.then(m => m?.destroy());
+      map.then(
+        m => m?.destroy(),
+        () => undefined,
+      );
     }
 
     this.knownMaps.clear();
   }
 
-  private async loadSourceMap(metadata: ISourceMapMetadata): Promise<SourceMap | undefined> {
+  private async loadSourceMap(metadata: ISourceMapMetadata): Promise<SourceMap> {
     const basic = await this.parseSourceMap(metadata.sourceMapUrl);
-    if (!basic) {
-      return;
-    }
 
     // The source-map library is destructive with its sources parsing. If the
     // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
@@ -90,21 +89,17 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
     );
   }
 
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | undefined> {
+  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
     if (absolutePath) {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
     }
 
-    try {
-      let content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
-      if (content.slice(0, 3) === ')]}') {
-        content = content.substring(content.indexOf('\n'));
-      }
-
-      return JSON.parse(content);
-    } catch (err) {
-      this.logger.warn(LogTag.SourceMapParsing, 'Error fetching sourcemap', err);
+    let content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
+    if (content.slice(0, 3) === ')]}') {
+      content = content.substring(content.indexOf('\n'));
     }
+
+    return JSON.parse(content);
   }
 }

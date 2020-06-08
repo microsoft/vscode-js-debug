@@ -311,4 +311,41 @@ describe('sources', () => {
     const result = await verifyFile(join(testFixturesDir, 'test.js'), 'potato', false);
     expect(result).to.be.false;
   });
+
+  describe('sourcemap error handling', () => {
+    itIntegrates('logs initial parse errors', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      const output = p.dap.once('output', o => o.category === 'stderr');
+      await p.evaluate(
+        '//# sourceMappingURL=data:application/json;charset=utf-8;base64,ZGV2cw==\n',
+      );
+      await p.logger.logOutput(await output);
+      p.assertLog();
+    });
+
+    itIntegrates('logs lazy parse errors', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/eval1Source.js') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
+
+      const output = p.dap.once('output', o => o.category === 'stderr');
+      const contents = Buffer.from(
+        JSON.stringify({
+          version: 3,
+          file: 'eval1.js',
+          sourceRoot: '',
+          sources: ['eval1Source.js'],
+          mappings: '#,####;',
+        }),
+      ).toString('base64');
+      const ev = p.evaluate(
+        `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${contents}\n`,
+      );
+      await p.logger.logOutput(await output);
+      await ev;
+      p.assertLog();
+    });
+  });
 });

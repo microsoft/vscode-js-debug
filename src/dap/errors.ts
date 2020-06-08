@@ -25,6 +25,7 @@ export const enum ErrorCodes {
   InvalidConcurrentProfile,
   InvalidBreakpointCondition,
   ReplError,
+  SourceMapParseFailed,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -195,6 +196,13 @@ export const invalidBreakPointCondition = (params: Dap.SourceBreakpoint, error: 
       error,
     ),
     ErrorCodes.InvalidBreakpointCondition,
+  );
+
+// use the compiledUrl instead of the source map url here, since the source
+// map could be a very large data URI
+export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
+  createUserError(
+    localize('sourcemapParseError', 'Could not read source map for {0}: {1}', compiledUrl, message),
   );
 
 export class ProtocolError extends Error {

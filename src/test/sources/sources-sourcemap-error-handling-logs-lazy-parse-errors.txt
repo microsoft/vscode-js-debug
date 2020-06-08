@@ -1,0 +1,3 @@
+Evaluating#1: //# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZXZhbDEuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJldmFsMVNvdXJjZS5qcyJdLCJtYXBwaW5ncyI6IiMsIyMjIzsifQ==
+
+stderr> Could not read source map for http://localhost:8001/eval1.js: Error parsing mappings (code 4): invalid base 64 character while parsing a VLQ

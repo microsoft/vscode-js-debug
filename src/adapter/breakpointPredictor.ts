@@ -7,7 +7,7 @@ import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
-import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
 import { LogTag, ILogger } from '../common/logging';
@@ -140,8 +140,10 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         return;
       }
 
-      const map = await this.sourceMapFactory.load(metadata);
-      if (!map) {
+      let map: SourceMap;
+      try {
+        map = await this.sourceMapFactory.load(metadata);
+      } catch {
         return;
       }
 
@@ -204,8 +206,10 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         return;
       }
 
-      const map = await this.sourceMapFactory.load(metadata);
-      if (!map) {
+      let map: SourceMap;
+      try {
+        map = await this.sourceMapFactory.load(metadata);
+      } catch {
         continue;
       }
 

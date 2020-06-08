@@ -28,6 +28,7 @@ import { Script } from './threads';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { once } from '../common/objUtils';
 import { IResourceProvider } from './resourceProvider';
+import { sourceMapParseFailed } from '../dap/errors';
 
 const localize = nls.loadMessageBundle();
 
@@ -45,6 +46,14 @@ function isUiLocation(loc: unknown): loc is IUiLocation {
     !!(loc as IUiLocation).source
   );
 }
+
+const getNullPosition = () => ({
+  source: null,
+  line: null,
+  column: null,
+  name: null,
+  lastColumn: null,
+});
 
 type ContentGetter = () => Promise<string | undefined>;
 
@@ -432,6 +441,12 @@ export class SourceContainer {
 
   private _disabledSourceMaps = new Set<Source>();
 
+  /**
+   * A set of sourcemaps that we warned about failing to parse.
+   * @see SourceContainer#guardSourceMapFn
+   */
+  private hasWarnedAboutMaps = new Set<SourceMap>();
+
   constructor(
     @inject(IDapApi) dap: Dap.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
@@ -615,7 +630,13 @@ export class SourceContainer {
         continue;
       }
 
-      const entry = sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map);
+      const entry = this.guardSourceMapFn(
+        sourceMap.map,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        () => sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map!),
+        getNullPosition,
+      );
+
       if (!entry) {
         continue;
       }
@@ -643,28 +664,34 @@ export class SourceContainer {
   /**
    * Gets the best original position for the location in the source map.
    */
-  public getOptiminalOriginalPosition(
-    sourceMap: SourceMapConsumer,
-    uiLocation: LineColumn,
-  ): NullableMappedPosition {
-    const glb = sourceMap.originalPositionFor({
-      line: uiLocation.lineNumber,
-      column: uiLocation.columnNumber - 1,
-      bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
-    });
+  public getOptiminalOriginalPosition(sourceMap: SourceMap, uiLocation: LineColumn) {
+    return this.guardSourceMapFn<NullableMappedPosition>(
+      sourceMap,
+      () => {
+        const glb = sourceMap.originalPositionFor({
+          line: uiLocation.lineNumber,
+          column: uiLocation.columnNumber - 1,
+          bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+        });
 
-    if (glb.line !== null) {
-      return glb;
-    }
+        if (glb.line !== null) {
+          return glb;
+        }
 
-    return sourceMap.originalPositionFor({
-      line: uiLocation.lineNumber,
-      column: uiLocation.columnNumber - 1,
-      bias: SourceMapConsumer.LEAST_UPPER_BOUND,
-    });
+        return sourceMap.originalPositionFor({
+          line: uiLocation.lineNumber,
+          column: uiLocation.columnNumber - 1,
+          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+        });
+      },
+      getNullPosition,
+    );
   }
 
-  async addSource(
+  /**
+   * Adds a new source to the collection.
+   */
+  public async addSource(
     url: string,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
@@ -696,7 +723,7 @@ export class SourceContainer {
     return source;
   }
 
-  async _addSource(source: Source) {
+  private async _addSource(source: Source) {
     this._sourceByReference.set(source.sourceReference(), source);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.set(source.url, source);
@@ -737,23 +764,33 @@ export class SourceContainer {
     const sourceMap: SourceMapData = { compiled: new Set([source]), loaded: deferred.promise };
     this._sourceMaps.set(source.sourceMap.url, sourceMap);
 
-    // will log any errors internally:
-    const loaded = await this.sourceMapFactory.load(source.sourceMap.metadata);
-    if (loaded) {
-      sourceMap.map = loaded;
-    } else {
+    try {
+      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+    } catch (e) {
+      this._dap.output({
+        output: sourceMapParseFailed(source.url, e.message).error.format,
+        category: 'stderr',
+      });
+
       return deferred.resolve();
     }
 
     // Source map could have been detached while loading.
-    if (this._sourceMaps.get(source.sourceMap.url) !== sourceMap) return deferred.resolve();
+    if (this._sourceMaps.get(source.sourceMap.url) !== sourceMap) {
+      return deferred.resolve();
+    }
 
     this.logger.verbose(LogTag.SourceMapParsing, 'Creating sources from source map', {
-      sourceMapId: loaded.id,
-      metadata: loaded.metadata,
+      sourceMapId: sourceMap.map.id,
+      metadata: sourceMap.map.metadata,
     });
 
-    await Promise.all([...sourceMap.compiled].map(c => this._addSourceMapSources(c, loaded)));
+    const todo: Promise<void>[] = [];
+    for (const compiled of sourceMap.compiled) {
+      todo.push(this._addSourceMapSources(compiled, sourceMap.map));
+    }
+
+    await Promise.all(todo);
     deferred.resolve();
   }
 
@@ -829,13 +866,17 @@ export class SourceContainer {
 
       // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-      const content = map.sourceContentFor(url) ?? undefined;
+      const content = this.guardSourceMapFn(
+        map,
+        () => map.sourceContentFor(url),
+        () => null,
+      );
 
       const source = new SourceFromMap(
         this,
         resolvedUrl,
         absolutePath,
-        content !== undefined
+        content !== null
           ? () => Promise.resolve(content)
           : fileUrl
           ? () => this.resourceProvider.fetch(fileUrl)
@@ -878,6 +919,31 @@ export class SourceContainer {
 
     await sourceMap.loaded;
     return [...source.sourceMap.sourceByUrl.values()];
+  }
+
+  /**
+   * Guards a call to a source map invokation to catch parse errors. Sourcemap
+   * parsing happens lazily, so we need to wrap around their call sites.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/483
+   */
+  private guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T {
+    try {
+      return fn();
+    } catch (e) {
+      if (!/error parsing/i.test(String(e.message))) {
+        throw e;
+      }
+
+      if (!this.hasWarnedAboutMaps.has(sourceMap)) {
+        this._dap.output({
+          output: sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error.format,
+          category: 'stderr',
+        });
+        this.hasWarnedAboutMaps.add(sourceMap);
+      }
+
+      return defaultValue();
+    }
   }
 
   async revealUiLocation(uiLocation: IUiLocation) {

@@ -1,0 +1,3 @@
+Evaluating#1: //# sourceMappingURL=data:application/json;charset=utf-8;base64,ZGV2cw==
+
+stderr> Could not read source map for http://localhost:8001/eval1.js: Unexpected token d in JSON at position 0
