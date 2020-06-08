@@ -437,8 +437,7 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
       trace: { logFile: tmpLogPath },
-      runtimeExecutable:
-        process.platform === 'darwin' ? playwright.chromium.executablePath() : 'stable',
+      runtimeExecutable: playwright.chromium.executablePath(),
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       __workspaceFolder: this._workspaceRoot,
       ...options,

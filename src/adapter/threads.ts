@@ -1246,17 +1246,13 @@ export class Thread implements IVariableStoreDelegate {
 
     return (
       !!result &&
-      result.map(base1To0).some(b => {
-        if (b.lineNumber < brokenOn.lineNumber) {
-          return true;
-        }
-
-        if (b.lineNumber === brokenOn.lineNumber) {
-          return b.columnNumber <= (brokenOn.columnNumber || 0);
-        }
-
-        return false;
-      })
+      result
+        .map(base1To0)
+        .some(
+          b =>
+            b.lineNumber === brokenOn.lineNumber &&
+            (brokenOn.columnNumber === undefined || brokenOn.columnNumber === b.columnNumber),
+        )
     );
   }
 
