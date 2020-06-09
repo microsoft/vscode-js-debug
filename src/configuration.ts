@@ -507,7 +507,7 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
   /**
    * Close whole browser or just the tab when cleaning up
    */
-  cleanUp: 'wholeBrowser' | 'onlyTab' | null;
+  cleanUp: 'wholeBrowser' | 'onlyTab';
 }
 
 /**
@@ -780,7 +780,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
-  cleanUp: null,
+  cleanUp: 'onlyTab',
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
