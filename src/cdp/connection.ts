@@ -48,6 +48,7 @@ export default class Connection {
   private _lastId: number;
   private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
+  private _disposedSessions = new Map<string, Date>();
   private _closed: boolean;
   private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new EventEmitter<void>();
@@ -106,7 +107,20 @@ export default class Connection {
 
     const session = this._sessions.get(object.sessionId || '');
     if (!session) {
-      throw new Error(`Unknown session id: ${object.sessionId} while processing: ${object.method}`);
+      const disposedDate = this._disposedSessions.get(object.sessionId);
+      if (!disposedDate) {
+        throw new Error(
+          `Unknown session id: ${object.sessionId} while processing: ${object.method}`,
+        );
+      } else {
+        const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;
+        this.logger.warn(
+          LogTag.Internal,
+          `Got message for a session disposed ${secondsAgo} seconds ago`,
+          { sessionId: object.sessionId, disposeOn: disposedDate },
+        );
+        return; // We just ignore messages for disposed sessions
+      }
     }
 
     const eventName = object.method;
@@ -155,6 +169,7 @@ export default class Connection {
     const session = this._sessions.get(sessionId);
     if (!session) return;
     session._onClose();
+    this._disposedSessions.set(session.sessionId(), new Date());
     this._sessions.delete(session.sessionId());
   }
 }
