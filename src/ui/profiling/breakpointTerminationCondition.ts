@@ -10,12 +10,16 @@ import * as path from 'path';
 import Dap from '../../dap/api';
 import { FS, FsPromises, ExtensionContext } from '../../ioc-extras';
 import { forceForwardSlashes } from '../../common/pathUtils';
+import { comparePathsWithoutCasingOrSlashes } from '../../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
 const boolToInt = (v: boolean) => (v ? 1 : 0);
 const warnedKey = 'breakpointTerminationWarnedSlow';
 
-type BreakpointPickItem = { id: number } & vscode.QuickPickItem;
+type BreakpointPickItem = {
+  id: number;
+  src?: { path: string; line: number; column: number };
+} & vscode.QuickPickItem;
 
 @injectable()
 export class BreakpointTerminationConditionFactory implements ITerminationConditionFactory {
@@ -44,6 +48,44 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     const chosen = await new Promise<ReadonlyArray<BreakpointPickItem> | undefined>(resolve => {
       quickPick.onDidAccept(() => resolve(quickPick.selectedItems));
       quickPick.onDidHide(() => resolve());
+      quickPick.onDidChangeActive(async active => {
+        for (const item of active) {
+          if (!item.src) {
+            continue;
+          }
+
+          const { path, line } = item.src;
+          // todo: this would be a lot cleaner if vscode exposed DAP IDs
+          const vscodeBp = vscode.debug.breakpoints.find(
+            (bp): bp is vscode.SourceBreakpoint =>
+              bp instanceof vscode.SourceBreakpoint &&
+              bp.enabled &&
+              // only compare lines, we don't really need column-precision for
+              // this use case and doing so is hard because line breakpoints are
+              // moved onto the column of the first statement by CDP.
+              bp.location.range.start.line === line - 1 &&
+              // note: although 'real' paths are slashed correctly, evaluated
+              // scripts are given in the form <eval>/VM1234 which vscode will
+              // turn into a backslash on windows.
+              comparePathsWithoutCasingOrSlashes(bp.location.uri.fsPath, path),
+          );
+          if (!vscodeBp) {
+            continue;
+          }
+
+          const document = await vscode.workspace.openTextDocument(vscodeBp.location.uri);
+          vscode.window.showTextDocument(document, {
+            selection: vscodeBp.location.range,
+            preview: true,
+            preserveFocus: true,
+          });
+        }
+        const item = active.find(a => a.src);
+        if (!item?.src) {
+          return;
+        }
+      });
+
       quickPick.show();
 
       (async () => {
@@ -86,12 +128,11 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       relpath: string;
       line: number;
       column: number;
-      id: number;
-      lines?: Promise<string[]>;
-      verified: boolean;
+      lines?: Promise<string[] | undefined>;
+      breakpoint: Dap.Breakpoint;
     }[] = [];
 
-    const fileLines = new Map<string, Promise<string[]>>();
+    const fileLines = new Map<string, Promise<string[] | undefined>>();
 
     for (const breakpoint of breakpoints) {
       if (!breakpoint.source || !breakpoint.id) {
@@ -99,7 +140,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       }
 
       let relpath: string;
-      let lines: Promise<string[]> | undefined;
+      let lines: Promise<string[] | undefined> | undefined;
       if (!breakpoint.source.path) {
         relpath = `<unknown>${path.sep}${breakpoint.source.name}`;
       } else if (breakpoint.source.sourceReference === 0 && breakpoint.source.path) {
@@ -116,8 +157,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       filteredBps.push({
         relpath,
         lines,
-        verified: breakpoint.verified,
-        id: breakpoint.id,
+        breakpoint,
         line: breakpoint.line ?? 1,
         column: breakpoint.column ?? 1,
       });
@@ -127,25 +167,31 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
       filteredBps
         .sort(
           (a, b) =>
-            boolToInt(b.verified) - boolToInt(a.verified) ||
+            boolToInt(b.breakpoint.verified) - boolToInt(a.breakpoint.verified) ||
             a.relpath.localeCompare(b.relpath) ||
             a.line - b.line ||
             a.column - b.column,
         )
-        .map(async c => ({
-          id: c.id,
-          label: [forceForwardSlashes(c.relpath), c.line, c.column].join(':'),
-          description: (await c.lines)?.[c.line - 1].trim(),
-        })),
+        .map(async c => {
+          const lines = await c.lines;
+          return {
+            id: c.breakpoint.id as number,
+            src: c.breakpoint.source?.path
+              ? { path: c.breakpoint.source?.path, line: c.line, column: c.column }
+              : undefined,
+            label: [forceForwardSlashes(c.relpath), c.line, c.column].join(':'),
+            description: lines?.[c.line - 1].trim(),
+          };
+        }),
     );
   }
 
-  private async getFileLines(path: string): Promise<string[]> {
+  private async getFileLines(path: string): Promise<string[] | undefined> {
     try {
       const contents = await this.fs.readFile(path, 'utf-8');
       return contents.split('\n');
     } catch {
-      return [];
+      return undefined;
     }
   }
 }

@@ -4,7 +4,7 @@
 
 import { URL } from 'url';
 import * as path from 'path';
-import { fixDriveLetterAndSlashes } from './pathUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { AnyChromiumConfiguration } from '../configuration';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 import { promises as dns } from 'dns';
@@ -34,6 +34,21 @@ export function getCaseSensitivePaths() {
  */
 export function lowerCaseInsensitivePath(path: string) {
   return isCaseSensitive ? path : path.toLowerCase();
+}
+
+/**
+ * Compares the paths, case-insensitively based on the platform.
+ */
+export function comparePathsWithoutCasing(a: string, b: string) {
+  return isCaseSensitive ? a === b : a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Compares the paths, case-insensitively based on the platform, and
+ * normalizing back- and forward-slashes.
+ */
+export function comparePathsWithoutCasingOrSlashes(a: string, b: string) {
+  return comparePathsWithoutCasing(forceForwardSlashes(a), forceForwardSlashes(b));
 }
 
 /**
