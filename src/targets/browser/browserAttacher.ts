@@ -146,15 +146,20 @@ export class BrowserAttacher implements ILauncher {
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
     const baseFilter = createTargetFilterForConfig(params);
-    if (!this.vscode || params.targetSelection !== 'pick') {
+    if (params.targetSelection !== 'pick') {
       return baseFilter;
     }
 
     const targets = await manager.getCandiateInfo(
       t => t.type === BrowserTargetType.Page && baseFilter(t),
     );
-    if (targets.length < 2) {
+
+    if (targets.length === 0) {
       return baseFilter;
+    }
+
+    if (targets.length === 1 || !this.vscode) {
+      return target => target.targetId === targets[0].targetId;
     }
 
     const placeHolder = localize('chrome.targets.placeholder', 'Select a tab');
