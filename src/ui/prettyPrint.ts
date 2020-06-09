@@ -119,6 +119,10 @@ class PrettyPrintSession implements IDisposable, vscode.DebugAdapterTracker {
     }
 
     const frames = (message.body as Dap.StackTraceResult).stackFrames;
+    if (!frames) {
+      return;
+    }
+
     for (const frame of frames) {
       const path = frame.source?.path;
       if (path) {
