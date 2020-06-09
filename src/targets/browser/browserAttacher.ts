@@ -118,9 +118,9 @@ export class BrowserAttacher implements ILauncher {
     targetManager.onTargetAdded(() => {
       this._onTargetListChangedEmitter.fire();
     });
-    targetManager.onTargetRemoved(target => {
+    targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
-      if (!targetManager.targetList().length && target.canAttach()) {
+      if (!targetManager.targetList().length) {
         // graceful exit
         this._onTerminatedEmitter.fire({ killed: true, code: 0 });
       }
