@@ -89,6 +89,14 @@ export default class Connection {
     // Don't print source code of getScriptSource responses
     if (object.result && object.result.scriptSource) {
       objectToLog = { ...object, result: { ...object.result, scriptSource: '<script source>' } };
+    } else if (
+      object.method === 'Debugger.scriptParsed' &&
+      object.params.sourceMapURL.startsWith('data:')
+    ) {
+      objectToLog = {
+        ...object,
+        params: { ...object.params, sourceMapURL: '<data source map url>' },
+      };
     }
 
     this.logger.verbose(LogTag.CdpReceive, undefined, {
