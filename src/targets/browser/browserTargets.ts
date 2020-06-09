@@ -214,7 +214,7 @@ export class BrowserTargetManager implements IDisposable {
     this._browser.Target.on('targetInfoChanged', attemptAttach); // nav on existing page
     this._browser.Target.on('detachedFromTarget', event => {
       if (event.targetId) {
-        this._detachedFromTarget(event.targetId);
+        this._detachedFromTarget(event.targetId, false);
       }
     });
     this.onTargetRemoved(target => {
@@ -251,7 +251,7 @@ export class BrowserTargetManager implements IDisposable {
     });
     cdp.Target.on('detachedFromTarget', async event => {
       if (event.targetId) {
-        this._detachedFromTarget(event.targetId);
+        this._detachedFromTarget(event.targetId, false);
       }
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
@@ -314,7 +314,7 @@ export class BrowserTargetManager implements IDisposable {
     }
   }
 
-  async _detachedFromTarget(targetId: string) {
+  async _detachedFromTarget(targetId: string, isStillAttachedInternally = true) {
     const target = this._targets.get(targetId);
     if (!target) {
       return;
@@ -323,7 +323,9 @@ export class BrowserTargetManager implements IDisposable {
     this._targets.delete(targetId);
     target.parentTarget?._children.delete(targetId);
 
-    await Promise.all([...target._children.keys()].map(k => this._detachedFromTarget(k)));
+    await Promise.all(
+      [...target._children.keys()].map(k => this._detachedFromTarget(k, isStillAttachedInternally)),
+    );
 
     try {
       await target._detached();
@@ -331,10 +333,10 @@ export class BrowserTargetManager implements IDisposable {
       // ignored -- any network error when we want to detach anyway is fine
     }
 
-    this._targets.delete(targetId);
-    if (target.parentTarget) target.parentTarget._children.delete(targetId);
-
     this._onTargetRemovedEmitter.fire(target);
+    if (isStillAttachedInternally) {
+      await this._browser.Target.detachFromTarget({ targetId });
+    }
 
     if (!this._targets.size && this.launchParams.request === 'launch') {
       try {
