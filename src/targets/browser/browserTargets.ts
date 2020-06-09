@@ -164,9 +164,10 @@ export class BrowserTargetManager implements IDisposable {
   ): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
+    const detachedTargets = new Set<Cdp.Target.TargetID>();
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
     const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
-      if (this._targets.has(targetInfo.targetId)) {
+      if (this._targets.has(targetInfo.targetId) || detachedTargets.has(targetInfo.targetId)) {
         return; // targetInfoChanged on something we're already connected to
       }
 
@@ -215,6 +216,9 @@ export class BrowserTargetManager implements IDisposable {
       if (event.targetId) {
         this._detachedFromTarget(event.targetId);
       }
+    });
+    this.onTargetRemoved(target => {
+      detachedTargets.add(target.id());
     });
 
     return promise;
@@ -312,7 +316,12 @@ export class BrowserTargetManager implements IDisposable {
 
   async _detachedFromTarget(targetId: string) {
     const target = this._targets.get(targetId);
-    if (!target) return;
+    if (!target) {
+      return;
+    }
+
+    this._targets.delete(targetId);
+    target.parentTarget?._children.delete(targetId);
 
     await Promise.all([...target._children.keys()].map(k => this._detachedFromTarget(k)));
 
