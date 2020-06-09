@@ -106,7 +106,7 @@ export default class Connection {
         );
       } else {
         const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;
-        this.logger.verbose(
+        this.logger.warn(
           LogTag.Internal,
           `Got message for a session disposed ${secondsAgo} seconds ago`,
           { sessionId: object.sessionId, disposeOn: disposedDate },
