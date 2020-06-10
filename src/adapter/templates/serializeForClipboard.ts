@@ -2,93 +2,115 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { templateFunctionStr, remoteFunction } from '.';
+import { remoteFunction, templateFunction } from '.';
 
-export type CycleReplacer = (
-  key: string,
-  value: unknown,
-  stack: unknown[],
-  keys: string[],
-) => string;
-
-/**
- * Safe-stringifier. Modified from json-stringify-safe.
- *
- * @license
- *
- * The ISC License
- *
- * Copyright (c) Isaac Z. Schlueter and Contributors
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
- * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-export function safeSerializer(
-  replacer?: (key: string, value: unknown) => unknown,
-  cycleReplacer: CycleReplacer = (_key, value, stack, keys) =>
-    stack[0] === value
-      ? '[Circular ~]'
-      : '[Circular ~.' + keys.slice(0, stack.indexOf(value)).join('.') + ']',
-) {
-  const stack: unknown[] = [];
-  const keys: string[] = [];
-
-  return function (this: unknown, key: string, value: unknown) {
-    if (stack.length > 0) {
-      const thisPos = stack.indexOf(this);
-      if (thisPos === -1) {
-        stack.push(this);
-        keys.push(key);
-      } else {
-        stack.splice(thisPos + 1);
-        keys.splice(thisPos, Infinity, key);
-      }
-
-      if (stack.indexOf(value) !== -1) {
-        value = cycleReplacer.call(this, key, value, stack, keys);
-      }
-    } else {
-      stack.push(value);
-    }
-
-    // Modification: avoid JSON.stringify throwing on bigints.
-    if (typeof value === 'bigint') {
-      value = value <= Number.MAX_SAFE_INTEGER ? Number(value) : String(value);
-    }
-
-    return replacer == null ? value : replacer.call(this, key, value);
-  };
+declare class Node {
+  readonly outerHTML: string;
 }
 
 /**
  * Safe-stringifies the value as JSON, replacing
  */
-export const serializeForClipboardTmpl = templateFunctionStr<[string, string]>(`
-  function (valueToStringify, spaces) {
-    try {
-      if (typeof valueToStringify === 'function') {
-        return '' + valueToStringify;
-      }
+export const serializeForClipboardTmpl = templateFunction(function (
+  valueToStringify: unknown,
+  spaces: number,
+) {
+  const indent = ' '.repeat(spaces);
+  const eol = '\n';
+  function serializeToJavaScriptyString(value: unknown, level = 0, seen: unknown[] = []): string {
+    switch (typeof value) {
+      case 'bigint':
+        return `${value}n`;
+      case 'boolean':
+        return value.toString();
+      case 'function': {
+        const lines = value
+          .toString()
+          .replace(/^[^\s]+\(/, 'function(')
+          .split(/\r?\n/g);
+        let trimSpaceRe = /^$/;
+        for (const line of lines) {
+          const match = /^[ \t]+/.exec(line);
+          if (match) {
+            trimSpaceRe = new RegExp(`^[ \\t]{0,${match[0].length}}`);
+            break;
+          }
+        }
 
-      if (typeof Node !== 'undefined' && valueToStringify instanceof Node) {
-        return valueToStringify.outerHTML;
-      }
+        return lines
+          .map((line, i) => {
+            if (i === 0) {
+              return line;
+            }
 
-      return JSON.stringify(valueToStringify, (${safeSerializer})(), spaces);
-    } catch (e) {
-      return '' + valueToStringify;
+            line = line.replace(trimSpaceRe, '');
+
+            if (i === lines.length - 1) {
+              return indent.repeat(level) + line;
+            }
+
+            return indent.repeat(level + 1) + line;
+          })
+          .join(eol);
+      }
+      case 'number':
+        return `${value}`;
+      case 'object':
+        if (value === null) {
+          return 'null';
+        }
+
+        if (seen.includes(value)) {
+          return '[Circular]';
+        }
+
+        if (typeof Node !== 'undefined' && valueToStringify instanceof Node) {
+          return valueToStringify.outerHTML;
+        }
+
+        if (value instanceof Array) {
+          return [
+            `[`,
+            ...value.map(
+              item =>
+                indent.repeat(level + 1) +
+                serializeToJavaScriptyString(item, level + 1, [...seen, value]) +
+                ',',
+            ),
+            indent.repeat(level) + ']',
+          ].join(eol);
+        }
+
+        const asPropMap = value as { [key: string]: unknown };
+        return [
+          `{`,
+          ...Object.keys(asPropMap).map(
+            key =>
+              indent.repeat(level + 1) +
+              (/^[$a-z_][0-9a-z_$]*$/i.test(key) ? key : JSON.stringify(key)) +
+              ': ' +
+              serializeToJavaScriptyString(asPropMap[key], level + 1, [...seen, value]) +
+              ',',
+          ),
+          indent.repeat(level) + '}',
+        ].join(eol);
+      case 'string':
+        return JSON.stringify(value);
+      case 'symbol':
+        return value.toString();
+      case 'undefined':
+        return 'undefined';
+      default:
+        return String(value);
     }
   }
-`);
+
+  try {
+    return serializeToJavaScriptyString(valueToStringify);
+  } catch {
+    return '' + valueToStringify;
+  }
+});
 
 export const serializeForClipboard = remoteFunction<[number], string>(`
   function(spaces) {

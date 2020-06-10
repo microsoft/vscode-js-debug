@@ -54,7 +54,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     return utils.completeUrlEscapingRoot(baseUrl, urlPath);
   }
 
-  async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
+  public async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
     const queryCharacter = url.indexOf('?');
 
     // Workaround for vue, see https://github.com/microsoft/vscode-js-debug/issues/239

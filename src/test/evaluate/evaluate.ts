@@ -6,6 +6,7 @@ import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 import { delay } from '../../common/promiseUtil';
+import { expect } from 'chai';
 
 describe('evaluate', () => {
   itIntegrates('default', async ({ r }) => {
@@ -156,35 +157,68 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
-  const copyExpressions = [
-    '123n',
-    'NaN',
-    '{foo: "bar", baz: { a: [1, 2, 3, 4, 5, 6, 7, 8, 9], b: 123n }}',
-    'function hello() { return "world" }',
-    '(() => { const n = { foo: true }; n.recurse = n; return n })()',
-    '1n << 100n',
-    '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()',
-  ];
+  const copyExpressions: { [expr: string]: string } = {
+    '123n': '123n',
+    NaN: 'NaN',
+    '{foo: "bar", baz: { a: [1, 2, 3, 4, 5, 6, 7, 8, 9], b: 123n, "complex key": true }}': `{
+  foo: "bar",
+  baz: {
+    a: [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+    ],
+    b: 123n,
+    "complex key": true,
+  },
+}`,
+    [`{
+  double(x) {
+    return x * 2;
+  },
+  triple: x => {
+    return x * 3
+  }
+}`]: `{
+  double: function(x) {
+    return x * 2;
+  },
+  triple: x => {
+    return x * 3
+  },
+}`,
+    'function hello() { return "world" }': 'function hello() { return "world" }',
+    '(() => { const n = { foo: true }; n.recurse = n; return n })()': `{
+  foo: true,
+  recurse: [Circular],
+}`,
+    '1n << 100n': '1267650600228229401496703205376n',
+    '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()': `<div>hi</div>`,
+  };
 
   itIntegrates('copy via function', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.dap.evaluate({ expression: 'var x = "hello"; copy(x)' });
-    p.log(await p.dap.once('copyRequested'));
-    for (const expression of copyExpressions) {
+    expect((await p.dap.once('copyRequested')).text).to.equal('hello');
+    for (const [expression, expected] of Object.entries(copyExpressions)) {
       p.dap.evaluate({ expression: `copy(${expression})` });
-      p.log(await p.dap.once('copyRequested'));
+      const actual = await p.dap.once('copyRequested');
+      expect(actual.text).to.equal(expected, expression);
     }
-
-    p.assertLog();
   });
 
   itIntegrates('copy via evaluate context', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
-    for (const expression of copyExpressions) {
-      p.log(await p.dap.evaluate({ expression, context: 'clipboard' }));
+    for (const [expression, expected] of Object.entries(copyExpressions)) {
+      const actual = await p.dap.evaluate({ expression, context: 'clipboard' });
+      expect(actual.result).to.equal(expected, expression);
     }
-
-    p.assertLog();
   });
 
   itIntegrates('inspect', async ({ r }) => {
