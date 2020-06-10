@@ -1,0 +1,14 @@
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:8:13
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
+__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
+main @ ${workspaceFolder}/web/smartStep/async.js:17:12
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:11:1
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:2:11
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
+__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
+foo @ ${workspaceFolder}/web/smartStep/async.js:11:12
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:8:19
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
+__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
+main @ ${workspaceFolder}/web/smartStep/async.js:17:12
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:11:1

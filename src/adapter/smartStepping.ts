@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { StackFrame } from './stackTrace';
-import { IPausedDetails } from './threads';
+import { IPausedDetails, PausedReason } from './threads';
 import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { UnmappedReason, isSourceWithMap } from './sources';
@@ -19,6 +19,8 @@ export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise
   return false;
 }
 
+const neverStepReasons: ReadonlySet<PausedReason> = new Set(['breakpoint', 'exception']);
+
 export class SmartStepper {
   private _smartStepCount = 0;
 
@@ -32,7 +34,13 @@ export class SmartStepper {
   }
 
   async shouldSmartStep(pausedDetails: IPausedDetails): Promise<boolean> {
-    if (!this.launchConfig.smartStep) return false;
+    if (!this.launchConfig.smartStep) {
+      return false;
+    }
+
+    if (neverStepReasons.has(pausedDetails.reason)) {
+      return false;
+    }
 
     const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];
     const should = await shouldSmartStepStackFrame(frame);

@@ -113,19 +113,40 @@ describe('stacks', () => {
     p.assertLog();
   });
 
-  itIntegrates('smartStep', async ({ r }) => {
-    const p = await r.launchUrlAndLoad('index.html');
-    p.addScriptTag('async-ts/test.js');
-    const { threadId } = await p.dap.once('stopped');
-    await p.dap.next({ threadId: threadId! });
+  describe('smartStep', () => {
+    itIntegrates('simple stepping', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      p.addScriptTag('smartStep/async.js');
+      const { threadId } = await p.dap.once('stopped');
+      await p.dap.next({ threadId: threadId! });
 
-    await p.dap.once('stopped');
-    await p.logger.logStackTrace(threadId!);
+      await p.dap.once('stopped');
+      await p.logger.logStackTrace(threadId!);
 
-    await p.dap.stepIn({ threadId: threadId! });
-    await p.dap.stepIn({ threadId: threadId! });
-    await dumpStackAndContinue(p, false);
-    p.assertLog();
+      await p.dap.stepIn({ threadId: threadId! });
+      await p.dap.stepIn({ threadId: threadId! });
+      await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('does not smart step on exception breakpoints', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.dap.setExceptionBreakpoints({ filters: ['uncaught', 'caught'] });
+      p.addScriptTag('smartStep/exceptionBp.js');
+      await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('does not smart step manual breakpoints', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/smartStep/exceptionBp.js') },
+        breakpoints: [{ line: 9, column: 0 }],
+      });
+      p.addScriptTag('smartStep/exceptionBp.js');
+      await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
   });
 
   itIntegrates('return value', async ({ r }) => {

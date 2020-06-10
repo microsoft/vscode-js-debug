@@ -1,0 +1,3 @@
+foo @ ${workspaceFolder}/web/smartStep/exceptionBp.js:9:3
+bar @ ${workspaceFolder}/web/smartStep/exceptionBp.ts:4:3
+<anonymous> @ ${workspaceFolder}/web/smartStep/exceptionBp.ts:7:1
