@@ -440,6 +440,7 @@ export class TestRoot {
       runtimeExecutable: playwright.chromium.executablePath(),
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       __workspaceFolder: this._workspaceRoot,
+      cleanUp: 'wholeBrowser', // We want the tests to clean up chrome afterwards
       ...options,
     } as AnyChromiumLaunchConfiguration);
 
