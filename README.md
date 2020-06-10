@@ -286,7 +286,8 @@ The following options can be configured:
 ### pwa-chrome: launch
 
 <details><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
+<h5>Default value:</h4><pre><code>"onlyTab"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Optional dictionary of environment key/value pairs for the browser.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>file</h4><p>A local html file to open in the browser</p>
@@ -357,7 +358,8 @@ The following options can be configured:
 
 <details><h4>address</h4><p>When debugging webviews, the IP address or hostname the webview is listening on. Will be automatically discovered if not set.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
+<h5>Default value:</h4><pre><code>"onlyTab"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Optional dictionary of environment key/value pairs for the browser.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>file</h4><p>A local html file to open in the browser</p>

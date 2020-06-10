@@ -51,6 +51,8 @@ const strings = {
   'browser.address.description': 'IP address or hostname the debugged browser is listening on.',
   'browser.launch.port.description':
     'Port for the browser to listen on. Defaults to "0", which will cause the browser to be debugged via pipes, which is generally more secure and should be chosen unless you need to attach to the browser from another tool.',
+  'browser.cleanUp.description':
+    'What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.',
   'browser.attach.port.description':
     'Port to use to remote debugging the browser, given as `--remote-debugging-port` when launching the browser.',
   'browser.baseUrl.description':

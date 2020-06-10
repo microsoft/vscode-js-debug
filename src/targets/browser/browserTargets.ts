@@ -149,8 +149,16 @@ export class BrowserTargetManager implements IDisposable {
 
   async closeBrowser(): Promise<void> {
     if (this.launchParams.request === 'launch') {
-      await this._browser.Browser.close({});
-      this.process?.kill();
+      if (this.launchParams.cleanUp === 'wholeBrowser') {
+        await this._browser.Browser.close({});
+        this.process?.kill();
+      } else {
+        for (const targetId of this._targets.keys()) {
+          await this._browser.Target.closeTarget({ targetId });
+          this._connection.close();
+        }
+      }
+
       this.process = undefined;
     }
   }
@@ -340,7 +348,12 @@ export class BrowserTargetManager implements IDisposable {
 
     if (!this._targets.size && this.launchParams.request === 'launch') {
       try {
-        await this._browser.Browser.close({});
+        if (this.launchParams.cleanUp === 'wholeBrowser') {
+          await this._browser.Browser.close({});
+        } else {
+          await this._browser.Target.closeTarget({ targetId });
+          this._connection.close();
+        }
       } catch {
         // ignored -- any network error when we want to detach anyway is fine
       }

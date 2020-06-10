@@ -791,6 +791,12 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.profileStartup.description'),
       default: true,
     },
+    cleanUp: {
+      type: 'string',
+      enum: ['wholeBrowser', 'onlyTab'],
+      description: refString('browser.cleanUp.description'),
+      default: 'onlyTab',
+    },
     browserLaunchLocation: {
       description: refString('browser.browserLaunchLocation.description'),
       default: null,

@@ -503,6 +503,11 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
    * If true, will start profiling soon as the page launches.
    */
   profileStartup: boolean;
+
+  /**
+   * Close whole browser or just the tab when cleaning up
+   */
+  cleanUp: 'wholeBrowser' | 'onlyTab';
 }
 
 /**
@@ -775,6 +780,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
+  cleanUp: 'onlyTab',
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
