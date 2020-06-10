@@ -1095,7 +1095,7 @@ const menus: Menus = {
     {
       command: Commands.RevealPage,
       group: 'navigation',
-      when: forBrowserDebugType('debugType'),
+      when: forBrowserDebugType('debugType', `callStackItemType == 'session'`),
     },
     {
       command: Commands.ToggleSkipping,
