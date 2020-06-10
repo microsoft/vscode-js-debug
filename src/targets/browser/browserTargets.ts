@@ -155,6 +155,7 @@ export class BrowserTargetManager implements IDisposable {
       } else {
         for (const targetId of this._targets.keys()) {
           await this._browser.Target.closeTarget({ targetId });
+          this._connection.close();
         }
       }
 
@@ -351,6 +352,7 @@ export class BrowserTargetManager implements IDisposable {
           await this._browser.Browser.close({});
         } else {
           await this._browser.Target.closeTarget({ targetId });
+          this._connection.close();
         }
       } catch {
         // ignored -- any network error when we want to detach anyway is fine

@@ -144,6 +144,8 @@ export async function launch(
       if (options.cleanUp === 'wholeBrowser') {
         await cdp.rootSession().Browser.close({});
         browserProcess.kill();
+      } else {
+        cdp.close();
       }
     };
     return { cdp: cdp, process: browserProcess };
