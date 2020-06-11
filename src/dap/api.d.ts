@@ -946,6 +946,30 @@ export namespace Dap {
      * Gets all defined breakpoints.
      */
     revealPageRequest(params: RevealPageParams): Promise<RevealPageResult>;
+
+    /**
+     * Starts profiling the extension itself. Used by VS.
+     */
+    on(
+      request: 'startSelfProfile',
+      handler: (params: StartSelfProfileParams) => Promise<StartSelfProfileResult | Error>,
+    ): () => void;
+    /**
+     * Starts profiling the extension itself. Used by VS.
+     */
+    startSelfProfileRequest(params: StartSelfProfileParams): Promise<StartSelfProfileResult>;
+
+    /**
+     * Stops profiling the extension itself. Used by VS.
+     */
+    on(
+      request: 'stopSelfProfile',
+      handler: (params: StopSelfProfileParams) => Promise<StopSelfProfileResult | Error>,
+    ): () => void;
+    /**
+     * Stops profiling the extension itself. Used by VS.
+     */
+    stopSelfProfileRequest(params: StopSelfProfileParams): Promise<StopSelfProfileResult>;
   }
 
   export interface TestApi {
@@ -1561,6 +1585,16 @@ export namespace Dap {
      * Gets all defined breakpoints.
      */
     revealPage(params: RevealPageParams): Promise<RevealPageResult>;
+
+    /**
+     * Starts profiling the extension itself. Used by VS.
+     */
+    startSelfProfile(params: StartSelfProfileParams): Promise<StartSelfProfileResult>;
+
+    /**
+     * Stops profiling the extension itself. Used by VS.
+     */
+    stopSelfProfile(params: StopSelfProfileParams): Promise<StopSelfProfileResult>;
   }
 
   export interface AttachParams {
@@ -2954,6 +2988,15 @@ export namespace Dap {
 
   export interface StartProfileResult {}
 
+  export interface StartSelfProfileParams {
+    /**
+     * File where the profile should be saved
+     */
+    file: string;
+  }
+
+  export interface StartSelfProfileResult {}
+
   export interface StepBackParams {
     /**
      * Execute 'stepBack' for this thread.
@@ -3018,6 +3061,10 @@ export namespace Dap {
   export interface StopProfileParams {}
 
   export interface StopProfileResult {}
+
+  export interface StopSelfProfileParams {}
+
+  export interface StopSelfProfileResult {}
 
   export interface StoppedEventParams {
     /**
