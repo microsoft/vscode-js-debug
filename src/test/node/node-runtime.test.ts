@@ -468,6 +468,7 @@ describe('node runtime', () => {
       program: join(testFixturesDir, 'test.js'),
       rootPath: testWorkspace,
       runtimeExecutable: 'does-not-exist',
+      __workspaceFolder: testFixturesDir,
     } as INodeLaunchConfiguration);
 
     expect(result).to.include('Can\'t find Node.js binary "does-not-exist"');
