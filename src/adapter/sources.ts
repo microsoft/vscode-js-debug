@@ -13,7 +13,6 @@ import { ScriptSkipper } from './scriptSkipper/implementation';
 import { delay, getDeferred } from '../common/promiseUtil';
 import { SourceMapConsumer, NullableMappedPosition } from 'source-map';
 import { SourceMap, ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
-import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
@@ -453,7 +452,6 @@ export class SourceContainer {
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
-    @inject(ISourceMapRepository) public readonly localSourceMaps: ISourceMapRepository,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {

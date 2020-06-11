@@ -11,6 +11,7 @@ import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
 import { IInitializeParams } from '../ioc-extras';
 import Dap from '../dap/api';
+import { IVueFileMapper } from '../adapter/vueFileMapper';
 
 @injectable()
 export class SourcePathResolverFactory {
@@ -18,6 +19,7 @@ export class SourcePathResolverFactory {
     @inject(AnyLaunchConfiguration) private readonly config: AnyLaunchConfiguration,
     @inject(IInitializeParams) private readonly initializeParams: Dap.InitializeParams,
     @inject(ILogger) private readonly logger: ILogger,
+    @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
   ) {}
 
   public create() {
@@ -39,6 +41,7 @@ export class SourcePathResolverFactory {
       );
     } else {
       return new BrowserSourcePathResolver(
+        this.vueMapper,
         {
           resolveSourceMapLocations: c.resolveSourceMapLocations,
           baseUrl: baseURL(c),

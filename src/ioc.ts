@@ -13,9 +13,9 @@ import Cdp from './cdp/api';
 import { ICdpApi } from './cdp/connection';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
-import { CodeSearchSourceMapRepository } from './common/sourceMaps/codeSearchSourceMapRepository';
+import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
 import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
-import { ISourceMapRepository } from './common/sourceMaps/sourceMapRepository';
+import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
@@ -80,6 +80,8 @@ import {
   BreakpointConditionFactory,
 } from './adapter/breakpoints/conditions';
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
+import { OutFiles, VueComponentPaths } from './common/fileGlobList';
+import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -174,12 +176,12 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .onActivation(trackDispose);
 
   container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
-
+  container.bind(OutFiles).to(OutFiles).inSingletonScope();
+  container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
+  container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
   container
-    .bind(ISourceMapRepository)
-    .toDynamicValue(ctx =>
-      CodeSearchSourceMapRepository.createOrFallback(ctx.container.get<ILogger>(ILogger)),
-    )
+    .bind(ISearchStrategy)
+    .toDynamicValue(ctx => CodeSearchStrategy.createOrFallback(ctx.container.get<ILogger>(ILogger)))
     .inSingletonScope();
 
   container.bind(INodeBinaryProvider).to(NodeBinaryProvider);

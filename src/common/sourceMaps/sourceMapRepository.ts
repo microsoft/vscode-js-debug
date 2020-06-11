@@ -6,6 +6,7 @@ import { ISourceMapMetadata } from './sourceMap';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { completeUrl, absolutePathToFileUrl } from '../urlUtils';
 import { stat, readfile } from '../fsUtils';
+import { FileGlobList } from '../fileGlobList';
 
 /**
  * A copy of vscode.RelativePattern, but we can't to import 'vscode' here.
@@ -15,18 +16,26 @@ export interface IRelativePattern {
   pattern: string;
 }
 
-export const ISourceMapRepository = Symbol('ISourceMapRepository');
+export const ISearchStrategy = Symbol('ISearchStrategy');
 
-export interface ISourceMapRepository {
+export interface ISearchStrategy {
   /**
-   * Recursively finds all children matching the given glob, calling `onChild`
+   * Recursively finds all children matching the outFiles, calling `onChild`
    * when children are found and returning a promise that resolves once all
    * children have been discovered.
    */
+  streamChildrenWithSourcemaps<T>(
+    files: FileGlobList,
+    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
+  ): Promise<T[]>;
+
+  /**
+   * Recursively finds all children, calling `onChild` when children are found
+   * and returning promise that resolves once all children have been discovered.
+   */
   streamAllChildren<T>(
-    base: string,
-    patterns: ReadonlyArray<string>,
-    onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
+    files: FileGlobList,
+    onChild: (child: string) => T | Promise<T>,
   ): Promise<T[]>;
 }
 

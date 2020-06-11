@@ -20,4 +20,4 @@ function main() {
     });
 }
 main();
-//# sourceMappingURL=test.js.map
+//# sourceMappingURL=async.js.map

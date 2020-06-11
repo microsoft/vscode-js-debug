@@ -636,6 +636,11 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     description: refString('browser.inspectUri.description'),
     default: null,
   },
+  vueComponentPaths: {
+    type: 'array',
+    description: refString('browser.vueComponentPaths'),
+    default: ['${workspaceFolder}/**/*.vue'],
+  },
   server: {
     oneOf: [
       {

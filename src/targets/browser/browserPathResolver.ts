@@ -21,6 +21,9 @@ import {
   defaultPathMappingResolver,
   getComputedSourceRoot,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
+import { injectable, inject } from 'inversify';
+import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
+import { ILogger } from '../../common/logging';
 
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
@@ -28,7 +31,16 @@ interface IOptions extends ISourcePathResolverOptions {
   clientID: string | undefined;
 }
 
+@injectable()
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
+  constructor(
+    @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
+    options: IOptions,
+    logger: ILogger,
+  ) {
+    super(options, logger);
+  }
+
   absolutePathToUrl(absolutePath: string): string | undefined {
     absolutePath = path.normalize(absolutePath);
     const { baseUrl, pathMapping } = this.options;
@@ -88,6 +100,10 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       } else {
         pathname = parsed.pathname;
       }
+
+      if (parsed.protocol === 'webpack-internal:') {
+        return undefined;
+      }
     } catch {
       pathname = url;
     }
@@ -113,6 +129,19 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   private async sourceMapSourceToAbsolute(url: string, map: SourceMap) {
     if (!this.shouldResolveSourceMap(map.metadata)) {
       return undefined;
+    }
+
+    switch (this.vueMapper.getVueHandling(url)) {
+      case VueHandling.Omit:
+        return undefined;
+      case VueHandling.Lookup:
+        const vuePath = await this.vueMapper.lookup(url);
+        if (vuePath) {
+          return fixDriveLetterAndSlashes(vuePath);
+        }
+        break;
+      default:
+      // fall through
     }
 
     const { pathMapping } = this.options;

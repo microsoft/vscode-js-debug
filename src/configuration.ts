@@ -369,6 +369,13 @@ export interface IChromiumBaseConfiguration extends IBaseConfiguration {
   server: INodeLaunchConfiguration | ITerminalLaunchConfiguration | null;
 
   /**
+   * A list of file glob patterns to find `*.vue` components. By default,
+   * searches the entire workspace. This needs to be specified due to extra
+   * lookups that Vue's sourcemaps require.
+   */
+  vueComponentPaths: ReadonlyArray<string>;
+
+  /**
    * WebSocket (`ws://`) address of the inspector. It's a template string that
    * interpolates keys in `{curlyBraces}`. Available keys are:
    *
@@ -759,6 +766,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   webRoot: '${workspaceFolder}',
   server: null,
   targetSelection: 'automatic',
+  vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
 };
 
 export const edgeAttachConfigDefaults: IEdgeAttachConfiguration = {
@@ -884,7 +892,7 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
   config: T,
 ): T {
   const token = '${workspaceFolder}';
-  config = {
+  const cast: AnyLaunchConfiguration = {
     ...config,
     rootPath: undefined,
     outFiles: config.outFiles.filter(o => !o.includes(token)),
@@ -894,14 +902,17 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
     ),
   };
 
-  if (config.type === DebugType.ExtensionHost) {
-    config.resolveSourceMapLocations =
-      config.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
-  } else if (
-    (config.type === DebugType.Node && config.request === 'attach') ||
-    config.type === DebugType.Terminal
-  ) {
-    (config as INodeBaseConfiguration).cwd = undefined;
+  if ('vueComponentPaths' in cast) {
+    cast.vueComponentPaths = cast.vueComponentPaths.filter(o => !o.includes(token));
+  }
+
+  if ('resolveSourceMapLocations' in cast) {
+    cast.resolveSourceMapLocations =
+      cast.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
+  }
+
+  if ('cwd' in cast) {
+    cast.cwd = undefined;
   }
 
   return config;

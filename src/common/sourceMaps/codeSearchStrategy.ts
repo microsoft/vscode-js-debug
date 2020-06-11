@@ -4,10 +4,11 @@
 
 import { LogTag, ILogger } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
-import { NodeSourceMapRepository } from './nodeSourceMapRepository';
+import { NodeSourceMapRepository } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISourceMapRepository } from './sourceMapRepository';
+import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
 import { injectable } from 'inversify';
+import { FileGlobList } from '../fileGlobList';
 
 type vscode = typeof import('vscode');
 
@@ -16,7 +17,7 @@ type vscode = typeof import('vscode');
  * look for candidate files.
  */
 @injectable()
-export class CodeSearchSourceMapRepository implements ISourceMapRepository {
+export class CodeSearchStrategy implements ISearchStrategy {
   constructor(private readonly _vscode: vscode, private readonly logger: ILogger) {}
 
   public static createOrFallback(logger: ILogger) {
@@ -44,12 +45,18 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
   }
 
   /**
-   * Recursively finds all children of the given direcotry.
+   * @inheritdoc
    */
-  public async streamAllChildren<T>(
-    base: string,
-    patterns: ReadonlyArray<string>,
-    onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
+  public async streamAllChildren<T>(): Promise<T[]> {
+    throw new Error('not implemented');
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async streamChildrenWithSourcemaps<T>(
+    outFiles: FileGlobList,
+    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
@@ -59,10 +66,10 @@ export class CodeSearchSourceMapRepository implements ISourceMapRepository {
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
         include: new relativePattern(
-          base,
-          forceForwardSlashes(patterns.filter(p => !p.startsWith('!')).join(', ')),
+          outFiles.rootPath,
+          forceForwardSlashes(outFiles.patterns.filter(p => !p.startsWith('!')).join(', ')),
         ),
-        exclude: patterns
+        exclude: outFiles.patterns
           .filter(p => p.startsWith('!'))
           .map(p => forceForwardSlashes(p.slice(1)))
           .join(','),

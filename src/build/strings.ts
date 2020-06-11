@@ -104,6 +104,8 @@ const strings = {
   'browser.revealPage': 'Focus Tab',
   'browser.targetSelection':
     'Whether to attach to all targets that match the URL filter ("automatic") or ask to pick one ("pick").',
+  'browser.vueComponentPaths':
+    "A list of file glob patterns to find `*.vue` components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue's sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.",
 
   'debug.npm.script': 'Debug NPM Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',

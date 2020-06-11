@@ -319,7 +319,11 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>userDataDir</h4><p>By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### pwa-chrome: attach
@@ -351,7 +355,11 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
-<h5>Default value:</h4><pre><code>""</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>""</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### pwa-msedge: launch
@@ -392,7 +400,11 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>userDataDir</h4><p>By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>useWebView</h4><p>(Edge (Chromium) only) When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### pwa-msedge: attach
@@ -425,7 +437,11 @@ The following options can be configured:
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>useWebView</h4><p>(Edge (Chromium) only) When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 <!-- option end marker, used by build steps, do not modify -->

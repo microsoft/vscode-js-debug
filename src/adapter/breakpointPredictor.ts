@@ -6,7 +6,7 @@ import * as path from 'path';
 import Dap from '../dap/api';
 import * as urlUtils from '../common/urlUtils';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
-import { ISourceMapRepository } from '../common/sourceMaps/sourceMapRepository';
+import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
@@ -17,6 +17,7 @@ import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { logPerf } from '../telemetry/performance';
 import { injectable, inject } from 'inversify';
 import { getOptimalCompiledPosition } from '../common/sourceUtils';
+import { OutFiles } from '../common/fileGlobList';
 
 export interface IWorkspaceLocation {
   absolutePath: string;
@@ -66,8 +67,6 @@ export interface IBreakpointsPredictor {
 @injectable()
 export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations: PredictedLocation[] = [];
-  private readonly patterns?: string[];
-  private readonly rootPath?: string;
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
   private cache?: CorrelatedCache<number, DiscoveredMetadata[]>;
@@ -79,20 +78,17 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
   constructor(
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
-    @inject(ISourceMapRepository) private readonly repo: ISourceMapRepository,
+    @inject(OutFiles) private readonly outFiles: OutFiles,
+    @inject(ISearchStrategy) private readonly repo: ISearchStrategy,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ISourcePathResolver)
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
   ) {
-    const { rootPath, outFiles, __workspaceCachePath } = launchConfig;
-    if (rootPath) {
-      this.rootPath = rootPath;
-      this.patterns = outFiles.map(p => (path.isAbsolute(p) ? path.relative(rootPath, p) : p));
-    }
-
-    if (__workspaceCachePath) {
-      this.cache = new CorrelatedCache(path.join(__workspaceCachePath, 'bp-predict.json'));
+    if (launchConfig.__workspaceCachePath) {
+      this.cache = new CorrelatedCache(
+        path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
+      );
     }
   }
 
@@ -103,11 +99,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   }
 
   private async createInitialMappingInner(): Promise<MetadataMap> {
-    if (!this.patterns?.length) {
-      return new Map();
-    }
-
-    if (!this.rootPath) {
+    if (this.outFiles.empty) {
       return new Map();
     }
 
@@ -129,11 +121,11 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       this.logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
         type: this.repo.constructor.name,
         longPredictionWarning,
-        patterns: this.patterns,
+        patterns: this.outFiles.patterns,
       });
     }, longPredictionWarning);
 
-    await this.repo.streamAllChildren(this.rootPath, this.patterns, async metadata => {
+    await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
       const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
       if (cached) {
         cached.forEach(addDiscovery);
