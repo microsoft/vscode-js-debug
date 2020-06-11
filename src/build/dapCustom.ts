@@ -732,6 +732,80 @@ const dapCustom: JSONSchema4 = {
         },
       ],
     },
+
+    StartSelfProfileRequest: {
+      allOf: [
+        { $ref: '#/definitions/Request' },
+        {
+          type: 'object',
+          description: 'Starts profiling the extension itself. Used by VS.',
+          properties: {
+            command: {
+              type: 'string',
+              enum: ['startSelfProfile'],
+            },
+            arguments: {
+              $ref: '#/definitions/StartSelfProfileArguments',
+            },
+          },
+          required: ['command', 'arguments'],
+        },
+      ],
+    },
+    StartSelfProfileArguments: {
+      type: 'object',
+      description: "Arguments for 'StartSelfProfile' request.",
+      required: ['file'],
+      properties: {
+        file: {
+          description: 'File where the profile should be saved',
+          type: 'string',
+        },
+      },
+    },
+    StartSelfProfileResponse: {
+      allOf: [
+        { $ref: '#/definitions/Response' },
+        {
+          type: 'object',
+          description: "Response to 'StartSelfProfile' request.",
+        },
+      ],
+    },
+
+    StopSelfProfileRequest: {
+      allOf: [
+        { $ref: '#/definitions/Request' },
+        {
+          type: 'object',
+          description: 'Stops profiling the extension itself. Used by VS.',
+          properties: {
+            command: {
+              type: 'string',
+              enum: ['stopSelfProfile'],
+            },
+            arguments: {
+              $ref: '#/definitions/StopSelfProfileArguments',
+            },
+          },
+          required: ['command', 'arguments'],
+        },
+      ],
+    },
+    StopSelfProfileArguments: {
+      type: 'object',
+      description: "Arguments for 'StopSelfProfile' request.",
+      properties: {},
+    },
+    StopSelfProfileResponse: {
+      allOf: [
+        { $ref: '#/definitions/Response' },
+        {
+          type: 'object',
+          description: "Response to 'StopSelfProfile' request.",
+        },
+      ],
+    },
   },
 };
 

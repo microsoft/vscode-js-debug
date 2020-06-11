@@ -34,6 +34,7 @@ import { delay } from './common/promiseUtil';
 import { Container } from 'inversify';
 import { createTargetContainer, provideLaunchParams } from './ioc';
 import { disposeContainer, IInitializeParams } from './ioc-extras';
+import { SelfProfile } from './adapter/selfProfile';
 
 const localize = nls.loadMessageBundle();
 
@@ -79,6 +80,7 @@ export class Binder implements IDisposable {
 
     this._dap.then(dap => {
       let lastBreakpointId = 0;
+      let selfProfile: SelfProfile | undefined;
 
       dap.on('initialize', async clientCapabilities => {
         this._rootServices.bind(IInitializeParams).toConstantValue(clientCapabilities);
@@ -123,6 +125,21 @@ export class Binder implements IDisposable {
       });
       dap.on('restart', async () => {
         await this._restart();
+        return {};
+      });
+      dap.on('startSelfProfile', async ({ file }) => {
+        selfProfile?.dispose();
+        selfProfile = new SelfProfile(file);
+        await selfProfile.start();
+        return {};
+      });
+      dap.on('stopSelfProfile', async () => {
+        if (selfProfile) {
+          await selfProfile.stop();
+          selfProfile.dispose();
+          selfProfile = undefined;
+        }
+
         return {};
       });
     });
