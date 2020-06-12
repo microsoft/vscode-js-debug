@@ -243,7 +243,7 @@ export class ScriptSkipper {
 
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
-      const pathOnDisk = await source.existingAbsolutePath();
+      const pathOnDisk = source.absolutePath();
       if (pathOnDisk) {
         // file maps to file on disk
         map.set(url, this._testSkipNonNodeInternal(pathOnDisk));
