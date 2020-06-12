@@ -358,30 +358,10 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         },
         {
           type: 'object',
-          required: ['exponential'],
-          properties: {
-            exponential: {
-              type: 'object',
-              properties: {
-                maxDelay: { type: 'number', minimum: 0, default: 10000 },
-                maxAttempts: { type: 'number', minimum: 0, default: 10 },
-                exponent: { type: 'number', minimum: 1, default: 2 },
-                initialDelay: { type: 'number', minimum: 0, default: 128 },
-              },
-            },
-          },
-        },
-        {
-          type: 'object',
           required: ['static'],
           properties: {
-            static: {
-              type: 'object',
-              properties: {
-                delay: { type: 'number', minimum: 0, default: 1000 },
-                maxAttempts: { type: 'number', minimum: 0, default: 10 },
-              },
-            },
+            delay: { type: 'number', minimum: 0, default: 1000 },
+            maxAttempts: { type: 'number', minimum: 0, default: 10 },
           },
         },
       ],

@@ -2,20 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { assertNever } from '../../common/objUtils';
 import { injectable } from 'inversify';
 
-export type AnyRestartOptions =
-  | boolean
-  | { exponential: Partial<IExponentialRestartOptions> }
-  | { static: Partial<IStaticRestartOptions> };
-
-const defaultOptions: IExponentialRestartOptions = {
-  maxDelay: 10000,
-  maxAttempts: 10,
-  exponent: 2,
-  initialDelay: 128,
-};
+export type AnyRestartOptions = boolean | Partial<IStaticRestartOptions>;
 
 /**
  * Creates restart policies from the configuration.
@@ -28,22 +17,13 @@ export class RestartPolicyFactory {
     }
 
     if (config === true) {
-      return new ExponentialRestartPolicy(defaultOptions);
+      return new StaticRestartPolicy({ maxAttempts: Infinity, delay: 1000 });
     }
 
-    if ('exponential' in config) {
-      return new ExponentialRestartPolicy({ ...defaultOptions, ...config.exponential });
-    }
-
-    if ('static' in config) {
-      return new StaticRestartPolicy({
-        maxAttempts: defaultOptions.maxAttempts,
-        delay: 1000,
-        ...config.static,
-      });
-    }
-
-    throw assertNever(config, 'Unexpected value for restart configuration');
+    return new StaticRestartPolicy({
+      maxAttempts: config.maxAttempts ?? Infinity,
+      delay: config.delay ?? 1000,
+    });
   }
 }
 
@@ -63,56 +43,6 @@ export interface IRestartPolicy {
    * Resets the policy.
    */
   reset(): IRestartPolicy;
-}
-
-export interface IExponentialRestartOptions {
-  /**
-   * Maximum delay, in milliseconds. Defaults to 10s.
-   */
-  maxDelay: number;
-
-  /**
-   * Maximum retry attempts.  Defaults to 10.
-   */
-  maxAttempts: number;
-
-  /**
-   * Backoff exponent. Defaults to 2.
-   */
-  exponent: number;
-
-  /**
-   * The initial, first delay of the backoff, in milliseconds.
-   * Defaults to 128ms.
-   */
-  initialDelay: number;
-}
-
-/**
- * A simple, jitter-free exponential backoff.
- */
-class ExponentialRestartPolicy implements IRestartPolicy {
-  public get delay() {
-    return Math.min(
-      this.options.maxDelay,
-      this.options.initialDelay * this.options.exponent ** this.attempt,
-    );
-  }
-
-  constructor(
-    private readonly options: IExponentialRestartOptions,
-    private readonly attempt: number = 0,
-  ) {}
-
-  public next() {
-    return this.attempt === this.options.maxAttempts
-      ? undefined
-      : new ExponentialRestartPolicy(this.options, this.attempt + 1);
-  }
-
-  public reset() {
-    return this.attempt ? new ExponentialRestartPolicy(this.options) : this;
-  }
 }
 
 export interface IStaticRestartOptions {

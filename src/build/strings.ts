@@ -172,7 +172,8 @@ const strings = {
   'node.remoteRoot.description': 'Absolute path to the remote directory containing the program.',
   'node.launch.restart.description':
     'Try to restart the program if it exits with a non-zero exit code.',
-  'node.attach.restart.description': 'Try to reconnect to the program if we lose connection.',
+  'node.attach.restart.description':
+    "Try to reconnect to the program if we lose connection. If set to `true`, we'll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the `delay` and `maxAttempts` in an object instead.",
   'node.showAsyncStacks.description': 'Show the async calls that led to the current call stack.',
   'node.snippet.attach.description': 'Attach to a running node program',
   'node.snippet.attach.label': 'Node.js: Attach',
