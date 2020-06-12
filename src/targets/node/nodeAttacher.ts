@@ -20,6 +20,7 @@ import { NodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { IStopMetadata } from '../targets';
 import { injectable } from 'inversify';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { CancellationTokenSource } from '../../common/cancellation';
 
 const localize = nls.loadMessageBundle();
 
@@ -61,7 +62,9 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       try {
         inspectorURL = await retryGetWSEndpoint(
           `http://${runData.params.address}:${runData.params.port}`,
-          runData.context.cancellationToken,
+          restarting
+            ? CancellationTokenSource.withTimeout(runData.params.timeout).token
+            : runData.context.cancellationToken,
         );
       } catch (e) {
         if (prevProgram && prevProgram === restarting /* is a restart */) {
@@ -80,7 +83,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       });
 
       const program = (this.program = new WatchDogProgram(watchdog));
-      program.stopped.then(r => restart(restartPolicy, program, r));
+      program.stopped.then(r => restart(restartPolicy.reset(), program, r));
     };
 
     const restart = async (

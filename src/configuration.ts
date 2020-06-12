@@ -540,7 +540,7 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
   port: number;
 
   /**
-   * Whether to restart whe attachment is list.
+   * Whether to restart whe attachment is lost.
    */
   restart: boolean;
 

@@ -58,6 +58,11 @@ export interface IRestartPolicy {
    * if no restart should occur.
    */
   next(): IRestartPolicy | undefined;
+
+  /**
+   * Resets the policy.
+   */
+  reset(): IRestartPolicy;
 }
 
 export interface IExponentialRestartOptions {
@@ -104,6 +109,10 @@ class ExponentialRestartPolicy implements IRestartPolicy {
       ? undefined
       : new ExponentialRestartPolicy(this.options, this.attempt + 1);
   }
+
+  public reset() {
+    return this.attempt ? new ExponentialRestartPolicy(this.options) : this;
+  }
 }
 
 export interface IStaticRestartOptions {
@@ -134,6 +143,10 @@ class StaticRestartPolicy implements IRestartPolicy {
       ? undefined
       : new StaticRestartPolicy(this.options, this.attempt + 1);
   }
+
+  public reset() {
+    return this.attempt ? new StaticRestartPolicy(this.options) : this;
+  }
 }
 
 class NeverRestartPolicy implements IRestartPolicy {
@@ -141,5 +154,9 @@ class NeverRestartPolicy implements IRestartPolicy {
 
   public next() {
     return undefined;
+  }
+
+  public reset() {
+    return this;
   }
 }
