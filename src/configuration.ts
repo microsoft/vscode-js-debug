@@ -911,11 +911,11 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
       cast.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
   }
 
-  if ('cwd' in cast) {
+  if ('cwd' in cast && cast.cwd?.includes(token)) {
     cast.cwd = undefined;
   }
 
-  return config;
+  return cast as T;
 }
 
 export function resolveWorkspaceInConfig<T extends AnyLaunchConfiguration>(config: T): T {

@@ -77,6 +77,13 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
       config.browserLaunchLocation = this.location === 'remote' ? 'ui' : 'workspace';
     }
   }
+
+  /**
+   * @override
+   */
+  protected getSuggestedWorkspaceFolders(config: AnyChromiumConfiguration) {
+    return [config.rootPath, config.webRoot];
+  }
 }
 
 @injectable()

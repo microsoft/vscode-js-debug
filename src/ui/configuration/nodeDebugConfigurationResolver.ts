@@ -128,6 +128,13 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   protected getType() {
     return DebugType.Node as const;
   }
+
+  /**
+   * @override
+   */
+  protected getSuggestedWorkspaceFolders(config: AnyNodeConfiguration) {
+    return [config.rootPath, config.cwd];
+  }
 }
 
 export function guessWorkingDirectory(program?: string, folder?: vscode.WorkspaceFolder): string {
