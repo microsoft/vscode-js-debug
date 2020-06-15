@@ -1,0 +1,22 @@
+{
+    breakpoints : [
+        [0] : {
+            column : 3
+            id : <number>
+            line : 15
+            source : {
+                name : tsNode/double.ts
+                path : ${workspaceFolder}/tsNode/double.ts
+                sourceReference : <number>
+            }
+            verified : true
+        }
+    ]
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+double @ ${workspaceFolder}/tsNode/double.ts:15:3

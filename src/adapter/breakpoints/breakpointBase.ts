@@ -159,18 +159,18 @@ export abstract class Breakpoint {
     }
 
     this.isEnabled = true;
-    const promises: Promise<void>[] = [
-      // For breakpoints set before launch, we don't know whether they are in a compiled or
-      // a source map source. To make them work, we always set by url to not miss compiled.
-      // Additionally, if we have two sources with the same url, but different path (or no path),
-      // this will make breakpoint work in all of them.
-      this._setByPath(thread, this.originalPosition),
-
-      // Also use predicted locations if available.
-      this._setPredicted(thread),
-    ];
-
+    const promises: Promise<void>[] = [this._setPredicted(thread)];
     const source = this._manager._sourceContainer.source(this.source);
+    if (!source || !(source instanceof SourceFromMap)) {
+      promises.push(
+        // For breakpoints set before launch, we don't know whether they are in a compiled or
+        // a source map source. To make them work, we always set by url to not miss compiled.
+        // Additionally, if we have two sources with the same url, but different path (or no path),
+        // this will make breakpoint work in all of them.
+        this._setByPath(thread, this.originalPosition),
+      );
+    }
+
     if (source) {
       const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this.originalPosition.lineNumber,

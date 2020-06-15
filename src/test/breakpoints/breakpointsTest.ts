@@ -628,6 +628,30 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('adjusts breakpoints after already running (#524)', async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'tsNode');
+      const handle = await r.runScript(join(cwd, 'index.js'));
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'double.ts') },
+        breakpoints: [{ line: 5, column: 1 }],
+      });
+
+      handle.load();
+      const { threadId } = await handle.dap.once('stopped');
+      handle.log(
+        await handle.dap.setBreakpoints({
+          source: { path: join(cwd, 'double.ts') },
+          breakpoints: [{ line: 15, column: 1 }],
+        }),
+      );
+
+      handle.dap.continue({ threadId: threadId! });
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
+
     itIntegrates('works in remote workspaces', async ({ r }) => {
       await r.initialize;
 
