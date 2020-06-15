@@ -92,6 +92,8 @@ export default class Connection {
       objectToLog = { ...object, result: { ...object.result, scriptSource: '<script source>' } };
     } else if (
       object.method === 'Debugger.scriptParsed' &&
+      object.params &&
+      object.params.sourceMapURL &&
       object.params.sourceMapURL.startsWith('data:')
     ) {
       objectToLog = {
