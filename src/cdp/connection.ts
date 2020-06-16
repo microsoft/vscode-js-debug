@@ -176,9 +176,9 @@ export default class Connection {
   }
 }
 
-// Node versions before 12 do not guarantee relative order of tasks and microstasks.
+// Node versions before 11.0.0 do not guarantee relative order of tasks and microstasks.
 // We artificially queue protocol messages to achieve this.
-const needsReordering = +process.version.substring(1).split('.')[0] <= 12;
+const needsReordering = +process.version.substring(1).split('.')[0] < 11;
 
 class CDPSession {
   private _connection?: Connection;
@@ -311,7 +311,8 @@ class CDPSession {
   }
 
   _processQueue() {
-    setTimeout(() => {
+    const waitWrapper = makeWaitForNextTask();
+    waitWrapper(() => {
       if (this.paused) {
         return;
       }
@@ -325,7 +326,7 @@ class CDPSession {
       if (this._queue.length) {
         this._processQueue();
       }
-    }, 0);
+    });
   }
 
   _processResponse(object: ProtocolMessage) {
@@ -374,4 +375,39 @@ class CDPSession {
     this._callbacks.clear();
     this._connection = undefined;
   }
+}
+
+// implementation taken from playwright: https://github.com/microsoft/playwright/blob/59d0f8728d4809b39785d68d7a146f06f0dbe2e6/src/helper.ts#L233
+// See https://joel.tools/microtasks/
+function makeWaitForNextTask() {
+  if (parseInt(process.versions.node, 10) >= 11) return setImmediate;
+
+  // Unlike Node 11, Node 10 and less have a bug with Task and MicroTask execution order:
+  // - https://github.com/nodejs/node/issues/22257
+  //
+  // So we can't simply run setImmediate to dispatch code in a following task.
+  // However, we can run setImmediate from-inside setImmediate to make sure we're getting
+  // in the following task.
+
+  let spinning = false;
+  const callbacks: (() => void)[] = [];
+  const loop = () => {
+    const callback = callbacks.shift();
+    if (!callback) {
+      spinning = false;
+      return;
+    }
+    setImmediate(loop);
+    // Make sure to call callback() as the last thing since it's
+    // untrusted code that might throw.
+    callback();
+  };
+
+  return (callback: () => void) => {
+    callbacks.push(callback);
+    if (!spinning) {
+      spinning = true;
+      setImmediate(loop);
+    }
+  };
 }
