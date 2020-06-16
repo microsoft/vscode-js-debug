@@ -7,12 +7,18 @@
   </a>
 </h1>
 
-The new, upcoming JavaScript debugger for VS Code. This extension debugs Node.js and web applications (in Edge and Chrome), and will eventually become the built-in debugger for VS Code. You can install this extension by:
+The new, upcoming JavaScript debugger for VS Code. This extension debugs Node.js and web applications (in Edge and Chrome), and will eventually become the built-in debugger for VS Code.
 
-1. Installing the `js-debug-nightly` extension from the marketplace.
-1. Adding `"debug.javascript.usePreview": true` to your user settings.
+This extension is installed by default on all VS Code versions after 1.46.0, however it's not enabled. You can enable it by adding `"debug.javascript.usePreview": true` to your user settings. Then you should be able to run and debug your existing programs without changing your launch config. If you can't, then please file an issue.
 
-Then you should be able to run and debug your existing programs without changing your launch config. If you can't, then please file an issue.
+### Nightly Extension
+
+The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. To do this:
+
+1. Open the extensions view (ctrl+shift+x) and search for `@builtin @id:ms-vscode.js-debug`
+2. Right click on the `JavaScript Debugger` extension and `Disable` it.
+3. Search for `@id:ms-vscode.js-debug-nightly` in the extensions view.
+4. Install that extension.
 
 ## What's new?
 
