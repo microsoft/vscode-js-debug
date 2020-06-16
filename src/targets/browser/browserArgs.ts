@@ -60,6 +60,7 @@ export class BrowserArgs {
     '--disable-sync',
     '--metrics-recording-only',
     '--no-first-run',
+    '--no-default-browser-check',
   ]);
 
   private readonly argMap = once(() => argsToMap(this.args));
