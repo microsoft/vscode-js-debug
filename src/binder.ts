@@ -6,7 +6,7 @@ import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Thread } from './adapter/threads';
-import { CancellationTokenSource, TaskCancelledError } from './common/cancellation';
+import { CancellationTokenSource } from './common/cancellation';
 import { IDisposable, EventEmitter } from './common/events';
 import { LogTag, ILogger, resolveLoggerOptions } from './common/logging';
 import * as urlUtils from './common/urlUtils';
@@ -203,11 +203,17 @@ export class Binder implements IDisposable {
 
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
-    let results = await Promise.all(
-      [...this.getLaunchers()].map(l => this._launch(l, params, cts.token)),
-    );
-    results = results.filter(result => !!result);
-    if (results.length) return errors.createUserError(results.join('\n'));
+
+    try {
+      await Promise.all([...this.getLaunchers()].map(l => this._launch(l, params, cts.token)));
+    } catch (e) {
+      if (e instanceof errors.ProtocolError) {
+        e.cause.showUser = false; // avoid duplicate error messages in the UI
+      }
+
+      throw e;
+    }
+
     return {};
   }
 
@@ -255,12 +261,8 @@ export class Binder implements IDisposable {
     launcher: ILauncher,
     params: AnyLaunchConfiguration,
     cancellationToken: CancellationToken,
-  ): Promise<string | undefined> {
+  ): Promise<void> {
     const result = await this.captureLaunch(launcher, params, cancellationToken);
-    if (result.error) {
-      return result.error;
-    }
-
     if (!result.blockSessionTermination) {
       return;
     }
@@ -301,31 +303,16 @@ export class Binder implements IDisposable {
         dap: await this._dap,
       });
     } catch (e) {
-      if (e instanceof TaskCancelledError) {
-        result = {
-          error: localize('errors.timeout', '{0}: timeout after {1}ms', e.message, params.timeout),
-        };
-      }
-
-      result = { error: e.message };
-    }
-
-    if (result.error) {
-      // Assume it was precipiated from some timeout, if we got an error after cancellation
-      if (cancellationToken.isCancellationRequested) {
-        result.error = localize(
-          'errors.timeout',
-          '{0}: timeout after {1}ms',
-          result.error,
-          params.timeout,
-        );
-      }
-
       this._rootServices.get<ILogger>(ILogger).warn(LogTag.RuntimeLaunch, 'Launch returned error', {
-        error: result.error,
+        error: e,
+        wasCancelled: cancellationToken.isCancellationRequested,
         name,
       });
-    } else if (result.blockSessionTermination) {
+
+      throw e;
+    }
+
+    if (result.blockSessionTermination) {
       this._rootServices
         .get<ILogger>(ILogger)
         .info(LogTag.RuntimeLaunch, 'Launched successfully', { name });

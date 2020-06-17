@@ -20,6 +20,7 @@ import { ILogger } from '../../common/logging';
 import { injectable, inject, optional } from 'inversify';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { VSCodeApi } from '../../ioc-extras';
+import { browserAttachFailed, targetPageNotFound, ProtocolError } from '../../dap/errors';
 
 const localize = nls.loadMessageBundle();
 
@@ -58,8 +59,8 @@ export class BrowserAttacher implements ILauncher {
 
     this._lastLaunchParams = params;
 
-    const error = await this._attemptToAttach(params, context);
-    return error ? { error } : { blockSessionTermination: true };
+    await this._attemptToAttach(params, context);
+    return { blockSessionTermination: true };
   }
 
   _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
@@ -75,9 +76,6 @@ export class BrowserAttacher implements ILauncher {
       params,
       context.cancellationToken,
     );
-    if (typeof connection === 'string') {
-      return connection; // an error
-    }
 
     this._connection = connection;
     connection.onDisconnected(
@@ -128,14 +126,9 @@ export class BrowserAttacher implements ILauncher {
 
     const result = await Promise.race([
       targetManager.waitForMainTarget(await this.getTargetFilter(targetManager, params)),
-      delay(params.timeout).then(() =>
-        localize(
-          'chrome.attach.noMatchingTarget',
-          "Can't find a valid target that matches {0} within {1}ms",
-          params.urlFilter || params.url,
-          params.timeout,
-        ),
-      ),
+      delay(params.timeout).then(() => {
+        throw new ProtocolError(targetPageNotFound());
+      }),
     ]);
 
     return typeof result === 'string' ? result : undefined;
@@ -195,11 +188,15 @@ export class BrowserAttacher implements ILauncher {
         );
       } catch (e) {
         if (cancellationToken.isCancellationRequested) {
-          return localize(
-            'attach.cannotConnect',
-            'Cannot connect to the target at {0}: {1}',
-            browserURL,
-            e.message,
+          throw new ProtocolError(
+            browserAttachFailed(
+              localize(
+                'attach.cannotConnect',
+                'Cannot connect to the target at {0}: {1}',
+                browserURL,
+                e.message,
+              ),
+            ),
           );
         }
 
@@ -207,11 +204,15 @@ export class BrowserAttacher implements ILauncher {
       }
     }
 
-    return localize(
-      'attach.cannotConnect',
-      'Cannot connect to the target at {0}: {1}',
-      browserURL,
-      'Cancelled',
+    throw new ProtocolError(
+      browserAttachFailed(
+        localize(
+          'attach.cannotConnect',
+          'Cannot connect to the target at {0}: {1}',
+          browserURL,
+          'Cancelled',
+        ),
+      ),
     );
   }
 

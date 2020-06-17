@@ -26,6 +26,9 @@ export const enum ErrorCodes {
   InvalidBreakpointCondition,
   ReplError,
   SourceMapParseFailed,
+  BrowserLaunchFailed,
+  TargetPageNotFound,
+  BrowserAttachFailed,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -175,6 +178,27 @@ export const browserNotFound = (
           JSON.stringify([...new Set(available)]),
         ),
     ErrorCodes.BrowserNotFound,
+  );
+
+export const browserLaunchFailed = (innerError: Error) =>
+  createUserError(
+    localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', innerError.message),
+    ErrorCodes.BrowserLaunchFailed,
+  );
+
+export const browserAttachFailed = (message?: string) =>
+  createUserError(
+    message ?? localize('error.browserAttachError', 'Unable to attach to browser'),
+    ErrorCodes.BrowserAttachFailed,
+  );
+
+export const targetPageNotFound = () =>
+  createUserError(
+    localize(
+      'error.threadNotFound',
+      'Target page not found. You may need to update your "urlFilter" to match the page you want to debug.',
+    ),
+    ErrorCodes.TargetPageNotFound,
   );
 
 export const invalidLogPointSyntax = (error: string) =>

@@ -45,7 +45,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
    */
   protected async launchProgram(
     runData: IRunData<IExtensionHostAttachConfiguration>,
-  ): Promise<string | void> {
+  ): Promise<void> {
     const inspectorURL = await retryGetWSEndpoint(
       `http://localhost:${runData.params.port}`,
       runData.context.cancellationToken,

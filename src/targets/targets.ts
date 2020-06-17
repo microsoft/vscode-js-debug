@@ -66,7 +66,6 @@ export interface ILaunchContext {
 }
 
 export interface ILaunchResult {
-  error?: string;
   blockSessionTermination?: boolean;
 }
 

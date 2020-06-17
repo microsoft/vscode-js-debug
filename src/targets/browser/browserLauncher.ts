@@ -5,7 +5,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { CancellationToken } from 'vscode';
-import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
 import { EnvironmentVars } from '../../common/environmentVars';
@@ -23,8 +22,12 @@ import { StoragePath, IInitializeParams } from '../../ioc-extras';
 import { Quality } from 'vscode-js-debug-browsers';
 import { DisposableList } from '../../common/disposable';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-
-const localize = nls.loadMessageBundle();
+import {
+  browserLaunchFailed,
+  targetPageNotFound,
+  browserAttachFailed,
+  ProtocolError,
+} from '../../dap/errors';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
   supportsLaunchUnelevatedProcessRequest?: boolean;
@@ -134,12 +137,12 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   private async prepareLaunch(
     params: T,
     { dap, targetOrigin, cancellationToken, telemetryReporter }: ILaunchContext,
-  ): Promise<BrowserTarget | string> {
+  ): Promise<BrowserTarget> {
     let launched: launcher.ILaunchResult;
     try {
       launched = await this.launchBrowser(params, dap, cancellationToken, telemetryReporter);
     } catch (e) {
-      return localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', e.message);
+      throw new ProtocolError(browserLaunchFailed(e));
     }
 
     this._disposables.push(launched.cdp.onDisconnected(() => this.fireTerminatedEvent()));
@@ -155,8 +158,9 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       telemetryReporter,
       targetOrigin,
     );
-    if (!this._targetManager)
-      return localize('error.unableToAttachToBrowser', 'Unable to attach to the browser');
+    if (!this._targetManager) {
+      throw new ProtocolError(browserAttachFailed());
+    }
 
     this._targetManager.serviceWorkerModel.onDidChange(() =>
       this._onTargetListChangedEmitter.fire(),
@@ -179,10 +183,14 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       'Could not attach to main target',
     );
 
-    if (!this._mainTarget) return localize('error.threadNotFound', 'Target page not found');
+    if (!this._mainTarget) {
+      throw new ProtocolError(targetPageNotFound());
+    }
+
     this._targetManager.onTargetRemoved((target: BrowserTarget) => {
       if (target === this._mainTarget) this.fireTerminatedEvent();
     });
+
     return this._mainTarget;
   }
 
@@ -217,12 +225,8 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       return { blockSessionTermination: false };
     }
 
-    const targetOrError = await this.prepareLaunch(resolved, context);
-    if (typeof targetOrError === 'string') {
-      return { error: targetOrError };
-    }
-
-    await this.finishLaunch(targetOrError, resolved);
+    const target = await this.prepareLaunch(resolved, context);
+    await this.finishLaunch(target, resolved);
     return { blockSessionTermination: true };
   }
 

@@ -89,17 +89,17 @@ export class DelegateLauncher implements ILauncher {
 
     const delegate = this.parentList.get(params.delegateId);
     if (delegate === undefined) {
-      return { error: `Could not get debug session delegate ID ${params.delegateId}` };
+      throw new Error(`Could not get debug session delegate ID ${params.delegateId}`);
     }
 
     const origin = delegate.target.targetOrigin();
     if (!(origin instanceof MutableTargetOrigin)) {
-      return { error: `Expected delegate session to have a mutable target origin` };
+      throw new Error(`Expected delegate session to have a mutable target origin`);
     }
 
     const logger = delegate.target.logger;
     if (!(logger instanceof ProxyLogger)) {
-      return { error: `Expected delegate session to have a proxy logger` };
+      throw new Error(`Expected delegate session to have a proxy logger`);
     }
 
     // Update the origin to 're-home' it under the current debug session,
