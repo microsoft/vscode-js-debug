@@ -205,6 +205,16 @@ export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
     localize('sourcemapParseError', 'Could not read source map for {0}: {1}', compiledUrl, message),
   );
 
+export const contentHashValidationFailed = (sourcePath: string, message: string) =>
+  createUserError(
+    localize(
+      'contentHashValidationError',
+      'Could not validate source on storage matches the one seen by the JavaScript engine {0}: {1}\n',
+      sourcePath,
+      message,
+    ),
+  );
+
 export class ProtocolError extends Error {
   public readonly cause: Dap.Message;
 

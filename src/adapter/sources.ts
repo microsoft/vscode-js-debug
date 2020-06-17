@@ -27,7 +27,7 @@ import { Script } from './threads';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { once } from '../common/objUtils';
 import { IResourceProvider } from './resourceProvider';
-import { sourceMapParseFailed } from '../dap/errors';
+import { sourceMapParseFailed, contentHashValidationFailed } from '../dap/errors';
 
 const localize = nls.loadMessageBundle();
 
@@ -140,6 +140,7 @@ export class Source {
     sourceMapUrl?: string,
     public readonly inlineScriptOffset?: InlineScriptOffset,
     contentHash?: string,
+    onContentHashFailure?: (sourcePath: string, rejection: Error) => void,
   ) {
     this._sourceReference = container.getSourceReference(url);
     this._contentGetter = once(contentGetter);
@@ -149,12 +150,17 @@ export class Source {
     this._name = this._humanName();
     this.setSourceMapUrl(sourceMapUrl);
 
-    this._existingAbsolutePath = sourceUtils.checkContentHash(
-      this._absolutePath,
-      // Inline scripts will never match content of the html file. We skip the content check.
-      inlineScriptOffset ? undefined : contentHash,
-      container._fileContentOverridesForTest.get(this._absolutePath),
-    );
+    this._existingAbsolutePath = sourceUtils
+      .checkContentHash(
+        this._absolutePath,
+        // Inline scripts will never match content of the html file. We skip the content check.
+        inlineScriptOffset ? undefined : contentHash,
+        container._fileContentOverridesForTest.get(this._absolutePath),
+      )
+      .catch(rejection => {
+        if (onContentHashFailure) onContentHashFailure(this._absolutePath, rejection);
+        return undefined; // When validation fails, we assume that the content hash didn't match
+      });
   }
 
   private setSourceMapUrl(sourceMapUrl?: string) {
@@ -716,6 +722,7 @@ export class SourceContainer {
         : undefined,
       inlineSourceRange,
       contentHash,
+      (filename, exception) => this._onContentHashFailure(filename, exception),
     );
     this._addSource(source);
     return source;
@@ -886,6 +893,13 @@ export class SourceContainer {
     }
 
     await Promise.all(todo);
+  }
+
+  private _onContentHashFailure(sourcePath: string, exception: Error) {
+    this._dap.output({
+      output: contentHashValidationFailed(sourcePath, exception.message).error.format,
+      category: 'stderr',
+    });
   }
 
   private _removeSourceMapSources(compiled: ISourceWithMap, map: SourceMap, silent: boolean) {
