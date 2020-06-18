@@ -246,10 +246,7 @@ export function createLaunchConfigFromContext(
     if (resolve) {
       writeToConsole(
         localize(
-          {
-            key: 'mern.starter.explanation',
-            comment: ['argument contains product name without translation'],
-          },
+          'mern.starter.explanation',
           "Launch configuration for '{0}' project created.",
           'Mern Starter',
         ),

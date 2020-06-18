@@ -115,8 +115,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     vscode.window.showWarningMessage(
       localize(
         'breakpointTerminationWarnSlow',
-        'Profiling with breakpoints enabled can change the performance of your code. It can be ' +
-          'useful to validate your findings with the "duration" or "manual" termination conditions.',
+        'Profiling with breakpoints enabled can change the performance of your code. It can be useful to validate your findings with the "duration" or "manual" termination conditions.',
       ),
       localize('breakpointTerminationWarnConfirm', 'Got it!'),
     );

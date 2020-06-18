@@ -20,6 +20,9 @@ const fs = require('fs');
 const cp = require('child_process');
 const util = require('util');
 const deepmerge = require('deepmerge');
+const os = require('os');
+const unzipper = require('unzipper');
+const got = require('got').default;
 
 const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
@@ -195,7 +198,7 @@ async function runWebpack({
   let configs = [];
   for (const { entry, library, filename } of packages) {
     const config = {
-      mode,
+      mode: 'development',
       target: 'node',
       entry: path.resolve(entry),
       output: {
@@ -206,6 +209,16 @@ async function runWebpack({
       devtool: devtool,
       resolve: {
         extensions: ['.js', '.json'],
+      },
+      module: {
+        rules: [
+          {
+            loader: 'vscode-nls-dev/lib/webpack-loader',
+            options: {
+              base: path.join(__dirname, 'out/src'),
+            },
+          },
+        ],
       },
       node: {
         __dirname: false,
@@ -290,6 +303,25 @@ gulp.task('package:createVSIX', () =>
   }),
 );
 
+gulp.task('nls:bundle-create', () =>
+  gulp.src(sources, { base: __dirname })
+    .pipe(nls.createMetaDataFiles())
+    .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, 'dist'))
+    .pipe(nls.bundleLanguageFiles())
+    .pipe(filter('**/nls.*.json'))
+    .pipe(gulp.dest('dist')),
+);
+
+gulp.task(
+  'translations-export',
+  gulp.series('clean', 'compile', 'nls:bundle-create', () =>
+    gulp
+      .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
+      .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
+      .pipe(gulp.dest(`../vscode-translations-export`)),
+  ),
+);
+
 /** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
   'package',
@@ -300,6 +332,7 @@ gulp.task(
     'compile:dynamic',
     'package:webpack-bundle',
     'package:copy-extension-files',
+    'nls:bundle-create',
     'package:createVSIX',
   ),
 );
@@ -333,31 +366,6 @@ gulp.task(
     gulp.watch([...sources, '*.json'], gulp.series('compile'));
     done();
   }),
-);
-
-gulp.task(
-  'nls-bundle-create',
-  gulp.series('compile', () =>
-    tsProject
-      .src()
-      .pipe(sourcemaps.init())
-      .pipe(tsProject())
-      .js.pipe(nls.createMetaDataFiles())
-      .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, 'out'))
-      .pipe(nls.bundleLanguageFiles())
-      .pipe(filter('**/nls.*.json'))
-      .pipe(gulp.dest('out')),
-  ),
-);
-
-gulp.task(
-  'translations-export',
-  gulp.series('clean', 'compile', 'nls-bundle-create', () =>
-    gulp
-      .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
-      .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
-      .pipe(gulp.dest(`../vscode-translations-export`)),
-  ),
 );
 
 const runPrettier = (onlyStaged, fix, callback) => {
