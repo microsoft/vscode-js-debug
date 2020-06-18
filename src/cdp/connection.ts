@@ -52,6 +52,7 @@ export default class Connection {
   private _closed: boolean;
   private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new EventEmitter<void>();
+  public readonly waitWrapper = makeWaitForNextTask();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
   constructor(
@@ -311,7 +312,7 @@ class CDPSession {
   }
 
   _processQueue() {
-    waitWrapper(() => {
+    this._connection?.waitWrapper(() => {
       if (this.paused) {
         return;
       }
@@ -375,8 +376,6 @@ class CDPSession {
     this._connection = undefined;
   }
 }
-
-const waitWrapper = makeWaitForNextTask();
 
 // implementation taken from playwright: https://github.com/microsoft/playwright/blob/59d0f8728d4809b39785d68d7a146f06f0dbe2e6/src/helper.ts#L233
 // See https://joel.tools/microtasks/
