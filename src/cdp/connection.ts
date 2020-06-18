@@ -52,6 +52,7 @@ export default class Connection {
   private _closed: boolean;
   private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new EventEmitter<void>();
+  public readonly waitWrapper = makeWaitForNextTask();
   readonly onDisconnected = this._onDisconnectedEmitter.event;
 
   constructor(
@@ -311,8 +312,7 @@ class CDPSession {
   }
 
   _processQueue() {
-    const waitWrapper = makeWaitForNextTask();
-    waitWrapper(() => {
+    this._connection?.waitWrapper(() => {
       if (this.paused) {
         return;
       }
