@@ -12,6 +12,7 @@ import { TerminalProcess } from './program';
 import { removeNulls } from '../../common/objUtils';
 import { ILogger } from '../../common/logging';
 import { injectable, inject } from 'inversify';
+import * as path from 'path';
 
 const localize = nls.loadMessageBundle();
 
@@ -32,12 +33,17 @@ export class TerminalProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
+    let program = config.program;
+    if (program && path.isAbsolute(program)) {
+      program = `.${path.sep}${path.relative(config.cwd, program)}`;
+    }
+
     const params: Dap.RunInTerminalParams = {
       kind: config.console === 'integratedTerminal' ? 'integrated' : 'external',
       title: localize('node.console.title', 'Node Debug Console'),
       cwd: config.cwd,
-      args: config.program
-        ? [binary, ...config.runtimeArgs, config.program, ...config.args]
+      args: program
+        ? [binary, ...config.runtimeArgs, program, ...config.args]
         : [binary, ...config.runtimeArgs, ...config.args],
       env: removeNulls(config.env),
     };
