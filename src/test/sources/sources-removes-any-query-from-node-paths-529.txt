@@ -1,0 +1,8 @@
+{
+    reason : new
+    source : {
+        name : simpleNode/simpleWebpackWithQuery.ts
+        path : ${workspaceFolder}/simpleNode/simpleWebpackWithQuery.ts
+        sourceReference : 0
+    }
+}

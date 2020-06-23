@@ -179,6 +179,19 @@ describe('sources', () => {
     handle.assertLog();
   });
 
+  itIntegrates('removes any query from node paths (#529)', async ({ r }) => {
+    const handle = await r.runScript(
+      join(testWorkspace, 'simpleNode', 'simpleWebpackWithQuery.js'),
+      {
+        cwd: join(testWorkspace, 'simpleNode'),
+      },
+    );
+
+    handle.load();
+    handle.log(await handle.waitForSource('simpleWebpack'), undefined, []);
+    handle.assertLog();
+  });
+
   /**
    *  different encodings for the same string: "\"1111111111111111111111111111111111111111111\""
    */
