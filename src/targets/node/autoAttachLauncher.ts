@@ -113,7 +113,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     canUseSpacesInBootloaderPath: boolean,
   ) {
     // Use the local bootloader in development mode for easier iteration
-    if (this.extensionContext.extensionMode !== vscode.ExtensionMode.Release) {
+    if (this.extensionContext.extensionMode !== vscode.ExtensionMode.Production) {
       return super.getBootloaderFile(cwd, canUseSpacesInBootloaderPath);
     }
 

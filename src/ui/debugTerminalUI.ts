@@ -165,6 +165,6 @@ export function registerDebugTerminalUI(
         config,
       ),
     ),
-    vscode.window.registerTerminalLinkHandler?.(linkHandler),
+    vscode.window.registerTerminalLinkProvider?.(linkHandler),
   );
 }

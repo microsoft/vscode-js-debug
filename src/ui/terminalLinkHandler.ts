@@ -12,17 +12,35 @@ import {
   DebugType,
   DebugByLinkState,
 } from '../common/contributionUtils';
-import { URL } from 'url';
 import { isMetaAddress } from '../common/urlUtils';
+import urlRegex from 'url-regex';
+import { IDisposable, DisposableList } from '../common/disposable';
+import { once } from '../common/objUtils';
 
 const localize = nls.loadMessageBundle();
+const urlRe = urlRegex({ strict: true });
+
+interface ITerminalLink extends vscode.TerminalLink {
+  workspaceFolder?: number;
+}
 
 @injectable()
-export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
-  private notifiedCantOpenOnWeb = false;
+export class TerminalLinkHandler
+  implements vscode.TerminalLinkProvider<ITerminalLink>, IDisposable {
   private readonly enabledTerminals = new WeakSet<vscode.Terminal>();
+  private readonly disposable = new DisposableList();
+  private notifiedCantOpenOnWeb = false;
+  private baseConfiguration = this.readConfig();
 
-  constructor(@inject(IDefaultBrowserProvider) private defaultBrowser: IDefaultBrowserProvider) {}
+  constructor(@inject(IDefaultBrowserProvider) private defaultBrowser: IDefaultBrowserProvider) {
+    this.disposable.push(
+      vscode.workspace.onDidChangeConfiguration(evt => {
+        if (evt.affectsConfiguration(Configuration.DebugByLinkOptions)) {
+          this.baseConfiguration = this.readConfig();
+        }
+      }),
+    );
+  }
 
   /**
    * Turns on link handling in the given terminal.
@@ -32,21 +50,79 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
   }
 
   /**
-   * Launches a browser debug session when a link is clicked from a debug terminal.
+   * @inheritdoc
    */
-  public async handleLink(terminal: vscode.Terminal, link: string) {
-    const baseConfig = this.readConfig();
-    switch (baseConfig.enabled) {
+  public dispose() {
+    this.disposable.dispose();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public provideTerminalLinks(context: vscode.TerminalLinkContext) {
+    switch (this.baseConfiguration.enabled) {
       case 'off':
-        return false;
+        return [];
       case 'always':
         break;
       case 'on':
       default:
-        if (!this.enabledTerminals.has(terminal)) {
-          return false;
+        if (!this.enabledTerminals.has(context.terminal)) {
+          return [];
         }
     }
+
+    const links: ITerminalLink[] = [];
+    const getCwd = once(() => {
+      // Do our best to resolve the right workspace folder to launch in, and debug
+      if ('cwd' in context.terminal.creationOptions && context.terminal.creationOptions.cwd) {
+        const folder = vscode.workspace.getWorkspaceFolder(
+          typeof context.terminal.creationOptions.cwd === 'string'
+            ? vscode.Uri.file(context.terminal.creationOptions.cwd)
+            : context.terminal.creationOptions.cwd,
+        );
+
+        if (folder) {
+          return folder;
+        }
+      }
+
+      return vscode.workspace.workspaceFolders?.[0];
+    });
+
+    urlRe.lastIndex = 0;
+    while (true) {
+      const match = urlRe.exec(context.line);
+      if (!match) {
+        return links;
+      }
+
+      const uri = match[0].startsWith('http')
+        ? vscode.Uri.parse(match[0])
+        : vscode.Uri.parse(`https://${match[0]}`);
+
+      if (uri.scheme !== 'http' && uri.scheme !== 'https') {
+        continue;
+      }
+
+      links.push({
+        startIndex: match.index,
+        length: match[0].length,
+        target: uri,
+        workspaceFolder: getCwd()?.index,
+      });
+    }
+  }
+
+  /**
+   * Launches a browser debug session when a link is clicked from a debug terminal.
+   */
+  public async handleTerminalLink(terminal: ITerminalLink): Promise<boolean> {
+    if (!terminal.target) {
+      return false;
+    }
+
+    let uri = terminal.target;
 
     if (vscode.env.uiKind === vscode.UIKind.Web) {
       if (this.notifiedCantOpenOnWeb) {
@@ -64,35 +140,8 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
       return false;
     }
 
-    // Don't debug things that explicitly aren't http/s
-    let url: URL;
-    try {
-      url = new URL(link);
-    } catch {
-      return false; // invalid URL
-    }
-
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      return false;
-    }
-
-    if (isMetaAddress(link)) {
-      url.hostname = 'localhost';
-      link = url.toString();
-    }
-
-    // Do our best to resolve the right workspace folder to launch in, and debug
-    let cwd: vscode.WorkspaceFolder | undefined;
-    if ('cwd' in terminal.creationOptions && terminal.creationOptions.cwd) {
-      cwd = vscode.workspace.getWorkspaceFolder(
-        typeof terminal.creationOptions.cwd === 'string'
-          ? vscode.Uri.file(terminal.creationOptions.cwd)
-          : terminal.creationOptions.cwd,
-      );
-    }
-
-    if (!cwd) {
-      cwd = vscode.workspace.workspaceFolders?.[0];
+    if (isMetaAddress(uri.authority)) {
+      uri = uri.with({ authority: 'localhost' });
     }
 
     let debugType: DebugType.Chrome | DebugType.Edge = DebugType.Chrome;
@@ -104,12 +153,16 @@ export class TerminalLinkHandler implements vscode.TerminalLinkHandler {
       // ignored
     }
 
+    const cwd = terminal.workspaceFolder
+      ? vscode.workspace.workspaceFolders?.[terminal.workspaceFolder]
+      : undefined;
+
     vscode.debug.startDebugging(cwd, {
-      ...baseConfig,
+      ...this.baseConfiguration,
       type: debugType,
-      name: link,
+      name: uri.toString(),
       request: 'launch',
-      url: link,
+      url: uri.toString(),
     });
 
     return true;
