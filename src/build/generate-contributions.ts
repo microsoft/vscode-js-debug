@@ -1045,7 +1045,7 @@ const commands: ReadonlyArray<{
     command: Commands.StartProfile,
     title: refString('profile.start'),
     category: 'Debug',
-    icon: '$(circle-outline)',
+    icon: '$(record)',
   },
   {
     command: Commands.StopProfile,
