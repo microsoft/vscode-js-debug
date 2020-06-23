@@ -18,7 +18,7 @@ import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
-import { isSubdirectoryOf, forceForwardSlashes } from '../common/pathUtils';
+import { isSubdirectoryOf, forceForwardSlashes, properResolve } from '../common/pathUtils';
 import { relative } from 'path';
 import { inject, injectable } from 'inversify';
 import { IDapApi } from '../dap/connection';
@@ -290,9 +290,10 @@ export class Source {
    */
   private _humanName() {
     if (utils.isAbsolute(this._fqname)) {
-      const root = this._container.rootPath;
-      if (root && isSubdirectoryOf(root, this._fqname)) {
-        return forceForwardSlashes(relative(root, this._fqname));
+      for (const root of this._container.rootPaths) {
+        if (isSubdirectoryOf(root, this._fqname)) {
+          return forceForwardSlashes(relative(root, this._fqname));
+        }
       }
     }
 
@@ -417,7 +418,7 @@ export class SourceContainer {
   /**
    * Project root path, if set.
    */
-  public readonly rootPath?: string;
+  public readonly rootPaths: string[] = [];
 
   /**
    * Mapping of CDP script IDs to Script objects.
@@ -456,7 +457,13 @@ export class SourceContainer {
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {
     this._dap = dap;
-    this.rootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
+
+    const mainRootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
+    if (mainRootPath) {
+      // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
+      this.rootPaths = [mainRootPath, properResolve(mainRootPath, '..', 'ClientApp')];
+    }
+
     scriptSkipper.setSourceContainer(this);
   }
 
