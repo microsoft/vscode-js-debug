@@ -20,8 +20,9 @@ const fs = require('fs');
 const cp = require('child_process');
 const util = require('util');
 const deepmerge = require('deepmerge');
-const os = require('os');
 const unzipper = require('unzipper');
+const signale = require('signale');
+const streamBuffers = require('stream-buffers');
 const got = require('got').default;
 
 const dirname = 'js-debug';
@@ -303,8 +304,43 @@ gulp.task('package:createVSIX', () =>
   }),
 );
 
+gulp.task('nls:bundle-download', async () => {
+  const res = await got.stream('https://github.com/microsoft/vscode-loc/archive/master.zip');
+  await new Promise((resolve, reject) =>
+    res
+      .pipe(unzipper.Parse())
+      .on('entry', entry => {
+        const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(
+          entry.path,
+        );
+        if (!match) {
+          return entry.autodrain();
+        }
+
+        const buffer = new streamBuffers.WritableStreamBuffer();
+        const locale = match[1];
+        entry.pipe(buffer).on('finish', () => {
+          try {
+            const strings = JSON.parse(buffer.getContentsAsString('utf-8'));
+            fs.writeFileSync(
+              path.join(distDir, `nls.bundle.${locale}.json`),
+              JSON.stringify(strings.contents),
+            );
+            signale.info(`Added strings for ${locale}`);
+          } catch (e) {
+            reject(`Error parsing ${entry.path}: ${e}`);
+          }
+        });
+      })
+      .on('end', resolve)
+      .on('error', reject)
+      .resume(),
+  );
+});
+
 gulp.task('nls:bundle-create', () =>
-  gulp.src(sources, { base: __dirname })
+  gulp
+    .src(sources, { base: __dirname })
     .pipe(nls.createMetaDataFiles())
     .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, 'dist'))
     .pipe(nls.bundleLanguageFiles())
@@ -344,6 +380,7 @@ gulp.task(
     'compile',
     'flatSessionBundle:webpack-bundle',
     'package:copy-extension-files',
+    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
   ),
 );
 
