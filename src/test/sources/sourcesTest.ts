@@ -188,7 +188,7 @@ describe('sources', () => {
     );
 
     handle.load();
-    handle.log(await handle.waitForSource('simpleWebpack'), undefined, []);
+    handle.log(await handle.waitForSource('simpleWebpackWithQuery.ts'), undefined, []);
     handle.assertLog();
   });
 
