@@ -30,6 +30,14 @@ const create = () => {
     delete deferredMap[msg.id];
     deferred?.resolve(msg);
   });
+  instance.on('exit', () => {
+    Object.keys(deferredMap).forEach(msgId => {
+      delete deferredMap[msgId];
+      const deferred = deferredMap[msgId];
+      deferred?.reject(new Error('hash.bundle.js process unexpectedly exited'));
+    });
+    instance = undefined;
+  });
 
   return instance;
 };
