@@ -2311,9 +2311,13 @@ export namespace Dap {
     args: LaunchVSCodeArgument[];
 
     env: object;
+
+    debugRenderer?: boolean;
   }
 
-  export interface LaunchVSCodeResult {}
+  export interface LaunchVSCodeResult {
+    rendererDebugPort?: number;
+  }
 
   export interface LoadedSourceEventParams {
     /**

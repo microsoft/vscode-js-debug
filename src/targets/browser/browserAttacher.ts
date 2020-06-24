@@ -7,7 +7,7 @@ import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
 import type * as vscodeType from 'vscode';
-import { BrowserTargetManager, BrowserTargetType } from './browserTargets';
+import { BrowserTargetManager } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
@@ -30,26 +30,35 @@ export class BrowserAttacher implements ILauncher {
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _disposables: IDisposable[] = [];
-  private _lastLaunchParams?: AnyChromiumAttachConfiguration;
+  protected _lastLaunchParams?: AnyChromiumAttachConfiguration;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
 
   constructor(
-    @inject(ILogger) private readonly logger: ILogger,
+    @inject(ILogger) protected readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
     @optional() @inject(VSCodeApi) private readonly vscode?: typeof vscodeType,
   ) {}
 
-  dispose() {
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
     for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
     if (this._attemptTimer) clearTimeout(this._attemptTimer);
     if (this._targetManager) this._targetManager.dispose();
   }
 
-  async launch(params: AnyLaunchConfiguration, context: ILaunchContext): Promise<ILaunchResult> {
+  /**
+   * @inheritdoc
+   */
+  public async launch(
+    params: AnyLaunchConfiguration,
+    context: ILaunchContext,
+  ): Promise<ILaunchResult> {
     if (
       (params.type !== DebugType.Chrome && params.type !== DebugType.Edge) ||
       params.request !== 'attach'
@@ -57,20 +66,46 @@ export class BrowserAttacher implements ILauncher {
       return { blockSessionTermination: false };
     }
 
-    this._lastLaunchParams = params;
+    this._lastLaunchParams = { ...params, timeout: Infinity };
 
-    await this._attemptToAttach(params, context);
+    await this._attemptToAttach(this._lastLaunchParams, context);
     return { blockSessionTermination: true };
   }
 
-  _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
+  /**
+   * Schedules an attempt to reconnect after a short timeout.
+   */
+  private _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
       this._attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
     }, 1000);
   }
 
-  async _attemptToAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
+  /**
+   * Creates the target manager for handling the given connection.
+   */
+  protected createTargetManager(
+    connection: CdpConnection,
+    params: AnyChromiumAttachConfiguration,
+    context: ILaunchContext,
+  ) {
+    return BrowserTargetManager.connect(
+      connection,
+      undefined,
+      this.pathResolver,
+      params,
+      this.logger,
+      context.telemetryReporter,
+      context.targetOrigin,
+    );
+  }
+
+  /**
+   * Attempts to attach to the target. Returns an error in a string if the
+   * connection was not successful.
+   */
+  private async _attemptToAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
     const connection = await this.acquireConnectionForBrowser(
       context.telemetryReporter,
       params,
@@ -97,14 +132,10 @@ export class BrowserAttacher implements ILauncher {
       this._disposables,
     );
 
-    const targetManager = (this._targetManager = await BrowserTargetManager.connect(
+    const targetManager = (this._targetManager = await this.createTargetManager(
       connection,
-      undefined,
-      this.pathResolver,
       params,
-      this.logger,
-      context.telemetryReporter,
-      context.targetOrigin,
+      context,
     ));
 
     if (!targetManager) {
@@ -134,7 +165,10 @@ export class BrowserAttacher implements ILauncher {
     return typeof result === 'string' ? result : undefined;
   }
 
-  private async getTargetFilter(
+  /**
+   * Gets the filter function to pick which target to attach to.
+   */
+  protected async getTargetFilter(
     manager: BrowserTargetManager,
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
@@ -143,10 +177,7 @@ export class BrowserAttacher implements ILauncher {
       return baseFilter;
     }
 
-    const targets = await manager.getCandiateInfo(
-      t => t.type === BrowserTargetType.Page && baseFilter(t),
-    );
-
+    const targets = await manager.getCandiateInfo(baseFilter);
     if (targets.length === 0) {
       return baseFilter;
     }
@@ -172,20 +203,17 @@ export class BrowserAttacher implements ILauncher {
     return target => target.targetId === selected.targetId;
   }
 
+  /**
+   * Gets a CDP connection to the browser.
+   */
   private async acquireConnectionForBrowser(
     rawTelemetryReporter: ITelemetryReporter,
     params: AnyChromiumAttachConfiguration,
     cancellationToken: CancellationToken,
   ) {
-    const browserURL = `http://${params.address}:${params.port}`;
     while (this._lastLaunchParams === params) {
       try {
-        return await launcher.attach(
-          { browserURL, inspectUri: params.inspectUri, pageURL: params.url },
-          cancellationToken,
-          this.logger,
-          rawTelemetryReporter,
-        );
+        return await this.acquireConnectionInner(rawTelemetryReporter, params, cancellationToken);
       } catch (e) {
         if (cancellationToken.isCancellationRequested) {
           throw new ProtocolError(
@@ -193,7 +221,7 @@ export class BrowserAttacher implements ILauncher {
               localize(
                 'attach.cannotConnect',
                 'Cannot connect to the target at {0}: {1}',
-                browserURL,
+                `${params.address}:${params.port}`,
                 e.message,
               ),
             ),
@@ -209,10 +237,28 @@ export class BrowserAttacher implements ILauncher {
         localize(
           'attach.cannotConnect',
           'Cannot connect to the target at {0}: {1}',
-          browserURL,
+          `${params.address}:${params.port}`,
           'Cancelled',
         ),
       ),
+    );
+  }
+
+  /**
+   * Inner method to get a CDP connection to the browser. May fail early, but
+   * should throw if cancellation is required.
+   */
+  protected async acquireConnectionInner(
+    rawTelemetryReporter: ITelemetryReporter,
+    params: AnyChromiumAttachConfiguration,
+    cancellationToken: CancellationToken,
+  ) {
+    const browserURL = `http://${params.address}:${params.port}`;
+    return await launcher.attach(
+      { browserURL, inspectUri: params.inspectUri, pageURL: params.url },
+      cancellationToken,
+      this.logger,
+      rawTelemetryReporter,
     );
   }
 

@@ -12,6 +12,7 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { ITargetOrigin } from '../targetOrigin';
 import { ITarget, IBreakpointPathAndId } from '../targets';
 import { ILogger, LogTag } from '../../common/logging';
+import { AnyNodeConfiguration } from '../../configuration';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -44,6 +45,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   public readonly onNameChanged = this._onNameChangedEmitter.event;
 
   constructor(
+    public readonly launchConfig: AnyNodeConfiguration,
     private readonly pathResolver: ISourcePathResolver,
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,

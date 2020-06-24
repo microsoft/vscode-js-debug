@@ -2,7 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 export const delay = (duration: number) =>
-  new Promise<void>(resolve => setTimeout(resolve, duration));
+  isFinite(duration)
+    ? new Promise<void>(resolve => setTimeout(resolve, duration))
+    : new Promise<void>(() => undefined);
 
 export interface IDeferred<T> {
   resolve: (result: T) => void;

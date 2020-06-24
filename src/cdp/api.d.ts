@@ -15626,6 +15626,11 @@ export namespace Cdp {
       showPositiveLineNumbers?: boolean;
 
       /**
+       * Show Negative line number labels (default: false).
+       */
+      showNegativeLineNumbers?: boolean;
+
+      /**
        * The grid container border highlight color (default: transparent).
        */
       gridBorderColor?: DOM.RGBA;

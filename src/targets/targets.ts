@@ -20,6 +20,13 @@ export const ITarget = Symbol('ITarget');
  * actually get a debug adapter API.
  */
 export interface ITarget {
+  /**
+   * Launch configuration for the target. This is used to inject into the IOC
+   * in cases where a target's configuration is different than its parent's
+   * (e.g. webview debugging in the extension host).
+   */
+  readonly launchConfig: AnyLaunchConfiguration;
+
   id(): string;
   name(): string;
   onNameChanged: IEvent<void>;

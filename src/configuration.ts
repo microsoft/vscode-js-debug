@@ -192,6 +192,12 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
   request: 'launch';
 
   /**
+   * Whether we should try to attach to webviews in the launched
+   * VS Code instance.
+   */
+  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+
+  /**
    * Port the extension host is listening on.
    */
   port?: number;
@@ -205,10 +211,8 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
 export interface IExtensionHostAttachConfiguration extends IExtensionHostBaseConfiguration {
   type: DebugType.ExtensionHost;
   request: 'attach';
-
-  /**
-   * Port the extension host is listening on.
-   */
+  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+  __sessionId: string;
   port: number;
 }
 
@@ -732,6 +736,7 @@ export const extensionHostConfigDefaults: IExtensionHostLaunchConfiguration = {
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   runtimeExecutable: '${execPath}',
   autoAttachChildProcesses: false,
+  debugWebviews: false,
   __sessionId: '',
 };
 
