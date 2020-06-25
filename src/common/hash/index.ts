@@ -27,7 +27,6 @@ const create = () => {
     return instance;
   }
 
-  instanceFailureCount = 0;
   instance = fork(join(__dirname, 'hash.bundle.js'), [], { env: {}, silent: true, execArgv: [] });
   instance.setMaxListeners(Infinity);
   instance.addListener('message', raw => {
