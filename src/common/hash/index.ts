@@ -9,12 +9,17 @@ import { debounce } from '../objUtils';
 import { IDeferred, getDeferred } from '../promiseUtil';
 
 let instance: ChildProcess | undefined;
+let instanceFailureCount = 0;
+const MaximumRetriesForFailure = 3;
 let messageId = 0;
-const deferredMap: { [id: number]: IDeferred<HashResponse<HashRequest>> | undefined } = {};
+const deferredMap: {
+  [id: number]: { deferred: IDeferred<HashResponse<HashRequest>> | undefined; request: {} };
+} = {};
 
 const deferCleanup = debounce(30 * 1000, () => {
   instance?.kill();
   instance = undefined;
+  instanceFailureCount = 0;
 });
 
 const create = () => {
@@ -26,9 +31,28 @@ const create = () => {
   instance.setMaxListeners(Infinity);
   instance.addListener('message', raw => {
     const msg = raw as HashResponse<HashRequest>;
-    const deferred = deferredMap[msg.id];
+    const deferred = deferredMap[msg.id].deferred;
     delete deferredMap[msg.id];
     deferred?.resolve(msg);
+  });
+
+  instance.on('exit', () => {
+    const isRetrying = instanceFailureCount++ <= MaximumRetriesForFailure;
+    if (isRetrying) {
+      instance = undefined;
+      create();
+      deferCleanup();
+    }
+
+    Object.keys(deferredMap).forEach(msgId => {
+      const { deferred, request } = deferredMap[msgId];
+      if (isRetrying) {
+        instance?.send(request);
+      } else {
+        delete deferredMap[msgId];
+        deferred?.reject(new Error('hash.bundle.js process unexpectedly exited'));
+      }
+    });
   });
 
   return instance;
@@ -40,7 +64,7 @@ const send = <T extends HashRequest>(req: T): Promise<HashResponse<T>> => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deferred = getDeferred<any>();
-  deferredMap[req.id] = deferred;
+  deferredMap[req.id] = { deferred, request: req };
   cp.send(req);
 
   return deferred.promise;
