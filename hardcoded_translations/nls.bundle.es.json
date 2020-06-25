@@ -1,0 +1,217 @@
+{
+  "src/adapter/breakpoints/userDefinedBreakpoint": [
+    "Punto de interrupción sin enlazar"
+  ],
+  "src/binder": [
+    "Punto de interrupción sin enlazar"
+  ],
+  "src/adapter/customBreakpoints": [
+    "Error de WebGL \"{0}\"",
+    "En pausa en el punto de interrupción de instrumentación de error de WebGL, error \"{0}\"",
+    "Infracción de CSP \"{0}\"",
+    "En pausa en el punto de interrupción de instrumentación de infracción de la directiva de seguridad de contenido, directiva \"{0}\"",
+    "En pausa en el punto de interrupción de instrumentación \"{0}\"",
+    "En pausa en el punto de interrupción \"{0}\" del agente de escucha de eventos, que se desencadena en \"{1}\"",
+    "Solicitar fotograma de animación",
+    "Cancelar fotograma de animación",
+    "Fotograma de animación activado",
+    "Crear contexto de lienzo",
+    "Error de WebGL activado",
+    "Advertencia de WebGL activada",
+    "Instrucción Script First",
+    "Script bloqueado por la directiva de seguridad de contenido",
+    "Establecer innerHTML",
+    "setTimeout activado",
+    "setInterval activado",
+    "Crear AudioContext",
+    "Cerrar AudioContext",
+    "Reanudar AudioContext",
+    "Suspender AudioContext"
+  ],
+  "src/adapter/debugAdapter": [
+    "Excepciones detectadas",
+    "Excepciones no detectadas",
+    "Origen no encontrado",
+    "No se puede recuperar el contenido de origen",
+    "Variable no encontrada",
+    "Página de destino no encontrada. Es posible que tenga que actualizar \"urlFilter\" para que coincida con la página que desea depurar.",
+    "Origen no encontrado",
+    "Origen no encontrado",
+    "No se puede imprimir con sangría"
+  ],
+  "src/adapter/variables": [
+    "Variable no encontrada",
+    "No se puede establecer un valor vacío",
+    "Expresión no válida",
+    "Variable no encontrada",
+    "No se puede establecer el valor de la variable",
+    "No se puede establecer el valor de la variable"
+  ],
+  "src/dap/errors": [
+    "El atributo \"runtimeVersion\" con un tipo/arquitectura requiere que \"NVS\" esté instalado.",
+    "El atributo \"runtimeVersion\" con un tipo/arquitectura requiere que \"NVS\" esté instalado.",
+    "El atributo \"runtimeVersion\" requiere el administrador de versiones \"nvm-windows\" o \"nvs\" de Node.js.",
+    "La versión de Node.js \"{0}\" no está instalada con el administrador de versiones {1}.",
+    "No se puede iniciar el destino de depuración en el terminal ({0}).",
+    "No se pueden cargar las variables de entorno desde el archivo ({0}).",
+    "No se encuentra el archivo binario de Node.js \"{0}\". Asegúrese de que Node.js esté instalado y en su ruta de acceso, o bien establezca \"runtimeExecutable\" en launch.json.",
+    "La versión de Node en \"{0}\" está obsoleta (versión {1}); se requiere al menos Node 8.x.",
+    "Condición de acierto no válida \"{0}\" Se esperaba una expresión como \"> 42\" o \"== 2\".",
+    "Error al tomar un perfil del destino.",
+    "Detenga el perfil en ejecución antes de iniciar uno nuevo.",
+    "No se puede encontrar una instalación de {0} en el sistema. Intente instalarlo o proporcione una ruta de acceso absoluta al explorador en \"runtimeExecutable\" en launch.json.",
+    "No se puede encontrar la versión de {0} {1}. Las versiones detectadas automáticamente disponibles son: {2}. Puede establecer \"runtimeExecutable\" en el archivo launch.json en una de ellas, o proporcionar una ruta de acceso absoluta al archivo ejecutable del explorador.",
+    "No se puede iniciar el explorador \"{0}\"",
+    "No se puede asociar al explorador",
+    "Página de destino no encontrada. Es posible que tenga que actualizar \"urlFilter\" para que coincida con la página que desea depurar.",
+    "Variables no disponibles en pilas asincrónicas",
+    "Error de sintaxis al establecer un punto de interrupción con la condición {0} en la línea {1}: {2}",
+    "No se pudo leer el mapa de origen para {0}: {1}"
+  ],
+  "src/adapter/profiling/basicCpuProfiler": [
+    "Perfil de CPU",
+    "Genera un archivo .cpuprofile que se puede abrir en DevTools de Chrome"
+  ],
+  "src/adapter/sources": [
+    "Omitido por skipFiles"
+  ],
+  "src/adapter/stackTrace": [
+    "GLOBAL",
+    "LOCAL",
+    "Bloque With",
+    "Clausura",
+    "Bloque Catch",
+    "Bloquear",
+    "Script",
+    "Eval",
+    "Módulo",
+    "Clausura ({0})",
+    "Omitido por smartStep",
+    "Valor devuelto"
+  ],
+  "src/adapter/threads": [
+    "No se puede reanudar",
+    "No se puede pausar",
+    "No se puede ir al paso siguiente",
+    "No se puede depurar paso a paso por instrucciones",
+    "No se puede salir de la depuración",
+    "Marco de pila no encontrado",
+    "No se puede evaluar en el marco de pila asincrónico",
+    "No se puede reiniciar el marco asincrónico",
+    "En pausa por una entrada de marco",
+    "El subproceso no está en pausa",
+    "El subproceso no está en pausa en la excepción",
+    "No se puede evaluar",
+    "No se puede evaluar",
+    "En pausa en la aserción",
+    "En pausa en la llamada debug()",
+    "En pausa en el punto de interrupción DOM",
+    "En pausa por una excepción",
+    "Pausado por un rechazo de promesa",
+    "En pausa por un punto de interrupción",
+    "En pausa por una instrucción del depurador",
+    "En pausa en el punto de interrupción de instrumentación",
+    "En pausa en XMLHttpRequest o en la captura",
+    "En pausa antes de la excepción de memoria insuficiente",
+    "En pausa por un punto de interrupción",
+    "En pausa por una instrucción del depurador",
+    "En pausa por una instrucción del depurador",
+    "En pausa en el agente de escucha de eventos",
+    "Error de aserción"
+  ],
+  "src/targets/browser/browserAttacher": [
+    "Seleccione una pestaña",
+    "No se puede conectar con el destino en {0}: {1}",
+    "No se puede conectar con el destino en {0}: {1}"
+  ],
+  "src/targets/node/nodeAttacher": [
+    "Se perdió la conexión con la depuración, se volverá a conectar en {0} ms\r\n"
+  ],
+  "src/targets/node/terminalProgramLauncher": [
+    "Consola de depuración de nodos"
+  ],
+  "src/ui/companionBrowserLaunch": [
+    "No se puede iniciar un explorador en modo de depuración desde aquí. Abra este área de trabajo en VS Code en el escritorio para habilitar la depuración."
+  ],
+  "src/ui/configuration/chromiumDebugConfigurationProvider": [
+    "Iniciar Chrome para localhost"
+  ],
+  "src/ui/configuration/nodeDebugConfigurationProvider": [
+    "Crear terminal de depuración de JavaScript",
+    "Ejecutar el script {0}",
+    "Ejecutar el archivo actual"
+  ],
+  "src/ui/configuration/nodeDebugConfigurationResolver": [
+    "No se encuentra ningún programa para depurar.",
+    "Iniciar programa",
+    "La configuración de inicio del proyecto '{0}' fue creada. ",
+    "La configuración de inicio fue creada basada en \"package.json\".",
+    "Ajusta modelos globales en los atributos ‘outFiles’ para cubrir el código JavaScript generado."
+  ],
+  "src/ui/debugNpmScript": [
+    "Debe abrir una carpeta de área de trabajo para depurar scripts npm.",
+    "No se pudo leer {0}: {1}",
+    "No se han encontrado scripts npm en su package.json",
+    "Editar package.json"
+  ],
+  "src/ui/experimentEnlist": [
+    "Puede desactivar el nuevo depurador mediante el valor \"debug.javascript.usePreview\". Informe de los problemas que se produzcan. Gracias por probarlo."
+  ],
+  "src/ui/longPredictionUI": [
+    "Se está tardando un rato en configurar los puntos de interrupción. Para acelerar este proceso, actualice \"outfiles\" en launch.json.",
+    "Abrir launch.json",
+    "No mostrar de nuevo",
+    "No hay ninguna carpeta del área de trabajo abierta."
+  ],
+  "src/ui/npmScriptLens": [
+    "Depuración de {0}"
+  ],
+  "src/ui/prettyPrint": [
+    "Sí",
+    "No",
+    "Nunca"
+  ],
+  "src/ui/profiling/uiProfileManager": [
+    "Generación de perfiles",
+    "$(loading) Haga clic aquí para detener la generación de perfiles ({0})",
+    "$(loading) Haga clic aquí para detener la generación de perfiles.",
+    "$(loading) Haga clic aquí para detener la generación de perfiles ({0} sesiones)",
+    "Sí",
+    "No",
+    "Ya se está ejecutando una sesión de generación de perfiles, ¿desea detenerla e iniciar una nueva?",
+    "Tipo de perfil:",
+    "Cuánto tiempo se ejecuta el perfil:"
+  ],
+  "src/ui/processPicker": [
+    "Asociar al proceso: '{0}' no parece un id de proceso.",
+    "Falló el selector de proceso ({0})",
+    "Seleccione el proceso node. js para adjuntarlo a",
+    "Id. del proceso: {0}, puerto de depuración: {1} ({2})",
+    "Id. del proceso: {0} ({1})",
+    "Asociar al proceso: no se puede habilitar el modo de depuración para el proceso '{0}' ({1})."
+  ],
+  "src/ui/profiling/breakpointTerminationCondition": [
+    "Seleccionar el punto de interrupción",
+    "Ejecutar hasta que se alcance un punto de interrupción concreto",
+    "La generación de perfiles con puntos de interrupción habilitados puede cambiar el rendimiento del código. Puede ser útil validar los hallazgos con las condiciones de terminación \"duration\" o \"manual\".",
+    "Entendido"
+  ],
+  "src/ui/profiling/durationTerminationCondition": [
+    "Manual",
+    "Ejecutar hasta que se detenga manualmente",
+    "Duración del perfil",
+    "Duración del perfil en segundos, por ejemplo, \"5\"",
+    "Escriba un número.",
+    "Escriba un número mayor que 1."
+  ],
+  "src/ui/profiling/manualTerminationCondition": [
+    "Manual",
+    "Ejecutar hasta que se detenga manualmente"
+  ],
+  "src/ui/profiling/uiProfileSession": [
+    "Guardar"
+  ],
+  "src/ui/terminalLinkHandler": [
+    "No se puede iniciar un explorador en modo de depuración desde aquí. Si desea depurar esta página web, abra este área de trabajo de VS Code en el escritorio."
+  ]
+}
