@@ -385,13 +385,19 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
-  _targetInfo: Cdp.Target.TargetInfo;
+  private _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached = false;
+  private _customNameComputeFn?: (t: BrowserTarget) => string | undefined;
   _onNameChangedEmitter = new EventEmitter<void>();
-  readonly onNameChanged = this._onNameChangedEmitter.event;
+
+  public readonly onNameChanged = this._onNameChangedEmitter.event;
   public readonly entryBreakpoint = undefined;
+
+  public get targetInfo(): Readonly<Cdp.Target.TargetInfo> {
+    return this._targetInfo;
+  }
 
   public get targetId() {
     return this._targetInfo.targetId;
@@ -558,7 +564,21 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     this._onNameChangedEmitter.fire();
   }
 
+  /**
+   * Sets a function to compute a custom name for the target.
+   * Used to name webviews in js-debug better. Can
+   * return undefined to use the default handling.
+   */
+  public setComputeNameFn(fn: (target: BrowserTarget) => string | undefined) {
+    this._customNameComputeFn = fn;
+    this._onNameChangedEmitter.fire();
+  }
+
   _computeName(): string {
+    const custom = this._customNameComputeFn?.(this);
+    if (custom) {
+      return custom;
+    }
     if (this.type() === BrowserTargetType.ServiceWorker) {
       const version = this._manager.serviceWorkerModel.version(this.id());
       if (version) return version.label() + ' [Service Worker]';

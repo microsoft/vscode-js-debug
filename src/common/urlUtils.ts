@@ -11,7 +11,6 @@ import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import { exists } from './fsUtils';
 import Cdp from '../cdp/api';
-import { BrowserTargetType } from '../targets/browser/browserTargets';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -400,14 +399,14 @@ export type TargetFilter = (info: Cdp.Target.TargetInfo) => boolean;
 export const createTargetFilterForConfig = (
   config: AnyChromiumConfiguration,
   additonalMatches: ReadonlyArray<string> = [],
-): ((t: { type: string; url: string }) => boolean) => {
+): ((t: { url: string }) => boolean) => {
   const filter = config.urlFilter || config.url || ('file' in config && config.file);
   if (!filter) {
-    return t => t.type === BrowserTargetType.Page;
+    return () => true;
   }
 
   const tester = createTargetFilter(filter, ...additonalMatches);
-  return t => t.type === BrowserTargetType.Page && tester(t.url);
+  return t => tester(t.url);
 };
 
 /**

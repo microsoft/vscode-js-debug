@@ -7,7 +7,7 @@ import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
 import type * as vscodeType from 'vscode';
-import { BrowserTargetManager } from './browserTargets';
+import { BrowserTargetManager, BrowserTargetType } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
@@ -172,7 +172,8 @@ export class BrowserAttacher implements ILauncher {
     manager: BrowserTargetManager,
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
-    const baseFilter = createTargetFilterForConfig(params);
+    const rawFilter = createTargetFilterForConfig(params);
+    const baseFilter: TargetFilter = t => t.type === BrowserTargetType.Page && rawFilter(t);
     if (params.targetSelection !== 'pick') {
       return baseFilter;
     }

@@ -20,9 +20,15 @@ import Connection from '../../cdp/connection';
 import { SourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { BrowserTargetManager, BrowserTargetType } from './browserTargets';
+import { BrowserTargetManager, BrowserTargetType, BrowserTarget } from './browserTargets';
 import { DisposableList } from '../../common/disposable';
-import { TargetFilter } from '../../common/urlUtils';
+import { TargetFilter, createTargetFilterForConfig } from '../../common/urlUtils';
+import { URL } from 'url';
+
+export const enum WebviewContentPurpose {
+  NotebookRenderer = 'notebookRenderer',
+  CustomEditor = 'customEditor',
+}
 
 @injectable()
 export class WebviewAttacher extends BrowserAttacher {
@@ -91,8 +97,12 @@ export class WebviewAttacher extends BrowserAttacher {
     return new Connection(new RawPipeTransport(this.logger, pipe), this.logger, telemetryReporter);
   }
 
-  protected async getTargetFilter(): Promise<TargetFilter> {
-    return target => target.type === BrowserTargetType.IFrame;
+  protected async getTargetFilter(
+    _manager: BrowserTargetManager,
+    params: AnyChromiumAttachConfiguration,
+  ): Promise<TargetFilter> {
+    const baseFilter = createTargetFilterForConfig(params);
+    return target => target.type === BrowserTargetType.IFrame && baseFilter(target);
   }
 
   /**
@@ -103,7 +113,7 @@ export class WebviewAttacher extends BrowserAttacher {
     params: AnyChromiumAttachConfiguration,
     context: ILaunchContext,
   ) {
-    return new BrowserTargetManager(
+    const manager = new BrowserTargetManager(
       connection,
       undefined,
       connection.rootSession(),
@@ -113,5 +123,32 @@ export class WebviewAttacher extends BrowserAttacher {
       params,
       context.targetOrigin,
     );
+
+    manager.onTargetAdded(target => {
+      if (target.type() === BrowserTargetType.IFrame) {
+        target.setComputeNameFn(this.computeName);
+      }
+    });
+
+    return manager;
   }
+
+  private readonly computeName = (target: BrowserTarget) => {
+    let url: URL;
+    try {
+      url = new URL(target.targetInfo.url);
+    } catch {
+      return;
+    }
+
+    switch (url.searchParams.get('purpose')) {
+      case WebviewContentPurpose.CustomEditor:
+        return `${url.searchParams.get('extensionId')} editor: ${url.host}`;
+      case WebviewContentPurpose.NotebookRenderer:
+        return `Notebook Renderer: ${url.host}`;
+      default:
+        const extensionId = url.searchParams.get('extensionId');
+        return `Webview: ${extensionId ? extensionId + ' ' : ''} ${url.host}`;
+    }
+  };
 }
