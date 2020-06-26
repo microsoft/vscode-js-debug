@@ -22,8 +22,8 @@ export async function getWSEndpoint(
     URL.resolve(browserURL, '/json/version'),
     cancellationToken,
   );
-  if (jsonVersion.webSocketDebuggerUrl) {
-    return jsonVersion.webSocketDebuggerUrl;
+  if (jsonVersion.ok && jsonVersion.body.webSocketDebuggerUrl) {
+    return jsonVersion.body.webSocketDebuggerUrl;
   }
 
   // Chrome its top-level debugg on /json/version, while Node does not.
@@ -32,8 +32,8 @@ export async function getWSEndpoint(
     URL.resolve(browserURL, '/json/list'),
     cancellationToken,
   );
-  if (jsonList.length) {
-    return jsonList[0].webSocketDebuggerUrl;
+  if (jsonList.ok && jsonList.body.length) {
+    return jsonList.body[0].webSocketDebuggerUrl;
   }
 
   throw new Error('Could not find any debuggable target');

@@ -773,7 +773,7 @@ export class SourceContainer {
       sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
     } catch (e) {
       this._dap.output({
-        output: sourceMapParseFailed(source.url, e.message).error.format,
+        output: sourceMapParseFailed(source.url, e.message).error.format + '\n',
         category: 'stderr',
       });
 
@@ -884,7 +884,7 @@ export class SourceContainer {
         content !== null
           ? () => Promise.resolve(content)
           : fileUrl
-          ? () => this.resourceProvider.fetch(fileUrl)
+          ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
       );
       source.compiledToSourceUrl.set(compiled, url);
@@ -940,8 +940,9 @@ export class SourceContainer {
       }
 
       if (!this.hasWarnedAboutMaps.has(sourceMap)) {
+        const message = sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error;
         this._dap.output({
-          output: sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error.format,
+          output: message.format + '\n',
           category: 'stderr',
         });
         this.hasWarnedAboutMaps.add(sourceMap);

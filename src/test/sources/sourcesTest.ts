@@ -336,6 +336,14 @@ describe('sources', () => {
       p.assertLog();
     });
 
+    itIntegrates.only('logs not found errors', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      const output = p.dap.once('output', o => o.category === 'stderr');
+      await p.evaluate('//# sourceMappingURL=does-not-exist.js.map\n');
+      await p.logger.logOutput(await output);
+      p.assertLog();
+    });
+
     itIntegrates('logs lazy parse errors', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       await p.dap.setBreakpoints({
