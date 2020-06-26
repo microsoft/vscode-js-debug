@@ -373,6 +373,11 @@ gulp.task(
   ),
 );
 
+gulp.task('copy-hardcoded-translations', async () => {
+  return gulp.src('./hardcoded_translations/*.json')
+    .pipe(gulp.dest('./dist'));
+});
+
 gulp.task(
   'flatSessionBundle',
   gulp.series(
@@ -381,6 +386,7 @@ gulp.task(
     'flatSessionBundle:webpack-bundle',
     'package:copy-extension-files',
     gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
+    'copy-hardcoded-translations'
   ),
 );
 
