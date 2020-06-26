@@ -16,14 +16,12 @@ import { IVueFileMapper } from '../adapter/vueFileMapper';
 @injectable()
 export class SourcePathResolverFactory {
   constructor(
-    @inject(AnyLaunchConfiguration) private readonly config: AnyLaunchConfiguration,
     @inject(IInitializeParams) private readonly initializeParams: Dap.InitializeParams,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
   ) {}
 
-  public create() {
-    const c = this.config;
+  public create(c: AnyLaunchConfiguration) {
     if (
       c.type === DebugType.Node ||
       c.type === DebugType.Terminal ||

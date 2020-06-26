@@ -577,6 +577,9 @@ const dapCustom: JSONSchema4 = {
         env: {
           type: 'object',
         },
+        debugRenderer: {
+          type: 'boolean',
+        },
       },
     },
     LaunchVSCodeArgument: {
@@ -598,6 +601,17 @@ const dapCustom: JSONSchema4 = {
         {
           type: 'object',
           description: "Response to 'LaunchVSCode' request.",
+          required: ['body'],
+          properties: {
+            body: {
+              type: 'object',
+              properties: {
+                rendererDebugPort: {
+                  type: 'number',
+                },
+              },
+            },
+          },
         },
       ],
     },

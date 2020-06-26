@@ -30,7 +30,7 @@ export const enum PreviewContextType {
   Clipboard = 'clipboard',
 }
 
-const repl: IPreviewContext = { budget: 1000, quoted: true };
+const repl: IPreviewContext = { budget: 100_000, quoted: true };
 const hover: IPreviewContext = {
   budget: 1000,
   quoted: true,

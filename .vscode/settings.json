@@ -1,26 +1,17 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-	"javascript.validate.enable": false,
-	"typescript.tsdk": "node_modules/typescript/lib",
-	"files.trimTrailingWhitespace": true,
-	"editor.insertSpaces": true,
+  "javascript.validate.enable": false,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.trimTrailingWhitespace": true,
+  "editor.insertSpaces": true,
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "typescript.preferences.quoteStyle": "single",
-  "workbench.colorCustomizations": {
-    "[Default Dark+]": {
-      "activityBar.background": "#105200"
-    },
-  },
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript"
-  ],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript"],
   "search.exclude": {
-    "**/testdata": true,
+    "**/testdata": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-},
+  },
+  "editor.formatOnSave": true
 }

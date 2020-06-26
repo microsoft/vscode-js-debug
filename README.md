@@ -261,7 +261,8 @@ The following options can be configured:
   "--extensionDevelopmentPath=${workspaceFolder}"
 ]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
-<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>debugWebviews</h4><p>Configures whether we should try to attach to webviews in the launched VS Code instance. <strong>Note:</strong> at the moment this requires the setting <code>&quot;webview.experimental.useExternalEndpoint&quot;: true</code> to work properly, and will only work in desktop VS Code.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>

@@ -670,45 +670,6 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
   },
 };
 
-const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
-  type: DebugType.ExtensionHost,
-  request: 'launch',
-  label: refString('extensionHost.label'),
-  required: ['args'],
-  configurationSnippets: [
-    {
-      label: refString('extensionHost.snippet.launch.label'),
-      description: refString('extensionHost.snippet.launch.description'),
-      body: {
-        type: DebugType.ExtensionHost,
-        request: 'launch',
-        name: refString('extensionHost.launch.config.name'),
-        runtimeExecutable: '^"\\${execPath}"',
-        args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
-        outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
-        preLaunchTask: 'npm',
-      },
-    },
-  ],
-  configurationAttributes: {
-    ...nodeBaseConfigurationAttributes,
-    args: {
-      type: 'array',
-      description: refString('node.launch.args.description'),
-      items: {
-        type: 'string',
-      },
-      default: ['--extensionDevelopmentPath=${workspaceFolder}'],
-    },
-    runtimeExecutable: {
-      type: ['string', 'null'],
-      markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
-      default: 'node',
-    },
-  },
-  defaults: extensionHostConfigDefaults,
-};
-
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   type: DebugType.Chrome,
   request: 'launch',
@@ -818,6 +779,59 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   ],
   configurationAttributes: chromiumAttachConfigurationAttributes,
   defaults: chromeAttachConfigDefaults,
+};
+
+const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
+  type: DebugType.ExtensionHost,
+  request: 'launch',
+  label: refString('extensionHost.label'),
+  required: ['args'],
+  configurationSnippets: [
+    {
+      label: refString('extensionHost.snippet.launch.label'),
+      description: refString('extensionHost.snippet.launch.description'),
+      body: {
+        type: DebugType.ExtensionHost,
+        request: 'launch',
+        name: refString('extensionHost.launch.config.name'),
+        runtimeExecutable: '^"\\${execPath}"',
+        args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
+        outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
+        preLaunchTask: 'npm',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...nodeBaseConfigurationAttributes,
+    args: {
+      type: 'array',
+      description: refString('node.launch.args.description'),
+      items: {
+        type: 'string',
+      },
+      default: ['--extensionDevelopmentPath=${workspaceFolder}'],
+    },
+    runtimeExecutable: {
+      type: ['string', 'null'],
+      markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
+      default: 'node',
+    },
+    debugWebviews: {
+      markdownDescription: refString('extensionHost.launch.debugWebviews'),
+      default: true,
+      oneOf: [
+        {
+          type: ['boolean'],
+          default: true,
+        },
+        {
+          type: 'object',
+          properties: chromiumAttachConfigurationAttributes as { [key: string]: JSONSchema6 },
+        },
+      ],
+    },
+  },
+  defaults: extensionHostConfigDefaults,
 };
 
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {

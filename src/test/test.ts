@@ -37,6 +37,7 @@ import { tmpdir, EOL } from 'os';
 import { forceForwardSlashes } from '../common/pathUtils';
 import playwright from 'playwright';
 import { DebugType } from '../common/contributionUtils';
+import { BrowserTarget } from '../targets/browser/browserTargets';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -237,7 +238,7 @@ export class TestP implements ITestHandle {
     const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
     const testSession = this._connection.createSession(result!.sessionId);
     const { sessionId } = (await testSession.Target.attachToTarget({
-      targetId: this._target.id(),
+      targetId: this._target instanceof BrowserTarget ? this._target.targetId : this._target.id(),
       flatten: true,
     }))!;
     this._cdp = this._connection.createSession(sessionId);
