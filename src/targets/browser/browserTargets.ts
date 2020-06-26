@@ -117,6 +117,9 @@ export class BrowserTargetManager implements IDisposable {
     this._browser.Target.on('targetInfoChanged', event => {
       this._targetInfoChanged(event.targetInfo);
     });
+    this._browser.Inspector.on('targetReloadedAfterCrash', event => {
+      this._browser.Runtime.runIfWaitingForDebugger({});
+    });
     this._targetOrigin = targetOrigin;
     this.serviceWorkerModel.onDidChange(() => {
       for (const target of this._targets.values()) {
