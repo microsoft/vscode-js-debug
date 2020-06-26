@@ -13,12 +13,12 @@ describe('NodeBinaryProvider', () => {
   let p: NodeBinaryProvider;
   const env = (name: string) =>
     EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider', name));
-  const binaryLocation = (name: string) =>
+  const binaryLocation = (name: string, binary = 'node') =>
     join(
       testWorkspace,
       'nodePathProvider',
       name,
-      process.platform === 'win32' ? 'node.exe' : 'node',
+      process.platform === 'win32' ? `${binary}.exe` : binary,
     );
 
   beforeEach(() => (p = new NodeBinaryProvider()));
@@ -55,5 +55,27 @@ describe('NodeBinaryProvider', () => {
     expect(binary.path).to.equal(binaryLocation('up-to-date'));
     // hit the cached path:
     expect(await p.resolveAndValidate(env('up-to-date'))).to.equal(binary);
+  });
+
+  it('resolves the binary if given a package manager', async () => {
+    const binary = await p.resolveAndValidate(env('up-to-date'), 'npm');
+    expect(binary.path).to.equal(binaryLocation('up-to-date', 'npm'));
+    expect(binary.majorVersion).to.equal(12);
+  });
+
+  it('still throws outdated through a package manager', async () => {
+    try {
+      await p.resolveAndValidate(env('outdated'), 'npm');
+      throw new Error('expected to throw');
+    } catch (err) {
+      expect(err).to.be.an.instanceOf(ProtocolError);
+      expect(err.cause.id).to.equal(ErrorCodes.NodeBinaryOutOfDate);
+    }
+  });
+
+  it('surpresses not found if a package manager exists', async () => {
+    const binary = await p.resolveAndValidate(env('no-node'), 'npm');
+    expect(binary.path).to.equal(binaryLocation('no-node', 'npm'));
+    expect(binary.majorVersion).to.be.undefined;
   });
 });

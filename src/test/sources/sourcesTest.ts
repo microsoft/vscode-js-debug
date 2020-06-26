@@ -336,7 +336,7 @@ describe('sources', () => {
       p.assertLog();
     });
 
-    itIntegrates.only('logs not found errors', async ({ r }) => {
+    itIntegrates('logs not found errors', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       const output = p.dap.once('output', o => o.category === 'stderr');
       await p.evaluate('//# sourceMappingURL=does-not-exist.js.map\n');
