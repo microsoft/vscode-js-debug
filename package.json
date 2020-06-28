@@ -184,6 +184,14 @@
         "contents": "%debug.terminal.welcome%",
         "when": "debugStartLanguage == javascript || debugStartLanguage == typescript"
       }
-    ]
+    ],
+    "terminal": {
+      "types": [
+        {
+          "command": "extension.NAMESPACE(node-debug).createDebuggerTerminal",
+          "title": "%debug.terminal.label%"
+        }
+      ]
+    }
   }
 }
