@@ -133,7 +133,7 @@ export function fulfillLoggerOptions(
   let logFile: string;
   let i = 0;
   do {
-    logFile = path.join(logDir, `vscode-debugadapter-${i++}.json`);
+    logFile = path.join(logDir, `vscode-debugadapter-${i++}.json.gz`);
   } while (existsSync(logFile));
 
   const defaults: ILoggingConfiguration = {

@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { WriteStream, createWriteStream, mkdirSync } from 'fs';
+import { createWriteStream, mkdirSync } from 'fs';
 import { ILogSink, ILogItem } from '.';
 import Dap from '../../dap/api';
 import { dirname } from 'path';
+import { createGzip, Gzip } from 'zlib';
 
 const replacer = (_key: string, value: unknown): unknown => {
   if (value instanceof Error) {
@@ -26,7 +27,7 @@ const replacer = (_key: string, value: unknown): unknown => {
  * A log sink that writes to a file.
  */
 export class FileLogSink implements ILogSink {
-  private stream?: WriteStream;
+  private stream?: Gzip;
 
   constructor(private readonly file: string, private readonly dap?: Dap.Api) {
     try {
@@ -35,7 +36,8 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    this.stream = createWriteStream(file);
+    this.stream = createGzip();
+    this.stream.pipe(createWriteStream(file));
   }
 
   /**
