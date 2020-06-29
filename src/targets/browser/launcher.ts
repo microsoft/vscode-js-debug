@@ -96,10 +96,7 @@ export async function launch(
     browserProcess = new NonTrackedBrowserProcess();
   } else {
     const cp = childProcess.spawn(executablePath, browserArguments.toArray(), {
-      // On non-windows platforms, `detached: false` makes child process a leader of a new
-      // process group, making it possible to kill child process tree with `.kill(-pid)` command.
-      // @see https://nodejs.org/api/child_process.html#child_process_options_detached
-      detached: process.platform !== 'win32',
+      detached: true,
       env: env.defined(),
       cwd,
       stdio,
