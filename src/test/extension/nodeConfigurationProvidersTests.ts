@@ -65,7 +65,7 @@ describe('NodeDebugConfigurationProvider', () => {
         console: false,
         level: 'verbose',
         stdio: true,
-        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
+        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json.gz'),
         tags: [],
       });
     });
@@ -82,7 +82,7 @@ describe('NodeDebugConfigurationProvider', () => {
         console: false,
         level: 'warn',
         stdio: true,
-        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json'),
+        logFile: join(testFixturesDir, 'vscode-debugadapter-0.json.gz'),
         tags: ['cdp'],
       });
     });
