@@ -9,7 +9,11 @@ import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
-import { absolutePathToFileUrl, createTargetFilterForConfig } from '../../common/urlUtils';
+import {
+  absolutePathToFileUrl,
+  createTargetFilterForConfig,
+  requirePageTarget,
+} from '../../common/urlUtils';
 import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
@@ -177,8 +181,9 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
+    const filter = requirePageTarget(createTargetFilterForConfig(params, ['about:blank']));
     this._mainTarget = await timeoutPromise(
-      this._targetManager.waitForMainTarget(createTargetFilterForConfig(params, ['about:blank'])),
+      this._targetManager.waitForMainTarget(filter),
       cancellationToken,
       'Could not attach to main target',
     );

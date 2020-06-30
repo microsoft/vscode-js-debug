@@ -7,12 +7,16 @@ import CdpConnection from '../../cdp/connection';
 import * as launcher from './launcher';
 import * as nls from 'vscode-nls';
 import type * as vscodeType from 'vscode';
-import { BrowserTargetManager, BrowserTargetType } from './browserTargets';
+import { BrowserTargetManager } from './browserTargets';
 import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
 import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { createTargetFilterForConfig, TargetFilter } from '../../common/urlUtils';
+import {
+  createTargetFilterForConfig,
+  TargetFilter,
+  requirePageTarget,
+} from '../../common/urlUtils';
 import { delay } from '../../common/promiseUtil';
 import { CancellationToken } from 'vscode';
 import { NeverCancelled } from '../../common/cancellation';
@@ -173,7 +177,7 @@ export class BrowserAttacher implements ILauncher {
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
     const rawFilter = createTargetFilterForConfig(params);
-    const baseFilter: TargetFilter = t => t.type === BrowserTargetType.Page && rawFilter(t);
+    const baseFilter = requirePageTarget(rawFilter);
     if (params.targetSelection !== 'pick') {
       return baseFilter;
     }
