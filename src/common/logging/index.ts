@@ -20,7 +20,7 @@ export const enum LogLevel {
   Never,
 }
 
-export enum LogTag {
+export const enum LogTag {
   Runtime = 'runtime',
   RuntimeSourceCreate = 'runtime.sourcecreate',
   RuntimeAssertion = 'runtime.assertion',
@@ -38,10 +38,28 @@ export enum LogTag {
   Internal = 'internal',
 }
 
+const logTabObj: { [K in LogTag]: null } = {
+  [LogTag.Runtime]: null,
+  [LogTag.RuntimeSourceCreate]: null,
+  [LogTag.RuntimeAssertion]: null,
+  [LogTag.RuntimeLaunch]: null,
+  [LogTag.RuntimeTarget]: null,
+  [LogTag.RuntimeWelcome]: null,
+  [LogTag.RuntimeException]: null,
+  [LogTag.RuntimeSourceMap]: null,
+  [LogTag.SourceMapParsing]: null,
+  [LogTag.PerfFunction]: null,
+  [LogTag.CdpSend]: null,
+  [LogTag.CdpReceive]: null,
+  [LogTag.DapSend]: null,
+  [LogTag.DapReceive]: null,
+  [LogTag.Internal]: null,
+};
+
 /**
  * List of all log tags.
  */
-export const allLogTags = Object.keys(LogTag) as ReadonlyArray<keyof typeof LogTag>;
+export const allLogTags = Object.keys(logTabObj) as ReadonlyArray<LogTag>;
 
 export interface ILogItem<T = unknown> {
   timestamp: number;

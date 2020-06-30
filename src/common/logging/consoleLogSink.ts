@@ -4,7 +4,7 @@
 
 import { ILogSink, ILogItem, LogLevel } from '.';
 import Dap from '../../dap/api';
-import Connection from '../../dap/connection';
+import { omitLoggingFor } from '../../dap/logOmittedCalls';
 
 /**
  * A log sink that writes to the console output.
@@ -43,7 +43,7 @@ export class ConsoleLogSink implements ILogSink {
     }
 
     output += '\n';
-    this.dap.output(Connection.omitLoggingFor({ category, output }));
+    this.dap.output(omitLoggingFor({ category, output }));
   }
 }
 

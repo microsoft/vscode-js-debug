@@ -11,6 +11,7 @@ import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
 import { getDeferred } from '../common/promiseUtil';
 import { HrTime } from '../common/hrnow';
+import { logOmittedCalls } from './logOmittedCalls';
 
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
@@ -21,7 +22,6 @@ export const isRequest = (req: string) => req.endsWith('Request');
 export const IDapApi = Symbol('IDapApi');
 
 export default class Connection {
-  private static readonly logOmittedCalls = new WeakSet<object>();
   private _sequence: number;
 
   private telemetryReporter?: ITelemetryReporter;
@@ -51,16 +51,6 @@ export default class Connection {
   public attachTelemetry(telemetryReporter: ITelemetryReporter) {
     this.telemetryReporter = telemetryReporter;
     this._dap.then(dap => telemetryReporter.attachDap(dap));
-  }
-
-  /**
-   * Omits logging a call when the given object is used as parameters for
-   * a method call. This is, at the moment, solely used to prevent logging
-   * log output and getting into an feedback loop with the ConsoleLogSink.
-   */
-  public static omitLoggingFor<T extends object>(obj: T): T {
-    Connection.logOmittedCalls.add(obj);
-    return obj;
   }
 
   public dap(): Promise<Dap.Api> {
@@ -144,7 +134,7 @@ export default class Connection {
   _send(message: Message) {
     message.seq = this._sequence++;
 
-    const shouldLog = message.type !== 'event' || !Connection.logOmittedCalls.has(message.body);
+    const shouldLog = message.type !== 'event' || !logOmittedCalls.has(message.body);
     this.transport.send(message, shouldLog);
   }
 

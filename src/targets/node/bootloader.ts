@@ -7,6 +7,7 @@ import 'reflect-metadata';
 import * as inspector from 'inspector';
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { LogTag } from '../../common/logging';
 import { onUncaughtError, ErrorType } from '../../telemetry/unhandledErrorReporter';
@@ -14,7 +15,6 @@ import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { checkAll } from './bootloader/filters';
 import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootloader/environment';
 import { bootloaderLogger } from './bootloader/logger';
-import { spawnSync } from 'child_process';
 import { spawnWatchdog } from './watchdogSpawn';
 
 const telemetry: IProcessTelemetry = {

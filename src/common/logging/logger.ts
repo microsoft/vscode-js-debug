@@ -183,11 +183,7 @@ export class Logger implements ILogger, IDisposable {
       // options. For instance, `cdp` adds the tags `cdp`, `cdp.send`, etc.
       this.tags = new Set(
         options.tags
-          .map(src =>
-            allLogTags
-              .map(key => LogTag[key])
-              .filter(tag => tag === src || tag.startsWith(`${src}.`)),
-          )
+          .map(src => allLogTags.filter(tag => tag === src || tag.startsWith(`${src}.`)))
           .reduce((acc, tags) => [...acc, ...tags], []),
       );
     } else {
