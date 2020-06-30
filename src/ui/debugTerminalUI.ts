@@ -83,14 +83,18 @@ export const launchVirtualTerminalParent = (
       const delegateId = delegate.addDelegate(target, dap, target.parent());
       if (!target.parent()) {
         const cwd = await getWorkingDirectory(target);
-        vscode.debug.startDebugging(cwd && vscode.workspace.getWorkspaceFolder(cwd), {
-          ...baseDebugOptions,
-          type: DebugType.Terminal,
-          name: 'Node.js Process',
-          request: 'attach',
-          delegateId,
-          __workspaceFolder: cwd,
-        });
+        vscode.debug.startDebugging(
+          cwd && vscode.workspace.getWorkspaceFolder(cwd),
+          {
+            ...baseDebugOptions,
+            type: DebugType.Terminal,
+            name: 'Node.js Process',
+            request: 'attach',
+            delegateId,
+            __workspaceFolder: cwd,
+          },
+          { noDebug: true },
+        );
       }
     }
 

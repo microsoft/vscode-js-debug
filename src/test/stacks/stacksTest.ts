@@ -129,6 +129,55 @@ describe('stacks', () => {
       p.assertLog();
     });
 
+    itIntegrates('remembers step direction out', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.addScriptTag('smartStep/directional.js');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/smartStep/directional.ts') },
+        breakpoints: [{ line: 2, column: 0 }],
+      });
+
+      const result = p.evaluate(
+        'doCall(() => { mapped1(); mapped2(); })\n//# sourceMappingURL=does.not.exist',
+      );
+      const { threadId } = await p.dap.once('stopped');
+      await p.logger.logStackTrace(threadId!);
+      await p.dap.stepOut({ threadId: threadId! });
+      p.logger.logAsConsole('\n# stepping out\n');
+
+      await p.dap.once('stopped');
+      await p.logger.logStackTrace(threadId!);
+      await p.dap.continue({ threadId: threadId! });
+      await result;
+      p.assertLog();
+    });
+
+    itIntegrates('remembers step direction in', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.addScriptTag('smartStep/directional.js');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/smartStep/directional.ts') },
+        breakpoints: [{ line: 2, column: 0 }],
+      });
+
+      const result = p.evaluate(
+        'doCall(() => { mapped1(); mapped2(); })\n//# sourceMappingURL=does.not.exist',
+      );
+      const { threadId } = await p.dap.once('stopped');
+      await p.logger.logStackTrace(threadId!);
+
+      for (let i = 0; i < 2; i++) {
+        await p.dap.stepIn({ threadId: threadId! });
+        await p.dap.once('stopped');
+      }
+
+      p.logger.logAsConsole('\n# stepping in\n');
+      await p.logger.logStackTrace(threadId!);
+      await p.dap.continue({ threadId: threadId! });
+      await result;
+      p.assertLog();
+    });
+
     itIntegrates('does not smart step on exception breakpoints', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       await p.dap.setExceptionBreakpoints({ filters: ['uncaught', 'caught'] });

@@ -42,7 +42,18 @@ export type PausedReason =
   | 'entry'
   | 'goto'
   | 'function breakpoint'
-  | 'data breakpoint';
+  | 'data breakpoint'
+  | 'frame_entry';
+
+export const enum StepDirection {
+  In,
+  Over,
+  Out,
+}
+
+export type ExpectedPauseReason =
+  | { reason: Exclude<PausedReason, 'step'>; description?: string }
+  | { reason: 'step'; description?: string; direction: StepDirection };
 
 export interface IPausedDetails {
   thread: Thread;
@@ -136,7 +147,7 @@ export class Thread implements IVariableStoreDelegate {
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   private readonly _smartStepper: SmartStepper;
-  private _expectedPauseReason?: { reason: PausedReason; description?: string };
+  private _expectedPauseReason?: ExpectedPauseReason;
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
@@ -210,21 +221,26 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (await this._cdp.Debugger.stepOver({})) this._expectedPauseReason = { reason: 'step' };
+    if (await this._cdp.Debugger.stepOver({}))
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
     else return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
     if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true }))
-      this._expectedPauseReason = { reason: 'step' };
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
     else return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
-    if (!(await this._cdp.Debugger.stepOut({})))
+    if (await this._cdp.Debugger.stepOut({})) {
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+    } else {
       return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+    }
+
     return {};
   }
 
@@ -253,7 +269,7 @@ export class Thread implements IVariableStoreDelegate {
 
     await this._cdp.Debugger.restartFrame({ callFrameId });
     this._expectedPauseReason = {
-      reason: 'frame_entry' as PausedReason,
+      reason: 'frame_entry',
       description: localize('reason.description.restart', 'Paused on frame entry'),
     };
     await this._cdp.Debugger.stepInto({});
@@ -684,14 +700,25 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    const shouldSmartStep = await this._smartStepper.shouldSmartStep(pausedDetails);
+    const smartStepDirection = await this._smartStepper.getSmartStepDirection(
+      pausedDetails,
+      this._expectedPauseReason,
+    );
+
+    // avoid racing:
     if (this._pausedDetails !== pausedDetails) {
       return;
     }
 
-    if (shouldSmartStep) {
-      this.stepInto();
-      return;
+    switch (smartStepDirection) {
+      case StepDirection.In:
+        return this.stepInto();
+      case StepDirection.Out:
+        return this.stepOut();
+      case StepDirection.Over:
+        return this.stepOver();
+      default:
+      // continue
     }
 
     this._pausedDetailsEvent.set(pausedDetails, event);
@@ -1393,7 +1420,7 @@ export class Thread implements IVariableStoreDelegate {
 
     this._dap.with(dap =>
       dap.stopped({
-        reason: details.reason,
+        reason: details.reason as Dap.StoppedEventParams['reason'],
         description: details.description,
         threadId: this.id,
         text: details.text,

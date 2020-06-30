@@ -6,7 +6,8 @@ import { createWriteStream, mkdirSync } from 'fs';
 import { ILogSink, ILogItem } from '.';
 import Dap from '../../dap/api';
 import { dirname } from 'path';
-import { createGzip, Gzip } from 'zlib';
+import { createGzip } from 'zlib';
+import { Writable } from 'stream';
 
 const replacer = (_key: string, value: unknown): unknown => {
   if (value instanceof Error) {
@@ -27,7 +28,7 @@ const replacer = (_key: string, value: unknown): unknown => {
  * A log sink that writes to a file.
  */
 export class FileLogSink implements ILogSink {
-  private stream?: Gzip;
+  private stream?: Writable;
 
   constructor(private readonly file: string, private readonly dap?: Dap.Api) {
     try {
@@ -36,8 +37,12 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    this.stream = createGzip();
-    this.stream.pipe(createWriteStream(file));
+    if (file.endsWith('.gz')) {
+      this.stream = createGzip();
+      this.stream.pipe(createWriteStream(file));
+    } else {
+      this.stream = createWriteStream(file);
+    }
   }
 
   /**
