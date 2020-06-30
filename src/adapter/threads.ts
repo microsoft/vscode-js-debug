@@ -21,7 +21,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { ILogger } from '../common/logging';
+import { ILogger, LogTag } from '../common/logging';
 import { AnyObject } from './objectPreview/betterTypes';
 import { IEvaluator } from './evaluator';
 import {
@@ -149,7 +149,7 @@ export class Thread implements IVariableStoreDelegate {
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: IThreadDelegate,
-    logger: ILogger,
+    private readonly logger: ILogger,
     private readonly evaluator: IEvaluator,
     private readonly completer: ICompletions,
     private readonly launchConfig: AnyLaunchConfiguration,
@@ -464,7 +464,10 @@ export class Thread implements IVariableStoreDelegate {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      this._ensureDebuggerEnabledAndRefreshDebuggerId();
+      if (!this.launchConfig.noDebug) {
+        this._ensureDebuggerEnabledAndRefreshDebuggerId();
+      }
+
       this.replVariables.clear();
       this._executionContextsCleared();
     });
@@ -483,14 +486,19 @@ export class Thread implements IVariableStoreDelegate {
       else if (event.hints['queryObjects']) this._queryObjects(event.object);
       else this._revealObject(event.object);
     });
-    this._cdp.Runtime.enable({});
-    this._cdp.Network.enable({});
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
 
-    this._ensureDebuggerEnabledAndRefreshDebuggerId();
+    if (!this.launchConfig.noDebug) {
+      this._cdp.Runtime.enable({});
+      this._cdp.Network.enable({});
+      this._ensureDebuggerEnabledAndRefreshDebuggerId();
+    } else {
+      this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');
+    }
+
     this._delegate.initialize();
     this._pauseOnScheduledAsyncCall();
 
