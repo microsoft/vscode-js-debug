@@ -65,6 +65,7 @@ export class BrowserTargetManager implements IDisposable {
   private _connection: CdpConnection;
   private _targets: Map<Cdp.Target.SessionID, BrowserTarget> = new Map();
   private _browser: Cdp.Api;
+  private readonly _detachedTargets = new Set();
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: ISourcePathResolver;
@@ -172,12 +173,11 @@ export class BrowserTargetManager implements IDisposable {
   ): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
-    const detachedTargets = new Set<Cdp.Target.TargetID>();
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
     const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
       if (
         [...this._targets.values()].some(t => t.targetId === targetInfo.targetId) ||
-        detachedTargets.has(targetInfo.targetId)
+        this._detachedTargets.has(targetInfo.targetId)
       ) {
         return; // targetInfoChanged on something we're already connected to
       }
@@ -226,9 +226,6 @@ export class BrowserTargetManager implements IDisposable {
         }
       }),
     );
-    this.onTargetRemoved(target => {
-      detachedTargets.add(target.id());
-    });
 
     return promise;
   }
@@ -347,6 +344,7 @@ export class BrowserTargetManager implements IDisposable {
 
     this._onTargetRemovedEmitter.fire(target);
     if (isStillAttachedInternally) {
+      this._detachedTargets.add(target.targetId);
       await this._browser.Target.detachFromTarget({ sessionId });
     }
 
