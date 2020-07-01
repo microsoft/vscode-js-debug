@@ -199,7 +199,7 @@ async function runWebpack({
   let configs = [];
   for (const { entry, library, filename } of packages) {
     const config = {
-      mode: 'development',
+      mode,
       target: 'node',
       entry: path.resolve(entry),
       output: {
