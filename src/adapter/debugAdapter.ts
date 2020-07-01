@@ -180,28 +180,14 @@ export class DebugAdapter implements IDisposable {
         logger.verbose(LogTag.Internal, 'setExceptionBreakpoints: awaiting blocking response');
         await result;
       } else {
-        result
-          .then(() => {
-            logger.verbose(
-              LogTag.Internal,
-              'setExceptionBreakpoints: succesful non-blocking response',
-            );
-          })
-          .catch(rejection => {
-            const output = localize(
-              '`errors.setExceptionBreakpoints.async.failed`',
-              'Failed to configure the exceptions for which to pause due to: {0}',
-              rejection.message || localize('errors.unknown', 'Unknown error'),
-            );
-            this.dap.output({ category: 'stderr', output: output });
-            const telemetry = this._services.get<ITelemetryReporter>(ITelemetryReporter);
-            telemetry.reportOperation(
-              'cdpOperation',
-              'setExceptionBreakpoints.BeforeConfigurationDone',
-              -1,
-              rejection,
-            );
-          });
+        result.catch(rejection => {
+          const output = localize(
+            '`errors.setExceptionBreakpoints.async.failed`',
+            'Failed to configure the exceptions for which to pause due to: {0}',
+            rejection.message || localize('errors.unknown', 'Unknown error'),
+          );
+          this.dap.output({ category: 'stderr', output: output });
+        });
       }
     }
     return {};
