@@ -191,6 +191,28 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('node.timeout.description'),
     default: 10000,
   },
+  timeoutsInMs: {
+    type: 'object',
+    description: refString('timeouts.generalDescription'),
+    default: {},
+    properties: {
+      sourceMaps: {
+        type: 'object',
+        description: refString('timeouts.sourceMaps.description'),
+        default: {},
+        properties: {
+          scriptPaused: {
+            type: 'number',
+            description: refString('timeouts.sourceMaps.scriptPaused.description'),
+            default: 1000,
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    additionalProperties: false,
+    markdownDescription: refString('timeouts.generalDescription.markdown'),
+  },
   trace: {
     description: refString('trace.description'),
     default: true,

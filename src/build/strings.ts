@@ -208,6 +208,11 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
+  'timeouts.generalDescription': 'Timeouts for several debugger operations',
+  'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
+  'timeouts.sourceMaps.description': 'Timeouts related to source maps operations',
+  'timeouts.sourceMaps.scriptPaused.description':
+    'Timeout when parsing a source-map when a script is being parsed',
   'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
 
   'longPredictionWarning.message':

@@ -181,7 +181,8 @@ The following options can be configured:
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
 ### pwa-node: launch
@@ -219,7 +220,8 @@ The following options can be configured:
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
 ### node-terminal: launch
@@ -251,7 +253,8 @@ The following options can be configured:
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
 ### pwa-extensionHost: launch
@@ -287,7 +290,8 @@ The following options can be configured:
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
 ### pwa-chrome: launch
@@ -322,7 +326,8 @@ The following options can be configured:
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>userDataDir</h4><p>By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.</p>
@@ -359,7 +364,8 @@ The following options can be configured:
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
@@ -402,7 +408,8 @@ The following options can be configured:
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>userDataDir</h4><p>By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.</p>
@@ -440,7 +447,8 @@ The following options can be configured:
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeoutsInMs</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>useWebView</h4><p>(Edge (Chromium) only) When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>

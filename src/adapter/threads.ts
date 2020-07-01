@@ -31,6 +31,7 @@ import {
 import { EventEmitter } from '../common/events';
 import { IBreakpointPathAndId } from '../targets/targets';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
+import { HrTime } from '../common/hrnow';
 
 const localize = nls.loadMessageBundle();
 
@@ -1265,17 +1266,49 @@ export class Thread implements IVariableStoreDelegate {
    */
   async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
-    const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
+    const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
+    const timeout =
+      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().extraCumulativeScriptPaused;
+
     const script = this._sourceContainer.scriptsById.get(scriptId);
     if (!script) {
       this._pausedForSourceMapScriptId = undefined;
       return false;
     }
 
+    const timer = new HrTime();
     const result = await Promise.race([
       this._getOrStartLoadingSourceMaps(script, brokenOn),
       delay(timeout),
     ]);
+
+    const wallClockTimeBlockedInMs = timer.elapsed().ms;
+    const remainingExtraCumulativeScriptPaused =
+      this._sourceContainer.sourceMapTimeouts().extraCumulativeScriptPaused -
+      Math.max(wallClockTimeBlockedInMs - perScriptTimeout, 0);
+    this._sourceContainer.setSourceMapTimeouts({
+      ...this._sourceContainer.sourceMapTimeouts(),
+      extraCumulativeScriptPaused: remainingExtraCumulativeScriptPaused,
+    });
+    this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
+      timeSpentWallClockInMs: wallClockTimeBlockedInMs,
+      remainingExtraCumulativeScriptPaused: remainingExtraCumulativeScriptPaused,
+    });
+
+    if (!result) {
+      this._dap.with(dap =>
+        dap.output({
+          category: 'stderr',
+          output: localize(
+            'warnings.handleSourceMapPause.didNotWait',
+            'WARNING: Processing source-maps of {0} took longer than {1} ms so we continued execution without waiting for all the breakpoints for the script to be set.',
+            script.url || script.scriptId,
+            timeout,
+          ),
+        }),
+      );
+    }
+
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 

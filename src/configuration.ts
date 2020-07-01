@@ -7,6 +7,7 @@ import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 import pkg from '../package.json';
+import { SourceMapTimeouts } from './adapter/sources';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -134,6 +135,13 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    * Retry for this number of milliseconds to connect to the debug adapter.
    */
   timeout: number;
+
+  /**
+   * Timeouts for several operations
+   */
+  timeoutsInMs?: {
+    sourceMaps?: SourceMapTimeouts;
+  };
 
   /**
    * Logging configuration
