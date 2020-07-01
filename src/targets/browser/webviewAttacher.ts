@@ -18,7 +18,7 @@ import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import Connection from '../../cdp/connection';
 import { SourcePathResolverFactory } from '../sourcePathResolverFactory';
-import { ILogger } from '../../common/logging';
+import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { BrowserTargetManager, BrowserTargetType, BrowserTarget } from './browserTargets';
 import { DisposableList } from '../../common/disposable';
@@ -70,7 +70,11 @@ export class WebviewAttacher extends BrowserAttacher {
       ...(typeof params.debugWebviews === 'object' ? params.debugWebviews : {}),
     }) as IChromeAttachConfiguration;
 
-    return super.launch(configuration, context);
+    super
+      .launch(configuration, context)
+      .catch(err => this.logger.error(LogTag.RuntimeException, 'Error in webview attach', { err }));
+
+    return { blockSessionTermination: false };
   }
 
   /**
