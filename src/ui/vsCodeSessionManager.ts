@@ -32,7 +32,7 @@ const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSessi
     {
       parentSession: parentSession.debugSession,
       consoleMode: vscode.DebugConsoleMode.MergeWithParent,
-      noCompact: !(parentSession instanceof RootSession), // don't compact workers/child processes
+      compact: parentSession instanceof RootSession, // don't compact workers/child processes
     },
   );
 };
