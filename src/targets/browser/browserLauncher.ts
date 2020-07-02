@@ -189,6 +189,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     );
 
     if (!this._mainTarget) {
+      launched.process.kill(); // no need to check the `cleanUp` preference since no tabs will be open
       throw new ProtocolError(targetPageNotFound());
     }
 
