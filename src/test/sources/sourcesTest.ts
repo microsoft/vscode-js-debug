@@ -78,8 +78,8 @@ describe('sources', () => {
       load: 2000,
       resolveLocation: 0,
       output: 0,
-      scriptPaused: 0,
-      extraCumulativeScriptPaused: 0,
+      sourceMapMinPause: 0,
+      sourceMapCumulativePause: 0,
     });
     await p.addScriptTag('browserify/bundle.js');
     p.dap.evaluate({ expression: `setTimeout(() => { window.throwError('error2')}, 0)` });

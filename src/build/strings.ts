@@ -211,8 +211,10 @@ const strings = {
   'timeouts.generalDescription': 'Timeouts for several debugger operations',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
   'timeouts.sourceMaps.description': 'Timeouts related to source maps operations',
-  'timeouts.sourceMaps.scriptPaused.description':
-    'Timeout when parsing a source-map when a script is being parsed',
+  'timeouts.sourceMaps.sourceMapMinPause.description':
+    'Minimum time in milliseconds spent waiting for each source-map to be processed when a script is being parsed',
+  'timeouts.sourceMaps.sourceMapCumulativePause.description':
+    'Extra time in milliseconds allowed per session to be spent waiting for source-maps to be processed, after the minimum time (sourceMapMinPause) has been exhausted',
   'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
 
   'longPredictionWarning.message':

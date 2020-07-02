@@ -137,11 +137,9 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   timeout: number;
 
   /**
-   * Timeouts for several operations
+   * Timeouts for several operations (currently only source-maps)
    */
-  timeoutsInMs?: {
-    sourceMaps?: SourceMapTimeouts;
-  };
+  timeouts: Partial<SourceMapTimeouts>;
 
   /**
    * Logging configuration
@@ -690,6 +688,7 @@ export const baseDefaults: IBaseConfiguration = {
   trace: false,
   outputCapture: OutputSource.Console,
   timeout: 10000,
+  timeouts: {},
   showAsyncStacks: true,
   skipFiles: [],
   smartStep: true,

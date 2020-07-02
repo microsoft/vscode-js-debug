@@ -228,9 +228,9 @@ export class TestP implements ITestHandle {
     adapter.sourceContainer.setSourceMapTimeouts({
       load: 0,
       resolveLocation: 2000,
-      scriptPaused: 1000,
+      sourceMapMinPause: 1000,
       output: 3000,
-      extraCumulativeScriptPaused: 10000,
+      sourceMapCumulativePause: 10000,
     });
     this._adapter = adapter;
 

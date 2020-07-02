@@ -1266,9 +1266,9 @@ export class Thread implements IVariableStoreDelegate {
    */
   async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
-    const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
+    const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().sourceMapMinPause;
     const timeout =
-      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().extraCumulativeScriptPaused;
+      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
 
     const script = this._sourceContainer.scriptsById.get(scriptId);
     if (!script) {
@@ -1284,11 +1284,11 @@ export class Thread implements IVariableStoreDelegate {
 
     const wallClockTimeBlockedInMs = timer.elapsed().ms;
     const remainingExtraCumulativeScriptPaused =
-      this._sourceContainer.sourceMapTimeouts().extraCumulativeScriptPaused -
+      this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause -
       Math.max(wallClockTimeBlockedInMs - perScriptTimeout, 0);
     this._sourceContainer.setSourceMapTimeouts({
       ...this._sourceContainer.sourceMapTimeouts(),
-      extraCumulativeScriptPaused: remainingExtraCumulativeScriptPaused,
+      sourceMapCumulativePause: remainingExtraCumulativeScriptPaused,
     });
     this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
       timeSpentWallClockInMs: wallClockTimeBlockedInMs,
@@ -1477,7 +1477,8 @@ export class Thread implements IVariableStoreDelegate {
   ): Promise<void> {
     this._scriptWithSourceMapHandler = handler;
 
-    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
+    const needsPause =
+      pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',
