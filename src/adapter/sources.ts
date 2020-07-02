@@ -74,7 +74,7 @@ export type SourceMapTimeouts = {
   scriptPaused: number;
 
   // Normally we only give each source-map scriptPaused time to load per sourcemap. extraCumulativeScriptPaused
-  // adds some additional time we spend parsing source-maps, but it's spent accross all source-maps in that // // // session
+  // adds some additional time we spend parsing source-maps, but it's spent accross all source-maps in that session
   extraCumulativeScriptPaused: number;
 
   // When sending multiple entities to debug console, we wait for each one to be asynchronously
