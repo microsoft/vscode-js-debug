@@ -115,7 +115,13 @@ function inspectOrQueue(env: IBootloaderInfo) {
     );
   }
 
-  inspector.open(openedFromCli ? undefined : 0, undefined, true);
+  // todo: update node.js typings
+  const cast = (inspector as unknown) as typeof inspector & { waitForDebugger?(): void };
+  if (cast.waitForDebugger) {
+    cast.waitForDebugger();
+  } else {
+    inspector.open(openedFromCli ? undefined : 0, undefined, true);
+  }
 }
 
 function isPipeAvailable(pipe?: string): pipe is string {
