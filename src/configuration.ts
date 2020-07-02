@@ -793,7 +793,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
-  cleanUp: 'onlyTab',
+  cleanUp: 'wholeBrowser',
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
