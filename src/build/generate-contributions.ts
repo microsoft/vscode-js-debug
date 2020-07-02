@@ -358,7 +358,6 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         },
         {
           type: 'object',
-          required: ['static'],
           properties: {
             delay: { type: 'number', minimum: 0, default: 1000 },
             maxAttempts: { type: 'number', minimum: 0, default: 10 },
