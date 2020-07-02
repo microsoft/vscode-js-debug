@@ -1292,7 +1292,7 @@ export class Thread implements IVariableStoreDelegate {
     });
     this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
       timeSpentWallClockInMs: wallClockTimeBlockedInMs,
-      remainingExtraCumulativeScriptPaused: remainingExtraCumulativeScriptPaused,
+      remainingExtraCumulativeScriptPaused,
     });
 
     if (!result) {
