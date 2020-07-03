@@ -1283,16 +1283,16 @@ export class Thread implements IVariableStoreDelegate {
     ]);
 
     const wallClockTimeBlockedInMs = timer.elapsed().ms;
-    const remainingExtraCumulativeScriptPaused =
+    const sourceMapCumulativePause =
       this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause -
       Math.max(wallClockTimeBlockedInMs - perScriptTimeout, 0);
     this._sourceContainer.setSourceMapTimeouts({
       ...this._sourceContainer.sourceMapTimeouts(),
-      sourceMapCumulativePause: remainingExtraCumulativeScriptPaused,
+      sourceMapCumulativePause: sourceMapCumulativePause,
     });
     this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
       timeSpentWallClockInMs: wallClockTimeBlockedInMs,
-      remainingExtraCumulativeScriptPaused,
+      remainingExtraCumulativeScriptPaused: sourceMapCumulativePause,
     });
 
     if (!result) {
