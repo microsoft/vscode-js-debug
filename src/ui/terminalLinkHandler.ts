@@ -16,11 +16,13 @@ import { isMetaAddress } from '../common/urlUtils';
 import urlRegex from 'url-regex';
 import { IDisposable, DisposableList } from '../common/disposable';
 import { once } from '../common/objUtils';
+import { URL } from 'url';
 
 const localize = nls.loadMessageBundle();
 const urlRe = urlRegex({ strict: true });
 
 interface ITerminalLink extends vscode.TerminalLink {
+  target: URL;
   workspaceFolder?: number;
 }
 
@@ -97,17 +99,16 @@ export class TerminalLinkHandler
         return links;
       }
 
-      const uri = match[0].startsWith('http')
-        ? vscode.Uri.parse(match[0])
-        : vscode.Uri.parse(`https://${match[0]}`);
+      const uri = match[0].startsWith('http') ? new URL(match[0]) : new URL(`https://${match[0]}`);
 
-      if (uri.scheme !== 'http' && uri.scheme !== 'https') {
+      if (uri.protocol !== 'http:' && uri.protocol !== 'https:') {
         continue;
       }
 
       links.push({
         startIndex: match.index,
-        length: match[0].length,
+        endIndex: match.index + match[0].length,
+        tooltip: localize('terminalLinkHover.debug', 'Debug URL'),
         target: uri,
         workspaceFolder: getCwd()?.index,
       });
@@ -115,14 +116,23 @@ export class TerminalLinkHandler
   }
 
   /**
+   * @inheritdoc
+   */
+  public async handleTerminalLink(terminal: ITerminalLink): Promise<void> {
+    if (!(await this.handleTerminalLinkInner(terminal))) {
+      vscode.env.openExternal(vscode.Uri.parse(terminal.target.toString()));
+    }
+  }
+
+  /**
    * Launches a browser debug session when a link is clicked from a debug terminal.
    */
-  public async handleTerminalLink(terminal: ITerminalLink): Promise<boolean> {
+  public async handleTerminalLinkInner(terminal: ITerminalLink): Promise<boolean> {
     if (!terminal.target) {
       return false;
     }
 
-    let uri = terminal.target;
+    const uri = terminal.target;
 
     if (vscode.env.uiKind === vscode.UIKind.Web) {
       if (this.notifiedCantOpenOnWeb) {
@@ -140,8 +150,8 @@ export class TerminalLinkHandler
       return false;
     }
 
-    if (isMetaAddress(uri.authority)) {
-      uri = uri.with({ authority: 'localhost' });
+    if (isMetaAddress(uri.hostname)) {
+      uri.hostname = 'localhost';
     }
 
     let debugType: DebugType.Chrome | DebugType.Edge = DebugType.Chrome;

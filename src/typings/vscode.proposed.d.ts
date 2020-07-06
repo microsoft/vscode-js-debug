@@ -34,60 +34,30 @@ declare module 'vscode' {
 		/**
 		 * The account associated with the session.
 		 */
-		readonly account: {
-			/**
-			 * The human-readable name of the account.
-			 */
-			readonly displayName: string;
-
-			/**
-			 * The unique identifier of the account.
-			 */
-			readonly id: string;
-		};
+		readonly account: AuthenticationSessionAccountInformation;
 
 		/**
 		 * The permissions granted by the session's access token. Available scopes
 		 * are defined by the authentication provider.
 		 */
-		readonly scopes: string[];
+		readonly scopes: ReadonlyArray<string>;
 
-		constructor(id: string, accessToken: string, account: { displayName: string, id: string }, scopes: string[]);
+		constructor(id: string, accessToken: string, account: AuthenticationSessionAccountInformation, scopes: string[]);
 	}
 
-	export class AuthenticationSession2 {
+	/**
+	 * The information of an account associated with an authentication session.
+	 */
+	export interface AuthenticationSessionAccountInformation {
 		/**
-		 * The identifier of the authentication session.
+		 * The human-readable name of the account.
+		 */
+		readonly displayName: string;
+
+		/**
+		 * The unique identifier of the account.
 		 */
 		readonly id: string;
-
-		/**
-		 * The access token.
-		 */
-		readonly accessToken: string;
-
-		/**
-		 * The account associated with the session.
-		 */
-		readonly account: {
-			/**
-			 * The human-readable name of the account.
-			 */
-			readonly displayName: string;
-
-			/**
-			 * The unique identifier of the account.
-			 */
-			readonly id: string;
-		};
-
-		/**
-		 * The permissions granted by the session's access token. Available scopes
-		 * are defined by the authentication provider.
-		 */
-		readonly scopes: string[];
-
-		constructor(id: string, accessToken: string, account: { displayName: string, id: string }, scopes: string[]);
 	}
 
 	/**
@@ -97,12 +67,12 @@ declare module 'vscode' {
 		/**
 		 * The ids of the [authenticationProvider](#AuthenticationProvider)s that have been added.
 		 */
-		readonly added: string[];
+		readonly added: ReadonlyArray<string>;
 
 		/**
 		 * The ids of the [authenticationProvider](#AuthenticationProvider)s that have been removed.
 		 */
-		readonly removed: string[];
+		readonly removed: ReadonlyArray<string>;
 	}
 
 	/**
@@ -128,17 +98,17 @@ declare module 'vscode' {
 		/**
 		 * The ids of the [AuthenticationSession](#AuthenticationSession)s that have been added.
 		*/
-		readonly added: string[];
+		readonly added: ReadonlyArray<string>;
 
 		/**
 		 * The ids of the [AuthenticationSession](#AuthenticationSession)s that have been removed.
 		 */
-		readonly removed: string[];
+		readonly removed: ReadonlyArray<string>;
 
 		/**
 		 * The ids of the [AuthenticationSession](#AuthenticationSession)s that have been changed.
 		 */
-		readonly changed: string[];
+		readonly changed: ReadonlyArray<string>;
 	}
 
 	/**
@@ -157,7 +127,7 @@ declare module 'vscode' {
 		/**
 		 * The human-readable name of the provider.
 		 */
-		readonly displayName: string;
+		readonly label: string;
 
 		/**
 		 * Whether it is possible to be signed into multiple accounts at once with this provider
@@ -173,16 +143,12 @@ declare module 'vscode' {
 		/**
 		 * Returns an array of current sessions.
 		 */
-		getSessions(): Thenable<ReadonlyArray<AuthenticationSession2>>;
+		getSessions(): Thenable<ReadonlyArray<AuthenticationSession>>;
 
 		/**
 		 * Prompts a user to login.
 		 */
-<<<<<<< HEAD
-		login(scopes: string[]): Thenable<AuthenticationSession2>;
-=======
 		login(scopes: string[]): Thenable<AuthenticationSession>;
->>>>>>> master
 
 		/**
 		 * Removes the session corresponding to session id.
@@ -215,13 +181,10 @@ declare module 'vscode' {
 		export function getProviderIds(): Thenable<ReadonlyArray<string>>;
 
 		/**
-<<<<<<< HEAD
-=======
 		 * @deprecated
->>>>>>> master
 		 * An array of the ids of authentication providers that are currently registered.
 		 */
-		export const providerIds: string[];
+		export const providerIds: ReadonlyArray<string>;
 
 		/**
 		 * Returns whether a provider has any sessions matching the requested scopes. This request
@@ -234,7 +197,6 @@ declare module 'vscode' {
 		 */
 		export function hasSessions(providerId: string, scopes: string[]): Thenable<boolean>;
 
-<<<<<<< HEAD
 		/**
 		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
 		 * registered, or if the user does not consent to sharing authentication information with
@@ -243,29 +205,9 @@ declare module 'vscode' {
 		 * @param providerId The id of the provider to use
 		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication provider
 		 * @param options The [getSessionOptions](#GetSessionOptions) to use
-		 * @returns A thenable that resolves to an authentication session
-		 */
-		export function getSession(providerId: string, scopes: string[], options: AuthenticationGetSessionOptions & { createIfNone: true }): Thenable<AuthenticationSession2>;
-
-=======
->>>>>>> master
-		/**
-		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
-		 * registered, or if the user does not consent to sharing authentication information with
-		 * the extension. If there are multiple sessions with the same scopes, the user will be shown a
-		 * quickpick to select which account they would like to use.
-		 * @param providerId The id of the provider to use
-		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication provider
-		 * @param options The [getSessionOptions](#GetSessionOptions) to use
-<<<<<<< HEAD
-		 * @returns A thenable that resolves to an authentication session if available, or undefined if there are no sessions
-		 */
-		export function getSession(providerId: string, scopes: string[], options: AuthenticationGetSessionOptions): Thenable<AuthenticationSession2 | undefined>;
-=======
 		 * @returns A thenable that resolves to an authentication session
 		 */
 		export function getSession(providerId: string, scopes: string[], options: AuthenticationGetSessionOptions & { createIfNone: true }): Thenable<AuthenticationSession>;
->>>>>>> master
 
 		/**
 		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
@@ -891,8 +833,6 @@ declare module 'vscode' {
 		 * When this property is not specified, the value from the parent session (if there is one) is used.
 		 */
 		noDebug?: boolean;
-<<<<<<< HEAD
-=======
 
 		/**
 		 * Controls if the debug session's parent session is shown in the CALL STACK view even if it has only a single child.
@@ -900,7 +840,6 @@ declare module 'vscode' {
 		 * If compact is true, debug sessions with a single child are hidden in the CALL STACK view to make the tree more compact.
 		 */
 		compact?: boolean;
->>>>>>> master
 	}
 
 	// deprecated debug API
@@ -1116,9 +1055,6 @@ declare module 'vscode' {
 		terminal: Terminal;
 	}
 
-<<<<<<< HEAD
-	export interface TerminalLinkProvider<T = TerminalLink> {
-=======
 	export interface TerminalLinkProvider<T extends TerminalLink = TerminalLink> {
 		/**
 		 * Provide terminal links for the given context. Note that this can be called multiple times
@@ -1126,48 +1062,24 @@ declare module 'vscode' {
 		 * that could have problems when asynchronous usage may overlap.
 		 * @param context Information about what links are being provided for.
 		 */
->>>>>>> master
 		provideTerminalLinks(context: TerminalLinkContext): ProviderResult<T[]>
 
 		/**
 		 * Handle an activated terminal link.
-<<<<<<< HEAD
-		 *
-		 * @returns Whether the link was handled, if not VS Code will attempt to open it.
-		 */
-		handleTerminalLink(link: T): ProviderResult<boolean>;
-=======
 		 */
 		handleTerminalLink(link: T): void;
->>>>>>> master
 	}
 
 	export interface TerminalLink {
 		/**
-<<<<<<< HEAD
-		 * The start index of the link on [TerminalLinkContext.line](#TerminalLinkContext.line].
-=======
 		 * The 0-based start index of the link on [TerminalLinkContext.line](#TerminalLinkContext.line].
->>>>>>> master
 		 */
 		startIndex: number;
 
 		/**
-<<<<<<< HEAD
-		 * The length of the link on [TerminalLinkContext.line](#TerminalLinkContext.line]
-		 */
-		length: number;
-
-		/**
-		 * The uri this link points to. If set, and {@link TerminalLinkProvider.handlerTerminalLink}
-		 * is not implemented or returns false, then VS Code will try to open the Uri.
-		 */
-		target?: Uri;
-=======
 		 * The 0-based end index of the link on [TerminalLinkContext.line](#TerminalLinkContext.line].
 		 */
 		endIndex: number;
->>>>>>> master
 
 		/**
 		 * The tooltip text when you hover over this link.
@@ -1234,16 +1146,6 @@ declare module 'vscode' {
 		tooltip?: string | MarkdownString | /* for compilation */ any;
 
 		/**
-<<<<<<< HEAD
-		 * Accessibility information used when screen reader interacts with this tree item.
-		 * Generally, a TreeItem has no need to set the `role` of the accessibilityInformation;
-		 * however, there are cases where a TreeItem is not displayed in a tree-like way where setting the `role` may make sense.
-		 */
-		accessibilityInformation?: AccessibilityInformation;
-
-		/**
-=======
->>>>>>> master
 		 * @param label Label describing this item
 		 * @param collapsibleState [TreeItemCollapsibleState](#TreeItemCollapsibleState) of the tree item. Default is [TreeItemCollapsibleState.None](#TreeItemCollapsibleState.None)
 		 */
@@ -1594,7 +1496,7 @@ declare module 'vscode' {
 		metadata: NotebookDocumentMetadata;
 	}
 
-	export interface NotebookConcatTextDocument extends TextDocument {
+	export interface NotebookConcatTextDocument {
 		isClosed: boolean;
 		dispose(): void;
 		onDidChange: Event<void>;
@@ -1866,11 +1768,7 @@ declare module 'vscode' {
 		resolveNotebook(document: NotebookDocument, webview: NotebookCommunication): Promise<void>;
 		saveNotebook(document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
 		saveNotebookAs(targetResource: Uri, document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
-<<<<<<< HEAD
-		readonly onDidChangeNotebook: Event<NotebookDocumentContentChangeEvent>;
-=======
 		readonly onDidChangeNotebook: Event<NotebookDocumentContentChangeEvent | NotebookDocumentEditEvent>;
->>>>>>> master
 		backupNotebook(document: NotebookDocument, context: NotebookDocumentBackupContext, cancellation: CancellationToken): Promise<NotebookDocumentBackup>;
 
 		kernel?: NotebookKernel;
@@ -2116,66 +2014,6 @@ declare module 'vscode' {
 		 * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
 		*/
 		export function registerTimelineProvider(scheme: string | string[], provider: TimelineProvider): Disposable;
-	}
-
-	//#endregion
-
-<<<<<<< HEAD
-	//#region Dialog title: https://github.com/microsoft/vscode/issues/82871
-
-	/**
-	 * Options to configure the behaviour of a file open dialog.
-	 *
-	 * * Note 1: A dialog can select files, folders, or both. This is not true for Windows
-	 * which enforces to open either files or folder, but *not both*.
-	 * * Note 2: Explicitly setting `canSelectFiles` and `canSelectFolders` to `false` is futile
-	 * and the editor then silently adjusts the options to select files.
-	 */
-	export interface OpenDialogOptions {
-		/**
-		 * Dialog title.
-		 *
-		 * Depending on the underlying operating system this parameter might be ignored, since some
-		 * systems do not present title on open dialogs.
-		 */
-		title?: string;
-=======
-	//#region https://github.com/microsoft/vscode/issues/91555
-
-	export enum StandardTokenType {
-		Other = 0,
-		Comment = 1,
-		String = 2,
-		RegEx = 4
-	}
-
-	export interface TokenInformation {
-		type: StandardTokenType;
-		range: Range;
->>>>>>> master
-	}
-
-	export namespace languages {
-		export function getTokenInformationAtPosition(document: TextDocument, position: Position): Promise<TokenInformation>;
-	}
-
-	//#endregion
-
-	//#region Accessibility information: https://github.com/microsoft/vscode/issues/95360
-
-	/**
-	 * Accessibility information which controls screen reader behavior.
-	 */
-	export interface AccessibilityInformation {
-		label: string;
-		role?: string;
-	}
-
-	export interface StatusBarItem {
-		/**
-		 * Accessibility information used when screen reader interacts with this StatusBar item
-		 */
-		accessibilityInformation?: AccessibilityInformation;
 	}
 
 	//#endregion
