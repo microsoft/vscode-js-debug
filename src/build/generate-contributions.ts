@@ -1086,7 +1086,7 @@ const menus: Menus = {
       when: forAnyDebugType('debugType', 'inDebugMode && !jsDebugIsProfiling'),
     },
     {
-      command: Commands.StartProfile,
+      command: Commands.StopProfile,
       title: refString('profile.stop'),
       when: forAnyDebugType('debugType', 'inDebugMode && jsDebugIsProfiling'),
     },
