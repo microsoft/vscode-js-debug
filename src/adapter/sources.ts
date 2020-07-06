@@ -68,10 +68,14 @@ export type SourceMapTimeouts = {
   // in the compiled source.
   resolveLocation: number;
 
-  // When pausing before script with source map, we wait no longer than |scriptPaused| timeout
+  // When pausing before script with source map, we wait no longer than |sourceMapMinPause| timeout
   // for source map to be loaded and breakpoints to be set. This usually ensures that breakpoints
   // won't be missed.
-  scriptPaused: number;
+  sourceMapMinPause: number;
+
+  // Normally we only give each source-map sourceMapMinPause time to load per sourcemap. sourceMapCumulativePause
+  // adds some additional time we spend parsing source-maps, but it's spent accross all source-maps in that // // // session
+  sourceMapCumulativePause: number;
 
   // When sending multiple entities to debug console, we wait for each one to be asynchronously
   // processed. If one of them stalls, we resume processing others after |output| timeout.
@@ -81,8 +85,9 @@ export type SourceMapTimeouts = {
 const defaultTimeouts: SourceMapTimeouts = {
   load: 0,
   resolveLocation: 2000,
-  scriptPaused: 1000,
+  sourceMapMinPause: 1000,
   output: 1000,
+  sourceMapCumulativePause: 10000,
 };
 
 // Represents a text source visible to the user.
@@ -465,6 +470,10 @@ export class SourceContainer {
     }
 
     scriptSkipper.setSourceContainer(this);
+    this.setSourceMapTimeouts({
+      ...this.sourceMapTimeouts(),
+      ...launchConfig.timeouts,
+    });
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {

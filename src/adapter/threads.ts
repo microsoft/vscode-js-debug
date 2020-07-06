@@ -31,6 +31,7 @@ import {
 import { EventEmitter } from '../common/events';
 import { IBreakpointPathAndId } from '../targets/targets';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
+import { HrTime } from '../common/hrnow';
 
 const localize = nls.loadMessageBundle();
 
@@ -1265,17 +1266,49 @@ export class Thread implements IVariableStoreDelegate {
    */
   async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
-    const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
+    const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().sourceMapMinPause;
+    const timeout =
+      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
+
     const script = this._sourceContainer.scriptsById.get(scriptId);
     if (!script) {
       this._pausedForSourceMapScriptId = undefined;
       return false;
     }
 
+    const timer = new HrTime();
     const result = await Promise.race([
       this._getOrStartLoadingSourceMaps(script, brokenOn),
       delay(timeout),
     ]);
+
+    const timeSpentWallClockInMs = timer.elapsed().ms;
+    const sourceMapCumulativePause =
+      this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause -
+      Math.max(timeSpentWallClockInMs - perScriptTimeout, 0);
+    this._sourceContainer.setSourceMapTimeouts({
+      ...this._sourceContainer.sourceMapTimeouts(),
+      sourceMapCumulativePause,
+    });
+    this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
+      timeSpentWallClockInMs,
+      sourceMapCumulativePause,
+    });
+
+    if (!result) {
+      this._dap.with(dap =>
+        dap.output({
+          category: 'stderr',
+          output: localize(
+            'warnings.handleSourceMapPause.didNotWait',
+            'WARNING: Processing source-maps of {0} took longer than {1} ms so we continued execution without waiting for all the breakpoints for the script to be set.',
+            script.url || script.scriptId,
+            timeout,
+          ),
+        }),
+      );
+    }
+
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
@@ -1444,7 +1477,8 @@ export class Thread implements IVariableStoreDelegate {
   ): Promise<void> {
     this._scriptWithSourceMapHandler = handler;
 
-    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
+    const needsPause =
+      pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',
