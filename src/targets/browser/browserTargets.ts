@@ -115,9 +115,6 @@ export class BrowserTargetManager implements IDisposable {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
-    this._browser.Target.on('targetInfoChanged', event => {
-      this._targetInfoChanged(event.targetInfo);
-    });
     this._targetOrigin = targetOrigin;
     this.serviceWorkerModel.onDidChange(() => {
       for (const target of this._targets.values()) {
@@ -174,7 +171,7 @@ export class BrowserTargetManager implements IDisposable {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
-    const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
+    const attachInner = async (targetInfo: Cdp.Target.TargetInfo) => {
       if (
         [...this._targets.values()].some(t => t.targetId === targetInfo.targetId) ||
         this._detachedTargets.has(targetInfo.targetId)
@@ -216,8 +213,17 @@ export class BrowserTargetManager implements IDisposable {
       (attachmentQueue = attachmentQueue.then(() => fn(arg)));
 
     this._browser.Target.setDiscoverTargets({ discover: true });
-    this._browser.Target.on('targetCreated', enqueueCall(attachInner)); // new page
-    this._browser.Target.on('targetInfoChanged', enqueueCall(attachInner)); // nav on existing page
+
+    this._browser.Target.on(
+      'targetCreated',
+      enqueueCall(evt => attachInner(evt.targetInfo)),
+    );
+
+    this._browser.Target.on(
+      'targetInfoChanged',
+      enqueueCall(evt => this._targetInfoChanged(evt.targetInfo, attachInner)),
+    );
+
     this._browser.Target.on(
       'detachedFromTarget',
       enqueueCall(async event => {
@@ -362,11 +368,24 @@ export class BrowserTargetManager implements IDisposable {
     }
   }
 
-  private _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
-    for (const target of this._targets.values()) {
-      if (target.targetId === targetInfo.targetId) {
-        target._updateFromInfo(targetInfo);
+  private async _targetInfoChanged(
+    targetInfo: Cdp.Target.TargetInfo,
+    attemptAttach: (info: Cdp.Target.TargetInfo) => Promise<void>,
+  ) {
+    const targets = [...this._targets.values()].filter(t => t.targetId === targetInfo.targetId);
+
+    // if we arent' attach, detach any existing targets and then attempt to
+    // re-attach if the conditions are right.
+    if (!targetInfo.attached) {
+      if (targets.length) {
+        await Promise.all(targets.map(t => this._detachedFromTarget(t.sessionId, false)));
       }
+
+      return attemptAttach(targetInfo);
+    }
+
+    for (const target of targets) {
+      target._updateFromInfo(targetInfo);
     }
 
     // fire name changes for everyone since this might have caused a duplicate
