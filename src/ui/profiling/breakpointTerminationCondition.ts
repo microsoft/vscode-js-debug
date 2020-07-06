@@ -43,6 +43,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
 
     const quickPick = vscode.window.createQuickPick<BreakpointPickItem>();
     quickPick.canSelectMany = true;
+    quickPick.matchOnDescription = true;
     quickPick.busy = true;
 
     const chosen = await new Promise<ReadonlyArray<BreakpointPickItem> | undefined>(resolve => {

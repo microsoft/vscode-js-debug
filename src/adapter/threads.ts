@@ -21,7 +21,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { VariableStore, IVariableStoreDelegate } from './variables';
 import { previewThis } from './templates/previewThis';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { ILogger } from '../common/logging';
+import { ILogger, LogTag } from '../common/logging';
 import { AnyObject } from './objectPreview/betterTypes';
 import { IEvaluator } from './evaluator';
 import {
@@ -31,6 +31,7 @@ import {
 import { EventEmitter } from '../common/events';
 import { IBreakpointPathAndId } from '../targets/targets';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
+import { HrTime } from '../common/hrnow';
 
 const localize = nls.loadMessageBundle();
 
@@ -42,7 +43,18 @@ export type PausedReason =
   | 'entry'
   | 'goto'
   | 'function breakpoint'
-  | 'data breakpoint';
+  | 'data breakpoint'
+  | 'frame_entry';
+
+export const enum StepDirection {
+  In,
+  Over,
+  Out,
+}
+
+export type ExpectedPauseReason =
+  | { reason: Exclude<PausedReason, 'step'>; description?: string }
+  | { reason: 'step'; description?: string; direction: StepDirection };
 
 export interface IPausedDetails {
   thread: Thread;
@@ -136,7 +148,7 @@ export class Thread implements IVariableStoreDelegate {
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   private readonly _smartStepper: SmartStepper;
-  private _expectedPauseReason?: { reason: PausedReason; description?: string };
+  private _expectedPauseReason?: ExpectedPauseReason;
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
@@ -149,7 +161,7 @@ export class Thread implements IVariableStoreDelegate {
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: IThreadDelegate,
-    logger: ILogger,
+    private readonly logger: ILogger,
     private readonly evaluator: IEvaluator,
     private readonly completer: ICompletions,
     private readonly launchConfig: AnyLaunchConfiguration,
@@ -210,21 +222,26 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (await this._cdp.Debugger.stepOver({})) this._expectedPauseReason = { reason: 'step' };
+    if (await this._cdp.Debugger.stepOver({}))
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
     else return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
     return {};
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
     if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true }))
-      this._expectedPauseReason = { reason: 'step' };
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
     else return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
     return {};
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
-    if (!(await this._cdp.Debugger.stepOut({})))
+    if (await this._cdp.Debugger.stepOut({})) {
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+    } else {
       return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+    }
+
     return {};
   }
 
@@ -253,7 +270,7 @@ export class Thread implements IVariableStoreDelegate {
 
     await this._cdp.Debugger.restartFrame({ callFrameId });
     this._expectedPauseReason = {
-      reason: 'frame_entry' as PausedReason,
+      reason: 'frame_entry',
       description: localize('reason.description.restart', 'Paused on frame entry'),
     };
     await this._cdp.Debugger.stepInto({});
@@ -464,7 +481,10 @@ export class Thread implements IVariableStoreDelegate {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      this._ensureDebuggerEnabledAndRefreshDebuggerId();
+      if (!this.launchConfig.noDebug) {
+        this._ensureDebuggerEnabledAndRefreshDebuggerId();
+      }
+
       this.replVariables.clear();
       this._executionContextsCleared();
     });
@@ -483,14 +503,19 @@ export class Thread implements IVariableStoreDelegate {
       else if (event.hints['queryObjects']) this._queryObjects(event.object);
       else this._revealObject(event.object);
     });
-    this._cdp.Runtime.enable({});
-    this._cdp.Network.enable({});
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
+    this._cdp.Runtime.enable({});
 
-    this._ensureDebuggerEnabledAndRefreshDebuggerId();
+    if (!this.launchConfig.noDebug) {
+      this._cdp.Network.enable({});
+      this._ensureDebuggerEnabledAndRefreshDebuggerId();
+    } else {
+      this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');
+    }
+
     this._delegate.initialize();
     this._pauseOnScheduledAsyncCall();
 
@@ -676,14 +701,25 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    const shouldSmartStep = await this._smartStepper.shouldSmartStep(pausedDetails);
+    const smartStepDirection = await this._smartStepper.getSmartStepDirection(
+      pausedDetails,
+      this._expectedPauseReason,
+    );
+
+    // avoid racing:
     if (this._pausedDetails !== pausedDetails) {
       return;
     }
 
-    if (shouldSmartStep) {
-      this.stepInto();
-      return;
+    switch (smartStepDirection) {
+      case StepDirection.In:
+        return this.stepInto();
+      case StepDirection.Out:
+        return this.stepOut();
+      case StepDirection.Over:
+        return this.stepOver();
+      default:
+      // continue
     }
 
     this._pausedDetailsEvent.set(pausedDetails, event);
@@ -1230,17 +1266,49 @@ export class Thread implements IVariableStoreDelegate {
    */
   async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
-    const timeout = this._sourceContainer.sourceMapTimeouts().scriptPaused;
+    const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().sourceMapMinPause;
+    const timeout =
+      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
+
     const script = this._sourceContainer.scriptsById.get(scriptId);
     if (!script) {
       this._pausedForSourceMapScriptId = undefined;
       return false;
     }
 
+    const timer = new HrTime();
     const result = await Promise.race([
       this._getOrStartLoadingSourceMaps(script, brokenOn),
       delay(timeout),
     ]);
+
+    const timeSpentWallClockInMs = timer.elapsed().ms;
+    const sourceMapCumulativePause =
+      this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause -
+      Math.max(timeSpentWallClockInMs - perScriptTimeout, 0);
+    this._sourceContainer.setSourceMapTimeouts({
+      ...this._sourceContainer.sourceMapTimeouts(),
+      sourceMapCumulativePause,
+    });
+    this.logger.verbose(LogTag.Internal, `Blocked execution waiting for source-map`, {
+      timeSpentWallClockInMs,
+      sourceMapCumulativePause,
+    });
+
+    if (!result) {
+      this._dap.with(dap =>
+        dap.output({
+          category: 'stderr',
+          output: localize(
+            'warnings.handleSourceMapPause.didNotWait',
+            'WARNING: Processing source-maps of {0} took longer than {1} ms so we continued execution without waiting for all the breakpoints for the script to be set.',
+            script.url || script.scriptId,
+            timeout,
+          ),
+        }),
+      );
+    }
+
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
@@ -1385,7 +1453,7 @@ export class Thread implements IVariableStoreDelegate {
 
     this._dap.with(dap =>
       dap.stopped({
-        reason: details.reason,
+        reason: details.reason as Dap.StoppedEventParams['reason'],
         description: details.description,
         threadId: this.id,
         text: details.text,
@@ -1409,7 +1477,8 @@ export class Thread implements IVariableStoreDelegate {
   ): Promise<void> {
     this._scriptWithSourceMapHandler = handler;
 
-    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().scriptPaused && handler;
+    const needsPause =
+      pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointId) {
       const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
         instrumentation: 'beforeScriptWithSourceMapExecution',

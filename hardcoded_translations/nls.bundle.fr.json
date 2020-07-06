@@ -1,0 +1,217 @@
+{
+  "src/adapter/breakpoints/userDefinedBreakpoint": [
+    "Point d'arrêt indépendant"
+  ],
+  "src/binder": [
+    "Point d'arrêt indépendant"
+  ],
+  "src/adapter/customBreakpoints": [
+    "Erreur WebGL \"{0}\"",
+    "Exécution interrompue sur le point d'arrêt d'instrumentation en raison d'une erreur WebGL. Erreur \"{0}\"",
+    "Violation de la stratégie CSP \"{0}\"",
+    "Exécution interrompue sur le point d'arrêt d'instrumentation en raison d'une violation de la stratégie de sécurité de contenu. Directive \"{0}\"",
+    "Exécution interrompue sur le point d'arrêt d'instrumentation \"{0}\"",
+    "Exécution interrompue sur le point d'arrêt d'écouteur d'événements \"{0}\". Déclenchement activé sur \"{1}\"",
+    "Demander le frame d'animation",
+    "Annuler le frame d'animation",
+    "Frame d'animation déclenché",
+    "Créer un contexte de canevas",
+    "Erreur WebGL déclenchée",
+    "Avertissement WebGL déclenché",
+    "Première instruction du script",
+    "Script bloqué par la stratégie de sécurité de contenu",
+    "Définir innerHTML",
+    "setTimeout déclenché",
+    "setInterval déclenché",
+    "Créer AudioContext",
+    "Fermer AudioContext",
+    "Reprendre AudioContext",
+    "Interrompre AudioContext"
+  ],
+  "src/adapter/debugAdapter": [
+    "Exceptions interceptées",
+    "Exceptions interceptées",
+    "Source introuvable",
+    "Impossible de récupérer le contenu source",
+    "Variable introuvable",
+    "Page cible introuvable. Vous devrez peut-être mettre à jour votre \"urlFilter\" pour qu'il corresponde à la page à déboguer.",
+    "Source introuvable",
+    "Source introuvable",
+    "Impossible d'effectuer une impression en mode Pretty"
+  ],
+  "src/adapter/variables": [
+    "Variable introuvable",
+    "Impossible de définir une valeur vide",
+    "Expression non valide",
+    "Variable introuvable",
+    "Impossible de définir la valeur de la variable",
+    "Impossible de définir la valeur de la variable"
+  ],
+  "src/dap/errors": [
+    "L'attribut 'runtimeVersion' avec une saveur/architecture nécessite l'installation de 'nvs'.",
+    "L'attribut 'runtimeVersion' avec une saveur/architecture nécessite l'installation de 'nvs'.",
+    "L'attribut 'runtimeVersion' nécessite Node.js version manager 'nvm-windows' ou 'nvs'.",
+    "Node.js version '{0}' n'est pas installé à l'aide du gestionnaire de versions {1}.",
+    "Impossible de lancer la cible de débogage dans le terminal ({0}).",
+    "Impossible de charger les variables d'environnement à partir du fichier ({0}).",
+    "Le fichier binaire Node.js \"{0}\" est introuvable. Vérifiez que Node.js est installé et qu'il se trouve dans PATH, ou définissez \"runtimeExecutable\" dans votre fichier launch.json",
+    "La version de Node dans \"{0}\" est obsolète (version {1}). Nous avons besoin au moins de Node 8.x.",
+    "Condition d'accès non valide \"{0}\". Expression attendue telle que \"> 42\" ou \"== 2\".",
+    "Une erreur s'est produite au moment du profilage de la cible.",
+    "Arrêtez le profilage en cours d'exécution avant d'en démarrer un nouveau.",
+    "Impossible de localiser une installation de {0} sur votre système. Essayez de l'installer ou de fournir le chemin absolu du navigateur dans le \"runtimeExecutable\" de votre launch.json.",
+    "Impossible de localiser {0} version {1}. Versions découvertes automatiquement disponibles : {2}. Vous pouvez définir \"runtimeExecutable\" en fonction de l'une de ces versions dans votre fichier launch.json, ou fournir le chemin absolu de l'exécutable du navigateur.",
+    "Impossible de lancer le navigateur : \"{0}\"",
+    "Impossible d'attacher le navigateur",
+    "Page cible introuvable. Vous devrez peut-être mettre à jour votre \"urlFilter\" pour qu'il corresponde à la page à déboguer.",
+    "Variables non disponibles dans les piles asynchrones",
+    "Erreur de syntaxe au moment de la définition du point d'arrêt avec la condition {0} sur la ligne {1} : {2}",
+    "Impossible de lire le mappage de source pour {0} : {1}"
+  ],
+  "src/adapter/profiling/basicCpuProfiler": [
+    "Profil du processeur",
+    "Génère un fichier .cpuprofile que vous pouvez ouvrir dans Chrome DevTools"
+  ],
+  "src/adapter/sources": [
+    "Ignoré par skipFiles"
+  ],
+  "src/adapter/stackTrace": [
+    "GLOBAL",
+    "LOCAL",
+    "Bloc With",
+    "Fermeture",
+    "Bloc Catch",
+    "Bloquer",
+    "Script",
+    "Eval",
+    "Module",
+    "Fermeture ({0})",
+    "Ignoré par smartStep",
+    "Valeur retournée"
+  ],
+  "src/adapter/threads": [
+    "Impossible de reprendre",
+    "Impossible d'interrompre",
+    "Impossible d'effectuer le pas à pas suivant",
+    "Impossible d'effectuer un pas à pas détaillé",
+    "Impossible d'effectuer un pas à pas sortant",
+    "Frame de pile introuvable",
+    "Impossible d'évaluer le frame de pile asynchrone",
+    "Impossible de redémarrer le frame asynchrone",
+    "En pause sur une entrée de frame",
+    "Le thread n'est pas interrompu",
+    "Le thread n'est pas interrompu en cas d'exception",
+    "Impossible d'évaluer",
+    "Impossible d'évaluer",
+    "Interruption sur assertion",
+    "Interruption sur appel de debug()",
+    "Interruption sur point d'arrêt DOM",
+    "En pause sur une exception",
+    "En pause sur un rejet de promesse",
+    "En pause sur un point d'arrêt",
+    "En pause sur une instruction du débogueur",
+    "Interruption sur point d'arrêt d'instrumentation",
+    "Interruption sur XMLHttpRequest ou fetch",
+    "Interruption avant exception pour mémoire insuffisante",
+    "En pause sur un point d'arrêt",
+    "En pause sur une instruction du débogueur",
+    "En pause sur une instruction du débogueur",
+    "Interruption sur écouteur d'événements",
+    "Échec d'assertion"
+  ],
+  "src/targets/browser/browserAttacher": [
+    "Sélectionner un onglet",
+    "Connexion impossible à la cible sur {0} : {1}",
+    "Connexion impossible à la cible sur {0} : {1}"
+  ],
+  "src/targets/node/nodeAttacher": [
+    "Perte de la connexion à l'élément débogué. Reconnexion dans {0} ms\r\n"
+  ],
+  "src/targets/node/terminalProgramLauncher": [
+    "Console de débogage de nœud"
+  ],
+  "src/ui/companionBrowserLaunch": [
+    "Nous ne pouvons pas lancer un navigateur en mode débogage à partir d'ici. Ouvrez cet espace de travail dans VS Code sur votre poste de travail pour activer le débogage."
+  ],
+  "src/ui/configuration/chromiumDebugConfigurationProvider": [
+    "Lancer Chrome en utilisant localhost"
+  ],
+  "src/ui/configuration/nodeDebugConfigurationProvider": [
+    "Créer un terminal de débogage JavaScript",
+    "Exécuter le script : {0}",
+    "Exécuter le fichier actif"
+  ],
+  "src/ui/configuration/nodeDebugConfigurationResolver": [
+    "Programme à déboguer introuvable",
+    "Lancer le programme",
+    "Configuration de lancement du projet '{0}' créée.",
+    "Configuration de lancement créée en fonction de 'package.json'.",
+    "Ajustez le ou les modèles glob dans l'attribut 'outFiles' pour qu'ils couvrent le fichier JavaScript généré."
+  ],
+  "src/ui/debugNpmScript": [
+    "Vous devez ouvrir un dossier d'espace de travail pour déboguer les scripts npm.",
+    "Impossible de lire {0} : {1}",
+    "Aucun script npm dans votre package.json",
+    "Modifier package.json"
+  ],
+  "src/ui/experimentEnlist": [
+    "Vous pouvez désactiver le nouveau débogueur à l'aide du paramètre \"debug.javascript.usePreview\". N'hésitez pas à signaler tous les problèmes que vous rencontrez. Merci pour votre participation à cet essai !"
+  ],
+  "src/ui/longPredictionUI": [
+    "La configuration de vos points d'arrêt prend un certain temps. Vous pouvez accélérer le processus en mettant à jour 'outFiles' dans votre fichier launch.json.",
+    "Ouvrir launch.json",
+    "Ne plus afficher",
+    "Aucun dossier d'espace de travail ouvert."
+  ],
+  "src/ui/npmScriptLens": [
+    "{0} (débogage)"
+  ],
+  "src/ui/prettyPrint": [
+    "Oui",
+    "Non",
+    "Jamais"
+  ],
+  "src/ui/profiling/uiProfileManager": [
+    "Profilage",
+    "$(loading) Cliquez pour arrêter le profilage ({0})",
+    "$(loading) Cliquez pour arrêter le profilage",
+    "$(loading) Cliquez pour arrêter le profilage ({0} sessions)",
+    "Oui",
+    "Non",
+    "Une session de profilage est déjà en cours d'exécution. Voulez-vous l'arrêter et démarrer une nouvelle session ?",
+    "Type de profil :",
+    "Durée d'exécution du profilage :"
+  ],
+  "src/ui/processPicker": [
+    "Attacher au processus : '{0}' ne ressemble pas à un ID de processus.",
+    "Le sélecteur de processus a échoué ({0})",
+    "Sélectionner le processus node.js auquel s'attacher",
+    "ID de processus : {0}, port de débogage : {1} ({2})",
+    "ID de processus : {0} ({1})",
+    "Attacher au processus : impossible d'activer le mode de débogage pour le processus '{0}' ({1})."
+  ],
+  "src/ui/profiling/breakpointTerminationCondition": [
+    "Choisir un point d'arrêt",
+    "Exécuter jusqu'à ce qu'un point d'arrêt spécifique soit atteint",
+    "Effectuer un profilage avec des points d'arrêt activés peut changer le niveau de performance de votre code. Il peut être utile de valider vos constats avec les conditions d'arrêt \"durée\" ou \"manuel\".",
+    "OK"
+  ],
+  "src/ui/profiling/durationTerminationCondition": [
+    "Manuelle",
+    "Exécuter jusqu'à l'arrêt manuel",
+    "Durée du profilage",
+    "Durée du profilage en secondes, par exemple \"5\"",
+    "Entrez un nombre",
+    "Entrez un nombre supérieur à 1"
+  ],
+  "src/ui/profiling/manualTerminationCondition": [
+    "Manuelle",
+    "Exécuter jusqu'à l'arrêt manuel"
+  ],
+  "src/ui/profiling/uiProfileSession": [
+    "Enregistrement"
+  ],
+  "src/ui/terminalLinkHandler": [
+    "Nous ne pouvons pas lancer un navigateur en mode débogage à partir d'ici. Si vous souhaitez déboguer cette page web, ouvrez cet espace de travail à partir de VS Code sur votre poste de travail."
+  ]
+}

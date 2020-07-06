@@ -18,7 +18,7 @@ import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { LogTag, ILogger } from '../common/logging';
 import Cdp from '../cdp/api';
 import { createHash } from 'crypto';
-import { isSubdirectoryOf, forceForwardSlashes } from '../common/pathUtils';
+import { isSubdirectoryOf, forceForwardSlashes, properResolve } from '../common/pathUtils';
 import { relative } from 'path';
 import { inject, injectable } from 'inversify';
 import { IDapApi } from '../dap/connection';
@@ -68,10 +68,14 @@ export type SourceMapTimeouts = {
   // in the compiled source.
   resolveLocation: number;
 
-  // When pausing before script with source map, we wait no longer than |scriptPaused| timeout
+  // When pausing before script with source map, we wait no longer than |sourceMapMinPause| timeout
   // for source map to be loaded and breakpoints to be set. This usually ensures that breakpoints
   // won't be missed.
-  scriptPaused: number;
+  sourceMapMinPause: number;
+
+  // Normally we only give each source-map sourceMapMinPause time to load per sourcemap. sourceMapCumulativePause
+  // adds some additional time we spend parsing source-maps, but it's spent accross all source-maps in that // // // session
+  sourceMapCumulativePause: number;
 
   // When sending multiple entities to debug console, we wait for each one to be asynchronously
   // processed. If one of them stalls, we resume processing others after |output| timeout.
@@ -81,8 +85,9 @@ export type SourceMapTimeouts = {
 const defaultTimeouts: SourceMapTimeouts = {
   load: 0,
   resolveLocation: 2000,
-  scriptPaused: 1000,
+  sourceMapMinPause: 1000,
   output: 1000,
+  sourceMapCumulativePause: 10000,
 };
 
 // Represents a text source visible to the user.
@@ -290,9 +295,10 @@ export class Source {
    */
   private _humanName() {
     if (utils.isAbsolute(this._fqname)) {
-      const root = this._container.rootPath;
-      if (root && isSubdirectoryOf(root, this._fqname)) {
-        return forceForwardSlashes(relative(root, this._fqname));
+      for (const root of this._container.rootPaths) {
+        if (isSubdirectoryOf(root, this._fqname)) {
+          return forceForwardSlashes(relative(root, this._fqname));
+        }
       }
     }
 
@@ -417,7 +423,7 @@ export class SourceContainer {
   /**
    * Project root path, if set.
    */
-  public readonly rootPath?: string;
+  public readonly rootPaths: string[] = [];
 
   /**
    * Mapping of CDP script IDs to Script objects.
@@ -456,8 +462,18 @@ export class SourceContainer {
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
   ) {
     this._dap = dap;
-    this.rootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
+
+    const mainRootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
+    if (mainRootPath) {
+      // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
+      this.rootPaths = [mainRootPath, properResolve(mainRootPath, '..', 'ClientApp')];
+    }
+
     scriptSkipper.setSourceContainer(this);
+    this.setSourceMapTimeouts({
+      ...this.sourceMapTimeouts(),
+      ...launchConfig.timeouts,
+    });
   }
 
   setSourceMapTimeouts(sourceMapTimeouts: SourceMapTimeouts) {
@@ -766,7 +782,7 @@ export class SourceContainer {
       sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
     } catch (e) {
       this._dap.output({
-        output: sourceMapParseFailed(source.url, e.message).error.format,
+        output: sourceMapParseFailed(source.url, e.message).error.format + '\n',
         category: 'stderr',
       });
 
@@ -877,7 +893,7 @@ export class SourceContainer {
         content !== null
           ? () => Promise.resolve(content)
           : fileUrl
-          ? () => this.resourceProvider.fetch(fileUrl)
+          ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
       );
       source.compiledToSourceUrl.set(compiled, url);
@@ -933,8 +949,9 @@ export class SourceContainer {
       }
 
       if (!this.hasWarnedAboutMaps.has(sourceMap)) {
+        const message = sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error;
         this._dap.output({
-          output: sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error.format,
+          output: message.format + '\n',
           category: 'stderr',
         });
         this.hasWarnedAboutMaps.add(sourceMap);

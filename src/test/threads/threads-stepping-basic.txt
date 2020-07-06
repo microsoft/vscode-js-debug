@@ -1,4 +1,4 @@
-Evaluating#1: 
+Evaluating#1:
         function bar() {
           return 2;
         }
@@ -8,7 +8,7 @@ Evaluating#1:
           bar();
         }
         foo();
-      
+
 {
     allThreadsStopped : false
     description : Paused on debugger statement
@@ -75,8 +75,8 @@ step out
     }
     [1] : {
         allThreadsStopped : false
-        description : Paused on debugger statement
-        reason : pause
+        description : Paused
+        reason : step
         threadId : <number>
     }
 ]

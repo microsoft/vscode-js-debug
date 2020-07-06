@@ -191,6 +191,25 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('node.timeout.description'),
     default: 10000,
   },
+  timeouts: {
+    type: 'object',
+    description: refString('timeouts.generalDescription'),
+    default: {},
+    properties: {
+      sourceMapMinPause: {
+        type: 'number',
+        description: refString('timeouts.sourceMaps.sourceMapMinPause.description'),
+        default: 1000,
+      },
+      sourceMapCumulativePause: {
+        type: 'number',
+        description: refString('timeouts.sourceMaps.sourceMapCumulativePause.description'),
+        default: 1000,
+      },
+    },
+    additionalProperties: false,
+    markdownDescription: refString('timeouts.generalDescription.markdown'),
+  },
   trace: {
     description: refString('trace.description'),
     default: true,
@@ -358,7 +377,6 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         },
         {
           type: 'object',
-          required: ['static'],
           properties: {
             delay: { type: 'number', minimum: 0, default: 1000 },
             maxAttempts: { type: 'number', minimum: 0, default: 10 },
@@ -670,45 +688,6 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
   },
 };
 
-const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
-  type: DebugType.ExtensionHost,
-  request: 'launch',
-  label: refString('extensionHost.label'),
-  required: ['args'],
-  configurationSnippets: [
-    {
-      label: refString('extensionHost.snippet.launch.label'),
-      description: refString('extensionHost.snippet.launch.description'),
-      body: {
-        type: DebugType.ExtensionHost,
-        request: 'launch',
-        name: refString('extensionHost.launch.config.name'),
-        runtimeExecutable: '^"\\${execPath}"',
-        args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
-        outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
-        preLaunchTask: 'npm',
-      },
-    },
-  ],
-  configurationAttributes: {
-    ...nodeBaseConfigurationAttributes,
-    args: {
-      type: 'array',
-      description: refString('node.launch.args.description'),
-      items: {
-        type: 'string',
-      },
-      default: ['--extensionDevelopmentPath=${workspaceFolder}'],
-    },
-    runtimeExecutable: {
-      type: ['string', 'null'],
-      markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
-      default: 'node',
-    },
-  },
-  defaults: extensionHostConfigDefaults,
-};
-
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   type: DebugType.Chrome,
   request: 'launch',
@@ -780,7 +759,7 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       type: 'string',
       enum: ['wholeBrowser', 'onlyTab'],
       description: refString('browser.cleanUp.description'),
-      default: 'onlyTab',
+      default: 'wholeBrowser',
     },
     browserLaunchLocation: {
       description: refString('browser.browserLaunchLocation.description'),
@@ -818,6 +797,59 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   ],
   configurationAttributes: chromiumAttachConfigurationAttributes,
   defaults: chromeAttachConfigDefaults,
+};
+
+const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
+  type: DebugType.ExtensionHost,
+  request: 'launch',
+  label: refString('extensionHost.label'),
+  required: ['args'],
+  configurationSnippets: [
+    {
+      label: refString('extensionHost.snippet.launch.label'),
+      description: refString('extensionHost.snippet.launch.description'),
+      body: {
+        type: DebugType.ExtensionHost,
+        request: 'launch',
+        name: refString('extensionHost.launch.config.name'),
+        runtimeExecutable: '^"\\${execPath}"',
+        args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
+        outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
+        preLaunchTask: 'npm',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...nodeBaseConfigurationAttributes,
+    args: {
+      type: 'array',
+      description: refString('node.launch.args.description'),
+      items: {
+        type: 'string',
+      },
+      default: ['--extensionDevelopmentPath=${workspaceFolder}'],
+    },
+    runtimeExecutable: {
+      type: ['string', 'null'],
+      markdownDescription: refString('extensionHost.launch.runtimeExecutable.description'),
+      default: 'node',
+    },
+    debugWebviews: {
+      markdownDescription: refString('extensionHost.launch.debugWebviews'),
+      default: true,
+      oneOf: [
+        {
+          type: ['boolean'],
+          default: true,
+        },
+        {
+          type: 'object',
+          properties: chromiumAttachConfigurationAttributes as { [key: string]: JSONSchema6 },
+        },
+      ],
+    },
+  },
+  defaults: extensionHostConfigDefaults,
 };
 
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
@@ -933,7 +965,7 @@ function buildDebuggers() {
 const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   [Configuration.UsePreviewDebugger]: {
     type: 'boolean',
-    default: false,
+    default: true,
     description: refString('configuration.usePreview'),
   },
   [Configuration.NpmScriptLens]: {
@@ -1045,7 +1077,7 @@ const commands: ReadonlyArray<{
     command: Commands.StartProfile,
     title: refString('profile.start'),
     category: 'Debug',
-    icon: '$(circle-outline)',
+    icon: '$(record)',
   },
   {
     command: Commands.StopProfile,
@@ -1073,7 +1105,7 @@ const menus: Menus = {
       when: forAnyDebugType('debugType', 'inDebugMode && !jsDebugIsProfiling'),
     },
     {
-      command: Commands.StartProfile,
+      command: Commands.StopProfile,
       title: refString('profile.stop'),
       when: forAnyDebugType('debugType', 'inDebugMode && jsDebugIsProfiling'),
     },

@@ -466,6 +466,13 @@ export abstract class Breakpoint {
    * to Debugger.setBreakpoint or Debugger.setBreakpointByUrl.
    */
   protected async _setAny(thread: Thread, args: AnyCdpBreakpointArgs) {
+    // If disabled while still setting, don't go on to try to set it and leak.
+    // If we're disabled after this point, we'll be recorded in the CDP refs
+    // list and will be deadlettered.
+    if (!this.isEnabled) {
+      return;
+    }
+
     const state: Partial<IBreakpointCdpReferencePending> = {
       state: CdpReferenceState.Pending,
       args,

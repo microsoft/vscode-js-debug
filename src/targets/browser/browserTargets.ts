@@ -63,8 +63,9 @@ export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export class BrowserTargetManager implements IDisposable {
   private _connection: CdpConnection;
-  private _targets: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
+  private _targets: Map<Cdp.Target.SessionID, BrowserTarget> = new Map();
   private _browser: Cdp.Api;
+  private readonly _detachedTargets = new Set();
   readonly frameModel = new FrameModel();
   readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
   _sourcePathResolver: ISourcePathResolver;
@@ -114,9 +115,6 @@ export class BrowserTargetManager implements IDisposable {
     this._connection = connection;
     this._sourcePathResolver = sourcePathResolver;
     this._browser = browserSession;
-    this._browser.Target.on('targetInfoChanged', event => {
-      this._targetInfoChanged(event.targetInfo);
-    });
     this._targetOrigin = targetOrigin;
     this.serviceWorkerModel.onDidChange(() => {
       for (const target of this._targets.values()) {
@@ -153,8 +151,8 @@ export class BrowserTargetManager implements IDisposable {
         await this._browser.Browser.close({});
         this.process?.kill();
       } else {
-        for (const targetId of this._targets.keys()) {
-          await this._browser.Target.closeTarget({ targetId });
+        for (const target of this._targets.values()) {
+          await this._browser.Target.closeTarget({ targetId: target.targetId });
           this._connection.close();
         }
       }
@@ -172,15 +170,13 @@ export class BrowserTargetManager implements IDisposable {
   ): Promise<BrowserTarget | undefined> {
     let callback: (result: BrowserTarget | undefined) => void;
     let attachmentQueue = Promise.resolve();
-    const detachedTargets = new Set<Cdp.Target.TargetID>();
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
-    const attachInner = async ({ targetInfo }: { targetInfo: Cdp.Target.TargetInfo }) => {
-      if (this._targets.has(targetInfo.targetId) || detachedTargets.has(targetInfo.targetId)) {
+    const attachInner = async (targetInfo: Cdp.Target.TargetInfo) => {
+      if (
+        [...this._targets.values()].some(t => t.targetId === targetInfo.targetId) ||
+        this._detachedTargets.has(targetInfo.targetId)
+      ) {
         return; // targetInfoChanged on something we're already connected to
-      }
-
-      if (targetInfo.type !== 'page') {
-        return;
       }
 
       if (filter && !filter(targetInfo)) {
@@ -213,21 +209,29 @@ export class BrowserTargetManager implements IDisposable {
       callback(this._attachedToTarget(targetInfo, response.sessionId, true));
     };
 
-    const attemptAttach = (info: { targetInfo: Cdp.Target.TargetInfo }) => {
-      attachmentQueue = attachmentQueue.then(() => attachInner(info));
-    };
+    const enqueueCall = <T>(fn: (arg: T) => Promise<void>) => (arg: T) =>
+      (attachmentQueue = attachmentQueue.then(() => fn(arg)));
 
     this._browser.Target.setDiscoverTargets({ discover: true });
-    this._browser.Target.on('targetCreated', attemptAttach); // new page
-    this._browser.Target.on('targetInfoChanged', attemptAttach); // nav on existing page
-    this._browser.Target.on('detachedFromTarget', event => {
-      if (event.targetId) {
-        this._detachedFromTarget(event.targetId, false);
-      }
-    });
-    this.onTargetRemoved(target => {
-      detachedTargets.add(target.id());
-    });
+
+    this._browser.Target.on(
+      'targetCreated',
+      enqueueCall(evt => attachInner(evt.targetInfo)),
+    );
+
+    this._browser.Target.on(
+      'targetInfoChanged',
+      enqueueCall(evt => this._targetInfoChanged(evt.targetInfo, attachInner)),
+    );
+
+    this._browser.Target.on(
+      'detachedFromTarget',
+      enqueueCall(async event => {
+        if (event.targetId) {
+          await this._detachedFromTarget(event.sessionId, false);
+        }
+      }),
+    );
 
     return promise;
   }
@@ -238,6 +242,11 @@ export class BrowserTargetManager implements IDisposable {
     waitingForDebugger: boolean,
     parentTarget?: BrowserTarget,
   ): BrowserTarget {
+    const existing = this._targets.get(sessionId);
+    if (existing) {
+      return existing;
+    }
+
     const cdp = this._connection.createSession(sessionId);
     const target = new BrowserTarget(
       this,
@@ -245,13 +254,15 @@ export class BrowserTargetManager implements IDisposable {
       cdp,
       parentTarget,
       waitingForDebugger,
+      this.launchParams,
+      sessionId,
       this.logger,
       () => {
         this._connection.disposeSession(sessionId);
-        this._detachedFromTarget(targetInfo.targetId);
+        this._detachedFromTarget(sessionId);
       },
     );
-    this._targets.set(targetInfo.targetId, target);
+    this._targets.set(sessionId, target);
     if (parentTarget) parentTarget._children.set(targetInfo.targetId, target);
 
     cdp.Target.on('attachedToTarget', async event => {
@@ -259,7 +270,7 @@ export class BrowserTargetManager implements IDisposable {
     });
     cdp.Target.on('detachedFromTarget', async event => {
       if (event.targetId) {
-        this._detachedFromTarget(event.targetId, false);
+        this._detachedFromTarget(event.sessionId, false);
       }
     });
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
@@ -322,18 +333,14 @@ export class BrowserTargetManager implements IDisposable {
     }
   }
 
-  async _detachedFromTarget(targetId: string, isStillAttachedInternally = true) {
-    const target = this._targets.get(targetId);
+  async _detachedFromTarget(sessionId: string, isStillAttachedInternally = true) {
+    const target = this._targets.get(sessionId);
     if (!target) {
       return;
     }
 
-    this._targets.delete(targetId);
-    target.parentTarget?._children.delete(targetId);
-
-    await Promise.all(
-      [...target._children.keys()].map(k => this._detachedFromTarget(k, isStillAttachedInternally)),
-    );
+    this._targets.delete(sessionId);
+    target.parentTarget?._children.delete(sessionId);
 
     try {
       await target._detached();
@@ -343,7 +350,8 @@ export class BrowserTargetManager implements IDisposable {
 
     this._onTargetRemovedEmitter.fire(target);
     if (isStillAttachedInternally) {
-      await this._browser.Target.detachFromTarget({ targetId });
+      this._detachedTargets.add(target.targetId);
+      await this._browser.Target.detachFromTarget({ sessionId });
     }
 
     if (!this._targets.size && this.launchParams.request === 'launch') {
@@ -351,7 +359,7 @@ export class BrowserTargetManager implements IDisposable {
         if (this.launchParams.cleanUp === 'wholeBrowser') {
           await this._browser.Browser.close({});
         } else {
-          await this._browser.Target.closeTarget({ targetId });
+          await this._browser.Target.closeTarget({ targetId: target.id() });
           this._connection.close();
         }
       } catch {
@@ -360,19 +368,31 @@ export class BrowserTargetManager implements IDisposable {
     }
   }
 
-  private _targetInfoChanged(targetInfo: Cdp.Target.TargetInfo) {
-    const target = this._targets.get(targetInfo.targetId);
-    if (!target) {
-      return;
+  private async _targetInfoChanged(
+    targetInfo: Cdp.Target.TargetInfo,
+    attemptAttach: (info: Cdp.Target.TargetInfo) => Promise<void>,
+  ) {
+    const targets = [...this._targets.values()].filter(t => t.targetId === targetInfo.targetId);
+
+    // if we arent' attach, detach any existing targets and then attempt to
+    // re-attach if the conditions are right.
+    if (!targetInfo.attached) {
+      if (targets.length) {
+        await Promise.all(targets.map(t => this._detachedFromTarget(t.sessionId, false)));
+      }
+
+      return attemptAttach(targetInfo);
     }
 
-    target._updateFromInfo(targetInfo);
+    for (const target of targets) {
+      target._updateFromInfo(targetInfo);
+    }
 
     // fire name changes for everyone since this might have caused a duplicate
     // title that we want to disambiguate.
-    for (const otherTarget of this._targets.values()) {
-      if (target !== otherTarget) {
-        otherTarget._onNameChangedEmitter.fire();
+    for (const target of this._targets.values()) {
+      if (target.targetId !== targetInfo.targetId) {
+        target._onNameChangedEmitter.fire();
       }
     }
   }
@@ -382,13 +402,23 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
-  _targetInfo: Cdp.Target.TargetInfo;
+  private _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached = false;
+  private _customNameComputeFn?: (t: BrowserTarget) => string | undefined;
   _onNameChangedEmitter = new EventEmitter<void>();
-  readonly onNameChanged = this._onNameChangedEmitter.event;
+
+  public readonly onNameChanged = this._onNameChangedEmitter.event;
   public readonly entryBreakpoint = undefined;
+
+  public get targetInfo(): Readonly<Cdp.Target.TargetInfo> {
+    return this._targetInfo;
+  }
+
+  public get targetId() {
+    return this._targetInfo.targetId;
+  }
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
@@ -398,6 +428,8 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     cdp: Cdp.Api,
     parentTarget: BrowserTarget | undefined,
     waitingForDebugger: boolean,
+    public readonly launchConfig: AnyChromiumConfiguration,
+    public readonly sessionId: string,
     public readonly logger: ILogger,
     ondispose: (t: BrowserTarget) => void,
   ) {
@@ -417,7 +449,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   id(): string {
-    return this._targetInfo.targetId;
+    return this.sessionId;
   }
 
   cdp(): Cdp.Api {
@@ -507,7 +539,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
 
   async detach(): Promise<void> {
     this._attached = false;
-    this._manager._detachedFromTarget(this.id());
+    this._manager._detachedFromTarget(this.sessionId);
   }
 
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string {
@@ -549,7 +581,21 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     this._onNameChangedEmitter.fire();
   }
 
+  /**
+   * Sets a function to compute a custom name for the target.
+   * Used to name webviews in js-debug better. Can
+   * return undefined to use the default handling.
+   */
+  public setComputeNameFn(fn: (target: BrowserTarget) => string | undefined) {
+    this._customNameComputeFn = fn;
+    this._onNameChangedEmitter.fire();
+  }
+
   _computeName(): string {
+    const custom = this._customNameComputeFn?.(this);
+    if (custom) {
+      return custom;
+    }
     if (this.type() === BrowserTargetType.ServiceWorker) {
       const version = this._manager.serviceWorkerModel.version(this.id());
       if (version) return version.label() + ' [Service Worker]';

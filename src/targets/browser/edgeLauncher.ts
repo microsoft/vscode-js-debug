@@ -15,7 +15,7 @@ import { NeverCancelled } from '../../common/cancellation';
 import { join } from 'path';
 import Dap from '../../dap/api';
 import { CancellationToken } from 'vscode';
-import { createTargetFilterForConfig } from '../../common/urlUtils';
+import { createTargetFilterForConfig, requirePageTarget } from '../../common/urlUtils';
 import { BrowserLauncher } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
 import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
@@ -69,7 +69,11 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
       cancellationToken,
       telemetryReporter,
       params.useWebView
-        ? this.getWebviewPort(params, createTargetFilterForConfig(params), telemetryReporter)
+        ? this.getWebviewPort(
+            params,
+            requirePageTarget(createTargetFilterForConfig(params)),
+            telemetryReporter,
+          )
         : undefined,
     );
   }

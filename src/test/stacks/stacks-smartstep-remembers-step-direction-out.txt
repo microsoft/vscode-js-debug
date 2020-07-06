@@ -1,0 +1,10 @@
+Evaluating#1: doCall(() => { mapped1(); mapped2(); })
+//# sourceMappingURL=does.not.exist
+mapped1 @ ${workspaceFolder}/web/smartStep/directional.ts:2:3
+<anonymous> @ localhost꞉8001/eval1.js:1:16
+doCall @ ${workspaceFolder}/web/smartStep/directional.ts:10:3
+<anonymous> @ localhost꞉8001/eval1.js:1:1
+
+# stepping out
+doCall @ ${workspaceFolder}/web/smartStep/directional.ts:11:1
+<anonymous> @ localhost꞉8001/eval1.js:1:1

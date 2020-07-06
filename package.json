@@ -1,7 +1,7 @@
 {
   "name": "js-debug",
   "displayName": "JavaScript Debugger",
-  "version": "1.46.1",
+  "version": "1.47.2",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
@@ -185,6 +185,14 @@
         "contents": "%debug.terminal.welcome%",
         "when": "debugStartLanguage == javascript || debugStartLanguage == typescript"
       }
-    ]
+    ],
+    "terminal": {
+      "types": [
+        {
+          "command": "extension.NAMESPACE(node-debug).createDebuggerTerminal",
+          "title": "%debug.terminal.label%"
+        }
+      ]
+    }
   }
 }

@@ -173,7 +173,23 @@ export class DebugAdapter implements IDisposable {
     this._pauseOnExceptionsState = 'none';
     if (params.filters.includes('caught')) this._pauseOnExceptionsState = 'all';
     else if (params.filters.includes('uncaught')) this._pauseOnExceptionsState = 'uncaught';
-    if (this._thread) await this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
+    if (this._thread) {
+      const result = this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
+      const logger = this._services.get<ILogger>(ILogger);
+      if (this._configurationDoneDeferred.hasSettled()) {
+        logger.verbose(LogTag.Internal, 'setExceptionBreakpoints: awaiting blocking response');
+        await result;
+      } else {
+        result.catch(rejection => {
+          const output = localize(
+            '`errors.setExceptionBreakpoints.async.failed`',
+            'Failed to configure the exceptions for which to pause due to: {0}',
+            rejection.message || localize('errors.unknown', 'Unknown error'),
+          );
+          this.dap.output({ category: 'stderr', output: output });
+        });
+      }
+    }
     return {};
   }
 

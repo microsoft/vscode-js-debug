@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { StackFrame } from './stackTrace';
-import { IPausedDetails, PausedReason } from './threads';
+import { IPausedDetails, PausedReason, ExpectedPauseReason, StepDirection } from './threads';
 import { LogTag, ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { UnmappedReason, isSourceWithMap } from './sources';
@@ -21,6 +21,10 @@ export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise
 
 const neverStepReasons: ReadonlySet<PausedReason> = new Set(['breakpoint', 'exception']);
 
+/**
+ * The SmartStepper is a device that controls stepping through code that lacks
+ * sourcemaps when running in an application with source maps.
+ */
 export class SmartStepper {
   private _smartStepCount = 0;
 
@@ -30,29 +34,36 @@ export class SmartStepper {
   ) {}
 
   private resetSmartStepCount(): void {
-    this._smartStepCount = 0;
+    if (this._smartStepCount > 0) {
+      this.logger.verbose(LogTag.Internal, `smartStep: skipped ${this._smartStepCount} steps`);
+      this._smartStepCount = 0;
+    }
   }
 
-  async shouldSmartStep(pausedDetails: IPausedDetails): Promise<boolean> {
+  /**
+   * Determines whether smart stepping should be run for the given pause
+   * information. If so, returns the direction of stepping.
+   */
+  public async getSmartStepDirection(
+    pausedDetails: IPausedDetails,
+    reason?: ExpectedPauseReason,
+  ): Promise<StepDirection | undefined> {
     if (!this.launchConfig.smartStep) {
-      return false;
+      return;
     }
 
     if (neverStepReasons.has(pausedDetails.reason)) {
-      return false;
+      return;
     }
 
     const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];
     const should = await shouldSmartStepStackFrame(frame);
-    if (should) {
-      this._smartStepCount++;
-    } else {
-      if (this._smartStepCount > 0) {
-        this.logger.verbose(LogTag.Internal, `smartStep: skipped ${this._smartStepCount} steps`);
-        this.resetSmartStepCount();
-      }
+    if (!should) {
+      this.resetSmartStepCount();
+      return;
     }
 
-    return should;
+    this._smartStepCount++;
+    return reason?.reason === 'step' ? reason.direction : StepDirection.In;
   }
 }

@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IWatchdogInfo } from '../watchdogSpawn';
-import { IProcessTelemetry } from '../nodeLauncherBase';
+import type { IWatchdogInfo } from '../watchdogSpawn';
+import type { IProcessTelemetry } from '../nodeLauncherBase';
 
 /**
  * Attachment mode for the debugger.

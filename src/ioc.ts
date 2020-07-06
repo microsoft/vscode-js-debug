@@ -82,6 +82,7 @@ import {
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
+import { WebviewAttacher } from './targets/browser/webviewAttacher';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -110,6 +111,7 @@ export const createTargetContainer = (
 ) => {
   const container = new Container();
   container.parent = parent;
+  container.bind(AnyLaunchConfiguration).toConstantValue(target.launchConfig);
   container.bind(IContainer).toConstantValue(container);
   container.bind(IDapApi).toConstantValue(dap);
   container.bind(ICdpApi).toConstantValue(cdp);
@@ -188,6 +190,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   // Launcher logic:
   container.bind(RestartPolicyFactory).toSelf();
+  container.bind(ILauncher).to(WebviewAttacher).onActivation(trackDispose);
   container.bind(ILauncher).to(ExtensionHostAttacher).onActivation(trackDispose);
   container.bind(ILauncher).to(ExtensionHostLauncher).onActivation(trackDispose);
   container.bind(ILauncher).to(NodeLauncher).onActivation(trackDispose);
@@ -279,6 +282,6 @@ export const provideLaunchParams = (container: Container, params: AnyLaunchConfi
 
   container
     .bind(ISourcePathResolver)
-    .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create())
+    .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create(params))
     .inSingletonScope();
 };

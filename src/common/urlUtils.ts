@@ -11,6 +11,7 @@ import { promises as dns } from 'dns';
 import { memoize } from './objUtils';
 import { exists } from './fsUtils';
 import Cdp from '../cdp/api';
+import { BrowserTargetType } from '../targets/browser/browserTargets';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -408,6 +409,13 @@ export const createTargetFilterForConfig = (
   const tester = createTargetFilter(filter, ...additonalMatches);
   return t => tester(t.url);
 };
+
+/**
+ * Requires that the target is also a 'page'.
+ */
+export const requirePageTarget = <T>(
+  filter: (t: T) => boolean,
+): ((t: T & { type: string }) => boolean) => t => t.type === BrowserTargetType.Page && filter(t);
 
 /**
  * Creates a function to filter a target URL.

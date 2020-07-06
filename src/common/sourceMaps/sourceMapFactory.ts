@@ -95,11 +95,16 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
     }
 
-    let content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
-    if (content.slice(0, 3) === ')]}') {
-      content = content.substring(content.indexOf('\n'));
+    const content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
+    if (!content.ok) {
+      throw content.error;
     }
 
-    return JSON.parse(content);
+    let body = content.body;
+    if (body.slice(0, 3) === ')]}') {
+      body = body.substring(body.indexOf('\n'));
+    }
+
+    return JSON.parse(body);
   }
 }

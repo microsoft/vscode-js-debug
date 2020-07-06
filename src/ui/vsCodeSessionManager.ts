@@ -6,7 +6,7 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
 import { Container } from 'inversify';
-import { SessionManager, SessionLauncher } from '../sessionManager';
+import { SessionManager, SessionLauncher, RootSession } from '../sessionManager';
 import { StreamDapTransport } from '../dap/transport';
 import { pick } from '../common/objUtils';
 import { IPseudoAttachConfiguration } from '../configuration';
@@ -32,6 +32,7 @@ const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSessi
     {
       parentSession: parentSession.debugSession,
       consoleMode: vscode.DebugConsoleMode.MergeWithParent,
+      compact: parentSession instanceof RootSession, // don't compact workers/child processes
     },
   );
 };

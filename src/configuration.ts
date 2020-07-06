@@ -7,6 +7,7 @@ import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
 import pkg from '../package.json';
+import { SourceMapTimeouts } from './adapter/sources';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -136,6 +137,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   timeout: number;
 
   /**
+   * Timeouts for several operations (currently only source-maps)
+   */
+  timeouts: Partial<SourceMapTimeouts>;
+
+  /**
    * Logging configuration
    */
   trace: boolean | Partial<ILoggingConfiguration>;
@@ -192,6 +198,12 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
   request: 'launch';
 
   /**
+   * Whether we should try to attach to webviews in the launched
+   * VS Code instance.
+   */
+  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+
+  /**
    * Port the extension host is listening on.
    */
   port?: number;
@@ -205,10 +217,8 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
 export interface IExtensionHostAttachConfiguration extends IExtensionHostBaseConfiguration {
   type: DebugType.ExtensionHost;
   request: 'attach';
-
-  /**
-   * Port the extension host is listening on.
-   */
+  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+  __sessionId: string;
   port: number;
 }
 
@@ -678,6 +688,7 @@ export const baseDefaults: IBaseConfiguration = {
   trace: false,
   outputCapture: OutputSource.Console,
   timeout: 10000,
+  timeouts: {},
   showAsyncStacks: true,
   skipFiles: [],
   smartStep: true,
@@ -732,6 +743,7 @@ export const extensionHostConfigDefaults: IExtensionHostLaunchConfiguration = {
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   runtimeExecutable: '${execPath}',
   autoAttachChildProcesses: false,
+  debugWebviews: false,
   __sessionId: '',
 };
 
@@ -788,7 +800,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
-  cleanUp: 'onlyTab',
+  cleanUp: 'wholeBrowser',
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {

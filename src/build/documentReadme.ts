@@ -9,24 +9,8 @@ import { prettier as prettierOpts } from '../../package.json';
 import strings from './strings';
 import marked from 'marked';
 
-const startMarker = '<!-- option start marker, used by build steps, do not modify -->';
-const endMarker = '<!-- option end marker, used by build steps, do not modify -->';
-
 (async () => {
-  let contents = await fs.readFile('README.md', 'utf-8');
-  const start = contents.indexOf(startMarker);
-  if (start === -1) {
-    throw new Error('Cannot find start marker');
-  }
-
-  let end = contents.indexOf(endMarker);
-  if (end === -1) {
-    throw new Error('Cannot find end marker');
-  }
-
-  end += endMarker.length;
-
-  let out = `${startMarker}\n\n`;
+  let out = `# Options\n\n`;
   for (const dbg of debuggers) {
     out += `### ${dbg.type}: ${dbg.request}\n\n`;
     out += `<details>`;
@@ -54,12 +38,11 @@ const endMarker = '<!-- option end marker, used by build steps, do not modify --
     out += `</details>\n\n`;
   }
 
-  out += `${endMarker}`;
-
-  contents = format(contents.slice(0, start) + out + contents.slice(end + endMarker.length), {
-    parser: 'markdown',
-    ...prettierOpts,
-  });
-
-  await fs.writeFile('README.md', contents);
+  await fs.writeFile(
+    'OPTIONS.md',
+    format(out, {
+      parser: 'markdown',
+      ...prettierOpts,
+    }),
+  );
 })().catch(console.error);

@@ -5,7 +5,12 @@
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findInPath } from '../../common/pathUtils';
 import { isAbsolute, basename } from 'path';
-import { cannotFindNodeBinary, nodeBinaryOutOfDate, ProtocolError } from '../../dap/errors';
+import {
+  cannotFindNodeBinary,
+  nodeBinaryOutOfDate,
+  ProtocolError,
+  ErrorCodes,
+} from '../../dap/errors';
 import { spawnAsync } from '../../common/processUtils';
 import { injectable } from 'inversify';
 
@@ -43,6 +48,22 @@ export class NodeBinaryProvider {
       executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable));
+    }
+
+    // If the user is running a package manager, resolve the version for `node` instead. (#543)
+    if (/^(p?npm|yarn|)(\.cmd|\.exe)?$/.test(basename(location))) {
+      try {
+        const realBinary = await this.resolveAndValidate(env, 'node');
+        return new NodeBinary(location, realBinary.majorVersion);
+      } catch (e) {
+        // if we verified it's outdated, still throw the error. If it's not
+        // found, at least try to run it since the package manager exists.
+        if ((e as ProtocolError).cause.id === ErrorCodes.NodeBinaryOutOfDate) {
+          throw e;
+        }
+
+        return new NodeBinary(location, undefined);
+      }
     }
 
     // If the runtime executable doesn't look like Node.js (could be a shell
