@@ -125,37 +125,41 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       });
     }, longPredictionWarning);
 
-    await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
-      const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
-      if (cached) {
-        cached.forEach(addDiscovery);
-        return;
-      }
-
-      let map: SourceMap;
-      try {
-        map = await this.sourceMapFactory.load(metadata);
-      } catch {
-        return;
-      }
-
-      const discovered: DiscoveredMetadata[] = [];
-      for (const url of map.sources) {
-        const resolvedPath = this.sourcePathResolver
-          ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
-          : urlUtils.fileUrlToAbsolutePath(url);
-
-        if (!resolvedPath) {
-          continue;
+    try {
+      await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
+        const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
+        if (cached) {
+          cached.forEach(addDiscovery);
+          return;
         }
 
-        const discovery = { ...metadata, resolvedPath, sourceUrl: url };
-        discovered.push(discovery);
-        addDiscovery(discovery);
-      }
+        let map: SourceMap;
+        try {
+          map = await this.sourceMapFactory.load(metadata);
+        } catch {
+          return;
+        }
 
-      this.cache?.store(metadata.compiledPath, metadata.mtime, discovered);
-    });
+        const discovered: DiscoveredMetadata[] = [];
+        for (const url of map.sources) {
+          const resolvedPath = this.sourcePathResolver
+            ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
+            : urlUtils.fileUrlToAbsolutePath(url);
+
+          if (!resolvedPath) {
+            continue;
+          }
+
+          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
+          discovered.push(discovery);
+          addDiscovery(discovery);
+        }
+
+        this.cache?.store(metadata.compiledPath, metadata.mtime, discovered);
+      });
+    } catch (error) {
+      this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
+    }
 
     clearTimeout(warnLongRuntime);
     return sourcePathToCompiled;
