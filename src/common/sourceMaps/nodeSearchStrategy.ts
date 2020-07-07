@@ -14,7 +14,7 @@ import { FileGlobList } from '../fileGlobList';
  * A source map repository that uses globbing to find candidate files.
  */
 @injectable()
-export class NodeSourceMapRepository implements ISearchStrategy {
+export class NodeSearchStrategy implements ISearchStrategy {
   constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   /**
@@ -28,7 +28,9 @@ export class NodeSourceMapRepository implements ISearchStrategy {
 
     await new Promise((resolve, reject) =>
       this.globForFiles(files)
-        .on('data', (value: globStream.Entry) => todo.push(onChild(value.path)))
+        .on('data', (value: globStream.Entry) =>
+          todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
+        )
         .on('finish', resolve)
         .on('error', reject),
     );

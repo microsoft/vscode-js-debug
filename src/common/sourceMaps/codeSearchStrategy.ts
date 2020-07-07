@@ -2,15 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import type * as vscodeType from 'vscode';
 import { LogTag, ILogger } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
-import { NodeSourceMapRepository } from './nodeSearchStrategy';
+import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
 import { injectable } from 'inversify';
 import { FileGlobList } from '../fileGlobList';
-
-type vscode = typeof import('vscode');
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -18,37 +17,33 @@ type vscode = typeof import('vscode');
  */
 @injectable()
 export class CodeSearchStrategy implements ISearchStrategy {
-  constructor(private readonly _vscode: vscode, private readonly logger: ILogger) {}
+  private readonly nodeStrategy = new NodeSearchStrategy(this.logger);
+
+  constructor(private readonly vscode: typeof vscodeType, private readonly logger: ILogger) {}
 
   public static createOrFallback(logger: ILogger) {
-    /*
-    todo(connor4312): disabled until https://github.com/microsoft/vscode/issues/85946
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const code: typeof import('vscode') = require('vscode');
-      if (code.workspace.findTextInFiles) {
-        return new CodeSearchSourceMapRepository(
-          code.workspace.findTextInFiles.bind(code.workspace),
-        );
+      if (code.workspace.findTextInFiles !== undefined) {
+        return new CodeSearchStrategy(code, logger);
       }
     } catch {
       // ignored -- VS won't have vscode as a viable import, fall back to the memory/node.js version
     }
-    */
-    return new NodeSourceMapRepository(logger);
-  }
 
-  /**
-   * Returns the sourcemaps in the directory, given as an absolute path..
-   */
-  public async findDirectChildren(): Promise<{ [path: string]: Required<ISourceMapMetadata> }> {
-    throw new Error('not implemented');
+    return new NodeSearchStrategy(logger);
   }
 
   /**
    * @inheritdoc
    */
-  public async streamAllChildren<T>(): Promise<T[]> {
-    throw new Error('not implemented');
+  public async streamAllChildren<T>(
+    files: FileGlobList,
+    onChild: (child: string) => T | Promise<T>,
+  ): Promise<T[]> {
+    // see https://github.com/microsoft/vscode/issues/101889
+    return this.nodeStrategy.streamAllChildren(files, onChild);
   }
 
   /**
@@ -60,25 +55,11 @@ export class CodeSearchStrategy implements ISearchStrategy {
   ): Promise<T[]> {
     const todo: Promise<T | void>[] = [];
 
-    const findTextFn = this._vscode.workspace.findTextInFiles.bind(this._vscode['workspace']);
-    const relativePattern = this._vscode.RelativePattern;
-    await findTextFn(
+    await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
-        include: new relativePattern(
-          outFiles.rootPath,
-          forceForwardSlashes(outFiles.patterns.filter(p => !p.startsWith('!')).join(', ')),
-        ),
-        exclude: outFiles.patterns
-          .filter(p => p.startsWith('!'))
-          .map(p => forceForwardSlashes(p.slice(1)))
-          .join(','),
-        useIgnoreFiles: false,
-        useGlobalIgnoreFiles: false,
-        followSymlinks: true,
+        ...this.getTextSearchOptions(outFiles),
         previewOptions: { charsPerLine: Number.MAX_SAFE_INTEGER, matchLines: 1 },
-        beforeContext: 0,
-        afterContext: 0,
       },
       result => {
         const text = 'text' in result ? result.text : result.preview.text;
@@ -95,6 +76,27 @@ export class CodeSearchStrategy implements ISearchStrategy {
       },
     );
 
+    this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
+
     return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
+  }
+
+  private getTextSearchOptions(files: FileGlobList): vscodeType.FindTextInFilesOptions {
+    return {
+      include: new this.vscode.RelativePattern(
+        files.rootPath,
+        forceForwardSlashes(files.patterns.filter(p => !p.startsWith('!')).join(', ')),
+      ),
+      exclude: files.patterns
+        .filter(p => p.startsWith('!'))
+        .map(p => forceForwardSlashes(p.slice(1)))
+        .join(','),
+      useDefaultExcludes: false,
+      useIgnoreFiles: false,
+      useGlobalIgnoreFiles: false,
+      followSymlinks: true,
+      beforeContext: 0,
+      afterContext: 0,
+    };
   }
 }
