@@ -342,7 +342,7 @@ gulp.task('nls:bundle-create', () =>
   gulp
     .src(sources, { base: __dirname })
     .pipe(nls.createMetaDataFiles())
-    .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, 'dist'))
+    .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, ''))
     .pipe(nls.bundleLanguageFiles())
     .pipe(filter('**/nls.*.json'))
     .pipe(gulp.dest('dist')),
