@@ -219,9 +219,8 @@ export class BrowserTargetManager implements IDisposable {
       enqueueCall(evt => attachInner(evt.targetInfo)),
     );
 
-    this._browser.Target.on(
-      'targetInfoChanged',
-      enqueueCall(evt => this._targetInfoChanged(evt.targetInfo, attachInner)),
+    this._browser.Target.on('targetInfoChanged', evt =>
+      this._targetInfoChanged(evt.targetInfo, enqueueCall(attachInner)),
     );
 
     this._browser.Target.on(
