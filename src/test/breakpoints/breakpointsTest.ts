@@ -3,13 +3,10 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { promises as fs } from 'fs';
-import { tmpdir } from 'os';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import Dap from '../../dap/api';
-import { getLogFileForTest } from '../reporters/logReporterUtils';
 import { createFileTree, ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
@@ -133,32 +130,6 @@ describe('breakpoints', () => {
       await waitForPause(p);
       p.assertLog();
     });
-
-    if (process.platform !== 'win32') {
-      itIntegrates(
-        'predictor warns on inaccessible directory (vscode#100018)',
-        async ({ r, context }) => {
-          // use a temp dir since we won't have permission to delete the directory we create!
-          const testDirName = join(tmpdir(), `js-debug-test-${Date.now()}`);
-          await fs.mkdir(testDirName, { mode: '000' });
-
-          const src = join(testWorkspace, 'simpleNode', 'index.js');
-          const handle = await r.runScript(src, { outFiles: [`${testDirName}/**/*`] });
-
-          await handle.dap.setBreakpoints({
-            source: { path: src },
-            breakpoints: [{ line: 1, column: 0 }],
-          });
-
-          handle.load();
-          await waitForPause(handle);
-          handle.assertLog({ substring: true });
-
-          const file = getLogFileForTest(context.test.fullTitle());
-          expect(await fs.readFile(file, 'utf-8')).to.contain('Error reading sourcemaps from disk');
-        },
-      );
-    }
   });
 
   describe('launched', () => {
