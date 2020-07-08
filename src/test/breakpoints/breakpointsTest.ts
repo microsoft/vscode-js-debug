@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testWorkspace, ITestHandle, createFileTree, TestRoot, TestP } from '../test';
-import Dap from '../../dap/api';
-import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import { expect } from 'chai';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
+import Dap from '../../dap/api';
+import { createFileTree, ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
+import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
 
 describe('breakpoints', () => {
