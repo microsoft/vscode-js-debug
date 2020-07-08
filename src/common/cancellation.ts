@@ -3,14 +3,20 @@
  *--------------------------------------------------------*/
 
 import { CancellationToken } from 'vscode';
-import { EventEmitter, IEvent } from './events';
+import { createUserError, ErrorCodes, ProtocolError } from '../dap/errors';
 import { IDisposable } from './disposable';
+import { EventEmitter, IEvent } from './events';
 import { getDeferred } from './promiseUtil';
 
 /**
  * Thrown from `cancellableRace` if cancellation is requested.
  */
-export class TaskCancelledError extends Error {}
+export class TaskCancelledError extends ProtocolError {
+  constructor(message: string) {
+    super(createUserError(message, ErrorCodes.TaskCancelled));
+    this._cause = createUserError(message, ErrorCodes.TaskCancelled).error;
+  }
+}
 
 /**
  * Returns the result of the promise if it resolves before the cancellation

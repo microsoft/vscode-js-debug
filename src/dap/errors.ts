@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from './api';
 import * as nls from 'vscode-nls';
+import Dap from './api';
 
 const localize = nls.loadMessageBundle();
 
@@ -29,6 +29,7 @@ export const enum ErrorCodes {
   BrowserLaunchFailed,
   TargetPageNotFound,
   BrowserAttachFailed,
+  TaskCancelled,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -230,11 +231,15 @@ export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
   );
 
 export class ProtocolError extends Error {
-  public readonly cause: Dap.Message;
+  public get cause(): Dap.Message {
+    return this._cause;
+  }
+
+  protected _cause: Dap.Message;
 
   constructor(cause: Dap.Message | Dap.Error) {
     super('__errorMarker' in cause ? cause.error.format : cause.format);
-    this.cause = '__errorMarker' in cause ? cause.error : cause;
+    this._cause = '__errorMarker' in cause ? cause.error : cause;
   }
 }
 
