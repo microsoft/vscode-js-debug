@@ -1229,7 +1229,7 @@ export class Thread implements IVariableStoreDelegate {
         inlineSourceOffset,
         hash,
       );
-      this._sourceContainer.scriptSkipper.initializeSkippingValueForSource(source, event.scriptId);
+
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       urlHashMap!.set(event.hash, source);
       source.addScriptId(event.scriptId);

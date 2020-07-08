@@ -1,0 +1,21 @@
+/*---------------------------------------------------------
+ * Copyright (C) Microsoft Corporation. All rights reserved.
+ *--------------------------------------------------------*/
+
+import { benchmark, PrettyReporter } from '@c4312/matcha';
+import { readdirSync } from 'fs';
+import 'reflect-metadata';
+
+benchmark({
+  reporter: new PrettyReporter(process.stdout),
+  prepare(api) {
+    for (const file of readdirSync(__dirname).filter(f => f.endsWith('.js') && f !== 'index.js')) {
+      api.suite(file, () => require(`./${file}`).default(api));
+    }
+  },
+})
+  .then(() => process.exit(0))
+  .catch(err => {
+    console.error(err);
+    process.exit(1);
+  });

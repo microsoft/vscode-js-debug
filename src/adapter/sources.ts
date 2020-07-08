@@ -2,32 +2,32 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
+import { inject, injectable } from 'inversify';
+import { xxHash32 } from 'js-xxhash';
+import { relative } from 'path';
+import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import { URL } from 'url';
+import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { ILogger, LogTag } from '../common/logging';
+import { once } from '../common/objUtils';
+import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
+import { delay, getDeferred } from '../common/promiseUtil';
+import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
+import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
-import Dap from '../dap/api';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
-import { ScriptSkipper } from './scriptSkipper/implementation';
-import { delay, getDeferred } from '../common/promiseUtil';
-import { SourceMapConsumer, NullableMappedPosition } from 'source-map';
-import { SourceMap, ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
-import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { LogTag, ILogger } from '../common/logging';
-import Cdp from '../cdp/api';
-import { createHash } from 'crypto';
-import { isSubdirectoryOf, forceForwardSlashes, properResolve } from '../common/pathUtils';
-import { relative } from 'path';
-import { inject, injectable } from 'inversify';
-import { IDapApi } from '../dap/connection';
 import { AnyLaunchConfiguration } from '../configuration';
-import { Script } from './threads';
-import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
-import { once } from '../common/objUtils';
-import { IResourceProvider } from './resourceProvider';
+import Dap from '../dap/api';
+import { IDapApi } from '../dap/connection';
 import { sourceMapParseFailed } from '../dap/errors';
+import { IResourceProvider } from './resourceProvider';
+import { ScriptSkipper } from './scriptSkipper/implementation';
+import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import { Script } from './threads';
 
 const localize = nls.loadMessageBundle();
 
@@ -516,7 +516,7 @@ export class SourceContainer {
    * rewritten to source reference ID 0.
    */
   public getSourceReference(url: string): number {
-    let id = Math.abs(createHash('sha1').update(url).digest().readInt32BE(0));
+    let id = xxHash32(url);
 
     for (let i = 0; i < 0xffff; i++) {
       if (!this._sourceByReference.has(id)) {
@@ -733,6 +733,7 @@ export class SourceContainer {
       inlineSourceRange,
       contentHash,
     );
+
     this._addSource(source);
     return source;
   }
@@ -757,6 +758,7 @@ export class SourceContainer {
       this._sourceByAbsolutePath.set(source.absolutePath(), source);
     }
 
+    this.scriptSkipper.initializeSkippingValueForSource(source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     if (!isSourceWithMap(source)) {
@@ -805,6 +807,9 @@ export class SourceContainer {
     }
 
     await Promise.all(todo);
+
+    // re-initialize after loading source mapped sources
+    this.scriptSkipper.initializeSkippingValueForSource(source);
     deferred.resolve();
   }
 

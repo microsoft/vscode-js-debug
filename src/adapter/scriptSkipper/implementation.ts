@@ -2,27 +2,27 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import micromatch from 'micromatch';
 import { Cdp } from '../../cdp/api';
+import { ICdpApi } from '../../cdp/connection';
 import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../../common/events';
-import { LogTag, ILogger } from '../../common/logging';
+import { ILogger, LogTag } from '../../common/logging';
 import { debounce } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
+import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ITarget } from '../../targets/targets';
 import {
+  ISourceWithMap,
+  isSourceWithMap,
   Source,
   SourceContainer,
-  ISourceWithMap,
   SourceFromMap,
-  isSourceWithMap,
 } from '../sources';
-import { injectable, inject } from 'inversify';
-import { ICdpApi } from '../../cdp/connection';
-import { AnyLaunchConfiguration } from '../../configuration';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -43,8 +43,7 @@ export class ScriptSkipper {
   private _isUrlSkipped: Map<string, boolean>;
   private _isAuthoredUrlSkipped: Map<string, boolean>;
 
-  private _newScriptDebouncer: () => void;
-  private _unprocessedSources: [Source, Cdp.Runtime.ScriptId][] = [];
+  private _updateSkippedDebounce: () => void;
 
   /**
    * A set of script ID that have one or more skipped ranges in them. Mostly
@@ -73,7 +72,7 @@ export class ScriptSkipper {
     this._preprocessNodeInternals(skipFiles);
     this._setRegexForNonNodeInternals(skipFiles);
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
-    this._newScriptDebouncer = debounce(100, () => this._initializeSkippingValueForNewSources());
+    this._updateSkippedDebounce = debounce(100, () => this._updateGeneratedSkippedSources());
 
     ScriptSkipper.sharedSkipsEmitter.event(e => {
       if (e.rootTargetId === this._rootTargetId && e.targetId !== this._targetId) {
@@ -162,15 +161,13 @@ export class ScriptSkipper {
   }
 
   public isScriptSkipped(url: string): boolean {
-    return (
-      this._isUrlSkipped.get(this._normalizeUrl(url)) === true ||
-      this._isAuthoredUrlSkipped.get(this._normalizeUrl(url)) === true
-    );
+    const norm = this._normalizeUrl(url);
+    return this._isUrlSkipped.get(norm) === true || this._isAuthoredUrlSkipped.get(norm) === true;
   }
 
   private async _updateSourceWithSkippedSourceMappedSources(
     source: ISourceWithMap,
-    ...scriptIds: Cdp.Runtime.ScriptId[]
+    scriptIds: Cdp.Runtime.ScriptId[],
   ): Promise<void> {
     // Order "should" be correct
     const parentIsSkipped = this.isScriptSkipped(source.url);
@@ -216,29 +213,17 @@ export class ScriptSkipper {
     );
   }
 
-  public initializeSkippingValueForSource(source: Source, scriptId: Cdp.Runtime.ScriptId) {
-    this._unprocessedSources.push([source, scriptId]);
-    this._newScriptDebouncer();
-  }
-
-  private async _initializeSkippingValueForNewSources() {
-    const skipStatuses = await Promise.all(
-      this._unprocessedSources.map(([source, scriptId]) =>
-        this._initializeSkippingValueForSource(source, scriptId),
-      ),
-    );
-
-    if (skipStatuses.some(s => !!s)) {
-      this._updateGeneratedSkippedSources();
+  public initializeSkippingValueForSource(source: Source) {
+    const isSkipped = this._initializeSkippingValueForSource(source);
+    if (isSkipped) {
+      this._updateSkippedDebounce();
     }
-
-    this._unprocessedSources = [];
   }
 
-  private async _initializeSkippingValueForSource(
+  private _initializeSkippingValueForSource(
     source: Source,
-    scriptId: Cdp.Runtime.ScriptId,
-  ): Promise<boolean> {
+    scriptIds = source.scriptIds(),
+  ): boolean {
     const map = source instanceof SourceFromMap ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
 
     const url = source.url;
@@ -255,7 +240,8 @@ export class ScriptSkipper {
         }
       }
 
-      if (this.isScriptSkipped(source.url)) {
+      let hasSkip = this.isScriptSkipped(url);
+      if (hasSkip) {
         if (isSourceWithMap(source)) {
           // if compiled and skipped, also skip authored sources
           const authoredSources = Array.from(source.sourceMap.sourceByUrl.values());
@@ -266,14 +252,14 @@ export class ScriptSkipper {
       }
 
       if (isSourceWithMap(source)) {
-        const sourceMapSources = Array.from(source.sourceMap.sourceByUrl.values());
-        await Promise.all(
-          sourceMapSources.map(s => this._initializeSkippingValueForSource(s, scriptId)),
-        );
-        this._updateSourceWithSkippedSourceMappedSources(source, scriptId);
+        for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
+          hasSkip = this._initializeSkippingValueForSource(nestedSource, scriptIds) || hasSkip;
+        }
+
+        this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
       }
 
-      return this.isScriptSkipped(url);
+      return hasSkip;
     }
 
     return false;
@@ -315,7 +301,7 @@ export class ScriptSkipper {
           compiledSources.map(compiledSource =>
             this._updateSourceWithSkippedSourceMappedSources(
               compiledSource,
-              ...compiledSource.scriptIds(),
+              compiledSource.scriptIds(),
             ),
           ),
         );

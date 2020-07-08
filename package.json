@@ -59,6 +59,7 @@
     "got": "^11.1.4",
     "inversify": "^5.0.1",
     "js-beautify": "^1.11.0",
+    "js-xxhash": "^1.0.4",
     "jsonc-parser": "^2.2.1",
     "micromatch": "^4.0.2",
     "reflect-metadata": "^0.1.13",
@@ -79,6 +80,7 @@
     "tabWidth": 2
   },
   "devDependencies": {
+    "@c4312/matcha": "^1.3.1",
     "@mixer/parallel-prettier": "^2.0.0",
     "@pptr/testrunner": "^0.8.0",
     "@types/chai": "^4.2.11",
