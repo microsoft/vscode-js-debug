@@ -418,6 +418,8 @@ export enum UnmappedReason {
   CannotMap,
 }
 
+const maxInt32 = 2 ** 31 - 1;
+
 @injectable()
 export class SourceContainer {
   /**
@@ -516,14 +518,14 @@ export class SourceContainer {
    * rewritten to source reference ID 0.
    */
   public getSourceReference(url: string): number {
-    let id = xxHash32(url);
+    let id = xxHash32(url) & maxInt32; // xxHash32 is a u32, mask again the max positive int32 value
 
     for (let i = 0; i < 0xffff; i++) {
       if (!this._sourceByReference.has(id)) {
         return id;
       }
 
-      if (id === 2 ** 31 - 1) {
+      if (id === maxInt32) {
         // DAP spec says max reference ID is 2^31 - 1, int32
         id = 0;
       }
