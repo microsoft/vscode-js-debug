@@ -96,6 +96,8 @@ export class BreakpointManager {
     urlUtils.lowerCaseInsensitivePath,
   );
 
+  private _sourceMapHandlerWasUpdated = false;
+
   public hasAtLocation(location: IUiLocation) {
     const breakpointsAtPath = this._byPath.get(location.source.absolutePath()) || [];
     const breakpointsAtSource = this._byRef.get(location.source.sourceReference()) || [];
@@ -394,7 +396,9 @@ export class BreakpointManager {
       ); // will update the launchblocker
     }
 
-    this._updateSourceMapHandler(this._thread);
+    if (this._byPath.size > 0 || this._byRef.size > 0) {
+      this._updateSourceMapHandler(this._thread);
+    }
   }
 
   /**
@@ -427,6 +431,8 @@ export class BreakpointManager {
   }
 
   async _updateSourceMapHandler(thread: Thread) {
+    this._sourceMapHandlerWasUpdated = true;
+
     await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
 
     if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
@@ -452,6 +458,10 @@ export class BreakpointManager {
     params: Dap.SetBreakpointsParams,
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
+    if (!this._sourceMapHandlerWasUpdated && this._thread) {
+      await this._updateSourceMapHandler(this._thread);
+    }
+
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
 
     // If we see we want to set breakpoints in file by source reference ID but
