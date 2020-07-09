@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
+import { basename, isAbsolute } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findInPath } from '../../common/pathUtils';
-import { isAbsolute, basename } from 'path';
+import { spawnAsync } from '../../common/processUtils';
 import {
   cannotFindNodeBinary,
+  ErrorCodes,
   nodeBinaryOutOfDate,
   ProtocolError,
-  ErrorCodes,
 } from '../../dap/errors';
-import { spawnAsync } from '../../common/processUtils';
-import { injectable } from 'inversify';
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
 
@@ -51,7 +51,7 @@ export class NodeBinaryProvider {
     }
 
     // If the user is running a package manager, resolve the version for `node` instead. (#543)
-    if (/^(p?npm|yarn|)(\.cmd|\.exe)?$/.test(basename(location))) {
+    if (/^(p?npm|yarn|nodemon)(\.cmd|\.exe)?$/.test(basename(location))) {
       try {
         const realBinary = await this.resolveAndValidate(env, 'node');
         return new NodeBinary(location, realBinary.majorVersion);
