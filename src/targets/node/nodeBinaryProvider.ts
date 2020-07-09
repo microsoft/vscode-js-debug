@@ -50,8 +50,10 @@ export class NodeBinaryProvider {
       throw new ProtocolError(cannotFindNodeBinary(executable));
     }
 
-    // If the user is running a package manager, resolve the version for `node` instead. (#543)
-    if (/^(p?npm|yarn|nodemon)(\.cmd|\.exe)?$/.test(basename(location))) {
+    // If the runtime executable doesn't look like Node.js (could be a shell
+    // script that boots Node by itself, for instance) try to find Node itself
+    // on the path as a fallback.
+    if (!/^node(64)?(\.exe)?$/.test(basename(location))) {
       try {
         const realBinary = await this.resolveAndValidate(env, 'node');
         return new NodeBinary(location, realBinary.majorVersion);
@@ -64,12 +66,6 @@ export class NodeBinaryProvider {
 
         return new NodeBinary(location, undefined);
       }
-    }
-
-    // If the runtime executable doesn't look like Node.js (could be a shell
-    // script that boots Node by itself, for instance) skip further validation.
-    if (!/^node(64)?(\.exe)?$/.test(basename(location))) {
-      return new NodeBinary(location, undefined);
     }
 
     const knownGood = this.knownGoodMappings.get(location);
