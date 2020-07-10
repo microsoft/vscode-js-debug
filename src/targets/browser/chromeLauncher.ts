@@ -8,7 +8,6 @@ import { injectable, inject, tagged } from 'inversify';
 import { BrowserLauncher } from './browserLauncher';
 import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
 import { ILogger } from '../../common/logging';
-import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
 import { browserNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -49,9 +48,9 @@ export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> 
   protected async findBrowserPath(executablePath: string): Promise<string> {
     let resolvedPath: string | undefined;
 
-    const discover = once(() => this.browserFinder.findAll());
     if (isQuality(executablePath)) {
-      resolvedPath = (await discover()).find(r => r.quality === executablePath)?.path;
+      const found = await this.browserFinder.findWhere(r => r.quality === executablePath);
+      resolvedPath = found?.path;
     } else {
       resolvedPath = executablePath;
     }
@@ -61,7 +60,7 @@ export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> 
         browserNotFound(
           'Chrome',
           executablePath,
-          (await discover()).map(b => b.quality),
+          (await this.browserFinder.findAll()).map(b => b.quality),
         ),
       );
     }
