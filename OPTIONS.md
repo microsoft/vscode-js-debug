@@ -10,7 +10,8 @@
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
@@ -45,7 +46,8 @@
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
@@ -83,7 +85,8 @@
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
@@ -119,7 +122,8 @@
 <h5>Default value:</h4><pre><code>false</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/out/**/*.js"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>

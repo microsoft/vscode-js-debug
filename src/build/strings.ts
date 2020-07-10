@@ -1,8 +1,8 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { sortKeys } from '../common/objUtils';
 import { Commands } from '../common/contributionUtils';
+import { sortKeys } from '../common/objUtils';
 
 const strings = {
   'attach.node.process': 'Attach to Node Process (preview)',
@@ -208,6 +208,8 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
+  'node.versionHint.descriotion':
+    "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.",
   'timeouts.generalDescription': 'Timeouts for several debugger operations',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
   'timeouts.sourceMaps.description': 'Timeouts related to source maps operations',

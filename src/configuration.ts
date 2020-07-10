@@ -260,6 +260,13 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
    * @see https://github.com/microsoft/vscode-js-debug/issues/492
    */
   runtimeSourcemapPausePatterns: ReadonlyArray<string>;
+
+  /**
+   * Allows you to explicitly specify the Node version that's running, which
+   * can be used to disable or enable certain behaviors in cases where the
+   * automatic version detection does not working.
+   */
+  nodeVersionHint?: number;
 }
 
 export interface IConfigurationWithEnv {

@@ -1,44 +1,44 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import { JSONSchema6 } from 'json-schema';
 import {
+  allCommands,
+  allDebugTypes,
+  Commands,
+  Configuration,
   DebugType,
   IConfigurationTypes,
-  Configuration,
-  allCommands,
-  Commands,
-  allDebugTypes,
 } from '../common/contributionUtils';
+import { sortKeys, walkObject } from '../common/objUtils';
 import {
-  IMandatedConfiguration,
   AnyLaunchConfiguration,
-  ResolvingConfiguration,
+  baseDefaults,
+  breakpointLanguages,
+  chromeAttachConfigDefaults,
+  chromeLaunchConfigDefaults,
+  edgeAttachConfigDefaults,
+  edgeLaunchConfigDefaults,
+  extensionHostConfigDefaults,
+  IBaseConfiguration,
+  IChromeAttachConfiguration,
+  IChromeLaunchConfiguration,
+  IChromiumBaseConfiguration,
+  IEdgeAttachConfiguration,
+  IEdgeLaunchConfiguration,
+  IExtensionHostLaunchConfiguration,
+  IMandatedConfiguration,
   INodeAttachConfiguration,
   INodeBaseConfiguration,
-  IBaseConfiguration,
-  OutputSource,
   INodeLaunchConfiguration,
-  IExtensionHostLaunchConfiguration,
-  IChromiumBaseConfiguration,
-  IChromeLaunchConfiguration,
-  IChromeAttachConfiguration,
   ITerminalLaunchConfiguration,
-  baseDefaults,
-  IEdgeLaunchConfiguration,
-  IEdgeAttachConfiguration,
-  breakpointLanguages,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
+  OutputSource,
+  ResolvingConfiguration,
   terminalBaseDefaults,
-  extensionHostConfigDefaults,
-  chromeLaunchConfigDefaults,
-  chromeAttachConfigDefaults,
-  edgeLaunchConfigDefaults,
-  edgeAttachConfigDefaults,
 } from '../configuration';
-import { JSONSchema6 } from 'json-schema';
 import strings from './strings';
-import { walkObject, sortKeys } from '../common/objUtils';
 
 const appInsightsKey = 'AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217';
 
@@ -305,6 +305,12 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     },
     markdownDescription: refString('node.launch.runtimeSourcemapPausePatterns'),
     default: [],
+  },
+  nodeVersionHint: {
+    type: 'number',
+    minimum: 8,
+    description: refString('node.timeout.description'),
+    default: 12,
   },
 };
 
