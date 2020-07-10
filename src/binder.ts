@@ -2,13 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Container } from 'inversify';
+import * as os from 'os';
 import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
+import { getAsyncStackPolicy, IAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { DebugAdapter } from './adapter/debugAdapter';
+import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
-import { IDisposable, EventEmitter } from './common/events';
-import { LogTag, ILogger, resolveLoggerOptions } from './common/logging';
+import { EventEmitter, IDisposable } from './common/events';
+import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
+import { mapValues } from './common/objUtils';
+import { delay } from './common/promiseUtil';
 import * as urlUtils from './common/urlUtils';
 import {
   AnyLaunchConfiguration,
@@ -20,21 +26,15 @@ import {
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import * as errors from './dap/errors';
+import { createTargetContainer, provideLaunchParams } from './ioc';
+import { disposeContainer, IInitializeParams } from './ioc-extras';
+import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
+import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import {
   filterErrorsReportedToTelemetry,
   installUnhandledErrorReporter,
 } from './telemetry/unhandledErrorReporter';
-import { ITargetOrigin } from './targets/targetOrigin';
-import { IAsyncStackPolicy, getAsyncStackPolicy } from './adapter/asyncStackPolicy';
-import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { mapValues } from './common/objUtils';
-import * as os from 'os';
-import { delay } from './common/promiseUtil';
-import { Container } from 'inversify';
-import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, IInitializeParams } from './ioc-extras';
-import { SelfProfile } from './adapter/selfProfile';
 
 const localize = nls.loadMessageBundle();
 
@@ -449,11 +449,11 @@ export class Binder implements IDisposable {
     }
   }
 
-  _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
+  async _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
     const data = this._threads.get(target);
     if (!data) return;
     this._threads.delete(target);
-    data.thread.dispose();
+    await data.thread.dispose();
     data.debugAdapter.dap.terminated(terminateArgs);
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
