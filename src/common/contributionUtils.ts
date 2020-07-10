@@ -96,6 +96,7 @@ export const enum Configuration {
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
   AutoExpandGetters = 'debug.javascript.autoExpandGetters',
+  OnlyAutoAttachExplicit = 'debug.javascript.onlyAutoAttachExplicit',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -115,6 +116,7 @@ export interface IConfigurationTypes {
     | DebugByLinkState
     | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
   [Configuration.AutoExpandGetters]: boolean;
+  [Configuration.OnlyAutoAttachExplicit]: boolean;
 }
 
 export interface ICommandTypes {

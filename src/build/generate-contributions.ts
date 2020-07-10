@@ -1031,6 +1031,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: false,
     markdownDescription: refString('configuration.autoExpandGetters'),
   },
+  [Configuration.OnlyAutoAttachExplicit]: {
+    type: 'boolean',
+    default: false,
+    markdownDescription: refString('configuration.onlyAutoAttachExplicit'),
+  },
 };
 
 const commands: ReadonlyArray<{

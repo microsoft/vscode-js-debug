@@ -2,26 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITerminalLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import * as vscode from 'vscode';
+import { inject, injectable } from 'inversify';
 import * as path from 'path';
-import { StubProgram } from './program';
-import { injectable, inject } from 'inversify';
-import { IRunData, NodeLauncherBase, IProcessTelemetry } from './nodeLauncherBase';
-import { DebugType } from '../../common/contributionUtils';
+import * as vscode from 'vscode';
+import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
+import { canAccess } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
+import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
+import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
+import { ITarget } from '../targets';
 import {
-  IBootloaderEnvironment,
-  IAutoAttachInfo,
   BootloaderEnvironment,
+  IAutoAttachInfo,
+  IBootloaderEnvironment,
   variableDelimiter,
 } from './bootloader/environment';
-import { bootloaderDefaultPath, WatchDog } from './watchdogSpawn';
-import { ITerminalLauncherLike } from './terminalNodeLauncher';
-import { ITarget } from '../targets';
-import { ExtensionContext, FsPromises, FS } from '../../ioc-extras';
 import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
-import { ILogger } from '../../common/logging';
-import { canAccess } from '../../common/fsUtils';
+import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
+import { StubProgram } from './program';
+import { ITerminalLauncherLike } from './terminalNodeLauncher';
+import { bootloaderDefaultPath, WatchDog } from './watchdogSpawn';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment
@@ -88,6 +88,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
         await this.resolveEnvironment(runData, useSpaces, {
           deferredMode: true,
           inspectorIpc: runData.serverAddress + '.deferred',
+          onlyWhenExplicit: readConfig(vscode.workspace, Configuration.OnlyAutoAttachExplicit),
         })
       ).defined() as unknown) as IBootloaderEnvironment;
 

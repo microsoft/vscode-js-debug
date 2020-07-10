@@ -68,6 +68,11 @@ export interface IBootloaderInfo {
    * Whether only the entrypoint should be debugged.
    */
   onlyEntrypoint: boolean;
+
+  /**
+   * Only auto attach if --inspect is already active on the process.
+   */
+  onlyWhenExplicit?: boolean;
 }
 
 export interface IBootloaderEnvironment {

@@ -250,6 +250,8 @@ const strings = {
     'Default options used when debugging a process through the `Debug: Attach to Node.js Process` command',
   'configuration.autoExpandGetters':
     'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
+  'configuration.onlyAutoAttachExplicit':
+    'If false (default), we will debug all processes started while Auto Attach is on. If this setting is toggled to true, only processes started with --inspect will be debugged.\n\nNote: you may need to toggle Auto Attach to "disabled" and then "on" again for this setting to take effect.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

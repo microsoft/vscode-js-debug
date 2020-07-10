@@ -4,17 +4,17 @@
 
 import 'reflect-metadata';
 
-import * as inspector from 'inspector';
-import * as fs from 'fs';
-import * as path from 'path';
 import { spawnSync } from 'child_process';
-import { IProcessTelemetry } from './nodeLauncherBase';
+import * as fs from 'fs';
+import * as inspector from 'inspector';
+import * as path from 'path';
 import { LogTag } from '../../common/logging';
-import { onUncaughtError, ErrorType } from '../../telemetry/unhandledErrorReporter';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
-import { checkAll } from './bootloader/filters';
+import { ErrorType, onUncaughtError } from '../../telemetry/unhandledErrorReporter';
 import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootloader/environment';
+import { checkAll } from './bootloader/filters';
 import { bootloaderLogger } from './bootloader/logger';
+import { IProcessTelemetry } from './nodeLauncherBase';
 import { spawnWatchdog } from './watchdogSpawn';
 
 const telemetry: IProcessTelemetry = {
@@ -81,6 +81,10 @@ function inspectOrQueue(env: IBootloaderInfo) {
   // Don't call it again to avoid https://github.com/nodejs/node/issues/33012
   const openedFromCli = inspector.url() !== undefined;
   if (!openedFromCli) {
+    if (env.onlyWhenExplicit) {
+      return;
+    }
+
     inspector.open(0, undefined, false); // first call to set the inspector.url()
   }
 
