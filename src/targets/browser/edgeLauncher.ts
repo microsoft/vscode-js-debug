@@ -21,7 +21,6 @@ import { DebugType } from '../../common/contributionUtils';
 import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
 import { inject, tagged, injectable } from 'inversify';
 import { ILogger } from '../../common/logging';
-import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
 import { browserNotFound, ProtocolError } from '../../dap/errors';
 import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
@@ -148,9 +147,9 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
   protected async findBrowserPath(executablePath: string): Promise<string> {
     let resolvedPath: string | undefined;
 
-    const discover = once(() => this.browserFinder.findAll());
     if (isQuality(executablePath)) {
-      resolvedPath = (await discover()).find(r => r.quality === executablePath)?.path;
+      const found = await this.browserFinder.findWhere(r => r.quality === executablePath);
+      resolvedPath = found?.path;
     } else {
       resolvedPath = executablePath;
     }
@@ -160,7 +159,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
         browserNotFound(
           'Edge',
           executablePath,
-          (await discover()).map(b => b.quality),
+          (await this.browserFinder.findAll()).map(b => b.quality),
         ),
       );
     }
