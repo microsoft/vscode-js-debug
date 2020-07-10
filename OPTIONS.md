@@ -22,7 +22,7 @@
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**",
+  "**",
   "!**/node_modules/**"
 ]</pre></code><h4>restart</h4><p>Try to reconnect to the program if we lose connection. If set to <code>true</code>, we&#39;ll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the <code>delay</code> and <code>maxAttempts</code> in an object instead.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>runtimeSourcemapPausePatterns</h4><p>A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don&#39;t exist or can&#39;t be detected before launch, such as <a href="https://github.com/microsoft/vscode-js-debug/issues/492">with the Serverless framework</a>.</p>
@@ -61,7 +61,7 @@
 <h5>Default value:</h4><pre><code>""</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**",
+  "**",
   "!**/node_modules/**"
 ]</pre></code><h4>restart</h4><p>Try to reconnect to the program if we lose connection. If set to <code>true</code>, we&#39;ll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the <code>delay</code> and <code>maxAttempts</code> in an object instead.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
@@ -101,7 +101,7 @@
 <h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**",
+  "**",
   "!**/node_modules/**"
 ]</pre></code><h4>runtimeSourcemapPausePatterns</h4><p>A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don&#39;t exist or can&#39;t be detected before launch, such as <a href="https://github.com/microsoft/vscode-js-debug/issues/492">with the Serverless framework</a>.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
