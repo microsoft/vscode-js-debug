@@ -10,7 +10,8 @@ import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
 import { LogPointCompiler } from './breakpoints/conditions/logPoint';
-import { asyncScopesNotAvailable, ProtocolError } from '../dap/errors';
+import { asyncScopesNotAvailable } from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
 
 const localize = nls.loadMessageBundle();
 

@@ -4,13 +4,8 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import {
-  nvmHomeNotFound,
-  nvmNotFound,
-  nvmVersionNotFound,
-  ProtocolError,
-  nvsNotFound,
-} from '../../dap/errors';
+import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound, nvsNotFound } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { injectable } from 'inversify';
 import { exists } from '../../common/fsUtils';
 import { some } from '../../common/promiseUtil';

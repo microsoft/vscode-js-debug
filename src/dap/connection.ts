@@ -6,7 +6,8 @@ import Dap from './api';
 
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ILogger } from '../common/logging';
-import { isDapError, ProtocolError } from './errors';
+import { isDapError } from './errors';
+import { ProtocolError } from './protocolError';
 import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
 import { getDeferred } from '../common/promiseUtil';

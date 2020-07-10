@@ -16,7 +16,7 @@ import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
 import { Breakpoint } from './breakpoints/breakpointBase';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { ProtocolError } from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
 import { logPerf } from '../telemetry/performance';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { IBreakpointConditionFactory } from './breakpoints/conditions';

@@ -10,6 +10,7 @@ import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
+import * as ProtocolError from '../dap/protocolError';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { ICompletions } from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
@@ -459,7 +460,7 @@ export class Thread implements IVariableStoreDelegate {
 
     if (response.exceptionDetails) {
       const formattedException = await this._formatException(response.exceptionDetails);
-      throw new errors.ProtocolError(errors.replError(formattedException.output));
+      throw new ProtocolError.ProtocolError(errors.replError(formattedException.output));
     } else {
       const contextName =
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext

@@ -26,12 +26,8 @@ import { StoragePath, IInitializeParams } from '../../ioc-extras';
 import { Quality } from 'vscode-js-debug-browsers';
 import { DisposableList } from '../../common/disposable';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import {
-  browserLaunchFailed,
-  targetPageNotFound,
-  browserAttachFailed,
-  ProtocolError,
-} from '../../dap/errors';
+import { browserLaunchFailed, targetPageNotFound, browserAttachFailed } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
   supportsLaunchUnelevatedProcessRequest?: boolean;

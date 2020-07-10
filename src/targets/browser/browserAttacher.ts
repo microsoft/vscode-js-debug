@@ -24,7 +24,8 @@ import { ILogger } from '../../common/logging';
 import { injectable, inject, optional } from 'inversify';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { VSCodeApi } from '../../ioc-extras';
-import { browserAttachFailed, targetPageNotFound, ProtocolError } from '../../dap/errors';
+import { browserAttachFailed, targetPageNotFound } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 
 const localize = nls.loadMessageBundle();
 

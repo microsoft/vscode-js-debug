@@ -19,7 +19,7 @@ import {
 } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
-import * as errors from './dap/errors';
+import { ProtocolError } from './dap/protocolError';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import {
   filterErrorsReportedToTelemetry,
@@ -207,7 +207,7 @@ export class Binder implements IDisposable {
     try {
       await Promise.all([...this.getLaunchers()].map(l => this._launch(l, params, cts.token)));
     } catch (e) {
-      if (e instanceof errors.ProtocolError) {
+      if (e instanceof ProtocolError) {
         e.cause.showUser = false; // avoid duplicate error messages in the UI
       }
 

@@ -3,11 +3,8 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
-import {
-  invalidLogPointSyntax,
-  ProtocolError,
-  invalidBreakPointCondition,
-} from '../../../dap/errors';
+import { invalidLogPointSyntax, invalidBreakPointCondition } from '../../../dap/errors';
+import { ProtocolError } from '../../../dap/protocolError';
 import { ILogger } from '../../../common/logging';
 import { IBreakpointCondition } from '.';
 import { SimpleCondition } from './simple';

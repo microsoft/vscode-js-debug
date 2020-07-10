@@ -10,7 +10,8 @@ import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '.
 import { ILogger } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
-import { ProtocolError, browserNotFound } from '../../dap/errors';
+import { browserNotFound } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import Dap from '../../dap/api';

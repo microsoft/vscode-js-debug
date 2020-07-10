@@ -7,12 +7,8 @@ import { basename, isAbsolute } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
-import {
-  cannotFindNodeBinary,
-  ErrorCodes,
-  nodeBinaryOutOfDate,
-  ProtocolError,
-} from '../../dap/errors';
+import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
 

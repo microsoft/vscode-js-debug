@@ -23,7 +23,8 @@ import { inject, tagged, injectable } from 'inversify';
 import { ILogger } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { canAccess } from '../../common/fsUtils';
-import { browserNotFound, ProtocolError } from '../../dap/errors';
+import { browserNotFound } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 

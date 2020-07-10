@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ProtocolError, invalidHitCondition } from '../../../dap/errors';
+import { invalidHitCondition } from '../../../dap/errors';
+import { ProtocolError } from '../../../dap/protocolError';
 import { IBreakpointCondition } from '.';
 
 /**

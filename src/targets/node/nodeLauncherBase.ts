@@ -18,7 +18,8 @@ import { ILogger } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
-import { cannotLoadEnvironmentVars, ProtocolError } from '../../dap/errors';
+import { cannotLoadEnvironmentVars } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import {
   ILaunchContext,
   ILauncher,

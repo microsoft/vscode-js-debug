@@ -5,7 +5,8 @@
 import { expect } from 'chai';
 import { join } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { ErrorCodes, ProtocolError } from '../../dap/errors';
+import { ErrorCodes } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { testWorkspace } from '../test';
 

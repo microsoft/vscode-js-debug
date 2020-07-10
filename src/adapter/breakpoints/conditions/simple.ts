@@ -4,7 +4,8 @@
 
 import { IBreakpointCondition } from '.';
 import { getSyntaxErrorIn } from '../../../common/sourceUtils';
-import { ProtocolError, invalidBreakPointCondition } from '../../../dap/errors';
+import { invalidBreakPointCondition } from '../../../dap/errors';
+import { ProtocolError } from '../../../dap/protocolError';
 import { Dap } from '../../../dap/api';
 
 /**

@@ -3,7 +3,8 @@
  *--------------------------------------------------------*/
 
 import { CancellationToken } from 'vscode';
-import { createUserError, ErrorCodes, ProtocolError } from '../dap/errors';
+import { ErrorCodes } from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
 import { IDisposable } from './disposable';
 import { EventEmitter, IEvent } from './events';
 import { getDeferred } from './promiseUtil';
@@ -13,8 +14,8 @@ import { getDeferred } from './promiseUtil';
  */
 export class TaskCancelledError extends ProtocolError {
   constructor(message: string) {
-    super(createUserError(message, ErrorCodes.TaskCancelled));
-    this._cause = createUserError(message, ErrorCodes.TaskCancelled).error;
+    super({ id: ErrorCodes.TaskCancelled, format: message, showUser: true });
+    this._cause = { id: ErrorCodes.TaskCancelled, format: message, showUser: true };
   }
 }
 

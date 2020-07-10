@@ -6,7 +6,7 @@ import { createFileTree, testFixturesDir } from '../test';
 import { NvmResolver, INvmResolver } from '../../targets/node/nvmResolver';
 import { expect } from 'chai';
 import * as path from 'path';
-import { ProtocolError } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 
 describe('runtimeVersion', () => {
   let resolver: INvmResolver;
