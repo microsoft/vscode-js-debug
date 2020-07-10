@@ -712,7 +712,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   sourceMaps: true,
   localRoot: null,
   remoteRoot: null,
-  resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
+  resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
 };
