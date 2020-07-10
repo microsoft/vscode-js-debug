@@ -43,11 +43,19 @@ export class NodeBinaryProvider {
   /**
    * Validates the path and returns an absolute path to the Node binary to run.
    */
-  public async resolveAndValidate(env: EnvironmentVars, executable = 'node'): Promise<NodeBinary> {
+  public async resolveAndValidate(
+    env: EnvironmentVars,
+    executable = 'node',
+    explicitVersion?: number,
+  ): Promise<NodeBinary> {
     const location =
       executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable));
+    }
+
+    if (explicitVersion) {
+      return new NodeBinary(location, explicitVersion);
     }
 
     // If the runtime executable doesn't look like Node.js (could be a shell

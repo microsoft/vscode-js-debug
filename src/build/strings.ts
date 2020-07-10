@@ -1,8 +1,8 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { sortKeys } from '../common/objUtils';
 import { Commands } from '../common/contributionUtils';
+import { sortKeys } from '../common/objUtils';
 
 const strings = {
   'attach.node.process': 'Attach to Node Process (preview)',
@@ -208,6 +208,15 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
+  'node.versionHint.descriotion':
+    "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.",
+  'timeouts.generalDescription': 'Timeouts for several debugger operations',
+  'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
+  'timeouts.sourceMaps.description': 'Timeouts related to source maps operations',
+  'timeouts.sourceMaps.sourceMapMinPause.description':
+    'Minimum time in milliseconds spent waiting for each source-map to be processed when a script is being parsed',
+  'timeouts.sourceMaps.sourceMapCumulativePause.description':
+    'Extra time in milliseconds allowed per session to be spent waiting for source-maps to be processed, after the minimum time (sourceMapMinPause) has been exhausted',
   'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
 
   'longPredictionWarning.message':

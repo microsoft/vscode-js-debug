@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
-import { join } from 'path';
 import { expect } from 'chai';
-import { testWorkspace } from '../test';
+import { join } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { ProtocolError, ErrorCodes } from '../../dap/errors';
+import { ErrorCodes, ProtocolError } from '../../dap/errors';
+import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
+import { testWorkspace } from '../test';
 
 describe('NodeBinaryProvider', () => {
   let p: NodeBinaryProvider;
@@ -77,5 +77,12 @@ describe('NodeBinaryProvider', () => {
     const binary = await p.resolveAndValidate(env('no-node'), 'npm');
     expect(binary.path).to.equal(binaryLocation('no-node', 'npm'));
     expect(binary.majorVersion).to.be.undefined;
+  });
+
+  it('allows overriding with an explicit version', async () => {
+    const binary = await p.resolveAndValidate(env('outdated'), undefined, 12);
+    expect(binary.path).to.equal(binaryLocation('outdated'));
+    expect(binary.majorVersion).to.equal(12);
+    expect(binary.canUseSpacesInRequirePath).to.be.true;
   });
 });

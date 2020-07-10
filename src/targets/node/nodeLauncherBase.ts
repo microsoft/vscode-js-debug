@@ -2,37 +2,37 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as fs from 'fs';
+import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs';
-import { EventEmitter } from '../../common/events';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
-import {
-  ILauncher,
-  ITarget,
-  ILaunchResult,
-  ILaunchContext,
-  IStopMetadata,
-} from '../../targets/targets';
-import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
-import { EnvironmentVars } from '../../common/environmentVars';
-import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
-import { NodeSourcePathResolver } from './nodeSourcePathResolver';
-import { IProgram } from './program';
-import { ProtocolError, cannotLoadEnvironmentVars } from '../../dap/errors';
-import { ObservableMap } from '../../common/datastructure/observableMap';
-import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
-import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { NodeBinaryProvider, INodeBinaryProvider } from './nodeBinaryProvider';
-import { ILogger } from '../../common/logging';
-import { inject, injectable } from 'inversify';
-import { CancellationTokenSource } from '../../common/cancellation';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
-import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
-import { bootloaderDefaultPath } from './watchdogSpawn';
+import { CancellationTokenSource } from '../../common/cancellation';
+import { ObservableMap } from '../../common/datastructure/observableMap';
+import { EnvironmentVars } from '../../common/environmentVars';
+import { EventEmitter } from '../../common/events';
+import { ILogger } from '../../common/logging';
 import { once } from '../../common/objUtils';
+import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
+import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
+import { cannotLoadEnvironmentVars, ProtocolError } from '../../dap/errors';
+import {
+  ILaunchContext,
+  ILauncher,
+  ILaunchResult,
+  IStopMetadata,
+  ITarget,
+} from '../../targets/targets';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
+import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
+import { NodeSourcePathResolver } from './nodeSourcePathResolver';
+import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
+import { IProgram } from './program';
+import { bootloaderDefaultPath } from './watchdogSpawn';
 
 /**
  * Telemetry received from the nested process.
@@ -247,6 +247,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     return this.pathProvider.resolveAndValidate(
       EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
       executable,
+      params.nodeVersionHint,
     );
   }
 
