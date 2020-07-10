@@ -4,35 +4,35 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
+import { EventEmitter } from '../common/events';
+import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
+import { fileUrlToAbsolutePath } from '../common/urlUtils';
 import { AnyLaunchConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as ProtocolError from '../dap/protocolError';
+import { IBreakpointPathAndId } from '../targets/targets';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
+import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
+import { IEvaluator } from './evaluator';
 import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { SmartStepper } from './smartStepping';
-import { IPreferredUiLocation, Source, SourceContainer, IUiLocation, base1To0 } from './sources';
-import { StackFrame, StackTrace } from './stackTrace';
-import { VariableStore, IVariableStoreDelegate } from './variables';
-import { previewThis } from './templates/previewThis';
-import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { ILogger, LogTag } from '../common/logging';
 import { AnyObject } from './objectPreview/betterTypes';
-import { IEvaluator } from './evaluator';
+import { SmartStepper } from './smartStepping';
+import { base1To0, IPreferredUiLocation, IUiLocation, Source, SourceContainer } from './sources';
+import { StackFrame, StackTrace } from './stackTrace';
+import { previewThis } from './templates/previewThis';
 import {
-  serializeForClipboardTmpl,
   serializeForClipboard,
+  serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
-import { EventEmitter } from '../common/events';
-import { IBreakpointPathAndId } from '../targets/targets';
-import { fileUrlToAbsolutePath } from '../common/urlUtils';
-import { HrTime } from '../common/hrnow';
+import { IVariableStoreDelegate, VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -747,7 +747,10 @@ export class Thread implements IVariableStoreDelegate {
     this._onThreadResumed();
   }
 
-  dispose() {
+  /**
+   * @inheritdoc
+   */
+  async dispose() {
     this._removeAllScripts(true /* silent */);
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
@@ -755,8 +758,11 @@ export class Thread implements IVariableStoreDelegate {
 
     this._executionContextsCleared();
 
+    // Output flush already has a timeout, no need for another one here
+    await this._serializedOutput;
+
     // Send 'exited' after all other thread-releated events
-    this._dap.with(dap =>
+    await this._dap.with(dap =>
       dap.thread({
         reason: 'exited',
         threadId: this.id,
