@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from './dap/api';
+import pkg from '../package.json';
 import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
+import Dap from './dap/api';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
-import pkg from '../package.json';
 
 export interface IMandatedConfiguration extends Dap.LaunchParams {
   /**
@@ -712,6 +712,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   sourceMaps: true,
   localRoot: null,
   remoteRoot: null,
+  resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
 };
