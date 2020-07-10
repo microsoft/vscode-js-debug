@@ -23,6 +23,32 @@ export class NodeBinary {
   constructor(public readonly path: string, public majorVersion: number | undefined) {}
 }
 
+const exeRe = /^(node|electron)(64)?(\.exe|\.cmd)?$/i;
+
+/**
+ * Mapping of electron versions to *effective* node versions. This is not
+ * as simple as it looks. Electron bundles their own Node version, but that
+ * Node version is not actually the same as the released version. For example
+ * Electron 5 is Node 12 but doesn't contain the NODE_OPTIONS parsing fixes
+ * that Node 12.0.0 does.
+ *
+ * todo: we should move to individual feature flags if/when we need additional
+ * functionality here.
+ */
+const electronNodeVersion = new Map<number, number>([
+  [11, 12],
+  [10, 12],
+  [9, 12],
+  [8, 12],
+  [7, 12],
+  [6, 12],
+  [5, 10], // 12, but doesn't include the NODE_OPTIONS parsing fixes
+  [4, 10],
+  [3, 10],
+  [2, 8],
+  [1, 8], // 7 earlier, but that will throw an error -- at least try
+]);
+
 /**
  * Utility that resolves a path to Node.js and validates
  * it's a debuggable version./
@@ -44,8 +70,7 @@ export class NodeBinaryProvider {
     executable = 'node',
     explicitVersion?: number,
   ): Promise<NodeBinary> {
-    const location =
-      executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
+    const location = this.resolveBinaryLocation(executable, env);
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable));
     }
@@ -57,7 +82,8 @@ export class NodeBinaryProvider {
     // If the runtime executable doesn't look like Node.js (could be a shell
     // script that boots Node by itself, for instance) try to find Node itself
     // on the path as a fallback.
-    if (!/^node(64)?(\.exe)?$/.test(basename(location))) {
+    const exeInfo = exeRe.exec(basename(location).toLowerCase());
+    if (!exeInfo) {
       try {
         const realBinary = await this.resolveAndValidate(env, 'node');
         return new NodeBinary(location, realBinary.majorVersion);
@@ -79,19 +105,36 @@ export class NodeBinaryProvider {
 
     // match the "12" in "v12.34.56"
     const version = await this.getVersionText(location);
-    const majorVersion = /^v([0-9]+)\./.exec(version);
-    if (!majorVersion || Number(majorVersion[1]) < 8) {
+    const majorVersionMatch = /v([0-9]+)\./.exec(version);
+    if (!majorVersionMatch) {
       throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));
     }
 
-    const entry = new NodeBinary(location, Number(majorVersion[1]));
+    let majorVersion = Number(majorVersionMatch[1]);
+
+    // remap the node version bundled if we're running electron
+    if (exeInfo[1] === 'electron') {
+      majorVersion = electronNodeVersion.get(majorVersion) ?? 12;
+    }
+
+    if (majorVersion < 8) {
+      throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));
+    }
+
+    const entry = new NodeBinary(location, majorVersion);
     this.knownGoodMappings.set(location, entry);
     return entry;
   }
 
+  public resolveBinaryLocation(executable: string, env: EnvironmentVars) {
+    return executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
+  }
+
   public async getVersionText(binary: string) {
     try {
-      const { stdout } = await spawnAsync(binary, ['--version']);
+      const { stdout } = await spawnAsync(binary, ['--version'], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      });
       return stdout;
     } catch {
       throw new ProtocolError(cannotFindNodeBinary(binary));
