@@ -23,7 +23,8 @@ export function registerAutoAttach(
     }
 
     launcher = (async () => {
-      const inst = new AutoAttachLauncher(new NodeBinaryProvider(), new ProxyLogger(), context, fs);
+      const logger = new ProxyLogger();
+      const inst = new AutoAttachLauncher(new NodeBinaryProvider(logger), logger, context, fs);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {

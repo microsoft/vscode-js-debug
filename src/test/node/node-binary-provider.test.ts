@@ -10,6 +10,7 @@ import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { testWorkspace } from '../test';
+import { Logger } from '../../common/logging/logger';
 
 describe('NodeBinaryProvider', () => {
   let p: NodeBinaryProvider;
@@ -23,7 +24,7 @@ describe('NodeBinaryProvider', () => {
       process.platform === 'win32' ? `${binary}.exe` : binary,
     );
 
-  beforeEach(() => (p = new NodeBinaryProvider()));
+  beforeEach(() => (p = new NodeBinaryProvider(Logger.null)));
 
   it('rejects not found', async () => {
     try {
