@@ -842,16 +842,22 @@ export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeCo
   return filled;
 }
 
-export function applyChromeDefaults(config: ResolvingChromeConfiguration): AnyChromeConfiguration {
+export function applyChromeDefaults(
+  config: ResolvingChromeConfiguration,
+  browserLaunchLocation: 'workspace' | 'ui',
+): AnyChromeConfiguration {
   return config.request === 'attach'
     ? { ...chromeAttachConfigDefaults, ...config }
-    : { ...chromeLaunchConfigDefaults, ...config };
+    : { ...chromeLaunchConfigDefaults, browserLaunchLocation, ...config };
 }
 
-export function applyEdgeDefaults(config: ResolvingEdgeConfiguration): AnyEdgeConfiguration {
+export function applyEdgeDefaults(
+  config: ResolvingEdgeConfiguration,
+  browserLaunchLocation: 'workspace' | 'ui',
+): AnyEdgeConfiguration {
   return config.request === 'attach'
     ? { ...edgeAttachConfigDefaults, ...config }
-    : { ...edgeLaunchConfigDefaults, ...config };
+    : { ...edgeLaunchConfigDefaults, browserLaunchLocation, ...config };
 }
 
 export function applyExtensionHostDefaults(
@@ -871,17 +877,21 @@ export function applyTerminalDefaults(
 export const isConfigurationWithEnv = (config: unknown): config is IConfigurationWithEnv =>
   typeof config === 'object' && !!config && 'env' in config && 'envFile' in config;
 
-export function applyDefaults(config: AnyResolvingConfiguration): AnyLaunchConfiguration {
+export function applyDefaults(
+  config: AnyResolvingConfiguration,
+  location?: 'local' | 'remote',
+): AnyLaunchConfiguration {
   let configWithDefaults: AnyLaunchConfiguration;
+  const defaultBrowserLocation = location === 'remote' ? ('ui' as const) : ('workspace' as const);
   switch (config.type) {
     case DebugType.Node:
       configWithDefaults = applyNodeDefaults(config);
       break;
     case DebugType.Edge:
-      configWithDefaults = applyEdgeDefaults(config);
+      configWithDefaults = applyEdgeDefaults(config, defaultBrowserLocation);
       break;
     case DebugType.Chrome:
-      configWithDefaults = applyChromeDefaults(config);
+      configWithDefaults = applyChromeDefaults(config, defaultBrowserLocation);
       break;
     case DebugType.ExtensionHost:
       configWithDefaults = applyExtensionHostDefaults(config);
