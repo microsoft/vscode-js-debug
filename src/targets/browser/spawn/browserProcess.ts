@@ -2,21 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Event, CancellationToken } from 'vscode';
 import { ChildProcessWithoutNullStreams } from 'child_process';
-import { retryGetWSEndpoint } from './endpoints';
-import { constructInspectorWSUri } from '../constructInspectorWSUri';
-import { EventEmitter } from '../../../common/events';
-import { Writable, Readable } from 'stream';
 import * as readline from 'readline';
-import { ILogger } from '../../../common/logging';
-import { TaskCancelledError } from '../../../common/cancellation';
-import { DisposableList } from '../../../common/disposable';
-import { killTree } from '../../node/killTree';
-import { delay } from '../../../common/promiseUtil';
+import { Readable, Writable } from 'stream';
+import { CancellationToken, Event } from 'vscode';
+import { RawPipeTransport } from '../../../cdp/rawPipeTransport';
 import { ITransport } from '../../../cdp/transport';
 import { WebSocketTransport } from '../../../cdp/webSocketTransport';
-import { RawPipeTransport } from '../../../cdp/rawPipeTransport';
+import { TaskCancelledError } from '../../../common/cancellation';
+import { DisposableList } from '../../../common/disposable';
+import { EventEmitter } from '../../../common/events';
+import { ILogger } from '../../../common/logging';
+import { delay } from '../../../common/promiseUtil';
+import { killTree } from '../../node/killTree';
+import { constructInspectorWSUri } from '../constructInspectorWSUri';
+import { retryGetWSEndpoint } from './endpoints';
 
 interface ITransportOptions {
   connection: 'pipe' | number;
@@ -60,6 +60,7 @@ export interface IBrowserProcess {
 }
 
 const inspectWsConnection = async (
+  logger: ILogger,
   process: IBrowserProcess,
   options: ITransportOptions,
   cancellationToken: CancellationToken,
@@ -67,7 +68,11 @@ const inspectWsConnection = async (
   const endpoint =
     options.connection === 0
       ? await waitForWSEndpoint(process, cancellationToken)
-      : await retryGetWSEndpoint(`http://localhost:${options.connection}`, cancellationToken);
+      : await retryGetWSEndpoint(
+          `http://localhost:${options.connection}`,
+          cancellationToken,
+          logger,
+        );
 
   const inspectWs = options.inspectUri
     ? constructInspectorWSUri(options.inspectUri, options.url, endpoint)
@@ -91,6 +96,8 @@ export class NonTrackedBrowserProcess implements IBrowserProcess {
   public readonly onExit = new EventEmitter<number>().event;
   public readonly onError = new EventEmitter<Error>().event;
 
+  constructor(private readonly logger: ILogger) {}
+
   /**
    * @inheritdoc
    */
@@ -98,7 +105,7 @@ export class NonTrackedBrowserProcess implements IBrowserProcess {
     options: ITransportOptions,
     cancellationToken: CancellationToken,
   ): Promise<ITransport> {
-    return inspectWsConnection(this, options, cancellationToken);
+    return inspectWsConnection(this.logger, this, options, cancellationToken);
   }
 
   /**
@@ -152,7 +159,7 @@ export class ChildProcessBrowserProcess implements IBrowserProcess {
       );
     }
 
-    return inspectWsConnection(this, options, cancellationToken);
+    return inspectWsConnection(this.logger, this, options, cancellationToken);
   }
 
   /**

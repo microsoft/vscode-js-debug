@@ -2,11 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { CancellationToken } from 'vscode';
-import * as URL from 'url';
-import { delay } from '../../../common/promiseUtil';
-import { BasicResourceProvider } from '../../../adapter/resourceProvider/basicResourceProvider';
 import { promises as fs } from 'fs';
+import * as URL from 'url';
+import { CancellationToken } from 'vscode';
+import { BasicResourceProvider } from '../../../adapter/resourceProvider/basicResourceProvider';
+import { ILogger, LogTag } from '../../../common/logging';
+import { delay } from '../../../common/promiseUtil';
 
 /**
  * Returns the debugger websocket URL a process listening at the given address.
@@ -16,13 +17,20 @@ import { promises as fs } from 'fs';
 export async function getWSEndpoint(
   browserURL: string,
   cancellationToken: CancellationToken,
+  logger: ILogger,
 ): Promise<string> {
   const provider = new BasicResourceProvider(fs);
   const jsonVersion = await provider.fetchJson<{ webSocketDebuggerUrl?: string }>(
     URL.resolve(browserURL, '/json/version'),
     cancellationToken,
   );
-  if (jsonVersion.ok && jsonVersion.body.webSocketDebuggerUrl) {
+
+  if (!jsonVersion.ok) {
+    logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/version', jsonVersion);
+  } else if (jsonVersion.body.webSocketDebuggerUrl) {
+    logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/version', {
+      url: jsonVersion.body.webSocketDebuggerUrl,
+    });
     return jsonVersion.body.webSocketDebuggerUrl;
   }
 
@@ -32,7 +40,13 @@ export async function getWSEndpoint(
     URL.resolve(browserURL, '/json/list'),
     cancellationToken,
   );
-  if (jsonList.ok && jsonList.body.length) {
+
+  if (!jsonList.ok) {
+    logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/list', jsonList);
+  } else if (jsonList.body.length) {
+    logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/list', {
+      url: jsonList.body[0].webSocketDebuggerUrl,
+    });
     return jsonList.body[0].webSocketDebuggerUrl;
   }
 
@@ -48,15 +62,16 @@ export async function getWSEndpoint(
 export async function retryGetWSEndpoint(
   browserURL: string,
   cancellationToken: CancellationToken,
+  logger: ILogger,
 ): Promise<string> {
   try {
-    return await getWSEndpoint(browserURL, cancellationToken);
+    return await getWSEndpoint(browserURL, cancellationToken, logger);
   } catch (e) {
     if (cancellationToken.isCancellationRequested) {
       throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
     }
 
     await delay(200);
-    return retryGetWSEndpoint(browserURL, cancellationToken);
+    return retryGetWSEndpoint(browserURL, cancellationToken, logger);
   }
 }
