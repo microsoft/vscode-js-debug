@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { runTests } from 'vscode-test';
 import minimist from 'minimist';
 import * as path from 'path';
+import { runTests } from 'vscode-test';
 
 async function main() {
   try {

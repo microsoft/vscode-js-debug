@@ -142,7 +142,8 @@ export function registerDebugTerminalUI(
     workspaceFolder?: vscode.WorkspaceFolder,
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
-    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(), new ProxyLogger(), fs);
+    const logger = new ProxyLogger();
+    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(logger), logger, fs);
     launcher.onTerminalCreated(terminal => {
       linkHandler.enableHandlingInTerminal(terminal);
     });

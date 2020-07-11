@@ -9,12 +9,25 @@ jobs:
     vmImage: 'macOS-10.15'
   steps:
   - template: common-validation.yml
+  variables:
+    node_version: 12.13.0
 
 - job: Linux
   pool:
     vmImage: 'ubuntu-18.04'
   steps:
   - template: common-validation.yml
+  variables:
+    node_version: 12.13.0
+
+- job: LinuxMinspec
+  pool:
+    vmImage: 'ubuntu-18.04'
+  steps:
+  - template: common-validation.yml
+  variables:
+    node_version: 12.13.0
+    only_minspec: true
 
 - job: Windows
   pool:
@@ -31,3 +44,5 @@ jobs:
       Remove-Item $InstallerExe
     displayName: Install Edge Canary
   - template: common-validation.yml
+  variables:
+    node_version: 12.13.0

@@ -6,7 +6,7 @@ steps:
 - task: NodeTool@0
   displayName: Use Node
   inputs:
-    versionSpec: 12.13.0
+    versionSpec: $(node_version)
     checkLatest: true
 
 - bash: |
@@ -45,12 +45,13 @@ steps:
   env:
     FRAMEWORK_TESTS: 1
     DISPLAY: ':99.0'
+    ONLY_MINSPEC: $(only_minspec)
 
 - task: Gulp@0
   displayName: gulp lint
   inputs:
     targets: lint
-  condition: eq(${{ parameters.runTests }}, true)
+  condition: and(eq(${{ parameters.runTests }}, true), ne(variables.only_minspec, true))
 
 - task: PublishTestResults@2
   displayName: Publish Tests Results
