@@ -27,7 +27,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, IInitializeParams } from './ioc-extras';
+import { disposeContainer, IInitializeParams, ExtensionLocation } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
@@ -110,10 +110,22 @@ export class Binder implements IDisposable {
       dap.on('loadedSources', async () => ({ sources: [] }));
       dap.on('breakpointLocations', () => Promise.resolve({ breakpoints: [] }));
       dap.on('attach', params =>
-        this._boot(applyDefaults(params as AnyResolvingConfiguration), dap),
+        this._boot(
+          applyDefaults(
+            params as AnyResolvingConfiguration,
+            this._rootServices.get(ExtensionLocation),
+          ),
+          dap,
+        ),
       );
       dap.on('launch', params =>
-        this._boot(applyDefaults(params as AnyResolvingConfiguration), dap),
+        this._boot(
+          applyDefaults(
+            params as AnyResolvingConfiguration,
+            this._rootServices.get(ExtensionLocation),
+          ),
+          dap,
+        ),
       );
       dap.on('terminate', async () => {
         await this._disconnect();
