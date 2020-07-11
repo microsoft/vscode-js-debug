@@ -6,7 +6,6 @@ import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
-import { canAccess } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
@@ -125,16 +124,13 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     }
 
     const bootloaderPath = path.join(storagePath, 'bootloader.js');
-    if (!(await canAccess(this.fs, bootloaderPath))) {
-      try {
-        await this.fs.mkdir(storagePath);
-      } catch {
-        // already exists, most likely
-      }
-
-      await this.fs.copyFile(bootloaderDefaultPath, bootloaderPath);
+    try {
+      await this.fs.mkdir(storagePath);
+    } catch {
+      // already exists, most likely
     }
 
+    await this.fs.copyFile(bootloaderDefaultPath, bootloaderPath);
     return { path: bootloaderPath, dispose: () => undefined };
   }
 
