@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Mocha from 'mocha';
-import * as glob from 'glob';
-import { use } from 'chai';
-import { join } from 'path';
 import 'reflect-metadata';
+import { use } from 'chai';
+import * as glob from 'glob';
+import Mocha from 'mocha';
+import { join } from 'path';
 
 use(require('chai-subset'));
 use(require('chai-as-promised'));
@@ -37,6 +37,10 @@ export async function run(): Promise<void> {
     timeout: 10 * 1000,
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   };
+
+  if (process.env.ONLY_MINSPEC === 'true') {
+    mochaOpts.grep = 'node runtime'; // may eventually want a more dynamic system
+  }
 
   const grep = mochaOpts.grep || mochaOpts.g;
   if (grep) {

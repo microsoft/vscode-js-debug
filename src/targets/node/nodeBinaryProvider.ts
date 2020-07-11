@@ -2,9 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { basename, isAbsolute } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { ILogger, LogTag } from '../../common/logging';
 import { findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import {
@@ -66,6 +67,8 @@ export class NodeBinaryProvider {
    */
   private readonly knownGoodMappings = new Map<string, NodeBinary>();
 
+  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+
   /**
    * Validates the path and returns an absolute path to the Node binary to run.
    */
@@ -75,6 +78,7 @@ export class NodeBinaryProvider {
     explicitVersion?: number,
   ): Promise<NodeBinary> {
     const location = this.resolveBinaryLocation(executable, env);
+    this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable));
     }
@@ -109,6 +113,8 @@ export class NodeBinaryProvider {
 
     // match the "12" in "v12.34.56"
     const version = await this.getVersionText(location);
+    this.logger.info(LogTag.RuntimeLaunch, 'Discovered version', { version: version.trim() });
+
     const majorVersionMatch = /v([0-9]+)\./.exec(version);
     if (!majorVersionMatch) {
       throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));

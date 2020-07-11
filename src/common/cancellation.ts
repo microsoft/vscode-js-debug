@@ -32,7 +32,15 @@ export function timeoutPromise<T>(
     didTimeout.promise.then(() => {
       throw new TaskCancelledError(message || 'Task cancelled');
     }),
-    promise.finally(() => disposable.dispose()),
+    promise
+      .then(r => {
+        disposable.dispose();
+        return r;
+      })
+      .catch(err => {
+        disposable.dispose();
+        throw err;
+      }),
   ]);
 }
 
