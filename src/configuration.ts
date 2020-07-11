@@ -342,6 +342,13 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    * If true, will start profiling soon as the process launches.
    */
   profileStartup: boolean;
+
+  /**
+   * Legacy debug port. Now, only used for --inspect-brk compatbility.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/584
+   * @deprecated
+   */
+  port?: number;
 }
 
 /**

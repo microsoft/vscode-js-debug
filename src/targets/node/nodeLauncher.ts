@@ -2,25 +2,27 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { INodeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
-import { IProgramLauncher } from './processLauncher';
-import { CallbackFile } from './callback-file';
-import { RestartPolicyFactory, IRestartPolicy } from './restartPolicy';
-import { delay } from '../../common/promiseUtil';
-import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
-import { INodeTargetLifecycleHooks } from './nodeTarget';
-import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
-import { resolve, extname } from 'path';
-import Cdp from '../../cdp/api';
-import { NodeBinaryProvider, INodeBinaryProvider } from './nodeBinaryProvider';
-import { exists } from '../../common/fsUtils';
-import { LogTag, ILogger } from '../../common/logging';
-import { fixInspectFlags } from '../../ui/configurationUtils';
-import { injectable, inject, multiInject } from 'inversify';
+import { inject, injectable, multiInject } from 'inversify';
+import { basename, extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
-import { ISourceMapMetadata } from '../../common/sourceMaps/sourceMap';
+import Cdp from '../../cdp/api';
+import { DebugType } from '../../common/contributionUtils';
+import { exists, readfile } from '../../common/fsUtils';
+import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
+import { delay } from '../../common/promiseUtil';
+import { ISourceMapMetadata } from '../../common/sourceMaps/sourceMap';
+import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
+import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configuration';
+import { fixInspectFlags } from '../../ui/configurationUtils';
+import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { CallbackFile } from './callback-file';
+import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
+import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
+import { INodeTargetLifecycleHooks } from './nodeTarget';
+import { IProgramLauncher } from './processLauncher';
+import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
+import { WatchDog } from './watchdogSpawn';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program
@@ -53,6 +55,8 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
 
 @injectable()
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
+  private inspectBrkPort?: number;
+
   constructor(
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
@@ -90,6 +94,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       runData.params.program = await this.tryGetCompiledFile(runData.params.program);
     }
 
+    this.inspectBrkPort = await this.getInspectBrkParams(runData.params);
     const doLaunch = async (restartPolicy: IRestartPolicy) => {
       // Close any existing program. We intentionally don't wait for stop() to
       // finish, since doing so will shut down the server.
@@ -102,9 +107,14 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         runData.params.runtimeExecutable || undefined,
       );
       const callbackFile = new CallbackFile<IProcessTelemetry>();
-      const env = await this.resolveEnvironment(runData, binary.canUseSpacesInRequirePath, {
+      let env = await this.resolveEnvironment(runData, binary.canUseSpacesInRequirePath, {
         fileCallback: callbackFile.path,
       });
+
+      if (this.inspectBrkPort) {
+        env = env.merge({ NODE_OPTIONS: null });
+      }
+
       const options: INodeLaunchConfiguration = { ...runData.params, env: env.value };
       const launcher = this.launchers.find(l => l.canLaunch(options));
       if (!launcher) {
@@ -144,16 +154,60 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         }
       });
 
-      // Read the callback file, and signal the running program when we read
-      // data. read() retur
-      callbackFile.read().then(data => {
-        if (data) {
-          program.gotTelemetery(data);
-        }
-      });
+      if (this.inspectBrkPort) {
+        await WatchDog.attach({
+          ipcAddress: runData.serverAddress,
+          scriptName: 'Remote Process',
+          inspectorURL: await retryGetWSEndpoint(
+            `http://127.0.0.1:${this.inspectBrkPort}`,
+            runData.context.cancellationToken,
+            this.logger,
+          ),
+          waitForDebugger: true,
+          dynamicAttach: true,
+        });
+      } else {
+        // Read the callback file, and signal the running program when we read data.
+        callbackFile.read().then(data => {
+          if (data) {
+            program.gotTelemetery(data);
+          }
+        });
+      }
     };
 
     return doLaunch(this.restarters.create(runData.params.restart));
+  }
+
+  /**
+   * Detects if the user wants to run an npm script that contains --inspect-brk.
+   * If so, it returns the port to attach with, instead of using the bootloader.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/584
+   */
+  protected async getInspectBrkParams(params: INodeLaunchConfiguration) {
+    if (!['npm', 'yarn', 'pnpm'].includes(basename(params.runtimeExecutable ?? ''))) {
+      return;
+    }
+
+    const script = params.runtimeArgs.find(
+      a => !a.startsWith('-') && a !== 'run' && a !== 'run-script',
+    );
+    if (!script) {
+      return;
+    }
+
+    let packageJson: { scripts?: { [name: string]: string } };
+    try {
+      packageJson = JSON.parse(await readfile(resolve(params.cwd, 'package.json')));
+    } catch {
+      return;
+    }
+
+    if (!packageJson.scripts?.[script]?.includes('--inspect-brk')) {
+      return;
+    }
+
+    return params.port ?? 9229;
   }
 
   /**
@@ -166,6 +220,10 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   ): INodeTargetLifecycleHooks {
     return {
       initialized: async () => {
+        if (this.inspectBrkPort) {
+          await this.gatherTelemetryFromCdp(cdp, run);
+        }
+
         if (!run.params.stopOnEntry) {
           return;
         }

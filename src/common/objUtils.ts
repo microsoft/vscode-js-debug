@@ -231,6 +231,25 @@ export function memoize<T, R>(fn: (arg: T) => R): ((arg: T) => R) & { clear(): v
 }
 
 /**
+ * Memoizes the single-parameter function using weak references.
+ */
+export function memoizeWeak<T extends object, R>(fn: (arg: T) => R): (arg: T) => R {
+  const cached = new WeakMap<T, R>();
+  const wrapper = (arg: T): R => {
+    if (cached.has(arg)) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return cached.get(arg)!;
+    }
+
+    const value = fn(arg);
+    cached.set(arg, value);
+    return value;
+  };
+
+  return wrapper;
+}
+
+/**
  * Debounces the function call for an interval.
  */
 export function debounce(duration: number, fn: () => void): (() => void) & { clear: () => void } {

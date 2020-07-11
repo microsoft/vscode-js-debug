@@ -88,7 +88,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     run: IRunData<IExtensionHostAttachConfiguration>,
   ) {
     this.setEnvironmentVariables(cdp, run);
-    const telemetry = await this.gatherTelemetry(cdp, run);
+    const telemetry = await this.gatherTelemetryFromCdp(cdp, run);
 
     // Monitor the process ID we read from the telemetry. Once the VS Code
     // process stops, stop our Watchdog, and vise versa.
