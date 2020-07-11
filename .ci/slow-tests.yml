@@ -6,6 +6,8 @@ jobs:
 - job: macOS
   pool:
     vmImage: 'macOS-10.15'
+  variables:
+    node_version: 12.13.0
   steps:
   - template: common-validation.yml
     parameters:
@@ -15,6 +17,8 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-18.04'
+  variables:
+    node_version: 12.13.0
   steps:
   - template: common-validation.yml
     parameters:
