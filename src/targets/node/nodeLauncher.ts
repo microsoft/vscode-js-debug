@@ -112,6 +112,11 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       });
 
       if (this.inspectBrkPort) {
+        runData.context.dap.output({
+          category: 'stderr',
+          output:
+            'Using legacy attach mode for --inspect-brk in npm scripts. We recommend removing --inspect-brk, and using `stopOnEntry` in your launch.json if you need it.',
+        });
         env = env.merge({ NODE_OPTIONS: null });
       }
 
