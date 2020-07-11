@@ -1033,7 +1033,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   },
   [Configuration.OnlyAutoAttachExplicit]: {
     type: 'boolean',
-    default: false,
+    default: true,
     markdownDescription: refString('configuration.onlyAutoAttachExplicit'),
   },
 };
