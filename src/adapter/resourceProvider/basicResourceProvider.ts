@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IResourceProvider, Response, HttpStatusError } from '.';
-import { injectable, inject } from 'inversify';
-import { NeverCancelled, TaskCancelledError } from '../../common/cancellation';
-import { FS, FsPromises } from '../../ioc-extras';
-import { CancellationToken } from 'vscode';
-import { fileUrlToAbsolutePath, isAbsolute, isLoopback } from '../../common/urlUtils';
-import * as https from 'https';
 import * as http from 'http';
+import * as https from 'https';
+import { inject, injectable } from 'inversify';
+import { CancellationToken } from 'vscode';
+import { HttpStatusError, IResourceProvider, Response } from '.';
+import { NeverCancelled, TaskCancelledError } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
+import { fileUrlToAbsolutePath, isAbsolute, isLoopback } from '../../common/urlUtils';
+import { FS, FsPromises } from '../../ioc-extras';
 import { AnyRequestOptions } from './resourceProviderState';
 
 @injectable()
@@ -23,6 +23,7 @@ export class BasicResourceProvider implements IResourceProvider {
   public async fetch(
     url: string,
     cancellationToken: CancellationToken = NeverCancelled,
+    headers?: { [key: string]: string },
   ): Promise<Response<string>> {
     if (url.startsWith('data:')) {
       return this.resolveDataUri(url);
@@ -37,7 +38,7 @@ export class BasicResourceProvider implements IResourceProvider {
       }
     }
 
-    return this.fetchHttp(url, cancellationToken);
+    return this.fetchHttp(url, cancellationToken, headers);
   }
   /**
    * Returns JSON from the given file, data, or HTTP URL.
@@ -45,8 +46,12 @@ export class BasicResourceProvider implements IResourceProvider {
   public async fetchJson<T>(
     url: string,
     cancellationToken?: CancellationToken,
+    headers?: { [key: string]: string },
   ): Promise<Response<T>> {
-    const res = await this.fetch(url, cancellationToken);
+    const res = await this.fetch(url, cancellationToken, {
+      ...headers,
+      Accept: 'application/json',
+    });
     if (!res.ok) {
       return res;
     }
@@ -61,6 +66,7 @@ export class BasicResourceProvider implements IResourceProvider {
   private async fetchHttp(
     url: string,
     cancellationToken: CancellationToken,
+    headers?: { [key: string]: string },
   ): Promise<Response<string>> {
     const isSecure = !url.startsWith('http://');
     const driver = isSecure ? https : http;
@@ -72,6 +78,8 @@ export class BasicResourceProvider implements IResourceProvider {
     if (isSecure && targetAddressIsLoopback) {
       options.rejectUnauthorized = false;
     }
+
+    options.headers = headers;
 
     const disposables = new DisposableList();
 
