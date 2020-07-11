@@ -49,8 +49,8 @@ export class BasicResourceProvider implements IResourceProvider {
     headers?: { [key: string]: string },
   ): Promise<Response<T>> {
     const res = await this.fetch(url, cancellationToken, {
-      ...headers,
       Accept: 'application/json',
+      ...headers,
     });
     if (!res.ok) {
       return res;
@@ -79,7 +79,7 @@ export class BasicResourceProvider implements IResourceProvider {
       options.rejectUnauthorized = false;
     }
 
-    options.headers = headers;
+    options.headers = { ...options.headers, ...headers };
 
     const disposables = new DisposableList();
 
