@@ -5,6 +5,8 @@ pr: none
 jobs:
 - job: nightly_release
   displayName: Nightly Release
+  variables:
+    node_version: 12.13.0
   pool:
     vmImage: 'ubuntu-18.04'
   steps:

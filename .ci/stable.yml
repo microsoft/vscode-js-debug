@@ -8,6 +8,8 @@ pr: none
 jobs:
 - job: stable_release
   displayName: Stable Release
+  variables:
+    node_version: 12.13.0
   pool:
     vmImage: 'ubuntu-18.04'
   steps:
