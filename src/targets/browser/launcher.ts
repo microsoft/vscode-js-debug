@@ -3,23 +3,23 @@
  *--------------------------------------------------------*/
 
 import * as childProcess from 'child_process';
+import { CancellationToken } from 'vscode';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { ILogger } from '../../common/logging';
+import Dap from '../../dap/api';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { CancellationToken } from 'vscode';
-import { launchUnelevatedChrome } from './unelevatedChome';
+import { BrowserArgs } from './browserArgs';
+import { IDapInitializeParamsWithExtensions } from './browserLauncher';
+import { constructInspectorWSUri } from './constructInspectorWSUri';
 import {
+  ChildProcessBrowserProcess,
   IBrowserProcess,
   NonTrackedBrowserProcess,
-  ChildProcessBrowserProcess,
 } from './spawn/browserProcess';
-import Dap from '../../dap/api';
-import { ILogger } from '../../common/logging';
-import { IDapInitializeParamsWithExtensions } from './browserLauncher';
 import { retryGetWSEndpoint } from './spawn/endpoints';
-import { BrowserArgs } from './browserArgs';
-import { constructInspectorWSUri } from './constructInspectorWSUri';
+import { launchUnelevatedChrome } from './unelevatedChome';
 
 const noop = () => undefined;
 
@@ -93,7 +93,7 @@ export async function launch(
       browserArguments.toArray(),
       cancellationToken,
     );
-    browserProcess = new NonTrackedBrowserProcess();
+    browserProcess = new NonTrackedBrowserProcess(logger);
   } else {
     const cp = childProcess.spawn(executablePath, browserArguments.toArray(), {
       detached: true,
@@ -197,7 +197,7 @@ export async function attach(
     );
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   } else if (browserURL) {
-    const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken);
+    const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken, logger);
 
     const inspectWs = options.inspectUri
       ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)

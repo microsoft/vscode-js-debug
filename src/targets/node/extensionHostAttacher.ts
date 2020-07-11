@@ -49,6 +49,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     const inspectorURL = await retryGetWSEndpoint(
       `http://localhost:${runData.params.port}`,
       runData.context.cancellationToken,
+      this.logger,
     );
 
     const wd = await WatchDog.attach({
