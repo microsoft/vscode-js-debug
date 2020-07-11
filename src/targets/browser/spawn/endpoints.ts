@@ -23,15 +23,18 @@ export async function getWSEndpoint(
   const jsonVersion = await provider.fetchJson<{ webSocketDebuggerUrl?: string }>(
     URL.resolve(browserURL, '/json/version'),
     cancellationToken,
+    { host: 'localhost' },
   );
 
   if (!jsonVersion.ok) {
     logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/version', jsonVersion);
   } else if (jsonVersion.body.webSocketDebuggerUrl) {
+    const fixed = fixRemoteUrl(browserURL, jsonVersion.body.webSocketDebuggerUrl);
     logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/version', {
       url: jsonVersion.body.webSocketDebuggerUrl,
+      fixed,
     });
-    return jsonVersion.body.webSocketDebuggerUrl;
+    return fixed;
   }
 
   // Chrome its top-level debugg on /json/version, while Node does not.
@@ -39,15 +42,18 @@ export async function getWSEndpoint(
   const jsonList = await provider.fetchJson<{ webSocketDebuggerUrl: string }[]>(
     URL.resolve(browserURL, '/json/list'),
     cancellationToken,
+    { host: 'localhost' },
   );
 
   if (!jsonList.ok) {
     logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/list', jsonList);
   } else if (jsonList.body.length) {
+    const fixed = fixRemoteUrl(browserURL, jsonList.body[0].webSocketDebuggerUrl);
     logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/list', {
       url: jsonList.body[0].webSocketDebuggerUrl,
+      fixed,
     });
-    return jsonList.body[0].webSocketDebuggerUrl;
+    return fixed;
   }
 
   throw new Error('Could not find any debuggable target');
@@ -74,4 +80,11 @@ export async function retryGetWSEndpoint(
     await delay(200);
     return retryGetWSEndpoint(browserURL, cancellationToken, logger);
   }
+}
+
+function fixRemoteUrl(rawBrowserUrl: string, rawWebSocketUrl: string) {
+  const browserUrl = new URL.URL(rawBrowserUrl);
+  const websocketUrl = new URL.URL(rawWebSocketUrl);
+  websocketUrl.host = browserUrl.host;
+  return websocketUrl.toString();
 }

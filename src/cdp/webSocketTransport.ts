@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from './transport';
+import type { CancellationToken } from 'vscode';
 import WebSocket from 'ws';
-import { isLoopback } from '../common/urlUtils';
 import { timeoutPromise } from '../common/cancellation';
 import { EventEmitter } from '../common/events';
-import type { CancellationToken } from 'vscode';
 import { HrTime } from '../common/hrnow';
+import { isLoopback } from '../common/urlUtils';
+import { ITransport } from './transport';
 
 export class WebSocketTransport implements ITransport {
   private _ws: WebSocket | undefined;
@@ -29,6 +29,7 @@ export class WebSocketTransport implements ITransport {
     const targetAddressIsLoopback = await isLoopback(url);
 
     const ws = new WebSocket(url, [], {
+      headers: { host: 'localhost' },
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb
       rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
