@@ -102,6 +102,12 @@ export class NodeBinaryProvider {
       }
     }
 
+    // Seems like we can't get stdout from Node installed in snap, see:
+    // https://github.com/microsoft/vscode/issues/102355#issuecomment-657707702
+    if (location.startsWith('/snap/')) {
+      return new NodeBinary(location, undefined);
+    }
+
     const knownGood = this.knownGoodMappings.get(location);
     if (knownGood) {
       return knownGood;

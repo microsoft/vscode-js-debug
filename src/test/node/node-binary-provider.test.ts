@@ -6,11 +6,11 @@ import { expect } from 'chai';
 import { join } from 'path';
 import { SinonStub, stub } from 'sinon';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { Logger } from '../../common/logging/logger';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { testWorkspace } from '../test';
-import { Logger } from '../../common/logging/logger';
 
 describe('NodeBinaryProvider', () => {
   let p: NodeBinaryProvider;
@@ -133,6 +133,15 @@ describe('NodeBinaryProvider', () => {
 
       const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
       expect(binary.majorVersion).to.equal(10);
+    });
+
+    it('assumes snap binaries are good', async () => {
+      resolveBinaryLocation.withArgs('node').returns('/snap/bin/node');
+
+      const binary = await p.resolveAndValidate(EnvironmentVars.empty);
+      expect(binary.path).to.equal('/snap/bin/node');
+      expect(binary.majorVersion).to.be.undefined;
+      expect(getVersionText.called).to.be.false;
     });
   });
 });
