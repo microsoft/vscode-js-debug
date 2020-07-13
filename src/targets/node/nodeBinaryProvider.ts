@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { basename, isAbsolute } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
@@ -124,7 +124,11 @@ export class NodeBinaryProvider {
 
     // remap the node version bundled if we're running electron
     if (exeInfo[1] === 'electron') {
-      majorVersion = electronNodeVersion.get(majorVersion) ?? 12;
+      const nodeVersion = await this.resolveAndValidate(env);
+      majorVersion = Math.min(
+        electronNodeVersion.get(majorVersion) ?? 12,
+        nodeVersion.majorVersion ?? 12,
+      );
     }
 
     if (majorVersion < 8) {

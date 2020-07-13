@@ -95,27 +95,40 @@ describe('NodeBinaryProvider', () => {
     beforeEach(() => {
       getVersionText = stub(p, 'getVersionText');
       resolveBinaryLocation = stub(p, 'resolveBinaryLocation');
+      resolveBinaryLocation.withArgs('node').returns('/node');
     });
 
     it('remaps to node version on electron with .cmd', async () => {
-      getVersionText.resolves('\nv6.1.2\n');
-      resolveBinaryLocation.returns('/foo/electron.cmd');
+      getVersionText.withArgs('/foo/electron.cmd').resolves('\nv6.1.2\n');
+      getVersionText.withArgs('/node').resolves('v14.5.0');
+      resolveBinaryLocation.withArgs('electron').returns('/foo/electron.cmd');
 
       const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
       expect(binary.majorVersion).to.equal(12);
     });
 
     it('remaps to node version on electron with no ext', async () => {
-      getVersionText.resolves('\nv6.1.2\n');
-      resolveBinaryLocation.returns('/foo/electron');
+      getVersionText.withArgs('/foo/electron').resolves('\nv6.1.2\n');
+      getVersionText.withArgs('/node').resolves('v14.5.0');
+      resolveBinaryLocation.withArgs('electron').returns('/foo/electron');
 
       const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
       expect(binary.majorVersion).to.equal(12);
     });
 
     it('remaps electron 5', async () => {
-      getVersionText.resolves('\nv5.1.2\n');
-      resolveBinaryLocation.returns('/foo/electron');
+      getVersionText.withArgs('/foo/electron').resolves('\nv5.1.2\n');
+      getVersionText.withArgs('/node').resolves('v14.5.0');
+      resolveBinaryLocation.withArgs('electron').returns('/foo/electron');
+
+      const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
+      expect(binary.majorVersion).to.equal(10);
+    });
+
+    it('uses minimum node version', async () => {
+      getVersionText.withArgs('/foo/electron').resolves('\nv9.0.0\n');
+      getVersionText.withArgs('/node').resolves('v10.0.0');
+      resolveBinaryLocation.withArgs('electron').returns('/foo/electron');
 
       const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
       expect(binary.majorVersion).to.equal(10);
