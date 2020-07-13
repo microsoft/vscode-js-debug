@@ -27,7 +27,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, IInitializeParams, ExtensionLocation } from './ioc-extras';
+import { disposeContainer, ExtensionLocation, IInitializeParams } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
@@ -461,11 +461,11 @@ export class Binder implements IDisposable {
     }
   }
 
-  async _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
+  _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
     const data = this._threads.get(target);
     if (!data) return;
     this._threads.delete(target);
-    await data.thread.dispose();
+    data.thread.dispose();
     data.debugAdapter.dap.terminated(terminateArgs);
     data.debugAdapter.dispose();
     this._delegate.releaseDap(target);
