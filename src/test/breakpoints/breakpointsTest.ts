@@ -673,8 +673,8 @@ describe('breakpoints', () => {
       const cwd = join(testWorkspace, 'tsNode');
       const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
-        source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 15, column: 1 }],
+        source: { path: join(cwd, 'matching-line.ts') },
+        breakpoints: [{ line: 3, column: 1 }],
       });
 
       handle.load();

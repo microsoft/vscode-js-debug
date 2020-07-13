@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BreakpointManager } from '../breakpoints';
-import Dap from '../../dap/api';
-import { Thread, Script } from '../threads';
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
-import { IUiLocation, base1To0, Source, SourceFromMap } from '../sources';
-import { urlToRegex, absolutePathToFileUrl } from '../../common/urlUtils';
+import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
+import Dap from '../../dap/api';
+import { BreakpointManager } from '../breakpoints';
+import { base1To0, IUiLocation, Source, SourceFromMap } from '../sources';
+import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
@@ -280,16 +280,32 @@ export abstract class Breakpoint {
     // remove any URL-set breakpoints because they are probably not correct.
     // This oft happens with Node.js loaders which rewrite sources on the fly.
     for (const bp of this.cdpBreakpoints) {
-      if (isSetByUrl(bp.args) && this.breakpointIsForSource(bp.args, source)) {
-        this._manager.logger.verbose(
-          LogTag.RuntimeSourceMap,
-          'Adjusted breakpoint due to overlaid sourcemap',
-          {
-            url: source.url,
-          },
-        );
-        promises.push(this.removeCdpBreakpoint(bp));
+      if (!isSetByUrl(bp.args)) {
+        continue;
       }
+
+      if (!this.breakpointIsForSource(bp.args, source)) {
+        continue;
+      }
+
+      // Don't remove if we just set at the same location: https://github.com/microsoft/vscode/issues/102152
+      const args = bp.args;
+      if (
+        uiLocations.some(
+          l => l.columnNumber - 1 === args.columnNumber && l.lineNumber - 1 === args.lineNumber,
+        )
+      ) {
+        continue;
+      }
+
+      this._manager.logger.verbose(
+        LogTag.RuntimeSourceMap,
+        'Adjusted breakpoint due to overlaid sourcemap',
+        {
+          url: source.url,
+        },
+      );
+      promises.push(this.removeCdpBreakpoint(bp));
     }
 
     await Promise.all(promises);

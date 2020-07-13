@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 export function triple(n: number) {
-  return n * 3; // this line matches, so BP won't be adjusted
+  return n * 3;
 }
 
 export interface ISomeStuffToMakeLinesNotMatch {
