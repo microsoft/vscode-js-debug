@@ -2,16 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { URL } from 'url';
-import * as path from 'path';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
-import { AnyChromiumConfiguration } from '../configuration';
-import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 import { promises as dns } from 'dns';
-import { memoize } from './objUtils';
-import { exists } from './fsUtils';
+import * as path from 'path';
+import { parse as urlParse, URL } from 'url';
 import Cdp from '../cdp/api';
+import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
+import { exists } from './fsUtils';
+import { memoize } from './objUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
+import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -418,6 +418,15 @@ export const requirePageTarget = <T>(
 ): ((t: T & { type: string }) => boolean) => t => t.type === BrowserTargetType.Page && filter(t);
 
 /**
+ * The "isURL" from chrome-debug-core. In js-debug we use `new URL()` to see
+ * if a string is a URL, but this is slightly different from url.parse.
+ * @see https://github.com/microsoft/vscode-chrome-debug-core/blob/456318b2a4b2d3394ce8daae1e70d898f55393ea/src/utils.ts#L310
+ */
+function isURLCompat(urlOrPath: string): boolean {
+  return !!urlOrPath && !path.isAbsolute(urlOrPath) && !!urlParse(urlOrPath).protocol;
+}
+
+/**
  * Creates a function to filter a target URL.
  */
 export const createTargetFilter = (
@@ -430,7 +439,7 @@ export const createTargetFilter = (
     if (fileUrl) {
       // Strip file:///, if present
       aUrl = fileUrl;
-    } else if (isValidUrl(aUrl) && aUrl.includes('://')) {
+    } else if (isURLCompat(aUrl) && aUrl.includes('://')) {
       // Strip the protocol, if present
       aUrl = aUrl.substr(aUrl.indexOf('://') + 3);
     }
