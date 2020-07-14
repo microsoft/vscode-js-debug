@@ -53,15 +53,17 @@ describe('NodeBinaryProvider', () => {
     expect(binary.canUseSpacesInRequirePath).to.be.true;
   });
 
-  it('resolves absolute paths with extension on windows', async () => {
-    const binary = await p.resolveAndValidate(
-      EnvironmentVars.empty,
-      binaryLocation('up-to-date').replace('.exe', ''),
-    );
-    expect(binary.path).to.equal(binaryLocation('up-to-date'));
-    expect(binary.majorVersion).to.equal(12);
-    expect(binary.canUseSpacesInRequirePath).to.be.true;
-  });
+  if (process.platform === 'win32') {
+    it('resolves absolute paths with extension on windows', async () => {
+      const binary = await p.resolveAndValidate(
+        new EnvironmentVars(process.env).addToPath(
+          join(testWorkspace, 'nodePathProvider', 'no-node'),
+        ),
+        'babel',
+      );
+      expect(binary.path).to.equal(join(testWorkspace, 'nodePathProvider', 'no-node', 'babel.cmd'));
+    });
+  }
 
   it('works if up to date', async () => {
     const binary = await p.resolveAndValidate(env('up-to-date'));
