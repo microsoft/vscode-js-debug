@@ -2,9 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as path from 'path';
-import * as fs from 'fs';
 import * as childProcess from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import { EnvironmentVars } from './environmentVars';
 import { removeNulls } from './objUtils';
 
 /*
@@ -65,14 +66,14 @@ export function findInPath(
  */
 export function findExecutable(
   program: string | undefined,
-  env: { [key: string]: string | null },
+  env: EnvironmentVars,
 ): string | undefined {
   if (!program) {
     return undefined;
   }
 
   if (process.platform === 'win32' && !path.extname(program)) {
-    const pathExtension = env['PATHEXT'];
+    const pathExtension = env.lookup('PATHEXT');
     if (pathExtension) {
       const executableExtensions = pathExtension.split(';');
       for (const extension of executableExtensions) {

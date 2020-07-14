@@ -6,7 +6,7 @@ import { inject, injectable } from 'inversify';
 import { basename, isAbsolute } from 'path';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
-import { findInPath } from '../../common/pathUtils';
+import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -143,7 +143,9 @@ export class NodeBinaryProvider {
   }
 
   public resolveBinaryLocation(executable: string, env: EnvironmentVars) {
-    return executable && isAbsolute(executable) ? executable : findInPath(executable, env.value);
+    return executable && isAbsolute(executable)
+      ? findExecutable(executable, env)
+      : findInPath(executable, env.value);
   }
 
   public async getVersionText(binary: string) {
