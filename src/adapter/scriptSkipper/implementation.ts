@@ -229,15 +229,12 @@ export class ScriptSkipper {
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
       const pathOnDisk = source.absolutePath();
-      if (pathOnDisk) {
-        // file maps to file on disk
+      if (this._isNodeInternal(url)) {
+        map.set(url, this._testSkipNodeInternal(url));
+      } else if (pathOnDisk) {
         map.set(url, this._testSkipNonNodeInternal(pathOnDisk));
       } else {
-        if (this._isNodeInternal(url)) {
-          map.set(url, this._testSkipNodeInternal(url));
-        } else {
-          map.set(url, this._testSkipNonNodeInternal(url));
-        }
+        map.set(url, this._testSkipNonNodeInternal(url));
       }
 
       let hasSkip = this.isScriptSkipped(url);

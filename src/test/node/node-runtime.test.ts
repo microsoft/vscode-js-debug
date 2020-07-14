@@ -2,23 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { itIntegrates } from '../testIntegrationUtils';
+import { expect } from 'chai';
+import { ChildProcess, spawn } from 'child_process';
+import { dirname, join } from 'path';
+import { stub } from 'sinon';
+import split from 'split2';
+import { delay } from '../../common/promiseUtil';
+import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
+import Dap from '../../dap/api';
+import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
 import {
   createFileTree,
-  testFixturesDir,
   ITestHandle,
   NodeTestHandle,
+  testFixturesDir,
   testWorkspace,
 } from '../test';
-import { join, dirname } from 'path';
-import { expect } from 'chai';
-import { stub } from 'sinon';
-import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import { spawn, ChildProcess } from 'child_process';
-import Dap from '../../dap/api';
-import { delay } from '../../common/promiseUtil';
-import { nodeLaunchConfigDefaults, INodeLaunchConfiguration } from '../../configuration';
-import split from 'split2';
+import { itIntegrates } from '../testIntegrationUtils';
 
 describe('node runtime', () => {
   async function waitForPause(p: ITestHandle) {
@@ -41,7 +41,7 @@ describe('node runtime', () => {
   }
 
   function assertSkipFiles(expectedStacktrace: string) {
-    const stackframes = expectedStacktrace.split('\n').splice(-1, 1); // removing last empty element
+    const stackframes = expectedStacktrace.trim().split('\n');
     expect(stackframes.length).to.be.greaterThan(0);
     expect(stackframes[0]).to.not.contain('<hidden: Skipped by skipFiles>');
     for (let n = 1; n < stackframes.length; n++) {
@@ -49,20 +49,24 @@ describe('node runtime', () => {
     }
   }
 
-  itIntegrates('skipFiles skip node internals', async ({ r }) => {
-    await r.initialize;
-    const cwd = join(testWorkspace, 'simpleNode');
-    const handle = await r.runScript(join(cwd, 'index.js'), { skipFiles: ['<node_internals>/**'] });
-    await handle.dap.setBreakpoints({
-      source: { path: join(cwd, 'index.js') },
-      breakpoints: [{ line: 1, column: 1 }],
-    });
+  describe('skipFiles', () => {
+    itIntegrates('skipFiles skip node internals', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      const handle = await r.runScript(join(cwd, 'index.js'), {
+        skipFiles: ['<node_internals>/**'],
+      });
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'index.js') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
 
-    handle.load();
-    const stoppedParams = await handle.dap.once('stopped');
-    await delay(200); // need to pause test to let debouncer update scripts
-    await handle.logger.logStackTrace(stoppedParams.threadId!, false);
-    handle.assertLog({ customAssert: assertSkipFiles });
+      handle.load();
+      const stoppedParams = await handle.dap.once('stopped');
+      await delay(200); // need to pause test to let debouncer update scripts
+      await handle.logger.logStackTrace(stoppedParams.threadId!, false);
+      handle.assertLog({ customAssert: assertSkipFiles });
+    });
   });
 
   itIntegrates('simple script', async ({ r }) => {
