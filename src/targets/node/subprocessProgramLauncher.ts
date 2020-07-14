@@ -74,6 +74,8 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
           output: data.toString(),
         });
       });
+    } else {
+      child.stdout.resume(); // fixes https://github.com/microsoft/vscode/issues/102254
     }
 
     child.stderr.addListener('data', data => {
