@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP, testWorkspace } from '../test';
-import { itIntegrates } from '../testIntegrationUtils';
-import { Dap } from '../../dap/api';
 import { delay } from '../../common/promiseUtil';
+import { Dap } from '../../dap/api';
+import { TestP, testWorkspace } from '../test';
+import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 
 describe('stacks', () => {
   async function dumpStackAndContinue(p: TestP, scopes: boolean) {
@@ -114,6 +114,19 @@ describe('stacks', () => {
   });
 
   describe('smartStep', () => {
+    const emptySourceMapContents = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        file: 'source.js',
+        sourceRoot: '',
+        sources: ['source.ts'],
+        mappings: '',
+      }),
+    ).toString('base64');
+
+    const emptySourceMap =
+      `//# sourceMappingURL=data:application/json;charset=utf-8;base64,` + emptySourceMapContents;
+
     itIntegrates('simple stepping', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       p.addScriptTag('smartStep/async.js');
@@ -132,14 +145,13 @@ describe('stacks', () => {
     itIntegrates('remembers step direction out', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       await p.addScriptTag('smartStep/directional.js');
+      await p.waitForSource('directional.ts');
       await p.dap.setBreakpoints({
         source: { path: p.workspacePath('web/smartStep/directional.ts') },
         breakpoints: [{ line: 2, column: 0 }],
       });
 
-      const result = p.evaluate(
-        'doCall(() => { mapped1(); mapped2(); })\n//# sourceMappingURL=does.not.exist',
-      );
+      const result = p.evaluate(`doCall(() => { mapped1(); mapped2(); })\n${emptySourceMap}`);
       const { threadId } = await p.dap.once('stopped');
       await p.logger.logStackTrace(threadId!);
       await p.dap.stepOut({ threadId: threadId! });
@@ -155,14 +167,13 @@ describe('stacks', () => {
     itIntegrates('remembers step direction in', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
       await p.addScriptTag('smartStep/directional.js');
+      await p.waitForSource('directional.ts');
       await p.dap.setBreakpoints({
         source: { path: p.workspacePath('web/smartStep/directional.ts') },
         breakpoints: [{ line: 2, column: 0 }],
       });
 
-      const result = p.evaluate(
-        'doCall(() => { mapped1(); mapped2(); })\n//# sourceMappingURL=does.not.exist',
-      );
+      const result = p.evaluate(`doCall(() => { mapped1(); mapped2(); })\n${emptySourceMap}`);
       const { threadId } = await p.dap.once('stopped');
       await p.logger.logStackTrace(threadId!);
 
@@ -194,6 +205,24 @@ describe('stacks', () => {
       });
       p.addScriptTag('smartStep/exceptionBp.js');
       await dumpStackAndContinue(p, false);
+      p.assertLog();
+    });
+
+    itIntegrates('does not step in sources missing maps', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.addScriptTag('smartStep/missingMap.js');
+      const evaluated = p.evaluate(`debugger; doCallback(() => {
+        console.log("hi");
+      });`);
+
+      let threadId = (await p.dap.once('stopped')).threadId!;
+      await p.dap.stepIn({ threadId });
+
+      threadId = (await p.dap.once('stopped')).threadId!;
+      await p.dap.stepIn({ threadId });
+
+      await waitForPause(p);
+      await evaluated;
       p.assertLog();
     });
   });

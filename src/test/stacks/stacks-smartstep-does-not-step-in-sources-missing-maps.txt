@@ -1,0 +1,11 @@
+Evaluating#1: debugger; doCallback(() => {
+        console.log("hi");
+      });
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+doCallback @ ${workspaceFolder}/web/smartStep/missingMap.js:2:5
+<anonymous> @ localhost꞉8001/eval1.js:1:11

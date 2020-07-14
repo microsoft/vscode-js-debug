@@ -2,19 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { StackFrame } from './stackTrace';
-import { IPausedDetails, PausedReason, ExpectedPauseReason, StepDirection } from './threads';
-import { LogTag, ILogger } from '../common/logging';
+import { ILogger, LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
-import { UnmappedReason, isSourceWithMap } from './sources';
+import { isSourceWithMap, UnmappedReason } from './sources';
+import { StackFrame } from './stackTrace';
+import { ExpectedPauseReason, IPausedDetails, PausedReason, StepDirection } from './threads';
 
 export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
   const uiLocation = await stackFrame.uiLocation();
-  if (!uiLocation) return false;
+  if (!uiLocation) {
+    return false;
+  }
 
-  if (!isSourceWithMap(uiLocation.source)) return false;
+  if (!isSourceWithMap(uiLocation.source)) {
+    return false;
+  }
 
-  if (!uiLocation.isMapped && uiLocation.unmappedReason !== UnmappedReason.MapDisabled) return true;
+  if (!uiLocation.isMapped && uiLocation.unmappedReason === UnmappedReason.MapPositionMissing) {
+    return true;
+  }
 
   return false;
 }

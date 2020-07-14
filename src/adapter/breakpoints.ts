@@ -2,31 +2,31 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IUiLocation, SourceContainer, Source, base1To0 } from './sources';
-import Dap from '../dap/api';
+import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
-import { Thread, Script, ScriptWithSourceMapHandler } from './threads';
-import { IDisposable } from '../common/events';
-import { BreakpointsPredictor, IBreakpointsPredictor } from './breakpointPredictor';
-import * as urlUtils from '../common/urlUtils';
-import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
-import { LogTag, ILogger } from '../common/logging';
-import { delay } from '../common/promiseUtil';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
-import { Breakpoint } from './breakpoints/breakpointBase';
-import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { ProtocolError } from '../dap/protocolError';
-import { logPerf } from '../telemetry/performance';
-import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
-import { IBreakpointConditionFactory } from './breakpoints/conditions';
-import { SourceMap } from '../common/sourceMaps/sourceMap';
+import { IDisposable } from '../common/events';
+import { ILogger, LogTag } from '../common/logging';
 import { bisectArray, flatten } from '../common/objUtils';
-import { injectable, inject } from 'inversify';
-import { IDapApi } from '../dap/connection';
+import { delay } from '../common/promiseUtil';
+import { SourceMap } from '../common/sourceMaps/sourceMap';
+import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
-import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
+import Dap from '../dap/api';
+import { IDapApi } from '../dap/connection';
+import { ProtocolError } from '../dap/protocolError';
+import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { IBreakpointPathAndId } from '../targets/targets';
+import { logPerf } from '../telemetry/performance';
+import { BreakpointsPredictor, IBreakpointsPredictor } from './breakpointPredictor';
+import { Breakpoint } from './breakpoints/breakpointBase';
+import { IBreakpointConditionFactory } from './breakpoints/conditions';
+import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
+import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
+import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
+import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { base1To0, IUiLocation, Source, SourceContainer } from './sources';
+import { Script, ScriptWithSourceMapHandler, Thread } from './threads';
 
 /**
  * Differential result used internally in setBreakpoints.

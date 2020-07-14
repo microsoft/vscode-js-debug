@@ -46,12 +46,13 @@ function isUiLocation(loc: unknown): loc is IUiLocation {
   );
 }
 
-const getNullPosition = () => ({
+const getFallbackPosition = () => ({
   source: null,
   line: null,
   column: null,
   name: null,
   lastColumn: null,
+  isSourceMapLoadFailure: true,
 });
 
 type ContentGetter = () => Promise<string | undefined>;
@@ -411,6 +412,15 @@ export enum UnmappedReason {
   /** The map has been disabled temporarily, due to setting a breakpoint in a compiled script */
   MapDisabled,
 
+  /** The source in the UI location has no map */
+  HasNoMap,
+
+  /** The location cannot be source mapped due to an error loading the map */
+  MapLoadingFailed,
+
+  /** The location cannot be source mapped due to its position not being present in the map */
+  MapPositionMissing,
+
   /**
    * The location cannot be sourcemapped, due to not having a sourcemap,
    * failing to load the sourcemap, not having a mapping in the sourcemap, etc
@@ -615,17 +625,31 @@ export class SourceContainer {
 
   _sourceMappedUiLocation(uiLocation: IUiLocation, map: SourceMap): IUiLocation | UnmappedReason {
     const compiled = uiLocation.source;
-    if (this._disabledSourceMaps.has(compiled)) return UnmappedReason.MapDisabled;
-    if (!isSourceWithMap(compiled)) return UnmappedReason.CannotMap;
+    if (this._disabledSourceMaps.has(compiled)) {
+      return UnmappedReason.MapDisabled;
+    }
+
+    if (!isSourceWithMap(compiled)) {
+      return UnmappedReason.HasNoMap;
+    }
 
     const entry = this.getOptiminalOriginalPosition(
       map,
       rawToUiOffset(uiLocation, compiled.inlineScriptOffset),
     );
-    if (!entry.source) return UnmappedReason.CannotMap;
+
+    if ('isSourceMapLoadFailure' in entry) {
+      return UnmappedReason.MapLoadingFailed;
+    }
+
+    if (!entry.source) {
+      return UnmappedReason.MapPositionMissing;
+    }
 
     const source = compiled.sourceMap.sourceByUrl.get(entry.source);
-    if (!source) return UnmappedReason.CannotMap;
+    if (!source) {
+      return UnmappedReason.MapPositionMissing;
+    }
 
     return {
       lineNumber: entry.line || 1,
@@ -650,7 +674,7 @@ export class SourceContainer {
         sourceMap.map,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         () => sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map!),
-        getNullPosition,
+        getFallbackPosition,
       );
 
       if (!entry) {
@@ -700,7 +724,7 @@ export class SourceContainer {
           bias: SourceMapConsumer.LEAST_UPPER_BOUND,
         });
       },
-      getNullPosition,
+      getFallbackPosition,
     );
   }
 

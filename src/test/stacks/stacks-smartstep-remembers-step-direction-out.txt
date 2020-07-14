@@ -1,5 +1,5 @@
 Evaluating#1: doCall(() => { mapped1(); mapped2(); })
-//# sourceMappingURL=does.not.exist
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic291cmNlLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsic291cmNlLnRzIl0sIm1hcHBpbmdzIjoiIn0=
 mapped1 @ ${workspaceFolder}/web/smartStep/directional.ts:2:3
 <anonymous> @ localhost꞉8001/eval1.js:1:16
 doCall @ ${workspaceFolder}/web/smartStep/directional.ts:10:3
