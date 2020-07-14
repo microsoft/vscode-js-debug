@@ -1521,12 +1521,15 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _isWebpackModuleEvalPause(event: Cdp.Debugger.PausedEvent) {
-    return (
-      event.reason === 'instrumentation' &&
-      event.data &&
-      event.data.url?.startsWith('webpack') &&
-      event.data.sourceMapURL?.startsWith('data:')
-    );
+    if (
+      event.reason !== 'instrumentation' ||
+      !event.data ||
+      !event.data.sourceMapURL?.startsWith('data:')
+    ) {
+      return false;
+    }
+
+    return event.data.url?.startsWith('webpack') || event.data.url?.startsWith('ng:');
   }
 
   setSourceMapDisabler(sourceMapDisabler?: SourceMapDisabler) {
