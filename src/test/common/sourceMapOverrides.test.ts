@@ -3,16 +3,16 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { SourceMapOverrides } from '../../targets/sourceMapOverrides';
-import { baseDefaults } from '../../configuration';
-import {
-  getComputedSourceRoot,
-  defaultPathMappingResolver,
-} from '../../common/sourceMaps/sourceMapResolutionUtils';
 import * as path from 'path';
-import { fixDriveLetter } from '../../common/pathUtils';
 import { ILogger } from '../../common/logging';
 import { Logger } from '../../common/logging/logger';
+import { fixDriveLetter } from '../../common/pathUtils';
+import {
+  defaultPathMappingResolver,
+  getComputedSourceRoot,
+} from '../../common/sourceMaps/sourceMapResolutionUtils';
+import { baseDefaults } from '../../configuration';
+import { SourceMapOverrides } from '../../targets/sourceMapOverrides';
 
 describe('SourceMapOverrides', () => {
   let logger: ILogger;
@@ -76,6 +76,22 @@ describe('SourceMapOverrides', () => {
 
       expect(r.apply('meteor://💻app/packages/base64/base64.js')).to.equal(
         path.join('${webRoot}/packages/base64/base64.js'),
+      );
+    });
+
+    it('normalizes backslashes given in patterns (#604)', () => {
+      const r = new SourceMapOverrides(
+        {
+          'H:\\cv-measure\\measure-tools/test-app/measure-tools/src/*':
+            'H:\\cv-measure\\measure-tools/measure-tools/src/*',
+        },
+        logger,
+      );
+
+      expect(
+        r.apply('H:/cv-measure/measure-tools/test-app/measure-tools/src/api/Measurement.ts'),
+      ).to.equal(
+        path.win32.join('H:/cv-measure/measure-tools/measure-tools/src/api/Measurement.ts'),
       );
     });
   });

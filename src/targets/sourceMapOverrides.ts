@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { ILogger, LogTag } from '../common/logging';
 import { forceForwardSlashes, properJoin } from '../common/pathUtils';
-import { LogTag, ILogger } from '../common/logging';
 import { escapeRegexSpecialChars } from '../common/stringUtils';
 
 // Patterns to match against various patterns:
@@ -39,8 +39,9 @@ export class SourceMapOverrides {
     const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort((a, b) => b.length - a.length);
 
     // Iterate the key/vals, only apply the first one that matches.
-    for (const leftPattern of sortedOverrideKeys) {
-      const rightPattern = sourceMapOverrides[leftPattern];
+    for (const leftPatternRaw of sortedOverrideKeys) {
+      const rightPattern = sourceMapOverrides[leftPatternRaw];
+      const leftPattern = forceForwardSlashes(leftPatternRaw);
       const entryStr = `"${leftPattern}": "${rightPattern}"`;
       const capturedGroups =
         occurencesInString(capturingGroupRe, leftPattern) -
