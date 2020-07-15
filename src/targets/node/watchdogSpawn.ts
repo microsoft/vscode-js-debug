@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { join } from 'path';
+import { spawn } from 'child_process';
 import * as net from 'net';
-import { RawPipeTransport } from '../../cdp/rawPipeTransport';
-import { Logger } from '../../common/logging/logger';
+import { join } from 'path';
 import Cdp from '../../cdp/api';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
-import { ITransport } from '../../cdp/transport';
 import { IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
-import { spawn } from 'child_process';
+import { Logger } from '../../common/logging/logger';
 import { IStopMetadata } from '../targets';
 
 export interface IWatchdogInfo {
@@ -132,6 +132,7 @@ export class WatchDog implements IDisposable {
    * @inheritdoc
    */
   public dispose() {
+    this.gracefulExit = true;
     this.disposeTarget();
     this.server.dispose(); // will cause the end emitter to fire after teardown finishes
   }
