@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
-import { IProgramLauncher } from './processLauncher';
-import { ILaunchContext } from '../targets';
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import { SubprocessProgram } from './program';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { inject, injectable } from 'inversify';
 import { EnvironmentVars } from '../../common/environmentVars';
-import Dap from '../../dap/api';
 import { ILogger } from '../../common/logging';
-import { injectable, inject } from 'inversify';
+import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
+import Dap from '../../dap/api';
+import { ILaunchContext } from '../targets';
+import { IProgramLauncher } from './processLauncher';
+import { SubprocessProgram } from './program';
 
 /**
  * Launcher that boots a subprocess.
@@ -96,11 +96,13 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     });
 
     child.on('exit', code => {
-      dumpFilter();
-      dap.output({
-        category: 'stderr',
-        output: `Process exited with code ${code}\r\n`,
-      });
+      if (code !== null && code > 0) {
+        dumpFilter();
+        dap.output({
+          category: 'stderr',
+          output: `Process exited with code ${code}\r\n`,
+        });
+      }
     });
   }
 }
@@ -142,7 +144,7 @@ export class SubprocessMessageFilter {
     for (let i = 0; ; i++) {
       if (i === this.messages.length) {
         result.push(
-          `--- Truncated to last ${this.messages.length} messages, set outputCapture to 'all' to see more ---\r\n`,
+          `--- Truncated to last ${this.messages.length} messages, set outputCapture to 'std' to see all ---\r\n`,
         );
         break;
       }
