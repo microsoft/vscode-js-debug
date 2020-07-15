@@ -2,21 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Binder, IBinderDelegate } from './binder';
-import DapConnection from './dap/connection';
-import { ITarget } from './targets/targets';
-import { IDisposable } from './common/events';
-import { DebugType } from './common/contributionUtils';
-import { TargetOrigin } from './targets/targetOrigin';
-import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { ILogger } from './common/logging';
 import { Container } from 'inversify';
-import { createTopLevelSessionContainer } from './ioc';
-import { IPseudoAttachConfiguration } from './configuration';
-import { IDapTransport } from './dap/transport';
 import { DebugConfiguration } from 'vscode';
-import { SessionSubStates } from './ioc-extras';
+import { Binder, IBinderDelegate } from './binder';
+import { DebugType } from './common/contributionUtils';
 import { DisposableList } from './common/disposable';
+import { IDisposable } from './common/events';
+import { ILogger } from './common/logging';
+import { IMandatedConfiguration, IPseudoAttachConfiguration } from './configuration';
+import DapConnection from './dap/connection';
+import { IDapTransport } from './dap/transport';
+import { createTopLevelSessionContainer } from './ioc';
+import { SessionSubStates } from './ioc-extras';
+import { TargetOrigin } from './targets/targetOrigin';
+import { ITarget } from './targets/targets';
+import { ITelemetryReporter } from './telemetry/telemetryReporter';
 
 /**
  * Interface for abstracting the details of a particular (e.g. vscode vs VS) debug session
@@ -206,13 +206,19 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       this._pendingTarget.set(target.id(), { target, parent: parentSession });
       this._sessionForTargetCallbacks.set(target, { fulfill, reject });
 
-      const parentType = parentSession.debugSession.configuration.type as DebugType;
+      const parentConfig = parentSession.debugSession.configuration as IMandatedConfiguration;
       const config: IPseudoAttachConfiguration = {
         // see https://github.com/microsoft/vscode/issues/98993
-        type: parentType === DebugType.ExtensionHost ? DebugType.Chrome : parentType,
+        type:
+          parentConfig.type === DebugType.ExtensionHost
+            ? DebugType.Chrome
+            : (parentConfig.type as DebugType),
         name: target.name(),
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),
+        // fix for https://github.com/microsoft/vscode/issues/102296
+        preRestartTask: parentConfig.postDebugTask,
+        postRestartTask: parentConfig.preLaunchTask,
       };
 
       this.sessionLauncher(parentSession, target, config);

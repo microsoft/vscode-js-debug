@@ -26,14 +26,15 @@ export interface IMandatedConfiguration extends Dap.LaunchParams {
   request: string;
 
   /**
-   * VS Code pre-launch task to run.
-   */
-  preLaunchTask?: string;
-
-  /**
    * Options that configure when the VS Code debug console opens.
    */
   internalConsoleOptions?: 'neverOpen' | 'openOnSessionStart' | 'openOnFirstSessionStart';
+
+  // Lifecycle tasks:
+  preLaunchTask?: string;
+  postDebugTask?: string;
+  preRestartTask?: string;
+  postRestartTask?: string;
 }
 
 export const enum OutputSource {
@@ -587,11 +588,14 @@ export interface IChromeAttachConfiguration extends IChromiumAttachConfiguration
 /**
  * Fake 'attach' config used in the binder.
  */
-export interface IPseudoAttachConfiguration {
+export interface IPseudoAttachConfiguration extends IMandatedConfiguration {
   type: DebugType;
   request: 'attach' | 'launch';
-  name: string;
   __pendingTargetId: string;
+  preLaunchTask?: string;
+  postDebugTask?: string;
+  preRestartTask?: string;
+  postRestartTask?: string;
 }
 
 /**
