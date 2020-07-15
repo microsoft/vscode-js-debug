@@ -134,7 +134,7 @@ js-debug is a cleanroom rewrite of a JavaScript debugger, so there are a large n
 - You can pass `stable`, `canary`, or `dev` as `runtimeExecutable`s when launching browsers. We'll do our best to discover and use the specified version on your machine.
 - You can now set the Node.js `program` to files with other or no extensions without workarounds.
 - Restart frame requests are now supported.
-- Command line APIs like `inpect()` and `copy()` are now available.
+- Command line APIs like `inspect()` and `copy()` are now available.
 
 ### Options
 
