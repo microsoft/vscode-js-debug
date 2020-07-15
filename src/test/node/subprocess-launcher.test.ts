@@ -32,7 +32,7 @@ describe('node subprocess', () => {
       expect(f.test('e')).to.be.false;
       expect(f.test('f')).to.be.false;
       expect(f.dump()).to.equal(
-        "--- Truncated to last 5 messages, set outputCapture to 'all' to see more ---\r\nbcdef",
+        "--- Truncated to last 5 messages, set outputCapture to 'std' to see all ---\r\nbcdef",
       );
     });
   });
