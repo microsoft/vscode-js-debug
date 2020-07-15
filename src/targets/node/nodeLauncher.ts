@@ -21,6 +21,7 @@ import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IProgramLauncher } from './processLauncher';
+import { CombinedProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
 
@@ -55,7 +56,7 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
 
 @injectable()
 export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
-  private inspectBrkPort?: number;
+  private attachSimplePort?: number;
 
   constructor(
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
@@ -94,7 +95,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       runData.params.program = await this.tryGetCompiledFile(runData.params.program);
     }
 
-    this.inspectBrkPort = await this.getInspectBrkParams(runData.params);
+    this.attachSimplePort = await this.getSimpleAttachPortIfAny(runData.params);
     const doLaunch = async (restartPolicy: IRestartPolicy) => {
       // Close any existing program. We intentionally don't wait for stop() to
       // finish, since doing so will shut down the server.
@@ -111,12 +112,15 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         fileCallback: callbackFile.path,
       });
 
-      if (this.inspectBrkPort) {
-        runData.context.dap.output({
-          category: 'stderr',
-          output:
-            'Using legacy attach mode for --inspect-brk in npm scripts. We recommend removing --inspect-brk, and using `stopOnEntry` in your launch.json if you need it.',
-        });
+      if (this.attachSimplePort) {
+        if (!runData.params.attachSimplePort) {
+          runData.context.dap.output({
+            category: 'stderr',
+            output:
+              'Using legacy attach mode for --inspect-brk in npm scripts. We recommend removing --inspect-brk, and using `stopOnEntry` in your launch.json if you need it.',
+          });
+        }
+
         env = env.merge({ NODE_OPTIONS: null });
       }
 
@@ -126,11 +130,32 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         throw new Error('Cannot find an appropriate launcher for the given set of options');
       }
 
-      const program = (this.program = await launcher.launchProgram(
-        binary.path,
-        options,
-        runData.context,
-      ));
+      let program = await launcher.launchProgram(binary.path, options, runData.context);
+
+      if (this.attachSimplePort) {
+        const wd = await WatchDog.attach({
+          ipcAddress: runData.serverAddress,
+          scriptName: 'Remote Process',
+          inspectorURL: await retryGetWSEndpoint(
+            `http://127.0.0.1:${this.attachSimplePort}`,
+            runData.context.cancellationToken,
+            this.logger,
+          ),
+          waitForDebugger: true,
+          dynamicAttach: true,
+        });
+
+        program = new CombinedProgram(program, new WatchDogProgram(wd));
+      } else {
+        // Read the callback file, and signal the running program when we read data.
+        callbackFile.read().then(data => {
+          if (data) {
+            program.gotTelemetery(data);
+          }
+        });
+      }
+
+      this.program = program;
 
       // Once the program stops, dispose of the file. If we started a new program
       // in the meantime, don't do anything. Otherwise, restart if we need to,
@@ -158,27 +183,6 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
           doLaunch(nextRestart);
         }
       });
-
-      if (this.inspectBrkPort) {
-        await WatchDog.attach({
-          ipcAddress: runData.serverAddress,
-          scriptName: 'Remote Process',
-          inspectorURL: await retryGetWSEndpoint(
-            `http://127.0.0.1:${this.inspectBrkPort}`,
-            runData.context.cancellationToken,
-            this.logger,
-          ),
-          waitForDebugger: true,
-          dynamicAttach: true,
-        });
-      } else {
-        // Read the callback file, and signal the running program when we read data.
-        callbackFile.read().then(data => {
-          if (data) {
-            program.gotTelemetery(data);
-          }
-        });
-      }
     };
 
     return doLaunch(this.restarters.create(runData.params.restart));
@@ -189,8 +193,17 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
    * If so, it returns the port to attach with, instead of using the bootloader.
    * @see https://github.com/microsoft/vscode-js-debug/issues/584
    */
-  protected async getInspectBrkParams(params: INodeLaunchConfiguration) {
-    if (!['npm', 'yarn', 'pnpm'].includes(basename(params.runtimeExecutable ?? ''))) {
+  protected async getSimpleAttachPortIfAny(params: INodeLaunchConfiguration) {
+    if (params.attachSimplePort) {
+      return params.attachSimplePort;
+    }
+
+    const exe = params.runtimeExecutable;
+    if (!exe) {
+      return;
+    }
+
+    if (!['npm', 'yarn', 'pnpm'].includes(basename(exe, extname(exe)))) {
       return;
     }
 
@@ -225,7 +238,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   ): INodeTargetLifecycleHooks {
     return {
       initialized: async () => {
-        if (this.inspectBrkPort) {
+        if (this.attachSimplePort) {
           await this.gatherTelemetryFromCdp(cdp, run);
         }
 

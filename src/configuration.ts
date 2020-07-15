@@ -350,6 +350,14 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    * @deprecated
    */
   port?: number;
+
+  /**
+   * Simple port to attach to. If set, attach mode will be used and no
+   * bootloader will be injected. This is less desirable than letting the
+   * bootloader do its thing, but is needed is some esoteric cases (such as
+   * Deno and cases where the "launch" actually runs a Docker container.)
+   */
+  attachSimplePort: number;
 }
 
 /**
@@ -780,6 +788,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeVersion: 'default',
   runtimeArgs: [],
   profileStartup: false,
+  attachSimplePort: 0,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

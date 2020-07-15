@@ -3,11 +3,11 @@
  *--------------------------------------------------------*/
 
 import { ChildProcess } from 'child_process';
-import { killTree } from './killTree';
+import { ILogger } from '../../common/logging';
 import Dap from '../../dap/api';
 import { IStopMetadata } from '../targets';
+import { killTree } from './killTree';
 import { IProcessTelemetry } from './nodeLauncherBase';
-import { ILogger } from '../../common/logging';
 import { WatchDog } from './watchdogSpawn';
 
 export interface IProgram {
@@ -22,6 +22,29 @@ export interface IProgram {
    * Forcefully stops the program.
    */
   stop(): Promise<IStopMetadata>;
+}
+
+/**
+ * A Program that wraps two other programs. "Stops" once either of the programs
+ * stop. If one program stops, the other is also stopped automatically.
+ */
+export class CombinedProgram implements IProgram {
+  public readonly stopped = Promise.race([
+    this.a.stopped.then(async r => (await this.b.stop()) && r),
+    this.b.stopped.then(async r => (await this.a.stop()) && r),
+  ]);
+
+  constructor(private readonly a: IProgram, private readonly b: IProgram) {}
+
+  public gotTelemetery(telemetry: IProcessTelemetry) {
+    this.a.gotTelemetery(telemetry);
+    this.b.gotTelemetery(telemetry);
+  }
+
+  public async stop(): Promise<IStopMetadata> {
+    const r = await Promise.all([this.a.stop(), this.b.stop()]);
+    return r[0];
+  }
 }
 
 /**
@@ -75,9 +98,14 @@ export class StubProgram implements IProgram {
  * Wrapper for the watchdog program.
  */
 export class WatchDogProgram extends StubProgram {
-  constructor(wd: WatchDog) {
+  constructor(private readonly wd: WatchDog) {
     super();
     wd.onEnd(this.stopDefer);
+  }
+
+  public stop() {
+    this.wd.dispose();
+    return this.stopped;
   }
 }
 

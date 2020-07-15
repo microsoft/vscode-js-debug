@@ -3,12 +3,17 @@
  *--------------------------------------------------------*/
 
 import * as fs from 'fs';
+import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { CancellationToken } from 'vscode';
+import { Quality } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
+import { DisposableList } from '../../common/disposable';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
+import { ILogger } from '../../common/logging';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import {
   absolutePathToFileUrl,
   createTargetFilterForConfig,
@@ -16,18 +21,13 @@ import {
 } from '../../common/urlUtils';
 import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
-import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
+import { browserAttachFailed, browserLaunchFailed, targetPageNotFound } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
+import { IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTarget, BrowserTargetManager } from './browserTargets';
 import * as launcher from './launcher';
-import { ILogger } from '../../common/logging';
-import { injectable, inject } from 'inversify';
-import { StoragePath, IInitializeParams } from '../../ioc-extras';
-import { Quality } from 'vscode-js-debug-browsers';
-import { DisposableList } from '../../common/disposable';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { browserLaunchFailed, targetPageNotFound, browserAttachFailed } from '../../dap/errors';
-import { ProtocolError } from '../../dap/protocolError';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
   supportsLaunchUnelevatedProcessRequest?: boolean;

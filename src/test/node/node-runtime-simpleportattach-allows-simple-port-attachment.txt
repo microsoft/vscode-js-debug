@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+stdout> NODE_OPTIONS= undefined

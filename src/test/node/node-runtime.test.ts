@@ -7,6 +7,9 @@ import { ChildProcess, spawn } from 'child_process';
 import { dirname, join } from 'path';
 import { stub } from 'sinon';
 import split from 'split2';
+import { findOpenPort } from '../../common/findOpenPort';
+import { once } from '../../common/objUtils';
+import { findInPath } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
 import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
 import Dap from '../../dap/api';
@@ -489,5 +492,103 @@ describe('node runtime', () => {
     handle.load();
     await waitForPause(handle);
     handle.assertLog({ substring: true });
+  });
+
+  describe('simplePortAttach', () => {
+    const npm = once(() => {
+      const npmPath = findInPath('npm', process.env);
+      if (!npmPath) {
+        throw new Error('npm not on path');
+      }
+
+      return npmPath;
+    });
+
+    itIntegrates('allows inspect-brk in npm scripts', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      const handle = await r.runScript('', {
+        program: undefined,
+        cwd,
+        runtimeExecutable: npm(),
+        runtimeArgs: ['run', 'startWithBrk'],
+        port: 29204,
+      });
+
+      const optionsOut = handle.dap.once('output', o => o.output.includes('NODE_OPTIONS'));
+      handle.load();
+      const { threadId } = handle.log(await handle.dap.once('stopped'));
+      handle.dap.continue({ threadId });
+      handle.logger.logOutput(await optionsOut);
+      handle.assertLog({ substring: true });
+    });
+
+    itIntegrates('uses bootloader for normal npm scripts', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      r.onSessionCreated(t => t.load());
+      const handle = await r.runScript('', {
+        program: undefined,
+        cwd,
+        runtimeExecutable: npm(),
+        runtimeArgs: ['run', 'startWithoutBrk'],
+        port: 29204,
+      });
+      handle.load();
+
+      const worker = await r.worker();
+      const optionsOut = worker.dap.once('output', o => o.output.includes('NODE_OPTIONS'));
+      handle.logger.logOutput(await optionsOut);
+      handle.assertLog({ customAssert: l => expect(l).to.contain('NODE_OPTIONS= --require') });
+    });
+
+    itIntegrates('allows simple port attachment', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      const port = await findOpenPort();
+      const handle = await r.runScript(join(cwd, 'logNodeOptions'), {
+        runtimeArgs: [`--inspect-brk=${port}`],
+        attachSimplePort: port,
+      });
+      handle.load();
+
+      const optionsOut = handle.dap.once('output', o => o.output.includes('NODE_OPTIONS'));
+      const { threadId } = handle.log(await handle.dap.once('stopped'));
+      handle.dap.continue({ threadId });
+      handle.logger.logOutput(await optionsOut);
+      handle.assertLog({ substring: true });
+    });
+
+    itIntegrates('terminates when inspector closed', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      const port = await findOpenPort();
+      const handle = await r.runScript(join(cwd, 'debuggerStmt'), {
+        runtimeArgs: [`--inspect-brk=${port}`],
+        attachSimplePort: port,
+      });
+      handle.load();
+
+      handle.log(await handle.dap.once('stopped'));
+      handle.dap.evaluate({ expression: 'require("inspector").close()' });
+      handle.log(await handle.dap.once('terminated'));
+      handle.assertLog({ substring: true });
+    });
+
+    itIntegrates('terminates when process killed', async ({ r }) => {
+      await r.initialize;
+      const cwd = join(testWorkspace, 'simpleNode');
+      const port = await findOpenPort();
+      const handle = await r.runScript(join(cwd, 'debuggerStmt'), {
+        runtimeArgs: [`--inspect-brk=${port}`],
+        attachSimplePort: port,
+      });
+      handle.load();
+
+      handle.log(await handle.dap.once('stopped'));
+      handle.dap.evaluate({ expression: 'process.exit(1)' });
+      handle.log(await handle.dap.once('terminated'));
+      handle.assertLog({ substring: true });
+    });
   });
 });

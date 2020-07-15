@@ -43,7 +43,8 @@
 ### pwa-node: launch
 
 <details><h4>args</h4><p>Command line arguments passed to the program.</p>
-<h5>Default value:</h4><pre><code>[]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>attachSimplePort</h4><p>If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches.</p>
+<h5>Default value:</h4><pre><code>0</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>console</h4><p>Where to launch the debug target.</p>
 <h5>Default value:</h4><pre><code>"internalConsole"</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>

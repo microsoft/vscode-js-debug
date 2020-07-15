@@ -573,6 +573,11 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       description: refString('node.profileStartup.description'),
       default: true,
     },
+    attachSimplePort: {
+      type: 'integer',
+      description: refString('node.attachSimplePort.description'),
+      default: 9229,
+    },
   },
   defaults: nodeLaunchConfigDefaults,
 };

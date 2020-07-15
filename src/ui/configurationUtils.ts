@@ -9,7 +9,7 @@ import { ResolvingNodeLaunchConfiguration } from '../configuration';
  * stopOnEntry instead, otherwise we break inside the bootloader.
  */
 export function fixInspectFlags(config: ResolvingNodeLaunchConfiguration) {
-  if (!config.runtimeArgs) {
+  if (!config.runtimeArgs || config.attachSimplePort) {
     return;
   }
 

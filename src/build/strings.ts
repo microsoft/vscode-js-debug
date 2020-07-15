@@ -218,6 +218,8 @@ const strings = {
   'timeouts.sourceMaps.sourceMapCumulativePause.description':
     'Extra time in milliseconds allowed per session to be spent waiting for source-maps to be processed, after the minimum time (sourceMapMinPause) has been exhausted',
   'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
+  'node.attachSimplePort.description':
+    'If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches.',
 
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
