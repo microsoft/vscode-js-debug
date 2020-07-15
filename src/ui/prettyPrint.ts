@@ -2,20 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as vscode from 'vscode';
 import * as qs from 'querystring';
+import * as vscode from 'vscode';
+import { ConfigurationTarget } from 'vscode';
+import * as nls from 'vscode-nls';
 import {
-  readConfig,
-  Configuration,
-  writeConfig,
-  registerCommand,
-  Commands,
   allDebugTypes,
+  Commands,
+  Configuration,
+  readConfig,
+  registerCommand,
+  writeConfig,
 } from '../common/contributionUtils';
+import { DisposableList, IDisposable } from '../common/disposable';
 import Dap from '../dap/api';
 import { Message as DapMessage } from '../dap/transport';
-import { IDisposable, DisposableList } from '../common/disposable';
-import * as nls from 'vscode-nls';
 import { DebugSessionTracker } from './debugSessionTracker';
 
 const localize = nls.loadMessageBundle();
@@ -190,7 +191,12 @@ class PrettyPrintSession implements IDisposable, vscode.DebugAdapterTracker {
     if (response === yes) {
       sendPrintCommand(this.session, source, cursor);
     } else if (response === never) {
-      writeConfig(vscode.workspace, Configuration.SuggestPrettyPrinting, false);
+      writeConfig(
+        vscode.workspace,
+        Configuration.SuggestPrettyPrinting,
+        false,
+        ConfigurationTarget.Global,
+      );
     }
   }
 }
