@@ -46,6 +46,20 @@ const nodePrefix = Buffer.from('(function (exports, require, module, __filename,
 const nodeSuffix = Buffer.from('\n});');
 
 /**
+ * Script loaded through Electron have wrapped code similar to Node, but with
+ * even more wrapping!
+ *
+ * @see https://github.com/electron/electron/blob/9c8cdd63fdba87f8505258b2ce81e1dfc30497fc/lib/renderer/init.ts#L5-L25
+ */
+const electronPrefix = Buffer.from(
+  '(function (exports, require, module, __filename, __dirname, process, global, Buffer) { ' +
+    'return function (exports, require, module, __filename, __dirname) { ',
+);
+const electronSuffix = Buffer.from(
+  '\n}.call(this, exports, require, module, __filename, __dirname); });',
+);
+
+/**
  * Node scripts starting with a shebang also have that stripped out.
  */
 const shebangPrefix = Buffer.from('#!');
@@ -74,6 +88,11 @@ const verifyBytes = (bytes: Buffer, expected: string, checkNode: boolean) => {
     if (hash(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
       return true;
     }
+  }
+
+  // todo -- doing a lot of concats, make chromehash able to hash an iterable of buffers?
+  if (hash(Buffer.concat([electronPrefix, bytes, electronSuffix])) === expected) {
+    return true;
   }
 
   return false;
