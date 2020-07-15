@@ -129,8 +129,6 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     }
 
     const relPath = properRelative(this.options.localRoot, localPath);
-    if (relPath.startsWith('../')) return '';
-
     let remotePath = properJoin(this.options.remoteRoot, relPath);
 
     remotePath = fixDriveLetterAndSlashes(remotePath, /*uppercaseDriveLetter=*/ true);
