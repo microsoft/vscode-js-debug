@@ -24,6 +24,7 @@ export class FrameModel {
     cdp.Page.getResourceTree({}).then(result => {
       this._processCachedResources(cdp, result ? result.frameTree : undefined, targetId);
     });
+    cdp.Page.waitForDebugger({});
   }
 
   mainFrame(): Frame | undefined {
