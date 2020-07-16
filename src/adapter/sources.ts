@@ -350,7 +350,7 @@ export class Source {
       }
 
       if (url.searchParams) {
-        tokens.push(url.searchParams.toString());
+        tokens.push('?' + url.searchParams.toString());
       }
 
       fqname = tokens.join('');
