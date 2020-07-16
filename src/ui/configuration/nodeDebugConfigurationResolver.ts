@@ -2,30 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
-import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
+import { inject, injectable } from 'inversify';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import { writeToConsole } from '../../common/console';
+import { DebugType } from '../../common/contributionUtils';
+import { EnvironmentVars } from '../../common/environmentVars';
+import { forceForwardSlashes, isSubdirectoryOf } from '../../common/pathUtils';
+import { nearestDirectoryContaining } from '../../common/urlUtils';
 import {
+  AnyNodeConfiguration,
+  applyNodeDefaults,
+  baseDefaults,
+  breakpointLanguages,
+  resolveVariableInConfig,
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
-  AnyNodeConfiguration,
-  resolveVariableInConfig,
-  baseDefaults,
-  applyNodeDefaults,
-  breakpointLanguages,
 } from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
-import { INvmResolver } from '../../targets/node/nvmResolver';
-import { EnvironmentVars } from '../../common/environmentVars';
-import { BaseConfigurationResolver } from './baseConfigurationResolver';
-import { fixInspectFlags } from '../configurationUtils';
-import { injectable, inject } from 'inversify';
 import { ExtensionContext } from '../../ioc-extras';
-import { nearestDirectoryContaining } from '../../common/urlUtils';
-import { isSubdirectoryOf, forceForwardSlashes } from '../../common/pathUtils';
+import { INvmResolver } from '../../targets/node/nvmResolver';
+import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
+import { BaseConfigurationResolver } from './baseConfigurationResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -116,7 +116,9 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       }
 
       // remove manual --inspect-brk flags, which are no longer needed and interfere
-      fixInspectFlags(config);
+      if (!config.attachSimplePort) {
+        fixInspectFlags(config);
+      }
 
       // update outfiles to the nearest package root
       await guessOutFiles(folder, config);
