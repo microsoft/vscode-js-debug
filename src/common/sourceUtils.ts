@@ -309,9 +309,6 @@ export function getOptimalCompiledPosition(
   };
 
   const prevVariance = getVariance(prevLocation);
-  if (prevVariance === 0) {
-    return prevLocation; // exact match, no need to work harder
-  }
 
   // allGeneratedLocations similar to a LEAST_UPPER_BOUND, except that it gets
   // all possible locations. From those, we choose the first-best option.
@@ -328,8 +325,10 @@ export function getOptimalCompiledPosition(
   allLocations.push([prevLocation as INotNullRange, prevVariance]);
 
   // Sort again--sort is stable (de facto for a while, formalized in ECMA 2019),
-  // so we get the first location that has the least variance.
-  allLocations.sort(([, varA], [, varB]) => varA - varB);
+  // so we get the first location that has the least variance, or if the variance is the same, the one that appears earliest.
+  allLocations.sort(
+    ([a, varA], [b, varB]) => varA - varB || a.line - b.line || a.column - b.column,
+  );
 
   return allLocations[0][0];
 }
