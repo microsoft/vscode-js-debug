@@ -276,6 +276,12 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
    * automatic version detection does not working.
    */
   nodeVersionHint?: number;
+
+  /**
+   * Whether to automatically resume processes if we see they were launched
+   * with `--inpect-brk`.
+   */
+  continueOnAttach?: boolean;
 }
 
 export interface IConfigurationWithEnv {
@@ -365,7 +371,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    * bootloader do its thing, but is needed is some esoteric cases (such as
    * Deno and cases where the "launch" actually runs a Docker container.)
    */
-  attachSimplePort: number;
+  attachSimplePort: null | number;
 }
 
 /**
@@ -474,12 +480,6 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
    * Whether to attempt to attach to already-spawned child processes.
    */
   attachExistingChildren: boolean;
-
-  /**
-   * Whether to automatically resume processes if we see they were launched
-   * with `--inpect-brk`.
-   */
-  continueOnAttach: boolean;
 }
 
 export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
@@ -797,7 +797,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeVersion: 'default',
   runtimeArgs: [],
   profileStartup: false,
-  attachSimplePort: 0,
+  attachSimplePort: null,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

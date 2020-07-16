@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as vscode from 'vscode';
-import { stub, SinonStub } from 'sinon';
-import { join } from 'path';
 import { expect } from 'chai';
-import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
-import { createFileTree, testFixturesDir } from '../test';
+import { join } from 'path';
+import { SinonStub, stub } from 'sinon';
+import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeLaunchConfiguration } from '../../configuration';
+import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
+import { createFileTree, testFixturesDir } from '../test';
 
 describe('NodeDebugConfigurationProvider', () => {
   let provider: NodeConfigurationResolver;
@@ -239,6 +239,67 @@ describe('NodeDebugConfigurationProvider', () => {
 
       expect(result.runtimeArgs).to.deep.equal(['-a', '--b']);
       expect(result.stopOnEntry).to.equal('hello.js');
+    });
+
+    it('assigns a random simple attach port', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        attachSimplePort: 0,
+      })) as INodeLaunchConfiguration;
+
+      expect(result.continueOnAttach).to.be.true;
+      expect(result.attachSimplePort).to.be.greaterThan(0);
+      expect(result.runtimeArgs).to.deep.equal([`--inspect-brk=${result.attachSimplePort}`]);
+      expect(result.continueOnAttach).to.equal(true);
+    });
+
+    it('merged picked port with existing runtime args', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        attachSimplePort: 0,
+        runtimeArgs: ['--nolazy'],
+      })) as INodeLaunchConfiguration;
+
+      expect(result.runtimeArgs).to.deep.equal([
+        '--nolazy',
+        `--inspect-brk=${result.attachSimplePort}`,
+      ]);
+    });
+
+    it('keeps a static attach port', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        attachSimplePort: 9229,
+        runtimeArgs: ['--inspect-brk'],
+      })) as INodeLaunchConfiguration;
+
+      expect(result.continueOnAttach).to.be.true;
+      expect(result.attachSimplePort).to.be.greaterThan(0);
+      expect(result.runtimeArgs).to.deep.equal(['--inspect-brk']);
+      expect(result.continueOnAttach).to.equal(true);
+    });
+
+    it('adjusts stopOnEntry to continueOnArray', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        attachSimplePort: 0,
+        stopOnEntry: true,
+      })) as INodeLaunchConfiguration;
+
+      expect(result.continueOnAttach).to.be.false;
+      expect(result.stopOnEntry).to.be.false;
     });
   });
 

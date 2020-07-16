@@ -6,10 +6,12 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import { writeToConsole } from '../../common/console';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { findOpenPort } from '../../common/findOpenPort';
 import { forceForwardSlashes, isSubdirectoryOf } from '../../common/pathUtils';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import {
@@ -72,6 +74,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingNodeConfiguration,
+    cancellationToken: CancellationToken,
   ): Promise<AnyNodeConfiguration | undefined> {
     if (!config.name && !config.type && !config.request) {
       config = createLaunchConfigFromContext(folder, true, config);
@@ -115,9 +118,19 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
         config.internalConsoleOptions = 'neverOpen';
       }
 
-      // remove manual --inspect-brk flags, which are no longer needed and interfere
-      if (!config.attachSimplePort) {
+      // assign a random debug port if requested, otherwise remove manual
+      // --inspect-brk flags, which are no longer needed and interfere
+      if (config.attachSimplePort == null) {
         fixInspectFlags(config);
+      } else {
+        if (config.attachSimplePort === 0) {
+          config.attachSimplePort = await findOpenPort(undefined, cancellationToken);
+          const arg = `--inspect-brk=${config.attachSimplePort}`;
+          config.runtimeArgs = config.runtimeArgs ? [...config.runtimeArgs, arg] : [arg];
+        }
+
+        config.continueOnAttach = !config.stopOnEntry;
+        config.stopOnEntry = false; // handled by --inspect-brk
       }
 
       // update outfiles to the nearest package root
