@@ -349,8 +349,9 @@ export class Source {
         tokens.push(/^\/[a-z]:/.test(url.pathname) ? url.pathname.slice(1) : url.pathname);
       }
 
-      if (url.searchParams) {
-        tokens.push('?' + url.searchParams.toString());
+      const searchParams = url.searchParams?.toString();
+      if (searchParams) {
+        tokens.push('?' + searchParams);
       }
 
       fqname = tokens.join('');
