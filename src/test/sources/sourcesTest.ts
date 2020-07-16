@@ -159,15 +159,15 @@ describe('sources', () => {
   itIntegrates('allows module wrapper in node code', async ({ r }) => {
     const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'index.js'));
     handle.load();
-    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
-    handle.assertLog();
+    const src = await handle.waitForSource('moduleWrapper/test.js');
+    expect(src.source.sourceReference).to.equal(0);
   });
 
   itIntegrates('verifies content when enableContentValidation=true', async ({ r }) => {
     const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'customWrapper.js'));
     handle.load();
-    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
-    handle.assertLog();
+    const src = await handle.waitForSource('moduleWrapper/test.js');
+    expect(src.source.sourceReference).to.be.greaterThan(0);
   });
 
   itIntegrates('does not verify content when enableContentValidation=false', async ({ r }) => {
@@ -175,8 +175,8 @@ describe('sources', () => {
       enableContentValidation: false,
     });
     handle.load();
-    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
-    handle.assertLog();
+    const src = await handle.waitForSource('moduleWrapper/test.js');
+    expect(src.source.sourceReference).to.equal(0);
   });
 
   itIntegrates('allows shebang in node code', async ({ r }) => {
