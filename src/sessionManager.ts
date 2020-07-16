@@ -49,6 +49,7 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
     transport: IDapTransport,
     public readonly logger: ILogger,
     public readonly sessionStates: SessionSubStates,
+    private readonly parent?: Session<TSessionImpl>,
   ) {
     transport.setLogger(logger);
     this.connection = new DapConnection(transport, this.logger);
@@ -74,7 +75,12 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
 
   private setName(target: ITarget) {
     const substate = this.sessionStates.get(this.debugSession.id);
-    this.debugSession.name = substate ? `${target.name()} (${substate})` : target.name();
+    let name = target.name();
+    if (this.parent instanceof RootSession) {
+      name = `${this.parent.debugSession.name}: ${name}`;
+    }
+
+    this.debugSession.name = substate ? `${name} (${substate})` : name;
   }
 }
 
@@ -151,6 +157,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
         transport,
         parent.logger,
         parent.sessionStates,
+        parent,
       );
 
       this._pendingTarget.delete(pendingTargetId);
