@@ -13,7 +13,7 @@ This extension is installed by default on all VS Code versions after 1.46.0, how
 
 ### Nightly Extension
 
-The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. To do this:
+The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. The nightly build runs at 5PM PST on each day that there are changes ([see pipeline](https://dev.azure.com/vscode/VS%20Code%20debug%20adapters/_build?definitionId=28)). To get the build:
 
 1. Open the extensions view (ctrl+shift+x) and search for `@builtin @id:ms-vscode.js-debug`
 2. Right click on the `JavaScript Debugger` extension and `Disable` it.
