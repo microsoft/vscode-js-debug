@@ -468,7 +468,7 @@ export class SourceContainer {
     @inject(IDapApi) dap: Dap.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ILogger) private readonly logger: ILogger,
-    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
@@ -757,7 +757,7 @@ export class SourceContainer {
         ? sourceMapUrl
         : undefined,
       inlineSourceRange,
-      contentHash,
+      this.launchConfig.enableContentValidation ? contentHash : undefined,
     );
 
     this._addSource(source);

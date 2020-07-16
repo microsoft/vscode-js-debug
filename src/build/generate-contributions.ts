@@ -254,6 +254,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     markdownDescription: refString('node.launch.outputCapture.description'),
     default: OutputSource.Console,
   },
+  enableContentValidation: {
+    default: true,
+    type: 'boolean',
+    description: refString('enableContentValidation.description'),
+  },
 };
 
 /**

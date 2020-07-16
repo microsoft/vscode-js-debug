@@ -158,6 +158,14 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   outputCapture: OutputSource;
 
   /**
+   * Toggles whether we verify the contents of files on disk match the ones
+   * loaded in the runtime. This is useful in a variety of scenarios and
+   * required in some, but can cause issues if you have server-side
+   * transformation of scripts, for example.
+   */
+  enableContentValidation: boolean;
+
+  /**
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
@@ -724,6 +732,7 @@ export const baseDefaults: IBaseConfiguration = {
   rootPath: '${workspaceFolder}',
   outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
+  enableContentValidation: true,
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,

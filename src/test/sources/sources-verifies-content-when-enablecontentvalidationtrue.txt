@@ -3,6 +3,6 @@
     source : {
         name : moduleWrapper/test.js
         path : ${workspaceFolder}/moduleWrapper/test.js
-        sourceReference : 0
+        sourceReference : 2113995072
     }
 }

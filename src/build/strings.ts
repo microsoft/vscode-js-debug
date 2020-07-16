@@ -220,6 +220,8 @@ const strings = {
   'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
   'node.attachSimplePort.description':
     'If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches.',
+  'enableContentValidation.description':
+    'Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.',
 
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",

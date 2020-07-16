@@ -159,7 +159,23 @@ describe('sources', () => {
   itIntegrates('allows module wrapper in node code', async ({ r }) => {
     const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'index.js'));
     handle.load();
-    handle.log(await handle.waitForSource('moduleWrapper/index.js'), undefined, []);
+    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
+    handle.assertLog();
+  });
+
+  itIntegrates('verifies content when enableContentValidation=true', async ({ r }) => {
+    const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'customWrapper.js'));
+    handle.load();
+    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
+    handle.assertLog();
+  });
+
+  itIntegrates('does not verify content when enableContentValidation=false', async ({ r }) => {
+    const handle = await r.runScript(join(testWorkspace, 'moduleWrapper', 'customWrapper.js'), {
+      enableContentValidation: false,
+    });
+    handle.load();
+    handle.log(await handle.waitForSource('moduleWrapper/test.js'), undefined, []);
     handle.assertLog();
   });
 
