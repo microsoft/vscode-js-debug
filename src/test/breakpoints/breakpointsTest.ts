@@ -339,6 +339,21 @@ describe('breakpoints', () => {
         handle.assertLog({ substring: true });
       },
     );
+
+    itIntegrates('absolute path in nested module', async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'nestedAbsRoot');
+      const handle = await r.runScript(join(cwd, 'index.js'));
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'test.js') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    });
   });
 
   describe('logpoints', () => {

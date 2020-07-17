@@ -106,7 +106,7 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
   logger,
 ) => {
   if (!scriptUrlPath || !scriptUrlPath.startsWith('/')) {
-    return '';
+    return scriptUrlPath;
   }
 
   const mappingKeys = Object.keys(pathMapping).sort((a, b) => b.length - a.length);
@@ -139,10 +139,6 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
   pathMapping,
   logger,
 ) => {
-  if (path.isAbsolute(sourceRoot)) {
-    return sourceRoot;
-  }
-
   const implicit = await utils.nearestDirectoryContaining(
     path.dirname(compiledPath),
     'package.json',
