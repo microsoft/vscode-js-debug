@@ -8,7 +8,12 @@ import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
-import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
+import {
+  fixDriveLetterAndSlashes,
+  isSubdirectoryOf,
+  properJoin,
+  properResolve,
+} from '../pathUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -106,7 +111,7 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
   logger,
 ) => {
   if (!scriptUrlPath || !scriptUrlPath.startsWith('/')) {
-    return scriptUrlPath;
+    return '';
   }
 
   const mappingKeys = Object.keys(pathMapping).sort((a, b) => b.length - a.length);
@@ -144,7 +149,7 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
     'package.json',
   );
 
-  if (!implicit) {
+  if (!implicit || (path.isAbsolute(sourceRoot) && isSubdirectoryOf(implicit, sourceRoot))) {
     return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
   }
 
