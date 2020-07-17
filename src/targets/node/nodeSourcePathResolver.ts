@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as urlUtils from '../../common/urlUtils';
 import * as path from 'path';
-import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
-import { IUrlResolution } from '../../common/sourcePathResolver';
-import { properResolve, fixDriveLetterAndSlashes } from '../../common/pathUtils';
+import { URL } from 'url';
+import { fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
   getComputedSourceRoot,
-  moduleAwarePathMappingResolver,
   getFullSourceEntry,
+  moduleAwarePathMappingResolver,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
-import { URL } from 'url';
+import { IUrlResolution } from '../../common/sourcePathResolver';
+import * as urlUtils from '../../common/urlUtils';
+import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;

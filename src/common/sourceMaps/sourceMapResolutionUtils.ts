@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as utils from '../../common/urlUtils';
 import * as path from 'path';
-import { PathMapping } from '../../configuration';
 import { URL } from 'url';
-import { properJoin, fixDriveLetterAndSlashes, properResolve } from '../pathUtils';
-import { LogTag, ILogger } from '../logging';
+import * as utils from '../../common/urlUtils';
+import { PathMapping } from '../../configuration';
+import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
+import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -135,20 +135,25 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
  * a package.json if there's no more precise match in the mapping.
  */
 export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappingResolver => async (
-  script,
+  sourceRoot,
   pathMapping,
   logger,
 ) => {
+  if (path.isAbsolute(sourceRoot)) {
+    return sourceRoot;
+  }
+
   const implicit = await utils.nearestDirectoryContaining(
     path.dirname(compiledPath),
     'package.json',
   );
+
   if (!implicit) {
-    return defaultPathMappingResolver(script, pathMapping, logger);
+    return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
   }
 
   const explicit = await defaultPathMappingResolver(
-    script,
+    sourceRoot,
     // filter the mapping to directories that could be
     filterObject(pathMapping, key => key.length >= implicit.length),
     logger,

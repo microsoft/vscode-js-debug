@@ -7,12 +7,12 @@ import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
-import { ITargetOrigin } from '../targetOrigin';
-import { ITarget, IBreakpointPathAndId } from '../targets';
-import { ILogger, LogTag } from '../../common/logging';
 import { AnyNodeConfiguration } from '../../configuration';
+import { ITargetOrigin } from '../targetOrigin';
+import { IBreakpointPathAndId, ITarget } from '../targets';
 
 export interface INodeTargetLifecycleHooks {
   /**
