@@ -2,25 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import * as nls from 'vscode-nls';
-import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
-import { WatchDog } from './watchdogSpawn';
-import { IRunData } from './nodeLauncherBase';
-import { IProgram, WatchDogProgram } from './program';
 import Cdp from '../../cdp/api';
+import { CancellationTokenSource } from '../../common/cancellation';
+import { DebugType } from '../../common/contributionUtils';
+import { ILogger, LogTag } from '../../common/logging';
+import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
+import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
+import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { IStopMetadata } from '../targets';
 import { LeaseFile } from './lease-file';
-import { LogTag, ILogger } from '../../common/logging';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
+import { NodeBinary, NodeBinaryProvider } from './nodeBinaryProvider';
+import { IRunData } from './nodeLauncherBase';
+import { IProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
-import { delay } from '../../common/promiseUtil';
-import { NodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
-import { IStopMetadata } from '../targets';
-import { injectable } from 'inversify';
-import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
-import { CancellationTokenSource } from '../../common/cancellation';
+import { WatchDog } from './watchdogSpawn';
 
 const localize = nls.loadMessageBundle();
 
@@ -205,7 +205,9 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       const result = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,
-        expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
+        expression: `typeof process === 'undefined' ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
+          vars.defined(),
+        )})`,
       });
 
       if (!result) {
@@ -213,15 +215,11 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         return;
       }
 
-      if (!result.exceptionDetails) {
+      if (!result.exceptionDetails && result.result.value !== 'process not defined') {
         return;
       }
 
-      this.logger.error(
-        LogTag.RuntimeTarget,
-        'Error setting child environment vars',
-        result.exceptionDetails,
-      );
+      this.logger.error(LogTag.RuntimeTarget, 'Error setting child environment vars', result);
       await delay(50);
     }
   }

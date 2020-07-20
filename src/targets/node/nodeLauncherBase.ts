@@ -467,31 +467,22 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const telemetry = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
-      expression: `({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })`,
+      expression: `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })`,
     });
 
     if (!this.program) {
       return; // shut down
     }
 
-    if (telemetry?.exceptionDetails) {
-      if (isProcessNotDefined(telemetry.exceptionDetails)) {
-        this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
-        await delay(10);
-        return this.gatherTelemetryFromCdp(cdp, run);
-      }
-
-      this.logger.error(
-        LogTag.RuntimeTarget,
-        'Error getting telemetry',
-        telemetry.exceptionDetails,
-      );
-      return;
-    }
-
     if (!telemetry || !telemetry.result.value) {
       this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
       return;
+    }
+
+    if (typeof telemetry.result.value !== 'object') {
+      this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
+      await delay(10);
+      return this.gatherTelemetryFromCdp(cdp, run);
     }
 
     const result = telemetry.result.value as IProcessTelemetry;
@@ -505,9 +496,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     return result;
   }
 }
-
-const isProcessNotDefined = (exception: Cdp.Runtime.ExceptionDetails) =>
-  exception.exception && String(exception.exception.description).includes('process is not defined');
 
 function readEnvFile(file: string): { [key: string]: string } {
   if (!fs.existsSync(file)) {
