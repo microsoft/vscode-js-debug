@@ -730,7 +730,7 @@ export const baseDefaults: IBaseConfiguration = {
   pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
-  outFiles: ['${workspaceFolder}/**/*.map', '!**/node_modules/**'],
+  outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
   // Should always be determined upstream;
@@ -775,7 +775,7 @@ export const extensionHostConfigDefaults: IExtensionHostLaunchConfiguration = {
   name: 'Debug Extension',
   request: 'launch',
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
-  outFiles: ['${workspaceFolder}/out/**/*.js.map'],
+  outFiles: ['${workspaceFolder}/out/**/*.js'],
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
   runtimeExecutable: '${execPath}',
   autoAttachChildProcesses: false,
