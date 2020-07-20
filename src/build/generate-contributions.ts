@@ -922,7 +922,7 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
       body: {
         type: DebugType.Edge,
         request: 'attach',
-        name: 'Attach to Chrome',
+        name: 'Attach to Edge',
         port: 9222,
         webRoot: '^"${2:\\${workspaceFolder\\}}"',
       },
