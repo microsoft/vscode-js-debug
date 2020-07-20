@@ -2,27 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ISourcePathResolver, IUrlResolution } from '../common/sourcePathResolver';
+import match from 'micromatch';
+import * as path from 'path';
+import { ILogger, LogTag } from '../common/logging';
 import {
   fixDriveLetter,
   fixDriveLetterAndSlashes,
   forceForwardSlashes,
-  properResolve,
-  properRelative,
   properJoin,
+  properRelative,
+  properResolve,
 } from '../common/pathUtils';
-import * as path from 'path';
+import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { ISourcePathResolver, IUrlResolution } from '../common/sourcePathResolver';
 import {
   fileUrlToAbsolutePath,
   getCaseSensitivePaths,
+  isAbsolute,
   isDataUri,
   isFileUrl,
-  isValidUrl,
-  isAbsolute,
 } from '../common/urlUtils';
-import { LogTag, ILogger } from '../common/logging';
-import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
-import match from 'micromatch';
 import { SourceMapOverrides } from './sourceMapOverrides';
 
 export interface ISourcePathResolverOptions {
@@ -79,9 +78,9 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       // Fall back to the raw URL if those fail.
       sourceMapUrl;
 
-    // Be case insensitive for remote URIs--we have no way to know
-    // whether the server is case sensitive or not.
-    const caseSensitive = isValidUrl(sourceMapUrl) ? false : getCaseSensitivePaths();
+    // Be case insensitive for things that might be remote uris--we have no way
+    // to know whether the server is case sensitive or not.
+    const caseSensitive = /^[a-z]+:/i.test(sourceMapUrl) ? false : getCaseSensitivePaths();
     const processMatchInput = (value: string) => {
       value = forceForwardSlashes(value);
       // built-in 'nocase' match option applies only to operand; we need to normalize both
