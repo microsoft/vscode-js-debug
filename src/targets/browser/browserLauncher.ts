@@ -26,7 +26,8 @@ import { ProtocolError } from '../../dap/protocolError';
 import { IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
-import { BrowserTarget, BrowserTargetManager } from './browserTargets';
+import { BrowserTarget } from './browserTargets';
+import { BrowserTargetManager } from './browserTargetManager';
 import * as launcher from './launcher';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {

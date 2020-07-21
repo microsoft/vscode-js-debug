@@ -132,6 +132,7 @@
 ]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>debugWebviews</h4><p>Configures whether we should try to attach to webviews in the launched VS Code instance. <strong>Note:</strong> at the moment this requires the setting <code>&quot;webview.experimental.useExternalEndpoint&quot;: true</code> to work properly, and will only work in desktop VS Code.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>debugWebWorkerHost</h4><p>Configures whether we should try to attach to the web worker extension host.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
@@ -143,7 +144,8 @@
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>rendererDebugOptions</h4><p>Chrome launch options used when attaching to the renderer process, with <code>debugWebviews</code> or <code>debugWebWorkerHost</code>.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**",
   "!**/node_modules/**"

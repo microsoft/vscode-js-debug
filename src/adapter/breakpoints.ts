@@ -25,7 +25,15 @@ import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { base1To0, IUiLocation, Source, SourceContainer } from './sources';
+import {
+  base0To1,
+  base1To0,
+  IUiLocation,
+  rawToUiOffset,
+  Source,
+  SourceContainer,
+  uiToRawOffset,
+} from './sources';
 import { Script, ScriptWithSourceMapHandler, Thread } from './threads';
 
 /**
@@ -305,7 +313,8 @@ export class BreakpointManager {
       // Only take the first script that matches this source. The breakpoints
       // are all coming from the same source code, so possible breakpoints
       // at one location where this source is present should match every other.
-      const scripts = thread.scriptsFromSource(start.source);
+      const lsrc = start.source;
+      const scripts = thread.scriptsFromSource(lsrc);
       if (scripts.size === 0) {
         continue;
       }
@@ -316,8 +325,8 @@ export class BreakpointManager {
           .cdp()
           .Debugger.getPossibleBreakpoints({
             restrictToFunction: false,
-            start: { scriptId, ...base1To0(start) },
-            end: { scriptId, ...base1To0(end) },
+            start: { scriptId, ...uiToRawOffset(base1To0(start), lsrc.runtimeScriptOffset) },
+            end: { scriptId, ...uiToRawOffset(base1To0(end), lsrc.runtimeScriptOffset) },
           })
           .then(r => {
             if (!r) {
@@ -330,11 +339,14 @@ export class BreakpointManager {
             // inlined amongst the range we request).
             const result: Dap.BreakpointLocation[] = [];
             for (const location of r.locations) {
+              const { lineNumber, columnNumber = 0 } = location;
               const sourceLocations = this._sourceContainer.currentSiblingUiLocations(
                 {
-                  source: start.source,
-                  lineNumber: location.lineNumber + 1,
-                  columnNumber: (location.columnNumber || 0) + 1,
+                  source: lsrc,
+                  ...rawToUiOffset(
+                    base0To1({ lineNumber, columnNumber }),
+                    lsrc.runtimeScriptOffset,
+                  ),
                 },
                 source,
               );

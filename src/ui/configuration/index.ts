@@ -4,20 +4,20 @@
 
 export * from './configurationProvider';
 import {
-  ChromeDebugConfigurationResolver,
   ChromeDebugConfigurationProvider,
+  ChromeDebugConfigurationResolver,
 } from './chromeDebugConfigurationProvider';
 import {
-  EdgeDebugConfigurationResolver,
   EdgeDebugConfigurationProvider,
+  EdgeDebugConfigurationResolver,
 } from './edgeDebugConfigurationProvider';
-import { ExtensionHostConfigurationResolver } from './extensionHostConfigurationProvider';
+import { ExtensionHostConfigurationResolver } from './extensionHostConfigurationResolver';
+import {
+  NodeDynamicDebugConfigurationProvider,
+  NodeInitialDebugConfigurationProvider,
+} from './nodeDebugConfigurationProvider';
 import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
 import { TerminalDebugConfigurationResolver } from './terminalDebugConfigurationResolver';
-import {
-  NodeInitialDebugConfigurationProvider,
-  NodeDynamicDebugConfigurationProvider,
-} from './nodeDebugConfigurationProvider';
 
 export const allConfigurationResolvers = [
   ChromeDebugConfigurationResolver,

@@ -2,40 +2,42 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable, EventEmitter } from '../../common/events';
-import CdpConnection from '../../cdp/connection';
-import * as launcher from './launcher';
-import * as nls from 'vscode-nls';
+import { inject, injectable, optional } from 'inversify';
+import { CancellationToken } from 'vscode';
 import type * as vscodeType from 'vscode';
-import { BrowserTargetManager } from './browserTargets';
-import { ITarget, ILauncher, ILaunchResult, ILaunchContext, IStopMetadata } from '../targets';
-import { AnyLaunchConfiguration, AnyChromiumAttachConfiguration } from '../../configuration';
+import * as nls from 'vscode-nls';
+import CdpConnection from '../../cdp/connection';
+import { NeverCancelled } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
-import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { EventEmitter, IDisposable } from '../../common/events';
+import { ILogger } from '../../common/logging';
+import { delay } from '../../common/promiseUtil';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import {
   createTargetFilterForConfig,
-  TargetFilter,
   requirePageTarget,
+  TargetFilter,
 } from '../../common/urlUtils';
-import { delay } from '../../common/promiseUtil';
-import { CancellationToken } from 'vscode';
-import { NeverCancelled } from '../../common/cancellation';
-import { ILogger } from '../../common/logging';
-import { injectable, inject, optional } from 'inversify';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { VSCodeApi } from '../../ioc-extras';
+import { AnyChromiumAttachConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { browserAttachFailed, targetPageNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
+import { VSCodeApi } from '../../ioc-extras';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
+import { BrowserTargetManager } from './browserTargetManager';
+import * as launcher from './launcher';
 
 const localize = nls.loadMessageBundle();
 
 @injectable()
-export class BrowserAttacher implements ILauncher {
+export class BrowserAttacher<
+  T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration
+> implements ILauncher {
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _disposables: IDisposable[] = [];
-  protected _lastLaunchParams?: AnyChromiumAttachConfiguration;
+  protected _lastLaunchParams?: T;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
@@ -71,7 +73,7 @@ export class BrowserAttacher implements ILauncher {
       return { blockSessionTermination: false };
     }
 
-    this._lastLaunchParams = { ...params, timeout: Infinity };
+    this._lastLaunchParams = { ...params, timeout: Infinity } as T;
 
     await this._attemptToAttach(this._lastLaunchParams, context);
     return { blockSessionTermination: true };
@@ -80,7 +82,7 @@ export class BrowserAttacher implements ILauncher {
   /**
    * Schedules an attempt to reconnect after a short timeout.
    */
-  private _scheduleAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
+  private _scheduleAttach(params: T, context: ILaunchContext) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
       this._attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
@@ -90,11 +92,7 @@ export class BrowserAttacher implements ILauncher {
   /**
    * Creates the target manager for handling the given connection.
    */
-  protected createTargetManager(
-    connection: CdpConnection,
-    params: AnyChromiumAttachConfiguration,
-    context: ILaunchContext,
-  ) {
+  protected createTargetManager(connection: CdpConnection, params: T, context: ILaunchContext) {
     return BrowserTargetManager.connect(
       connection,
       undefined,
@@ -110,7 +108,7 @@ export class BrowserAttacher implements ILauncher {
    * Attempts to attach to the target. Returns an error in a string if the
    * connection was not successful.
    */
-  private async _attemptToAttach(params: AnyChromiumAttachConfiguration, context: ILaunchContext) {
+  private async _attemptToAttach(params: T, context: ILaunchContext) {
     const connection = await this.acquireConnectionForBrowser(
       context.telemetryReporter,
       params,

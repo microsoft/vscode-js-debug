@@ -210,7 +210,17 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
    * Whether we should try to attach to webviews in the launched
    * VS Code instance.
    */
-  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+  debugWebviews: boolean;
+
+  /**
+   * Whether we should try to attach to debug the web worker extension host.
+   */
+  debugWebWorkerHost: boolean;
+
+  /**
+   * Chrome launch options used when attaching to the renderer process.
+   */
+  rendererDebugOptions: Partial<IChromeAttachConfiguration>;
 
   /**
    * Port the extension host is listening on.
@@ -226,9 +236,11 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
 export interface IExtensionHostAttachConfiguration extends IExtensionHostBaseConfiguration {
   type: DebugType.ExtensionHost;
   request: 'attach';
-  debugWebviews: boolean | Partial<IChromeAttachConfiguration>;
+  debugWebviews: boolean;
+  debugWebWorkerHost: boolean;
   __sessionId: string;
   port: number;
+  rendererDebugOptions: Partial<IChromeAttachConfiguration>;
 }
 
 /**
@@ -777,9 +789,11 @@ export const extensionHostConfigDefaults: IExtensionHostLaunchConfiguration = {
   args: ['--extensionDevelopmentPath=${workspaceFolder}'],
   outFiles: ['${workspaceFolder}/out/**/*.js'],
   resolveSourceMapLocations: ['${workspaceFolder}/**', '!**/node_modules/**'],
+  rendererDebugOptions: {},
   runtimeExecutable: '${execPath}',
   autoAttachChildProcesses: false,
   debugWebviews: false,
+  debugWebWorkerHost: false,
   __sessionId: '',
 };
 

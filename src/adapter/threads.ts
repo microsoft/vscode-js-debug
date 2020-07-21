@@ -25,7 +25,14 @@ import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { AnyObject } from './objectPreview/betterTypes';
 import { SmartStepper } from './smartStepping';
-import { base1To0, IPreferredUiLocation, IUiLocation, Source, SourceContainer } from './sources';
+import {
+  base1To0,
+  IPreferredUiLocation,
+  IUiLocation,
+  rawToUiOffset,
+  Source,
+  SourceContainer,
+} from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import { previewThis } from './templates/previewThis';
 import {
@@ -803,9 +810,10 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
+    const source = await script.source;
     return this._sourceContainer.preferredUiLocation({
-      ...rawLocation,
-      source: await script.source,
+      ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
+      source,
     });
   }
 
@@ -1210,10 +1218,21 @@ export class Thread implements IVariableStoreDelegate {
         const response = await this._cdp.Debugger.getScriptSource({ scriptId: event.scriptId });
         return response ? response.scriptSource : undefined;
       };
+
+      const firstFrame = event.stackTrace?.callFrames[0];
       const inlineSourceOffset =
         event.startLine || event.startColumn
           ? { lineOffset: event.startLine, columnOffset: event.startColumn }
           : undefined;
+
+      // see https://github.com/microsoft/vscode/issues/103027
+      const runtimeScriptOffset =
+        firstFrame &&
+        firstFrame.functionName === '_loadCommonJSModule' &&
+        firstFrame.url.endsWith('/extensionHostWorker.js')
+          ? { lineOffset: 2, columnOffset: 0 }
+          : undefined;
+
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL && this.launchConfig.sourceMaps) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
@@ -1234,6 +1253,7 @@ export class Thread implements IVariableStoreDelegate {
         contentGetter,
         resolvedSourceMapUrl,
         inlineSourceOffset,
+        runtimeScriptOffset,
         hash,
       );
 

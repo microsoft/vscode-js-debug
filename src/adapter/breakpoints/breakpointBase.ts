@@ -7,7 +7,7 @@ import { LogTag } from '../../common/logging';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { base1To0, IUiLocation, Source, SourceFromMap } from '../sources';
+import { base1To0, IUiLocation, Source, SourceFromMap, uiToRawOffset } from '../sources';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -167,7 +167,7 @@ export abstract class Breakpoint {
         // a source map source. To make them work, we always set by url to not miss compiled.
         // Additionally, if we have two sources with the same url, but different path (or no path),
         // this will make breakpoint work in all of them.
-        this._setByPath(thread, this.originalPosition),
+        this._setByPath(thread, uiToRawOffset(this.originalPosition, source?.runtimeScriptOffset)),
       );
     }
 
@@ -177,7 +177,11 @@ export abstract class Breakpoint {
         columnNumber: this.originalPosition.columnNumber,
         source,
       });
-      promises.push(...uiLocations.map(uiLocation => this._setByUiLocation(thread, uiLocation)));
+      promises.push(
+        ...uiLocations.map(uiLocation =>
+          this._setByUiLocation(thread, uiToRawOffset(uiLocation, source.runtimeScriptOffset)),
+        ),
+      );
     }
 
     await Promise.all(promises);

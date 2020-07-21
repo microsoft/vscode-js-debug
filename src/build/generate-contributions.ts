@@ -853,16 +853,20 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
     debugWebviews: {
       markdownDescription: refString('extensionHost.launch.debugWebviews'),
       default: true,
-      oneOf: [
-        {
-          type: ['boolean'],
-          default: true,
-        },
-        {
-          type: 'object',
-          properties: chromiumAttachConfigurationAttributes as { [key: string]: JSONSchema6 },
-        },
-      ],
+      type: ['boolean'],
+    },
+    debugWebWorkerHost: {
+      markdownDescription: refString('extensionHost.launch.debugWebWorkerHost'),
+      default: true,
+      type: ['boolean'],
+    },
+    rendererDebugOptions: {
+      markdownDescription: refString('extensionHost.launch.rendererDebugOptions'),
+      type: 'object',
+      default: {
+        webRoot: '${workspaceFolder}',
+      },
+      properties: chromiumAttachConfigurationAttributes as { [key: string]: JSONSchema6 },
     },
   },
   defaults: extensionHostConfigDefaults,

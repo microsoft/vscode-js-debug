@@ -25,6 +25,10 @@ const strings = {
   'extensionHost.launch.config.name': 'Launch Extension',
   'extensionHost.launch.env.description': 'Environment variables passed to the extension host.',
   'extensionHost.launch.runtimeExecutable.description': 'Absolute path to VS Code.',
+  'extensionHost.launch.rendererDebugOptions':
+    'Chrome launch options used when attaching to the renderer process, with `debugWebviews` or `debugWebWorkerHost`.',
+  'extensionHost.launch.debugWebWorkerHost':
+    'Configures whether we should try to attach to the web worker extension host.',
   'extensionHost.launch.debugWebviews':
     'Configures whether we should try to attach to webviews in the launched VS Code instance. **Note:** at the moment this requires the setting `"webview.experimental.useExternalEndpoint": true` to work properly, and will only work in desktop VS Code.',
   'extensionHost.launch.stopOnEntry.description':

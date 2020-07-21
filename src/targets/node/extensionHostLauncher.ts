@@ -10,7 +10,7 @@ import { findOpenPort } from '../../common/findOpenPort';
 import { StubProgram } from './program';
 import { injectable } from 'inversify';
 import Dap from '../../dap/api';
-import { WebviewAttacher } from '../browser/webviewAttacher';
+import { VSCodeRendererAttacher } from '../browser/vscodeRendererAttacher';
 
 /**
  * Boots an instance of VS Code for extension debugging. Once this happens,
@@ -39,11 +39,11 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostLaunch
     const result = await runData.context.dap.launchVSCodeRequest({
       args: resolveCodeLaunchArgs(runData.params, port),
       env: this.getConfiguredEnvironment(runData.params).defined(),
-      debugRenderer: !!runData.params.debugWebviews,
+      debugRenderer: runData.params.debugWebviews || runData.params.debugWebWorkerHost,
     });
 
     if (result.rendererDebugPort) {
-      WebviewAttacher.debugIdToRendererDebugPort.set(
+      VSCodeRendererAttacher.debugIdToRendererDebugPort.set(
         runData.params.__sessionId,
         result.rendererDebugPort,
       );

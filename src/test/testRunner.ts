@@ -95,7 +95,6 @@ export async function run(): Promise<void> {
     runner.addFile(join(__dirname, 'variables/variablesTest'));
     runner.addFile(join(__dirname, 'console/consoleFormatTest'));
     runner.addFile(join(__dirname, 'console/consoleAPITest'));
-    runner.addFile(join(__dirname, 'extension/nodeConfigurationProvidersTests'));
 
     const options = { cwd: __dirname };
     const files = glob.sync('**/*.test.js', options);

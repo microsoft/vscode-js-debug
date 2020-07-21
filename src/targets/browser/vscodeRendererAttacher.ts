@@ -2,36 +2,37 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
-import { BrowserAttacher } from './browserAttacher';
-import {
-  applyDefaults,
-  IChromeAttachConfiguration,
-  AnyLaunchConfiguration,
-  AnyChromiumAttachConfiguration,
-} from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
-import type * as vscodeType from 'vscode';
-import { ILaunchContext } from '../targets';
+import { inject, injectable } from 'inversify';
 import { createConnection, Socket } from 'net';
-import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import type * as vscodeType from 'vscode';
 import Connection from '../../cdp/connection';
-import { SourcePathResolverFactory } from '../sourcePathResolverFactory';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { DebugType } from '../../common/contributionUtils';
+import { DisposableList } from '../../common/disposable';
 import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { BrowserTargetManager, BrowserTargetType, BrowserTarget } from './browserTargets';
-import { DisposableList } from '../../common/disposable';
-import { TargetFilter, createTargetFilterForConfig } from '../../common/urlUtils';
-import { URL } from 'url';
+import { createTargetFilterForConfig, TargetFilter } from '../../common/urlUtils';
+import {
+  AnyLaunchConfiguration,
+  applyDefaults,
+  IChromeAttachConfiguration,
+} from '../../configuration';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { SourcePathResolverFactory } from '../sourcePathResolverFactory';
+import { ILaunchContext } from '../targets';
+import { BrowserAttacher } from './browserAttacher';
+import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTargetType } from './browserTargets';
+import { VSCodeRendererTargetManager } from './vscodeRendererTargetManager';
 
-export const enum WebviewContentPurpose {
-  NotebookRenderer = 'notebookRenderer',
-  CustomEditor = 'customEditor',
+export interface IRendererAttachParams extends IChromeAttachConfiguration {
+  __sessionId: string;
+  debugWebviews: boolean;
+  debugWebWorkerExtHost: boolean;
 }
 
 @injectable()
-export class WebviewAttacher extends BrowserAttacher {
+export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParams> {
   /**
    * Map of debug IDs to ports the renderer is listening on,
    * set from the {@see ExtensionHostLauncher}.
@@ -55,7 +56,7 @@ export class WebviewAttacher extends BrowserAttacher {
       return { blockSessionTermination: false };
     }
 
-    const rendererPort = WebviewAttacher.debugIdToRendererDebugPort.get(params.__sessionId);
+    const rendererPort = VSCodeRendererAttacher.debugIdToRendererDebugPort.get(params.__sessionId);
     if (!rendererPort) {
       return { blockSessionTermination: false };
     }
@@ -67,8 +68,12 @@ export class WebviewAttacher extends BrowserAttacher {
       port: rendererPort,
       __workspaceFolder: params.__workspaceFolder,
       urlFilter: '',
-      ...(typeof params.debugWebviews === 'object' ? params.debugWebviews : {}),
-    }) as IChromeAttachConfiguration;
+      ...params.rendererDebugOptions,
+    }) as IRendererAttachParams;
+
+    configuration.__sessionId = params.__sessionId;
+    configuration.debugWebWorkerExtHost = params.debugWebWorkerHost;
+    configuration.debugWebviews = params.debugWebviews;
 
     super
       .launch(configuration, context)
@@ -82,7 +87,7 @@ export class WebviewAttacher extends BrowserAttacher {
    */
   protected async acquireConnectionInner(
     telemetryReporter: ITelemetryReporter,
-    params: AnyChromiumAttachConfiguration,
+    params: IRendererAttachParams,
     cancellationToken: vscodeType.CancellationToken,
   ) {
     const disposable = new DisposableList();
@@ -103,10 +108,24 @@ export class WebviewAttacher extends BrowserAttacher {
 
   protected async getTargetFilter(
     _manager: BrowserTargetManager,
-    params: AnyChromiumAttachConfiguration,
+    params: IRendererAttachParams,
   ): Promise<TargetFilter> {
     const baseFilter = createTargetFilterForConfig(params);
-    return target => target.type === BrowserTargetType.IFrame && baseFilter(target);
+    return target => {
+      if (
+        params.debugWebWorkerExtHost &&
+        target.type === BrowserTargetType.Worker &&
+        target.title === 'WorkerExtensionHost'
+      ) {
+        return true;
+      }
+
+      if (params.debugWebviews && target.type === BrowserTargetType.IFrame && baseFilter(target)) {
+        return true;
+      }
+
+      return false;
+    };
   }
 
   /**
@@ -114,10 +133,10 @@ export class WebviewAttacher extends BrowserAttacher {
    */
   protected async createTargetManager(
     connection: Connection,
-    params: AnyChromiumAttachConfiguration,
+    params: IRendererAttachParams,
     context: ILaunchContext,
   ) {
-    const manager = new BrowserTargetManager(
+    return new VSCodeRendererTargetManager(
       connection,
       undefined,
       connection.rootSession(),
@@ -127,32 +146,5 @@ export class WebviewAttacher extends BrowserAttacher {
       params,
       context.targetOrigin,
     );
-
-    manager.onTargetAdded(target => {
-      if (target.type() === BrowserTargetType.IFrame) {
-        target.setComputeNameFn(this.computeName);
-      }
-    });
-
-    return manager;
   }
-
-  private readonly computeName = (target: BrowserTarget) => {
-    let url: URL;
-    try {
-      url = new URL(target.targetInfo.url);
-    } catch {
-      return;
-    }
-
-    switch (url.searchParams.get('purpose')) {
-      case WebviewContentPurpose.CustomEditor:
-        return `${url.searchParams.get('extensionId')} editor: ${url.host}`;
-      case WebviewContentPurpose.NotebookRenderer:
-        return `Notebook Renderer: ${url.host}`;
-      default:
-        const extensionId = url.searchParams.get('extensionId');
-        return `Webview: ${extensionId ? extensionId + ' ' : ''} ${url.host}`;
-    }
-  };
 }

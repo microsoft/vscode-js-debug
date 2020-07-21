@@ -82,7 +82,7 @@ import {
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
-import { WebviewAttacher } from './targets/browser/webviewAttacher';
+import { VSCodeRendererAttacher } from './targets/browser/vscodeRendererAttacher';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -190,7 +190,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   // Launcher logic:
   container.bind(RestartPolicyFactory).toSelf();
-  container.bind(ILauncher).to(WebviewAttacher).onActivation(trackDispose);
+  container.bind(ILauncher).to(VSCodeRendererAttacher).onActivation(trackDispose);
   container.bind(ILauncher).to(ExtensionHostAttacher).onActivation(trackDispose);
   container.bind(ILauncher).to(ExtensionHostLauncher).onActivation(trackDispose);
   container.bind(ILauncher).to(NodeLauncher).onActivation(trackDispose);

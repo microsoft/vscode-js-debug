@@ -137,6 +137,11 @@ export class Source {
    * @param contentHash Optional hash of the file contents. This is used to
    * check whether the script we get is the same one as what's on disk. This
    * can be used to detect in-place transpilation.
+   * @param runtimeScriptOffset Offset of the start location of the script
+   * in the runtime *only*. This differs from the inlineScriptOffset, as the
+   * inline offset of also reflected in the file. This is used to deal with
+   * the runtime wrapping the source and offsetting locations which should
+   * not be shown to the user.
    */
   constructor(
     container: SourceContainer,
@@ -145,6 +150,7 @@ export class Source {
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     public readonly inlineScriptOffset?: InlineScriptOffset,
+    public readonly runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
   ) {
     this._sourceReference = container.getSourceReference(url);
@@ -158,7 +164,7 @@ export class Source {
     this._existingAbsolutePath = sourceUtils.checkContentHash(
       this._absolutePath,
       // Inline scripts will never match content of the html file. We skip the content check.
-      inlineScriptOffset ? undefined : contentHash,
+      inlineScriptOffset || runtimeScriptOffset ? undefined : contentHash,
       container._fileContentOverridesForTest.get(this._absolutePath),
     );
   }
@@ -737,6 +743,7 @@ export class SourceContainer {
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     inlineSourceRange?: InlineScriptOffset,
+    runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
   ): Promise<Source> {
     const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
@@ -758,6 +765,7 @@ export class SourceContainer {
         ? sourceMapUrl
         : undefined,
       inlineSourceRange,
+      runtimeScriptOffset,
       this.launchConfig.enableContentValidation ? contentHash : undefined,
     );
 
@@ -1016,22 +1024,32 @@ export class SourceContainer {
 
 type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 
-export function uiToRawOffset(lc: LineColumn, offset?: InlineScriptOffset): LineColumn {
+export function uiToRawOffset<T extends LineColumn>(lc: T, offset?: InlineScriptOffset): T {
+  if (!offset) {
+    return lc;
+  }
+
   let { lineNumber, columnNumber } = lc;
   if (offset) {
     lineNumber += offset.lineOffset;
     if (lineNumber <= 1) columnNumber += offset.columnOffset;
   }
-  return { lineNumber, columnNumber };
+
+  return { ...lc, lineNumber, columnNumber };
 }
 
-export function rawToUiOffset(lc: LineColumn, offset?: InlineScriptOffset): LineColumn {
+export function rawToUiOffset<T extends LineColumn>(lc: T, offset?: InlineScriptOffset): T {
+  if (!offset) {
+    return lc;
+  }
+
   let { lineNumber, columnNumber } = lc;
   if (offset) {
     lineNumber = Math.max(1, lineNumber - offset.lineOffset);
     if (lineNumber <= 1) columnNumber = Math.max(1, columnNumber - offset.columnOffset);
   }
-  return { lineNumber, columnNumber };
+
+  return { ...lc, lineNumber, columnNumber };
 }
 
 export const base0To1 = (lc: LineColumn) => ({
