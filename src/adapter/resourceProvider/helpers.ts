@@ -2,16 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyRequestOptions } from './resourceProviderState';
+import { OptionsOfTextResponseBody } from 'got';
 
 /**
  * Adds a header to the outgoing request.
  */
 export const addHeader = (
-  options: AnyRequestOptions,
+  options: OptionsOfTextResponseBody,
   key: string,
   value: string,
-): AnyRequestOptions => {
+): OptionsOfTextResponseBody => {
   key = key.toLowerCase();
 
   const existing = options.headers?.[key];

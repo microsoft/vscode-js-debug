@@ -2,13 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject, optional } from 'inversify';
-import { FsPromises, FS } from '../../ioc-extras';
-import { IDisposable, DisposableList } from '../../common/disposable';
+import { OptionsOfTextResponseBody } from 'got';
+import { inject, injectable, optional } from 'inversify';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
-import { ResourceProviderState, AnyRequestOptions } from './resourceProviderState';
+import { DisposableList, IDisposable } from '../../common/disposable';
+import { FS, FsPromises } from '../../ioc-extras';
 import { BasicResourceProvider } from './basicResourceProvider';
+import { ResourceProviderState } from './resourceProviderState';
 
 @injectable()
 export class StatefulResourceProvider extends BasicResourceProvider implements IDisposable {
@@ -32,7 +33,7 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
     this.disposables.dispose();
   }
 
-  protected async createHttpOptions(url: string): Promise<AnyRequestOptions> {
+  protected async createHttpOptions(url: string): Promise<OptionsOfTextResponseBody> {
     return this.state.apply(url, await super.createHttpOptions(url));
   }
 }

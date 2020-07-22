@@ -2,14 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { OptionsOfTextResponseBody } from 'got';
 import { injectable } from 'inversify';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
-import { RequestOptions as HttpsRequestOptions } from 'https';
-import { RequestOptions as HttpRequestOptions } from 'https';
 import { addHeader } from './helpers';
-
-export type AnyRequestOptions = HttpsRequestOptions | HttpRequestOptions;
 
 /**
  * Provides state shared between all IResourceProviders.
@@ -34,7 +31,10 @@ export class ResourceProviderState {
   /**
    * Applies state overrides to the request options.
    */
-  public async apply(url: string, options: AnyRequestOptions): Promise<AnyRequestOptions> {
+  public async apply(
+    url: string,
+    options: OptionsOfTextResponseBody,
+  ): Promise<OptionsOfTextResponseBody> {
     const cdp = this.cdp[0];
     if (cdp) {
       options = await this.applyCookies(cdp, url, options);
@@ -45,7 +45,7 @@ export class ResourceProviderState {
     return options;
   }
 
-  private async applyCookies(cdp: Cdp.Api, url: string, options: AnyRequestOptions) {
+  private async applyCookies(cdp: Cdp.Api, url: string, options: OptionsOfTextResponseBody) {
     const cookies = await cdp.Network.getCookies({ urls: [url] });
     if (!cookies?.cookies?.length) {
       return options;

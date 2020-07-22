@@ -2,16 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as http from 'http';
-import * as https from 'https';
+import got, { OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable } from 'inversify';
 import { CancellationToken } from 'vscode';
 import { HttpStatusError, IResourceProvider, Response } from '.';
-import { NeverCancelled, TaskCancelledError } from '../../common/cancellation';
+import { NeverCancelled } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
 import { fileUrlToAbsolutePath, isAbsolute, isLoopback } from '../../common/urlUtils';
 import { FS, FsPromises } from '../../ioc-extras';
-import { AnyRequestOptions } from './resourceProviderState';
 
 @injectable()
 export class BasicResourceProvider implements IResourceProvider {
@@ -69,7 +67,6 @@ export class BasicResourceProvider implements IResourceProvider {
     headers?: { [key: string]: string },
   ): Promise<Response<string>> {
     const isSecure = !url.startsWith('http://');
-    const driver = isSecure ? https : http;
     const [targetAddressIsLoopback, options] = await Promise.all([
       isLoopback(url),
       this.createHttpOptions(url),
@@ -79,50 +76,31 @@ export class BasicResourceProvider implements IResourceProvider {
       options.rejectUnauthorized = false;
     }
 
+    options.followRedirect = true;
     options.headers = { ...options.headers, ...headers };
 
     const disposables = new DisposableList();
 
-    // Todo: swap this out with a richer library. `got` recently added http/2
-    // support and supports compressed responses, look at that when it exits beta.
+    try {
+      const request = got(url, options);
+      disposables.push(cancellationToken.onCancellationRequested(() => request.cancel()));
 
-    return new Promise<Response<string>>((resolve, reject) => {
-      const request = driver.request(url, options, response => {
-        disposables.push(cancellationToken.onCancellationRequested(() => response.destroy()));
-        const statusCode = response.statusCode || 503;
+      const response = await request;
+      return { ok: true, body: response.body, statusCode: response.statusCode };
+    } catch (error) {
+      if (!(error instanceof RequestError)) {
+        throw error;
+      }
 
-        let body = '';
-        response.setEncoding('utf8');
-        response.on('data', (chunk: string) => (body += chunk));
-        response.on('end', () => {
-          if (statusCode >= 400) {
-            resolve({
-              ok: false,
-              body,
-              statusCode,
-              error: new HttpStatusError(statusCode, url, body),
-            });
-          } else {
-            resolve({ ok: true, body, statusCode });
-          }
-        });
-        response.on('error', error => resolve({ ok: false, error, statusCode }));
-      });
-
-      disposables.push(
-        cancellationToken.onCancellationRequested(() => {
-          request.destroy();
-          resolve({
-            ok: false,
-            statusCode: 503,
-            error: new TaskCancelledError(`Cancelled GET ${url}`),
-          });
-        }),
-      );
-
-      request.on('error', reject);
-      request.end();
-    }).finally(() => disposables.dispose());
+      const body = error.response ? String(error.response?.body) : error.message;
+      const statusCode = error.response?.statusCode ?? 503;
+      return {
+        ok: false,
+        body,
+        statusCode,
+        error: new HttpStatusError(statusCode, url, body),
+      };
+    }
   }
 
   private resolveDataUri(url: string): Response<string> {
@@ -144,7 +122,7 @@ export class BasicResourceProvider implements IResourceProvider {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected createHttpOptions(url: string): Promise<AnyRequestOptions> {
+  protected createHttpOptions(url: string): Promise<OptionsOfTextResponseBody> {
     return Promise.resolve({});
   }
 }
