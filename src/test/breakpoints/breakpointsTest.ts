@@ -223,6 +223,8 @@ describe('breakpoints', () => {
     itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set after launch.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
+      await p.waitForSource('module2.ts');
+
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
       };

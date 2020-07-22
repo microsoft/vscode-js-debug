@@ -8,12 +8,8 @@ import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
-import {
-  fixDriveLetterAndSlashes,
-  isSubdirectoryOf,
-  properJoin,
-  properResolve,
-} from '../pathUtils';
+import { promises as fs } from 'fs';
+import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -144,15 +140,23 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
   pathMapping,
   logger,
 ) => {
+  // 1. Handle cases where we know the path is already absolute on disk.
+  if (process.platform === 'win32' && path.win32.isAbsolute(sourceRoot)) {
+    return sourceRoot;
+  }
+
+  // 2. It's a unix-style path. Get the root of this package containing the compiled file.
   const implicit = await utils.nearestDirectoryContaining(
     path.dirname(compiledPath),
     'package.json',
   );
 
-  if (!implicit || (path.isAbsolute(sourceRoot) && isSubdirectoryOf(implicit, sourceRoot))) {
+  // 3. If there's no specific root, try to use the base path mappings
+  if (!implicit) {
     return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
   }
 
+  // 4. If we can find a root, only use path mapping from within the package
   const explicit = await defaultPathMappingResolver(
     sourceRoot,
     // filter the mapping to directories that could be
@@ -160,6 +164,18 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
     logger,
   );
 
+  // 5. On *nix, try at this point to see if the original path given is
+  // absolute on-disk. We'll say it is if there was no specific path mapping
+  // and the sourceRoot points to a subdirectory that exists.
+  if (process.platform !== 'win32' && sourceRoot !== '/' && !explicit) {
+    const possibleStat = await fs.stat(sourceRoot).catch(() => undefined);
+    if (possibleStat?.isDirectory()) {
+      return sourceRoot;
+    }
+  }
+
+  // 6. If we got a path mapping within the package, use that. Otherise use
+  // the package root as the sourceRoot.
   return explicit || implicit;
 };
 
