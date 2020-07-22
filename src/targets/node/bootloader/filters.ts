@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBootloaderInfo } from './environment';
-import { LeaseFile } from '../lease-file';
-import { bootloaderLogger } from './logger';
+import { basename } from 'path';
 import { LogTag } from '../../../common/logging';
+import { LeaseFile } from '../lease-file';
+import { IBootloaderInfo } from './environment';
+import { bootloaderLogger } from './logger';
 
 export const checkIsDebugMode = (env: IBootloaderInfo) => {
   if (!env || !env.inspectorIpc) {
@@ -71,12 +72,29 @@ export const checkReentrant = (env: IBootloaderInfo) => {
   return true;
 };
 
+/**
+ * npm.cmd on windows *can* run `node C:/.../npm-cli.js prefix -g` before
+ * running the script. In the integrated terminal, this can steal the debug
+ * session and cause us to think it's over before it actually is.
+ * @see https://github.com/microsoft/vscode-js-debug/issues/645
+ */
+export const checkNotNpmPrefixCheckOnWindows = () => {
+  const argv = process.argv;
+  return !(
+    argv.length === 4 &&
+    basename(argv[1]) === 'npm-cli.js' &&
+    argv[2] === 'prefix' &&
+    argv[3] === '-g'
+  );
+};
+
 const allChecks = [
   checkIsDebugMode,
   checkLeaseFile,
   checkNotElectron,
   checkProcessFilter,
   checkReentrant,
+  checkNotNpmPrefixCheckOnWindows,
 ];
 
 /**
