@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import { URL } from 'url';
 import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
-import { promises as fs } from 'fs';
 import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
@@ -141,7 +141,7 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
   logger,
 ) => {
   // 1. Handle cases where we know the path is already absolute on disk.
-  if (process.platform === 'win32' && path.win32.isAbsolute(sourceRoot)) {
+  if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
     return sourceRoot;
   }
 
