@@ -1,0 +1,8 @@
+{
+    reason : new
+    source : {
+        name : redirect-test/module1.ts
+        path : ${workspaceFolder}/web/redirect-test/module1.ts
+        sourceReference : <number>
+    }
+}

@@ -13,6 +13,19 @@ app.get('/cookies/home', (req, res) => {
   res.sendFile(path.join(webRoot, 'browserify/pause.html'));
 });
 
+app.get('/redirect-test/home', (req, res) => {
+  res.header('Set-Cookie', 'authed=true');
+  res.sendFile(path.join(webRoot, 'browserify/pause.html'));
+});
+
+app.get('/redirect-test/:resource', (req, res) => {
+  if (req.params.resource.endsWith('.map')) {
+    res.redirect(`/browserify/${req.params.resource}`);
+  } else {
+    res.sendFile(path.join(webRoot, `browserify/${req.params.resource}`));
+  }
+});
+
 app.use(
   '/cookies',
   (req, res, next) => {
