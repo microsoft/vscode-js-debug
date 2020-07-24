@@ -257,7 +257,11 @@ export class BrowserTargetManager implements IDisposable {
     this._onTargetAddedEmitter.fire(target);
 
     // For targets that we don't report to the system, auto-resume them on our on.
-    if (!jsTypes.has(type)) cdp.Runtime.runIfWaitingForDebugger({});
+    if (!jsTypes.has(type)) {
+      cdp.Runtime.runIfWaitingForDebugger({});
+    } else if (type === BrowserTargetType.Page && waitForDebuggerOnStart) {
+      cdp.Page.waitForDebugger({});
+    }
 
     return target;
   }
