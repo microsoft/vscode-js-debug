@@ -2,30 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as vscode from 'vscode';
-
-import { createGlobalContainer } from './ioc';
-import { registerDebugTerminalUI } from './ui/debugTerminalUI';
-import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
-import { DebugSessionTracker } from './ui/debugSessionTracker';
-import { registerCommand, allDebugTypes, Commands } from './common/contributionUtils';
-import { pickProcess, attachProcess } from './ui/processPicker';
-import { debugNpmScript } from './ui/debugNpmScript';
-import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
-import { registerLongBreakpointUI } from './ui/longPredictionUI';
-import { toggleSkippingFile } from './ui/toggleSkippingFile';
-import { registerNpmScriptLens } from './ui/npmScriptLens';
-import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
-import { IDebugConfigurationResolver, IDebugConfigurationProvider } from './ui/configuration';
-import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { tmpdir } from 'os';
-import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
-import { toggleOnExperiment } from './ui/experimentEnlist';
-import { registerProfilingCommand } from './ui/profiling';
-import { TerminalLinkHandler } from './ui/terminalLinkHandler';
-import { registerAutoAttach } from './ui/autoAttach';
+import * as vscode from 'vscode';
+import { allDebugTypes, Commands, registerCommand } from './common/contributionUtils';
 import { extensionId } from './configuration';
+import { createGlobalContainer } from './ioc';
+import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
+import { registerAutoAttach } from './ui/autoAttach';
+import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
+import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/configuration';
+import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
+import { DebugLinkUi } from './ui/debugLinkUI';
+import { debugNpmScript } from './ui/debugNpmScript';
+import { DebugSessionTracker } from './ui/debugSessionTracker';
+import { registerDebugTerminalUI } from './ui/debugTerminalUI';
+import { toggleOnExperiment } from './ui/experimentEnlist';
+import { registerLongBreakpointUI } from './ui/longPredictionUI';
+import { registerNpmScriptLens } from './ui/npmScriptLens';
+import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
+import { attachProcess, pickProcess } from './ui/processPicker';
+import { registerProfilingCommand } from './ui/profiling';
 import { registerRevealPage } from './ui/revealPage';
+import { TerminalLinkHandler } from './ui/terminalLinkHandler';
+import { toggleSkippingFile } from './ui/toggleSkippingFile';
+import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
@@ -98,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
   registerRevealPage(context, debugSessionTracker);
+  services.get(DebugLinkUi).register(context);
 }
 
 export function deactivate() {

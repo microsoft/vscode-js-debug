@@ -3,20 +3,21 @@
  *--------------------------------------------------------*/
 
 import { Container } from 'inversify';
-import {
-  IDebugConfigurationResolver,
-  allConfigurationResolvers,
-  allConfigurationProviders,
-  IDebugConfigurationProvider,
-} from './configuration';
-import { UiProfileManager } from './profiling/uiProfileManager';
-import { DebugSessionTracker } from './debugSessionTracker';
 import { trackDispose } from '../ioc-extras';
-import { TerminalLinkHandler } from './terminalLinkHandler';
-import { ITerminationConditionFactory } from './profiling/terminationCondition';
+import {
+  allConfigurationProviders,
+  allConfigurationResolvers,
+  IDebugConfigurationProvider,
+  IDebugConfigurationResolver,
+} from './configuration';
+import { DebugLinkUi } from './debugLinkUI';
+import { DebugSessionTracker } from './debugSessionTracker';
+import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
 import { ManualTerminationConditionFactory } from './profiling/manualTerminationCondition';
-import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
+import { ITerminationConditionFactory } from './profiling/terminationCondition';
+import { UiProfileManager } from './profiling/uiProfileManager';
+import { TerminalLinkHandler } from './terminalLinkHandler';
 
 export const registerUiComponents = (container: Container) => {
   allConfigurationResolvers.forEach(cls => {
@@ -34,6 +35,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
+  container.bind(DebugLinkUi).toSelf().inSingletonScope();
 
   container
     .bind(ITerminationConditionFactory)

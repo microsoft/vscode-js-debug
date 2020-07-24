@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import type { Command, WorkspaceFolder, commands, workspace, ConfigurationTarget } from 'vscode';
+import type { Command, commands, ConfigurationTarget, workspace, WorkspaceFolder } from 'vscode';
 import type {
-  ITerminalLaunchConfiguration,
   IChromeLaunchConfiguration,
   INodeAttachConfiguration,
+  ITerminalLaunchConfiguration,
 } from '../configuration';
-import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 import type { IAutoAttachInfo } from '../targets/node/bootloader/environment';
+import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 
 export const enum Contributions {
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
@@ -18,10 +18,11 @@ export const enum Contributions {
 export const enum Commands {
   AddCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
   AttachProcess = 'extension.NAMESPACE(node-debug).attachNodeProcess',
-  AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
   AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
+  AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
   AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
   CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
+  DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
   EnlistExperiment = 'extension.js-debug.experimentEnlist',
   PickProcess = 'extension.NAMESPACE(node-debug).pickNodeProcess',
@@ -58,16 +59,17 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.AutoAttachSetVariables]: null,
   [Commands.AutoAttachToProcess]: null,
   [Commands.CreateDebuggerTerminal]: null,
+  [Commands.DebugLink]: null,
   [Commands.DebugNpmScript]: null,
   [Commands.EnlistExperiment]: null,
   [Commands.PickProcess]: null,
   [Commands.PrettyPrint]: null,
   [Commands.RemoveAllCustomBreakpoints]: null,
   [Commands.RemoveCustomBreakpoint]: null,
+  [Commands.RevealPage]: null,
   [Commands.StartProfile]: null,
   [Commands.StopProfile]: null,
   [Commands.ToggleSkipping]: null,
-  [Commands.RevealPage]: null,
 };
 
 /**
@@ -137,6 +139,7 @@ export interface ICommandTypes {
   [Commands.AutoAttachClearVariables](): void;
   [Commands.AutoAttachToProcess](info: IAutoAttachInfo): void;
   [Commands.RevealPage](sessionId: string): void;
+  [Commands.DebugLink](link?: string): void;
 }
 
 /**

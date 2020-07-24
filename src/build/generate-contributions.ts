@@ -1115,6 +1115,11 @@ const commands: ReadonlyArray<{
     title: refString('browser.revealPage'),
     category: 'Debug',
   },
+  {
+    command: Commands.DebugLink,
+    title: refString('debugLink.label'),
+    category: 'Debug',
+  },
 ];
 
 const menus: Menus = {
@@ -1137,6 +1142,10 @@ const menus: Menus = {
     {
       command: Commands.RevealPage,
       when: 'false',
+    },
+    {
+      command: Commands.DebugLink,
+      title: refString('debugLink.label'),
     },
   ],
   'debug/callstack/context': [

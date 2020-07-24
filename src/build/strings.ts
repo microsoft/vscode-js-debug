@@ -263,6 +263,7 @@ const strings = {
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',
+  'debugLink.label': 'Open Link',
 };
 
 export default strings;
