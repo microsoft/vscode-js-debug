@@ -49,6 +49,18 @@ export class DebugAdapter implements IDisposable {
     private readonly _services: Container,
   ) {
     this._configurationDoneDeferred = getDeferred();
+
+    this.sourceContainer = _services.get(SourceContainer);
+
+    // It seems that the _onSetBreakpoints callback might be called while this method is being executed
+    // so we initialize this before configuring the event handlers for the dap
+    this.breakpointManager = _services.get(BreakpointManager);
+
+    const telemetry = _services.get<ITelemetryReporter>(ITelemetryReporter);
+    telemetry.onFlush(() => {
+      telemetry.report('breakpointStats', this.breakpointManager.statisticsForTelemetry());
+    });
+
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
@@ -82,14 +94,6 @@ export class DebugAdapter implements IDisposable {
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),
       })),
     );
-
-    this.sourceContainer = _services.get(SourceContainer);
-    this.breakpointManager = _services.get(BreakpointManager);
-
-    const telemetry = _services.get<ITelemetryReporter>(ITelemetryReporter);
-    telemetry.onFlush(() => {
-      telemetry.report('breakpointStats', this.breakpointManager.statisticsForTelemetry());
-    });
   }
 
   public async launchBlocker(): Promise<void> {
