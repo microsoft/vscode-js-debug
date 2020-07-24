@@ -1219,19 +1219,15 @@ export class Thread implements IVariableStoreDelegate {
         return response ? response.scriptSource : undefined;
       };
 
-      const firstFrame = event.stackTrace?.callFrames[0];
       const inlineSourceOffset =
         event.startLine || event.startColumn
           ? { lineOffset: event.startLine, columnOffset: event.startColumn }
           : undefined;
 
       // see https://github.com/microsoft/vscode/issues/103027
-      const runtimeScriptOffset =
-        firstFrame &&
-        firstFrame.functionName === '_loadCommonJSModule' &&
-        firstFrame.url.endsWith('/extensionHostWorker.js')
-          ? { lineOffset: 2, columnOffset: 0 }
-          : undefined;
+      const runtimeScriptOffset = event.url.endsWith('#vscode-extension')
+        ? { lineOffset: 2, columnOffset: 0 }
+        : undefined;
 
       let resolvedSourceMapUrl: string | undefined;
       if (event.sourceMapURL && this.launchConfig.sourceMaps) {
