@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as path from 'path';
 import { INodeLaunchConfiguration } from '../../configuration';
 import { ILaunchContext } from '../targets';
 import { IProgram } from './program';
@@ -26,3 +27,14 @@ export interface IProgramLauncher {
     context: ILaunchContext,
   ): Promise<IProgram>;
 }
+
+export const getNodeLaunchArgs = (config: INodeLaunchConfiguration) => {
+  let program = config.program;
+  if (program && path.isAbsolute(program)) {
+    program = `.${path.sep}${path.relative(config.cwd, program)}`;
+  }
+
+  return program
+    ? [...config.runtimeArgs, program, ...config.args]
+    : [...config.runtimeArgs, ...config.args];
+};

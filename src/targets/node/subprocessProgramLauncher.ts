@@ -9,7 +9,7 @@ import { ILogger } from '../../common/logging';
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
-import { IProgramLauncher } from './processLauncher';
+import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
 import { SubprocessProgram } from './program';
 
 /**
@@ -28,12 +28,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
-    let execArgs = [...config.runtimeArgs, ...config.args];
-    if (config.program) {
-      execArgs = [...config.runtimeArgs, config.program, ...config.args];
-    }
-
-    const { executable, args, shell } = formatArguments(binary, execArgs);
+    const { executable, args, shell } = formatArguments(binary, getNodeLaunchArgs(config));
 
     // Send an appoximation of the command we're running to
     // the terminal, for cosmetic purposes.

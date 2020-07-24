@@ -2,18 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { INodeLaunchConfiguration } from '../../configuration';
-import { IProgramLauncher } from './processLauncher';
-import { ILaunchContext } from '../targets';
+import { inject, injectable } from 'inversify';
 import * as nls from 'vscode-nls';
+import { ILogger } from '../../common/logging';
+import { removeNulls } from '../../common/objUtils';
+import { INodeLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { cannotLaunchInTerminal } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
+import { ILaunchContext } from '../targets';
+import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
 import { TerminalProcess } from './program';
-import { removeNulls } from '../../common/objUtils';
-import { ILogger } from '../../common/logging';
-import { injectable, inject } from 'inversify';
-import * as path from 'path';
 
 const localize = nls.loadMessageBundle();
 
@@ -34,18 +33,11 @@ export class TerminalProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
-    let program = config.program;
-    if (program && path.isAbsolute(program)) {
-      program = `.${path.sep}${path.relative(config.cwd, program)}`;
-    }
-
     const params: Dap.RunInTerminalParams = {
       kind: config.console === 'integratedTerminal' ? 'integrated' : 'external',
       title: localize('node.console.title', 'Node Debug Console'),
       cwd: config.cwd,
-      args: program
-        ? [binary, ...config.runtimeArgs, program, ...config.args]
-        : [binary, ...config.runtimeArgs, ...config.args],
+      args: [binary, ...getNodeLaunchArgs(config)],
       env: removeNulls(config.env),
     };
 
