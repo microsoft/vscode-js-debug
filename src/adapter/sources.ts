@@ -935,6 +935,9 @@ export class SourceContainer {
           : fileUrl
           ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
+        undefined,
+        undefined,
+        compiled.runtimeScriptOffset,
       );
       source.compiledToSourceUrl.set(compiled, url);
       compiled.sourceMap.sourceByUrl.set(url, source);
