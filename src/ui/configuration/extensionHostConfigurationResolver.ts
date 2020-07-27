@@ -34,6 +34,10 @@ export class ExtensionHostConfigurationResolver
       };
     }
 
+    if (config.debugWebWorkerHost) {
+      config.outFiles = []; // will have a runtime script offset which invalidates any predictions
+    }
+
     return Promise.resolve({
       ...extensionHostConfigDefaults,
       ...config,

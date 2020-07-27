@@ -277,7 +277,9 @@ export abstract class Breakpoint {
 
     const promises: Promise<void>[] = [];
     for (const uiLocation of uiLocations) {
-      promises.push(this._setByScriptId(thread, script, uiLocation));
+      promises.push(
+        this._setByScriptId(thread, script, uiToRawOffset(uiLocation, source.runtimeScriptOffset)),
+      );
     }
 
     // If we get a source map that references this script exact URL, then
