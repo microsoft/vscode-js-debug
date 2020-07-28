@@ -92,6 +92,7 @@ export interface IExtraProperty {
 
 export interface IVariableStoreDelegate {
   renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
+  reportError(errorText: string): Promise<void>;
 }
 
 export class VariableStore {
@@ -106,6 +107,7 @@ export class VariableStore {
     cdp: Cdp.Api,
     delegate: IVariableStoreDelegate,
     private readonly autoExpandGetters: boolean,
+    private readonly customDescriptionGenerator: string | undefined,
   ) {
     this._cdp = cdp;
     this._delegate = delegate;
@@ -139,7 +141,7 @@ export class VariableStore {
           args: [object.name],
         });
 
-        return [this._createVariable('', object.parent.wrap(object.name, result), 'repl')];
+        return [await this._createVariable('', object.parent.wrap(object.name, result), 'repl')];
       } catch (e) {
         if (!(e instanceof RemoteException)) {
           throw e;
@@ -167,7 +169,7 @@ export class VariableStore {
       for (const extraProperty of object.extraProperties || [])
         if (!existingVariables.has(extraProperty.name))
           variables.push(
-            this._createVariable(
+            await this._createVariable(
               extraProperty.name,
               object.wrap(extraProperty.name, extraProperty.value),
               'propertyValue',
@@ -289,7 +291,7 @@ export class VariableStore {
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
     if (args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace) {
-      rootObjectVariable = this._createVariable('', new RemoteObject('', this._cdp, args[0]));
+      rootObjectVariable = await this._createVariable('', new RemoteObject('', this._cdp, args[0]));
       rootObjectVariable.value = text;
     } else {
       const rootObjectReference =
@@ -320,7 +322,11 @@ export class VariableStore {
     for (let i = 0; i < args.length; ++i) {
       if (!objectPreview.previewAsObject(args[i])) continue;
       params.push(
-        this._createVariable(`arg${i}`, new RemoteObject(`arg${i}`, this._cdp, args[i]), 'repl'),
+        await this._createVariable(
+          `arg${i}`,
+          new RemoteObject(`arg${i}`, this._cdp, args[i]),
+          'repl',
+        ),
       );
     }
 
@@ -409,7 +415,7 @@ export class VariableStore {
           presentationHint: { visibility: 'internal' },
         };
       } else {
-        variable = this._createVariable(p.name, object.wrap(p.name, p.value));
+        variable = await this._createVariable(p.name, object.wrap(p.name, p.value));
       }
 
       properties.push([
@@ -488,7 +494,7 @@ export class VariableStore {
 
     // If the value is simply present, add that
     if ('value' in p) {
-      result.push(this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
+      result.push(await this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
     }
 
     // if it's a getter, auto expand as requested
@@ -507,7 +513,7 @@ export class VariableStore {
       }
 
       if (value) {
-        result.push(this._createVariable(p.name, owner.wrap(p.name, value), 'propertyValue'));
+        result.push(await this._createVariable(p.name, owner.wrap(p.name, value), 'propertyValue'));
       } else {
         const obj = owner.wrap(p.name, p.get);
         obj.evaluteOnInspect = true;
@@ -518,14 +524,18 @@ export class VariableStore {
     // add setter if present
     if (p.set && p.set.type !== 'undefined') {
       result.push(
-        this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
+        await this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
       );
     }
 
     return result;
   }
 
-  private _createVariable(name: string, value?: RemoteObject, context?: string): Dap.Variable {
+  private async _createVariable(
+    name: string,
+    value?: RemoteObject,
+    context?: string,
+  ): Promise<Dap.Variable> {
     if (!value) {
       return {
         name,
@@ -539,7 +549,7 @@ export class VariableStore {
     }
 
     if (value.objectId && !objectPreview.subtypesWithoutPreview.has(value.o.subtype)) {
-      return this._createObjectVariable(name, value, context);
+      return await this._createObjectVariable(name, value, context);
     }
 
     return this._createPrimitiveVariable(name, value, context);
@@ -570,18 +580,58 @@ export class VariableStore {
     };
   }
 
-  private _createObjectVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {
+  private async _createObjectVariable(
+    name: string,
+    value: RemoteObject,
+    context?: string,
+  ): Promise<Dap.Variable> {
     const variablesReference = this._createVariableReference(value);
     const object = value.o;
     return {
       name,
-      value:
-        (name === '__proto__' && object.description) ||
-        objectPreview.previewRemoteObject(object, context),
+      value: await this._generateVariableValueDescription(name, value, object, context),
       evaluateName: value.accessor,
       type: object.subtype || object.type,
       variablesReference,
     };
+  }
+
+  private async _generateVariableValueDescription(
+    name: string,
+    value: RemoteObject,
+    object: Cdp.Runtime.RemoteObject,
+    context?: string,
+  ): Promise<string> {
+    const defaultValueDescription =
+      (name === '__proto__' && object.description) ||
+      objectPreview.previewRemoteObject(object, context);
+
+    if (this.customDescriptionGenerator) {
+      const customValueDescription = await this._cdp.Runtime.callFunctionOn({
+        objectId: object.objectId,
+        functionDeclaration: this.customDescriptionGenerator,
+        arguments: [this._toCallArgument(defaultValueDescription)],
+      });
+
+      if (customValueDescription?.exceptionDetails === undefined) {
+        return '' + customValueDescription?.result.value;
+      } else {
+        let descriptionFirstLine = localize('error.unknown', 'Unknown error');
+        if (customValueDescription.result.description) {
+          await this._delegate.reportError(customValueDescription.result.description);
+          descriptionFirstLine = customValueDescription.result.description.split('\n', 1)[0];
+        }
+
+        return localize(
+          'error.customValueDescriptionGeneratorFailed',
+          "{0} (couldn't describe: {1})",
+          defaultValueDescription,
+          descriptionFirstLine,
+        );
+      }
+    } else {
+      return defaultValueDescription;
+    }
   }
 
   private _createArrayVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {

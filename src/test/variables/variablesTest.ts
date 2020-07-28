@@ -85,6 +85,18 @@ describe('variables', () => {
         new Bar();`);
       p.assertLog();
     });
+
+    itIntegrates('customDescriptionGenerator', async ({ r }) => {
+      const p = await r.launchAndLoad('blank', {
+        customDescriptionGenerator:
+          'function (def) { if (this.customDescription) return this.customDescription(); else return def }',
+      });
+      await p.logger.evaluateAndLog(`
+        class Foo { get getter() {} }
+        class Bar extends Foo { customDescription() { return 'Instance of bar'} }
+        new Bar();`);
+      p.assertLog();
+    });
   });
 
   describe('web', () => {

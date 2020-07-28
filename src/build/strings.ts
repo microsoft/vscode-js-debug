@@ -226,6 +226,8 @@ const strings = {
     'If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.',
   'enableContentValidation.description':
     'Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.',
+  'customDescriptionGenerator.description':
+    'Customize the textual representation that the debugger shows for objects (local variables, etc...)',
 
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",

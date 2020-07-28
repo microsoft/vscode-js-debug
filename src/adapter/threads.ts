@@ -180,7 +180,12 @@ export class Thread implements IVariableStoreDelegate {
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
-    this.replVariables = new VariableStore(this._cdp, this, launchConfig.__autoExpandGetters);
+    this.replVariables = new VariableStore(
+      this._cdp,
+      this,
+      launchConfig.__autoExpandGetters,
+      launchConfig.customDescriptionGenerator,
+    );
     this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
@@ -759,6 +764,7 @@ export class Thread implements IVariableStoreDelegate {
       this._cdp,
       this,
       this.launchConfig.__autoExpandGetters,
+      this.launchConfig.customDescriptionGenerator,
     );
     scheduledPauseOnAsyncCall = undefined;
 
@@ -867,6 +873,15 @@ export class Thread implements IVariableStoreDelegate {
     const ui = await this.rawLocationToUiLocation(raw);
     if (ui) return `@ ${await ui.source.prettyName()}:${ui.lineNumber}`;
     return `@ VM${raw.scriptId || 'XX'}:${raw.lineNumber}`;
+  }
+
+  async reportError(errorText: string): Promise<void> {
+    await this._dap.with(dap =>
+      dap.output({
+        category: 'stderr',
+        output: errorText + '\n',
+      }),
+    );
   }
 
   async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
