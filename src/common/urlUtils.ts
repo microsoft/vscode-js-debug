@@ -10,6 +10,7 @@ import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { exists } from './fsUtils';
 import { memoize } from './objUtils';
+import isIp from 'is-ip';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 
@@ -130,6 +131,11 @@ export const isLoopback = memoize(async (address: string) => {
     return false;
   }
 });
+
+export function isIpHostname(address: string): boolean {
+  const ipOrHostname = getHostnameFromMaybeUrl(address);
+  return isIp(ipOrHostname);
+}
 
 export function completeUrl(base: string | undefined, relative: string): string | undefined {
   try {

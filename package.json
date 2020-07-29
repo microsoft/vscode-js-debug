@@ -58,6 +58,7 @@
     "glob-stream": "^6.1.0",
     "got": "^11.5.1",
     "inversify": "^5.0.1",
+    "is-ip": "^3.1.0",
     "js-beautify": "^1.11.0",
     "js-xxhash": "^1.0.4",
     "jsonc-parser": "^2.2.1",

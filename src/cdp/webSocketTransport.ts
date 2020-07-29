@@ -7,7 +7,7 @@ import WebSocket from 'ws';
 import { timeoutPromise } from '../common/cancellation';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
-import { isLoopback } from '../common/urlUtils';
+import { isLoopback, isIpHostname } from '../common/urlUtils';
 import { ITransport } from './transport';
 
 export class WebSocketTransport implements ITransport {
@@ -28,13 +28,21 @@ export class WebSocketTransport implements ITransport {
     const isSecure = !url.startsWith('ws://');
     const targetAddressIsLoopback = await isLoopback(url);
 
-    const ws = new WebSocket(url, [], {
-      headers: { host: 'localhost' },
+    const options = {
+      headers: {},
       perMessageDeflate: false,
       maxPayload: 256 * 1024 * 1024, // 256Mb
       rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
       followRedirects: true,
-    });
+    };
+
+    if (isIpHostname(url)) {
+      options.headers = {
+        host: 'localhost',
+      };
+    }
+
+    const ws = new WebSocket(url, [], options);
 
     return timeoutPromise(
       new Promise<WebSocketTransport>((resolve, reject) => {
