@@ -159,6 +159,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     // NODE_OPTIONS for the process, forever. We can try to unset this on
     // close, but this isn't reliable as it's always possible
     const leaseFile = new LeaseFile();
+    await leaseFile.startTouchLoop();
 
     const binary = await this.resolveNodePath(run.params);
     const [telemetry] = await Promise.all([
