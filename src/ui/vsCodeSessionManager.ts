@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Container } from 'inversify';
 import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
-import { Container } from 'inversify';
-import { SessionManager, SessionLauncher, RootSession } from '../sessionManager';
-import { StreamDapTransport } from '../dap/transport';
 import { pick } from '../common/objUtils';
 import { IPseudoAttachConfiguration } from '../configuration';
+import { StreamDapTransport } from '../dap/transport';
+import { RootSession, SessionLauncher, SessionManager } from '../sessionManager';
 
 const preservedProperties = [
   // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
@@ -32,6 +32,7 @@ const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSessi
     {
       parentSession: parentSession.debugSession,
       consoleMode: vscode.DebugConsoleMode.MergeWithParent,
+      noDebug: parentSession.debugSession.configuration.noDebug,
       compact: parentSession instanceof RootSession, // don't compact workers/child processes
     },
   );
