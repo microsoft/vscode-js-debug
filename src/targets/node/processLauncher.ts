@@ -31,7 +31,8 @@ export interface IProgramLauncher {
 export const getNodeLaunchArgs = (config: INodeLaunchConfiguration) => {
   let program = config.program;
   if (program && path.isAbsolute(program)) {
-    program = `.${path.sep}${path.relative(config.cwd, program)}`;
+    const maybeRel = path.relative(config.cwd, program);
+    program = path.isAbsolute(maybeRel) ? maybeRel : `.${path.sep}${maybeRel}`;
   }
 
   return program
