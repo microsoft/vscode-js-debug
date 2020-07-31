@@ -5,13 +5,13 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import Dap from '../dap/api';
+import { asyncScopesNotAvailable } from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
+import { LogPointCompiler } from './breakpoints/conditions/logPoint';
 import { shouldSmartStepStackFrame } from './smartStepping';
 import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
-import { LogPointCompiler } from './breakpoints/conditions/logPoint';
-import { asyncScopesNotAvailable } from '../dap/errors';
-import { ProtocolError } from '../dap/protocolError';
 
 const localize = nls.loadMessageBundle();
 
@@ -228,6 +228,10 @@ export class StackFrame {
           break;
         case 'module':
           name = localize('scope.module', 'Module');
+          break;
+        default:
+          // fallback for custom scope types from other runtimes (#651)
+          name = scope.type.substr(0, 1).toUpperCase() + scope.type.substr(1);
           break;
       }
       if (scope.name && scope.type === 'closure') {
