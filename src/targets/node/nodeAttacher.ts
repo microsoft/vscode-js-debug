@@ -18,7 +18,7 @@ import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
 import { NodeBinary, NodeBinaryProvider } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
-import { IProgram, WatchDogProgram } from './program';
+import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
 
@@ -115,9 +115,18 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         ),
       });
 
-      await delay(nextRestart.delay);
-      if (this.program === program) {
-        return doLaunch(nextRestart, program);
+      const deferred = new StubProgram();
+      this.program = deferred;
+
+      const killed = await Promise.race([delay(nextRestart.delay), deferred.stopped]);
+      if (this.program !== deferred) {
+        return;
+      }
+
+      if (killed) {
+        this.onProgramTerminated(result);
+      } else {
+        doLaunch(nextRestart, deferred);
       }
     };
 
