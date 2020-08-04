@@ -57,6 +57,8 @@ interface ISetBreakpointResult {
 const isSetAtEntry = (bp: Breakpoint) =>
   bp.originalPosition.columnNumber === 1 && bp.originalPosition.lineNumber === 1;
 
+const breakpointSetTimeout = 500;
+
 export type BreakpointEnableFilter = (breakpoint: Breakpoint) => boolean;
 
 const DontCompare = Symbol('DontCompare');
@@ -79,7 +81,7 @@ export class BreakpointManager {
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
-  private _launchBlocker: Promise<unknown> = Promise.resolve();
+  private _launchBlocker: Set<Promise<unknown>> = new Set();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
   private readonly pauseForSourceMaps: boolean;
@@ -421,7 +423,7 @@ export class BreakpointManager {
   public async launchBlocker(): Promise<void> {
     logPerf(this.logger, 'BreakpointManager.launchBlocker', async () => {
       if (!this._predictorDisabledForTest) {
-        await this._launchBlocker;
+        await Promise.all([...this._launchBlocker]);
       }
     });
   }
@@ -432,6 +434,13 @@ export class BreakpointManager {
         this._setBreakpoint(new PatternEntryBreakpoint(this, pattern), thread),
       ),
     );
+  }
+
+  private addLaunchBlocker(...promises: ReadonlyArray<Promise<unknown>>) {
+    for (const promise of promises) {
+      this._launchBlocker.add(promise);
+      promise.finally(() => this._launchBlocker.delete(promise));
+    }
   }
 
   setSourceMapPauseDisabledForTest() {
@@ -463,7 +472,7 @@ export class BreakpointManager {
       return;
     }
 
-    this._launchBlocker = Promise.all([this._launchBlocker, b.enable(thread)]);
+    this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), b.enable(thread)]));
   }
 
   public async setBreakpoints(
@@ -492,7 +501,7 @@ export class BreakpointManager {
     // can place correctly in breakpoint.set().
     if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
       const promise = this._breakpointsPredictor.predictBreakpoints(params);
-      this._launchBlocker = Promise.all([this._launchBlocker, promise]);
+      this.addLaunchBlocker(promise);
       await promise;
     }
 
@@ -561,10 +570,12 @@ export class BreakpointManager {
       // This will add itself to the launch blocker if needed:
       this.ensureModuleEntryBreakpoint(thread, params.source);
 
-      await (this._launchBlocker = Promise.all([
-        this._launchBlocker,
-        ...result.new.filter(this._enabledFilter).map(b => b.enable(thread)),
-      ]));
+      const promise = Promise.all(
+        result.new.filter(this._enabledFilter).map(b => b.enable(thread)),
+      );
+      this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), promise]));
+
+      await promise;
     }
 
     const dapBreakpoints = await Promise.all(result.list.map(b => b.toDap()));
