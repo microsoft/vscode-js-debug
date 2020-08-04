@@ -132,6 +132,10 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     );
   }
 
+  protected getFilterForTarget(params: T) {
+    return requirePageTarget(createTargetFilterForConfig(params, ['about:blank']));
+  }
+
   /**
    * Starts the launch process. It boots the browser and waits until the target
    * page is available, and then returns the newly-created target.
@@ -179,7 +183,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    const filter = requirePageTarget(createTargetFilterForConfig(params, ['about:blank']));
+    const filter = this.getFilterForTarget(params);
     this._mainTarget = await timeoutPromise(
       this._targetManager.waitForMainTarget(filter),
       cancellationToken,
