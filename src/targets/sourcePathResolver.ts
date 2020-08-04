@@ -104,7 +104,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     }
 
     const relativePath = properRelative(this.options.remoteRoot, remotePath);
-    if (relativePath.startsWith('../')) {
+    if (relativePath.startsWith('..')) {
       return '';
     }
 
