@@ -20,6 +20,8 @@ import {
 } from './spawn/browserProcess';
 import { retryGetWSEndpoint } from './spawn/endpoints';
 import { launchUnelevatedChrome } from './unelevatedChome';
+import { promises as fsPromises } from 'fs';
+import { canAccess } from '../../common/fsUtils';
 
 const noop = () => undefined;
 
@@ -98,7 +100,7 @@ export async function launch(
     const cp = childProcess.spawn(executablePath, browserArguments.toArray(), {
       detached: true,
       env: env.defined(),
-      cwd,
+      cwd: (await canAccess(fsPromises, cwd)) ? cwd : process.cwd(),
       stdio,
     }) as childProcess.ChildProcessWithoutNullStreams;
 
