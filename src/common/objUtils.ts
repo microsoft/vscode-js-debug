@@ -276,6 +276,36 @@ export function debounce(duration: number, fn: () => void): (() => void) & { cle
 }
 
 /**
+ * Throttles the function to be called at most every "duration", delaying the
+ * call by the duration on its first invokation.
+ */
+export function trailingEdgeThrottle(
+  duration: number,
+  fn: () => void,
+): (() => void) & { clear: () => void } {
+  let timeout: NodeJS.Timer | void;
+  const debounced = () => {
+    if (timeout !== undefined) {
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      fn();
+    }, duration);
+  };
+
+  debounced.clear = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
+  };
+
+  return debounced;
+}
+
+/**
  * Bisets the array by the predicate. The first return value will be the ones
  * in which the predicate returned true, the second where it returned false.
  */

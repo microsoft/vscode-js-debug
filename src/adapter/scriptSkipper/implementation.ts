@@ -9,7 +9,7 @@ import { ICdpApi } from '../../cdp/connection';
 import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
-import { debounce } from '../../common/objUtils';
+import { trailingEdgeThrottle } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
@@ -72,7 +72,9 @@ export class ScriptSkipper {
     this._preprocessNodeInternals(skipFiles);
     this._setRegexForNonNodeInternals(skipFiles);
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
-    this._updateSkippedDebounce = debounce(100, () => this._updateGeneratedSkippedSources());
+    this._updateSkippedDebounce = trailingEdgeThrottle(500, () =>
+      this._updateGeneratedSkippedSources(),
+    );
 
     ScriptSkipper.sharedSkipsEmitter.event(e => {
       if (e.rootTargetId === this._rootTargetId && e.targetId !== this._targetId) {
