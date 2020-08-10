@@ -497,6 +497,7 @@ export class Thread implements IVariableStoreDelegate {
       this._executionContextsCleared();
     });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
+      this._cdp.Console.on('messageAdded', async event => this._onMessageAdded(event));
       this._cdp.Runtime.on('consoleAPICalled', async event => {
         const slot = this._claimOutputSlot();
         slot(await this._onConsoleMessage(event));
@@ -622,6 +623,25 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Debugger.enable({}).then(response => {
       if (response) Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
     });
+  }
+
+  /**
+   * For backcompat, also listen to Console.messageAdded, only if it looks like the old format.
+   */
+  // eslint-disable-next-line
+  private async _onMessageAdded(event: any) {
+    // message.type is undefined when Runtime.consoleAPICalled is being sent
+    if (event && event.message && event.message.type) {
+      const onConsoleAPICalledParams: Cdp.Runtime.ConsoleAPICalledEvent = {
+        type: event.message.type,
+        timestamp: event.message.timestamp,
+        args: event.message.parameters || [{ type: 'string', value: event.message.text }],
+        stackTrace: event.message.stack,
+        executionContextId: 1,
+      };
+      const slot = this._claimOutputSlot();
+      slot(await this._onConsoleMessage(onConsoleAPICalledParams));
+    }
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
