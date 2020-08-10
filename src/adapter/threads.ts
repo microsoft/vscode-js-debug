@@ -636,7 +636,7 @@ export class Thread implements IVariableStoreDelegate {
         type: event.message.type,
         timestamp: event.message.timestamp,
         args: event.message.parameters || [{ type: 'string', value: event.message.text }],
-        stackTrace: event.message.stack,
+        stackTrace: { callFrames: event.message.stack || event.message.stackTrace },
         executionContextId: 1,
       };
       const slot = this._claimOutputSlot();
