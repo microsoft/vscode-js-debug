@@ -515,6 +515,10 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
+    this._cdp.Console.enable({}).catch(() => {
+      /* Specifically ignore a fail here since it's only for backcompat */
+    });
+    this._cdp.Debugger.setBreakpointsActive({ active: true }); // This call is used for some non-standard runtimes like: https://github.com/google/ios-webkit-debug-proxy
     this._cdp.Runtime.enable({});
 
     if (!this.launchConfig.noDebug) {
