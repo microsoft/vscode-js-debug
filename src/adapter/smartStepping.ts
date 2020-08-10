@@ -25,7 +25,7 @@ export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise
   return false;
 }
 
-const neverStepReasons: ReadonlySet<PausedReason> = new Set(['breakpoint', 'exception']);
+const neverStepReasons: ReadonlySet<PausedReason> = new Set(['breakpoint', 'exception', 'entry']);
 
 /**
  * The SmartStepper is a device that controls stepping through code that lacks
