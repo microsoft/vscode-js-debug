@@ -37,7 +37,7 @@ export class SmartStepper {
   constructor(
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly logger: ILogger,
-  ) { }
+  ) {}
 
   private resetSmartStepCount(): void {
     if (this._smartStepCount > 0) {
