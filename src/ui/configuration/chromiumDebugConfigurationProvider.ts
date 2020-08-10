@@ -2,23 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
+import { tmpdir } from 'os';
+import { basename, join } from 'path';
 import * as vscode from 'vscode';
-import {
-  INodeLaunchConfiguration,
-  AnyChromiumConfiguration,
-  ResolvingConfiguration,
-  IChromiumLaunchConfiguration,
-  AnyChromiumLaunchConfiguration,
-} from '../../configuration';
-import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
-import { DebugType } from '../../common/contributionUtils';
-import { BaseConfigurationResolver } from './baseConfigurationResolver';
-import { TerminalDebugConfigurationResolver } from './terminalDebugConfigurationResolver';
-import { injectable, inject } from 'inversify';
-import { ExtensionContext, ExtensionLocation } from '../../ioc-extras';
-import { basename } from 'path';
 import * as nls from 'vscode-nls';
+import { DebugType } from '../../common/contributionUtils';
+import { existsInjected } from '../../common/fsUtils';
+import {
+  AnyChromiumConfiguration,
+  AnyChromiumLaunchConfiguration,
+  IChromiumLaunchConfiguration,
+  INodeLaunchConfiguration,
+  ResolvingConfiguration,
+} from '../../configuration';
+import { ExtensionContext, ExtensionLocation, FS, FsPromises } from '../../ioc-extras';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { BaseConfigurationResolver } from './baseConfigurationResolver';
+import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
+import { TerminalDebugConfigurationResolver } from './terminalDebugConfigurationResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -40,6 +42,7 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
     @inject(TerminalDebugConfigurationResolver)
     private readonly terminalProvider: TerminalDebugConfigurationResolver,
     @inject(ExtensionLocation) private readonly location: ExtensionLocation,
+    @inject(FS) private readonly fs: FsPromises,
   ) {
     super(context);
   }
@@ -83,6 +86,78 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
    */
   protected getSuggestedWorkspaceFolders(config: AnyChromiumConfiguration) {
     return [config.rootPath, config.webRoot];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async resolveDebugConfigurationWithSubstitutedVariables?(
+    _folder: vscode.WorkspaceFolder | undefined,
+    debugConfiguration: vscode.DebugConfiguration,
+  ): Promise<vscode.DebugConfiguration | undefined> {
+    if ('__pendingTargetId' in debugConfiguration) {
+      return debugConfiguration as T;
+    }
+
+    let config = debugConfiguration as T;
+
+    if (config.request === 'launch') {
+      const resolvedDataDir = await this.ensureNoLockfile(config);
+      if (resolvedDataDir === undefined) {
+        return;
+      }
+
+      config = resolvedDataDir;
+    }
+
+    return config;
+  }
+
+  protected async ensureNoLockfile(config: T): Promise<T | undefined> {
+    if (config.request !== 'launch') {
+      return config;
+    }
+
+    const cast = config as ResolvingConfiguration<AnyChromiumLaunchConfiguration>;
+
+    // for no user data dirs, with have nothing to look at
+    if (cast.userDataDir === false) {
+      return config;
+    }
+
+    // if there's a port configured and something's there, we can connect to it regardless
+    if (cast.port) {
+      return config;
+    }
+
+    const userDataDir =
+      typeof cast.userDataDir === 'string'
+        ? cast.userDataDir
+        : join(
+            this.extensionContext.storagePath ?? tmpdir(),
+            cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
+          );
+
+    if (await existsInjected(this.fs, join(userDataDir, 'lockfile'))) {
+      const debugAnyway = localize('existingBrowser.debugAnyway', 'Debug Anyway');
+      const result = await vscode.window.showErrorMessage(
+        localize(
+          'existingBrowser.alert',
+          'It looks like a browser is already running from {0}. Please close it before trying to debug, otherwise VS Code may not be able to connect to it.',
+          cast.userDataDir === true
+            ? localize('existingBrowser.location.default', 'an old debug session')
+            : localize('existingBrowser.location.userDataDir', 'the configured userDataDir'),
+        ),
+        debugAnyway,
+        localize('cancel', 'Cancel'),
+      );
+
+      if (result !== debugAnyway) {
+        return undefined;
+      }
+    }
+
+    return { ...config, userDataDir };
   }
 }
 
