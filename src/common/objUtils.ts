@@ -282,7 +282,7 @@ export function debounce(duration: number, fn: () => void): (() => void) & { cle
 export function trailingEdgeThrottle(
   duration: number,
   fn: () => void,
-): (() => void) & { clear: () => void } {
+): (() => void) & { clear: () => void; queued: () => boolean } {
   let timeout: NodeJS.Timer | void;
   const debounced = () => {
     if (timeout !== undefined) {
@@ -294,6 +294,8 @@ export function trailingEdgeThrottle(
       fn();
     }, duration);
   };
+
+  debounced.queued = () => !!timeout;
 
   debounced.clear = () => {
     if (timeout) {

@@ -2,30 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Container } from 'inversify';
 import * as nls from 'vscode-nls';
-import Dap from '../dap/api';
+import { Cdp } from '../cdp/api';
+import { DisposableList, IDisposable } from '../common/disposable';
+import { ILogger, LogTag } from '../common/logging';
+import { getDeferred, IDeferred } from '../common/promiseUtil';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
-import * as errors from '../dap/errors';
-import { SourceContainer } from './sources';
-import { Thread, IThreadDelegate, PauseOnExceptionsState } from './threads';
-import { VariableStore } from './variables';
-import { BreakpointManager } from './breakpoints';
-import { Cdp } from '../cdp/api';
 import { AnyLaunchConfiguration } from '../configuration';
-import { ITelemetryReporter } from '../telemetry/telemetryReporter';
-import { IDeferred, getDeferred } from '../common/promiseUtil';
-import { ScriptSkipper } from './scriptSkipper/implementation';
-import { IAsyncStackPolicy } from './asyncStackPolicy';
-import { LogTag, ILogger } from '../common/logging';
-import { DisposableList, IDisposable } from '../common/disposable';
-import { Container } from 'inversify';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
 import { disposeContainer } from '../ioc-extras';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import { IAsyncStackPolicy } from './asyncStackPolicy';
+import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
 import { IEvaluator } from './evaluator';
 import { IProfileController } from './profileController';
-import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
+import { ScriptSkipper } from './scriptSkipper/implementation';
+import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import { SourceContainer } from './sources';
+import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
+import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
 
@@ -175,25 +175,32 @@ export class DebugAdapter implements IDisposable {
     params: Dap.SetExceptionBreakpointsParams,
   ): Promise<Dap.SetExceptionBreakpointsResult> {
     this._pauseOnExceptionsState = 'none';
-    if (params.filters.includes('caught')) this._pauseOnExceptionsState = 'all';
-    else if (params.filters.includes('uncaught')) this._pauseOnExceptionsState = 'uncaught';
-    if (this._thread) {
-      const result = this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
-      const logger = this._services.get<ILogger>(ILogger);
-      if (this._configurationDoneDeferred.hasSettled()) {
-        logger.verbose(LogTag.Internal, 'setExceptionBreakpoints: awaiting blocking response');
-        await result;
-      } else {
-        result.catch(rejection => {
-          const output = localize(
-            '`errors.setExceptionBreakpoints.async.failed`',
-            'Failed to configure the exceptions for which to pause due to: {0}',
-            rejection.message || localize('errors.unknown', 'Unknown error'),
-          );
-          this.dap.output({ category: 'stderr', output: output });
-        });
-      }
+    if (params.filters.includes('caught')) {
+      this._pauseOnExceptionsState = 'all';
+    } else if (params.filters.includes('uncaught')) {
+      this._pauseOnExceptionsState = 'uncaught';
     }
+
+    if (!this._thread) {
+      return {};
+    }
+
+    const result = this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
+    const logger = this._services.get<ILogger>(ILogger);
+    if (this._configurationDoneDeferred.hasSettled()) {
+      logger.verbose(LogTag.Internal, 'setExceptionBreakpoints: awaiting blocking response');
+      await result;
+    } else {
+      result.catch(rejection => {
+        const output = localize(
+          '`errors.setExceptionBreakpoints.async.failed`',
+          'Failed to configure the exceptions for which to pause due to: {0}',
+          rejection.message || localize('errors.unknown', 'Unknown error'),
+        );
+        this.dap.output({ category: 'stderr', output: output });
+      });
+    }
+
     return {};
   }
 

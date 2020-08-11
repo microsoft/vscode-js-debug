@@ -702,6 +702,30 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
+    // Setting blackbox patterns is asynchronous to when the source is loaded,
+    // so if the user asks to pause on exceptions the runtime may pause in a
+    // place where we don't want it to. Double check at this point and manually
+    // resume debugging for handled exceptions. This implementation seems to
+    // work identically to blackboxing (test cases represent this):
+    //
+    // - ✅ An error is thrown and caught within skipFiles. Resumed here.
+    // - ✅ An uncaught error is re/thrown within skipFiles. In both cases the
+    //      stack is reported at the first non-skipped file is shown.
+    // - ✅ An error is thrown from skipFiles and caught in user code. In both
+    //      blackboxing and this version, the debugger will not pause.
+    // - ✅ An error is thrown anywhere in user code. All good.
+    //
+    // See: https://github.com/microsoft/vscode-js-debug/issues/644
+    if (
+      event.reason === 'exception' &&
+      !event.data?.uncaught &&
+      event.callFrames.length &&
+      this._sourceContainer.scriptSkipper.isScriptSkipped(event.callFrames[0].url)
+    ) {
+      this.resume();
+      return;
+    }
+
     // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
     const pausedDetails = (this._pausedDetails = this._createPausedDetails(event));
     if (!shouldPause) {
