@@ -85,7 +85,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Attached server connections. Tracked so they can be torn down readily.
    */
-  private serverConnections: Connection[] = [];
+  private serverConnections = new Set<Connection>();
 
   /**
    * Target list.
@@ -188,14 +188,21 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       return;
     }
 
-    // connections must be closed, or the process will wait forever:
-    this.closeAllConnections();
-
     // Clear the program so that termination logic doesn't run.
     const program = this.program;
     if (program) {
       this.program = undefined;
       await program.stop();
+
+      const closeOk = await Promise.race([
+        delay(2000).then(() => false),
+        Promise.all([...this.serverConnections].map(c => new Promise(r => c.onDisconnected(r)))),
+      ]);
+
+      if (!closeOk) {
+        this.logger.warn(LogTag.RuntimeLaunch, 'Timeout waiting for server connections to close');
+        this.closeAllConnections();
+      }
     }
 
     // relaunch the program, releasing the initial cancellation token:
@@ -365,7 +372,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
   protected closeAllConnections() {
     this.serverConnections.forEach(c => c.close());
-    this.serverConnections = [];
+    this.serverConnections.clear();
   }
 
   protected async _startSession(socket: net.Socket, telemetryReporter: ITelemetryReporter) {
@@ -414,7 +421,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       logger,
       rawTelemetryReporter,
     );
-    this.serverConnections.push(connection);
+
+    this.serverConnections.add(connection);
+    connection.onDisconnected(() => this.serverConnections.delete(connection));
+
     const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f =>
       cdp.Target.on('targetCreated', f),
