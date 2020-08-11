@@ -38,6 +38,10 @@ app.use(
   express.static(path.join(webRoot, 'browserify')),
 );
 
+app.get('/redirect-to-greet', (_req, res) => res.redirect('/greet'));
+
+app.get('/greet', (_req, res) => res.send('Hello world!'));
+
 app.use('/', express.static(path.join(webRoot)));
 
 app.listen(port, () => {
