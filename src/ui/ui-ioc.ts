@@ -18,6 +18,7 @@ import { ManualTerminationConditionFactory } from './profiling/manualTermination
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { UiProfileManager } from './profiling/uiProfileManager';
 import { TerminalLinkHandler } from './terminalLinkHandler';
+import { CascadeTerminationTracker } from './cascadeTerminateTracker';
 
 export const registerUiComponents = (container: Container) => {
   allConfigurationResolvers.forEach(cls => {
@@ -36,6 +37,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DebugLinkUi).toSelf().inSingletonScope();
+  container.bind(CascadeTerminationTracker).toSelf().inSingletonScope();
 
   container
     .bind(ITerminationConditionFactory)

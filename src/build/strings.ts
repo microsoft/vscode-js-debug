@@ -21,6 +21,9 @@ const strings = {
   'trace.stdio.description':
     'Whether to return trace data from the launched application or browser.',
 
+  'base.cascadeTerminateToConfigurations.label':
+    'A list of debug sessions which, when this debug session is terminated, will also be stopped.',
+
   'extensionHost.label': 'VS Code Extension Development (preview)',
   'extensionHost.launch.config.name': 'Launch Extension',
   'extensionHost.launch.env.description': 'Environment variables passed to the extension host.',

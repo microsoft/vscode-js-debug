@@ -166,6 +166,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   enableContentValidation: boolean;
 
   /**
+   * A list of debug sessions which, when this debug session is terminated,
+   * will also be stopped.
+   */
+  cascadeTerminateToConfigurations: string[];
+
+  /**
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
@@ -752,6 +758,7 @@ export const baseDefaults: IBaseConfiguration = {
   outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
+  cascadeTerminateToConfigurations: [],
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,

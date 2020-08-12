@@ -5,7 +5,8 @@
 <details><h4>address</h4><p>TCP/IP address of process to be debugged. Default is &#39;localhost&#39;.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>attachExistingChildren</h4><p>Whether to attempt to attach to already-spawned child processes.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>continueOnAttach</h4><p>If true, we&#39;ll automatically resume programs launched and waiting on <code>--inspect-brk</code></p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>continueOnAttach</h4><p>If true, we&#39;ll automatically resume programs launched and waiting on <code>--inspect-brk</code></p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
@@ -46,7 +47,8 @@
 <details><h4>args</h4><p>Command line arguments passed to the program.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>attachSimplePort</h4><p>If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>console</h4><p>Where to launch the debug target.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>console</h4><p>Where to launch the debug target.</p>
 <h5>Default value:</h4><pre><code>"internalConsole"</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
@@ -89,7 +91,8 @@
 ### node-terminal: launch
 
 <details><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>command</h4><p>Command to run in the launched terminal. If not provided, the terminal will open without launching a program.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>command</h4><p>Command to run in the launched terminal. If not provided, the terminal will open without launching a program.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
@@ -130,7 +133,8 @@
 <h5>Default value:</h4><pre><code>[
   "--extensionDevelopmentPath=${workspaceFolder}"
 ]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>cwd</h4><p>Absolute path to the working directory of the program being debugged.</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>debugWebviews</h4><p>Configures whether we should try to attach to webviews in the launched VS Code instance. <strong>Note:</strong> at the moment this requires the setting <code>&quot;webview.experimental.useExternalEndpoint&quot;: true</code> to work properly, and will only work in desktop VS Code.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>debugWebWorkerHost</h4><p>Configures whether we should try to attach to the web worker extension host.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
@@ -168,7 +172,8 @@
 ### pwa-chrome: launch
 
 <details><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
 <h5>Default value:</h4><pre><code>"wholeBrowser"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
@@ -214,7 +219,8 @@
 
 <details><h4>address</h4><p>IP address or hostname the debugged browser is listening on.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserAttachLocation</h4><p>Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
@@ -253,7 +259,8 @@
 
 <details><h4>address</h4><p>When debugging webviews, the IP address or hostname the webview is listening on. Will be automatically discovered if not set.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>cleanUp</h4><p>What clean-up to do after the debugging session finishes. Close only the tab being debug, vs. close the whole browser.</p>
 <h5>Default value:</h4><pre><code>"wholeBrowser"</pre></code><h4>cwd</h4><p>Optional working directory for the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
@@ -300,7 +307,8 @@
 
 <details><h4>address</h4><p>IP address or hostname the debugged browser is listening on.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserAttachLocation</h4><p>Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.</p>
-<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
+<h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>

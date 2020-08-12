@@ -12,7 +12,7 @@ export const registerRevealPage = (
 ) => {
   context.subscriptions.push(
     registerCommand(vscode.commands, Commands.RevealPage, async sessionId => {
-      const session = tracker.sessions.get(sessionId);
+      const session = tracker.getById(sessionId);
       await session?.customRequest('revealPage');
     }),
   );
