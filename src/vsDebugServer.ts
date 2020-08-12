@@ -56,21 +56,26 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     const services = createGlobalContainer({ storagePath, isVsCode: false });
     this.sessionServer = new ServerSessionManager(services, this);
 
-    if (inputStream && outputStream) {
-      this.launchRootFromExisting(inputStream, outputStream);
-    } else {
-      this.launchRoot();
-    }
-  }
-
-  launchRootFromExisting(inputStream: Readable, outputStream: Writable) {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
-    const session = new VSDebugSession(
+    const rootSession = new VSDebugSession(
       'root',
       'JavaScript debugger root session',
       deferredConnection.promise,
       { type: 'pwa-chrome', name: 'root', request: 'launch' },
     );
+    if (inputStream && outputStream) {
+      this.launchRootFromExisting(deferredConnection, rootSession, inputStream, outputStream);
+    } else {
+      this.launchRoot(deferredConnection, rootSession);
+    }
+  }
+
+  launchRootFromExisting(
+    deferredConnection: IDeferred<DapConnection>,
+    session: VSDebugSession,
+    inputStream: Readable,
+    outputStream: Writable,
+  ) {
     const newSession = this.sessionServer.createRootDebugSessionFromStreams(
       session,
       inputStream,
@@ -79,14 +84,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     deferredConnection.resolve(newSession.connection);
   }
 
-  launchRoot() {
-    const deferredConnection: IDeferred<DapConnection> = getDeferred();
-    const session = new VSDebugSession(
-      'root',
-      'JavaScript debugger root session',
-      deferredConnection.promise,
-      { type: 'pwa-chrome', name: 'root', request: 'launch' },
-    );
+  launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
     const result = this.sessionServer.createRootDebugServer(session, debugServerPort);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     console.log((result.server.address() as net.AddressInfo).port.toString());
