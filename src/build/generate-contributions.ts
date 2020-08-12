@@ -702,6 +702,19 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
     enum: ['pick', 'automatic'],
     default: 'automatic',
   },
+  browserAttachLocation: {
+    description: refString('browser.browserAttachLocation.description'),
+    default: null,
+    oneOf: [
+      {
+        type: 'null',
+      },
+      {
+        type: 'string',
+        enum: ['ui', 'workspace'],
+      },
+    ],
+  },
 };
 
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
@@ -828,7 +841,6 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
         type: DebugType.ExtensionHost,
         request: 'launch',
         name: refString('extensionHost.launch.config.name'),
-        runtimeExecutable: '^"\\${execPath}"',
         args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
         outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
         preLaunchTask: 'npm',

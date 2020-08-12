@@ -356,6 +356,14 @@ const dapCustom: JSONSchema4 = {
                     type: 'string',
                   },
                 },
+                attach: {
+                  type: 'object',
+                  required: ['host', 'port'],
+                  properties: {
+                    host: { type: 'string' },
+                    port: { type: 'number' },
+                  },
+                },
                 params: {
                   type: 'object',
                   description: 'Original launch parameters for the debug session',

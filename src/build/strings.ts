@@ -66,6 +66,8 @@ const strings = {
   'browser.cwd.description': 'Optional working directory for the runtime executable.',
   'browser.browserLaunchLocation.description':
     'Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.',
+  'browser.browserAttachLocation.description':
+    'Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.',
   'browser.disableNetworkCache.description':
     'Controls whether to skip the network cache for each request',
   'browser.env.description': 'Optional dictionary of environment key/value pairs for the browser.',

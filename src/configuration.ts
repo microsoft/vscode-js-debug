@@ -602,6 +602,13 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
    * or ask the user to pick one ("pick").
    */
   targetSelection: 'pick' | 'automatic';
+
+  /**
+   * Forces the browser to attach in one location. In a remote workspace
+   * (through ssh or WSL, for example) this can be used to attach to a browser
+   * on the remote machine rather than locally.
+   */
+  browserAttachLocation: 'workspace' | 'ui' | null;
 }
 
 /**
@@ -828,6 +835,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
+  browserAttachLocation: 'workspace',
   targetSelection: 'automatic',
   vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
 };
@@ -894,20 +902,20 @@ export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeCo
 
 export function applyChromeDefaults(
   config: ResolvingChromeConfiguration,
-  browserLaunchLocation: 'workspace' | 'ui',
+  browserLocation: 'workspace' | 'ui',
 ): AnyChromeConfiguration {
   return config.request === 'attach'
-    ? { ...chromeAttachConfigDefaults, ...config }
-    : { ...chromeLaunchConfigDefaults, browserLaunchLocation, ...config };
+    ? { ...chromeAttachConfigDefaults, browserAttachLocation: browserLocation, ...config }
+    : { ...chromeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
 export function applyEdgeDefaults(
   config: ResolvingEdgeConfiguration,
-  browserLaunchLocation: 'workspace' | 'ui',
+  browserLocation: 'workspace' | 'ui',
 ): AnyEdgeConfiguration {
   return config.request === 'attach'
-    ? { ...edgeAttachConfigDefaults, ...config }
-    : { ...edgeLaunchConfigDefaults, browserLaunchLocation, ...config };
+    ? { ...edgeAttachConfigDefaults, browserAttachLocation: browserLocation, ...config }
+    : { ...edgeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
 export function applyExtensionHostDefaults(

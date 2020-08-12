@@ -12,6 +12,7 @@ import { existsInjected } from '../../common/fsUtils';
 import {
   AnyChromiumConfiguration,
   AnyChromiumLaunchConfiguration,
+  IChromiumAttachConfiguration,
   IChromiumLaunchConfiguration,
   INodeLaunchConfiguration,
   ResolvingConfiguration,
@@ -27,6 +28,10 @@ const localize = nls.loadMessageBundle();
 const isLaunch = (
   value: ResolvingConfiguration<unknown>,
 ): value is ResolvingConfiguration<IChromiumLaunchConfiguration> => value.request === 'launch';
+
+const isAttach = (
+  value: ResolvingConfiguration<unknown>,
+): value is ResolvingConfiguration<IChromiumAttachConfiguration> => value.request === 'attach';
 
 /**
  * Configuration provider for Chrome debugging.
@@ -76,8 +81,13 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
       });
     }
 
+    const browserLocation = this.location === 'remote' ? 'ui' : 'workspace';
     if (isLaunch(config) && !config.browserLaunchLocation) {
-      config.browserLaunchLocation = this.location === 'remote' ? 'ui' : 'workspace';
+      config.browserLaunchLocation = browserLocation;
+    }
+
+    if (isAttach(config) && !config.browserAttachLocation) {
+      config.browserAttachLocation = browserLocation;
     }
   }
 

@@ -73,6 +73,7 @@ export class WatchDog implements IDisposable {
     url: 'file://' + this.info.scriptName,
     openerId: this.info.ppid,
     attached: true,
+    canAccessOpener: false,
   };
 
   /**
