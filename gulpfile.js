@@ -273,6 +273,12 @@ gulp.task('flatSessionBundle:webpack-bundle', async () => {
   return runWebpack({ packages, devtool: 'nosources-source-map' });
 });
 
+/** Run webpack to bundle into the VS debug server */
+gulp.task('flatSessionBundle:webpack-bundle', async () => {
+  const packages = [{ entry: `${buildSrcDir}/vsDebugServer.js`, library: true }];
+  return runWebpack({ packages, devtool: 'nosources-source-map' });
+});
+
 /** Copy the extension static files */
 gulp.task('package:copy-extension-files', () =>
   merge(
@@ -375,6 +381,17 @@ gulp.task(
 
 gulp.task(
   'flatSessionBundle',
+  gulp.series(
+    'clean',
+    'compile',
+    'flatSessionBundle:webpack-bundle',
+    'package:copy-extension-files',
+    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
+  ),
+);
+
+gulp.task(
+  'vsDebugServerBundle',
   gulp.series(
     'clean',
     'compile',
