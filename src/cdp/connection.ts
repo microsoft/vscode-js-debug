@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from './transport';
-import { EventEmitter } from '../common/events';
-import Cdp from './api';
-import { ITelemetryReporter } from '../telemetry/telemetryReporter';
-import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
+import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import Cdp from './api';
+import { ITransport } from './transport';
 
 interface IProtocolCommand {
   id?: number;
@@ -39,7 +39,7 @@ interface IProtocolCallback {
   method: string;
 }
 
-let connectionId = 0;
+let connectionId = 1000;
 
 export const ICdpApi = Symbol('ICdpApi');
 
