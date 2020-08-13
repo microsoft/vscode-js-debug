@@ -2,30 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
+import { NeverCancelled } from '../common/cancellation';
 import {
-  registerCommand,
-  readConfig,
+  Commands,
   Configuration,
   DebugType,
-  Commands,
+  readConfig,
+  registerCommand,
 } from '../common/contributionUtils';
-import { TerminalNodeLauncher, ITerminalLauncherLike } from '../targets/node/terminalNodeLauncher';
-import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
-import { ITarget } from '../targets/targets';
-import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
+import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
   ITerminalLaunchConfiguration,
   terminalBaseDefaults,
 } from '../configuration';
-import { NeverCancelled } from '../common/cancellation';
 import { createPendingDapApi } from '../dap/pending-api';
+import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
+import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
+import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
+import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-import { promises as fs } from 'fs';
-import { ProxyLogger } from '../common/logging/proxyLogger';
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -136,7 +136,7 @@ export function registerDebugTerminalUI(
    * See docblocks on {@link DelegateLauncher} for more information on
    * how this works.
    */
-  function launchTerminal(
+  async function launchTerminal(
     delegate: DelegateLauncherFactory,
     command?: string,
     workspaceFolder?: vscode.WorkspaceFolder,
@@ -148,13 +148,15 @@ export function registerDebugTerminalUI(
       linkHandler.enableHandlingInTerminal(terminal);
     });
 
-    launchVirtualTerminalParent(delegate, launcher, {
-      command,
-      ...defaultConfig,
-      __workspaceFolder: workspaceFolder?.uri.fsPath,
-    });
-
-    return Promise.resolve();
+    try {
+      await launchVirtualTerminalParent(delegate, launcher, {
+        command,
+        ...defaultConfig,
+        __workspaceFolder: workspaceFolder?.uri.fsPath,
+      });
+    } catch (e) {
+      vscode.window.showErrorMessage(e.message);
+    }
   }
 
   context.subscriptions.push(
