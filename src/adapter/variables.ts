@@ -13,6 +13,8 @@ import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
 import { RemoteException } from './templates';
 import { flatten } from '../common/objUtils';
+import ts from 'typescript';
+import { codeToFunctionReturningErrors } from '../common/sourceCodeManipulations';
 
 const localize = nls.loadMessageBundle();
 
@@ -92,7 +94,6 @@ export interface IExtraProperty {
 
 export interface IVariableStoreDelegate {
   renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
-  reportError(errorText: string): Promise<void>;
 }
 
 export class VariableStore {
@@ -607,31 +608,47 @@ export class VariableStore {
       objectPreview.previewRemoteObject(object, context);
 
     if (this.customDescriptionGenerator) {
-      const customValueDescription = await this._cdp.Runtime.callFunctionOn({
-        objectId: object.objectId,
-        functionDeclaration: this.customDescriptionGenerator,
-        arguments: [this._toCallArgument(defaultValueDescription)],
-      });
-
-      if (customValueDescription?.exceptionDetails === undefined) {
-        return '' + customValueDescription?.result.value;
-      } else {
-        let descriptionFirstLine = localize('error.unknown', 'Unknown error');
-        if (customValueDescription.result.description) {
-          await this._delegate.reportError(customValueDescription.result.description);
-          descriptionFirstLine = customValueDescription.result.description.split('\n', 1)[0];
+      let errorDescription;
+      try {
+        const customValueDescription = await this._cdp.Runtime.callFunctionOn({
+          objectId: object.objectId,
+          functionDeclaration: this.extractFunctionFromCustomDescriptionGenerator(
+            this.customDescriptionGenerator,
+          ),
+          arguments: [this._toCallArgument(defaultValueDescription)],
+        });
+        if (customValueDescription?.exceptionDetails === undefined) {
+          return '' + customValueDescription?.result.value;
+        } else if (customValueDescription.result.description) {
+          errorDescription = customValueDescription.result.description.split('\n', 1)[0];
+        } else {
+          errorDescription = localize('error.unknown', 'Unknown error');
         }
-
-        return localize(
-          'error.customValueDescriptionGeneratorFailed',
-          "{0} (couldn't describe: {1})",
-          defaultValueDescription,
-          descriptionFirstLine,
-        );
+      } catch (e) {
+        errorDescription = e.stack || e.message || String(e);
       }
+
+      return localize(
+        'error.customValueDescriptionGeneratorFailed',
+        "{0} (couldn't describe: {1})",
+        defaultValueDescription,
+        errorDescription,
+      );
     } else {
       return defaultValueDescription;
     }
+  }
+
+  private extractFunctionFromCustomDescriptionGenerator(generatorDefinition: string): string {
+    const sourceFile = ts.createSourceFile(
+      'customDescriptionGenerator.js',
+      generatorDefinition,
+      ts.ScriptTarget.ESNext,
+      true,
+    );
+
+    const code = codeToFunctionReturningErrors('defaultValue', sourceFile.statements);
+    return code;
   }
 
   private _createArrayVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {

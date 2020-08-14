@@ -16,7 +16,7 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ],
-            "customDescriptionGenerator": "function (defaultValue) { return global.customDebuggerDescription(this, defaultValue); }",
+            "customDescriptionGenerator": "const lal = 4; lal + global.customDebuggerDescription(this, defaultValue)",
         }
     ]
 }

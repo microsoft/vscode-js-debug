@@ -86,16 +86,45 @@ describe('variables', () => {
       p.assertLog();
     });
 
-    itIntegrates('customDescriptionGenerator', async ({ r }) => {
-      const p = await r.launchAndLoad('blank', {
-        customDescriptionGenerator:
-          'function (def) { if (this.customDescription) return this.customDescription(); else return def }',
+    describe('customDescriptionGenerator', () => {
+      itIntegrates('customDescriptionGenerator using function declaration', async ({ r }) => {
+        const p = await r.launchAndLoad('blank', {
+          customDescriptionGenerator:
+            'function (def) { if (this.customDescription) return "using function: " + this.customDescription(); else return def }',
+        });
+        await p.logger.evaluateAndLog(`
+          class Foo { get getter() {} }
+          class Bar extends Foo { customDescription() { return 'Instance of bar'} }
+          new Bar();`);
+        p.assertLog();
       });
-      await p.logger.evaluateAndLog(`
-        class Foo { get getter() {} }
-        class Bar extends Foo { customDescription() { return 'Instance of bar'} }
-        new Bar();`);
-      p.assertLog();
+
+      itIntegrates('customDescriptionGenerator using statement syntax', async ({ r }) => {
+        const p = await r.launchAndLoad('blank', {
+          customDescriptionGenerator:
+            'const hasCustomDescription = this.customDescription; "using statement: " + (hasCustomDescription ? this.customDescription() : defaultValue)',
+        });
+        await p.logger.evaluateAndLog(`
+          class Foo { get getter() {} }
+          class Bar extends Foo { customDescription() { return 'Instance of bar'} }
+          new Bar();`);
+        p.assertLog();
+      });
+
+      itIntegrates(
+        'customDescriptionGenerator using statement with return syntax',
+        async ({ r }) => {
+          const p = await r.launchAndLoad('blank', {
+            customDescriptionGenerator:
+              'const hasCustomDescription = this.customDescription; if (hasCustomDescription) { return "using statement return: " + this.customDescription() } else return defaultValue',
+          });
+          await p.logger.evaluateAndLog(`
+          class Foo { get getter() {} }
+          class Bar extends Foo { customDescription() { return 'Instance of bar'} }
+          new Bar();`);
+          p.assertLog();
+        },
+      );
     });
   });
 

@@ -1,0 +1,3 @@
+> result: using statement: Instance of bar
+    > get getter: ƒ getter() {}
+    > __proto__: using statement: Instance of bar

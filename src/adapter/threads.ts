@@ -875,15 +875,6 @@ export class Thread implements IVariableStoreDelegate {
     return `@ VM${raw.scriptId || 'XX'}:${raw.lineNumber}`;
   }
 
-  async reportError(errorText: string): Promise<void> {
-    await this._dap.with(dap =>
-      dap.output({
-        category: 'stderr',
-        output: errorText + '\n',
-      }),
-    );
-  }
-
   async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
     await this._cdp.Debugger.setPauseOnExceptions({ state });
   }

@@ -2,6 +2,7 @@ function customDebuggerDescription(obj: any, defaultValue: string): string {
     if (obj.constructor.prototype === obj) {
         // object is a prototype
         if (obj.constructor.name) {
+            throw new Error('awefawfwea');
             return `Prototype of ${obj.constructor.name}`;
         } else {
             return defaultValue;
