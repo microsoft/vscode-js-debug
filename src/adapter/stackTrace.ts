@@ -21,7 +21,11 @@ export class StackTrace {
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
 
-  public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
+  public static fromRuntime(
+    thread: Thread,
+    stack: Cdp.Runtime.StackTrace,
+    frameLimit?: number,
+  ): StackTrace {
     const result = new StackTrace(thread);
     const callFrames = stack.callFrames;
 
@@ -30,8 +34,10 @@ export class StackTrace {
       callFrames.splice(0, 1);
     }
 
-    for (const callFrame of stack.callFrames)
+    for (const callFrame of frameLimit ? stack.callFrames.slice(0, frameLimit) : stack.callFrames) {
       result._frames.push(StackFrame.fromRuntime(thread, callFrame));
+    }
+
     if (stack.parentId) {
       result._asyncStackTraceId = stack.parentId;
       console.assert(!stack.parent);
@@ -145,7 +151,10 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  private _uiLocation: Promise<IPreferredUiLocation | undefined>;
+  public readonly uiLocation:
+    | Promise<IPreferredUiLocation | undefined>
+    | IPreferredUiLocation
+    | undefined;
   private _isAsyncSeparator = false;
   private _scope: IScope | undefined;
   private _thread: Thread;
@@ -177,7 +186,7 @@ export class StackFrame {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._rawLocation = rawLocation;
-    this._uiLocation = thread.rawLocationToUiLocation(rawLocation);
+    this.uiLocation = thread.rawLocationToUiLocation(rawLocation);
     this._thread = thread;
   }
 
@@ -269,7 +278,7 @@ export class StackFrame {
   }
 
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
-    const uiLocation = await this._uiLocation;
+    const uiLocation = await this.uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
     const presentationHint = this._isAsyncSeparator
@@ -307,17 +316,13 @@ export class StackFrame {
 
   async format(): Promise<string> {
     if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
-    const uiLocation = await this._uiLocation;
+    const uiLocation = await this.uiLocation;
     const prettyName =
       (uiLocation && (await uiLocation.source.prettyName())) || this._rawLocation.url;
     const anyLocation = uiLocation || this._rawLocation;
     let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
     if (anyLocation.columnNumber > 1) text += `:${anyLocation.columnNumber}`;
     return text;
-  }
-
-  uiLocation(): Promise<IPreferredUiLocation | undefined> {
-    return this._uiLocation;
   }
 
   async _scopeVariable(scopeNumber: number, scope: IScope): Promise<Dap.Variable> {

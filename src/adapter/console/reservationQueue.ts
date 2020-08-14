@@ -84,7 +84,7 @@ class Reservation<T> {
   /**
    * Promise that is resolved when `value` is rejected or resolved.
    */
-  public wait: Promise<void>;
+  public wait?: Promise<void>;
 
   /**
    * Current value, or an indication that the promise is pending or rejected.

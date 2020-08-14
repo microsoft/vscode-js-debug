@@ -18,6 +18,7 @@ import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
+import { IConsole } from './console';
 import { IEvaluator } from './evaluator';
 import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
@@ -26,7 +27,6 @@ import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SourceContainer } from './sources';
 import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
 import { VariableStore } from './variables';
-import { IConsole } from './console';
 
 const localize = nls.loadMessageBundle();
 

@@ -28,6 +28,7 @@ import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { Script } from './threads';
+import { EventEmitter } from '../common/events';
 
 const localize = nls.loadMessageBundle();
 
@@ -449,6 +450,7 @@ export class SourceContainer {
    */
   public scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
 
+  private onScriptEmitter = new EventEmitter<Script>();
   private _dap: Dap.Api;
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, SourceFromMap> = new Map();
@@ -464,6 +466,11 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
+
+  /**
+   * Fires when a new script is parsed.
+   */
+  public readonly onScript = this.onScriptEmitter.event;
 
   /**
    * A set of sourcemaps that we warned about failing to parse.
@@ -522,6 +529,14 @@ export class SourceContainer {
 
   public isSourceSkipped(url: string): boolean {
     return this.scriptSkipper.isScriptSkipped(url);
+  }
+
+  /**
+   * Adds a new script to the source container.
+   */
+  public addScriptById(script: Script) {
+    this.scriptsById.set(script.scriptId, script);
+    this.onScriptEmitter.fire(script);
   }
 
   /**

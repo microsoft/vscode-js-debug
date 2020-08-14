@@ -89,7 +89,13 @@ export class ExecutionContext {
   }
 }
 
-export type Script = { url: string; scriptId: string; hash: string; source: Promise<Source> };
+export type Script = {
+  url: string;
+  scriptId: string;
+  hash: string;
+  source: Promise<Source>;
+  resolvedSource?: Source;
+};
 
 export interface IThreadDelegate {
   name(): string;
@@ -750,7 +756,7 @@ export class Thread implements IVariableStoreDelegate {
     this._executionContextsCleared();
 
     if (this.console.length) {
-      await Promise.race([new Promise(r => this.console.onDrained(r)), delay(1000)]);
+      await new Promise(r => this.console.onDrained(r));
     }
     this.console.dispose();
 
@@ -786,7 +792,39 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  public async rawLocationToUiLocation(
+  /**
+   * Gets the UI location given the raw location from the runtime. We make
+   * an effort to avoid async/await in the happy path here, since this function
+   * can get very hot in some scenarios.
+   */
+  public rawLocationToUiLocation(
+    rawLocation: RawLocation,
+  ): Promise<IPreferredUiLocation | undefined> | IPreferredUiLocation | undefined {
+    if (!rawLocation.scriptId) {
+      return undefined;
+    }
+
+    const script = this._sourceContainer.scriptsById.get(rawLocation.scriptId);
+    if (!script) {
+      return this.rawLocationToUiLocationWithWaiting(rawLocation);
+    }
+
+    if (script.resolvedSource) {
+      return this._sourceContainer.preferredUiLocation({
+        ...rawToUiOffset(rawLocation, script.resolvedSource.runtimeScriptOffset),
+        source: script.resolvedSource,
+      });
+    } else {
+      return script.source.then(source =>
+        this._sourceContainer.preferredUiLocation({
+          ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
+          source,
+        }),
+      );
+    }
+  }
+
+  public async rawLocationToUiLocationWithWaiting(
     rawLocation: RawLocation,
   ): Promise<IPreferredUiLocation | undefined> {
     const script = rawLocation.scriptId
@@ -809,19 +847,26 @@ export class Thread implements IVariableStoreDelegate {
    * finishes passing its sources over. We *should* normally know about all
    * possible script IDs; this waits if we see one that we don't.
    */
-  private async getScriptByIdOrWait(scriptId: string, maxTime = 500) {
-    let script = this._sourceContainer.scriptsById.get(scriptId);
-    if (script) {
-      return script;
-    }
+  private getScriptByIdOrWait(scriptId: string, maxTime = 500) {
+    const script = this._sourceContainer.scriptsById.get(scriptId);
+    return script || this.waitForScriptId(scriptId, maxTime);
+  }
 
-    const deadline = Date.now() + maxTime;
-    do {
-      await delay(50);
-      script = this._sourceContainer.scriptsById.get(scriptId);
-    } while (!script && Date.now() < deadline);
+  private waitForScriptId(scriptId: string, maxTime: number) {
+    return new Promise<Script | undefined>(resolve => {
+      const listener = this._sourceContainer.onScript(script => {
+        if (script.scriptId === scriptId) {
+          resolve(script);
+          listener.dispose();
+          clearTimeout(timeout);
+        }
+      });
 
-    return script;
+      const timeout = setTimeout(() => {
+        resolve(undefined);
+        listener.dispose();
+      }, maxTime);
+    });
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
@@ -1054,7 +1099,7 @@ export class Thread implements IVariableStoreDelegate {
     if (event.stackTrace) {
       stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
       const frames = await stackTrace.loadFrames(1);
-      if (frames.length) uiLocation = await frames[0].uiLocation();
+      if (frames.length) uiLocation = await frames[0].uiLocation;
       if (!isError && event.type !== 'warning' && !isAssert && event.type !== 'trace')
         stackTrace = undefined;
     }
@@ -1215,13 +1260,15 @@ export class Thread implements IVariableStoreDelegate {
       return source;
     };
 
-    const script = {
+    const script: Script = {
       url: event.url,
       scriptId: event.scriptId,
       source: createSource(),
       hash: event.hash,
     };
-    this._sourceContainer.scriptsById.set(event.scriptId, script);
+    script.source.then(s => (script.resolvedSource = s));
+
+    this._sourceContainer.addScriptById(script);
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source

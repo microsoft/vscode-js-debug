@@ -183,6 +183,7 @@ export class WatchDog implements IDisposable {
             params: { targetId: this.targetInfo.targetId, sessionId: this.targetInfo.targetId },
           }),
         );
+      this.server.dispose();
     });
 
     return target;
@@ -206,7 +207,6 @@ export function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
     detached: true,
   });
   p.unref();
-  process.on('exit', () => p.kill());
 
   return p;
 }

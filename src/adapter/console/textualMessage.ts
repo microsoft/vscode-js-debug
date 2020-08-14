@@ -18,7 +18,7 @@ const localize = nls.loadMessageBundle();
 export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackTrace }>
   implements IConsoleMessage {
   protected readonly stackTrace = once((thread: Thread) =>
-    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace) : undefined,
+    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace, 1) : undefined,
   );
 
   constructor(protected readonly event: T) {}
@@ -38,7 +38,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     }
 
     const frames = await stackTrace.loadFrames(1);
-    const uiLocation = await frames[0].uiLocation();
+    const uiLocation = await frames[0].uiLocation;
     if (!uiLocation) {
       return;
     }
@@ -53,35 +53,32 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
   /**
    * Default message string formatter. Tries to create a simple string, and
    * but if it can't it'll return a variable reference.
+   *
+   * Intentionally not async-await as it's a hot path in console logging.
    */
-  protected async formatDefaultString(
+  protected formatDefaultString(
     thread: Thread,
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     includeStackInVariables = false,
   ) {
     const useMessageFormat = args.length > 1 && args[0].type === 'string';
-    const formatString = useMessageFormat ? (args[0].value as string) : '';
-    const formatResult = formatMessage(
-      formatString,
-      (useMessageFormat ? args.slice(1) : args) as AnyObject[],
-      messageFormatters,
-    );
+    const formatResult = useMessageFormat
+      ? formatMessage(args[0].value, args.slice(1) as AnyObject[], messageFormatters)
+      : formatMessage('', args as AnyObject[], messageFormatters);
 
-    const messageText = formatResult.result + '\n';
-    const usedAllArgs = formatResult.usedAllSubs;
+    const output = formatResult.result + '\n';
 
-    if (usedAllArgs && !args.some(previewAsObject)) {
-      return { output: messageText };
+    if (formatResult.usedAllSubs && !args.some(previewAsObject)) {
+      return { output };
+    } else {
+      return thread.replVariables
+        .createVariableForOutput(
+          output,
+          args,
+          includeStackInVariables ? this.stackTrace(thread) : undefined,
+        )
+        .then(variablesReference => ({ output: '', variablesReference }));
     }
-
-    return {
-      output: '',
-      variablesReference: await thread.replVariables.createVariableForOutput(
-        messageText,
-        args,
-        includeStackInVariables ? this.stackTrace(thread) : undefined,
-      ),
-    };
   }
 }
 
