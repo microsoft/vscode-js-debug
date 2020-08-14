@@ -5,7 +5,7 @@ Evaluating: 'console.info('Info')'
 stdout> Info
 
 Evaluating: 'console.warn('Warn')'
-console> Warn
+stderr> Warn
 
 Evaluating: 'console.error('Error')'
 stderr> Error

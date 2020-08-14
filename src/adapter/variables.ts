@@ -284,7 +284,7 @@ export class VariableStore {
 
   async createVariableForOutput(
     text: string,
-    args: Cdp.Runtime.RemoteObject[],
+    args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
@@ -312,7 +312,7 @@ export class VariableStore {
   }
 
   async _createVariableForOutputParams(
-    args: Cdp.Runtime.RemoteObject[],
+    args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
   ): Promise<Dap.Variable[]> {
     const params: Dap.Variable[] = [];

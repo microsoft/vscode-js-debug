@@ -84,7 +84,7 @@ export default class Connection {
     return id;
   }
 
-  async _onMessage(message: string, receivedTime: HrTime) {
+  private _onMessage(message: string, receivedTime: HrTime) {
     const object = JSON.parse(message);
     let objectToLog = object;
 

@@ -19,6 +19,7 @@ import { IBreakpointPathAndId } from '../targets/targets';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
+import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import * as messageFormat from './messageFormat';
@@ -34,13 +35,11 @@ import {
   SourceContainer,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
-import { previewThis } from './templates/previewThis';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreDelegate, VariableStore } from './variables';
-
 const localize = nls.loadMessageBundle();
 
 export type PausedReason =
@@ -145,10 +144,8 @@ export class Thread implements IVariableStoreDelegate {
   private _delegate: IThreadDelegate;
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
-  private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
   private _selectedContext: ExecutionContext | undefined;
-  private _consoleIsDirty = false;
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
   private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   private _sourceMapDisabler?: SourceMapDisabler;
@@ -174,6 +171,7 @@ export class Thread implements IVariableStoreDelegate {
     private readonly completer: ICompletions,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
+    private readonly console: IConsole,
   ) {
     this._dap = new DeferredContainer(dap);
     this._delegate = delegate;
@@ -181,7 +179,6 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(this._cdp, this, launchConfig.__autoExpandGetters);
-    this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
   }
@@ -466,7 +463,7 @@ export class Thread implements IVariableStoreDelegate {
     if (!response) return { result: '', variablesReference: 0 };
 
     if (response.exceptionDetails) {
-      const formattedException = await this._formatException(response.exceptionDetails);
+      const formattedException = await new ExceptionMessage(response.exceptionDetails).toDap(this);
       throw new ProtocolError.ProtocolError(errors.replError(formattedException.output));
     } else {
       const contextName =
@@ -498,18 +495,18 @@ export class Thread implements IVariableStoreDelegate {
     });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
       this._cdp.Runtime.on('consoleAPICalled', async event => {
-        const slot = this._claimOutputSlot();
-        slot(await this._onConsoleMessage(event));
+        this.console.dispatch(this, event);
+      });
+      this._cdp.Runtime.on('exceptionThrown', async event => {
+        this.console.enqueue(this, new ExceptionMessage(event.exceptionDetails));
       });
     }
-    this._cdp.Runtime.on('exceptionThrown', async event => {
-      const slot = this._claimOutputSlot();
-      slot(await this._formatException(event.exceptionDetails));
-    });
     this._cdp.Runtime.on('inspectRequested', event => {
-      if (event.hints['copyToClipboard']) this._copyObjectToClipboard(event.object);
-      else if (event.hints['queryObjects']) this._queryObjects(event.object);
-      else this._revealObject(event.object);
+      if (event.hints['copyToClipboard']) {
+        this._copyObjectToClipboard(event.object);
+      } else if (event.hints['queryObjects']) {
+        this.console.enqueue(this, new QueryObjectsMessage(event.object, this.cdp()));
+      } else this._revealObject(event.object);
     });
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
@@ -551,43 +548,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._onThreadResumed();
     await this._onThreadPaused(this._pausedDetails);
-  }
-
-  // It is important to produce debug console output in the same order as it happens
-  // in the debuggee. Since we process any output asynchronously (e.g. retrieviing object
-  // properties or loading async stack frames), we ensure the correct order using "output slots".
-  //
-  // Any method producing output should claim a slot synchronously when receiving the cdp message
-  // producing this output, then run any processing to generate the actual output and call the slot:
-  //
-  //   const response = await cdp.Runtime.evaluate(...);
-  //   const slot = this._claimOutputSlot();
-  //   const output = await doSomeAsyncProcessing(response);
-  //   slot(output);
-  //
-  _claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
-    // TODO: should we serialize output between threads? For example, it may be important
-    // when using postMessage between page a worker.
-    const slot = this._serializedOutput;
-    const deferred = getDeferred<void>();
-    const result = async (payload?: Dap.OutputEventParams) => {
-      await slot;
-      if (payload) {
-        const isClearConsole = payload.output === '\x1b[2J';
-        const noop = isClearConsole && !this._consoleIsDirty;
-        if (!noop) {
-          this._dap.with(dap => dap.output(payload));
-          this._consoleIsDirty = !isClearConsole;
-        }
-      }
-      deferred.resolve();
-    };
-
-    this._serializedOutput = slot.then(() => deferred.promise);
-    // Timeout to avoid blocking future slots if this one does stall.
-    setTimeout(deferred.resolve, this._sourceContainer.sourceMapTimeouts().output);
-
-    return result;
   }
 
   async _pauseOnScheduledAsyncCall(): Promise<void> {
@@ -789,8 +749,10 @@ export class Thread implements IVariableStoreDelegate {
 
     this._executionContextsCleared();
 
-    // Output flush already has a timeout, no need for another one here
-    await this._serializedOutput;
+    if (this.console.length) {
+      await Promise.race([new Promise(r => this.console.onDrained(r)), delay(1000)]);
+    }
+    this.console.dispose();
 
     // Send 'exited' after all other thread-releated events
     await this._dap.with(dap =>
@@ -1159,44 +1121,6 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  async _formatException(
-    details: Cdp.Runtime.ExceptionDetails,
-    prefix?: string,
-  ): Promise<Dap.OutputEventParams> {
-    const preview = details.exception
-      ? objectPreview.previewException(details.exception)
-      : { title: '' };
-    let message = preview.title;
-    if (!message.startsWith('Uncaught')) message = 'Uncaught ' + message;
-    message = (prefix || '') + message;
-
-    let stackTrace: StackTrace | undefined;
-    let uiLocation: IUiLocation | undefined;
-    if (details.stackTrace) stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
-    if (stackTrace) {
-      const frames = await stackTrace.loadFrames(1);
-      if (frames.length) uiLocation = await frames[0].uiLocation();
-    }
-
-    const args = details.exception && !preview.stackTrace ? [details.exception] : [];
-    let variablesReference = 0;
-    if (stackTrace || args.length)
-      variablesReference = await this.replVariables.createVariableForOutput(
-        message,
-        args,
-        stackTrace,
-      );
-
-    return {
-      category: 'stderr',
-      output: message,
-      variablesReference,
-      source: uiLocation ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
-    };
-  }
-
   scriptsFromSource(source: Source): Set<Script> {
     return this._sourceScripts.get(source) || new Set();
   }
@@ -1441,41 +1365,6 @@ export class Thread implements IVariableStoreDelegate {
         .Runtime.releaseObject({ objectId: object.objectId })
         .catch(() => undefined);
     }
-  }
-
-  async _queryObjects(prototype: Cdp.Runtime.RemoteObject) {
-    const slot = this._claimOutputSlot();
-    if (!prototype.objectId) return slot();
-    const response = await this.cdp().Runtime.queryObjects({
-      prototypeObjectId: prototype.objectId,
-      objectGroup: 'console',
-    });
-    await this.cdp().Runtime.releaseObject({ objectId: prototype.objectId });
-    if (!response) return slot();
-
-    let withPreview: Cdp.Runtime.RemoteObject;
-    try {
-      withPreview = await previewThis({
-        cdp: this.cdp(),
-        args: [],
-        objectId: response.objects.objectId,
-        objectGroup: 'console',
-        generatePreview: true,
-      });
-    } catch (e) {
-      return slot();
-    }
-
-    const text =
-      '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview, 'repl') + '\x1b[0m';
-    const variablesReference =
-      (await this.replVariables.createVariableForOutput(text, [withPreview])) || 0;
-    const output = {
-      category: 'stdout' as 'stdout',
-      output: '',
-      variablesReference,
-    };
-    slot(output);
   }
 
   private async _onThreadPaused(details: IPausedDetails) {

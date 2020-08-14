@@ -45,8 +45,9 @@
     "publish": "gulp publish",
     "updatetypes": "cd src/typings && vscode-dts dev && vscode-dts master",
     "generateapis": "node out/src/build/generateDap.js && node out/src/build/generateCdp.js",
-    "test": "gulp && npm-run-all --parallel test:types test:golden test:lint",
+    "test": "gulp && npm-run-all --parallel test:unit test:types test:golden test:lint",
     "test:types": "tsc --noEmit",
+    "test:unit": "mocha --config .mocharc.unit.js",
     "test:golden": "node ./out/src/test/runTest.js",
     "test:lint": "gulp lint"
   },

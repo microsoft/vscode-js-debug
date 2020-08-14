@@ -2,12 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-// important! This must come before anything else
-import 'reflect-metadata';
-
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { Container, interfaces } from 'inversify';
+import 'reflect-metadata';
 import * as vscode from 'vscode';
 import {
   BrowserFinderCtor,
@@ -22,6 +20,8 @@ import {
 } from './adapter/breakpoints/conditions';
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 import { Completions, ICompletions } from './adapter/completions';
+import { IConsole } from './adapter/console';
+import { Console } from './adapter/console/console';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
@@ -131,19 +131,15 @@ export const createTargetContainer = (
     .onActivation(trackDispose);
 
   container.bind(BreakpointManager).toSelf().inSingletonScope();
-
   container.bind(SourceContainer).toSelf().inSingletonScope();
 
   container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
-
   container.bind(ICompletions).to(Completions).inSingletonScope();
-
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();
+  container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
 
   container.bind(BasicCpuProfiler).toSelf();
-
   container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
-
   container.bind(IProfileController).to(ProfileController).inSingletonScope();
 
   return container;

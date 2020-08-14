@@ -26,6 +26,7 @@ import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SourceContainer } from './sources';
 import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
 import { VariableStore } from './variables';
+import { IConsole } from './console';
 
 const localize = nls.loadMessageBundle();
 
@@ -290,6 +291,7 @@ export class DebugAdapter implements IDisposable {
       this._services.get(ICompletions),
       this.launchConfig,
       this.breakpointManager,
+      this._services.get(IConsole),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);
