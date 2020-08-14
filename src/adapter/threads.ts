@@ -22,9 +22,7 @@ import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
-import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { AnyObject } from './objectPreview/betterTypes';
 import { SmartStepper } from './smartStepping';
 import {
   base1To0,
@@ -1066,96 +1064,6 @@ export class Thread implements IVariableStoreDelegate {
       stackTrace,
       reason: 'function breakpoint',
       description: localize('pause.eventListener', 'Paused on event listener'),
-    };
-  }
-
-  async _onConsoleMessage(
-    event: Cdp.Runtime.ConsoleAPICalledEvent,
-  ): Promise<Dap.OutputEventParams | undefined> {
-    switch (event.type) {
-      case 'endGroup':
-        return { category: 'stdout', output: '', group: 'end' };
-      case 'clear':
-        return this._clearDebuggerConsole();
-    }
-
-    // Ignore the duplicate group events that Node.js can emit:
-    // See: https://github.com/nodejs/node/issues/31973
-    if (event.type === 'log') {
-      const firstFrame = event.stackTrace?.callFrames[0];
-      if (
-        firstFrame &&
-        firstFrame.functionName === 'group' &&
-        firstFrame.url === 'internal/console/constructor.js'
-      ) {
-        return undefined;
-      }
-    }
-
-    let stackTrace: StackTrace | undefined;
-    let uiLocation: IUiLocation | undefined;
-    const isAssert = event.type === 'assert';
-    const isError = event.type === 'error';
-    if (event.stackTrace) {
-      stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
-      const frames = await stackTrace.loadFrames(1);
-      if (frames.length) uiLocation = await frames[0].uiLocation;
-      if (!isError && event.type !== 'warning' && !isAssert && event.type !== 'trace')
-        stackTrace = undefined;
-    }
-
-    let category: 'console' | 'stdout' | 'stderr' | 'telemetry' = 'stdout';
-    if (isError || isAssert) category = 'stderr';
-    if (event.type === 'warning') category = 'console';
-
-    if (isAssert && event.args[0] && event.args[0].value === 'console.assert')
-      event.args[0].value = localize('console.assert', 'Assertion failed');
-
-    let messageText: string;
-    let usedAllArgs = false;
-    if (event.type === 'table' && event.args.length && event.args[0].preview) {
-      messageText = objectPreview.formatAsTable(event.args[0].preview);
-    } else {
-      const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
-      const formatString = useMessageFormat ? (event.args[0].value as string) : '';
-      const formatResult = messageFormat.formatMessage(
-        formatString,
-        (useMessageFormat ? event.args.slice(1) : event.args) as AnyObject[],
-        objectPreview.messageFormatters,
-      );
-      messageText = formatResult.result;
-      usedAllArgs = formatResult.usedAllSubs;
-    }
-
-    let output: string;
-    let variablesReference: number | undefined;
-    if (!usedAllArgs || event.args.some(arg => objectPreview.previewAsObject(arg))) {
-      output = '';
-      variablesReference = await this.replVariables.createVariableForOutput(
-        messageText + '\n',
-        event.args,
-        stackTrace,
-      );
-    } else {
-      output = messageText + '\n';
-      variablesReference = undefined;
-    }
-
-    const group =
-      event.type === 'startGroup'
-        ? 'start'
-        : event.type === 'startGroupCollapsed'
-        ? 'startCollapsed'
-        : undefined;
-
-    return {
-      category,
-      output,
-      variablesReference,
-      group,
-      source: uiLocation ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
     };
   }
 
