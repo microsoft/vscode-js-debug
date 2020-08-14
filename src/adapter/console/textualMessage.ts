@@ -71,14 +71,28 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     if (formatResult.usedAllSubs && !args.some(previewAsObject)) {
       return { output };
     } else {
-      return thread.replVariables
-        .createVariableForOutput(
-          output,
-          args,
-          includeStackInVariables ? this.stackTrace(thread) : undefined,
-        )
-        .then(variablesReference => ({ output: '', variablesReference }));
+      return this.formatComplexStringOutput(thread, output, args, includeStackInVariables);
     }
+  }
+
+  private async formatComplexStringOutput(
+    thread: Thread,
+    output: string,
+    args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
+    includeStackInVariables: boolean,
+  ) {
+    if (args[0].subtype === 'error') {
+      await this.getUiLocation(thread); // ensure the source is loaded before decoding stack
+      output = await thread.replacePathsInStackTrace(output);
+    }
+
+    const variablesReference = await thread.replVariables.createVariableForOutput(
+      output,
+      args,
+      includeStackInVariables ? this.stackTrace(thread) : undefined,
+    );
+
+    return { output: '', variablesReference };
   }
 }
 

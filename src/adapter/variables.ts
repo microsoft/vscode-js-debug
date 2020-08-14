@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as objectPreview from './objectPreview';
-import Cdp from '../cdp/api';
-import Dap from '../dap/api';
-import { StackTrace } from './stackTrace';
-import * as errors from '../dap/errors';
 import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import { flatten } from '../common/objUtils';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
+import * as objectPreview from './objectPreview';
+import { StackTrace } from './stackTrace';
+import { RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
-import { RemoteException } from './templates';
-import { flatten } from '../common/objUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -282,7 +282,10 @@ export class VariableStore {
     return this._createVariable('', object);
   }
 
-  async createVariableForOutput(
+  /**
+   * Returns the variable reference for a complex, object-including output.
+   */
+  public async createVariableForOutput(
     text: string,
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
@@ -311,7 +314,7 @@ export class VariableStore {
     return resultReference;
   }
 
-  async _createVariableForOutputParams(
+  private async _createVariableForOutputParams(
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
   ): Promise<Dap.Variable[]> {

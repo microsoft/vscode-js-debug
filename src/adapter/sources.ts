@@ -10,6 +10,7 @@ import { URL } from 'url';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { EventEmitter } from '../common/events';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
@@ -28,7 +29,6 @@ import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { Script } from './threads';
-import { EventEmitter } from '../common/events';
 
 const localize = nls.loadMessageBundle();
 
@@ -452,6 +452,7 @@ export class SourceContainer {
 
   private onScriptEmitter = new EventEmitter<Script>();
   private _dap: Dap.Api;
+  private _sourceByOriginalUrl: Map<string, Source> = new MapUsingProjection(s => s.toLowerCase());
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, SourceFromMap> = new Map();
   private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(
@@ -537,6 +538,13 @@ export class SourceContainer {
   public addScriptById(script: Script) {
     this.scriptsById.set(script.scriptId, script);
     this.onScriptEmitter.fire(script);
+  }
+
+  /**
+   * Gets a source by its original URL from the debugger.
+   */
+  public getSourceByOriginalUrl(url: string) {
+    return this._sourceByOriginalUrl.get(url);
   }
 
   /**
@@ -789,6 +797,7 @@ export class SourceContainer {
   }
 
   private async _addSource(source: Source) {
+    this._sourceByOriginalUrl.set(source.url, source);
     this._sourceByReference.set(source.sourceReference(), source);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.set(source.url, source);

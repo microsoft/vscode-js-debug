@@ -1515,6 +1515,37 @@ export class Thread implements IVariableStoreDelegate {
   static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
     return Thread._allThreadsByDebuggerId.get(debuggerId);
   }
+
+  /**
+   * Replaces locations in the stack trace with their source locations.
+   */
+  public async replacePathsInStackTrace(trace: string): Promise<string> {
+    let processed = trace;
+
+    const re = /^(\W*at .*)\((.*):(\d+):(\d+)\)$/gm;
+    for (let match = re.exec(trace); match; match = re.exec(trace)) {
+      const [text, prefix, url, line, column] = match;
+      const compiledSource =
+        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(url)) ||
+        this._sourceContainer.getSourceByOriginalUrl(url);
+      if (!compiledSource) {
+        continue;
+      }
+
+      const { source, lineNumber, columnNumber } = await this._sourceContainer.preferredUiLocation({
+        columnNumber: Number(column),
+        lineNumber: Number(line),
+        source: compiledSource,
+      });
+
+      processed = processed.replace(
+        text,
+        `${prefix}(${source.absolutePath()}:${lineNumber}:${columnNumber})`,
+      );
+    }
+
+    return processed;
+  }
 }
 
 let scheduledPauseOnAsyncCall: Cdp.Runtime.StackTraceId | undefined;
