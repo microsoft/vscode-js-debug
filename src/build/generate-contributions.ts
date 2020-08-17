@@ -388,6 +388,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       description: refString('node.port.description'),
       default: 9229,
     },
+    websocketAddress: {
+      type: 'string',
+      description: refString('node.websocket.address.description'),
+      default: undefined,
+    },
     restart: {
       description: refString('node.attach.restart.description'),
       default: true,

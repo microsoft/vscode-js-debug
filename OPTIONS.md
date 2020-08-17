@@ -40,7 +40,8 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
-<h5>Default value:</h4><pre><code>false</pre></code></details>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>websocketAddress</h4><p>Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code></details>
 
 ### pwa-node: launch
 

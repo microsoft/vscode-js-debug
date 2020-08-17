@@ -475,6 +475,11 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   request: 'attach';
 
   /**
+   * Inspector webSocket address
+   */
+  websocketAddress?: string;
+
+  /**
    * TCP/IP address of process to be debugged. Default is 'localhost'.
    */
   address: string;

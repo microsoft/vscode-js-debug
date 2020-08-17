@@ -177,6 +177,8 @@ const strings = {
   'node.launch.useWSL.description': 'Use Windows Subsystem for Linux.',
   'node.localRoot.description': 'Path to the local directory containing the program.',
   'node.port.description': 'Debug port to attach to. Default is 5858.',
+  'node.websocket.address.description':
+    'Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.',
   'node.resolveSourceMapLocations.description':
     'A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with "!" to exclude them. May be set to an empty array or null to avoid restriction.',
   'node.processattach.config.name': 'Attach to Process',

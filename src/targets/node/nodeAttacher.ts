@@ -60,13 +60,17 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
       let inspectorURL: string;
       try {
-        inspectorURL = await retryGetWSEndpoint(
-          `http://${runData.params.address}:${runData.params.port}`,
-          restarting
-            ? CancellationTokenSource.withTimeout(runData.params.timeout).token
-            : runData.context.cancellationToken,
-          this.logger,
-        );
+        if (runData.params.websocketAddress) {
+          inspectorURL = runData.params.websocketAddress;
+        } else {
+          inspectorURL = await retryGetWSEndpoint(
+            `http://${runData.params.address}:${runData.params.port}`,
+            restarting
+              ? CancellationTokenSource.withTimeout(runData.params.timeout).token
+              : runData.context.cancellationToken,
+            this.logger,
+          );
+        }
       } catch (e) {
         if (prevProgram && prevProgram === restarting /* is a restart */) {
           return restart(restartPolicy, prevProgram, { killed: false, code: 1 });
