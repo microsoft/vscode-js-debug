@@ -120,6 +120,6 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
    * @inheritdoc
    */
   public dispose() {
-    this.disposables.forEach(d => d.dispose());
+    this.sessionManager.dispose();
   }
 }
