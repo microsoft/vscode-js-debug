@@ -24,7 +24,7 @@ export class LogPointCompiler {
    * Gets whether the url looks like a log point source.
    */
   public static isLogPointUrl(url: string) {
-    return /logpoint-[a-f0-9]+.vs$/.test(url);
+    return /logpoint-[a-f0-9]+\.cdp$/.test(url);
   }
 
   constructor(

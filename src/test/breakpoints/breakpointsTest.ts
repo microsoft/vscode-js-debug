@@ -390,6 +390,17 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
+    itIntegrates('callstack', async ({ r }) => {
+      const p = await r.launchUrl('logging.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/logging.js') },
+        breakpoints: [{ line: 6, column: 0, logMessage: '123' }],
+      });
+      p.load();
+      p.log(await p.dap.once('output'));
+      p.assertLog();
+    });
+
     itIntegrates('returnValue', async ({ r }) => {
       const p = await r.launchUrl('logging.html');
       await p.dap.setBreakpoints({
