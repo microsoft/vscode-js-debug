@@ -100,6 +100,7 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
       const session = sessionCreationFunc(transport);
       deferredConnection.resolve(session.connection);
     });
+    debugServer.on('error', deferredConnection.reject);
     debugServer.listen(debugServerPort || 0);
     this.servers.set(debugSession.id, debugServer);
 
