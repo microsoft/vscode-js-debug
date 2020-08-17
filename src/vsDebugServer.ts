@@ -21,8 +21,11 @@ import { DebugConfiguration } from 'vscode';
 import { ServerSessionManager } from './serverSessionManager';
 import { ITarget } from './targets/targets';
 import { Readable, Writable } from 'stream';
+import * as nls from 'vscode-nls';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
+
+const localize = nls.loadMessageBundle();
 
 class VSDebugSession implements IDebugSessionLike {
   constructor(
@@ -59,7 +62,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
     const rootSession = new VSDebugSession(
       'root',
-      'JavaScript debugger root session',
+      localize('session.rootSessionName', 'JavaScript debug adapter'),
       deferredConnection.promise,
       { type: 'pwa-chrome', name: 'root', request: 'launch' },
     );
@@ -123,13 +126,13 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
 
 const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : undefined;
 if (debugServerPort !== undefined) {
-  net
+  const server = net
     .createServer(socket => {
       new VsDebugServer(socket, socket);
     })
     .listen(debugServerPort);
 
-  console.log(`Listening at ${debugServerPort}`);
+  console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
 } else {
   new VsDebugServer();
 }
