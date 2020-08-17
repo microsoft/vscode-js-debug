@@ -894,17 +894,22 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   };
 }
 
-export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
-  const filled =
-    config.request === 'attach'
-      ? { ...nodeAttachConfigDefaults, ...config }
-      : { ...nodeLaunchConfigDefaults, ...config };
-
+export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
   if (!config.sourceMapPathOverrides && config.cwd) {
-    filled.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
+    config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
   }
 
-  return filled;
+  // Resolve source map locations from the outFiles by default:
+  // https://github.com/microsoft/vscode-js-debug/issues/704
+  if (config.resolveSourceMapLocations === undefined) {
+    config.resolveSourceMapLocations = config.outFiles;
+  }
+
+  if (config.request === 'attach') {
+    return { ...nodeAttachConfigDefaults, ...config };
+  } else {
+    return { ...nodeLaunchConfigDefaults, ...config };
+  }
 }
 
 export function applyChromeDefaults(

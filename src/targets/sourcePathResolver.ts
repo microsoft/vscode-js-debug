@@ -44,6 +44,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * micromatch doesn't have native awareness of them.
    */
   private readonly resolveLocations = this.options.resolveSourceMapLocations?.map(location => {
+    location = location.replace(/\.[a-z0-9]+$/, '.*');
     const prefix = location.startsWith('!') ? '!' : '';
     const remaining = location.slice(prefix.length);
     if (isAbsolute(remaining)) {
@@ -87,11 +88,11 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return caseSensitive ? value : value.toLowerCase();
     };
 
-    return (
-      match([processMatchInput(sourcePath)], this.resolveLocations.map(processMatchInput), {
-        dot: true,
-      }).length > 0
-    );
+    const l = match([processMatchInput(sourcePath)], this.resolveLocations.map(processMatchInput), {
+      dot: true,
+    });
+
+    return l.length > 0;
   }
 
   /**
