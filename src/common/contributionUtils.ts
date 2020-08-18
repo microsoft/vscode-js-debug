@@ -88,6 +88,12 @@ export const allDebugTypes: ReadonlySet<DebugType> = new Set(Object.keys(debugTy
 export const isDebugType = (debugType: string): debugType is DebugType =>
   allDebugTypes.has(debugType as DebugType);
 
+export const enum AutoAttachMode {
+  Explicit = 'explicit',
+  Smart = 'smart',
+  Always = 'always',
+}
+
 export const enum Configuration {
   UsePreviewDebugger = 'debug.javascript.usePreview',
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
@@ -98,7 +104,7 @@ export const enum Configuration {
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
   AutoExpandGetters = 'debug.javascript.autoExpandGetters',
-  OnlyAutoAttachExplicit = 'debug.javascript.onlyAutoAttachExplicit',
+  AutoAttachMode = 'debug.javascript.autoAttachFilter',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -118,7 +124,7 @@ export interface IConfigurationTypes {
     | DebugByLinkState
     | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
   [Configuration.AutoExpandGetters]: boolean;
-  [Configuration.OnlyAutoAttachExplicit]: boolean;
+  [Configuration.AutoAttachMode]: AutoAttachMode;
 }
 
 export interface ICommandTypes {

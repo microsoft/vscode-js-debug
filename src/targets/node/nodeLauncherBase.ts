@@ -11,6 +11,7 @@ import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { CancellationTokenSource } from '../../common/cancellation';
+import { AutoAttachMode } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
@@ -305,6 +306,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       // environments. Bootloader will replace this with actual node executable used if any.
       execPath: await findInPath(fs.promises, 'node', process.env),
       onlyEntrypoint: !params.autoAttachChildProcesses,
+      autoAttachMode: AutoAttachMode.Always,
       ...additionalOptions,
     };
 

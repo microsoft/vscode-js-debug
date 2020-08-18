@@ -4,6 +4,7 @@
 
 import type { IWatchdogInfo } from '../watchdogSpawn';
 import type { IProcessTelemetry } from '../nodeLauncherBase';
+import { AutoAttachMode } from '../../../common/contributionUtils';
 
 /**
  * Attachment mode for the debugger.
@@ -70,9 +71,9 @@ export interface IBootloaderInfo {
   onlyEntrypoint: boolean;
 
   /**
-   * Only auto attach if --inspect is already active on the process.
+   * Auto attach mode, see the descriptions in strings.ts for info.
    */
-  onlyWhenExplicit?: boolean;
+  autoAttachMode: AutoAttachMode;
 }
 
 export interface IBootloaderEnvironment {

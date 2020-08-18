@@ -5,6 +5,7 @@ import { JSONSchema6 } from 'json-schema';
 import {
   allCommands,
   allDebugTypes,
+  AutoAttachMode,
   Commands,
   Configuration,
   DebugType,
@@ -54,6 +55,7 @@ type DescribedAttribute<T> = JSONSchema6 &
   Described & {
     default: T;
     enum?: Array<T>;
+    enumDescriptions?: MappedReferenceString[];
   };
 
 type ConfigurationAttributes<T> = {
@@ -1071,10 +1073,16 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: false,
     markdownDescription: refString('configuration.autoExpandGetters'),
   },
-  [Configuration.OnlyAutoAttachExplicit]: {
+  [Configuration.AutoAttachMode]: {
     type: 'boolean',
-    default: true,
-    markdownDescription: refString('configuration.onlyAutoAttachExplicit'),
+    default: AutoAttachMode.Smart,
+    enum: [AutoAttachMode.Always, AutoAttachMode.Smart, AutoAttachMode.Explicit],
+    enumDescriptions: [
+      refString('configuration.autoAttachMode.always'),
+      refString('configuration.autoAttachMode.smart'),
+      refString('configuration.autoAttachMode.explicit'),
+    ],
+    markdownDescription: refString('configuration.autoAttachMode'),
   },
 };
 

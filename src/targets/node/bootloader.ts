@@ -16,6 +16,7 @@ import { checkAll } from './bootloader/filters';
 import { bootloaderLogger } from './bootloader/logger';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { spawnWatchdog } from './watchdogSpawn';
+import { AutoAttachMode } from '../../common/contributionUtils';
 
 const telemetry: IProcessTelemetry = {
   cwd: process.cwd(),
@@ -81,7 +82,8 @@ function inspectOrQueue(env: IBootloaderInfo) {
   // Don't call it again to avoid https://github.com/nodejs/node/issues/33012
   const openedFromCli = inspector.url() !== undefined;
   if (!openedFromCli) {
-    if (env.onlyWhenExplicit) {
+    // if the debugger isn't explicitly enabled, turn it on based on our inspect mode
+    if (!shouldForceProcessIntoDebugMode(env)) {
       return;
     }
 
@@ -126,6 +128,44 @@ function inspectOrQueue(env: IBootloaderInfo) {
   } else {
     inspector.open(openedFromCli ? undefined : 0, undefined, true);
   }
+}
+
+function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
+  switch (env.autoAttachMode) {
+    case AutoAttachMode.Always:
+      return true;
+    case AutoAttachMode.Smart:
+      return shouldSmartAttach();
+    case AutoAttachMode.Explicit:
+    default:
+      return false;
+  }
+}
+
+/**
+ * Returns whether to smart attach. The goal here is to avoid attaching to
+ * scripts like `npm` or `webpack` which the user probably doesn't want to
+ * debug. Unfortunately Node doesn't expose the originally argv to us where
+ * we could detect a direct invokation of something like `npm install`,
+ * so we match against the script name.
+ */
+function shouldSmartAttach() {
+  const script: string | undefined = process.argv[1];
+  if (!script) {
+    return true; // node REPL
+  }
+
+  if (script.includes('node_modules')) {
+    return false; // some dependency binary, like webpack or lerna
+  }
+
+  // *nix likes to install node and npm side-by-side, detect if the script is
+  // a sibling of the runtime.
+  if (path.dirname(script) === path.dirname(process.argv0)) {
+    return false;
+  }
+
+  return true; // otherwise, it looks like a user script
 }
 
 function isPipeAvailable(pipe?: string): pipe is string {

@@ -63,7 +63,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   }
 
   /**
-   * @inheritdocF
+   * @inheritdoc
    */
   public getProcessTelemetry(target: ITarget) {
     return Promise.resolve(this.telemetryItems.get(Number(target.id())));
@@ -105,7 +105,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       {
         deferredMode: true,
         inspectorIpc: runData.serverAddress + '.deferred',
-        onlyWhenExplicit: readConfig(vscode.workspace, Configuration.OnlyAutoAttachExplicit),
+        autoAttachMode: readConfig(vscode.workspace, Configuration.AutoAttachMode),
       },
     );
 
