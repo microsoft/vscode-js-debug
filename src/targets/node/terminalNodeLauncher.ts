@@ -15,7 +15,12 @@ import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { IStopMetadata, ITarget } from '../targets';
-import { INodeBinaryProvider, NodeBinary, NodeBinaryProvider } from './nodeBinaryProvider';
+import {
+  hideDebugInfoFromConsole,
+  INodeBinaryProvider,
+  NodeBinary,
+  NodeBinaryProvider,
+} from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { IProgram } from './program';
 
@@ -124,7 +129,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const terminal = vscode.window.createTerminal({
       name: runData.params.name,
       cwd: runData.params.cwd,
-      env: env.defined(),
+      env: hideDebugInfoFromConsole(binary, env).defined(),
     });
     this.terminalCreatedEmitter.fire(terminal);
 

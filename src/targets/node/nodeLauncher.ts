@@ -17,7 +17,11 @@ import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configur
 import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 import { CallbackFile } from './callback-file';
-import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
+import {
+  hideDebugInfoFromConsole,
+  INodeBinaryProvider,
+  NodeBinaryProvider,
+} from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IProgramLauncher } from './processLauncher';
@@ -122,6 +126,8 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         }
 
         env = env.merge({ NODE_OPTIONS: null });
+      } else {
+        env = hideDebugInfoFromConsole(binary, env);
       }
 
       const options: INodeLaunchConfiguration = { ...runData.params, env: env.value };

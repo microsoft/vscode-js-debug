@@ -15,12 +15,22 @@ import { FS, FsPromises } from '../../ioc-extras';
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
 
-/**
- *
- */
 export const enum Capability {
   UseSpacesInRequirePath,
   UseInspectPublishUid,
+}
+
+/**
+ * If the Node binary supports it, adds an option to the NODE_OPTIONS that
+ * prevents spewing extra debug info to the console.
+ * @see https://github.com/microsoft/vscode-js-debug/issues/558
+ */
+export function hideDebugInfoFromConsole(_binary: NodeBinary, env: EnvironmentVars) {
+  // todo@connor4312: not working yet, see https://github.com/nodejs/node/issues/12665#issuecomment-675758519
+  // return binary.has(Capability.UseInspectPublishUid)
+  //   ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-public-uid=http` })
+  //   : env;
+  return env;
 }
 
 const assumedVersion = new Semver(12, 0, 0);
