@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { createGlobalContainer } from './ioc';
-import { IDebugSessionLike, SessionManager, SessionLauncher } from './sessionManager';
+import { IDebugSessionLike, SessionManager, ISessionLauncher } from './sessionManager';
 import { getDeferred } from './common/promiseUtil';
 import DapConnection from './dap/connection';
 import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
@@ -70,29 +70,31 @@ class VSSessionManager {
     });
   }
 
-  buildVSSessionLauncher(): SessionLauncher<VSDebugSession> {
-    return (parentSession, target, config) => {
-      const childAttachConfig = { ...config, sessionId: target.id() };
+  buildVSSessionLauncher(): ISessionLauncher<VSDebugSession> {
+    return {
+      launch: (parentSession, target, config) => {
+        const childAttachConfig = { ...config, sessionId: target.id() };
 
-      this.createSession(target.id(), target.name(), childAttachConfig);
+        this.createSession(target.id(), target.name(), childAttachConfig);
 
-      // Custom message currently not part of DAP
-      parentSession.connection._send({
-        seq: 0,
-        command: 'attachedChildSession',
-        type: 'request',
-        arguments: {
-          config: childAttachConfig,
-        },
-      });
+        // Custom message currently not part of DAP
+        parentSession.connection._send({
+          seq: 0,
+          command: 'attachedChildSession',
+          type: 'request',
+          arguments: {
+            config: childAttachConfig,
+          },
+        });
+      },
     };
   }
 
   createSession(sessionId: string | undefined, name: string, config: IPseudoAttachConfiguration) {
     const deferredConnection = getDeferred<DapConnection>();
-    const newSession = this.sessionManager.createNewSession(
+    const newSession = this.sessionManager.createNewChildSession(
       new VSDebugSession(sessionId || 'root', name, deferredConnection.promise, config),
-      config,
+      config.__pendingTargetId,
       new SessionIdDapTransport(sessionId, this.rootTransport),
     );
     deferredConnection.resolve(newSession.connection);

@@ -7,9 +7,10 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
 import { pick } from '../common/objUtils';
+import { RootSession, ISessionLauncher, Session } from '../sessionManager';
+import { ServerSessionManager } from '../serverSessionManager';
+import { ITarget } from '../targets/targets';
 import { IPseudoAttachConfiguration } from '../configuration';
-import { StreamDapTransport } from '../dap/transport';
-import { RootSession, SessionLauncher, SessionManager } from '../sessionManager';
 
 const preservedProperties = [
   // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
@@ -22,34 +23,40 @@ const preservedProperties = [
  * @param parentSession The parent debug session to pass to `startDebugging`
  * @param config Launch configuration for the new debug session
  */
-const vsCodeSessionLauncher: SessionLauncher<vscode.DebugSession> = (parentSession, _, config) => {
-  vscode.debug.startDebugging(
-    parentSession.debugSession.workspaceFolder,
-    {
-      ...config,
-      ...pick(parentSession.debugSession.configuration, preservedProperties),
-    } as vscode.DebugConfiguration,
-    {
-      parentSession: parentSession.debugSession,
-      consoleMode: vscode.DebugConsoleMode.MergeWithParent,
-      noDebug: parentSession.debugSession.configuration.noDebug,
-      compact: parentSession instanceof RootSession, // don't compact workers/child processes
-    },
-  );
-};
+class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
+  launch(
+    parentSession: Session<vscode.DebugSession>,
+    target: ITarget,
+    config: IPseudoAttachConfiguration,
+  ) {
+    vscode.debug.startDebugging(
+      parentSession.debugSession.workspaceFolder,
+      {
+        ...config,
+        ...pick(parentSession.debugSession.configuration, preservedProperties),
+      } as vscode.DebugConfiguration,
+      {
+        parentSession: parentSession.debugSession,
+        consoleMode: vscode.DebugConsoleMode.MergeWithParent,
+        noDebug: parentSession.debugSession.configuration.noDebug,
+        compact: parentSession instanceof RootSession, // don't compact workers/child processes
+      },
+    );
+  }
+}
 
 /**
  * VS Code specific session manager which also implements the DebugAdapterDescriptorFactory
  * interface
  */
 export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactory, IDisposable {
-  private readonly sessionManager: SessionManager<vscode.DebugSession>;
-  private disposables: IDisposable[] = [];
-  private servers = new Map<string, net.Server>();
+  private readonly sessionServerManager: ServerSessionManager<vscode.DebugSession>;
 
   constructor(globalContainer: Container) {
-    this.sessionManager = new SessionManager(globalContainer, vsCodeSessionLauncher);
-    this.disposables.push(this.sessionManager);
+    this.sessionServerManager = new ServerSessionManager(
+      globalContainer,
+      new VsCodeSessionLauncher(),
+    );
   }
 
   /**
@@ -58,35 +65,21 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    debugSession.workspaceFolder;
-
-    const debugServer = net.createServer(socket => {
-      const transport = new StreamDapTransport(socket, socket);
-      this.sessionManager.createNewSession(
-        debugSession,
-        debugSession.configuration as IPseudoAttachConfiguration,
-        transport,
-      );
-    });
-    debugServer.listen(0);
-    this.servers.set(debugSession.id, debugServer);
-
-    return new vscode.DebugAdapterServer((debugServer.address() as net.AddressInfo).port);
+    const result = this.sessionServerManager.createDebugServer(debugSession);
+    return new vscode.DebugAdapterServer((result.server.address() as net.AddressInfo).port);
   }
 
   /**
    * @inheritdoc
    */
   public terminate(debugSession: vscode.DebugSession) {
-    this.sessionManager.terminate(debugSession);
-    this.servers.get(debugSession.id)?.close();
-    this.servers.delete(debugSession.id);
+    this.sessionServerManager.terminate(debugSession);
   }
 
   /**
    * @inheritdoc
    */
   public dispose() {
-    this.disposables.forEach(d => d.dispose());
+    this.sessionServerManager.dispose();
   }
 }
