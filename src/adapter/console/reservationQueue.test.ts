@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { delay } from '../../common/promiseUtil';
 import { ReservationQueue } from './reservationQueue';
 
-describe('reservationQueue', () => {
+describe('ReservationQueue', () => {
   let sunk: number[][];
   let queue: ReservationQueue<number>;
 

@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
 import { ILogger } from '../../common/logging';
+import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
 import { ITarget } from '../targets';
@@ -16,7 +17,12 @@ import {
   IBootloaderEnvironment,
   variableDelimiter,
 } from './bootloader/environment';
-import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
+import {
+  Capability,
+  INodeBinaryProvider,
+  NodeBinary,
+  NodeBinaryProvider,
+} from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
@@ -82,25 +88,35 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
     const variables = this.extensionContext.environmentVariableCollection;
     if (!variables.get('VSCODE_INSPECTOR_OPTIONS' as keyof IBootloaderEnvironment)) {
-      const useSpaces = await this.canUseSpacesInBootloaderPath(runData.params);
-      const debugVars = ((
-        await this.resolveEnvironment(runData, useSpaces, {
-          deferredMode: true,
-          inspectorIpc: runData.serverAddress + '.deferred',
-          onlyWhenExplicit: readConfig(vscode.workspace, Configuration.OnlyAutoAttachExplicit),
-        })
-      ).defined() as unknown) as IBootloaderEnvironment;
-
-      variables.persistent = true;
-      variables.replace('NODE_OPTIONS', debugVars.NODE_OPTIONS);
-      variables.append(
-        'VSCODE_INSPECTOR_OPTIONS',
-        variableDelimiter + debugVars.VSCODE_INSPECTOR_OPTIONS,
-      );
+      await this.applyInspectorOptions(variables, runData);
     }
 
     this.program = new StubProgram();
     this.program.stopped.then(data => this.onProgramTerminated(data));
+  }
+
+  private async applyInspectorOptions(
+    variables: vscode.EnvironmentVariableCollection,
+    runData: IRunData<ITerminalLaunchConfiguration>,
+  ) {
+    const debugVars = await this.resolveEnvironment(
+      runData,
+      await this.resolveNodePath(runData.params),
+      {
+        deferredMode: true,
+        inspectorIpc: runData.serverAddress + '.deferred',
+        onlyWhenExplicit: readConfig(vscode.workspace, Configuration.OnlyAutoAttachExplicit),
+      },
+    );
+
+    const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
+
+    variables.persistent = true;
+    variables.replace('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS);
+    variables.append(
+      'VSCODE_INSPECTOR_OPTIONS',
+      variableDelimiter + bootloaderEnv.VSCODE_INSPECTOR_OPTIONS,
+    );
   }
 
   /**
@@ -108,19 +124,28 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    * location between the extension version updating.
    * @override
    */
-  protected async getBootloaderFile(
-    cwd: string | undefined,
-    canUseSpacesInBootloaderPath: boolean,
-  ) {
+  protected async getBootloaderFile(cwd: string | undefined, binary: NodeBinary) {
     // Use the local bootloader in development mode for easier iteration
-    if (this.extensionContext.extensionMode !== vscode.ExtensionMode.Production) {
-      return super.getBootloaderFile(cwd, canUseSpacesInBootloaderPath);
+    if (this.extensionContext.extensionMode === vscode.ExtensionMode.Development) {
+      return super.getBootloaderFile(cwd, binary);
     }
 
     const storagePath =
       this.extensionContext.storagePath || this.extensionContext.globalStoragePath;
-    if (!canUseSpacesInBootloaderPath && storagePath.includes(' ')) {
-      return super.getBootloaderFile(cwd, canUseSpacesInBootloaderPath);
+    if (storagePath.includes(' ')) {
+      if (!binary.isPreciselyKnown) {
+        throw new AutoAttachPreconditionFailed(
+          'We did not find "node" on your path, so can not enable auto-attach in your environment',
+          'https://github.com/microsoft/vscode-js-debug/issues/708',
+        );
+      }
+
+      if (!binary.has(Capability.UseSpacesInRequirePath)) {
+        throw new AutoAttachPreconditionFailed(
+          `The "node" version on your path is too old (${binary.version?.major}), so can not enable auto-attach in your environment`,
+          'https://github.com/microsoft/vscode-js-debug/issues/708',
+        );
+      }
     }
 
     const bootloaderPath = path.join(storagePath, 'bootloader.js');
@@ -131,7 +156,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     }
 
     await this.fs.copyFile(bootloaderDefaultPath, bootloaderPath);
-    return { path: bootloaderPath, dispose: () => undefined };
+
+    const p = forceForwardSlashes(bootloaderPath);
+    return { interpolatedPath: p.includes(' ') ? `"${p}"` : p, dispose: () => undefined };
   }
 
   /**
@@ -153,5 +180,11 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
 
   public static clearVariables(context: vscode.ExtensionContext) {
     context.environmentVariableCollection.clear();
+  }
+}
+
+export class AutoAttachPreconditionFailed extends Error {
+  constructor(message: string, public readonly helpLink?: string) {
+    super(message);
   }
 }

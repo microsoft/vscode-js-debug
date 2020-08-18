@@ -2,14 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import 'reflect-metadata';
-import { use } from 'chai';
 import * as glob from 'glob';
 import Mocha from 'mocha';
 import { join } from 'path';
-
-use(require('chai-subset'));
-use(require('chai-as-promised'));
+import './testHooks';
 
 function setupCoverage() {
   const NYC = require('nyc');

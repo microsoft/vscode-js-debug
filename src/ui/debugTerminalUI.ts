@@ -143,7 +143,7 @@ export function registerDebugTerminalUI(
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
     const logger = new ProxyLogger();
-    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(logger), logger, fs);
+    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(logger, fs), logger, fs);
     launcher.onTerminalCreated(terminal => {
       linkHandler.enableHandlingInTerminal(terminal);
     });

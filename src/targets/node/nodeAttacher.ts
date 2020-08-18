@@ -210,7 +210,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = await this.resolveEnvironment(run, binary.canUseSpacesInRequirePath, {
+    const vars = await this.resolveEnvironment(run, binary, {
       ppid: 0,
       requireLease: leasePath,
     });

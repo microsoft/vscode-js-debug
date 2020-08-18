@@ -135,7 +135,7 @@ export interface ICommandTypes {
   [Commands.EnlistExperiment](): void;
   [Commands.StartProfile](args?: string | IStartProfileArguments): void;
   [Commands.StopProfile](sessionId?: string): void;
-  [Commands.AutoAttachSetVariables](): { ipcAddress: string };
+  [Commands.AutoAttachSetVariables](): { ipcAddress: string } | void;
   [Commands.AutoAttachClearVariables](): void;
   [Commands.AutoAttachToProcess](info: IAutoAttachInfo): void;
   [Commands.RevealPage](sessionId: string): void;

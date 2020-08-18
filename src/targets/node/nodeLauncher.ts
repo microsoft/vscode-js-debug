@@ -108,7 +108,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         runData.params.runtimeExecutable || undefined,
       );
       const callbackFile = new CallbackFile<IProcessTelemetry>();
-      let env = await this.resolveEnvironment(runData, binary.canUseSpacesInRequirePath, {
+      let env = await this.resolveEnvironment(runData, binary, {
         fileCallback: callbackFile.path,
       });
 

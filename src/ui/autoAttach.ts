@@ -2,13 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import { promises as fs } from 'fs';
 import { registerCommand, Commands } from '../common/contributionUtils';
-import { AutoAttachLauncher } from '../targets/node/autoAttachLauncher';
+import {
+  AutoAttachLauncher,
+  AutoAttachPreconditionFailed,
+} from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { ProxyLogger } from '../common/logging/proxyLogger';
+
+const localize = nls.loadMessageBundle();
 
 export function registerAutoAttach(
   context: vscode.ExtensionContext,
@@ -24,7 +30,7 @@ export function registerAutoAttach(
 
     launcher = (async () => {
       const logger = new ProxyLogger();
-      const inst = new AutoAttachLauncher(new NodeBinaryProvider(logger), logger, context, fs);
+      const inst = new AutoAttachLauncher(new NodeBinaryProvider(logger, fs), logger, context, fs);
       await launchVirtualTerminalParent(delegate, inst);
 
       inst.onTargetListChanged(() => {
@@ -47,8 +53,19 @@ export function registerAutoAttach(
 
   context.subscriptions.push(
     registerCommand(vscode.commands, Commands.AutoAttachSetVariables, async () => {
-      const launcher = await acquireLauncher();
-      return { ipcAddress: launcher.deferredSocketName as string };
+      try {
+        const launcher = await acquireLauncher();
+        return { ipcAddress: launcher.deferredSocketName as string };
+      } catch (e) {
+        if (e instanceof AutoAttachPreconditionFailed && e.helpLink) {
+          const details = localize('details', 'Details');
+          if ((await vscode.window.showErrorMessage(e.message, details)) === details) {
+            vscode.env.openExternal(vscode.Uri.parse(e.helpLink));
+          }
+        } else {
+          await vscode.window.showErrorMessage(e.message);
+        }
+      }
     }),
     registerCommand(vscode.commands, Commands.AutoAttachToProcess, async info => {
       const launcher = await acquireLauncher();
