@@ -92,11 +92,16 @@ class VSSessionManager {
 
   createSession(sessionId: string | undefined, name: string, config: IPseudoAttachConfiguration) {
     const deferredConnection = getDeferred<DapConnection>();
-    const newSession = this.sessionManager.createNewChildSession(
-      new VSDebugSession(sessionId || 'root', name, deferredConnection.promise, config),
-      config.__pendingTargetId,
-      new SessionIdDapTransport(sessionId, this.rootTransport),
+    const vsSession = new VSDebugSession(
+      sessionId || 'root',
+      name,
+      deferredConnection.promise,
+      config,
     );
+    const transport = new SessionIdDapTransport(sessionId, this.rootTransport);
+    const newSession = config.__pendingTargetId
+      ? this.sessionManager.createNewChildSession(vsSession, config.__pendingTargetId, transport)
+      : this.sessionManager.createNewRootSession(vsSession, transport);
     deferredConnection.resolve(newSession.connection);
     return newSession;
   }
