@@ -39,13 +39,13 @@ interface IProtocolCallback {
   method: string;
 }
 
-let connectionId = 1000;
+let connectionId = 0;
 
 export const ICdpApi = Symbol('ICdpApi');
 
 export default class Connection {
   private _connectionId = connectionId++;
-  private _lastId: number;
+  private _lastId = 1000;
   private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
   private _disposedSessions = new Map<string, Date>();
@@ -60,7 +60,6 @@ export default class Connection {
     private readonly logger: ILogger,
     private readonly telemetryReporter: ITelemetryReporter,
   ) {
-    this._lastId = 0;
     this._transport = transport;
     this._transport.onMessage(([message, time]) => this._onMessage(message, time));
     this._transport.onEnd(() => this._onTransportClose());
