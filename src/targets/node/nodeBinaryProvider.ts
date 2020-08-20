@@ -25,12 +25,10 @@ export const enum Capability {
  * prevents spewing extra debug info to the console.
  * @see https://github.com/microsoft/vscode-js-debug/issues/558
  */
-export function hideDebugInfoFromConsole(_binary: NodeBinary, env: EnvironmentVars) {
-  // todo@connor4312: not working yet, see https://github.com/nodejs/node/issues/12665#issuecomment-675758519
-  // return binary.has(Capability.UseInspectPublishUid)
-  //   ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-public-uid=http` })
-  //   : env;
-  return env;
+export function hideDebugInfoFromConsole(binary: NodeBinary, env: EnvironmentVars) {
+  return binary.has(Capability.UseInspectPublishUid)
+    ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-publish-uid=http` })
+    : env;
 }
 
 const assumedVersion = new Semver(12, 0, 0);
