@@ -222,6 +222,10 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
         // fix for https://github.com/microsoft/vscode/issues/102296
         preRestartTask: parentConfig.preRestartTask ?? parentConfig.postDebugTask,
         postRestartTask: parentConfig.postRestartTask ?? parentConfig.preLaunchTask,
+
+        // TODO: Do we need to copy any more parameters?
+        rootPath: target.launchConfig.rootPath,
+        cwd: ((target.launchConfig as unknown) as { cwd?: string }).cwd,
       };
 
       this.sessionLauncher.launch(parentSession, target, config);

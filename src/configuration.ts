@@ -642,6 +642,8 @@ export interface IPseudoAttachConfiguration extends IMandatedConfiguration {
   postDebugTask?: string;
   preRestartTask?: string;
   postRestartTask?: string;
+  rootPath?: string;
+  cwd?: string;
 }
 
 /**

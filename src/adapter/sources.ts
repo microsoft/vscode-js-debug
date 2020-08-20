@@ -490,7 +490,8 @@ export class SourceContainer {
   ) {
     this._dap = dap;
 
-    const mainRootPath = 'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath;
+    const mainRootPath =
+      'webRoot' in launchConfig ? launchConfig.webRoot : launchConfig.rootPath || launchConfig.cwd;
     if (mainRootPath) {
       // Prefixing ../ClientApp is a workaround for a bug in ASP.NET debugging in VisualStudio because the wwwroot is not properly configured
       this.rootPaths = [mainRootPath, properResolve(mainRootPath, '..', 'ClientApp')];
