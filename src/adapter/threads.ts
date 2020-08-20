@@ -38,7 +38,9 @@ import {
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreDelegate, VariableStore } from './variables';
+import { bootloaderDefaultPath } from '../targets/node/watchdogSpawn';
 const localize = nls.loadMessageBundle();
+import * as utils from '../common/urlUtils';
 
 export type PausedReason =
   | 'step'
@@ -136,6 +138,8 @@ class DeferredContainer<T> {
     }
   }
 }
+
+const bootloaderDefaultFilePath = utils.absolutePathToFileUrl(bootloaderDefaultPath).toLowerCase();
 
 export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
@@ -1096,6 +1100,11 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+    if (event.url.toLowerCase() === bootloaderDefaultFilePath) {
+      // The customer doesn't care about the bootloader, so skip this event
+      return;
+    }
+
     if (this._sourceContainer.scriptsById.has(event.scriptId)) {
       return;
     }
