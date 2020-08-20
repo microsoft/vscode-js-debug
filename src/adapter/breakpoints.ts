@@ -145,6 +145,8 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
     this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
 
+    _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
+
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
         !logger.assert(
