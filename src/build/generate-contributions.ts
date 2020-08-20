@@ -1074,7 +1074,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     markdownDescription: refString('configuration.autoExpandGetters'),
   },
   [Configuration.AutoAttachMode]: {
-    type: 'boolean',
+    type: 'string',
     default: AutoAttachMode.Smart,
     enum: [AutoAttachMode.Always, AutoAttachMode.Smart, AutoAttachMode.Explicit],
     enumDescriptions: [
