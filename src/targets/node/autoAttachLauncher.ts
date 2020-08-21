@@ -9,6 +9,8 @@ import { Configuration, DebugType, readConfig } from '../../common/contributionU
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
+import { ErrorCodes } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
 import { ITarget } from '../targets';
 import {
@@ -99,15 +101,22 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     variables: vscode.EnvironmentVariableCollection,
     runData: IRunData<ITerminalLaunchConfiguration>,
   ) {
-    const debugVars = await this.resolveEnvironment(
-      runData,
-      await this.resolveNodePath(runData.params),
-      {
-        deferredMode: true,
-        inspectorIpc: runData.serverAddress + '.deferred',
-        autoAttachMode: readConfig(vscode.workspace, Configuration.AutoAttachMode),
-      },
-    );
+    let binary: NodeBinary;
+    try {
+      binary = await this.resolveNodePath(runData.params);
+    } catch (e) {
+      if (e instanceof ProtocolError && e.cause.id === ErrorCodes.CannotFindNodeBinary) {
+        binary = new NodeBinary('node', undefined);
+      } else {
+        throw e;
+      }
+    }
+
+    const debugVars = await this.resolveEnvironment(runData, binary, {
+      deferredMode: true,
+      inspectorIpc: runData.serverAddress + '.deferred',
+      autoAttachMode: readConfig(vscode.workspace, Configuration.AutoAttachMode),
+    });
 
     const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
 
