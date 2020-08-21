@@ -67,7 +67,7 @@ describe('browser launch', () => {
       }); // We don't care about the launch result, as long as we connect to the WebSocket
 
       expect(await receivedMessage).to.be.eq(
-        '{"id":1,"method":"Target.attachToBrowserTarget","params":{}}',
+        '{"id":1001,"method":"Target.attachToBrowserTarget","params":{}}',
       ); // Verify we got the first message on the WebSocket
     } finally {
       wsServer.close();

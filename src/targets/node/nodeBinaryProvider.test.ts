@@ -3,18 +3,20 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
+import { promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { SinonStub, stub } from 'sinon';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { Logger } from '../../common/logging/logger';
+import { Semver } from '../../common/semver';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { NodeBinaryProvider, Capability, NodeBinary } from '../../targets/node/nodeBinaryProvider';
-import { promises as fsPromises } from 'fs';
+import { Capability, NodeBinary, NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { testWorkspace } from '../../test/test';
-import { Semver } from '../../common/semver';
 
-describe('NodeBinaryProvider', () => {
+describe('NodeBinaryProvider', function () {
+  this.timeout(30 * 1000); // windows lookups in CI seem to be very slow sometimes
+
   let p: NodeBinaryProvider;
   const env = (name: string) =>
     EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider', name));
