@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { URL } from 'url';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { EventEmitter } from '../common/events';
@@ -38,9 +39,7 @@ import {
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreDelegate, VariableStore } from './variables';
-import { bootloaderDefaultPath } from '../targets/node/watchdogSpawn';
 const localize = nls.loadMessageBundle();
-import * as utils from '../common/urlUtils';
 
 export type PausedReason =
   | 'step'
@@ -124,7 +123,7 @@ export type RawLocation = {
 class DeferredContainer<T> {
   private _dapDeferred: IDeferred<T> = getDeferred();
 
-  constructor(private readonly _obj: T) {}
+  constructor(private readonly _obj: T) { }
 
   resolve(): void {
     this._dapDeferred.resolve(this._obj);
@@ -138,8 +137,6 @@ class DeferredContainer<T> {
     }
   }
 }
-
-const bootloaderDefaultFilePath = utils.absolutePathToFileUrl(bootloaderDefaultPath).toLowerCase();
 
 export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
@@ -398,18 +395,18 @@ export class Thread implements IVariableStoreDelegate {
     const params: Cdp.Runtime.EvaluateParams =
       args.context === 'clipboard'
         ? {
-            expression: serializeForClipboardTmpl(args.expression, '2'),
-            includeCommandLineAPI: true,
-            returnByValue: true,
-            objectGroup: 'console',
-          }
+          expression: serializeForClipboardTmpl(args.expression, '2'),
+          includeCommandLineAPI: true,
+          returnByValue: true,
+          objectGroup: 'console',
+        }
         : {
-            expression: args.expression,
-            includeCommandLineAPI: true,
-            objectGroup: 'console',
-            generatePreview: true,
-            timeout: args.context === 'hover' ? 500 : undefined,
-          };
+          expression: args.expression,
+          includeCommandLineAPI: true,
+          objectGroup: 'console',
+          generatePreview: true,
+          timeout: args.context === 'hover' ? 500 : undefined,
+        };
 
     if (args.context === 'repl') {
       params.expression = sourceUtils.wrapObjectLiteral(params.expression);
@@ -426,9 +423,9 @@ export class Thread implements IVariableStoreDelegate {
       callFrameId
         ? { ...params, callFrameId }
         : {
-            ...params,
-            contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
-          },
+          ...params,
+          contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
+        },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
@@ -1100,8 +1097,9 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    if (event.url.toLowerCase() === bootloaderDefaultFilePath) {
-      // The customer doesn't care about the bootloader, so skip this event
+    const url = new URL(event.url);
+    if (url.pathname.endsWith(".cdp")) {
+      // The customer doesn't care about the internal cdp files, so skip this event
       return;
     }
 
