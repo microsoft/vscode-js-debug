@@ -11,6 +11,7 @@ import {
   DebugType,
   IConfigurationTypes,
 } from '../common/contributionUtils';
+import { knownToolToken } from '../common/knownTools';
 import { sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
@@ -1083,6 +1084,14 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
       refString('configuration.autoAttachMode.explicit'),
     ],
     markdownDescription: refString('configuration.autoAttachMode'),
+  },
+  [Configuration.AutoAttachSmartPatterns]: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+    default: ['!**/node_modules/**', `**/${knownToolToken}/**`],
+    markdownDescription: refString('configuration.autoAttachSmartPatterns'),
   },
 };
 

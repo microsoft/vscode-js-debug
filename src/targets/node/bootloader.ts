@@ -2,12 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import 'reflect-metadata';
-
 import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as inspector from 'inspector';
+import match from 'micromatch';
 import * as path from 'path';
+import 'reflect-metadata';
+import { AutoAttachMode } from '../../common/contributionUtils';
+import { knownToolGlob, knownToolToken } from '../../common/knownTools';
 import { LogTag } from '../../common/logging';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { ErrorType, onUncaughtError } from '../../telemetry/unhandledErrorReporter';
@@ -16,7 +18,6 @@ import { checkAll } from './bootloader/filters';
 import { bootloaderLogger } from './bootloader/logger';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { spawnWatchdog } from './watchdogSpawn';
-import { AutoAttachMode } from '../../common/contributionUtils';
 
 const telemetry: IProcessTelemetry = {
   cwd: process.cwd(),
@@ -135,7 +136,7 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
     case AutoAttachMode.Always:
       return true;
     case AutoAttachMode.Smart:
-      return shouldSmartAttach();
+      return shouldSmartAttach(env);
     case AutoAttachMode.Explicit:
     default:
       return false;
@@ -149,14 +150,10 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
  * we could detect a direct invokation of something like `npm install`,
  * so we match against the script name.
  */
-function shouldSmartAttach() {
+function shouldSmartAttach(env: IBootloaderInfo) {
   const script: string | undefined = process.argv[1];
   if (!script) {
     return true; // node REPL
-  }
-
-  if (script.includes('node_modules')) {
-    return false; // some dependency binary, like webpack or lerna
   }
 
   // *nix likes to install node and npm side-by-side, detect if the script is
@@ -165,7 +162,21 @@ function shouldSmartAttach() {
     return false;
   }
 
-  return true; // otherwise, it looks like a user script
+  // otherwise, delegate to the patterns. Defaults exclude node_modules
+  return autoAttachSmartPatternMatches(script, env);
+}
+
+function autoAttachSmartPatternMatches(script: string, env: IBootloaderInfo) {
+  if (!env.aaPatterns) {
+    return false;
+  }
+
+  const r = match(
+    [script.replace(/\\/g, '/')],
+    env.aaPatterns.map(p => p.replace(knownToolToken, knownToolGlob)),
+  );
+
+  return r.length > 0;
 }
 
 function isPipeAvailable(pipe?: string): pipe is string {

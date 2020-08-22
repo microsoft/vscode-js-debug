@@ -5,7 +5,12 @@
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
+import {
+  AutoAttachMode,
+  Configuration,
+  DebugType,
+  readConfig,
+} from '../../common/contributionUtils';
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
@@ -112,10 +117,15 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       }
     }
 
+    const autoAttachMode = readConfig(vscode.workspace, Configuration.AutoAttachMode);
     const debugVars = await this.resolveEnvironment(runData, binary, {
       deferredMode: true,
       inspectorIpc: runData.serverAddress + '.deferred',
-      autoAttachMode: readConfig(vscode.workspace, Configuration.AutoAttachMode),
+      autoAttachMode,
+      aaPatterns:
+        autoAttachMode === AutoAttachMode.Smart
+          ? readConfig(vscode.workspace, Configuration.AutoAttachSmartPatterns)
+          : undefined,
     });
 
     const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;

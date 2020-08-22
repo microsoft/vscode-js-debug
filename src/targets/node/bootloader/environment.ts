@@ -74,6 +74,11 @@ export interface IBootloaderInfo {
    * Auto attach mode, see the descriptions in strings.ts for info.
    */
   autoAttachMode: AutoAttachMode;
+
+  /**
+   * Pattern globs to use when auto attaching in 'smart' mode.
+   */
+  aaPatterns?: ReadonlyArray<string>;
 }
 
 export interface IBootloaderEnvironment {

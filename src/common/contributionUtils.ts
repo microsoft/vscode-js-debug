@@ -105,6 +105,7 @@ export const enum Configuration {
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
   AutoExpandGetters = 'debug.javascript.autoExpandGetters',
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
+  AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -125,6 +126,7 @@ export interface IConfigurationTypes {
     | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
   [Configuration.AutoExpandGetters]: boolean;
   [Configuration.AutoAttachMode]: AutoAttachMode;
+  [Configuration.AutoAttachSmartPatterns]: ReadonlyArray<string>;
 }
 
 export interface ICommandTypes {
