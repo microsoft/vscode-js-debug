@@ -56,9 +56,6 @@ const telemetry: IProcessTelemetry = {
       `Error in the js-debug bootloader, please report to https://aka.ms/js-dbg-issue: ${e.stack}`,
     );
   }
-
-  console.log('listeners', process.listeners('uncaughtException'));
-  console.log('listeners', process.listeners('unhandledRejection'));
 })();
 
 const enum Mode {

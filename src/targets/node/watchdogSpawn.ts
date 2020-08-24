@@ -61,6 +61,7 @@ export class WatchDog implements IDisposable {
   private readonly onEndEmitter = new EventEmitter<IStopMetadata>();
   private target?: WebSocketTransport;
   private gracefulExit = false;
+  private targetAlive = false;
   private readonly targetInfo: Cdp.Target.TargetInfo = {
     targetId: this.info.pid || '0',
     type: this.info.waitForDebugger ? 'waitingForDebugger' : '',
@@ -70,6 +71,13 @@ export class WatchDog implements IDisposable {
     attached: true,
     canAccessOpener: false,
   };
+
+  /**
+   * Gets whether the attached process is still running.
+   */
+  public get isTargetAlive() {
+    return this.targetAlive;
+  }
 
   /**
    * Event that fires when the watchdog stops.
@@ -170,7 +178,7 @@ export class WatchDog implements IDisposable {
     const target = await WebSocketTransport.create(this.info.inspectorURL, NeverCancelled);
     target.onMessage(([data]) => this.server.send(data));
     target.onEnd(() => {
-      if (target)
+      if (target) {
         // Could be due us closing.
         this.server.send(
           JSON.stringify({
@@ -178,6 +186,9 @@ export class WatchDog implements IDisposable {
             params: { targetId: this.targetInfo.targetId, sessionId: this.targetInfo.targetId },
           }),
         );
+      }
+
+      this.targetAlive = false;
       this.server.dispose();
     });
 
