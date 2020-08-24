@@ -33,7 +33,8 @@ import {
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
-import { bootloaderDefaultPath, WatchDog } from './watchdogSpawn';
+import { bootloaderDefaultPath, watchdogPath } from './bundlePaths';
+import { WatchDog } from './watchdogSpawn';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment
@@ -145,9 +146,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    */
   protected async getBootloaderFile(cwd: string | undefined, binary: NodeBinary) {
     // Use the local bootloader in development mode for easier iteration
-    if (this.extensionContext.extensionMode === vscode.ExtensionMode.Development) {
-      return super.getBootloaderFile(cwd, binary);
-    }
+    // if (this.extensionContext.extensionMode === vscode.ExtensionMode.Development) {
+    //   return super.getBootloaderFile(cwd, binary);
+    // }
 
     const storagePath =
       this.extensionContext.storagePath || this.extensionContext.globalStoragePath;

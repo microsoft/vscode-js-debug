@@ -498,10 +498,10 @@ export class Thread implements IVariableStoreDelegate {
       this._executionContextsCleared();
     });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
-      this._cdp.Runtime.on('consoleAPICalled', async event => {
+      this._cdp.Runtime.on('consoleAPICalled', event => {
         this.console.dispatch(this, event);
       });
-      this._cdp.Runtime.on('exceptionThrown', async event => {
+      this._cdp.Runtime.on('exceptionThrown', event => {
         this.console.enqueue(this, new ExceptionMessage(event.exceptionDetails));
       });
     }

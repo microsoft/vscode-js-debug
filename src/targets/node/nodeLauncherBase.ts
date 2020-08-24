@@ -40,7 +40,7 @@ import {
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { bootloaderDefaultPath } from './watchdogSpawn';
+import { bootloaderDefaultPath } from './bundlePaths';
 
 /**
  * Telemetry received from the nested process.

@@ -2,8 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { join } from 'path';
 
-export const bootloaderLogger = {
-  info: (..._args: unknown[]) => undefined,
-};
+export const watchdogPath = join(__dirname, 'watchdog.bundle.js');
+export const bootloaderDefaultPath = join(__dirname, 'bootloader.bundle.js');

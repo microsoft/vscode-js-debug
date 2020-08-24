@@ -2,9 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { spawn } from 'child_process';
 import * as net from 'net';
-import { join } from 'path';
 import Cdp from '../../cdp/api';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { ITransport } from '../../cdp/transport';
@@ -53,9 +51,6 @@ export interface IWatchdogInfo {
    */
   ppid?: string;
 }
-
-export const watchdogPath = join(__dirname, 'watchdog.bundle.js');
-export const bootloaderDefaultPath = join(__dirname, 'bootloader.bundle.js');
 
 const enum Method {
   AttachToTarget = 'Target.attachToTarget',
@@ -195,18 +190,4 @@ export class WatchDog implements IDisposable {
       this.target = undefined;
     }
   }
-}
-
-/**
- * Spawns a watchdog attached to the given process.
- */
-export function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
-  const p = spawn(execPath, [watchdogPath], {
-    env: { NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo) },
-    stdio: 'ignore',
-    detached: true,
-  });
-  p.unref();
-
-  return p;
 }

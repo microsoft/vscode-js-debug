@@ -2,22 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as inspector from 'inspector';
 import match from 'micromatch';
 import * as path from 'path';
-import 'reflect-metadata';
 import { AutoAttachMode } from '../../common/contributionUtils';
 import { knownToolGlob, knownToolToken } from '../../common/knownTools';
 import { LogTag } from '../../common/logging';
-import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
-import { ErrorType, onUncaughtError } from '../../telemetry/unhandledErrorReporter';
 import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootloader/environment';
 import { checkAll } from './bootloader/filters';
 import { bootloaderLogger } from './bootloader/logger';
+import { watchdogPath } from './bundlePaths';
 import { IProcessTelemetry } from './nodeLauncherBase';
-import { spawnWatchdog } from './watchdogSpawn';
+import { IWatchdogInfo } from './watchdogSpawn';
 
 const telemetry: IProcessTelemetry = {
   cwd: process.cwd(),
@@ -57,8 +55,10 @@ const telemetry: IProcessTelemetry = {
     console.error(
       `Error in the js-debug bootloader, please report to https://aka.ms/js-dbg-issue: ${e.stack}`,
     );
-    onUncaughtError(bootloaderLogger, new NullTelemetryReporter(), ErrorType.Exception);
   }
+
+  console.log('listeners', process.listeners('uncaughtException'));
+  console.log('listeners', process.listeners('unhandledRejection'));
 })();
 
 const enum Mode {
@@ -221,4 +221,18 @@ function reportTelemetry(env: BootloaderEnvironment) {
 
   fs.writeFileSync(callbackFile, JSON.stringify(telemetry));
   env.updateInspectorOption('fileCallback', undefined);
+}
+
+/**
+ * Spawns a watchdog attached to the given process.
+ */
+function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
+  const p = spawn(execPath, [watchdogPath], {
+    env: { NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo) },
+    stdio: 'ignore',
+    detached: true,
+  });
+  p.unref();
+
+  return p;
 }
