@@ -174,7 +174,10 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       // already exists, most likely
     }
 
-    await this.fs.copyFile(bootloaderDefaultPath, bootloaderPath);
+    await Promise.all([
+      this.fs.copyFile(bootloaderDefaultPath, bootloaderPath),
+      this.fs.copyFile(watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
+    ]);
 
     const p = forceForwardSlashes(bootloaderPath);
     return { interpolatedPath: p.includes(' ') ? `"${p}"` : p, dispose: () => undefined };
