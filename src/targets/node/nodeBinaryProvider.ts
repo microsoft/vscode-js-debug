@@ -4,6 +4,7 @@
 
 import { inject, injectable } from 'inversify';
 import { basename, isAbsolute } from 'path';
+import * as nls from 'vscode-nls';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
@@ -12,6 +13,8 @@ import { Semver } from '../../common/semver';
 import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
+
+const localize = nls.loadMessageBundle();
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
 
@@ -130,7 +133,12 @@ export class NodeBinaryProvider {
     const location = await this.resolveBinaryLocation(executable, env);
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
     if (!location) {
-      throw new ProtocolError(cannotFindNodeBinary(executable));
+      throw new ProtocolError(
+        cannotFindNodeBinary(
+          executable,
+          localize('runtime.node.notfound.enoent', 'path does not exist'),
+        ),
+      );
     }
 
     if (explicitVersion) {
@@ -209,8 +217,13 @@ export class NodeBinaryProvider {
         env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
       });
       return stdout;
-    } catch {
-      throw new ProtocolError(cannotFindNodeBinary(binary));
+    } catch (e) {
+      throw new ProtocolError(
+        cannotFindNodeBinary(
+          binary,
+          localize('runtime.node.notfound.spawnErr', 'error getting version: {0}', e.message),
+        ),
+      );
     }
   }
 }
