@@ -74,6 +74,26 @@
       ],
     },
     {
+      "name": "Extension and Auto Launch",
+      "type": "pwa-extensionHost",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "args": [
+        "--enable-proposed-api=ms-vscode.js-debug",
+        "--extensionDevelopmentPath=${workspaceFolder}/../vscode/extensions/debug-auto-launch",
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**",
+        "!**/node_modules/**"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js",
+      ],
+    },
+    {
       "name": "Extension and Companion",
       "type": "pwa-extensionHost",
       "request": "launch",
