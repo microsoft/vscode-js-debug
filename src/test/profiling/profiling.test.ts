@@ -204,14 +204,8 @@ describe('profiling', () => {
   });
 
   describe('ui', () => {
-    let session: vscode.DebugSession | undefined;
-
     afterEach(async () => {
-      if (session) {
-        session.customRequest('disconnect', {});
-        session = undefined;
-        await new Promise(resolve => vscode.debug.onDidTerminateDebugSession(resolve));
-      }
+      await vscode.debug.stopDebugging();
     });
 
     const pickTermination = async (session: vscode.DebugSession, labelRe: RegExp) => {
