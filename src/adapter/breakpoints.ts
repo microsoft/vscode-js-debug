@@ -145,6 +145,8 @@ export class BreakpointManager {
     this._sourceContainer = sourceContainer;
     this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
 
+    _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
+
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
         !logger.assert(
@@ -451,20 +453,14 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  async _updateSourceMapHandler(thread: Thread) {
+  private _updateSourceMapHandler(thread: Thread) {
     this._sourceMapHandlerWasUpdated = true;
 
-    await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
-
-    if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
-      return;
+    if (this._breakpointsPredictor && !this.pauseForSourceMaps) {
+      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+    } else {
+      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
-
-    // If we set a predictor and don't want to pause, we still wait to wait
-    // for the predictor to finish running. Uninstall the sourcemap handler
-    // once we see the predictor is ready to roll.
-    await this._breakpointsPredictor.prepareToPredict();
-    thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {

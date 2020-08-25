@@ -737,19 +737,22 @@ declare module 'vscode' {
 
 	//#region debug
 
-	export interface DebugSessionOptions {
-		/**
-		 * Controls whether this session should run without debugging, thus ignoring breakpoints.
-		 * When this property is not specified, the value from the parent session (if there is one) is used.
-		 */
-		noDebug?: boolean;
+	/**
+	 * A DebugProtocolBreakpoint is an opaque stand-in type for the [Breakpoint](https://microsoft.github.io/debug-adapter-protocol/specification#Types_Breakpoint) type defined in the Debug Adapter Protocol.
+	 */
+	export interface DebugProtocolBreakpoint {
+		// Properties: see details [here](https://microsoft.github.io/debug-adapter-protocol/specification#Types_Breakpoint).
+	}
 
+	export interface DebugSession {
 		/**
-		 * Controls if the debug session's parent session is shown in the CALL STACK view even if it has only a single child.
-		 * By default, the debug session will never hide its parent.
-		 * If compact is true, debug sessions with a single child are hidden in the CALL STACK view to make the tree more compact.
+		 * Maps a VS Code breakpoint to the corresponding Debug Adapter Protocol (DAP) breakpoint that is managed by the debug adapter of the debug session.
+		 * If no DAP breakpoint exists (either because the VS Code breakpoint was not yet registered or because the debug adapter is not interested in the breakpoint), the value `undefined` is returned.
+		 *
+		 * @param breakpoint A VS Code [breakpoint](#Breakpoint).
+		 * @return A promise that resolves to the Debug Adapter Protocol breakpoint or `undefined`.
 		 */
-		compact?: boolean;
+		getDebugProtocolBreakpoint(breakpoint: Breakpoint): Thenable<DebugProtocolBreakpoint | undefined>;
 	}
 
 	// deprecated debug API
@@ -760,16 +763,6 @@ declare module 'vscode' {
 		 * @deprecated Use DebugAdapterDescriptorFactory.createDebugAdapterDescriptor instead
 		 */
 		debugAdapterExecutable?(folder: WorkspaceFolder | undefined, token?: CancellationToken): ProviderResult<DebugAdapterExecutable>;
-	}
-
-	export namespace debug {
-
-		/**
-		 * Stop the given debug session or stop all debug sessions if no session is specified.
-		 * @param session The [debug session](#DebugSession) to stop or `undefined` for stopping all sessions.
-		 * @return A thenable that resolves when the sessions could be stopped successfully.
-		 */
-		export function stopDebugging(session: DebugSession | undefined): Thenable<void>;
 	}
 
 	//#endregion
@@ -928,93 +921,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	//#region Terminal link handlers https://github.com/microsoft/vscode/issues/91606
-
-	export namespace window {
-		/**
-		 * Register a [TerminalLinkHandler](#TerminalLinkHandler) that can be used to intercept and
-		 * handle links that are activated within terminals.
-		 * @param handler The link handler being registered.
-		 * @return A disposable that unregisters the link handler.
-		 */
-		export function registerTerminalLinkHandler(handler: TerminalLinkHandler): Disposable;
-	}
-
-	/**
-	 * Describes how to handle terminal links.
-	 */
-	export interface TerminalLinkHandler {
-		/**
-		 * Handles a link that is activated within the terminal.
-		 *
-		 * @param terminal The terminal the link was activated on.
-		 * @param link The text of the link activated.
-		 * @return Whether the link was handled, if the link was handled this link will not be
-		 * considered by any other extension or by the default built-in link handler.
-		 */
-		handleLink(terminal: Terminal, link: string): ProviderResult<boolean>;
-	}
-
-	//#endregion
-
-	//#region Terminal link provider https://github.com/microsoft/vscode/issues/91606
-
-	export namespace window {
-		export function registerTerminalLinkProvider(provider: TerminalLinkProvider): Disposable;
-	}
-
-	export interface TerminalLinkContext {
-		/**
-		 * This is the text from the unwrapped line in the terminal.
-		 */
-		line: string;
-
-		/**
-		 * The terminal the link belongs to.
-		 */
-		terminal: Terminal;
-	}
-
-	export interface TerminalLinkProvider<T extends TerminalLink = TerminalLink> {
-		/**
-		 * Provide terminal links for the given context. Note that this can be called multiple times
-		 * even before previous calls resolve, make sure to not share global objects (eg. `RegExp`)
-		 * that could have problems when asynchronous usage may overlap.
-		 * @param context Information about what links are being provided for.
-		 * @param token A cancellation token.
-		 * @return A list of terminal links for the given line.
-		 */
-		provideTerminalLinks(context: TerminalLinkContext, token: CancellationToken): ProviderResult<T[]>
-
-		/**
-		 * Handle an activated terminal link.
-		 */
-		handleTerminalLink(link: T): ProviderResult<void>;
-	}
-
-	export interface TerminalLink {
-		/**
-		 * The start index of the link on [TerminalLinkContext.line](#TerminalLinkContext.line].
-		 */
-		startIndex: number;
-
-		/**
-		 * The length of the link on [TerminalLinkContext.line](#TerminalLinkContext.line]
-		 */
-		length: number;
-
-		/**
-		 * The tooltip text when you hover over this link.
-		 *
-		 * If a tooltip is provided, is will be displayed in a string that includes instructions on
-		 * how to trigger the link, such as `{0} (ctrl + click)`. The specific instructions vary
-		 * depending on OS, user settings, and localization.
-		 */
-		tooltip?: string;
-	}
-
-	//#endregion
-
 	//#region @jrieken -> exclusive document filters
 
 	export interface DocumentFilter {
@@ -1075,26 +981,12 @@ declare module 'vscode' {
 	}
 	//#endregion
 
-	//#region CustomExecution: https://github.com/microsoft/vscode/issues/81007
 	/**
 	 * A task to execute
 	 */
 	export class Task2 extends Task {
 		detail?: string;
 	}
-
-	export class CustomExecution2 extends CustomExecution {
-		/**
-		 * Constructs a CustomExecution task object. The callback will be executed the task is run, at which point the
-		 * extension should return the Pseudoterminal it will "run in". The task should wait to do further execution until
-		 * [Pseudoterminal.open](#Pseudoterminal.open) is called. Task cancellation should be handled using
-		 * [Pseudoterminal.close](#Pseudoterminal.close). When the task is complete fire
-		 * [Pseudoterminal.onDidClose](#Pseudoterminal.onDidClose).
-		 * @param callback The callback that will be called when the task is started by a user.
-		 */
-		constructor(callback: (resolvedDefinition?: TaskDefinition) => Thenable<Pseudoterminal>);
-	}
-	//#endregion
 
 	//#region Task presentation group: https://github.com/microsoft/vscode/issues/47265
 	export interface TaskPresentationOptions {
@@ -1378,7 +1270,7 @@ declare module 'vscode' {
 		readonly uri: Uri;
 		readonly cellKind: CellKind;
 		readonly document: TextDocument;
-		language: string;
+		readonly language: string;
 		outputs: CellOutput[];
 		metadata: NotebookCellMetadata;
 	}
@@ -2022,59 +1914,61 @@ declare module 'vscode' {
 
 	//#endregion
 
-	//#region https://github.com/microsoft/vscode/issues/101857
+	//#region Support `scmResourceState` in `when` clauses #86180 https://github.com/microsoft/vscode/issues/86180
 
-	export interface ExtensionContext {
-
+	export interface SourceControlResourceState {
 		/**
-		 * The uri of a directory in which the extension can create log files.
-		 * The directory might not exist on disk and creation is up to the extension. However,
-		 * the parent directory is guaranteed to be existent.
-		 *
-		 * @see [`workspace.fs`](#FileSystem) for how to read and write files and folders from
-		 *  an uri.
+		 * Context value of the resource state. This can be used to contribute resource specific actions.
+		 * For example, if a resource is given a context value as `diffable`. When contributing actions to `scm/resourceState/context`
+		 * using `menus` extension point, you can specify context value for key `scmResourceState` in `when` expressions, like `scmResourceState == diffable`.
+		 * ```
+		 *	"contributes": {
+		 *		"menus": {
+		 *			"scm/resourceState/context": [
+		 *				{
+		 *					"command": "extension.diff",
+		 *					"when": "scmResourceState == diffable"
+		 *				}
+		 *			]
+		 *		}
+		 *	}
+		 * ```
+		 * This will show action `extension.diff` only for resources with `contextValue` is `diffable`.
 		 */
-		readonly logUri: Uri;
-
-		/**
-		 * The uri of a workspace specific directory in which the extension
-		 * can store private state. The directory might not exist and creation is
-		 * up to the extension. However, the parent directory is guaranteed to be existent.
-		 * The value is `undefined` when no workspace nor folder has been opened.
-		 *
-		 * Use [`workspaceState`](#ExtensionContext.workspaceState) or
-		 * [`globalState`](#ExtensionContext.globalState) to store key value data.
-		 *
-		 * @see [`workspace.fs`](#FileSystem) for how to read and write files and folders from
-		 *  an uri.
-		 */
-		readonly storageUri: Uri | undefined;
-
-		/**
-		 * The uri of a directory in which the extension can store global state.
-		 * The directory might not exist on disk and creation is
-		 * up to the extension. However, the parent directory is guaranteed to be existent.
-		 *
-		 * Use [`globalState`](#ExtensionContext.globalState) to store key value data.
-		 *
-		 * @see [`workspace.fs`](#FileSystem) for how to read and write files and folders from
-		 *  an uri.
-		 */
-		readonly globalStorageUri: Uri;
-
-		/**
-		 * @deprecated Use [logUri](#ExtensionContext.logUri) instead.
-		 */
-		readonly logPath: string;
-		/**
-		 * @deprecated Use [storagePath](#ExtensionContent.storageUri) instead.
-		 */
-		readonly storagePath: string | undefined;
-		/**
-		 * @deprecated Use [globalStoragePath](#ExtensionContent.globalStorageUri) instead.
-		 */
-		readonly globalStoragePath: string;
+		readonly contextValue?: string;
 	}
 
+	//#endregion
+
+	//#region https://github.com/microsoft/vscode/issues/104436
+
+	export enum ExtensionRuntime {
+		/**
+		 * The extension is running in a NodeJS extension host. Runtime access to NodeJS APIs is available.
+		 */
+		Node = 1,
+		/**
+		 * The extension is running in a Webworker extension host. Runtime access is limited to Webworker APIs.
+		 */
+		Webworker = 2
+	}
+
+	export interface ExtensionContext {
+		readonly extensionRuntime: ExtensionRuntime;
+	}
+
+	//#endregion
+
+
+	//#region https://github.com/microsoft/vscode/issues/102091
+
+	export interface TextDocument {
+
+		/**
+		 * The [notebook](#NotebookDocument) that contains this document as a notebook cell or `undefined` when
+		 * the document is not contained by a notebook (this should be the more frequent case).
+		 */
+		notebook: NotebookDocument | undefined;
+	}
 	//#endregion
 }

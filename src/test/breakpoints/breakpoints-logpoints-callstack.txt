@@ -1,0 +1,11 @@
+{
+    category : stdout
+    column : 3
+    line : 22
+    output : 123
+    source : {
+        name : localhost꞉8001/logging.js
+        path : ${workspaceFolder}/web/logging.js
+        sourceReference : <number>
+    }
+}

@@ -4,6 +4,7 @@
 
 import { expect } from 'chai';
 import { ChildProcess, spawn } from 'child_process';
+import { promises as fsPromises } from 'fs';
 import { dirname, join } from 'path';
 import { stub } from 'sinon';
 import split from 'split2';
@@ -528,8 +529,8 @@ describe('node runtime', () => {
   });
 
   describe('simplePortAttach', () => {
-    const npm = once(() => {
-      const npmPath = findInPath('npm', process.env);
+    const npm = once(async () => {
+      const npmPath = await findInPath(fsPromises, 'npm', process.env);
       if (!npmPath) {
         throw new Error('npm not on path');
       }
@@ -543,7 +544,7 @@ describe('node runtime', () => {
       const handle = await r.runScript('', {
         program: undefined,
         cwd,
-        runtimeExecutable: npm(),
+        runtimeExecutable: await npm(),
         runtimeArgs: ['run', 'startWithBrk'],
         port: 29204,
       });
@@ -563,7 +564,7 @@ describe('node runtime', () => {
       const handle = await r.runScript('', {
         program: undefined,
         cwd,
-        runtimeExecutable: npm(),
+        runtimeExecutable: await npm(),
         runtimeArgs: ['run', 'startWithoutBrk'],
         port: 29204,
       });

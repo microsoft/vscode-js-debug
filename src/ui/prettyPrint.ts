@@ -71,7 +71,7 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
     }
 
     const { sessionId, source } = sourceForUri(editor.document.uri);
-    const session = sessionId && this.tracker.sessions.get(sessionId);
+    const session = sessionId && this.tracker.getById(sessionId);
 
     // For ephemeral files, they're attached to a single session, so go ahead
     // and send it to the owning session. For files on disk, send it to all
@@ -79,7 +79,7 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
     if (session) {
       sendPrintCommand(session, source, editor.selection.start);
     } else {
-      for (const session of this.tracker.sessions.values()) {
+      for (const session of this.tracker.getConcreteSessions()) {
         sendPrintCommand(session, source, editor.selection.start);
       }
     }

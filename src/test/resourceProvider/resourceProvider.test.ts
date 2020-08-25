@@ -2,6 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
+import { promises as fs } from 'fs';
+import { BasicResourceProvider } from '../../adapter/resourceProvider/basicResourceProvider';
 import { ITestHandle } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
@@ -28,5 +31,41 @@ describe('resourceProvider', () => {
     p.load();
     p.log(await p.waitForSource('module1.ts'));
     p.assertLog();
+  });
+
+  it('decodes base64 data uris', async () => {
+    const rp = new BasicResourceProvider(fs);
+    expect(await rp.fetch('data:text/plain;base64,SGVsbG8gd29ybGQh')).to.deep.equal({
+      ok: true,
+      statusCode: 200,
+      body: 'Hello world!',
+    });
+  });
+
+  it('decodes utf8 data uris (#662)', async () => {
+    const rp = new BasicResourceProvider(fs);
+    expect(await rp.fetch('data:text/plain;utf-8,Hello%20world!')).to.deep.equal({
+      ok: true,
+      statusCode: 200,
+      body: 'Hello world!',
+    });
+  });
+
+  it('fetches remote url', async () => {
+    const rp = new BasicResourceProvider(fs);
+    expect(await rp.fetch('http://localhost:8001/greet')).to.deep.equal({
+      ok: true,
+      statusCode: 200,
+      body: 'Hello world!',
+    });
+  });
+
+  it('follows redirects (unit)', async () => {
+    const rp = new BasicResourceProvider(fs);
+    expect(await rp.fetch('http://localhost:8001/redirect-to-greet')).to.deep.equal({
+      ok: true,
+      statusCode: 200,
+      body: 'Hello world!',
+    });
   });
 });

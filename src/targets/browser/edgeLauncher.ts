@@ -110,7 +110,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
         const dtPort = parseInt(dtString.split('\n').shift() || '');
         const port = params.port || dtPort;
 
-        if (!this._mainTarget && filter(info)) {
+        if (!this.targetList().length && filter(info)) {
           promisedPort.resolve(port);
         }
 

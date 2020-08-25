@@ -2,11 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Cdp from '../cdp/api';
-import * as ts from 'typescript';
 import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
+import * as ts from 'typescript';
+import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { getSourceSuffix } from './templates';
 
 export const returnValueStr = '$returnValue';
 
@@ -34,7 +35,10 @@ export interface IEvaluator {
    * whether we actually need to pause for a custom log evaluation, or whether
    * we can just send the logpoint as the breakpoint condition directly.
    */
-  prepare(expression: string): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr };
+  prepare(
+    expression: string,
+    isInternalScript?: boolean,
+  ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr };
 
   /**
    * Evaluates the expression on a call frame. This allows
@@ -42,18 +46,23 @@ export interface IEvaluator {
    */
   evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams,
+    isInternalScript?: boolean,
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
 
   /**
    * Evaluates the expression the runtime.
    */
-  evaluate(params: Cdp.Runtime.EvaluateParams): Promise<Cdp.Runtime.EvaluateResult>;
+  evaluate(
+    params: Cdp.Runtime.EvaluateParams,
+    isInternalScript?: boolean,
+  ): Promise<Cdp.Runtime.EvaluateResult>;
 
   /**
    * Evaluates the expression the runtime or call frame.
    */
   evaluate(
     params: Cdp.Runtime.EvaluateParams | Cdp.Debugger.EvaluateOnCallFrameParams,
+    isInternalScript?: boolean,
   ): Promise<Cdp.Runtime.EvaluateResult | Cdp.Debugger.EvaluateOnCallFrameResult>;
 
   /**
@@ -123,11 +132,20 @@ export class Evaluator implements IEvaluator {
    */
   public evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams,
+    isInternalScript?: boolean,
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
-  public evaluate(params: Cdp.Runtime.EvaluateParams): Promise<Cdp.Runtime.EvaluateResult>;
+  public evaluate(
+    params: Cdp.Runtime.EvaluateParams,
+    isInternalScript?: boolean,
+  ): Promise<Cdp.Runtime.EvaluateResult>;
   public async evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams | Cdp.Runtime.EvaluateParams,
+    isInternalScript = true,
   ) {
+    if (isInternalScript) {
+      params = { ...params, expression: params.expression + getSourceSuffix() };
+    }
+
     // no call frame means there will not be any relevant $returnValue to reference
     if (!('callFrameId' in params)) {
       return this.cdp.Runtime.evaluate(params);
@@ -146,14 +164,14 @@ export class Evaluator implements IEvaluator {
     if (objectId) {
       await this.cdp.Runtime.callFunctionOn({
         objectId,
-        functionDeclaration: `function() { globalThis.${hoistedVar} = this; ${dehoist}; }`,
+        functionDeclaration: `function() { globalThis.${hoistedVar} = this; ${dehoist}; ${getSourceSuffix()} }`,
       });
     } else {
       await this.cdp.Runtime.evaluate({
-        expression: `
-          globalThis.${hoistedVar} = ${JSON.stringify(this.returnValue?.value)};
-          ${dehoist};
-        `,
+        expression:
+          `globalThis.${hoistedVar} = ${JSON.stringify(this.returnValue?.value)};` +
+          `${dehoist};` +
+          getSourceSuffix(),
       });
     }
   }

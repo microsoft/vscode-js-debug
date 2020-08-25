@@ -60,22 +60,31 @@ export class BrowserAttacher<
   }
 
   /**
+   * Returns whether the params is an attach configuration that this attacher can handle.
+   */
+  protected resolveParams(params: AnyLaunchConfiguration): params is T {
+    return (
+      params.request === 'attach' &&
+      (params.type === DebugType.Chrome || params.type === DebugType.Edge) &&
+      params.browserAttachLocation === 'workspace'
+    );
+  }
+
+  /**
    * @inheritdoc
    */
   public async launch(
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
   ): Promise<ILaunchResult> {
-    if (
-      (params.type !== DebugType.Chrome && params.type !== DebugType.Edge) ||
-      params.request !== 'attach'
-    ) {
+    const resolved = this.resolveParams(params);
+    if (!resolved) {
       return { blockSessionTermination: false };
     }
 
     this._lastLaunchParams = { ...params, timeout: Infinity } as T;
 
-    await this._attemptToAttach(this._lastLaunchParams, context);
+    await this.attemptToAttach(this._lastLaunchParams, context);
     return { blockSessionTermination: true };
   }
 
@@ -85,7 +94,7 @@ export class BrowserAttacher<
   private _scheduleAttach(params: T, context: ILaunchContext) {
     this._attemptTimer = setTimeout(() => {
       this._attemptTimer = undefined;
-      this._attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
+      this.attemptToAttach(params, { ...context, cancellationToken: NeverCancelled });
     }, 1000);
   }
 
@@ -108,12 +117,8 @@ export class BrowserAttacher<
    * Attempts to attach to the target. Returns an error in a string if the
    * connection was not successful.
    */
-  private async _attemptToAttach(params: T, context: ILaunchContext) {
-    const connection = await this.acquireConnectionForBrowser(
-      context.telemetryReporter,
-      params,
-      context.cancellationToken,
-    );
+  private async attemptToAttach(params: T, context: ILaunchContext) {
+    const connection = await this.acquireConnectionForBrowser(context, params);
 
     this._connection = connection;
     connection.onDisconnected(
@@ -210,14 +215,13 @@ export class BrowserAttacher<
   /**
    * Gets a CDP connection to the browser.
    */
-  private async acquireConnectionForBrowser(
-    rawTelemetryReporter: ITelemetryReporter,
+  protected async acquireConnectionForBrowser(
+    { telemetryReporter, cancellationToken }: ILaunchContext,
     params: AnyChromiumAttachConfiguration,
-    cancellationToken: CancellationToken,
-  ) {
+  ): Promise<CdpConnection> {
     while (this._lastLaunchParams === params) {
       try {
-        return await this.acquireConnectionInner(rawTelemetryReporter, params, cancellationToken);
+        return await this.acquireConnectionInner(telemetryReporter, params, cancellationToken);
       } catch (e) {
         if (cancellationToken.isCancellationRequested) {
           throw new ProtocolError(

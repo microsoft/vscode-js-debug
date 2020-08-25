@@ -5,10 +5,10 @@
 import beautify from 'js-beautify';
 import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
-import * as fsUtils from './fsUtils';
-import { SourceMap } from './sourceMaps/sourceMap';
-import { verifyBytes, verifyFile } from './hash';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
+import * as fsUtils from './fsUtils';
+import { verifyBytes, verifyFile } from './hash';
+import { SourceMap } from './sourceMaps/sourceMap';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -255,10 +255,15 @@ export async function checkContentHash(
   contentHash?: string,
   contentOverride?: string,
 ): Promise<string | undefined> {
+  if (!absolutePath) {
+    return undefined;
+  }
+
   if (!contentHash) {
     const exists = await fsUtils.exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
+
   const result =
     typeof contentOverride === 'string'
       ? await verifyBytes(contentOverride, contentHash, true)

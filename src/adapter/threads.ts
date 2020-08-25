@@ -19,11 +19,10 @@ import { IBreakpointPathAndId } from '../targets/targets';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
+import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
-import * as messageFormat from './messageFormat';
 import * as objectPreview from './objectPreview';
-import { AnyObject } from './objectPreview/betterTypes';
 import { SmartStepper } from './smartStepping';
 import {
   base1To0,
@@ -31,16 +30,15 @@ import {
   IUiLocation,
   rawToUiOffset,
   Source,
+  SourceConstants,
   SourceContainer,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
-import { previewThis } from './templates/previewThis';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreDelegate, VariableStore } from './variables';
-
 const localize = nls.loadMessageBundle();
 
 export type PausedReason =
@@ -90,7 +88,13 @@ export class ExecutionContext {
   }
 }
 
-export type Script = { url: string; scriptId: string; hash: string; source: Promise<Source> };
+export type Script = {
+  url: string;
+  scriptId: string;
+  hash: string;
+  source: Promise<Source>;
+  resolvedSource?: Source;
+};
 
 export interface IThreadDelegate {
   name(): string;
@@ -145,10 +149,8 @@ export class Thread implements IVariableStoreDelegate {
   private _delegate: IThreadDelegate;
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
-  private _serializedOutput: Promise<void>;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
   private _selectedContext: ExecutionContext | undefined;
-  private _consoleIsDirty = false;
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
   private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   private _sourceMapDisabler?: SourceMapDisabler;
@@ -174,6 +176,7 @@ export class Thread implements IVariableStoreDelegate {
     private readonly completer: ICompletions,
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
+    private readonly console: IConsole,
   ) {
     this._dap = new DeferredContainer(dap);
     this._delegate = delegate;
@@ -186,7 +189,6 @@ export class Thread implements IVariableStoreDelegate {
       launchConfig.__autoExpandGetters,
       launchConfig.customDescriptionGenerator,
     );
-    this._serializedOutput = Promise.resolve();
     this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
   }
@@ -429,6 +431,7 @@ export class Thread implements IVariableStoreDelegate {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
+      /* isInternalScript= */ false,
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
@@ -471,7 +474,7 @@ export class Thread implements IVariableStoreDelegate {
     if (!response) return { result: '', variablesReference: 0 };
 
     if (response.exceptionDetails) {
-      const formattedException = await this._formatException(response.exceptionDetails);
+      const formattedException = await new ExceptionMessage(response.exceptionDetails).toDap(this);
       throw new ProtocolError.ProtocolError(errors.replError(formattedException.output));
     } else {
       const contextName =
@@ -502,19 +505,19 @@ export class Thread implements IVariableStoreDelegate {
       this._executionContextsCleared();
     });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
-      this._cdp.Runtime.on('consoleAPICalled', async event => {
-        const slot = this._claimOutputSlot();
-        slot(await this._onConsoleMessage(event));
+      this._cdp.Runtime.on('consoleAPICalled', event => {
+        this.console.dispatch(this, event);
+      });
+      this._cdp.Runtime.on('exceptionThrown', event => {
+        this.console.enqueue(this, new ExceptionMessage(event.exceptionDetails));
       });
     }
-    this._cdp.Runtime.on('exceptionThrown', async event => {
-      const slot = this._claimOutputSlot();
-      slot(await this._formatException(event.exceptionDetails));
-    });
     this._cdp.Runtime.on('inspectRequested', event => {
-      if (event.hints['copyToClipboard']) this._copyObjectToClipboard(event.object);
-      else if (event.hints['queryObjects']) this._queryObjects(event.object);
-      else this._revealObject(event.object);
+      if (event.hints['copyToClipboard']) {
+        this._copyObjectToClipboard(event.object);
+      } else if (event.hints['queryObjects']) {
+        this.console.enqueue(this, new QueryObjectsMessage(event.object, this.cdp()));
+      } else this._revealObject(event.object);
     });
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
@@ -556,43 +559,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._onThreadResumed();
     await this._onThreadPaused(this._pausedDetails);
-  }
-
-  // It is important to produce debug console output in the same order as it happens
-  // in the debuggee. Since we process any output asynchronously (e.g. retrieviing object
-  // properties or loading async stack frames), we ensure the correct order using "output slots".
-  //
-  // Any method producing output should claim a slot synchronously when receiving the cdp message
-  // producing this output, then run any processing to generate the actual output and call the slot:
-  //
-  //   const response = await cdp.Runtime.evaluate(...);
-  //   const slot = this._claimOutputSlot();
-  //   const output = await doSomeAsyncProcessing(response);
-  //   slot(output);
-  //
-  _claimOutputSlot(): (payload?: Dap.OutputEventParams) => void {
-    // TODO: should we serialize output between threads? For example, it may be important
-    // when using postMessage between page a worker.
-    const slot = this._serializedOutput;
-    const deferred = getDeferred<void>();
-    const result = async (payload?: Dap.OutputEventParams) => {
-      await slot;
-      if (payload) {
-        const isClearConsole = payload.output === '\x1b[2J';
-        const noop = isClearConsole && !this._consoleIsDirty;
-        if (!noop) {
-          this._dap.with(dap => dap.output(payload));
-          this._consoleIsDirty = !isClearConsole;
-        }
-      }
-      deferred.resolve();
-    };
-
-    this._serializedOutput = slot.then(() => deferred.promise);
-    // Timeout to avoid blocking future slots if this one does stall.
-    setTimeout(deferred.resolve, this._sourceContainer.sourceMapTimeouts().output);
-
-    return result;
   }
 
   async _pauseOnScheduledAsyncCall(): Promise<void> {
@@ -795,8 +761,10 @@ export class Thread implements IVariableStoreDelegate {
 
     this._executionContextsCleared();
 
-    // Output flush already has a timeout, no need for another one here
-    await this._serializedOutput;
+    if (this.console.length) {
+      await new Promise(r => this.console.onDrained(r));
+    }
+    this.console.dispose();
 
     // Send 'exited' after all other thread-releated events
     await this._dap.with(dap =>
@@ -830,7 +798,39 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  public async rawLocationToUiLocation(
+  /**
+   * Gets the UI location given the raw location from the runtime. We make
+   * an effort to avoid async/await in the happy path here, since this function
+   * can get very hot in some scenarios.
+   */
+  public rawLocationToUiLocation(
+    rawLocation: RawLocation,
+  ): Promise<IPreferredUiLocation | undefined> | IPreferredUiLocation | undefined {
+    if (!rawLocation.scriptId) {
+      return undefined;
+    }
+
+    const script = this._sourceContainer.scriptsById.get(rawLocation.scriptId);
+    if (!script) {
+      return this.rawLocationToUiLocationWithWaiting(rawLocation);
+    }
+
+    if (script.resolvedSource) {
+      return this._sourceContainer.preferredUiLocation({
+        ...rawToUiOffset(rawLocation, script.resolvedSource.runtimeScriptOffset),
+        source: script.resolvedSource,
+      });
+    } else {
+      return script.source.then(source =>
+        this._sourceContainer.preferredUiLocation({
+          ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
+          source,
+        }),
+      );
+    }
+  }
+
+  public async rawLocationToUiLocationWithWaiting(
     rawLocation: RawLocation,
   ): Promise<IPreferredUiLocation | undefined> {
     const script = rawLocation.scriptId
@@ -853,19 +853,26 @@ export class Thread implements IVariableStoreDelegate {
    * finishes passing its sources over. We *should* normally know about all
    * possible script IDs; this waits if we see one that we don't.
    */
-  private async getScriptByIdOrWait(scriptId: string, maxTime = 500) {
-    let script = this._sourceContainer.scriptsById.get(scriptId);
-    if (script) {
-      return script;
-    }
+  private getScriptByIdOrWait(scriptId: string, maxTime = 500) {
+    const script = this._sourceContainer.scriptsById.get(scriptId);
+    return script || this.waitForScriptId(scriptId, maxTime);
+  }
 
-    const deadline = Date.now() + maxTime;
-    do {
-      await delay(50);
-      script = this._sourceContainer.scriptsById.get(scriptId);
-    } while (!script && Date.now() < deadline);
+  private waitForScriptId(scriptId: string, maxTime: number) {
+    return new Promise<Script | undefined>(resolve => {
+      const listener = this._sourceContainer.onScript(script => {
+        if (script.scriptId === scriptId) {
+          resolve(script);
+          listener.dispose();
+          clearTimeout(timeout);
+        }
+      });
 
-    return script;
+      const timeout = setTimeout(() => {
+        resolve(undefined);
+        listener.dispose();
+      }, maxTime);
+    });
   }
 
   async renderDebuggerLocation(loc: Cdp.Debugger.Location): Promise<string> {
@@ -1068,138 +1075,10 @@ export class Thread implements IVariableStoreDelegate {
     };
   }
 
-  async _onConsoleMessage(
-    event: Cdp.Runtime.ConsoleAPICalledEvent,
-  ): Promise<Dap.OutputEventParams | undefined> {
-    switch (event.type) {
-      case 'endGroup':
-        return { category: 'stdout', output: '', group: 'end' };
-      case 'clear':
-        return this._clearDebuggerConsole();
-    }
-
-    // Ignore the duplicate group events that Node.js can emit:
-    // See: https://github.com/nodejs/node/issues/31973
-    if (event.type === 'log') {
-      const firstFrame = event.stackTrace?.callFrames[0];
-      if (
-        firstFrame &&
-        firstFrame.functionName === 'group' &&
-        firstFrame.url === 'internal/console/constructor.js'
-      ) {
-        return undefined;
-      }
-    }
-
-    let stackTrace: StackTrace | undefined;
-    let uiLocation: IUiLocation | undefined;
-    const isAssert = event.type === 'assert';
-    const isError = event.type === 'error';
-    if (event.stackTrace) {
-      stackTrace = StackTrace.fromRuntime(this, event.stackTrace);
-      const frames = await stackTrace.loadFrames(1);
-      if (frames.length) uiLocation = await frames[0].uiLocation();
-      if (!isError && event.type !== 'warning' && !isAssert && event.type !== 'trace')
-        stackTrace = undefined;
-    }
-
-    let category: 'console' | 'stdout' | 'stderr' | 'telemetry' = 'stdout';
-    if (isError || isAssert) category = 'stderr';
-    if (event.type === 'warning') category = 'console';
-
-    if (isAssert && event.args[0] && event.args[0].value === 'console.assert')
-      event.args[0].value = localize('console.assert', 'Assertion failed');
-
-    let messageText: string;
-    let usedAllArgs = false;
-    if (event.type === 'table' && event.args.length && event.args[0].preview) {
-      messageText = objectPreview.formatAsTable(event.args[0].preview);
-    } else {
-      const useMessageFormat = event.args.length > 1 && event.args[0].type === 'string';
-      const formatString = useMessageFormat ? (event.args[0].value as string) : '';
-      const formatResult = messageFormat.formatMessage(
-        formatString,
-        (useMessageFormat ? event.args.slice(1) : event.args) as AnyObject[],
-        objectPreview.messageFormatters,
-      );
-      messageText = formatResult.result;
-      usedAllArgs = formatResult.usedAllSubs;
-    }
-
-    let output: string;
-    let variablesReference: number | undefined;
-    if (!usedAllArgs || event.args.some(arg => objectPreview.previewAsObject(arg))) {
-      output = '';
-      variablesReference = await this.replVariables.createVariableForOutput(
-        messageText + '\n',
-        event.args,
-        stackTrace,
-      );
-    } else {
-      output = messageText + '\n';
-      variablesReference = undefined;
-    }
-
-    const group =
-      event.type === 'startGroup'
-        ? 'start'
-        : event.type === 'startGroupCollapsed'
-        ? 'startCollapsed'
-        : undefined;
-
-    return {
-      category,
-      output,
-      variablesReference,
-      group,
-      source: uiLocation ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
-    };
-  }
-
   _clearDebuggerConsole(): Dap.OutputEventParams {
     return {
       category: 'console',
       output: '\x1b[2J',
-    };
-  }
-
-  async _formatException(
-    details: Cdp.Runtime.ExceptionDetails,
-    prefix?: string,
-  ): Promise<Dap.OutputEventParams> {
-    const preview = details.exception
-      ? objectPreview.previewException(details.exception)
-      : { title: '' };
-    let message = preview.title;
-    if (!message.startsWith('Uncaught')) message = 'Uncaught ' + message;
-    message = (prefix || '') + message;
-
-    let stackTrace: StackTrace | undefined;
-    let uiLocation: IUiLocation | undefined;
-    if (details.stackTrace) stackTrace = StackTrace.fromRuntime(this, details.stackTrace);
-    if (stackTrace) {
-      const frames = await stackTrace.loadFrames(1);
-      if (frames.length) uiLocation = await frames[0].uiLocation();
-    }
-
-    const args = details.exception && !preview.stackTrace ? [details.exception] : [];
-    let variablesReference = 0;
-    if (stackTrace || args.length)
-      variablesReference = await this.replVariables.createVariableForOutput(
-        message,
-        args,
-        stackTrace,
-      );
-
-    return {
-      category: 'stderr',
-      output: message,
-      variablesReference,
-      source: uiLocation ? await uiLocation.source.toDap() : undefined,
-      line: uiLocation ? uiLocation.lineNumber : undefined,
-      column: uiLocation ? uiLocation.columnNumber : undefined,
     };
   }
 
@@ -1225,6 +1104,11 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
+    if (event.url.endsWith(SourceConstants.InternalExtension)) {
+      // The customer doesn't care about the internal cdp files, so skip this event
+      return;
+    }
+
     if (this._sourceContainer.scriptsById.has(event.scriptId)) {
       return;
     }
@@ -1297,13 +1181,15 @@ export class Thread implements IVariableStoreDelegate {
       return source;
     };
 
-    const script = {
+    const script: Script = {
       url: event.url,
       scriptId: event.scriptId,
       source: createSource(),
       hash: event.hash,
     };
-    this._sourceContainer.scriptsById.set(event.scriptId, script);
+    script.source.then(s => (script.resolvedSource = s));
+
+    this._sourceContainer.addScriptById(script);
 
     if (event.sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
@@ -1449,41 +1335,6 @@ export class Thread implements IVariableStoreDelegate {
     }
   }
 
-  async _queryObjects(prototype: Cdp.Runtime.RemoteObject) {
-    const slot = this._claimOutputSlot();
-    if (!prototype.objectId) return slot();
-    const response = await this.cdp().Runtime.queryObjects({
-      prototypeObjectId: prototype.objectId,
-      objectGroup: 'console',
-    });
-    await this.cdp().Runtime.releaseObject({ objectId: prototype.objectId });
-    if (!response) return slot();
-
-    let withPreview: Cdp.Runtime.RemoteObject;
-    try {
-      withPreview = await previewThis({
-        cdp: this.cdp(),
-        args: [],
-        objectId: response.objects.objectId,
-        objectGroup: 'console',
-        generatePreview: true,
-      });
-    } catch (e) {
-      return slot();
-    }
-
-    const text =
-      '\x1b[32mobjects: ' + objectPreview.previewRemoteObject(withPreview, 'repl') + '\x1b[0m';
-    const variablesReference =
-      (await this.replVariables.createVariableForOutput(text, [withPreview])) || 0;
-    const output = {
-      category: 'stdout' as 'stdout',
-      output: '',
-      variablesReference,
-    };
-    slot(output);
-  }
-
   private async _onThreadPaused(details: IPausedDetails) {
     this._expectedPauseReason = undefined;
     this._onPausedEmitter.fire(details);
@@ -1584,6 +1435,37 @@ export class Thread implements IVariableStoreDelegate {
 
   static threadForDebuggerId(debuggerId: Cdp.Runtime.UniqueDebuggerId): Thread | undefined {
     return Thread._allThreadsByDebuggerId.get(debuggerId);
+  }
+
+  /**
+   * Replaces locations in the stack trace with their source locations.
+   */
+  public async replacePathsInStackTrace(trace: string): Promise<string> {
+    let processed = trace;
+
+    const re = /^(\W*at .*)\((.*):(\d+):(\d+)\)$/gm;
+    for (let match = re.exec(trace); match; match = re.exec(trace)) {
+      const [text, prefix, url, line, column] = match;
+      const compiledSource =
+        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(url)) ||
+        this._sourceContainer.getSourceByOriginalUrl(url);
+      if (!compiledSource) {
+        continue;
+      }
+
+      const { source, lineNumber, columnNumber } = await this._sourceContainer.preferredUiLocation({
+        columnNumber: Number(column),
+        lineNumber: Number(line),
+        source: compiledSource,
+      });
+
+      processed = processed.replace(
+        text,
+        `${prefix}(${source.absolutePath()}:${lineNumber}:${columnNumber})`,
+      );
+    }
+
+    return processed;
   }
 }
 

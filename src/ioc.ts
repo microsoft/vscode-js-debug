@@ -2,15 +2,42 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-// important! This must come before anything else
-import 'reflect-metadata';
-
+import execa from 'execa';
+import { promises as fsPromises } from 'fs';
 import { Container, interfaces } from 'inversify';
+import 'reflect-metadata';
 import * as vscode from 'vscode';
+import {
+  BrowserFinderCtor,
+  ChromeBrowserFinder,
+  EdgeBrowserFinder,
+} from 'vscode-js-debug-browsers';
 import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
+import { BreakpointManager } from './adapter/breakpoints';
+import {
+  BreakpointConditionFactory,
+  IBreakpointConditionFactory,
+} from './adapter/breakpoints/conditions';
+import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
+import { Completions, ICompletions } from './adapter/completions';
+import { IConsole } from './adapter/console';
+import { Console } from './adapter/console/console';
+import { Evaluator, IEvaluator } from './adapter/evaluator';
+import { IProfileController, ProfileController } from './adapter/profileController';
+import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
+import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
+import { IResourceProvider } from './adapter/resourceProvider';
+import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
+import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
+import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
+import { SourceContainer } from './adapter/sources';
+import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
 import Cdp from './cdp/api';
 import { ICdpApi } from './cdp/connection';
+import { ObservableMap } from './common/datastructure/observableMap';
+import { DefaultBrowserProvider, IDefaultBrowserProvider } from './common/defaultBrowserProvider';
+import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
@@ -21,68 +48,43 @@ import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
 import { IDapApi } from './dap/connection';
 import {
-  BrowserFinderCtor,
-  ChromeBrowserFinder,
-  EdgeBrowserFinder,
-} from 'vscode-js-debug-browsers';
-import {
+  BrowserFinder,
+  Execa,
   ExtensionContext,
+  ExtensionLocation,
+  FS,
+  IContainer,
   IsVSCode,
+  ProcessEnv,
+  SessionSubStates,
   StoragePath,
   trackDispose,
-  ProcessEnv,
-  Execa,
-  FS,
-  BrowserFinder,
-  ExtensionLocation,
-  IContainer,
-  SessionSubStates,
   VSCodeApi,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
 import { EdgeLauncher } from './targets/browser/edgeLauncher';
+import { RemoteBrowserAttacher } from './targets/browser/remoteBrowserAttacher';
+import { RemoteBrowserHelper } from './targets/browser/remoteBrowserHelper';
+import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
+import { VSCodeRendererAttacher } from './targets/browser/vscodeRendererAttacher';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { NodeAttacher } from './targets/node/nodeAttacher';
-import { NodeLauncher } from './targets/node/nodeLauncher';
 import { INodeBinaryProvider, NodeBinaryProvider } from './targets/node/nodeBinaryProvider';
+import { NodeLauncher } from './targets/node/nodeLauncher';
 import { INvmResolver, NvmResolver } from './targets/node/nvmResolver';
 import { IProgramLauncher } from './targets/node/processLauncher';
 import { RestartPolicyFactory } from './targets/node/restartPolicy';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
+import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
-import execa from 'execa';
-import { promises as fsPromises } from 'fs';
-import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
-import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
-import { ICompletions, Completions } from './adapter/completions';
-import { IEvaluator, Evaluator } from './adapter/evaluator';
-import { ProfilerFactory, IProfilerFactory } from './adapter/profiling';
-import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
-import { IProfileController, ProfileController } from './adapter/profileController';
-import { SourceContainer } from './adapter/sources';
-import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
+import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
-import { IDefaultBrowserProvider, DefaultBrowserProvider } from './common/defaultBrowserProvider';
-import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
-import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
-import { IResourceProvider } from './adapter/resourceProvider';
-import { BreakpointManager } from './adapter/breakpoints';
-import { ObservableMap } from './common/datastructure/observableMap';
-import {
-  IBreakpointConditionFactory,
-  BreakpointConditionFactory,
-} from './adapter/breakpoints/conditions';
-import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
-import { OutFiles, VueComponentPaths } from './common/fileGlobList';
-import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
-import { VSCodeRendererAttacher } from './targets/browser/vscodeRendererAttacher';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -129,19 +131,15 @@ export const createTargetContainer = (
     .onActivation(trackDispose);
 
   container.bind(BreakpointManager).toSelf().inSingletonScope();
-
   container.bind(SourceContainer).toSelf().inSingletonScope();
 
   container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
-
   container.bind(ICompletions).to(Completions).inSingletonScope();
-
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();
+  container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
 
   container.bind(BasicCpuProfiler).toSelf();
-
   container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
-
   container.bind(IProfileController).to(ProfileController).inSingletonScope();
 
   return container;
@@ -187,6 +185,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .inSingletonScope();
 
   container.bind(INodeBinaryProvider).to(NodeBinaryProvider);
+  container.bind(RemoteBrowserHelper).toSelf().inSingletonScope().onActivation(trackDispose);
 
   // Launcher logic:
   container.bind(RestartPolicyFactory).toSelf();
@@ -211,6 +210,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(ILauncher).toService(ChromeLauncher);
   container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
   container.bind(ILauncher).to(RemoteBrowserLauncher).inSingletonScope().onActivation(trackDispose);
+  container.bind(ILauncher).to(RemoteBrowserAttacher).inSingletonScope().onActivation(trackDispose);
 
   container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
   container

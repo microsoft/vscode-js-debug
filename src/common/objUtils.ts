@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+export const truthy = <T>(value: T | null | false | undefined | ''): value is T => !!value;
+
 export const removeNulls = <V>(obj: { [key: string]: V | null }) =>
   filterValues(obj, (v): v is V => v !== null);
 

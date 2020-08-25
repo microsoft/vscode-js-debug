@@ -113,7 +113,7 @@ export class UiProfileManager implements IDisposable {
    */
   public async start(args: IStartProfileArguments) {
     let maybeSession: vscode.DebugSession | undefined;
-    const candidates = [...this.tracker.sessions.values()].filter(isProfileCandidate);
+    const candidates = [...this.tracker.getConcreteSessions()].filter(isProfileCandidate);
     if (args.sessionId) {
       maybeSession = candidates.find(s => s.id === args.sessionId);
     } else {

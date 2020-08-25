@@ -1,7 +1,7 @@
 {
   "name": "js-debug",
   "displayName": "JavaScript Debugger",
-  "version": "1.48.1",
+  "version": "1.49.2",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
@@ -17,7 +17,7 @@
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.47.0-insider",
+    "vscode": "^1.49.0-insider",
     "node": ">=10"
   },
   "icon": "resources/logo.png",
@@ -45,14 +45,16 @@
     "publish": "gulp publish",
     "updatetypes": "cd src/typings && vscode-dts dev && vscode-dts master",
     "generateapis": "node out/src/build/generateDap.js && node out/src/build/generateCdp.js",
-    "test": "gulp && npm-run-all --parallel test:types test:golden test:lint",
+    "test": "gulp && npm-run-all --parallel test:unit test:types test:golden test:lint",
     "test:types": "tsc --noEmit",
+    "test:unit": "mocha --config .mocharc.unit.js",
     "test:golden": "node ./out/src/test/runTest.js",
     "test:lint": "gulp lint"
   },
   "dependencies": {
     "@c4312/chromehash": "^0.2.0",
     "color": "^3.1.2",
+    "data-uri-to-buffer": "^3.0.1",
     "default-browser": "^2.0.1",
     "execa": "^4.0.0",
     "glob-stream": "^6.1.0",
@@ -97,7 +99,6 @@
     "@types/gulp": "^4.0.6",
     "@types/js-beautify": "^1.8.2",
     "@types/json-schema": "^7.0.4",
-    "@types/lodash": "^4.14.149",
     "@types/long": "^4.0.1",
     "@types/marked": "^0.7.4",
     "@types/micromatch": "^4.0.1",
@@ -134,7 +135,6 @@
     "gulp-tsb": "^4.0.5",
     "gulp-util": "^3.0.8",
     "husky": "^4.2.3",
-    "lodash": "^4.17.15",
     "marked": "^1.1.0",
     "merge2": "^1.3.0",
     "minimist": "^1.2.5",

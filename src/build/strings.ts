@@ -4,6 +4,9 @@
 import { Commands } from '../common/contributionUtils';
 import { sortKeys } from '../common/objUtils';
 
+const autoAttachToggleNote =
+  '\n\nNote: you may need to toggle Auto Attach to "disabled" and then "on" again for changes in this setting to take effect';
+
 const strings = {
   'attach.node.process': 'Attach to Node Process (preview)',
   'extension.description': 'An extension for debugging Node.js programs and Chrome.',
@@ -20,6 +23,9 @@ const strings = {
   'trace.console.description': 'Configures whether logs are also returned to the debug console.',
   'trace.stdio.description':
     'Whether to return trace data from the launched application or browser.',
+
+  'base.cascadeTerminateToConfigurations.label':
+    'A list of debug sessions which, when this debug session is terminated, will also be stopped.',
 
   'extensionHost.label': 'VS Code Extension Development (preview)',
   'extensionHost.launch.config.name': 'Launch Extension',
@@ -66,6 +72,8 @@ const strings = {
   'browser.cwd.description': 'Optional working directory for the runtime executable.',
   'browser.browserLaunchLocation.description':
     'Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.',
+  'browser.browserAttachLocation.description':
+    'Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.',
   'browser.disableNetworkCache.description':
     'Controls whether to skip the network cache for each request',
   'browser.env.description': 'Optional dictionary of environment key/value pairs for the browser.',
@@ -172,6 +180,8 @@ const strings = {
   'node.launch.useWSL.description': 'Use Windows Subsystem for Linux.',
   'node.localRoot.description': 'Path to the local directory containing the program.',
   'node.port.description': 'Debug port to attach to. Default is 5858.',
+  'node.websocket.address.description':
+    'Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.',
   'node.resolveSourceMapLocations.description':
     'A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with "!" to exclude them. May be set to an empty array or null to avoid restriction.',
   'node.processattach.config.name': 'Attach to Process',
@@ -263,8 +273,17 @@ const strings = {
     'Default options used when debugging a process through the `Debug: Attach to Node.js Process` command',
   'configuration.autoExpandGetters':
     'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
-  'configuration.onlyAutoAttachExplicit':
-    'If true (default), only processes started with --inspect will be debugged. If this setting is toggled to false, we will debug all processes started while Auto Attach is on.\n\nNote: you may need to toggle Auto Attach to "disabled" and then "on" again for changes in this setting to take effect.',
+  'configuration.autoAttachMode':
+    'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. Regardless of the setting here, if processes launched with the `--inspect` flag will always be debugged.' +
+    autoAttachToggleNote,
+  'configuration.autoAttachSmartPatterns':
+    'Glob patterns applied to the entrypoint script to determine whether we debug it in smart `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.' +
+    autoAttachToggleNote,
+  'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
+  'configuration.autoAttachMode.smart':
+    "Auto attach when running scripts that aren't in a node_modules folder.",
+  'configuration.autoAttachMode.always':
+    'Auto attach to every Node.js process launched in the terminal.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

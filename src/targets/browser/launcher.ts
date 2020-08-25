@@ -3,11 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as childProcess from 'child_process';
+import { promises as fsPromises } from 'fs';
 import { CancellationToken } from 'vscode';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { canAccess } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
+import { delay } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
@@ -20,8 +23,6 @@ import {
 } from './spawn/browserProcess';
 import { retryGetWSEndpoint } from './spawn/endpoints';
 import { launchUnelevatedChrome } from './unelevatedChome';
-import { promises as fsPromises } from 'fs';
-import { canAccess } from '../../common/fsUtils';
 
 const noop = () => undefined;
 
@@ -104,8 +105,13 @@ export async function launch(
       stdio,
     }) as childProcess.ChildProcessWithoutNullStreams;
 
+    // If the PID is undefined, the launch failed; expect to see an error be
+    // emitted presently, or just throw a generic error if not.
     if (cp.pid === undefined) {
-      throw new Error('Unable to launch the executable');
+      throw await Promise.race([
+        delay(1000).then(() => new Error('Unable to launch the executable (undefined pid)')),
+        new Promise(r => cp.once('error', r)),
+      ]);
     }
 
     browserProcess = new ChildProcessBrowserProcess(cp, logger);

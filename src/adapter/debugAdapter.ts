@@ -18,6 +18,7 @@ import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
+import { IConsole } from './console';
 import { IEvaluator } from './evaluator';
 import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
@@ -290,6 +291,7 @@ export class DebugAdapter implements IDisposable {
       this._services.get(ICompletions),
       this.launchConfig,
       this.breakpointManager,
+      this._services.get(IConsole),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);

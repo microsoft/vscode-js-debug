@@ -7,10 +7,12 @@ import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { CancellationTokenSource } from '../../common/cancellation';
+import { AutoAttachMode } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
@@ -30,11 +32,16 @@ import {
 } from '../../targets/targets';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
-import { INodeBinaryProvider, NodeBinaryProvider } from './nodeBinaryProvider';
+import { bootloaderDefaultPath } from './bundlePaths';
+import {
+  Capability,
+  INodeBinaryProvider,
+  NodeBinary,
+  NodeBinaryProvider,
+} from './nodeBinaryProvider';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { bootloaderDefaultPath } from './watchdogSpawn';
 
 /**
  * Telemetry received from the nested process.
@@ -261,24 +268,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   /**
-   * Returns whether spaces can be used in the bootloader file path. Node.js
-   * just added support for this in version 12--we return false here if we
-   * can verify that the user is on a version prior to 12.
-   */
-  protected async canUseSpacesInBootloaderPath(params: T, executable = 'node') {
-    try {
-      const binary = await this.resolveNodePath(params, executable);
-      return binary ? binary.canUseSpacesInRequirePath : true;
-    } catch (e) {
-      if (!(e instanceof ProtocolError)) {
-        throw e;
-      }
-
-      return true; // couldn't find Node... just assume it's >= 12
-    }
-  }
-
-  /**
    * Returns the user-configured portion of the environment variables.
    */
   protected getConfiguredEnvironment(params: T) {
@@ -301,14 +290,11 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   protected async resolveEnvironment(
     { params, serverAddress }: IRunData<T>,
-    canUseSpacesInBootloaderPath: boolean,
+    binary: NodeBinary,
     additionalOptions?: Partial<IBootloaderInfo>,
   ) {
     const baseEnv = this.getConfiguredEnvironment(params);
-    const bootloader = await this.bootloaderFile(params.cwd, canUseSpacesInBootloaderPath);
-    const interpolatedPath = canUseSpacesInBootloaderPath
-      ? `"${forceForwardSlashes(bootloader.path)}"`
-      : bootloader.path;
+    const bootloader = await this.bootloaderFile(params.cwd, binary);
 
     const bootloaderInfo: IBootloaderInfo = {
       inspectorIpc: serverAddress,
@@ -319,18 +305,24 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       waitForDebugger: '',
       // Supply some node executable for running top-level watchdog in Electron
       // environments. Bootloader will replace this with actual node executable used if any.
-      execPath: findInPath('node', process.env),
+      execPath: await findInPath(fs.promises, 'node', process.env),
       onlyEntrypoint: !params.autoAttachChildProcesses,
+      autoAttachMode: AutoAttachMode.Always,
       ...additionalOptions,
     };
 
     const env = {
       // Require our bootloader first, to run it before any other bootloader
-      // we could have injected in the parent process. Note: leading space is
-      NODE_OPTIONS: `--require ${interpolatedPath} ${baseEnv.lookup('NODE_OPTIONS') || ''}`,
+      // we could have injected in the parent process.
+      NODE_OPTIONS: `--require ${bootloader.interpolatedPath}`,
       VSCODE_INSPECTOR_OPTIONS: JSON.stringify(bootloaderInfo),
       ELECTRON_RUN_AS_NODE: null,
     } as IBootloaderEnvironment;
+
+    const existingOpts = baseEnv.lookup('NODE_OPTIONS');
+    if (existingOpts) {
+      env.NODE_OPTIONS += ` ${existingOpts}`;
+    }
 
     return baseEnv.merge({ ...env });
   }
@@ -438,15 +430,17 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * since Node does not support paths with spaces in them < 13 (nodejs/node#12971),
    * so if our installation path has spaces, we need to fall back somewhere.
    */
-  protected async getBootloaderFile(
-    cwd: string | undefined,
-    canUseSpacesInBootloaderPath: boolean,
-  ) {
-    const targetPath = bootloaderDefaultPath;
+  protected async getBootloaderFile(cwd: string | undefined, binary: NodeBinary) {
+    const targetPath = forceForwardSlashes(bootloaderDefaultPath);
 
     // 1. If the path doesn't have a space, we're OK to use it.
-    if (canUseSpacesInBootloaderPath || !targetPath.includes(' ')) {
-      return { path: targetPath, dispose: () => undefined };
+    if (!targetPath.includes(' ')) {
+      return { interpolatedPath: targetPath, dispose: () => undefined };
+    }
+
+    // 1.5. If we can otherwise use spaces in the path, quote and return it.
+    if (binary.has(Capability.UseSpacesInRequirePath)) {
+      return { interpolatedPath: `"${targetPath}"`, dispose: () => undefined };
     }
 
     // 2. Try the tmpdir, if it's space-free.
@@ -454,7 +448,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     if (!os.tmpdir().includes(' ') || !cwd) {
       const tmpPath = path.join(os.tmpdir(), 'vscode-js-debug-bootloader.js');
       await fs.promises.writeFile(tmpPath, contents);
-      return { path: tmpPath, dispose: () => undefined };
+      return { interpolatedPath: tmpPath, dispose: () => undefined };
     }
 
     // 3. Worst case, write into the cwd. This is messy, but we have few options.
@@ -462,7 +456,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const nearPath = path.join(cwd, nearFilename);
     await fs.promises.writeFile(nearPath, contents);
     return {
-      path: `./${nearFilename}`,
+      interpolatedPath: `./${nearFilename}`,
       dispose: () => fs.unlinkSync(nearPath),
     };
   }
@@ -477,7 +471,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const telemetry = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
-      expression: `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })`,
+      expression:
+        `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
+        getSourceSuffix(),
     });
 
     if (!this.program) {

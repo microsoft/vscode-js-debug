@@ -10,6 +10,7 @@ import { URL } from 'url';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
+import { EventEmitter } from '../common/events';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
@@ -59,6 +60,14 @@ type ContentGetter = () => Promise<string | undefined>;
 
 // Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<ISourceWithMap>; map?: SourceMap; loaded: Promise<void> };
+
+export const enum SourceConstants {
+  /**
+   * Extension of evaluated sources internal to the debugger. Sources with
+   * this suffix will be ignored when displaying sources or stacktracees.
+   */
+  InternalExtension = '.cdp',
+}
 
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
@@ -449,7 +458,9 @@ export class SourceContainer {
    */
   public scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
 
+  private onScriptEmitter = new EventEmitter<Script>();
   private _dap: Dap.Api;
+  private _sourceByOriginalUrl: Map<string, Source> = new MapUsingProjection(s => s.toLowerCase());
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, SourceFromMap> = new Map();
   private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(
@@ -464,6 +475,11 @@ export class SourceContainer {
   _fileContentOverridesForTest = new Map<string, string>();
 
   private _disabledSourceMaps = new Set<Source>();
+
+  /**
+   * Fires when a new script is parsed.
+   */
+  public readonly onScript = this.onScriptEmitter.event;
 
   /**
    * A set of sourcemaps that we warned about failing to parse.
@@ -522,6 +538,21 @@ export class SourceContainer {
 
   public isSourceSkipped(url: string): boolean {
     return this.scriptSkipper.isScriptSkipped(url);
+  }
+
+  /**
+   * Adds a new script to the source container.
+   */
+  public addScriptById(script: Script) {
+    this.scriptsById.set(script.scriptId, script);
+    this.onScriptEmitter.fire(script);
+  }
+
+  /**
+   * Gets a source by its original URL from the debugger.
+   */
+  public getSourceByOriginalUrl(url: string) {
+    return this._sourceByOriginalUrl.get(url);
   }
 
   /**
@@ -774,6 +805,7 @@ export class SourceContainer {
   }
 
   private async _addSource(source: Source) {
+    this._sourceByOriginalUrl.set(source.url, source);
     this._sourceByReference.set(source.sourceReference(), source);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.set(source.url, source);

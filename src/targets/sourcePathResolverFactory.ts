@@ -2,16 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
-import { AnyLaunchConfiguration } from '../configuration';
-import { ILogger } from '../common/logging';
+import { inject, injectable } from 'inversify';
+import { IVueFileMapper } from '../adapter/vueFileMapper';
 import { DebugType } from '../common/contributionUtils';
-import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
+import { ILogger } from '../common/logging';
+import { AnyLaunchConfiguration } from '../configuration';
+import Dap from '../dap/api';
+import { IInitializeParams } from '../ioc-extras';
 import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
-import { IInitializeParams } from '../ioc-extras';
-import Dap from '../dap/api';
-import { IVueFileMapper } from '../adapter/vueFileMapper';
+import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
 
 @injectable()
 export class SourcePathResolverFactory {

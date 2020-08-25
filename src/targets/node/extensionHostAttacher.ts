@@ -2,16 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, IExtensionHostAttachConfiguration } from '../../configuration';
+import { injectable } from 'inversify';
+import { getSourceSuffix } from '../../adapter/templates';
+import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
+import { LogTag } from '../../common/logging';
+import { Semver } from '../../common/semver';
+import { AnyLaunchConfiguration, IExtensionHostAttachConfiguration } from '../../configuration';
+import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { NodeAttacherBase } from './nodeAttacherBase';
+import { NodeBinary } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
 import { TerminalProcess, WatchDogProgram } from './program';
 import { WatchDog } from './watchdogSpawn';
-import Cdp from '../../cdp/api';
-import { NodeAttacherBase } from './nodeAttacherBase';
-import { injectable } from 'inversify';
-import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
-import { LogTag } from '../../common/logging';
 
 /**
  * Attaches to an instance of VS Code for extension debugging.
@@ -112,12 +115,17 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       return;
     }
 
-    // We know VS Code uses Node 12 (right now) so spaces are gucci
-    const vars = await this.resolveEnvironment(run, true, { ppid: 0 });
+    const vars = await this.resolveEnvironment(
+      run,
+      new NodeBinary('node', Semver.parse(process.versions.node)),
+      { ppid: 0 },
+    );
+
     const result = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
-      expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
+      expression:
+        `Object.assign(process.env, ${JSON.stringify(vars.defined())})` + getSourceSuffix(),
     });
 
     if (!result) {

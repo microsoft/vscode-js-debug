@@ -111,12 +111,13 @@ export const cannotLoadEnvironmentVars = (errorMessage: string) =>
     ErrorCodes.CannotLoadEnvironmentVariables,
   );
 
-export const cannotFindNodeBinary = (attemptedPath: string) =>
+export const cannotFindNodeBinary = (attemptedPath: string, reason: string) =>
   createUserError(
     localize(
       'runtime.node.notfound',
-      'Can\'t find Node.js binary "{0}". Make sure Node.js is installed and in your PATH, or set the "runtimeExecutable" in your launch.json',
+      'Can\'t find Node.js binary "{0}": {1}. Make sure Node.js is installed and in your PATH, or set the "runtimeExecutable" in your launch.json',
       attemptedPath,
+      reason,
     ),
     ErrorCodes.CannotFindNodeBinary,
   );

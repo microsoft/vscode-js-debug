@@ -9,7 +9,7 @@ import { StackFrame } from './stackTrace';
 import { ExpectedPauseReason, IPausedDetails, PausedReason, StepDirection } from './threads';
 
 export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
-  const uiLocation = await stackFrame.uiLocation();
+  const uiLocation = await stackFrame.uiLocation;
   if (!uiLocation) {
     return false;
   }

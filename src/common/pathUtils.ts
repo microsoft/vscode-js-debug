@@ -2,19 +2,21 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as childProcess from 'child_process';
-import * as fs from 'fs';
+import execa from 'execa';
 import * as path from 'path';
+import { FsPromises } from '../ioc-extras';
 import { EnvironmentVars } from './environmentVars';
+import { existsInjected } from './fsUtils';
 import { removeNulls } from './objUtils';
 
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
  */
-export function findInPath(
+export async function findInPath(
+  fs: FsPromises,
   program: string,
   env: { [key: string]: string | null | undefined },
-): string | undefined {
+): Promise<string | undefined> {
   let locator: string;
   if (process.platform === 'win32') {
     const windir = env['WINDIR'] || 'C:\\Windows';
@@ -24,11 +26,9 @@ export function findInPath(
   }
 
   try {
-    if (fs.existsSync(locator)) {
-      const lines = childProcess
-        .execSync(`${locator} ${program}`, { env: removeNulls(env) })
-        .toString()
-        .split(/\r?\n/);
+    if (await existsInjected(fs, locator)) {
+      const located = await execa(locator, [program], { env: removeNulls(env) });
+      const lines = located.stdout.split(/\r?\n/);
 
       if (process.platform === 'win32') {
         // return the first path that has a executable extension
@@ -64,10 +64,11 @@ export function findInPath(
 /*
  * Ensures the program exists, adding its executable as necessary on Windows.
  */
-export function findExecutable(
+export async function findExecutable(
+  fs: FsPromises,
   program: string | undefined,
   env: EnvironmentVars,
-): string | undefined {
+): Promise<string | undefined> {
   if (!program) {
     return undefined;
   }
@@ -78,14 +79,14 @@ export function findExecutable(
       const executableExtensions = pathExtension.split(';');
       for (const extension of executableExtensions) {
         const path = program + extension;
-        if (fs.existsSync(path)) {
+        if (await existsInjected(fs, path)) {
           return path;
         }
       }
     }
   }
 
-  if (fs.existsSync(program)) {
+  if (await existsInjected(fs, program)) {
     return program;
   }
 

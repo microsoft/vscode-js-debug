@@ -9,6 +9,7 @@ import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { registerAutoAttach } from './ui/autoAttach';
+import { CascadeTerminationTracker } from './ui/cascadeTerminateTracker';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/configuration';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
@@ -99,6 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
   registerRevealPage(context, debugSessionTracker);
   services.get(DebugLinkUi).register(context);
+  services.get(CascadeTerminationTracker).register(context);
 }
 
 export function deactivate() {

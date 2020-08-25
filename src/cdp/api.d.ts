@@ -1217,7 +1217,9 @@ export namespace Cdp {
 
     export type SameSiteCookieExclusionReason =
       | 'ExcludeSameSiteUnspecifiedTreatedAsLax'
-      | 'ExcludeSameSiteNoneInsecure';
+      | 'ExcludeSameSiteNoneInsecure'
+      | 'ExcludeSameSiteLax'
+      | 'ExcludeSameSiteStrict';
 
     export type SameSiteCookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
@@ -1344,9 +1346,67 @@ export namespace Cdp {
     export interface BlockedByResponseIssueDetails {
       request: AffectedRequest;
 
-      frame?: AffectedFrame;
+      parentFrame?: AffectedFrame;
+
+      blockedFrame?: AffectedFrame;
 
       reason: BlockedByResponseReason;
+    }
+
+    export type HeavyAdResolutionStatus = 'HeavyAdBlocked' | 'HeavyAdWarning';
+
+    export type HeavyAdReason = 'NetworkTotalLimit' | 'CpuTotalLimit' | 'CpuPeakLimit';
+
+    export interface HeavyAdIssueDetails {
+      /**
+       * The resolution status, either blocking the content or warning.
+       */
+      resolution: HeavyAdResolutionStatus;
+
+      /**
+       * The reason the ad was blocked, total network or cpu or peak cpu.
+       */
+      reason: HeavyAdReason;
+
+      /**
+       * The frame that was blocked.
+       */
+      frame: AffectedFrame;
+    }
+
+    export type ContentSecurityPolicyViolationType =
+      | 'kInlineViolation'
+      | 'kEvalViolation'
+      | 'kURLViolation'
+      | 'kTrustedTypesSinkViolation'
+      | 'kTrustedTypesPolicyViolation';
+
+    export interface SourceCodeLocation {
+      url: string;
+
+      lineNumber: integer;
+
+      columnNumber: integer;
+    }
+
+    export interface ContentSecurityPolicyIssueDetails {
+      /**
+       * The url not included in allowed sources.
+       */
+      blockedURL?: string;
+
+      /**
+       * Specific directive that is violated, causing the CSP issue.
+       */
+      violatedDirective: string;
+
+      contentSecurityPolicyViolationType: ContentSecurityPolicyViolationType;
+
+      frameAncestor?: AffectedFrame;
+
+      sourceCodeLocation?: SourceCodeLocation;
+
+      violatingNodeId?: DOM.BackendNodeId;
     }
 
     /**
@@ -1357,7 +1417,9 @@ export namespace Cdp {
     export type InspectorIssueCode =
       | 'SameSiteCookieIssue'
       | 'MixedContentIssue'
-      | 'BlockedByResponseIssue';
+      | 'BlockedByResponseIssue'
+      | 'HeavyAdIssue'
+      | 'ContentSecurityPolicyIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1370,6 +1432,10 @@ export namespace Cdp {
       mixedContentIssueDetails?: MixedContentIssueDetails;
 
       blockedByResponseIssueDetails?: BlockedByResponseIssueDetails;
+
+      heavyAdIssueDetails?: HeavyAdIssueDetails;
+
+      contentSecurityPolicyIssueDetails?: ContentSecurityPolicyIssueDetails;
     }
 
     /**
@@ -2741,6 +2807,25 @@ export namespace Cdp {
     ): Promise<CSS.GetStyleSheetTextResult | undefined>;
 
     /**
+     * Starts tracking the given computed styles for updates. The specified array of properties
+     * replaces the one previously specified. Pass empty array to disable tracking.
+     * Use takeComputedStyleUpdates to retrieve the list of nodes that had properties modified.
+     * The changes to computed style properties are only tracked for nodes pushed to the front-end
+     * by the DOM agent. If no changes to the tracked properties occur after the node has been pushed
+     * to the front-end, no updates will be issued for the node.
+     */
+    trackComputedStyleUpdates(
+      params: CSS.TrackComputedStyleUpdatesParams,
+    ): Promise<CSS.TrackComputedStyleUpdatesResult | undefined>;
+
+    /**
+     * Polls the next batch of computed style updates.
+     */
+    takeComputedStyleUpdates(
+      params: CSS.TakeComputedStyleUpdatesParams,
+    ): Promise<CSS.TakeComputedStyleUpdatesResult | undefined>;
+
+    /**
      * Find a rule with the given active property for the given node and set the new value for this
      * property
      */
@@ -2799,6 +2884,13 @@ export namespace Cdp {
     takeCoverageDelta(
       params: CSS.TakeCoverageDeltaParams,
     ): Promise<CSS.TakeCoverageDeltaResult | undefined>;
+
+    /**
+     * Enables/disables rendering of local CSS fonts (enabled by default).
+     */
+    setLocalFontsEnabled(
+      params: CSS.SetLocalFontsEnabledParams,
+    ): Promise<CSS.SetLocalFontsEnabledResult | undefined>;
 
     /**
      * Fires whenever a web font is updated.  A non-empty font parameter indicates a successfully loaded
@@ -3111,6 +3203,33 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.trackComputedStyleUpdates' method.
+     */
+    export interface TrackComputedStyleUpdatesParams {
+      propertiesToTrack: CSSComputedStyleProperty[];
+    }
+
+    /**
+     * Return value of the 'CSS.trackComputedStyleUpdates' method.
+     */
+    export interface TrackComputedStyleUpdatesResult {}
+
+    /**
+     * Parameters of the 'CSS.takeComputedStyleUpdates' method.
+     */
+    export interface TakeComputedStyleUpdatesParams {}
+
+    /**
+     * Return value of the 'CSS.takeComputedStyleUpdates' method.
+     */
+    export interface TakeComputedStyleUpdatesResult {
+      /**
+       * The list of node Ids that have their tracked computed styles updated
+       */
+      nodeIds: DOM.NodeId[];
+    }
+
+    /**
      * Parameters of the 'CSS.setEffectivePropertyValueForNode' method.
      */
     export interface SetEffectivePropertyValueForNodeParams {
@@ -3266,6 +3385,21 @@ export namespace Cdp {
        */
       timestamp: number;
     }
+
+    /**
+     * Parameters of the 'CSS.setLocalFontsEnabled' method.
+     */
+    export interface SetLocalFontsEnabledParams {
+      /**
+       * Whether rendering of local fonts is enabled.
+       */
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'CSS.setLocalFontsEnabled' method.
+     */
+    export interface SetLocalFontsEnabledResult {}
 
     /**
      * Parameters of the 'CSS.fontsUpdated' event.
@@ -3775,7 +3909,38 @@ export namespace Cdp {
     }
 
     /**
+     * Information about font variation axes for variable fonts
+     */
+    export interface FontVariationAxis {
+      /**
+       * The font-variation-setting tag (a.k.a. "axis tag").
+       */
+      tag: string;
+
+      /**
+       * Human-readable variation name in the default language (normally, "en").
+       */
+      name: string;
+
+      /**
+       * The minimum value (inclusive) the font supports for this tag.
+       */
+      minValue: number;
+
+      /**
+       * The maximum value (inclusive) the font supports for this tag.
+       */
+      maxValue: number;
+
+      /**
+       * The default value.
+       */
+      defaultValue: number;
+    }
+
+    /**
      * Properties of a web font: https://www.w3.org/TR/2008/REC-CSS2-20080411/fonts.html#font-descriptions
+     * and additional information such as platformFontFamily and fontVariationAxes.
      */
     export interface FontFace {
       /**
@@ -3817,6 +3982,11 @@ export namespace Cdp {
        * The resolved platform font family
        */
       platformFontFamily: string;
+
+      /**
+       * Available variation settings (a.k.a. "axes").
+       */
+      fontVariationAxes?: FontVariationAxis[];
     }
 
     /**
@@ -4965,6 +5135,11 @@ export namespace Cdp {
        * before next pause.
        */
       breakOnAsyncCall?: boolean;
+
+      /**
+       * The skipList specifies location ranges that should be skipped on step into.
+       */
+      skipList?: LocationRange[];
     }
 
     /**
@@ -4985,7 +5160,12 @@ export namespace Cdp {
     /**
      * Parameters of the 'Debugger.stepOver' method.
      */
-    export interface StepOverParams {}
+    export interface StepOverParams {
+      /**
+       * The skipList specifies location ranges that should be skipped on step over.
+       */
+      skipList?: LocationRange[];
+    }
 
     /**
      * Return value of the 'Debugger.stepOver' method.
@@ -5147,6 +5327,11 @@ export namespace Cdp {
        * The language of the script.
        */
       scriptLanguage?: Debugger.ScriptLanguage;
+
+      /**
+       * The name the embedder supplied for this script.
+       */
+      embedderName?: string;
     }
 
     /**
@@ -5242,6 +5427,11 @@ export namespace Cdp {
        * If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
        */
       debugSymbols?: Debugger.DebugSymbols;
+
+      /**
+       * The name the embedder supplied for this script.
+       */
+      embedderName?: string;
     }
 
     /**
@@ -5281,6 +5471,17 @@ export namespace Cdp {
       lineNumber: integer;
 
       columnNumber: integer;
+    }
+
+    /**
+     * Location range within one script.
+     */
+    export interface LocationRange {
+      scriptId: Runtime.ScriptId;
+
+      start: ScriptPosition;
+
+      end: ScriptPosition;
     }
 
     /**
@@ -5561,10 +5762,20 @@ export namespace Cdp {
 
     /**
      * Returns the root DOM node (and optionally the subtree) to the caller.
+     * Deprecated, as it is not designed to work well with the rest of the DOM agent.
+     * Use DOMSnapshot.captureSnapshot instead.
+     * @deprecated
      */
     getFlattenedDocument(
       params: DOM.GetFlattenedDocumentParams,
     ): Promise<DOM.GetFlattenedDocumentResult | undefined>;
+
+    /**
+     * Finds nodes with a given computed style in a subtree.
+     */
+    getNodesForSubtreeByStyle(
+      params: DOM.GetNodesForSubtreeByStyleParams,
+    ): Promise<DOM.GetNodesForSubtreeByStyleResult | undefined>;
 
     /**
      * Returns node id at given location. Depending on whether DOM domain is enabled, nodeId is
@@ -6194,6 +6405,37 @@ export namespace Cdp {
        * Resulting node.
        */
       nodes: Node[];
+    }
+
+    /**
+     * Parameters of the 'DOM.getNodesForSubtreeByStyle' method.
+     */
+    export interface GetNodesForSubtreeByStyleParams {
+      /**
+       * Node ID pointing to the root of a subtree.
+       */
+      nodeId: NodeId;
+
+      /**
+       * The style to filter nodes by (includes nodes if any of properties matches).
+       */
+      computedStyles: CSSComputedStyleProperty[];
+
+      /**
+       * Whether or not iframes and shadow roots in the same target should be traversed when returning the
+       * results (default is false).
+       */
+      pierce?: boolean;
+    }
+
+    /**
+     * Return value of the 'DOM.getNodesForSubtreeByStyle' method.
+     */
+    export interface GetNodesForSubtreeByStyleResult {
+      /**
+       * Resulting nodes.
+       */
+      nodeIds: NodeId[];
     }
 
     /**
@@ -7405,6 +7647,18 @@ export namespace Cdp {
        * Rectangle height
        */
       height: number;
+    }
+
+    export interface CSSComputedStyleProperty {
+      /**
+       * Computed style property name.
+       */
+      name: string;
+
+      /**
+       * Computed style property value.
+       */
+      value: string;
     }
   }
 
@@ -8652,6 +8906,20 @@ export namespace Cdp {
     ): Promise<Emulation.SetGeolocationOverrideResult | undefined>;
 
     /**
+     * Overrides the Idle state.
+     */
+    setIdleOverride(
+      params: Emulation.SetIdleOverrideParams,
+    ): Promise<Emulation.SetIdleOverrideResult | undefined>;
+
+    /**
+     * Clears Idle state overrides.
+     */
+    clearIdleOverride(
+      params: Emulation.ClearIdleOverrideParams,
+    ): Promise<Emulation.ClearIdleOverrideResult | undefined>;
+
+    /**
      * Overrides value returned by the javascript navigator object.
      * @deprecated
      */
@@ -8888,6 +9156,12 @@ export namespace Cdp {
        * change is not observed by the page, e.g. viewport-relative elements do not change positions.
        */
       viewport?: Page.Viewport;
+
+      /**
+       * If set, the display feature of a multi-segment screen. If not set, multi-segment support
+       * is turned-off.
+       */
+      displayFeature?: DisplayFeature;
     }
 
     /**
@@ -9010,6 +9284,36 @@ export namespace Cdp {
      * Return value of the 'Emulation.setGeolocationOverride' method.
      */
     export interface SetGeolocationOverrideResult {}
+
+    /**
+     * Parameters of the 'Emulation.setIdleOverride' method.
+     */
+    export interface SetIdleOverrideParams {
+      /**
+       * Mock isUserActive
+       */
+      isUserActive: boolean;
+
+      /**
+       * Mock isScreenUnlocked
+       */
+      isScreenUnlocked: boolean;
+    }
+
+    /**
+     * Return value of the 'Emulation.setIdleOverride' method.
+     */
+    export interface SetIdleOverrideResult {}
+
+    /**
+     * Parameters of the 'Emulation.clearIdleOverride' method.
+     */
+    export interface ClearIdleOverrideParams {}
+
+    /**
+     * Return value of the 'Emulation.clearIdleOverride' method.
+     */
+    export interface ClearIdleOverrideResult {}
 
     /**
      * Parameters of the 'Emulation.setNavigatorOverrides' method.
@@ -9216,6 +9520,26 @@ export namespace Cdp {
        * Orientation angle.
        */
       angle: integer;
+    }
+
+    export interface DisplayFeature {
+      /**
+       * Orientation of a display feature in relation to screen
+       */
+      orientation: 'vertical' | 'horizontal';
+
+      /**
+       * The offset from the screen origin in either the x (for vertical
+       * orientation) or y (for horizontal orientation) direction.
+       */
+      offset: integer;
+
+      /**
+       * A display feature may mask content such that it is not physically
+       * displayed - this length along with the offset describes this area.
+       * A display feature that only splits content will have a 0 mask_length.
+       */
+      maskLength: integer;
     }
 
     export interface MediaFeature {
@@ -10831,6 +11155,13 @@ export namespace Cdp {
        * 0).
        */
       location?: integer;
+
+      /**
+       * Editing commands to send with the key event (e.g., 'selectAll') (default: []).
+       * These are related to but not equal the command names used in `document.execCommand` and NSStandardKeyBindingResponding.
+       * See https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/renderer/core/editing/commands/editor_command_names.h for valid command names.
+       */
+      commands?: string[];
     }
 
     /**
@@ -13130,7 +13461,9 @@ export namespace Cdp {
      */
     export interface GetCookiesParams {
       /**
-       * The list of URLs for which applicable cookies will be fetched
+       * The list of URLs for which applicable cookies will be fetched.
+       * If not specified, it's assumed to be set to the list containing
+       * the URLs of the page and all of its subframes.
        */
       urls?: string[];
     }
@@ -14201,6 +14534,13 @@ export namespace Cdp {
     export type ResourcePriority = 'VeryLow' | 'Low' | 'Medium' | 'High' | 'VeryHigh';
 
     /**
+     * Post data entry for HTTP request
+     */
+    export interface PostDataEntry {
+      bytes?: string;
+    }
+
+    /**
      * HTTP request data.
      */
     export interface Request {
@@ -14233,6 +14573,11 @@ export namespace Cdp {
        * True when the request has POST data. Note that postData might still be omitted when this flag is true when the data is too long.
        */
       hasPostData?: boolean;
+
+      /**
+       * Request body elements. This will be converted from base64 to binary
+       */
+      postDataEntries?: PostDataEntry[];
 
       /**
        * The mixed content type of the request.
@@ -15070,6 +15415,20 @@ export namespace Cdp {
     ): Promise<Overlay.GetHighlightObjectForTestResult | undefined>;
 
     /**
+     * For Persistent Grid testing.
+     */
+    getGridHighlightObjectsForTest(
+      params: Overlay.GetGridHighlightObjectsForTestParams,
+    ): Promise<Overlay.GetGridHighlightObjectsForTestResult | undefined>;
+
+    /**
+     * For Source Order Viewer testing.
+     */
+    getSourceOrderHighlightObjectForTest(
+      params: Overlay.GetSourceOrderHighlightObjectForTestParams,
+    ): Promise<Overlay.GetSourceOrderHighlightObjectForTestResult | undefined>;
+
+    /**
      * Hides any highlight.
      */
     hideHighlight(
@@ -15106,6 +15465,14 @@ export namespace Cdp {
     ): Promise<Overlay.HighlightRectResult | undefined>;
 
     /**
+     * Highlights the source order of the children of the DOM node with given id or with the given
+     * JavaScript object wrapper. Either nodeId or objectId must be specified.
+     */
+    highlightSourceOrder(
+      params: Overlay.HighlightSourceOrderParams,
+    ): Promise<Overlay.HighlightSourceOrderResult | undefined>;
+
+    /**
      * Enters the 'inspect' mode. In this mode, elements that user is hovering over are highlighted.
      * Backend then generates 'inspectNodeRequested' event upon element selection.
      */
@@ -15137,6 +15504,13 @@ export namespace Cdp {
     setShowFPSCounter(
       params: Overlay.SetShowFPSCounterParams,
     ): Promise<Overlay.SetShowFPSCounterResult | undefined>;
+
+    /**
+     * Highlight multiple elements with the CSS Grid overlay.
+     */
+    setShowGridOverlays(
+      params: Overlay.SetShowGridOverlaysParams,
+    ): Promise<Overlay.SetShowGridOverlaysResult | undefined>;
 
     /**
      * Requests that backend shows paint rectangles
@@ -15258,9 +15632,14 @@ export namespace Cdp {
       includeStyle?: boolean;
 
       /**
-       * The color format to get config with (default: hex)
+       * The color format to get config with (default: hex).
        */
       colorFormat?: ColorFormat;
+
+      /**
+       * Whether to show accessibility info (default: true).
+       */
+      showAccessibilityInfo?: boolean;
     }
 
     /**
@@ -15269,6 +15648,46 @@ export namespace Cdp {
     export interface GetHighlightObjectForTestResult {
       /**
        * Highlight data for the node.
+       */
+      highlight: any;
+    }
+
+    /**
+     * Parameters of the 'Overlay.getGridHighlightObjectsForTest' method.
+     */
+    export interface GetGridHighlightObjectsForTestParams {
+      /**
+       * Ids of the node to get highlight object for.
+       */
+      nodeIds: DOM.NodeId[];
+    }
+
+    /**
+     * Return value of the 'Overlay.getGridHighlightObjectsForTest' method.
+     */
+    export interface GetGridHighlightObjectsForTestResult {
+      /**
+       * Grid Highlight data for the node ids provided.
+       */
+      highlights: any;
+    }
+
+    /**
+     * Parameters of the 'Overlay.getSourceOrderHighlightObjectForTest' method.
+     */
+    export interface GetSourceOrderHighlightObjectForTestParams {
+      /**
+       * Id of the node to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
+
+    /**
+     * Return value of the 'Overlay.getSourceOrderHighlightObjectForTest' method.
+     */
+    export interface GetSourceOrderHighlightObjectForTestResult {
+      /**
+       * Source order highlight data for the node id provided.
        */
       highlight: any;
     }
@@ -15409,6 +15828,36 @@ export namespace Cdp {
     export interface HighlightRectResult {}
 
     /**
+     * Parameters of the 'Overlay.highlightSourceOrder' method.
+     */
+    export interface HighlightSourceOrderParams {
+      /**
+       * A descriptor for the appearance of the overlay drawing.
+       */
+      sourceOrderConfig: SourceOrderConfig;
+
+      /**
+       * Identifier of the node to highlight.
+       */
+      nodeId?: DOM.NodeId;
+
+      /**
+       * Identifier of the backend node to highlight.
+       */
+      backendNodeId?: DOM.BackendNodeId;
+
+      /**
+       * JavaScript object id of the node to be highlighted.
+       */
+      objectId?: Runtime.RemoteObjectId;
+    }
+
+    /**
+     * Return value of the 'Overlay.highlightSourceOrder' method.
+     */
+    export interface HighlightSourceOrderResult {}
+
+    /**
      * Parameters of the 'Overlay.setInspectMode' method.
      */
     export interface SetInspectModeParams {
@@ -15488,6 +15937,21 @@ export namespace Cdp {
      * Return value of the 'Overlay.setShowFPSCounter' method.
      */
     export interface SetShowFPSCounterResult {}
+
+    /**
+     * Parameters of the 'Overlay.setShowGridOverlays' method.
+     */
+    export interface SetShowGridOverlaysParams {
+      /**
+       * An array of node identifiers and descriptors for the highlight appearance.
+       */
+      gridNodeHighlightConfigs: GridNodeHighlightConfig[];
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowGridOverlays' method.
+     */
+    export interface SetShowGridOverlaysResult {}
 
     /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
@@ -15612,6 +16076,21 @@ export namespace Cdp {
     export interface InspectModeCanceledEvent {}
 
     /**
+     * Configuration data for drawing the source order of an elements children.
+     */
+    export interface SourceOrderConfig {
+      /**
+       * the color to outline the givent element in.
+       */
+      parentOutlineColor: DOM.RGBA;
+
+      /**
+       * the color to outline the child elements in.
+       */
+      childOutlineColor: DOM.RGBA;
+    }
+
+    /**
      * Configuration data for the highlighting of Grid elements.
      */
     export interface GridHighlightConfig {
@@ -15631,14 +16110,40 @@ export namespace Cdp {
       showNegativeLineNumbers?: boolean;
 
       /**
+       * Show area name labels (default: false).
+       */
+      showAreaNames?: boolean;
+
+      /**
+       * Show line name labels (default: false).
+       */
+      showLineNames?: boolean;
+
+      /**
+       * Show track size labels (default: false).
+       */
+      showTrackSizes?: boolean;
+
+      /**
        * The grid container border highlight color (default: transparent).
        */
       gridBorderColor?: DOM.RGBA;
 
       /**
-       * The cell border color (default: transparent).
+       * The cell border color (default: transparent). Deprecated, please use rowLineColor and columnLineColor instead.
+       * @deprecated
        */
       cellBorderColor?: DOM.RGBA;
+
+      /**
+       * The row line color (default: transparent).
+       */
+      rowLineColor?: DOM.RGBA;
+
+      /**
+       * The column line color (default: transparent).
+       */
+      columnLineColor?: DOM.RGBA;
 
       /**
        * Whether the grid border is dashed (default: false).
@@ -15646,9 +16151,20 @@ export namespace Cdp {
       gridBorderDash?: boolean;
 
       /**
-       * Whether the cell border is dashed (default: false).
+       * Whether the cell border is dashed (default: false). Deprecated, please us rowLineDash and columnLineDash instead.
+       * @deprecated
        */
       cellBorderDash?: boolean;
+
+      /**
+       * Whether row lines are dashed (default: false).
+       */
+      rowLineDash?: boolean;
+
+      /**
+       * Whether column lines are dashed (default: false).
+       */
+      columnLineDash?: boolean;
 
       /**
        * The row gap highlight fill color (default: transparent).
@@ -15669,6 +16185,11 @@ export namespace Cdp {
        * The column gap hatching fill color (default: transparent).
        */
       columnHatchColor?: DOM.RGBA;
+
+      /**
+       * The named grid areas border color (Default: transparent).
+       */
+      areaBorderColor?: DOM.RGBA;
     }
 
     /**
@@ -15689,6 +16210,11 @@ export namespace Cdp {
        * Whether the rulers should be shown (default: false).
        */
       showRulers?: boolean;
+
+      /**
+       * Whether the a11y info should be shown (default: true).
+       */
+      showAccessibilityInfo?: boolean;
 
       /**
        * Whether the extension lines from node to the rulers should be shown (default: false).
@@ -15747,6 +16273,21 @@ export namespace Cdp {
     }
 
     export type ColorFormat = 'rgb' | 'hsl' | 'hex';
+
+    /**
+     * Configurations for Persistent Grid Highlight
+     */
+    export interface GridNodeHighlightConfig {
+      /**
+       * A descriptor for the highlight appearance.
+       */
+      gridHighlightConfig: GridHighlightConfig;
+
+      /**
+       * Identifier of the node to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
 
     /**
      * Configuration for dual screen hinge
@@ -17801,6 +18342,11 @@ export namespace Cdp {
     export type FrameId = string;
 
     /**
+     * Indicates whether a frame has been identified as an ad.
+     */
+    export type AdFrameType = 'none' | 'child' | 'root';
+
+    /**
      * Information about the Frame on the page.
      */
     export interface Frame {
@@ -17835,6 +18381,14 @@ export namespace Cdp {
       urlFragment?: string;
 
       /**
+       * Frame document's registered domain, taking the public suffixes list into account.
+       * Extracted from the Frame's url.
+       * Example URLs: http://www.google.com/file.html -> "google.com"
+       *               http://a.b.co.uk/file.html      -> "b.co.uk"
+       */
+      domainAndRegistry: string;
+
+      /**
        * Frame document's security origin.
        */
       securityOrigin: string;
@@ -17848,6 +18402,11 @@ export namespace Cdp {
        * If the frame failed to load, this contains the URL that could not be loaded. Note that unlike url above, this URL may contain a fragment.
        */
       unreachableUrl?: string;
+
+      /**
+       * Indicates whether this frame was tagged as an ad.
+       */
+      adFrameType?: AdFrameType;
     }
 
     /**
@@ -19456,6 +20015,14 @@ export namespace Cdp {
        * `replMode` themselves.
        */
       replMode?: boolean;
+
+      /**
+       * The Content Security Policy (CSP) for the target might block 'unsafe-eval'
+       * which includes eval(), Function(), setTimeout() and setInterval()
+       * when called with non-callable arguments. This flag bypasses CSP for this
+       * evaluation and allows unsafe-eval. Defaults to true.
+       */
+      allowUnsafeEvalBlockedByCSP?: boolean;
     }
 
     /**
@@ -22489,6 +23056,11 @@ export namespace Cdp {
        */
       openerId?: TargetID;
 
+      /**
+       * Whether the opened window has access to the originating window.
+       */
+      canAccessOpener: boolean;
+
       browserContextId?: Browser.BrowserContextID;
     }
 
@@ -23368,6 +23940,14 @@ export namespace Cdp {
     setUserVerified(
       params: WebAuthn.SetUserVerifiedParams,
     ): Promise<WebAuthn.SetUserVerifiedResult | undefined>;
+
+    /**
+     * Sets whether tests of user presence will succeed immediately (if true) or fail to resolve (if false) for an authenticator.
+     * The default is true.
+     */
+    setAutomaticPresenceSimulation(
+      params: WebAuthn.SetAutomaticPresenceSimulationParams,
+    ): Promise<WebAuthn.SetAutomaticPresenceSimulationResult | undefined>;
   }
 
   /**
@@ -23503,6 +24083,20 @@ export namespace Cdp {
      * Return value of the 'WebAuthn.setUserVerified' method.
      */
     export interface SetUserVerifiedResult {}
+
+    /**
+     * Parameters of the 'WebAuthn.setAutomaticPresenceSimulation' method.
+     */
+    export interface SetAutomaticPresenceSimulationParams {
+      authenticatorId: AuthenticatorId;
+
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'WebAuthn.setAutomaticPresenceSimulation' method.
+     */
+    export interface SetAutomaticPresenceSimulationResult {}
 
     export type AuthenticatorId = string;
 
