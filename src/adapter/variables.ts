@@ -546,7 +546,7 @@ export class VariableStore {
     }
 
     if (objectPreview.isArray(value.o)) {
-      return this._createArrayVariable(name, value, context);
+      return await this._createArrayVariable(name, value, context);
     }
 
     if (value.objectId && !objectPreview.subtypesWithoutPreview.has(value.o.subtype)) {
@@ -651,7 +651,11 @@ export class VariableStore {
     return code;
   }
 
-  private _createArrayVariable(name: string, value: RemoteObject, context?: string): Dap.Variable {
+  private async _createArrayVariable(
+    name: string,
+    value: RemoteObject,
+    context?: string,
+  ): Promise<Dap.Variable> {
     const object = value.o;
     const variablesReference = this._createVariableReference(value);
     const match = String(object.description).match(/\(([0-9]+)\)/);
@@ -660,9 +664,7 @@ export class VariableStore {
     // For small arrays (less than 100 items), pretend we don't have indexex properties.
     return {
       name,
-      value:
-        (name === '__proto__' && object.description) ||
-        objectPreview.previewRemoteObject(object, context),
+      value: await this._generateVariableValueDescription(name, value, object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
       evaluateName: value.accessor,

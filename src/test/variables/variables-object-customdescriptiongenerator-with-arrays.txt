@@ -1,0 +1,7 @@
+> result: I'm an array
+    > 0: Instance of bar
+    > 1: Foo
+    2: 5
+    3: 'test'
+    length: 4
+    > __proto__: I'm an array
