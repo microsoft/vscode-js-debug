@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { injectable } from 'inversify';
+import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
 import { LogTag } from '../../common/logging';
@@ -123,7 +124,8 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     const result = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
-      expression: `Object.assign(process.env, ${JSON.stringify(vars.defined())})`,
+      expression:
+        `Object.assign(process.env, ${JSON.stringify(vars.defined())})` + getSourceSuffix(),
     });
 
     if (!result) {

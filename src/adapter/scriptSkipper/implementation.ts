@@ -23,6 +23,7 @@ import {
   SourceContainer,
   SourceFromMap,
 } from '../sources';
+import { getSourceSuffix } from '../templates';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -267,7 +268,7 @@ export class ScriptSkipper {
   private async _initNodeInternals(target: ITarget): Promise<void> {
     if (target.type() === 'node' && this._nodeInternalsGlobs && !this._allNodeInternals) {
       const evalResult = await this.cdp.Runtime.evaluate({
-        expression: "require('module').builtinModules",
+        expression: "require('module').builtinModules" + getSourceSuffix(),
         returnByValue: true,
         includeCommandLineAPI: true,
       });

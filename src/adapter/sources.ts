@@ -61,6 +61,14 @@ type ContentGetter = () => Promise<string | undefined>;
 // Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<ISourceWithMap>; map?: SourceMap; loaded: Promise<void> };
 
+export const enum SourceConstants {
+  /**
+   * Extension of evaluated sources internal to the debugger. Sources with
+   * this suffix will be ignored when displaying sources or stacktracees.
+   */
+  InternalExtension = '.cdp',
+}
+
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
   load: number;

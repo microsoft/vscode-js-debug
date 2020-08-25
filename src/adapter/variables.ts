@@ -9,7 +9,7 @@ import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as objectPreview from './objectPreview';
 import { StackTrace } from './stackTrace';
-import { RemoteException } from './templates';
+import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
@@ -183,13 +183,13 @@ export class VariableStore {
     if (!object)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
 
-    const expression = params.value;
-    if (!expression)
+    if (!params.value)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
+    const expression = params.value + getSourceSuffix();
     const evaluateResponse = object.scopeRef
       ? await object.cdp.Debugger.evaluateOnCallFrame({
-          expression,
+          expression: expression,
           callFrameId: object.scopeRef.callFrameId,
         })
       : await object.cdp.Runtime.evaluate({ expression, silent: true });
@@ -232,7 +232,7 @@ export class VariableStore {
     } else {
       const setResponse = await object.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
-        functionDeclaration: `function(a, b) { this[a] = b; }`,
+        functionDeclaration: `function(a, b) { this[a] = b; ${getSourceSuffix()} }`,
         arguments: [
           this._toCallArgument(params.name),
           this._toCallArgument(evaluateResponse.result),

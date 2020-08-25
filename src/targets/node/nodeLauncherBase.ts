@@ -7,6 +7,7 @@ import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
@@ -31,6 +32,7 @@ import {
 } from '../../targets/targets';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
+import { bootloaderDefaultPath } from './bundlePaths';
 import {
   Capability,
   INodeBinaryProvider,
@@ -40,7 +42,6 @@ import {
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { bootloaderDefaultPath } from './bundlePaths';
 
 /**
  * Telemetry received from the nested process.
@@ -470,7 +471,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const telemetry = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
-      expression: `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })`,
+      expression:
+        `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
+        getSourceSuffix(),
     });
 
     if (!this.program) {

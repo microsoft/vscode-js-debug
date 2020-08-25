@@ -7,9 +7,8 @@ import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { LogPointCompiler } from './breakpoints/conditions/logPoint';
 import { shouldSmartStepStackFrame } from './smartStepping';
-import { IPreferredUiLocation } from './sources';
+import { IPreferredUiLocation, SourceConstants } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
 
@@ -24,18 +23,14 @@ export class StackTrace {
   public static fromRuntime(
     thread: Thread,
     stack: Cdp.Runtime.StackTrace,
-    frameLimit?: number,
+    frameLimit = Infinity,
   ): StackTrace {
     const result = new StackTrace(thread);
-    const callFrames = stack.callFrames;
-
-    // Remove any frames on top that are within a log point.
-    while (callFrames.length && LogPointCompiler.isLogPointUrl(callFrames[0].url)) {
-      callFrames.splice(0, 1);
-    }
-
-    for (const callFrame of frameLimit ? stack.callFrames.slice(0, frameLimit) : stack.callFrames) {
-      result._frames.push(StackFrame.fromRuntime(thread, callFrame));
+    for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
+      if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
+        result._frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
+        frameLimit--;
+      }
     }
 
     if (stack.parentId) {

@@ -273,7 +273,7 @@ gulp.task('flatSessionBundle:webpack-bundle', async () => {
   return runWebpack({ packages, devtool: 'nosources-source-map' });
 });
 
-gulp.task('markBootloaderAsCDPFile', done => {
+gulp.task('package:bootloader-as-cdp', done => {
   const bootloaderFilePath = path.resolve(distSrcDir, 'bootloader.bundle.js');
   fs.appendFile(bootloaderFilePath, '\n//# sourceURL=bootloader.bundle.cdp', done);
 });
@@ -378,7 +378,7 @@ gulp.task(
     'compile:static',
     'compile:dynamic',
     'package:webpack-bundle',
-    'markBootloaderAsCDPFile',
+    'package:bootloader-as-cdp',
     'package:copy-extension-files',
     'nls:bundle-create',
     'package:createVSIX',
@@ -391,7 +391,7 @@ gulp.task(
     'clean',
     'compile',
     'flatSessionBundle:webpack-bundle',
-    'markBootloaderAsCDPFile',
+    'package:bootloader-as-cdp',
     'package:copy-extension-files',
     gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
   ),
@@ -405,7 +405,7 @@ gulp.task(
     'compile',
     'vsDebugServerBundle:webpack-bundle',
     'flatSessionBundle:webpack-bundle',
-    'markBootloaderAsCDPFile',
+    'package:bootloader-as-cdp',
     'package:copy-extension-files',
     gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
   ),

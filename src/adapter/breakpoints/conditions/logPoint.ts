@@ -20,13 +20,6 @@ import { RuntimeLogPoint } from './runtimeLogPoint';
  */
 @injectable()
 export class LogPointCompiler {
-  /**
-   * Gets whether the url looks like a log point source.
-   */
-  public static isLogPointUrl(url: string) {
-    return /logpoint-[a-f0-9]+\.cdp$/.test(url);
-  }
-
   constructor(
     @inject(ILogger) private readonly logger: ILogger,
     @inject(IEvaluator) private readonly evaluator: IEvaluator,

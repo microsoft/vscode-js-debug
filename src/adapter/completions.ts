@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import * as ts from 'typescript';
-import Dap from '../dap/api';
 import Cdp from '../cdp/api';
-import { StackFrame } from './stackTrace';
-import { positionToOffset } from '../common/sourceUtils';
-import { enumerateProperties, enumeratePropertiesTemplate } from './templates/enumerateProperties';
-import { injectable, inject } from 'inversify';
-import { IEvaluator, returnValueStr } from './evaluator';
 import { ICdpApi } from '../cdp/connection';
+import { positionToOffset } from '../common/sourceUtils';
+import Dap from '../dap/api';
+import { IEvaluator, returnValueStr } from './evaluator';
+import { StackFrame } from './stackTrace';
+import { enumerateProperties, enumeratePropertiesTemplate } from './templates/enumerateProperties';
 
 /**
  * Context in which a completion is being evaluated.
