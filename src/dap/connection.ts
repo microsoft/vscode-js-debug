@@ -181,7 +181,9 @@ export default class Connection {
             } else if (response.command === 'disconnect') {
               // close the DAP connection after we respond to disconnect so that
               // no more messages are allowed to go through.
-              this.stop();
+              process.nextTick(() => {
+                this.stop();
+              });
             }
           }
         }
