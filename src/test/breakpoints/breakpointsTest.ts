@@ -125,7 +125,7 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
       };
-      p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
       p.load();
       await waitForPause(p);
       await waitForPause(p);

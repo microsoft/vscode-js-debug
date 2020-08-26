@@ -544,12 +544,17 @@ export class BreakpointManager {
       return result;
     };
 
-    let result: ISetBreakpointResult;
+    const getCurrent = () =>
+      params.source.path
+        ? this._byPath.get(params.source.path)
+        : params.source.sourceReference
+        ? this._byRef.get(params.source.sourceReference)
+        : undefined;
+
+    const result = mergeInto(getCurrent() ?? []);
     if (params.source.path) {
-      result = mergeInto(this._byPath.get(params.source.path) || []);
       this._byPath.set(params.source.path, result.list);
     } else if (params.source.sourceReference) {
-      result = mergeInto(this._byRef.get(params.source.sourceReference) || []);
       this._byRef.set(params.source.sourceReference, result.list);
     } else {
       return { breakpoints: [] };
@@ -566,11 +571,17 @@ export class BreakpointManager {
       // This will add itself to the launch blocker if needed:
       this.ensureModuleEntryBreakpoint(thread, params.source);
 
+      // double-checking the current list fixes:
+      // https://github.com/microsoft/vscode-js-debug/issues/679
+      const currentList = getCurrent();
       const promise = Promise.all(
-        result.new.filter(this._enabledFilter).map(b => b.enable(thread)),
+        result.new
+          .filter(this._enabledFilter)
+          .filter(bp => currentList?.includes(bp))
+          .map(b => b.enable(thread)),
       );
-      this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), promise]));
 
+      this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), promise]));
       await promise;
     }
 
