@@ -15,13 +15,8 @@ import { delay } from '../../common/promiseUtil';
 import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
 import Dap from '../../dap/api';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import {
-  createFileTree,
-  ITestHandle,
-  NodeTestHandle,
-  testFixturesDir,
-  testWorkspace,
-} from '../test';
+import { ITestHandle, NodeTestHandle, testFixturesDir, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('node runtime', () => {

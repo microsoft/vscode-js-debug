@@ -7,7 +7,8 @@ import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import Dap from '../../dap/api';
-import { createFileTree, ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
+import { ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
 

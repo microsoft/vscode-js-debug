@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { createFileTree, testFixturesDir } from '../test';
+import { testFixturesDir } from '../test';
+import { createFileTree } from '../createFileTree';
 import { NvmResolver, INvmResolver } from '../../targets/node/nvmResolver';
 import { expect } from 'chai';
 import * as path from 'path';
