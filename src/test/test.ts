@@ -562,20 +562,22 @@ export class TestRoot {
     return p;
   }
 
+  public buildUrl(url: string) {
+    return utils.completeUrl('http://localhost:8001/', url) || url;
+  }
+
   async launchUrl(
     url: string,
     options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
-    url = utils.completeUrl('http://localhost:8001/', url) || url;
-    return await this._launch(url, options);
+    return await this._launch(this.buildUrl(url), options);
   }
 
   async launchUrlAndLoad(
     url: string,
     options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
-    url = utils.completeUrl('http://localhost:8001/', url) || url;
-    const p = await this._launch(url, options);
+    const p = await this._launch(this.buildUrl(url), options);
     await p.load();
     return p;
   }

@@ -1,0 +1,18 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/hello.js:2:3
+----setInterval----
+<anonymous> @ ${workspaceFolder}/web/hello.js:1:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/hello.js:2:3
+----setInterval----
+<anonymous> @ ${workspaceFolder}/web/hello.js:1:1
