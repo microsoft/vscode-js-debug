@@ -9,7 +9,8 @@ import { join } from 'path';
 import { Hasher } from '.';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
 
-describe('hash process', () => {
+describe('hash process', function () {
+  this.timeout(10 * 1000); // 10 seconds timeout
   let hasher: Hasher;
   let testDir: string;
 

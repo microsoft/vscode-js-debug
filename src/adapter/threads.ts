@@ -183,7 +183,12 @@ export class Thread implements IVariableStoreDelegate {
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
-    this.replVariables = new VariableStore(this._cdp, this, launchConfig.__autoExpandGetters);
+    this.replVariables = new VariableStore(
+      this._cdp,
+      this,
+      launchConfig.__autoExpandGetters,
+      launchConfig.customDescriptionGenerator,
+    );
     this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
   }
@@ -725,6 +730,7 @@ export class Thread implements IVariableStoreDelegate {
       this._cdp,
       this,
       this.launchConfig.__autoExpandGetters,
+      this.launchConfig.customDescriptionGenerator,
     );
     scheduledPauseOnAsyncCall = undefined;
 

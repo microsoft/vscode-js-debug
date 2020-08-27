@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as ts from 'typescript';
-import { invalidLogPointSyntax, invalidBreakPointCondition } from '../../../dap/errors';
+import { invalidBreakPointCondition } from '../../../dap/errors';
 import { ProtocolError } from '../../../dap/protocolError';
 import { ILogger } from '../../../common/logging';
 import { IBreakpointCondition } from '.';
@@ -14,6 +14,7 @@ import Dap from '../../../dap/api';
 import { injectable, inject } from 'inversify';
 import { IEvaluator } from '../../evaluator';
 import { RuntimeLogPoint } from './runtimeLogPoint';
+import { returnErrorsFromStatements } from '../../../common/sourceCodeManipulations';
 
 /**
  * Compiles log point expressions to breakpoints.
@@ -45,34 +46,7 @@ export class LogPointCompiler {
   }
 
   private serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {
-    const output = ['(() => {', '  try {'];
-
-    for (let i = 0; i < statements.length; i++) {
-      let stmt = statements[i].getText().trim();
-      if (!stmt.endsWith(';')) {
-        stmt += ';';
-      }
-
-      if (i === statements.length - 1) {
-        const returned = `return ${stmt}`;
-        if (!getSyntaxErrorIn(returned)) {
-          output.push(`    ${returned}`);
-          break;
-        }
-      }
-
-      output.push(`    ${stmt}`);
-    }
-
-    output.push('  } catch (e) {', '    return e.stack || e.message || String(e);', '  }', '})()');
-
-    const result = output.join('\n');
-    const error = getSyntaxErrorIn(result);
-    if (error) {
-      throw new ProtocolError(invalidLogPointSyntax(error.message));
-    }
-
-    return result;
+    return returnErrorsFromStatements('', statements, false);
   }
 
   /**

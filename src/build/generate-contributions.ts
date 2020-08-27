@@ -262,6 +262,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     type: 'boolean',
     description: refString('enableContentValidation.description'),
   },
+  customDescriptionGenerator: {
+    type: 'string',
+    default: undefined,
+    description: refString('customDescriptionGenerator.description'),
+  },
   cascadeTerminateToConfigurations: {
     type: 'array',
     items: {

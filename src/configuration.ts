@@ -185,6 +185,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    * Whether getters should be automatically expanded.
    */
   __autoExpandGetters: boolean;
+
+  /**
+   * Function used to generate the description of the objects shown in the debugger
+   * e.g.: "function (defaultDescription) { return this.toString(); }"
+   */
+  customDescriptionGenerator?: string;
 }
 
 export interface IExtensionHostBaseConfiguration extends INodeBaseConfiguration {
@@ -767,6 +773,7 @@ export const baseDefaults: IBaseConfiguration = {
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,
+  customDescriptionGenerator: undefined,
 };
 
 const nodeBaseDefaults: INodeBaseConfiguration = {
