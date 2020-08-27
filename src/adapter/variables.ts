@@ -610,36 +610,36 @@ export class VariableStore {
       (name === '__proto__' && object.description) ||
       objectPreview.previewRemoteObject(object, context);
 
-    if (this.customDescriptionGenerator) {
-      let errorDescription;
-      try {
-        const customValueDescription = await this._cdp.Runtime.callFunctionOn({
-          objectId: object.objectId,
-          functionDeclaration: this.extractFunctionFromCustomDescriptionGenerator(
-            this.customDescriptionGenerator,
-          ),
-          arguments: [this._toCallArgument(defaultValueDescription)],
-        });
-        if (customValueDescription?.exceptionDetails === undefined) {
-          return '' + customValueDescription?.result.value;
-        } else if (customValueDescription.result.description) {
-          errorDescription = customValueDescription.result.description.split('\n', 1)[0];
-        } else {
-          errorDescription = localize('error.unknown', 'Unknown error');
-        }
-      } catch (e) {
-        errorDescription = e.stack || e.message || String(e);
-      }
-
-      return localize(
-        'error.customValueDescriptionGeneratorFailed',
-        "{0} (couldn't describe: {1})",
-        defaultValueDescription,
-        errorDescription,
-      );
-    } else {
+    if (!this.customDescriptionGenerator) {
       return defaultValueDescription;
     }
+
+    let errorDescription;
+    try {
+      const customValueDescription = await this._cdp.Runtime.callFunctionOn({
+        objectId: object.objectId,
+        functionDeclaration: this.extractFunctionFromCustomDescriptionGenerator(
+          this.customDescriptionGenerator,
+        ),
+        arguments: [this._toCallArgument(defaultValueDescription)],
+      });
+      if (customValueDescription?.exceptionDetails === undefined) {
+        return '' + customValueDescription?.result.value;
+      } else if (customValueDescription.result.description) {
+        errorDescription = customValueDescription.result.description.split('\n', 1)[0];
+      } else {
+        errorDescription = localize('error.unknown', 'Unknown error');
+      }
+    } catch (e) {
+      errorDescription = e.stack || e.message || String(e);
+    }
+
+    return localize(
+      'error.customValueDescriptionGeneratorFailed',
+      "{0} (couldn't describe: {1})",
+      defaultValueDescription,
+      errorDescription,
+    );
   }
 
   private extractFunctionFromCustomDescriptionGenerator(generatorDefinition: string): string {

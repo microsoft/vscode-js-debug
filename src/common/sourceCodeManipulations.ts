@@ -27,7 +27,7 @@ export function codeToFunctionReturningErrors(
 /**
  * code => (parameterNames) => return catchAndReturnErrors(code)
  * */
-export function codeToFunctionExecutingCodeAndReturningErrors(
+function codeToFunctionExecutingCodeAndReturningErrors(
   parameterNames: string,
   code: string,
   preserveThis: boolean,
