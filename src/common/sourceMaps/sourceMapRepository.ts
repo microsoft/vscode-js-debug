@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ISourceMapMetadata } from './sourceMap';
-import { parseSourceMappingUrl } from '../sourceUtils';
-import { completeUrl, absolutePathToFileUrl } from '../urlUtils';
-import { stat, readfile } from '../fsUtils';
 import { FileGlobList } from '../fileGlobList';
+import { readfile, stat } from '../fsUtils';
+import { parseSourceMappingUrl } from '../sourceUtils';
+import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath } from '../urlUtils';
+import { ISourceMapMetadata } from './sourceMap';
 
 /**
  * A copy of vscode.RelativePattern, but we can't to import 'vscode' here.
@@ -63,7 +63,7 @@ export const createMetadataForFile = async (compiledPath: string, fileContents?:
     return;
   }
 
-  const stats = await stat(compiledPath);
+  const stats = await stat(fileUrlToAbsolutePath(sourceMapUrl) || compiledPath);
   if (!stats) {
     return;
   }

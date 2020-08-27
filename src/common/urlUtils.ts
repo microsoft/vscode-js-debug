@@ -8,6 +8,7 @@ import { parse as urlParse, URL } from 'url';
 import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
+import { MapUsingProjection } from './datastructure/mapUsingProjection';
 import { exists } from './fsUtils';
 import { memoize } from './objUtils';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
@@ -50,6 +51,10 @@ export function comparePathsWithoutCasing(a: string, b: string) {
  */
 export function comparePathsWithoutCasingOrSlashes(a: string, b: string) {
   return comparePathsWithoutCasing(forceForwardSlashes(a), forceForwardSlashes(b));
+}
+
+export function caseNormalizedMap<V>(): Map<string, V> {
+  return getCaseSensitivePaths() ? new Map() : new MapUsingProjection(lowerCaseInsensitivePath);
 }
 
 /**

@@ -463,9 +463,7 @@ export class SourceContainer {
   private _sourceByOriginalUrl: Map<string, Source> = new MapUsingProjection(s => s.toLowerCase());
   private _sourceByReference: Map<number, Source> = new Map();
   private _sourceMapSourcesByUrl: Map<string, SourceFromMap> = new Map();
-  private _sourceByAbsolutePath: Map<string, Source> = new MapUsingProjection(
-    utils.lowerCaseInsensitivePath,
-  );
+  private _sourceByAbsolutePath: Map<string, Source> = utils.caseNormalizedMap();
 
   // All source maps by url.
   _sourceMaps: Map<string, SourceMapData> = new Map();

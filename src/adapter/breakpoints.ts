@@ -4,8 +4,6 @@
 
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
-import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { IDisposable } from '../common/events';
 import { ILogger, LogTag } from '../common/logging';
 import { bisectArray, flatten } from '../common/objUtils';
 import { delay } from '../common/promiseUtil';
@@ -18,7 +16,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { IBreakpointPathAndId } from '../targets/targets';
 import { logPerf } from '../telemetry/performance';
-import { BreakpointsPredictor, IBreakpointsPredictor } from './breakpointPredictor';
+import { IBreakpointsPredictor } from './breakpointPredictor';
 import { Breakpoint } from './breakpoints/breakpointBase';
 import { IBreakpointConditionFactory } from './breakpoints/conditions';
 import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
@@ -77,7 +75,6 @@ export class BreakpointManager {
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
   _thread: Thread | undefined;
-  _disposables: IDisposable[] = [];
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
@@ -102,9 +99,7 @@ export class BreakpointManager {
   /**
    * User-defined breakpoints by path on disk.
    */
-  private _byPath: Map<string, UserDefinedBreakpoint[]> = new MapUsingProjection(
-    urlUtils.lowerCaseInsensitivePath,
-  );
+  private _byPath: Map<string, UserDefinedBreakpoint[]> = urlUtils.caseNormalizedMap();
 
   private _sourceMapHandlerWasUpdated = false;
 
@@ -128,9 +123,7 @@ export class BreakpointManager {
   /**
    * Mapping of source paths to entrypoint breakpoint IDs we set there.
    */
-  private readonly moduleEntryBreakpoints: Map<string, EntryBreakpoint> = new MapUsingProjection(
-    urlUtils.lowerCaseInsensitivePath,
-  );
+  private readonly moduleEntryBreakpoints = urlUtils.caseNormalizedMap<EntryBreakpoint>();
 
   constructor(
     @inject(IDapApi) dap: Dap.Api,
@@ -139,7 +132,7 @@ export class BreakpointManager {
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(IBreakpointConditionFactory)
     private readonly conditionFactory: IBreakpointConditionFactory,
-    @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: BreakpointsPredictor,
+    @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: IBreakpointsPredictor,
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;

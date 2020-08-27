@@ -12,7 +12,11 @@ import {
   ChromeBrowserFinder,
   EdgeBrowserFinder,
 } from 'vscode-js-debug-browsers';
-import { BreakpointsPredictor, IBreakpointsPredictor } from './adapter/breakpointPredictor';
+import {
+  BreakpointPredictorDelegate,
+  BreakpointsPredictor,
+  IBreakpointsPredictor,
+} from './adapter/breakpointPredictor';
 import { BreakpointManager } from './adapter/breakpoints';
 import {
   BreakpointConditionFactory,
@@ -124,6 +128,14 @@ export const createTargetContainer = (
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();
 
+  container.bind(BreakpointPredictorDelegate).toSelf().inSingletonScope();
+
+  container
+    .bind(IBreakpointsPredictor)
+    .toDynamicValue(() => parent.get<BreakpointPredictorDelegate>(IBreakpointsPredictor).getChild())
+    .inSingletonScope()
+    .onActivation(trackDispose);
+
   container
     .bind(ITelemetryReporter)
     .to(process.env.DA_TEST_DISABLE_TELEMETRY ? NullTelemetryReporter : DapTelemetryReporter)
@@ -175,7 +187,16 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .inSingletonScope()
     .onActivation(trackDispose);
 
-  container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
+  container.bind(BreakpointsPredictor).toSelf();
+  container
+    .bind(IBreakpointsPredictor)
+    .toDynamicValue(
+      ctx =>
+        new BreakpointPredictorDelegate(ctx.container.get(ISourceMapFactory), () =>
+          ctx.container.get(BreakpointsPredictor),
+        ),
+    )
+    .inSingletonScope();
   container.bind(OutFiles).to(OutFiles).inSingletonScope();
   container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
   container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
