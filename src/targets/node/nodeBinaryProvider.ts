@@ -4,24 +4,78 @@
 
 import { inject, injectable } from 'inversify';
 import { basename, isAbsolute } from 'path';
+import * as nls from 'vscode-nls';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
+import { Semver } from '../../common/semver';
 import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
+import { FS, FsPromises } from '../../ioc-extras';
+
+const localize = nls.loadMessageBundle();
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
+
+export const enum Capability {
+  UseSpacesInRequirePath,
+  UseInspectPublishUid,
+}
+
+/**
+ * If the Node binary supports it, adds an option to the NODE_OPTIONS that
+ * prevents spewing extra debug info to the console.
+ * @see https://github.com/microsoft/vscode-js-debug/issues/558
+ */
+export function hideDebugInfoFromConsole(binary: NodeBinary, env: EnvironmentVars) {
+  return binary.has(Capability.UseInspectPublishUid)
+    ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-publish-uid=http` })
+    : env;
+}
+
+const assumedVersion = new Semver(12, 0, 0);
+const minimumVersion = new Semver(8, 0, 0);
 
 /**
  * DTO returned from the NodeBinaryProvider.
  */
 export class NodeBinary {
-  public get canUseSpacesInRequirePath() {
-    return this.majorVersion ? this.majorVersion >= 12 : true;
+  /**
+   * Gets whether this version was detected exactly, or just assumed.
+   */
+  public get isPreciselyKnown() {
+    return this.version !== undefined;
   }
 
-  constructor(public readonly path: string, public majorVersion: number | undefined) {}
+  private capabilities = new Set<Capability>();
+
+  constructor(public readonly path: string, public version: Semver | undefined) {
+    if (version === undefined) {
+      version = assumedVersion;
+    }
+
+    if (version.gte(new Semver(12, 0, 0))) {
+      this.capabilities.add(Capability.UseSpacesInRequirePath);
+    }
+
+    if (version.gte(new Semver(12, 6, 0))) {
+      this.capabilities.add(Capability.UseInspectPublishUid);
+    }
+  }
+
+  /**
+   * Gets whether the Node program has the capability. If `defaultIfImprecise`
+   * is passed and the Node Binary's version is not exactly know, that default
+   * will be returned instead.
+   */
+  public has(capability: Capability, defaultIfImprecise?: boolean): boolean {
+    if (!this.isPreciselyKnown && defaultIfImprecise !== undefined) {
+      return defaultIfImprecise;
+    }
+
+    return this.capabilities.has(capability);
+  }
 }
 
 const exeRe = /^(node|electron)(64)?(\.exe|\.cmd)?$/i;
@@ -36,18 +90,18 @@ const exeRe = /^(node|electron)(64)?(\.exe|\.cmd)?$/i;
  * todo: we should move to individual feature flags if/when we need additional
  * functionality here.
  */
-const electronNodeVersion = new Map<number, number>([
-  [11, 12],
-  [10, 12],
-  [9, 12],
-  [8, 12],
-  [7, 12],
-  [6, 12],
-  [5, 10], // 12, but doesn't include the NODE_OPTIONS parsing fixes
-  [4, 10],
-  [3, 10],
-  [2, 8],
-  [1, 8], // 7 earlier, but that will throw an error -- at least try
+const electronNodeVersion = new Map<number, Semver>([
+  [11, new Semver(12, 0, 0)],
+  [10, new Semver(12, 0, 0)],
+  [9, new Semver(12, 0, 0)],
+  [8, new Semver(12, 0, 0)],
+  [7, new Semver(12, 0, 0)],
+  [6, new Semver(12, 0, 0)],
+  [5, new Semver(10, 0, 0)], // 12, but doesn't include the NODE_OPTIONS parsing fixes
+  [4, new Semver(10, 0, 0)],
+  [3, new Semver(10, 0, 0)],
+  [2, new Semver(8, 0, 0)],
+  [1, new Semver(8, 0, 0)], // 7 earlier, but that will throw an error -- at least try
 ]);
 
 /**
@@ -63,7 +117,10 @@ export class NodeBinaryProvider {
    */
   private readonly knownGoodMappings = new Map<string, NodeBinary>();
 
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(FS) private readonly fs: FsPromises,
+  ) {}
 
   /**
    * Validates the path and returns an absolute path to the Node binary to run.
@@ -73,14 +130,19 @@ export class NodeBinaryProvider {
     executable = 'node',
     explicitVersion?: number,
   ): Promise<NodeBinary> {
-    const location = this.resolveBinaryLocation(executable, env);
+    const location = await this.resolveBinaryLocation(executable, env);
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
     if (!location) {
-      throw new ProtocolError(cannotFindNodeBinary(executable));
+      throw new ProtocolError(
+        cannotFindNodeBinary(
+          executable,
+          localize('runtime.node.notfound.enoent', 'path does not exist'),
+        ),
+      );
     }
 
     if (explicitVersion) {
-      return new NodeBinary(location, explicitVersion);
+      return new NodeBinary(location, new Semver(12, 0, 0));
     }
 
     // If the runtime executable doesn't look like Node.js (could be a shell
@@ -90,7 +152,7 @@ export class NodeBinaryProvider {
     if (!exeInfo) {
       try {
         const realBinary = await this.resolveAndValidate(env, 'node');
-        return new NodeBinary(location, realBinary.majorVersion);
+        return new NodeBinary(location, realBinary.version);
       } catch (e) {
         // if we verified it's outdated, still throw the error. If it's not
         // found, at least try to run it since the package manager exists.
@@ -114,38 +176,39 @@ export class NodeBinaryProvider {
     }
 
     // match the "12" in "v12.34.56"
-    const version = await this.getVersionText(location);
-    this.logger.info(LogTag.RuntimeLaunch, 'Discovered version', { version: version.trim() });
+    const versionText = await this.getVersionText(location);
+    this.logger.info(LogTag.RuntimeLaunch, 'Discovered version', { version: versionText.trim() });
 
-    const majorVersionMatch = /v([0-9]+)\./.exec(version);
+    const majorVersionMatch = /v([0-9]+)\.([0-9]+)\.([0-9]+)/.exec(versionText);
     if (!majorVersionMatch) {
-      throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));
+      throw new ProtocolError(nodeBinaryOutOfDate(versionText.trim(), location));
     }
 
-    let majorVersion = Number(majorVersionMatch[1]);
+    const [, major, minor, patch] = majorVersionMatch.map(Number);
+    let version = new Semver(major, minor, patch);
 
     // remap the node version bundled if we're running electron
     if (exeInfo[1] === 'electron') {
       const nodeVersion = await this.resolveAndValidate(env);
-      majorVersion = Math.min(
-        electronNodeVersion.get(majorVersion) ?? 12,
-        nodeVersion.majorVersion ?? 12,
+      version = Semver.min(
+        electronNodeVersion.get(version.major) ?? assumedVersion,
+        nodeVersion.version ?? assumedVersion,
       );
     }
 
-    if (majorVersion < 8) {
-      throw new ProtocolError(nodeBinaryOutOfDate(version.trim(), location));
+    if (version.lt(minimumVersion)) {
+      throw new ProtocolError(nodeBinaryOutOfDate(versionText.trim(), location));
     }
 
-    const entry = new NodeBinary(location, majorVersion);
+    const entry = new NodeBinary(location, version);
     this.knownGoodMappings.set(location, entry);
     return entry;
   }
 
-  public resolveBinaryLocation(executable: string, env: EnvironmentVars) {
+  public async resolveBinaryLocation(executable: string, env: EnvironmentVars) {
     return executable && isAbsolute(executable)
-      ? findExecutable(executable, env)
-      : findInPath(executable, env.value);
+      ? await findExecutable(this.fs, executable, env)
+      : await findInPath(this.fs, executable, env.value);
   }
 
   public async getVersionText(binary: string) {
@@ -154,8 +217,13 @@ export class NodeBinaryProvider {
         env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
       });
       return stdout;
-    } catch {
-      throw new ProtocolError(cannotFindNodeBinary(binary));
+    } catch (e) {
+      throw new ProtocolError(
+        cannotFindNodeBinary(
+          binary,
+          localize('runtime.node.notfound.spawnErr', 'error getting version: {0}', e.message),
+        ),
+      );
     }
   }
 }

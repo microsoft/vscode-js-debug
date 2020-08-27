@@ -2,22 +2,27 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
-import * as vscode from 'vscode';
+import { randomBytes } from 'crypto';
+import { inject, injectable } from 'inversify';
+import { tmpdir } from 'os';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
-import { NodeLauncherBase, IRunData, IProcessTelemetry } from './nodeLauncherBase';
-import { IProgram } from './program';
-import { IStopMetadata, ITarget } from '../targets';
+import { EventEmitter } from '../../common/events';
+import { ILogger } from '../../common/logging';
+import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { EventEmitter } from '../../common/events';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
-import { injectable, inject } from 'inversify';
 import { FS, FsPromises } from '../../ioc-extras';
-import { INodeBinaryProvider, NodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
-import { ILogger } from '../../common/logging';
+import { IStopMetadata, ITarget } from '../targets';
+import {
+  hideDebugInfoFromConsole,
+  INodeBinaryProvider,
+  NodeBinary,
+  NodeBinaryProvider,
+} from './nodeBinaryProvider';
+import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
+import { IProgram } from './program';
 
 class VSCodeTerminalProcess implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
@@ -112,17 +117,19 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     } catch (err) {
       if (err instanceof ProtocolError && err.cause.id === ErrorCodes.NodeBinaryOutOfDate) {
         throw err;
+      } else {
+        binary = new NodeBinary('node', undefined);
       }
     }
 
-    const env = await this.resolveEnvironment(runData, binary?.canUseSpacesInRequirePath ?? true, {
+    const env = await this.resolveEnvironment(runData, binary, {
       fileCallback: this.callbackFile,
     });
 
     const terminal = vscode.window.createTerminal({
       name: runData.params.name,
       cwd: runData.params.cwd,
-      env: env.defined(),
+      env: hideDebugInfoFromConsole(binary, env).defined(),
     });
     this.terminalCreatedEmitter.fire(terminal);
 

@@ -1,0 +1,2 @@
+exports.uncaught @ ${workspaceFolder}/simpleNode/skippedScript.js:2:3 <hidden: Skipped by skipFiles>
+<anonymous> @ ${workspaceFolder}/simpleNode/skipFiles.js:15:23

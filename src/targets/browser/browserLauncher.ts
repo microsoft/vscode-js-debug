@@ -26,8 +26,8 @@ import { ProtocolError } from '../../dap/protocolError';
 import { IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
-import { BrowserTarget } from './browserTargets';
 import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTarget, BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
@@ -40,7 +40,6 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   private _connectionForTest: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: T | undefined;
-  protected _mainTarget?: BrowserTarget;
   protected _disposables = new DisposableList();
   private _terminated = false;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
@@ -165,6 +164,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       targetOrigin,
     );
     if (!this._targetManager) {
+      launched.process.kill();
       throw new ProtocolError(browserAttachFailed());
     }
 
@@ -184,22 +184,18 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
     const filter = this.getFilterForTarget(params);
-    this._mainTarget = await timeoutPromise(
+    const mainTarget = await timeoutPromise(
       this._targetManager.waitForMainTarget(filter),
       cancellationToken,
       'Could not attach to main target',
     );
 
-    if (!this._mainTarget) {
+    if (!mainTarget) {
       launched.process.kill(); // no need to check the `cleanUp` preference since no tabs will be open
       throw new ProtocolError(targetPageNotFound());
     }
 
-    this._targetManager.onTargetRemoved((target: BrowserTarget) => {
-      if (target === this._mainTarget) this.fireTerminatedEvent();
-    });
-
-    return this._mainTarget;
+    return mainTarget;
   }
 
   /**
@@ -244,21 +240,43 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
    */
   protected abstract resolveParams(params: AnyLaunchConfiguration): T | undefined;
 
-  async terminate(): Promise<void> {
-    if (this._mainTarget) {
-      await this._mainTarget.cdp().Page.navigate({ url: 'about:blank' });
+  /**
+   * @inheritdoc
+   */
+  public async terminate(): Promise<void> {
+    for (const target of this.targetList() as BrowserTarget[]) {
+      if (target.type() === BrowserTargetType.Page) {
+        await target.cdp().Page.close({});
+      }
     }
   }
 
-  async disconnect(): Promise<void> {
+  /**
+   * @inheritdoc
+   */
+  public async disconnect(): Promise<void> {
     await this._targetManager?.closeBrowser();
   }
 
-  async restart(): Promise<void> {
-    if (!this._mainTarget) return;
-    if (this._launchParams?.url)
-      await this._mainTarget.cdp().Page.navigate({ url: this._launchParams.url });
-    else await this._mainTarget.cdp().Page.reload({});
+  /**
+   * @inheritdoc
+   */
+  public async restart(): Promise<void> {
+    const mainTarget = this.targetList().find(
+      t => t.type() === BrowserTargetType.Page,
+    ) as BrowserTarget;
+    if (!mainTarget) {
+      return;
+    }
+
+    const cdp = mainTarget.cdp();
+    if (this._launchParams?.url) {
+      await cdp.Page.navigate({ url: this._launchParams.url });
+    } else {
+      await cdp.Page.reload({});
+    }
+
+    cdp.Page.bringToFront({});
   }
 
   targetList(): ITarget[] {

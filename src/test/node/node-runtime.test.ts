@@ -4,6 +4,7 @@
 
 import { expect } from 'chai';
 import { ChildProcess, spawn } from 'child_process';
+import { promises as fsPromises } from 'fs';
 import { dirname, join } from 'path';
 import { stub } from 'sinon';
 import split from 'split2';
@@ -14,13 +15,8 @@ import { delay } from '../../common/promiseUtil';
 import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
 import Dap from '../../dap/api';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import {
-  createFileTree,
-  ITestHandle,
-  NodeTestHandle,
-  testFixturesDir,
-  testWorkspace,
-} from '../test';
+import { ITestHandle, NodeTestHandle, testFixturesDir, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('node runtime', () => {
@@ -70,6 +66,39 @@ describe('node runtime', () => {
       await handle.logger.logStackTrace(stoppedParams.threadId!, false);
       handle.assertLog({ customAssert: assertSkipFiles });
     });
+
+    for (const [name, useDelay] of [
+      ['with delay', true],
+      ['without delay', false],
+    ] as const) {
+      describe(name, () => {
+        for (const fn of ['caughtInUserCode', 'uncaught', 'caught', 'rethrown']) {
+          itIntegrates(fn, async ({ r }) => {
+            await r.initialize;
+            const cwd = join(testWorkspace, 'simpleNode');
+            const handle = await r.runScript(join(cwd, 'skipFiles.js'), {
+              args: [useDelay ? '1000' : '0', fn],
+              skipFiles: ['**/skippedScript.js'],
+            });
+
+            await handle.dap.setExceptionBreakpoints({
+              filters: ['caught', 'uncaught'],
+            });
+
+            handle.dap.on('output', o => handle.logger.logOutput(o));
+            handle.dap.on('stopped', async o => {
+              await handle.logger.logStackTrace(o.threadId!, false);
+              await handle.dap.continue({ threadId: o.threadId! });
+            });
+
+            handle.load();
+
+            await handle.dap.once('terminated');
+            handle.assertLog({ substring: true });
+          });
+        }
+      });
+    }
   });
 
   itIntegrates('simple script', async ({ r }) => {
@@ -495,8 +524,8 @@ describe('node runtime', () => {
   });
 
   describe('simplePortAttach', () => {
-    const npm = once(() => {
-      const npmPath = findInPath('npm', process.env);
+    const npm = once(async () => {
+      const npmPath = await findInPath(fsPromises, 'npm', process.env);
       if (!npmPath) {
         throw new Error('npm not on path');
       }
@@ -510,7 +539,7 @@ describe('node runtime', () => {
       const handle = await r.runScript('', {
         program: undefined,
         cwd,
-        runtimeExecutable: npm(),
+        runtimeExecutable: await npm(),
         runtimeArgs: ['run', 'startWithBrk'],
         port: 29204,
       });
@@ -530,7 +559,7 @@ describe('node runtime', () => {
       const handle = await r.runScript('', {
         program: undefined,
         cwd,
-        runtimeExecutable: npm(),
+        runtimeExecutable: await npm(),
         runtimeArgs: ['run', 'startWithoutBrk'],
         port: 29204,
       });

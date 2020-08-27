@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import dataUriToBuffer from 'data-uri-to-buffer';
 import got, { OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable } from 'inversify';
 import { CancellationToken } from 'vscode';
@@ -23,8 +24,11 @@ export class BasicResourceProvider implements IResourceProvider {
     cancellationToken: CancellationToken = NeverCancelled,
     headers?: { [key: string]: string },
   ): Promise<Response<string>> {
-    if (url.startsWith('data:')) {
-      return this.resolveDataUri(url);
+    try {
+      const r = dataUriToBuffer(url);
+      return { ok: true, body: r.toString('utf-8'), statusCode: 200 };
+    } catch {
+      // assume it's a remote url
     }
 
     const absolutePath = isAbsolute(url) ? url : fileUrlToAbsolutePath(url);
@@ -101,24 +105,6 @@ export class BasicResourceProvider implements IResourceProvider {
         error: new HttpStatusError(statusCode, url, body),
       };
     }
-  }
-
-  private resolveDataUri(url: string): Response<string> {
-    const prefix = url.substring(0, url.indexOf(','));
-    const match = prefix.match(/data:[^;]*(;[^;]*)?(;[^;]*)?(;[^;]*)?/);
-    if (!match) {
-      return {
-        ok: false,
-        statusCode: 500,
-        error: new Error(`Malformed data url prefix '${prefix}'`),
-        body: url,
-      };
-    }
-
-    const params = new Set<string>(match.slice(1));
-    const data = url.substring(prefix.length + 1);
-    const result = Buffer.from(data, params.has(';base64') ? 'base64' : undefined).toString();
-    return { ok: true, statusCode: 200, body: result };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

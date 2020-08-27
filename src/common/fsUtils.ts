@@ -23,6 +23,23 @@ export async function canAccess({ access }: FsPromises, file: string | undefined
     return false;
   }
 }
+/**
+ * Returns whether the user can access the given file path.
+ */
+export async function existsInjected(
+  { stat }: FsPromises,
+  file: string | undefined | null,
+): Promise<fs.Stats | undefined> {
+  if (!file) {
+    return;
+  }
+
+  try {
+    return await stat(file);
+  } catch (e) {
+    return;
+  }
+}
 
 /**
  * Moves the file from the source to destination.

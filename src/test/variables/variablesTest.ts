@@ -102,10 +102,15 @@ describe('variables', () => {
     itIntegrates('worker', async ({ r }) => {
       const p = await r.launchUrlAndLoad('worker.html');
       const outputs: { output: Dap.OutputEventParams; logger: Logger }[] = [];
-      outputs.push({ output: await p.dap.once('output'), logger: p.logger });
-      const worker = await r.worker();
-      outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
-      outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
+      await Promise.all([
+        (async () => outputs.push({ output: await p.dap.once('output'), logger: p.logger }))(),
+        (async () => {
+          const worker = await r.worker();
+          outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
+          outputs.push({ output: await worker.dap.once('output'), logger: worker.logger });
+        })(),
+      ]);
+
       outputs.sort((a, b) => {
         const aName = a?.output?.source?.name;
         const bName = b?.output?.source?.name;

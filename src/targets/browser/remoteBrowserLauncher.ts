@@ -2,30 +2,33 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable } from 'inversify';
-import { AnyLaunchConfiguration, AnyChromiumLaunchConfiguration } from '../../configuration';
-import { BrowserLauncher } from './browserLauncher';
-import { DebugType } from '../../common/contributionUtils';
-import Dap from '../../dap/api';
+import { inject, injectable } from 'inversify';
 import { CancellationToken } from 'vscode';
-import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { createServer, Socket, Server, AddressInfo } from 'net';
-import { getDeferred } from '../../common/promiseUtil';
 import Connection from '../../cdp/connection';
-import { timeoutPromise } from '../../common/cancellation';
-import { ILaunchResult, defaultArgs } from './launcher';
+import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
+import { ILogger } from '../../common/logging';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import Dap from '../../dap/api';
+import { IInitializeParams, StoragePath } from '../../ioc-extras';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
-import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
+import { BrowserLauncher } from './browserLauncher';
+import { defaultArgs, ILaunchResult } from './launcher';
+import { RemoteBrowserHelper } from './remoteBrowserHelper';
 
 @injectable()
 export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConfiguration> {
-  private static launchId = 0;
-
-  /**
-   * Server we're using to wait for connections, if any.
-   */
-  private server?: Server;
+  constructor(
+    @inject(StoragePath) storagePath: string,
+    @inject(ILogger) logger: ILogger,
+    @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
+    @inject(IInitializeParams) initializeParams: Dap.InitializeParams,
+    @inject(RemoteBrowserHelper) private readonly helper: RemoteBrowserHelper,
+  ) {
+    super(storagePath, logger, pathResolver, initializeParams);
+  }
 
   /**
    * @inheritdoc
@@ -47,51 +50,26 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
     cancellationToken: CancellationToken,
     telemetryReporter: ITelemetryReporter,
   ): Promise<ILaunchResult> {
-    if (this.server) {
-      this.server.close();
-    }
-
-    const connection = getDeferred<Socket>();
-    const server = (this.server = await new Promise<Server>((resolve, reject) => {
-      const s = createServer(connection.resolve)
-        .on('error', reject)
-        .listen(0, '127.0.0.1', () => resolve(s));
-    }));
-
-    const launchId = RemoteBrowserLauncher.launchId++;
-    dap.launchBrowserInCompanion({
+    const transport = await this.helper.launch(dap, cancellationToken, {
       type: params.type === DebugType.Chrome ? 'chrome' : 'edge',
-      serverPort: (server.address() as AddressInfo).port,
       browserArgs: defaultArgs(new BrowserArgs(params.runtimeArgs || []), {
         hasUserNavigation: !!params.url,
         ignoreDefaultArgs: !params.includeDefaultArgs,
-      }).toArray(),
-      launchId,
+      })
+        .setConnection(params.port || 'pipe')
+        .toArray(),
       params,
     });
 
-    const socket = await timeoutPromise(
-      connection.promise,
-      cancellationToken,
-      'Timed out waiting for browser connection',
-    );
-
-    const logger = this.logger;
-    const transport = new GzipPipeTransport(logger, socket);
     return {
-      cdp: new Connection(transport, logger, telemetryReporter),
+      cdp: new Connection(transport, this.logger, telemetryReporter),
       process: {
         onExit: new EventEmitter<number>().event,
         onError: new EventEmitter<Error>().event,
         transport: () => Promise.resolve(transport),
-        kill: () => dap.killCompanionBrowser({ launchId }),
+        kill: () => this.helper.close(transport),
       },
     };
-  }
-
-  public dispose() {
-    super.dispose();
-    this.server?.close();
   }
 
   /**

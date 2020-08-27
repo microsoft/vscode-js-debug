@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from './transport';
-import { EventEmitter } from '../common/events';
-import Cdp from './api';
-import { ITelemetryReporter } from '../telemetry/telemetryReporter';
-import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
+import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import Cdp from './api';
+import { ITransport } from './transport';
 
 interface IProtocolCommand {
   id?: number;
@@ -45,7 +45,7 @@ export const ICdpApi = Symbol('ICdpApi');
 
 export default class Connection {
   private _connectionId = connectionId++;
-  private _lastId: number;
+  private _lastId = 1000;
   private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
   private _disposedSessions = new Map<string, Date>();
@@ -60,7 +60,6 @@ export default class Connection {
     private readonly logger: ILogger,
     private readonly telemetryReporter: ITelemetryReporter,
   ) {
-    this._lastId = 0;
     this._transport = transport;
     this._transport.onMessage(([message, time]) => this._onMessage(message, time));
     this._transport.onEnd(() => this._onTransportClose());
@@ -84,7 +83,7 @@ export default class Connection {
     return id;
   }
 
-  async _onMessage(message: string, receivedTime: HrTime) {
+  private _onMessage(message: string, receivedTime: HrTime) {
     const object = JSON.parse(message);
     let objectToLog = object;
 

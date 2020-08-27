@@ -403,4 +403,10 @@ describe('console format', () => {
     );
     p.assertLog();
   });
+
+  itIntegrates('error traces in source maps', async ({ r }) => {
+    const handle = await r.launchUrlAndLoad('browserify/browserify.html');
+    await handle.logger.evaluateAndLog(['try { throwError() } catch (e) { console.error(e) }']);
+    handle.assertLog();
+  });
 });

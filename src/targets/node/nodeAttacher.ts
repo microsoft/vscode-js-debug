@@ -4,6 +4,7 @@
 
 import { injectable } from 'inversify';
 import * as nls from 'vscode-nls';
+import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
@@ -60,13 +61,17 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
       let inspectorURL: string;
       try {
-        inspectorURL = await retryGetWSEndpoint(
-          `http://${runData.params.address}:${runData.params.port}`,
-          restarting
-            ? CancellationTokenSource.withTimeout(runData.params.timeout).token
-            : runData.context.cancellationToken,
-          this.logger,
-        );
+        if (runData.params.websocketAddress) {
+          inspectorURL = runData.params.websocketAddress;
+        } else {
+          inspectorURL = await retryGetWSEndpoint(
+            `http://${runData.params.address}:${runData.params.port}`,
+            restarting
+              ? CancellationTokenSource.withTimeout(runData.params.timeout).token
+              : runData.context.cancellationToken,
+            this.logger,
+          );
+        }
       } catch (e) {
         if (prevProgram && prevProgram === restarting /* is a restart */) {
           return restart(restartPolicy, prevProgram, { killed: false, code: 1 });
@@ -206,7 +211,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = await this.resolveEnvironment(run, binary.canUseSpacesInRequirePath, {
+    const vars = await this.resolveEnvironment(run, binary, {
       ppid: 0,
       requireLease: leasePath,
     });
@@ -215,9 +220,10 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       const result = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,
-        expression: `typeof process === 'undefined' ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
-          vars.defined(),
-        )})`,
+        expression:
+          `typeof process === 'undefined' ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
+            vars.defined(),
+          )})` + getSourceSuffix(),
       });
 
       if (!result) {

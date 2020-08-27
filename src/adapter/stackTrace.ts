@@ -7,9 +7,8 @@ import Cdp from '../cdp/api';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { LogPointCompiler } from './breakpoints/conditions/logPoint';
 import { shouldSmartStepStackFrame } from './smartStepping';
-import { IPreferredUiLocation } from './sources';
+import { IPreferredUiLocation, SourceConstants } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
 
@@ -21,17 +20,19 @@ export class StackTrace {
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
 
-  public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
+  public static fromRuntime(
+    thread: Thread,
+    stack: Cdp.Runtime.StackTrace,
+    frameLimit = Infinity,
+  ): StackTrace {
     const result = new StackTrace(thread);
-    const callFrames = stack.callFrames;
-
-    // Remove any frames on top that are within a log point.
-    while (callFrames.length && LogPointCompiler.isLogPointUrl(callFrames[0].url)) {
-      callFrames.splice(0, 1);
+    for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
+      if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
+        result._frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
+        frameLimit--;
+      }
     }
 
-    for (const callFrame of stack.callFrames)
-      result._frames.push(StackFrame.fromRuntime(thread, callFrame));
     if (stack.parentId) {
       result._asyncStackTraceId = stack.parentId;
       console.assert(!stack.parent);
@@ -145,7 +146,10 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  private _uiLocation: Promise<IPreferredUiLocation | undefined>;
+  public readonly uiLocation:
+    | Promise<IPreferredUiLocation | undefined>
+    | IPreferredUiLocation
+    | undefined;
   private _isAsyncSeparator = false;
   private _scope: IScope | undefined;
   private _thread: Thread;
@@ -177,7 +181,7 @@ export class StackFrame {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._rawLocation = rawLocation;
-    this._uiLocation = thread.rawLocationToUiLocation(rawLocation);
+    this.uiLocation = thread.rawLocationToUiLocation(rawLocation);
     this._thread = thread;
   }
 
@@ -269,7 +273,7 @@ export class StackFrame {
   }
 
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
-    const uiLocation = await this._uiLocation;
+    const uiLocation = await this.uiLocation;
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
     const presentationHint = this._isAsyncSeparator
@@ -307,17 +311,13 @@ export class StackFrame {
 
   async format(): Promise<string> {
     if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
-    const uiLocation = await this._uiLocation;
+    const uiLocation = await this.uiLocation;
     const prettyName =
       (uiLocation && (await uiLocation.source.prettyName())) || this._rawLocation.url;
     const anyLocation = uiLocation || this._rawLocation;
     let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
     if (anyLocation.columnNumber > 1) text += `:${anyLocation.columnNumber}`;
     return text;
-  }
-
-  uiLocation(): Promise<IPreferredUiLocation | undefined> {
-    return this._uiLocation;
   }
 
   async _scopeVariable(scopeNumber: number, scope: IScope): Promise<Dap.Variable> {

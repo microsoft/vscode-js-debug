@@ -28,13 +28,12 @@ export interface IDebugSessionLike {
 }
 
 /**
- * Function signature for defining how to launch a new debug session on the host
+ * Interface for defining how to launch a new debug session on the host IDE
  */
-export type SessionLauncher<T extends IDebugSessionLike> = (
-  parentSession: Session<T>,
-  target: ITarget,
-  config: IPseudoAttachConfiguration,
-) => void;
+
+export interface ISessionLauncher<T extends IDebugSessionLike> {
+  launch(parentSession: Session<T>, target: ITarget, config: IPseudoAttachConfiguration): void;
+}
 
 /**
  * Encapsulates a running debug session under DAP
@@ -125,7 +124,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
 
   constructor(
     private readonly globalContainer: Container,
-    private readonly sessionLauncher: SessionLauncher<TSessionImpl>,
+    private readonly sessionLauncher: ISessionLauncher<TSessionImpl>,
   ) {}
 
   public terminate(debugSession: TSessionImpl) {
@@ -134,48 +133,45 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
     if (session) session.dispose();
   }
 
+  public createNewRootSession(debugSession: TSessionImpl, transport: IDapTransport) {
+    const root = new RootSession(
+      debugSession,
+      transport,
+      createTopLevelSessionContainer(this.globalContainer),
+    );
+    root.createBinder(this);
+    this._sessions.set(debugSession.id, root);
+    return root;
+  }
+
   /**
    * @inheritdoc
    */
-  public createNewSession(
+  public createNewChildSession(
     debugSession: TSessionImpl,
-    config: IPseudoAttachConfiguration,
+    pendingTargetId: string,
     transport: IDapTransport,
   ): Session<TSessionImpl> {
-    let session: Session<TSessionImpl>;
-
-    const pendingTargetId = config.__pendingTargetId;
-    if (pendingTargetId) {
-      const pending = this._pendingTarget.get(pendingTargetId);
-      if (!pending) {
-        throw new Error(`Cannot find target ${pendingTargetId}`);
-      }
-
-      const { target, parent } = pending;
-      session = new Session<TSessionImpl>(
-        debugSession,
-        transport,
-        parent.logger,
-        parent.sessionStates,
-        parent,
-      );
-
-      this._pendingTarget.delete(pendingTargetId);
-      session.debugSession.name = target.name();
-      session.listenToTarget(target);
-      const callbacks = this._sessionForTargetCallbacks.get(target);
-      this._sessionForTargetCallbacks.delete(target);
-      callbacks?.fulfill?.(session);
-    } else {
-      const root = new RootSession(
-        debugSession,
-        transport,
-        createTopLevelSessionContainer(this.globalContainer),
-      );
-      root.createBinder(this);
-      session = root;
+    const pending = this._pendingTarget.get(pendingTargetId);
+    if (!pending) {
+      throw new Error(`Cannot find target ${pendingTargetId}`);
     }
 
+    const { target, parent } = pending;
+    const session = new Session<TSessionImpl>(
+      debugSession,
+      transport,
+      parent.logger,
+      parent.sessionStates,
+      parent,
+    );
+
+    this._pendingTarget.delete(pendingTargetId);
+    session.debugSession.name = target.name();
+    session.listenToTarget(target);
+    const callbacks = this._sessionForTargetCallbacks.get(target);
+    this._sessionForTargetCallbacks.delete(target);
+    callbacks?.fulfill?.(session);
     this._sessions.set(debugSession.id, session);
     return session;
   }
@@ -224,11 +220,11 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),
         // fix for https://github.com/microsoft/vscode/issues/102296
-        preRestartTask: parentConfig.postDebugTask,
-        postRestartTask: parentConfig.preLaunchTask,
+        preRestartTask: parentConfig.preRestartTask ?? parentConfig.postDebugTask,
+        postRestartTask: parentConfig.postRestartTask ?? parentConfig.preLaunchTask,
       };
 
-      this.sessionLauncher(parentSession, target, config);
+      this.sessionLauncher.launch(parentSession, target, config);
     });
 
     this._sessionForTarget.set(target, newSession);

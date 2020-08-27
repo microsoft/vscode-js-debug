@@ -105,6 +105,7 @@ export type AnyObject =
   | RegExpObj
   | FunctionObj
   | StringObj
+  | NumberObj
   | BigintObj
   | UndefinedObj
   | NullObj;

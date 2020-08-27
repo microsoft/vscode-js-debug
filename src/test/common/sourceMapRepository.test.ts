@@ -4,7 +4,8 @@
 
 import { expect } from 'chai';
 import { join } from 'path';
-import { createFileTree, testFixturesDir, workspaceFolder, testFixturesDirName } from '../test';
+import { testFixturesDir, workspaceFolder, testFixturesDirName } from '../test';
+import { createFileTree } from '../createFileTree';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import * as vscode from 'vscode';
 import { fixDriveLetter } from '../../common/pathUtils';

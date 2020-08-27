@@ -5,7 +5,7 @@
 import Dap from './api';
 
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
-import { ILogger } from '../common/logging';
+import { ILogger, LogTag } from '../common/logging';
 import { isDapError } from './errors';
 import { ProtocolError } from './protocolError';
 import { Message, IDapTransport } from './transport';
@@ -33,6 +33,8 @@ export default class Connection {
   private disposables: IDisposable[] = [];
 
   private _initialized = getDeferred<Connection>();
+  private closed = false;
+
   /**
    * Get a promise which will resolve with this connection after the session has responded to initialize
    */
@@ -129,14 +131,23 @@ export default class Connection {
   }
 
   public stop(): void {
+    this.closed = true;
     this.transport.close();
   }
 
   _send(message: Message) {
-    message.seq = this._sequence++;
+    if (!this.closed) {
+      message.seq = this._sequence++;
 
-    const shouldLog = message.type !== 'event' || !logOmittedCalls.has(message.body);
-    this.transport.send(message, shouldLog);
+      const shouldLog = message.type !== 'event' || !logOmittedCalls.has(message.body);
+      this.transport.send(message, shouldLog);
+    } else {
+      this.logger.warn(
+        LogTag.DapSend,
+        `Not sending message because the connection has ended`,
+        message,
+      );
+    }
   }
 
   async _onMessage(msg: Message, receivedTime: HrTime): Promise<void> {
@@ -167,6 +178,12 @@ export default class Connection {
             this._send({ ...response, body: result });
             if (response.command === 'initialize') {
               this._initialized.resolve(this);
+            } else if (response.command === 'disconnect') {
+              // close the DAP connection after we respond to disconnect so that
+              // no more messages are allowed to go through.
+              process.nextTick(() => {
+                this.stop();
+              });
             }
           }
         }

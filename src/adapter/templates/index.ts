@@ -2,8 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import * as ts from 'typescript';
 import Cdp from '../../cdp/api';
+import { SourceConstants } from '../sources';
+
+/**
+ * Gets the suffix containing the `sourceURL` to mark a script as internal.
+ */
+export const getSourceSuffix = () =>
+  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.InternalExtension}\n`;
 
 /**
  * Creates a template for the given function that replaces its arguments
@@ -105,7 +113,7 @@ export function templateFunctionStr<Args extends string[]>(
   return (...args) => `(() => {
     ${args.map((a, i) => `let __args${i} = ${a}`).join('; ')};
     ${body}
-  })();`;
+  })();${getSourceSuffix()}`;
 }
 
 /**
@@ -129,7 +137,7 @@ type RemoteObjectWithType<R, ByValue> = ByValue extends true
  * arguments should be simple objects.
  */
 export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args: Args) => R)) {
-  const stringified = '' + fn;
+  const stringified = ('' + fn).replace('}', getSourceSuffix() + '}');
 
   // Some ugly typing here, but it gets us type safety. Mainly we want to:
   //  1. Have args that extend the function arg and omit the args we provide (easy)

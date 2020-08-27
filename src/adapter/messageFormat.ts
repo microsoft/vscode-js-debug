@@ -15,6 +15,10 @@ const maxMessageFormatLength = 10000;
 export type Formatters<T> = Map<string, (a: T, context: IPreviewContext) => string>;
 
 function tokenizeFormatString(format: string, formatterNames: string[]): FormatToken[] {
+  if (!format.includes('%')) {
+    return [{ type: 'string', value: format }]; // happy path, no formatting needed
+  }
+
   const tokens: FormatToken[] = [];
 
   function addStringToken(str: string) {

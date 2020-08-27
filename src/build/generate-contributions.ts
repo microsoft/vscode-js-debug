@@ -5,11 +5,13 @@ import { JSONSchema6 } from 'json-schema';
 import {
   allCommands,
   allDebugTypes,
+  AutoAttachMode,
   Commands,
   Configuration,
   DebugType,
   IConfigurationTypes,
 } from '../common/contributionUtils';
+import { knownToolToken } from '../common/knownTools';
 import { sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
@@ -54,6 +56,7 @@ type DescribedAttribute<T> = JSONSchema6 &
   Described & {
     default: T;
     enum?: Array<T>;
+    enumDescriptions?: MappedReferenceString[];
   };
 
 type ConfigurationAttributes<T> = {
@@ -259,6 +262,15 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     type: 'boolean',
     description: refString('enableContentValidation.description'),
   },
+  cascadeTerminateToConfigurations: {
+    type: 'array',
+    items: {
+      type: 'string',
+      uniqueItems: true,
+    },
+    default: [],
+    description: refString('base.cascadeTerminateToConfigurations.label'),
+  },
 };
 
 /**
@@ -378,6 +390,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       type: 'number',
       description: refString('node.port.description'),
       default: 9229,
+    },
+    websocketAddress: {
+      type: 'string',
+      description: refString('node.websocket.address.description'),
+      default: undefined,
     },
     restart: {
       description: refString('node.attach.restart.description'),
@@ -702,6 +719,19 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
     enum: ['pick', 'automatic'],
     default: 'automatic',
   },
+  browserAttachLocation: {
+    description: refString('browser.browserAttachLocation.description'),
+    default: null,
+    oneOf: [
+      {
+        type: 'null',
+      },
+      {
+        type: 'string',
+        enum: ['ui', 'workspace'],
+      },
+    ],
+  },
 };
 
 const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
@@ -828,7 +858,6 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
         type: DebugType.ExtensionHost,
         request: 'launch',
         name: refString('extensionHost.launch.config.name'),
-        runtimeExecutable: '^"\\${execPath}"',
         args: ['^"--extensionDevelopmentPath=\\${workspaceFolder}"'],
         outFiles: ['^"\\${workspaceFolder}/out/**/*.js"'],
         preLaunchTask: 'npm',
@@ -1045,10 +1074,24 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: false,
     markdownDescription: refString('configuration.autoExpandGetters'),
   },
-  [Configuration.OnlyAutoAttachExplicit]: {
-    type: 'boolean',
-    default: true,
-    markdownDescription: refString('configuration.onlyAutoAttachExplicit'),
+  [Configuration.AutoAttachMode]: {
+    type: 'string',
+    default: AutoAttachMode.Smart,
+    enum: [AutoAttachMode.Always, AutoAttachMode.Smart, AutoAttachMode.Explicit],
+    enumDescriptions: [
+      refString('configuration.autoAttachMode.always'),
+      refString('configuration.autoAttachMode.smart'),
+      refString('configuration.autoAttachMode.explicit'),
+    ],
+    markdownDescription: refString('configuration.autoAttachMode'),
+  },
+  [Configuration.AutoAttachSmartPatterns]: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+    default: ['!**/node_modules/**', `**/${knownToolToken}/**`],
+    markdownDescription: refString('configuration.autoAttachSmartPatterns'),
   },
 };
 

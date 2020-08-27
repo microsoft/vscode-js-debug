@@ -36,7 +36,6 @@
       "type": "extensionHost",
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out",
@@ -52,7 +51,6 @@
       "type": "extensionHost",
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/dist"
@@ -67,7 +65,6 @@
       "type": "pwa-extensionHost",
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out"
@@ -77,11 +74,30 @@
       ],
     },
     {
+      "name": "Extension and Auto Launch",
+      "type": "pwa-extensionHost",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "args": [
+        "--enable-proposed-api=ms-vscode.js-debug",
+        "--extensionDevelopmentPath=${workspaceFolder}/../vscode/extensions/debug-auto-launch",
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**",
+        "!**/node_modules/**"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js",
+      ],
+    },
+    {
       "name": "Extension and Companion",
       "type": "pwa-extensionHost",
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "${execPath}",
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-debug-companion",
@@ -105,7 +121,6 @@
 			"name": "Run Tests",
 			"type": "pwa-extensionHost",
       "request": "launch",
-      "runtimeExecutable": "${execPath}",
       "skipFiles": ["<node_internals>/**"],
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}/out",
@@ -118,7 +133,6 @@
 			"name": "Reset Results",
 			"type": "extensionHost",
 			"request": "launch",
-			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"

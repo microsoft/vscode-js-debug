@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as objectPreview from './objectPreview';
-import Cdp from '../cdp/api';
-import Dap from '../dap/api';
-import { StackTrace } from './stackTrace';
-import * as errors from '../dap/errors';
 import * as nls from 'vscode-nls';
+import Cdp from '../cdp/api';
+import { flatten } from '../common/objUtils';
+import Dap from '../dap/api';
+import * as errors from '../dap/errors';
+import * as objectPreview from './objectPreview';
+import { StackTrace } from './stackTrace';
+import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
-import { RemoteException } from './templates';
-import { flatten } from '../common/objUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -183,13 +183,13 @@ export class VariableStore {
     if (!object)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
 
-    const expression = params.value;
-    if (!expression)
+    if (!params.value)
       return errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value'));
 
+    const expression = params.value + getSourceSuffix();
     const evaluateResponse = object.scopeRef
       ? await object.cdp.Debugger.evaluateOnCallFrame({
-          expression,
+          expression: expression,
           callFrameId: object.scopeRef.callFrameId,
         })
       : await object.cdp.Runtime.evaluate({ expression, silent: true });
@@ -232,7 +232,7 @@ export class VariableStore {
     } else {
       const setResponse = await object.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
-        functionDeclaration: `function(a, b) { this[a] = b; }`,
+        functionDeclaration: `function(a, b) { this[a] = b; ${getSourceSuffix()} }`,
         arguments: [
           this._toCallArgument(params.name),
           this._toCallArgument(evaluateResponse.result),
@@ -282,9 +282,12 @@ export class VariableStore {
     return this._createVariable('', object);
   }
 
-  async createVariableForOutput(
+  /**
+   * Returns the variable reference for a complex, object-including output.
+   */
+  public async createVariableForOutput(
     text: string,
-    args: Cdp.Runtime.RemoteObject[],
+    args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
@@ -311,8 +314,8 @@ export class VariableStore {
     return resultReference;
   }
 
-  async _createVariableForOutputParams(
-    args: Cdp.Runtime.RemoteObject[],
+  private async _createVariableForOutputParams(
+    args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
   ): Promise<Dap.Variable[]> {
     const params: Dap.Variable[] = [];

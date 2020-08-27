@@ -13,6 +13,10 @@ app.get('/cookies/home', (req, res) => {
   res.sendFile(path.join(webRoot, 'browserify/pause.html'));
 });
 
+app.get('/unique-refresh', (req, res) => {
+  res.send(`<script src="hello.js?v=${req.query.v}"></script>`);
+});
+
 app.get('/redirect-test/home', (req, res) => {
   res.header('Set-Cookie', 'authed=true');
   res.sendFile(path.join(webRoot, 'browserify/pause.html'));
@@ -37,6 +41,10 @@ app.use(
   },
   express.static(path.join(webRoot, 'browserify')),
 );
+
+app.get('/redirect-to-greet', (_req, res) => res.redirect('/greet'));
+
+app.get('/greet', (_req, res) => res.send('Hello world!'));
 
 app.use('/', express.static(path.join(webRoot)));
 

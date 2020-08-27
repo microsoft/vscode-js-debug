@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+export const truthy = <T>(value: T | null | false | undefined | ''): value is T => !!value;
+
 export const removeNulls = <V>(obj: { [key: string]: V | null }) =>
   filterValues(obj, (v): v is V => v !== null);
 
@@ -264,6 +266,38 @@ export function debounce(duration: number, fn: () => void): (() => void) & { cle
       fn();
     }, duration);
   };
+
+  debounced.clear = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
+  };
+
+  return debounced;
+}
+
+/**
+ * Throttles the function to be called at most every "duration", delaying the
+ * call by the duration on its first invokation.
+ */
+export function trailingEdgeThrottle(
+  duration: number,
+  fn: () => void,
+): (() => void) & { clear: () => void; queued: () => boolean } {
+  let timeout: NodeJS.Timer | void;
+  const debounced = () => {
+    if (timeout !== undefined) {
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      fn();
+    }, duration);
+  };
+
+  debounced.queued = () => !!timeout;
 
   debounced.clear = () => {
     if (timeout) {

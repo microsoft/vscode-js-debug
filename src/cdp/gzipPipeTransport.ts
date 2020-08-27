@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ILogger } from '../common/logging';
 import { Duplex, Readable, Writable } from 'stream';
+import { constants, createGunzip, createGzip, Gzip } from 'zlib';
+import { ILogger } from '../common/logging';
 import { RawPipeTransport } from './rawPipeTransport';
-import { createGzip, createGunzip, Gzip, constants } from 'zlib';
 
 export class GzipPipeTransport extends RawPipeTransport {
   constructor(logger: ILogger, socket: Duplex);

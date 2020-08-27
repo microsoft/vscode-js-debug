@@ -2277,6 +2277,8 @@ export namespace Dap {
 
     browserArgs?: string[];
 
+    attach?: object;
+
     /**
      * Original launch parameters for the debug session
      */

@@ -166,6 +166,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   enableContentValidation: boolean;
 
   /**
+   * A list of debug sessions which, when this debug session is terminated,
+   * will also be stopped.
+   */
+  cascadeTerminateToConfigurations: string[];
+
+  /**
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
@@ -469,6 +475,11 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   request: 'attach';
 
   /**
+   * Inspector webSocket address
+   */
+  websocketAddress?: string;
+
+  /**
    * TCP/IP address of process to be debugged. Default is 'localhost'.
    */
   address: string;
@@ -602,6 +613,13 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
    * or ask the user to pick one ("pick").
    */
   targetSelection: 'pick' | 'automatic';
+
+  /**
+   * Forces the browser to attach in one location. In a remote workspace
+   * (through ssh or WSL, for example) this can be used to attach to a browser
+   * on the remote machine rather than locally.
+   */
+  browserAttachLocation: 'workspace' | 'ui' | null;
 }
 
 /**
@@ -745,6 +763,7 @@ export const baseDefaults: IBaseConfiguration = {
   outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
+  cascadeTerminateToConfigurations: [],
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,
@@ -828,6 +847,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
+  browserAttachLocation: 'workspace',
   targetSelection: 'automatic',
   vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
 };
@@ -879,35 +899,40 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   };
 }
 
-export function applyNodeDefaults(config: ResolvingNodeConfiguration): AnyNodeConfiguration {
-  const filled =
-    config.request === 'attach'
-      ? { ...nodeAttachConfigDefaults, ...config }
-      : { ...nodeLaunchConfigDefaults, ...config };
-
+export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
   if (!config.sourceMapPathOverrides && config.cwd) {
-    filled.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
+    config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
   }
 
-  return filled;
+  // Resolve source map locations from the outFiles by default:
+  // https://github.com/microsoft/vscode-js-debug/issues/704
+  if (config.resolveSourceMapLocations === undefined) {
+    config.resolveSourceMapLocations = config.outFiles;
+  }
+
+  if (config.request === 'attach') {
+    return { ...nodeAttachConfigDefaults, ...config };
+  } else {
+    return { ...nodeLaunchConfigDefaults, ...config };
+  }
 }
 
 export function applyChromeDefaults(
   config: ResolvingChromeConfiguration,
-  browserLaunchLocation: 'workspace' | 'ui',
+  browserLocation: 'workspace' | 'ui',
 ): AnyChromeConfiguration {
   return config.request === 'attach'
-    ? { ...chromeAttachConfigDefaults, ...config }
-    : { ...chromeLaunchConfigDefaults, browserLaunchLocation, ...config };
+    ? { ...chromeAttachConfigDefaults, browserAttachLocation: browserLocation, ...config }
+    : { ...chromeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
 export function applyEdgeDefaults(
   config: ResolvingEdgeConfiguration,
-  browserLaunchLocation: 'workspace' | 'ui',
+  browserLocation: 'workspace' | 'ui',
 ): AnyEdgeConfiguration {
   return config.request === 'attach'
-    ? { ...edgeAttachConfigDefaults, ...config }
-    : { ...edgeLaunchConfigDefaults, browserLaunchLocation, ...config };
+    ? { ...edgeAttachConfigDefaults, browserAttachLocation: browserLocation, ...config }
+    : { ...edgeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
 export function applyExtensionHostDefaults(

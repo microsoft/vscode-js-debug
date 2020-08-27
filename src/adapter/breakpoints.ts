@@ -4,8 +4,6 @@
 
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
-import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { IDisposable } from '../common/events';
 import { ILogger, LogTag } from '../common/logging';
 import { bisectArray, flatten } from '../common/objUtils';
 import { delay } from '../common/promiseUtil';
@@ -18,7 +16,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { IBreakpointPathAndId } from '../targets/targets';
 import { logPerf } from '../telemetry/performance';
-import { BreakpointsPredictor, IBreakpointsPredictor } from './breakpointPredictor';
+import { IBreakpointsPredictor } from './breakpointPredictor';
 import { Breakpoint } from './breakpoints/breakpointBase';
 import { IBreakpointConditionFactory } from './breakpoints/conditions';
 import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
@@ -77,7 +75,6 @@ export class BreakpointManager {
   _dap: Dap.Api;
   _sourceContainer: SourceContainer;
   _thread: Thread | undefined;
-  _disposables: IDisposable[] = [];
   _resolvedBreakpoints = new Map<Cdp.Debugger.BreakpointId, Breakpoint>();
   _totalBreakpointsCount = 0;
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
@@ -102,9 +99,7 @@ export class BreakpointManager {
   /**
    * User-defined breakpoints by path on disk.
    */
-  private _byPath: Map<string, UserDefinedBreakpoint[]> = new MapUsingProjection(
-    urlUtils.lowerCaseInsensitivePath,
-  );
+  private _byPath: Map<string, UserDefinedBreakpoint[]> = urlUtils.caseNormalizedMap();
 
   private _sourceMapHandlerWasUpdated = false;
 
@@ -128,9 +123,7 @@ export class BreakpointManager {
   /**
    * Mapping of source paths to entrypoint breakpoint IDs we set there.
    */
-  private readonly moduleEntryBreakpoints: Map<string, EntryBreakpoint> = new MapUsingProjection(
-    urlUtils.lowerCaseInsensitivePath,
-  );
+  private readonly moduleEntryBreakpoints = urlUtils.caseNormalizedMap<EntryBreakpoint>();
 
   constructor(
     @inject(IDapApi) dap: Dap.Api,
@@ -139,11 +132,13 @@ export class BreakpointManager {
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(IBreakpointConditionFactory)
     private readonly conditionFactory: IBreakpointConditionFactory,
-    @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: BreakpointsPredictor,
+    @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: IBreakpointsPredictor,
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
     this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
+
+    _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
 
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
@@ -451,20 +446,14 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  async _updateSourceMapHandler(thread: Thread) {
+  private _updateSourceMapHandler(thread: Thread) {
     this._sourceMapHandlerWasUpdated = true;
 
-    await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
-
-    if (!this._breakpointsPredictor || this.pauseForSourceMaps) {
-      return;
+    if (this._breakpointsPredictor && !this.pauseForSourceMaps) {
+      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+    } else {
+      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
-
-    // If we set a predictor and don't want to pause, we still wait to wait
-    // for the predictor to finish running. Uninstall the sourcemap handler
-    // once we see the predictor is ready to roll.
-    await this._breakpointsPredictor.prepareToPredict();
-    thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
@@ -548,12 +537,17 @@ export class BreakpointManager {
       return result;
     };
 
-    let result: ISetBreakpointResult;
+    const getCurrent = () =>
+      params.source.path
+        ? this._byPath.get(params.source.path)
+        : params.source.sourceReference
+        ? this._byRef.get(params.source.sourceReference)
+        : undefined;
+
+    const result = mergeInto(getCurrent() ?? []);
     if (params.source.path) {
-      result = mergeInto(this._byPath.get(params.source.path) || []);
       this._byPath.set(params.source.path, result.list);
     } else if (params.source.sourceReference) {
-      result = mergeInto(this._byRef.get(params.source.sourceReference) || []);
       this._byRef.set(params.source.sourceReference, result.list);
     } else {
       return { breakpoints: [] };
@@ -570,11 +564,17 @@ export class BreakpointManager {
       // This will add itself to the launch blocker if needed:
       this.ensureModuleEntryBreakpoint(thread, params.source);
 
+      // double-checking the current list fixes:
+      // https://github.com/microsoft/vscode-js-debug/issues/679
+      const currentList = getCurrent();
       const promise = Promise.all(
-        result.new.filter(this._enabledFilter).map(b => b.enable(thread)),
+        result.new
+          .filter(this._enabledFilter)
+          .filter(bp => currentList?.includes(bp))
+          .map(b => b.enable(thread)),
       );
-      this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), promise]));
 
+      this.addLaunchBlocker(Promise.race([delay(breakpointSetTimeout), promise]));
       await promise;
     }
 
