@@ -2,33 +2,29 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import * as path from 'path';
-import Dap from '../dap/api';
-import * as urlUtils from '../common/urlUtils';
-import { ISourcePathResolver } from '../common/sourcePathResolver';
-import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
-import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
-import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
-import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
-import { LogTag, ILogger } from '../common/logging';
-import { AnyLaunchConfiguration } from '../configuration';
+import { Event } from 'vscode';
+import { IDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
-import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { logPerf } from '../telemetry/performance';
-import { injectable, inject } from 'inversify';
-import { getOptimalCompiledPosition } from '../common/sourceUtils';
 import { OutFiles } from '../common/fileGlobList';
+import { ILogger, LogTag } from '../common/logging';
+import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
+import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
+import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
+import { ISourcePathResolver } from '../common/sourcePathResolver';
+import { getOptimalCompiledPosition } from '../common/sourceUtils';
+import * as urlUtils from '../common/urlUtils';
+import { AnyLaunchConfiguration } from '../configuration';
+import Dap from '../dap/api';
+import { logPerf } from '../telemetry/performance';
 
 export interface IWorkspaceLocation {
   absolutePath: string;
   lineNumber: number; // 1-based
   columnNumber: number; // 1-based
 }
-
-type PredictedLocation = {
-  source: IWorkspaceLocation;
-  compiled: IWorkspaceLocation;
-};
 
 type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
@@ -42,6 +38,11 @@ export const IBreakpointsPredictor = Symbol('IBreakpointsPredictor');
  * by looking at source maps on disk.
  */
 export interface IBreakpointsPredictor {
+  /**
+   * Event emitted if a performance issue is detected parsing outFiles.
+   */
+  onLongParse: Event<void>;
+
   /**
    * Gets prediction data for the given source file path, if it exists.
    */
@@ -64,9 +65,100 @@ export interface IBreakpointsPredictor {
   predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[];
 }
 
+/**
+ * Wrapper around a breakpoint predictor which allows its implementation to
+ * be replaced. This is used to implement a heuristic used when dealing with
+ * hot-reloading tools like Nodemon or Nest.js development: when a child
+ * session terminates, the next child of the parent session will
+ * rerun prediction.
+ */
+export class BreakpointPredictorDelegate implements IBreakpointsPredictor, IDisposable {
+  private childImplementation: IBreakpointsPredictor;
+
+  /**
+   * @inheritdoc
+   */
+  public get onLongParse() {
+    return this.implementation.onLongParse;
+  }
+
+  constructor(
+    private readonly sourceMapFactory: ISourceMapFactory,
+    private readonly factory: () => IBreakpointsPredictor,
+    private implementation = factory(),
+    private readonly parent?: BreakpointPredictorDelegate,
+  ) {
+    if (implementation instanceof BreakpointPredictorDelegate) {
+      this.implementation = implementation.implementation;
+    }
+
+    this.childImplementation = this.implementation;
+  }
+
+  /**
+   * Invalidates the internal predictor, such that the next child will get
+   * a new instance of the breakpoint predictor. This is used to deal with
+   * hot-reloading scripts like Nodemon.
+   */
+  private invalidateNextChild() {
+    if (this.sourceMapFactory instanceof CachingSourceMapFactory) {
+      this.sourceMapFactory.invalidateCache();
+    }
+
+    this.childImplementation = this.factory();
+  }
+
+  /**
+   * Gets a breakpoint predictor for the child.
+   */
+  getChild() {
+    return new BreakpointPredictorDelegate(
+      this.sourceMapFactory,
+      this.factory,
+      this.childImplementation,
+      this,
+    );
+  }
+
+  /**
+   * @inheritdoc
+   */
+  getPredictionForSource(sourceFile: string) {
+    return this.implementation.getPredictionForSource(sourceFile);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  prepareToPredict() {
+    return this.implementation.prepareToPredict();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  predictBreakpoints(params: Dap.SetBreakpointsParams) {
+    return this.implementation.predictBreakpoints(params);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  predictedResolvedLocations(location: IWorkspaceLocation) {
+    return this.implementation.predictedResolvedLocations(location);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  dispose() {
+    this.parent?.invalidateNextChild();
+  }
+}
+
 @injectable()
 export class BreakpointsPredictor implements IBreakpointsPredictor {
-  private readonly predictedLocations: PredictedLocation[] = [];
+  private readonly predictedLocations = new Map<string, IWorkspaceLocation[]>();
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
   private cache?: CorrelatedCache<number, DiscoveredMetadata[]>;
@@ -103,9 +195,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       return new Map();
     }
 
-    const sourcePathToCompiled: MetadataMap = new MapUsingProjection(
-      urlUtils.lowerCaseInsensitivePath,
-    );
+    const sourcePathToCompiled: MetadataMap = urlUtils.caseNormalizedMap();
     const addDiscovery = (discovery: DiscoveredMetadata) => {
       let set = sourcePathToCompiled.get(discovery.resolvedPath);
       if (!set) {
@@ -181,35 +271,43 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
    * are predicted.
    */
   public async predictBreakpoints(params: Dap.SetBreakpointsParams): Promise<void> {
-    if (!params.source.path) {
-      return Promise.resolve();
+    if (!params.source.path || !params.breakpoints?.length) {
+      return;
     }
+
     if (!this.sourcePathToCompiled) {
       this.sourcePathToCompiled = this.createInitialMapping();
     }
 
-    const sourcePathToCompiled = await this.sourcePathToCompiled;
-    const absolutePath = params.source.path;
-    if (!absolutePath) {
+    const set = (await this.sourcePathToCompiled).get(params.source.path);
+    if (!set) {
       return;
     }
 
-    const set = sourcePathToCompiled.get(absolutePath);
+    const sourceMaps = await Promise.all(
+      [...set].map(metadata =>
+        this.sourceMapFactory
+          .load(metadata)
+          .then(map => ({ map, metadata }))
+          .catch(() => undefined),
+      ),
+    );
 
-    if (!set) return;
-    for (const metadata of set) {
-      if (!metadata.compiledPath) {
+    for (const b of params.breakpoints ?? []) {
+      const key = `${params.source.path}:${b.line}:${b.column || 1}`;
+      if (this.predictedLocations.has(key)) {
         return;
       }
 
-      let map: SourceMap;
-      try {
-        map = await this.sourceMapFactory.load(metadata);
-      } catch {
-        continue;
-      }
+      const locations: IWorkspaceLocation[] = [];
+      this.predictedLocations.set(key, locations);
 
-      for (const b of params.breakpoints || []) {
+      for (const sourceMapLoad of sourceMaps) {
+        if (!sourceMapLoad) {
+          continue;
+        }
+
+        const { map, metadata } = sourceMapLoad;
         const entry = getOptimalCompiledPosition(
           metadata.sourceUrl,
           {
@@ -223,23 +321,11 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
           continue;
         }
 
-        const { lineNumber, columnNumber } = {
+        locations.push({
+          absolutePath: metadata.compiledPath,
           lineNumber: entry.line || 1,
           columnNumber: entry.column ? entry.column + 1 : 1,
-        };
-        const predicted: PredictedLocation = {
-          source: {
-            absolutePath,
-            lineNumber: b.line,
-            columnNumber: b.column || 1,
-          },
-          compiled: {
-            absolutePath: metadata.compiledPath,
-            lineNumber,
-            columnNumber,
-          },
-        };
-        this.predictedLocations.push(predicted);
+        });
       }
     }
   }
@@ -259,16 +345,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
    * Returns predicted breakpoint locations for the provided source.
    */
   public predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[] {
-    const result: IWorkspaceLocation[] = [];
-    for (const p of this.predictedLocations) {
-      if (
-        p.source.absolutePath === location.absolutePath &&
-        p.source.lineNumber === location.lineNumber &&
-        p.source.columnNumber === location.columnNumber
-      ) {
-        result.push(p.compiled);
-      }
-    }
-    return result;
+    const key = `${location.absolutePath}:${location.lineNumber}:${location.columnNumber || 1}`;
+    return this.predictedLocations.get(key) ?? [];
   }
 }

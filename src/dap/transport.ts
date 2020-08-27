@@ -94,10 +94,16 @@ export class StreamDapTransport implements IDapTransport {
     }
     const data = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
     if (this.outputStream.destroyed) {
-      console.error('Writing to a closed connection');
+      this.logger?.warn(LogTag.DapSend, 'Message not sent. Connection was closed.');
       return;
     }
-    this.outputStream.write(data, 'utf8');
+
+    this.outputStream.write(data, 'utf8', err => {
+      if (err) {
+        this.logger?.error(LogTag.DapSend, 'Error while writing to output stream', err);
+        this.close();
+      }
+    });
   }
   close(): void {
     this.inputStream.destroy();

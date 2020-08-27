@@ -2,13 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ISourceMapMetadata, SourceMap } from './sourceMap';
-import { IDisposable } from '../disposable';
-import { fileUrlToAbsolutePath } from '../urlUtils';
-import { RawSourceMap, SourceMapConsumer, BasicSourceMapConsumer } from 'source-map';
-import { injectable, inject } from 'inversify';
-import { ISourcePathResolver } from '../sourcePathResolver';
+import { inject, injectable } from 'inversify';
+import { BasicSourceMapConsumer, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
+import { MapUsingProjection } from '../datastructure/mapUsingProjection';
+import { IDisposable } from '../disposable';
+import { ISourcePathResolver } from '../sourcePathResolver';
+import { fileUrlToAbsolutePath } from '../urlUtils';
+import { ISourceMapMetadata, SourceMap } from './sourceMap';
 
 export const ISourceMapFactory = Symbol('ISourceMapFactory');
 
@@ -29,7 +30,21 @@ export interface ISourceMapFactory extends IDisposable {
  */
 @injectable()
 export class CachingSourceMapFactory implements ISourceMapFactory {
-  private readonly knownMaps = new Map<string, Promise<SourceMap>>();
+  private readonly knownMaps = new MapUsingProjection<
+    string,
+    {
+      metadata: ISourceMapMetadata;
+      reloadIfNoMtime: boolean;
+      prom: Promise<SourceMap>;
+    }
+  >(s => s.toLowerCase());
+
+  /**
+   * Sourcemaps who have been overwritten by newly loaded maps. We can't
+   * destroy these since sessions might still references them. Once finalizers
+   * are available this can be removed.
+   */
+  private overwrittenSourceMaps: Promise<SourceMap>[] = [];
 
   constructor(
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
@@ -41,12 +56,35 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
    */
   public load(metadata: ISourceMapMetadata): Promise<SourceMap> {
     const existing = this.knownMaps.get(metadata.sourceMapUrl);
-    if (existing) {
-      return existing;
+    if (!existing) {
+      return this.loadNewSourceMap(metadata);
     }
 
+    const curTime = metadata.mtime;
+    const prevTime = existing.metadata.mtime;
+    // If asked to reload, do so if either map is missing a mtime, or they aren't the same
+    if (existing.reloadIfNoMtime) {
+      if (!(curTime && prevTime && curTime === prevTime)) {
+        this.overwrittenSourceMaps.push(existing.prom);
+        return this.loadNewSourceMap(metadata);
+      } else {
+        existing.reloadIfNoMtime = false;
+        return existing.prom;
+      }
+    }
+
+    // Otherwise, only reload if times are present and the map definitely changed.
+    if (prevTime && curTime && curTime !== prevTime) {
+      this.overwrittenSourceMaps.push(existing.prom);
+      return this.loadNewSourceMap(metadata);
+    }
+
+    return existing.prom;
+  }
+
+  private loadNewSourceMap(metadata: ISourceMapMetadata) {
     const created = this.loadSourceMap(metadata);
-    this.knownMaps.set(metadata.sourceMapUrl, created);
+    this.knownMaps.set(metadata.sourceMapUrl, { metadata, reloadIfNoMtime: false, prom: created });
     return created;
   }
 
@@ -55,13 +93,30 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
    */
   public dispose() {
     for (const map of this.knownMaps.values()) {
+      map.prom.then(
+        m => m.destroy(),
+        () => undefined,
+      );
+    }
+
+    for (const map of this.overwrittenSourceMaps) {
       map.then(
-        m => m?.destroy(),
+        m => m.destroy(),
         () => undefined,
       );
     }
 
     this.knownMaps.clear();
+  }
+
+  /**
+   * Invalidates all source maps that *don't* have associated mtimes, so that
+   * they're reloaded the next time they're requested.
+   */
+  public invalidateCache() {
+    for (const map of this.knownMaps.values()) {
+      map.reloadIfNoMtime = true;
+    }
   }
 
   private async loadSourceMap(metadata: ISourceMapMetadata): Promise<SourceMap> {
