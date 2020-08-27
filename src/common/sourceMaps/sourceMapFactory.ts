@@ -44,7 +44,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
    * destroy these since sessions might still references them. Once finalizers
    * are available this can be removed.
    */
-  private sourceMapPurgatory: Promise<SourceMap>[] = [];
+  private overwrittenSourceMaps: Promise<SourceMap>[] = [];
 
   constructor(
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
@@ -65,7 +65,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
     // If asked to reload, do so if either map is missing a mtime, or they aren't the same
     if (existing.reloadIfNoMtime) {
       if (!(curTime && prevTime && curTime === prevTime)) {
-        this.sourceMapPurgatory.push(existing.prom);
+        this.overwrittenSourceMaps.push(existing.prom);
         return this.loadNewSourceMap(metadata);
       } else {
         existing.reloadIfNoMtime = false;
@@ -75,7 +75,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
 
     // Otherwise, only reload if times are present and the map definitely changed.
     if (prevTime && curTime && curTime !== prevTime) {
-      this.sourceMapPurgatory.push(existing.prom);
+      this.overwrittenSourceMaps.push(existing.prom);
       return this.loadNewSourceMap(metadata);
     }
 
@@ -99,7 +99,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
       );
     }
 
-    for (const map of this.sourceMapPurgatory) {
+    for (const map of this.overwrittenSourceMaps) {
       map.then(
         m => m.destroy(),
         () => undefined,
