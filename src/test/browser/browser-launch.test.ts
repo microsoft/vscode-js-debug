@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { itIntegrates } from '../testIntegrationUtils';
-import { testFixturesDir } from '../test';
 import { expect } from 'chai';
-import mkdirp from 'mkdirp';
 import { readdirSync } from 'fs';
+import mkdirp from 'mkdirp';
 import WebSocket from 'ws';
 import { constructInspectorWSUri } from '../../targets/browser/constructInspectorWSUri';
+import { testFixturesDir } from '../test';
+import { itIntegrates } from '../testIntegrationUtils';
 
 describe('browser launch', () => {
   itIntegrates('environment variables', async ({ r }) => {
@@ -52,11 +52,10 @@ describe('browser launch', () => {
 
     try {
       const receivedMessage = new Promise(resolve => {
-        wsServer.on('connection', function connection(ws) {
-          ws.on('message', function incoming(message) {
-            ws.send(
-              '{"id":1,"method":"Target.attachToBrowserTarget","error": { "message": "Fake websocket" }}',
-            );
+        wsServer.on('connection', ws => {
+          ws.on('message', message => {
+            const contents = JSON.parse(message.toString());
+            ws.send(JSON.stringify({ id: contents.id, error: { message: 'Fake websocket' } }));
             resolve(message.toString()); // We resolve with the contents of the first message we receive
           });
         });
@@ -70,7 +69,7 @@ describe('browser launch', () => {
         '{"id":1001,"method":"Target.attachToBrowserTarget","params":{}}',
       ); // Verify we got the first message on the WebSocket
     } finally {
-      wsServer.close();
+      await new Promise(r => wsServer.close(r));
     }
   });
 });

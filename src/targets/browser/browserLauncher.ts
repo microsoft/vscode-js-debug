@@ -160,6 +160,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       targetOrigin,
     );
     if (!this._targetManager) {
+      launched.process.kill();
       throw new ProtocolError(browserAttachFailed());
     }
 
