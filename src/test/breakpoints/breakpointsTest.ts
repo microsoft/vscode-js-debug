@@ -7,7 +7,8 @@ import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import Dap from '../../dap/api';
-import { createFileTree, ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
+import { ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
 
@@ -124,7 +125,7 @@ describe('breakpoints', () => {
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
       };
-      p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
       p.load();
       await waitForPause(p);
       await waitForPause(p);
@@ -942,5 +943,23 @@ describe('breakpoints', () => {
     handle.load();
     await waitForPause(handle);
     handle.assertLog({ substring: true });
+  });
+
+  itIntegrates('reevaluates breakpoints when new sources come in (#600)', async ({ r }) => {
+    const p = await r.launchUrl('unique-refresh?v=1');
+    p.load();
+
+    // to trigger the bug, must wait for the source otherwise it will set by path and not url:
+    const { source } = await p.waitForSource('hello.js');
+
+    p.dap.setBreakpoints({
+      source,
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+
+    await waitForPause(p);
+    p.cdp.Page.navigate({ url: r.buildUrl('unique-refresh?v=2') });
+    await waitForPause(p);
+    p.assertLog();
   });
 });

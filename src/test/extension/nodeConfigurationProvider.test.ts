@@ -10,7 +10,8 @@ import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { INodeLaunchConfiguration } from '../../configuration';
 import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
-import { createFileTree, testFixturesDir } from '../test';
+import { testFixturesDir } from '../test';
+import { createFileTree } from '../createFileTree';
 
 describe('NodeDebugConfigurationProvider', () => {
   let provider: NodeConfigurationResolver;

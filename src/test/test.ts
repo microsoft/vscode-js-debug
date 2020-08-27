@@ -2,42 +2,40 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as fs from 'fs';
-import * as mkdirp from 'mkdirp';
-import * as path from 'path';
-import * as stream from 'stream';
-import * as gulp from 'gulp';
 import del from 'del';
+import * as gulp from 'gulp';
+import { tmpdir } from 'os';
+import * as path from 'path';
+import playwright from 'playwright';
+import * as stream from 'stream';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Binder } from '../binder';
 import Cdp from '../cdp/api';
 import CdpConnection from '../cdp/connection';
+import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
+import { ILogger } from '../common/logging';
+import { forceForwardSlashes } from '../common/pathUtils';
 import * as utils from '../common/urlUtils';
 import {
+  AnyChromiumLaunchConfiguration,
   chromeLaunchConfigDefaults,
   INodeAttachConfiguration,
   INodeLaunchConfiguration,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
-  AnyChromiumLaunchConfiguration,
 } from '../configuration';
 import Dap from '../dap/api';
 import DapConnection from '../dap/connection';
+import { StreamDapTransport } from '../dap/transport';
+import { createGlobalContainer, createTopLevelSessionContainer } from '../ioc';
+import { BrowserLauncher } from '../targets/browser/browserLauncher';
+import { BrowserTarget } from '../targets/browser/browserTargets';
+import { TargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { GoldenText } from './goldenText';
 import { Logger } from './logger';
 import { getLogFileForTest } from './reporters/logReporterUtils';
-import { TargetOrigin } from '../targets/targetOrigin';
-import { ILogger } from '../common/logging';
-import { createTopLevelSessionContainer, createGlobalContainer } from '../ioc';
-import { BrowserLauncher } from '../targets/browser/browserLauncher';
-import { StreamDapTransport } from '../dap/transport';
-import { tmpdir, EOL } from 'os';
-import { forceForwardSlashes } from '../common/pathUtils';
-import playwright from 'playwright';
-import { DebugType } from '../common/contributionUtils';
-import { BrowserTarget } from '../targets/browser/browserTargets';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -564,20 +562,22 @@ export class TestRoot {
     return p;
   }
 
+  public buildUrl(url: string) {
+    return utils.completeUrl('http://localhost:8001/', url) || url;
+  }
+
   async launchUrl(
     url: string,
     options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
-    url = utils.completeUrl('http://localhost:8001/', url) || url;
-    return await this._launch(url, options);
+    return await this._launch(this.buildUrl(url), options);
   }
 
   async launchUrlAndLoad(
     url: string,
     options: Partial<AnyChromiumLaunchConfiguration> = {},
   ): Promise<TestP> {
-    url = utils.completeUrl('http://localhost:8001/', url) || url;
-    const p = await this._launch(url, options);
+    const p = await this._launch(this.buildUrl(url), options);
     await p.load();
     return p;
   }
@@ -614,32 +614,4 @@ export class TestRoot {
  */
 export interface IFileTree {
   [directoryOrFile: string]: string | string[] | Buffer | IFileTree;
-}
-
-/**
- * Creates a file tree at the given location. Primarily useful for creating
- * fixtures in unit tests.
- */
-export function createFileTree(rootDir: string, tree: IFileTree) {
-  mkdirp.sync(rootDir);
-
-  for (const key of Object.keys(tree)) {
-    const value = tree[key];
-    const targetPath = path.join(rootDir, key);
-
-    let write: Buffer;
-    if (typeof value === 'string') {
-      write = Buffer.from(value);
-    } else if (value instanceof Buffer) {
-      write = value;
-    } else if (value instanceof Array) {
-      write = Buffer.from(value.join(EOL));
-    } else {
-      createFileTree(targetPath, value);
-      continue;
-    }
-
-    mkdirp.sync(path.dirname(targetPath));
-    fs.writeFileSync(targetPath, write);
-  }
 }

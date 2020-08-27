@@ -8,7 +8,8 @@ import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ExtensionHostConfigurationResolver } from '../../ui/configuration/extensionHostConfigurationResolver';
-import { createFileTree, testFixturesDir } from '../test';
+import { testFixturesDir } from '../test';
+import { createFileTree } from '../createFileTree';
 
 describe('ExtensionHostConfigurationProvider', () => {
   let provider: ExtensionHostConfigurationResolver;

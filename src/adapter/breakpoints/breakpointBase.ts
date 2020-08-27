@@ -404,14 +404,19 @@ export abstract class Breakpoint {
         return;
       }
     }
-    const source = this._manager._sourceContainer.source(this.source);
 
-    const url = source
-      ? source.url
-      : this.source.path
-      ? this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path)
-      : undefined;
-    if (!url) return;
+    let url: string | undefined;
+    if (this.source.path) {
+      url = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path);
+    } else {
+      const source = this._manager._sourceContainer.source(this.source);
+      url = source?.url;
+    }
+
+    if (!url) {
+      return;
+    }
+
     await this._setByUrl(thread, url, lineColumn);
     if (this.source.path !== url && this.source.path !== undefined) {
       await this._setByUrl(thread, absolutePathToFileUrl(this.source.path), lineColumn);

@@ -7,7 +7,7 @@ import * as sourceMap from 'source-map';
 import * as ts from 'typescript';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import * as fsUtils from './fsUtils';
-import { verifyBytes, verifyFile } from './hash';
+import { Hasher } from './hash';
 import { SourceMap } from './sourceMaps/sourceMap';
 
 export async function prettyPrintAsSourceMap(
@@ -250,6 +250,8 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   return sourceMapUrl;
 }
 
+const hasher = new Hasher();
+
 export async function checkContentHash(
   absolutePath: string,
   contentHash?: string,
@@ -266,8 +268,8 @@ export async function checkContentHash(
 
   const result =
     typeof contentOverride === 'string'
-      ? await verifyBytes(contentOverride, contentHash, true)
-      : await verifyFile(absolutePath, contentHash, true);
+      ? await hasher.verifyBytes(contentOverride, contentHash, true)
+      : await hasher.verifyFile(absolutePath, contentHash, true);
 
   return result ? absolutePath : undefined;
 }

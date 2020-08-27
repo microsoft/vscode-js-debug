@@ -5,7 +5,8 @@
 import * as vscode from 'vscode';
 import { join } from 'path';
 import { expect } from 'chai';
-import { createFileTree, testFixturesDir } from '../test';
+import { testFixturesDir } from '../test';
+import { createFileTree } from '../createFileTree';
 import { NpmScriptLenProvider } from '../../ui/npmScriptLens';
 import { Configuration, writeConfig } from '../../common/contributionUtils';
 
