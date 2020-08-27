@@ -15,7 +15,8 @@
             "program": "${workspaceFolder}\\app.ts",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
-            ]
+            ],
+            "customDescriptionGenerator": "const lal = 4; lal + global.customDebuggerDescription(this, defaultValue)",
         }
     ]
 }
