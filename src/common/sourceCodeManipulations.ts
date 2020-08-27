@@ -34,14 +34,13 @@ export function codeToFunctionExecutingCodeAndReturningErrors(
 ): string {
   return (
     (preserveThis ? `function _generatedCode(${parameterNames}) ` : `(${parameterNames}) => `) +
-    `
-    {
-      try {
-        ${code}
-      } catch (e) {
-        return e.stack || e.message || String(e);
-      }
-    }`
+    `{
+  try {
+${code}
+  } catch (e) {
+    return e.stack || e.message || String(e);
+  }
+}`
   );
 }
 
@@ -85,14 +84,14 @@ export function statementToFunctionReturningErrors(
     }
 
     if (i === statements.length - 1) {
-      const returned = `return ${stmt} `;
+      const returned = `return ${stmt}`;
       if (!getSyntaxErrorIn(returned)) {
-        output.push(`    ${returned} `);
+        output.push(`    ${returned}`);
         break;
       }
     }
 
-    output.push(`    ${stmt} `);
+    output.push(`    ${stmt}`);
   }
 
   const result = codeToFunctionExecutingCodeAndReturningErrors(
