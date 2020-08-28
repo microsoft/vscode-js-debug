@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
+import { delay } from '../../common/promiseUtil';
 import * as sourceUtils from '../../common/sourceUtils';
 import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
-import { delay } from '../../common/promiseUtil';
-import { expect } from 'chai';
 
 describe('evaluate', () => {
   itIntegrates('default', async ({ r }) => {
@@ -348,6 +348,29 @@ describe('evaluate', () => {
       'repl',
     );
     p.assertLog();
+  });
+
+  itIntegrates('escapes strings', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    for (const context of ['watch', 'hover', 'repl'] as const) {
+      p.log(`context=${context}`);
+      await p.logger.evaluateAndLog(JSON.stringify('1\n2\r3\t\\4'), { depth: 0 }, context);
+    }
+
+    p.assertLog({
+      customAssert: str =>
+        expect(str).to.equal(
+          [
+            'context=watch',
+            "result: '1\\n2\\r3\\t\\\\4'",
+            'context=hover',
+            "result: '1\\n2\\r3\\t\\\\4'",
+            'context=repl',
+            "\nresult: '1\n2\r3\t\\4'",
+            '',
+          ].join('\n'),
+        ),
+    });
   });
 
   itIntegrates.skip('output slots', async ({ r }) => {

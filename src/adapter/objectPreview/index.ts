@@ -3,11 +3,11 @@
  *--------------------------------------------------------*/
 
 import Cdp from '../../cdp/api';
-import * as stringUtils from '../../common/stringUtils';
 import { BudgetStringBuilder } from '../../common/budgetStringBuilder';
+import * as stringUtils from '../../common/stringUtils';
 import * as messageFormat from '../messageFormat';
-import { getContextForType, IPreviewContext } from './contexts';
 import * as ObjectPreview from './betterTypes';
+import { getContextForType, IPreviewContext } from './contexts';
 
 const maxArrowFunctionCharacterLength = 30;
 const maxPropertyPreviewLength = 100;
@@ -282,19 +282,25 @@ function renderPropertyPreview(
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
 }
 
-function renderValue(object: Cdp.Runtime.RemoteObject, budget: number, quote: boolean): string {
+function renderValue(object: ObjectPreview.AnyObject, budget: number, quote: boolean): string {
   if (object.type === 'string') {
     const value = stringUtils.trimMiddle(object.value, quote ? budget - 2 : budget);
     return quote ? `'${value}'` : value;
   }
 
-  if (object.type === 'undefined') return 'undefined';
+  if (object.type === 'undefined') {
+    return 'undefined';
+  }
 
-  if (object.subtype === 'null') return 'null';
+  if (object.subtype === 'null') {
+    return 'null';
+  }
 
-  if (object.description) return stringUtils.trimEnd(object.description, Math.max(budget, 100000));
+  if (object.description) {
+    return stringUtils.trimEnd(object.description, Math.max(budget, 100000));
+  }
 
-  return stringUtils.trimEnd(String(object.value), budget);
+  return stringUtils.trimEnd(String('value' in object ? object.value : object.description), budget);
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {
@@ -367,17 +373,22 @@ function formatFunctionDescription(description: string, characterBudget: number)
 }
 
 export function previewException(
-  exception: Cdp.Runtime.RemoteObject,
+  rawException: Cdp.Runtime.RemoteObject | ObjectPreview.AnyObject,
 ): { title: string; stackTrace?: string } {
-  if (exception.type !== 'object')
+  const exception = rawException as ObjectPreview.AnyObject;
+  if (exception.type !== 'object' || exception.subtype === 'null') {
     return { title: renderValue(exception, maxExceptionTitleLength, false) };
-  const description = exception.description ?? exception.className ?? 'Error';
+  }
+
+  const description =
+    exception.description ?? (exception as { className?: string }).className ?? 'Error';
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame) {
     const lastLineBreak = description.lastIndexOf('\n');
     if (lastLineBreak === -1) return { title: description };
     return { title: description.substring(0, lastLineBreak) };
   }
+
   return {
     title: description.substring(0, firstCallFrame.index - 1),
     stackTrace: description.substring(firstCallFrame.index + 2),
@@ -402,7 +413,7 @@ function formatAsNumber(
   return stringUtils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }
 
-function formatAsString(param: Cdp.Runtime.RemoteObject, characterBudget: number): string {
+function formatAsString(param: ObjectPreview.StringObj, characterBudget: number): string {
   return stringUtils.trimMiddle(
     String(typeof param.value !== 'undefined' ? param.value : param.description),
     characterBudget,
@@ -481,7 +492,7 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 
 export const messageFormatters: messageFormat.Formatters<ObjectPreview.AnyObject> = new Map([
   ['', (param, context) => previewRemoteObjectInternal(param, context)],
-  ['s', (param, context) => formatAsString(param, context.budget)],
+  ['s', (param, context) => formatAsString(param as ObjectPreview.StringObj, context.budget)],
   ['i', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
   ['d', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
   ['f', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, false, context.budget)],
