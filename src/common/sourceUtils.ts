@@ -2,8 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import beautify from 'js-beautify';
-import * as sourceMap from 'source-map';
+import { Parser } from 'acorn';
+import { generate } from 'astring';
+import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import * as ts from 'typescript';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import * as fsUtils from './fsUtils';
@@ -16,25 +17,31 @@ export async function prettyPrintAsSourceMap(
   compiledPath: string,
   sourceMapUrl: string,
 ): Promise<SourceMap | undefined> {
-  const source = beautify(minified);
-  const from = generatePositions(source);
-  const to = generatePositions(minified);
-  if (from.length !== to.length) return Promise.resolve(undefined);
+  const ast = Parser.parse(minified, { locations: true, ecmaVersion: 2020 });
+  const sourceMap = new SourceMapGenerator({ file: fileName });
 
-  const generator = new sourceMap.SourceMapGenerator();
-  generator.setSourceContent(fileName, source);
+  // provide a fake SourceMapGenerator since we want to actually add the
+  // *reversed* mappings -- we're creating a fake 'original' source.
+  const beautified = generate(ast, {
+    sourceMap: {
+      setSourceContent: (file, content) => sourceMap.setSourceContent(file, content),
+      applySourceMap: (smc, file, path) => sourceMap.applySourceMap(smc, file, path),
+      toJSON: () => sourceMap.toJSON(),
+      toString: () => sourceMap.toString(),
+      addMapping: mapping =>
+        sourceMap.addMapping({
+          generated: mapping.original,
+          original: { column: mapping.generated.column, line: mapping.generated.line },
+          source: fileName,
+          name: mapping.name,
+        }),
+    },
+  });
 
-  // We know that AST for both sources is the same, so we can
-  // walk them together to generate mapping.
-  for (let i = 0; i < from.length; i += 2) {
-    generator.addMapping({
-      source: fileName,
-      original: { line: from[i], column: from[i + 1] },
-      generated: { line: to[i], column: to[i + 1] },
-    });
-  }
+  sourceMap.setSourceContent(fileName, beautified);
+
   return new SourceMap(
-    await sourceMap.SourceMapConsumer.fromSourceMap(generator),
+    await SourceMapConsumer.fromSourceMap(sourceMap),
     {
       sourceMapUrl,
       compiledPath,
@@ -42,34 +49,6 @@ export async function prettyPrintAsSourceMap(
     '',
     [fileName],
   );
-}
-
-function generatePositions(text: string) {
-  const sourceFile = ts.createSourceFile(
-    'file.js',
-    text,
-    ts.ScriptTarget.ESNext,
-    /*setParentNodes */ false,
-  );
-
-  const result: number[] = [];
-  let index = 0;
-  let line = 0;
-  let column = 0;
-  function traverse(node: ts.Node) {
-    for (; index < node.pos; ++index) {
-      if (text[index] === '\n') {
-        ++line;
-        column = 0;
-        continue;
-      }
-      ++column;
-    }
-    result.push(line + 1, column);
-    ts.forEachChild(node, traverse);
-  }
-  traverse(sourceFile);
-  return result;
 }
 
 export function rewriteTopLevelAwait(code: string): string | undefined {
@@ -297,21 +276,21 @@ interface INotNullRange {
 export function getOptimalCompiledPosition(
   sourceUrl: string,
   uiLocation: LineColumn,
-  map: sourceMap.SourceMapConsumer,
-): sourceMap.NullablePosition {
+  map: SourceMapConsumer,
+): NullablePosition {
   const prevLocation = map.generatedPositionFor({
     source: sourceUrl,
     line: uiLocation.lineNumber,
     column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
-    bias: sourceMap.SourceMapConsumer.GREATEST_LOWER_BOUND,
+    bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
   });
 
-  const getVariance = (position: sourceMap.NullablePosition) => {
+  const getVariance = (position: NullablePosition) => {
     if (position.line === null || position.column === null) {
       return 10e10;
     }
 
-    const original = map.originalPositionFor(position as sourceMap.Position);
+    const original = map.originalPositionFor(position as Position);
     return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
   };
 

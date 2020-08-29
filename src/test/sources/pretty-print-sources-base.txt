@@ -23,4 +23,4 @@
         sourceReference : <number>
     }
 }
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:13:9
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:11:1

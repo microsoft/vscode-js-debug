@@ -20,9 +20,9 @@
 }
 {
     breakpoint : {
-        column : 9
+        column : 1
         id : <number>
-        line : 13
+        line : 11
         source : {
             name : pretty/ugly.js-pretty.js
             path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
@@ -34,9 +34,9 @@
 }
 {
     breakpoint : {
-        column : 9
+        column : 1
         id : <number>
-        line : 13
+        line : 21
         source : {
             name : pretty/ugly.js-pretty.js
             path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
@@ -49,7 +49,7 @@
 {
     breakpoints : [
         [0] : {
-            column : 5
+            column : 1
             id : <number>
             line : 17
             source : {
@@ -60,9 +60,9 @@
             verified : true
         }
         [1] : {
-            column : 9
+            column : 1
             id : <number>
-            line : 13
+            line : 11
             source : {
                 name : pretty/ugly.js-pretty.js
                 path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
@@ -71,9 +71,15 @@
             verified : true
         }
         [2] : {
+            column : 1
             id : <number>
-            message : Unbound breakpoint
-            verified : false
+            line : 21
+            source : {
+                name : pretty/ugly.js-pretty.js
+                path : ${workspaceFolder}/web/pretty/ugly.js-pretty.js
+                sourceReference : <number>
+            }
+            verified : true
         }
     ]
 }
@@ -91,7 +97,7 @@ continue
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:13:9
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:17:1
 
 continue
 [
@@ -106,4 +112,4 @@ continue
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:17:5
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:21:1

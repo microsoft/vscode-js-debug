@@ -18,7 +18,7 @@ step
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:15:5
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:12:1
 
 step
 [
@@ -33,7 +33,7 @@ step
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:15:5
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:13:1
 
 step
 [
@@ -48,7 +48,7 @@ step
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:16:5
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:14:1
 
 step
 [
@@ -63,4 +63,4 @@ step
         threadId : <number>
     }
 ]
-<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:17:5
+<anonymous> @ ${workspaceFolder}/web/pretty/ugly.js-pretty.js:15:1

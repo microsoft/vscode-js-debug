@@ -71,10 +71,8 @@ describe('pretty print sources', () => {
     const pretty = p.dap.once('loadedSource');
 
     // should adjust all BPs to new file
-    const bp1Prom = p.dap.once('breakpoint');
-    const bp2Prom = p.dap.once('breakpoint');
-    const bp1 = p.log(await bp1Prom).breakpoint;
-    const bp2 = p.log(await bp2Prom).breakpoint;
+    const bp1 = p.log(await p.dap.once('breakpoint')).breakpoint;
+    const bp2 = p.log(await p.dap.once('breakpoint')).breakpoint;
 
     // should set a breakpoint in pretty source:
     p.log(
