@@ -540,6 +540,30 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
+    itIntegrates('ignores error by default', async ({ r }) => {
+      const p = await r.launchUrl('condition.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/condition.js') },
+        breakpoints: [{ line: 2, column: 0, condition: '(() => { throw "oh no" })()' }],
+      });
+      p.load();
+      await waitForPause(p);
+      p.assertLog();
+    });
+
+    itIntegrates('pauses on error', async ({ r }) => {
+      const p = await r.launchUrl('condition.html', { __breakOnConditionalError: true });
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/condition.js') },
+        breakpoints: [{ line: 2, column: 0, condition: '(() => { throw "oh no" })()' }],
+      });
+      p.load();
+      const output = p.dap.once('output');
+      await waitForPause(p);
+      p.logger.logOutput(await output);
+      p.assertLog();
+    });
+
     itIntegrates('ignores bp with invalid condition', async ({ r }) => {
       // Breakpoint in separate script set before launch.
       const p = await r.launchUrl('condition.html');

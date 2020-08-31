@@ -2,12 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
+import Cdp from '../../../cdp/api';
+import { AnyLaunchConfiguration } from '../../../configuration';
 import Dap from '../../../dap/api';
+import { ExpressionCondition } from './expression';
+import { HitCondition } from './hitCount';
 import { LogPointCompiler } from './logPoint';
 import { SimpleCondition } from './simple';
-import { HitCondition } from './hitCount';
-import Cdp from '../../../cdp/api';
-import { injectable, inject } from 'inversify';
 
 /**
  * A condition provided to the {@link UserDefinedBreakpoint}
@@ -45,11 +47,18 @@ export const IBreakpointConditionFactory = Symbol('IBreakpointConditionFactory')
 
 @injectable()
 export class BreakpointConditionFactory implements IBreakpointConditionFactory {
-  constructor(@inject(LogPointCompiler) private readonly logPointCompiler: LogPointCompiler) {}
+  private breakOnError: boolean;
+
+  constructor(
+    @inject(LogPointCompiler) private readonly logPointCompiler: LogPointCompiler,
+    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+  ) {
+    this.breakOnError = launchConfig.__breakOnConditionalError;
+  }
 
   public getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition {
     if (params.condition) {
-      return new SimpleCondition(params, params.condition);
+      return new ExpressionCondition(params, params.condition, this.breakOnError);
     }
 
     if (params.logMessage) {

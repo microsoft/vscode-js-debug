@@ -187,6 +187,11 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   __autoExpandGetters: boolean;
 
   /**
+   * Whether to stop if a conditional breakpoint throws an error.
+   */
+  __breakOnConditionalError: boolean;
+
+  /**
    * Function used to generate the description of the objects shown in the debugger
    * e.g.: "function (defaultDescription) { return this.toString(); }"
    */
@@ -773,6 +778,7 @@ export const baseDefaults: IBaseConfiguration = {
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,
+  __breakOnConditionalError: false,
   customDescriptionGenerator: undefined,
 };
 

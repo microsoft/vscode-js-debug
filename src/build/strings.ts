@@ -284,6 +284,8 @@ const strings = {
     "Auto attach when running scripts that aren't in a node_modules folder.",
   'configuration.autoAttachMode.always':
     'Auto attach to every Node.js process launched in the terminal.',
+  'configuration.breakOnConditionalError':
+    'Whether to stop when conditional breakpoints throw an error. Note: your launch.json `type` must be prefixed with `pwa-` to use this, such as `pwa-node`.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

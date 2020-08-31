@@ -106,6 +106,7 @@ export const enum Configuration {
   AutoExpandGetters = 'debug.javascript.autoExpandGetters',
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
+  BreakOnConditionalError = 'debug.javascript.breakOnConditionalError',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -127,6 +128,7 @@ export interface IConfigurationTypes {
   [Configuration.AutoExpandGetters]: boolean;
   [Configuration.AutoAttachMode]: AutoAttachMode;
   [Configuration.AutoAttachSmartPatterns]: ReadonlyArray<string>;
+  [Configuration.BreakOnConditionalError]: boolean;
 }
 
 export interface ICommandTypes {

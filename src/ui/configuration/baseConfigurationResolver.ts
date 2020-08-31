@@ -2,19 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
+import { isAbsolute } from 'path';
 import * as vscode from 'vscode';
-import {
-  ResolvingConfiguration,
-  AnyLaunchConfiguration,
-  resolveWorkspaceInConfig,
-  removeOptionalWorkspaceFolderUsages,
-} from '../../configuration';
+import { Configuration, readConfig } from '../../common/contributionUtils';
 import { fulfillLoggerOptions } from '../../common/logging';
-import { injectable, inject } from 'inversify';
+import {
+  AnyLaunchConfiguration,
+  removeOptionalWorkspaceFolderUsages,
+  resolveWorkspaceInConfig,
+  ResolvingConfiguration,
+} from '../../configuration';
 import { ExtensionContext } from '../../ioc-extras';
 import { IDebugConfigurationResolver } from './configurationProvider';
-import { readConfig, Configuration } from '../../common/contributionUtils';
-import { isAbsolute } from 'path';
 
 /**
  * Base configuration provider that handles some resolution around common
@@ -70,6 +70,8 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
   protected commonResolution(config: T, folder: vscode.WorkspaceFolder | undefined): T {
     config.trace = fulfillLoggerOptions(config.trace, this.extensionContext.logPath);
     config.__workspaceCachePath = this.extensionContext.storagePath;
+    config.__breakOnConditionalError =
+      readConfig(vscode.workspace, Configuration.BreakOnConditionalError, folder) ?? false;
     config.__autoExpandGetters =
       readConfig(vscode.workspace, Configuration.AutoExpandGetters, folder) ?? true;
 

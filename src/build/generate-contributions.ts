@@ -47,6 +47,7 @@ const appInsightsKey = 'AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217';
 type OmittedKeysFromAttributes =
   | keyof IMandatedConfiguration
   | 'rootPath'
+  | '__breakOnConditionalError'
   | '__workspaceFolder'
   | '__workspaceCachePath'
   | '__autoExpandGetters'
@@ -1097,6 +1098,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     },
     default: ['!**/node_modules/**', `**/${knownToolToken}/**`],
     markdownDescription: refString('configuration.autoAttachSmartPatterns'),
+  },
+  [Configuration.BreakOnConditionalError]: {
+    type: 'boolean',
+    default: false,
+    markdownDescription: refString('configuration.breakOnConditionalError'),
   },
 };
 
