@@ -344,7 +344,7 @@ export class BrowserTargetManager implements IDisposable {
 
     // if we arent' attach, detach any existing targets and then attempt to
     // re-attach if the conditions are right.
-    if (!targetInfo.attached) {
+    if (!targetInfo.attached || !targets.length) {
       if (targets.length) {
         await Promise.all(targets.map(t => this._detachedFromTarget(t.sessionId, false)));
       }

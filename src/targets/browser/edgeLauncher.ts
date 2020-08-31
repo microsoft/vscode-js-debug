@@ -2,30 +2,30 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { createServer } from 'net';
 import { randomBytes } from 'crypto';
+import { inject, injectable, tagged } from 'inversify';
+import { createServer } from 'net';
 import { tmpdir } from 'os';
+import { join } from 'path';
+import { CancellationToken } from 'vscode';
+import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
-import { IEdgeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { IWebViewConnectionInfo } from '../targets';
-import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { getDeferred } from '../../common/promiseUtil';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
-import { join } from 'path';
-import Dap from '../../dap/api';
-import { CancellationToken } from 'vscode';
-import { createTargetFilterForConfig, requirePageTarget } from '../../common/urlUtils';
-import { BrowserLauncher } from './browserLauncher';
 import { DebugType } from '../../common/contributionUtils';
-import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
-import { inject, tagged, injectable } from 'inversify';
-import { ILogger } from '../../common/logging';
 import { canAccess } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
+import { getDeferred } from '../../common/promiseUtil';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { createTargetFilterForConfig, requirePageTarget } from '../../common/urlUtils';
+import { AnyLaunchConfiguration, IEdgeLaunchConfiguration } from '../../configuration';
+import Dap from '../../dap/api';
 import { browserNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { BrowserFinder, FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
+import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { IWebViewConnectionInfo } from '../targets';
+import { BrowserLauncher } from './browserLauncher';
 
 @injectable()
 export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
@@ -68,14 +68,21 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
       dap,
       cancellationToken,
       telemetryReporter,
-      params.useWebView
-        ? this.getWebviewPort(
-            params,
-            requirePageTarget(createTargetFilterForConfig(params)),
-            telemetryReporter,
-          )
-        : undefined,
+      params.useWebView ? this.getWebviewPort(params, telemetryReporter) : undefined,
     );
+  }
+
+  /**
+   * If there's a urlFilter specifies for Edge webviews, use that and ignore
+   * `about:blank`. It seems that webview2 always briefly navigates to
+   * `about:blank`, which would cause us to attach to all webviews even when
+   * we don't want to.
+   * @override
+   */
+  protected getFilterForTarget(params: IEdgeLaunchConfiguration) {
+    return params.useWebView && params.urlFilter
+      ? requirePageTarget(createTargetFilterForConfig(params))
+      : super.getFilterForTarget(params);
   }
 
   /**
@@ -83,7 +90,6 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
    */
   private async getWebviewPort(
     params: IEdgeLaunchConfiguration,
-    filter: (info: IWebViewConnectionInfo) => boolean,
     telemetryReporter: ITelemetryReporter,
   ): Promise<number> {
     const promisedPort = getDeferred<number>();
@@ -110,9 +116,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
         const dtPort = parseInt(dtString.split('\n').shift() || '');
         const port = params.port || dtPort;
 
-        if (!this.targetList().length && filter(info)) {
-          promisedPort.resolve(port);
-        }
+        promisedPort.resolve(port);
 
         // All web views started under our debugger are waiting to to be resumed.
         const wsURL = `ws://${params.address}:${port}/devtools/${info.type}/${info.id}`;
