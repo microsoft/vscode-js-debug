@@ -16,7 +16,7 @@ import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
 import { delay, getDeferred } from '../common/promiseUtil';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
-import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
@@ -630,6 +630,16 @@ export class SourceContainer {
     return this._uiLocations(uiLocation).filter(
       uiLocation => !inSource || uiLocation.source === inSource,
     );
+  }
+
+  /**
+   * Clears all sources in the container.
+   */
+  clear() {
+    this.scriptsById.clear();
+    if (this.sourceMapFactory instanceof CachingSourceMapFactory) {
+      this.sourceMapFactory.invalidateCache();
+    }
   }
 
   /**

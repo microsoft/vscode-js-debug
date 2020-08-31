@@ -1088,7 +1088,7 @@ export class Thread implements IVariableStoreDelegate {
 
   private _removeAllScripts(silent = false) {
     const scripts = Array.from(this._sourceContainer.scriptsById.values());
-    this._sourceContainer.scriptsById.clear();
+    this._sourceContainer.clear();
     this._scriptSources.clear();
     Promise.all(
       scripts.map(script =>
