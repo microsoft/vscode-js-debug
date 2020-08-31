@@ -200,7 +200,10 @@ function renderObjectPreview(
   }
 
   for (const entry of preview.entries || []) {
-    if (!propsBuilder.checkBudget()) break;
+    if (!propsBuilder.checkBudget()) {
+      break;
+    }
+
     if (entry.key) {
       const key = renderPreview(entry.key, Math.min(maxEntryPreviewLength, propsBuilder.budget()));
       const value = renderPreview(
@@ -213,6 +216,10 @@ function renderObjectPreview(
         renderPreview(entry.value, Math.min(maxEntryPreviewLength, propsBuilder.budget())),
       );
     }
+  }
+
+  if (preview.overflow) {
+    propsBuilder.appendEllipsis();
   }
 
   const text = propsBuilder.build();

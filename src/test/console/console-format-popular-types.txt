@@ -123,7 +123,7 @@ Evaluating: 'console.log([[function() {}]])'
 stdout> > (1) [Array(1)]
 
 Evaluating: 'console.log(objectWithNonEnumerables)'
-stdout> > {enumerableProp: 4, __underscoreEnumerableProp__: 5, __underscoreNonEnumerableProp: 2, abc: 3, getFoo: ƒ}
+stdout> > {enumerableProp: 4, __underscoreEnumerableProp__: 5, __underscoreNonEnumerableProp: 2, abc: 3, getFoo: ƒ, …}
 
 Evaluating: 'console.log([objectWithNonEnumerables])'
 stdout> > (1) [{…}]
@@ -147,7 +147,7 @@ Evaluating: 'console.log([Object])'
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(Object.prototype)'
-stdout> > {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ}
+stdout> > {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, …}
 
 Evaluating: 'console.log([Object.prototype])'
 stdout> > (1) [{…}]
@@ -243,4 +243,16 @@ stdout> > Boolean (true)
 
 Evaluating: 'console.log([new Boolean(true)])'
 stdout> > (1) [Boolean]
+
+Evaluating: 'console.log(new Set([1, 2, 3, 4]))'
+stdout> > Set(4) {1, 2, 3, 4}
+
+Evaluating: 'console.log([new Set([1, 2, 3, 4])])'
+stdout> > (1) [Set(4)]
+
+Evaluating: 'console.log(new Set([1, 2, 3, 4, 5, 6, 7, 8]))'
+stdout> > Set(8) {1, 2, 3, 4, 5, …}
+
+Evaluating: 'console.log([new Set([1, 2, 3, 4, 5, 6, 7, 8])])'
+stdout> > (1) [Set(8)]
 

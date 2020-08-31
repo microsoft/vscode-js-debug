@@ -54,6 +54,7 @@ export type TObject = {
 };
 export type ObjectPreview = TObject & {
   properties?: PropertyPreview[];
+  overflow: boolean;
   entries?: { key: AnyPreview; value: AnyPreview }[];
 };
 export type ObjectObj = TObject & { preview: ObjectPreview };
