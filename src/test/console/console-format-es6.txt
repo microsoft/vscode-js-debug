@@ -65,7 +65,7 @@ Evaluating: 'console.log([mapMap0])'
 stdout> > (1) [Map(1)]
 
 Evaluating: 'console.log(mapMap)'
-stdout> > Map(1) {Map(1) => WeakMap}
+stdout> > Map(1) {Map(1) {…} => WeakMap {…}}
 
 Evaluating: 'console.log([mapMap])'
 stdout> > (1) [Map(1)]
@@ -77,13 +77,13 @@ Evaluating: 'console.log([setSet0])'
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(setSet)'
-stdout> > Set(1) {WeakSet}
+stdout> > Set(1) {WeakSet {…}}
 
 Evaluating: 'console.log([setSet])'
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(bigmap)'
-stdout> > Map(6) { from str  =>  to str , undefined => undefined, null => null, 42 => 42, {foo: 'from'} => {foo: 'to'}}
+stdout> > Map(6) { from str  =>  to str , undefined => undefined, null => null, 42 => 42, {foo: 'from'} => {foo: 'to'}, …}
 
 Evaluating: 'console.log([bigmap])'
 stdout> > (1) [Map(6)]
