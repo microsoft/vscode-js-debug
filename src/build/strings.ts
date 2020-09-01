@@ -127,7 +127,7 @@ const strings = {
   'debug.terminal.program.description':
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
-  'debug.terminal.welcome': `[Node.js Debug Terminal](command:${Commands.CreateDebuggerTerminal})\n\nYou can use the Node.js Debug Terminal to instantly debug JavaScript you run from the command line.`,
+  'debug.terminal.welcome': `[JavaScript Debug Terminal](command:${Commands.CreateDebuggerTerminal})\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.`,
   'debug.terminal.toggleAuto': 'Toggle Terminal Node.js Auto Attach',
   'debug.terminal.attach': 'Attach to Node.js Terminal Process',
 
@@ -273,7 +273,7 @@ const strings = {
   'configuration.autoAttachMode':
     'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. A Node process launched with the `--inspect` flag will always be attached to, regardless of this setting.',
   'configuration.autoAttachSmartPatterns':
-    'Glob patterns applied to the entrypoint script to determine whether we debug it in smart `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
+    'If one of these glob patterns matches the Node.jsentrypoint script in smart `#debug.javascript.autoAttachFilter#` mode, we will debug that process. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
   'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
   'configuration.autoAttachMode.smart':
     "Auto attach when running scripts that aren't in a node_modules folder.",
