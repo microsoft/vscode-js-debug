@@ -271,7 +271,7 @@ const strings = {
   'configuration.autoExpandGetters':
     'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
   'configuration.autoAttachMode':
-    'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. Regardless of the setting here, if processes launched with the `--inspect` flag will always be debugged.',
+    'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. A Node process launched with the `--inspect` flag will always be attached to, regardless of this setting.',
   'configuration.autoAttachSmartPatterns':
     'Glob patterns applied to the entrypoint script to determine whether we debug it in smart `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
   'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
