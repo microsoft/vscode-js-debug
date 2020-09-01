@@ -1083,7 +1083,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   [Configuration.AutoAttachMode]: {
     type: 'string',
     default: AutoAttachMode.Smart,
-    enum: [AutoAttachMode.Always, AutoAttachMode.Smart, AutoAttachMode.Explicit],
+    enum: [AutoAttachMode.Always, AutoAttachMode.Smart, AutoAttachMode.OnlyWithFlag],
     enumDescriptions: [
       refString('configuration.autoAttachMode.always'),
       refString('configuration.autoAttachMode.smart'),

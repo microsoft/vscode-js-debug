@@ -151,7 +151,7 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
       return true;
     case AutoAttachMode.Smart:
       return shouldSmartAttach(env);
-    case AutoAttachMode.Explicit:
+    case AutoAttachMode.OnlyWithFlag:
     default:
       return false;
   }
