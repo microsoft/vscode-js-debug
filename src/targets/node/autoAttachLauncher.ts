@@ -24,6 +24,7 @@ import {
   IBootloaderEnvironment,
   variableDelimiter,
 } from './bootloader/environment';
+import { bootloaderDefaultPath, watchdogPath } from './bundlePaths';
 import {
   Capability,
   INodeBinaryProvider,
@@ -33,7 +34,6 @@ import {
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
-import { bootloaderDefaultPath, watchdogPath } from './bundlePaths';
 import { WatchDog } from './watchdogSpawn';
 
 /**
@@ -94,11 +94,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    * Launches the program.
    */
   protected async launchProgram(runData: IRunData<ITerminalLaunchConfiguration>): Promise<void> {
-    const variables = this.extensionContext.environmentVariableCollection;
-    if (!variables.get('VSCODE_INSPECTOR_OPTIONS' as keyof IBootloaderEnvironment)) {
-      await this.applyInspectorOptions(variables, runData);
-    }
-
+    await this.applyInspectorOptions(this.extensionContext.environmentVariableCollection, runData);
     this.program = new StubProgram();
     this.program.stopped.then(data => this.onProgramTerminated(data));
   }
@@ -121,7 +117,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     const autoAttachMode = readConfig(vscode.workspace, Configuration.AutoAttachMode);
     const debugVars = await this.resolveEnvironment(runData, binary, {
       deferredMode: true,
-      inspectorIpc: runData.serverAddress + '.deferred',
+      inspectorIpc: this.deferredSocketName ?? runData.serverAddress + '.deferred',
       autoAttachMode,
       aaPatterns:
         autoAttachMode === AutoAttachMode.Smart

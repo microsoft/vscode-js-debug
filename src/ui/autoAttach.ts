@@ -1,18 +1,18 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { promises as fs } from 'fs';
-import { registerCommand, Commands } from '../common/contributionUtils';
+import { Commands, registerCommand } from '../common/contributionUtils';
+import { ProxyLogger } from '../common/logging/proxyLogger';
+import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import {
   AutoAttachLauncher,
   AutoAttachPreconditionFailed,
 } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
-import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
-import { ProxyLogger } from '../common/logging/proxyLogger';
 
 const localize = nls.loadMessageBundle();
 

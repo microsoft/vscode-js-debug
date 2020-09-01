@@ -4,9 +4,6 @@
 import { Commands } from '../common/contributionUtils';
 import { sortKeys } from '../common/objUtils';
 
-const autoAttachToggleNote =
-  '\n\nNote: you may need to toggle Auto Attach to "disabled" and then "on" again for changes in this setting to take effect';
-
 const strings = {
   'attach.node.process': 'Attach to Node Process (preview)',
   'extension.description': 'An extension for debugging Node.js programs and Chrome.',
@@ -274,11 +271,9 @@ const strings = {
   'configuration.autoExpandGetters':
     'Configures whether property getters will be expanded automatically. If this is false, the getter will appear as `get propertyName` and will only be evaluated when you click on it.',
   'configuration.autoAttachMode':
-    'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. Regardless of the setting here, if processes launched with the `--inspect` flag will always be debugged.' +
-    autoAttachToggleNote,
+    'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. Regardless of the setting here, if processes launched with the `--inspect` flag will always be debugged.',
   'configuration.autoAttachSmartPatterns':
-    'Glob patterns applied to the entrypoint script to determine whether we debug it in smart `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.' +
-    autoAttachToggleNote,
+    'Glob patterns applied to the entrypoint script to determine whether we debug it in smart `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
   'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
   'configuration.autoAttachMode.smart':
     "Auto attach when running scripts that aren't in a node_modules folder.",
