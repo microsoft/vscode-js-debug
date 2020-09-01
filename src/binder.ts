@@ -14,7 +14,7 @@ import { CancellationTokenSource } from './common/cancellation';
 import { EventEmitter, IDisposable } from './common/events';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
 import { mapValues } from './common/objUtils';
-import { delay } from './common/promiseUtil';
+import { delay, getDeferred, IDeferred } from './common/promiseUtil';
 import * as urlUtils from './common/urlUtils';
 import {
   AnyLaunchConfiguration,
@@ -45,10 +45,12 @@ export interface IBinderDelegate {
   releaseDap(target: ITarget): void;
 }
 
+type ThreadData = { thread: Thread; debugAdapter: DebugAdapter };
+
 export class Binder implements IDisposable {
   private _delegate: IBinderDelegate;
   private _disposables: IDisposable[];
-  private _threads = new Map<ITarget, { thread: Thread; debugAdapter: DebugAdapter }>();
+  private _threads = new Map<ITarget, IDeferred<ThreadData>>();
   private _terminationCount = 0;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
@@ -349,7 +351,7 @@ export class Binder implements IDisposable {
     return result;
   }
 
-  public async attach(target: ITarget, launcher: ILauncher) {
+  public async attach(target: ITarget, threadData: IDeferred<ThreadData>, launcher: ILauncher) {
     if (!this._launchParams) {
       throw new Error('Cannot launch before params have been set');
     }
@@ -379,10 +381,11 @@ export class Binder implements IDisposable {
     // todo: move scriptskipper into services collection
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
     const thread = debugAdapter.createThread(cdp, target);
-    this._threads.set(target, { thread, debugAdapter });
+
     const startThread = async () => {
       await debugAdapter.launchBlocker();
       cdp.Runtime.runIfWaitingForDebugger({});
+      threadData.resolve({ thread, debugAdapter });
       return {};
     };
     if (await this._delegate.initAdapter(debugAdapter, target, launcher)) {
@@ -447,9 +450,10 @@ export class Binder implements IDisposable {
         continue;
       }
 
-      const thread = this._threads.get(target);
-      if (!thread) {
-        this.attach(target, launcher);
+      if (!this._threads.has(target)) {
+        const threadData = getDeferred<ThreadData>();
+        this._threads.set(target, threadData);
+        this.attach(target, threadData, launcher);
       }
     }
   }
@@ -465,9 +469,10 @@ export class Binder implements IDisposable {
     const data = this._threads.get(target);
     if (!data) return;
     this._threads.delete(target);
-    await data.thread.dispose();
-    data.debugAdapter.dap.terminated(terminateArgs);
-    data.debugAdapter.dispose();
+    const threadData = await data.promise;
+    await threadData.thread.dispose();
+    threadData.debugAdapter.dap.terminated(terminateArgs);
+    threadData.debugAdapter.dispose();
     this._delegate.releaseDap(target);
   }
 }
