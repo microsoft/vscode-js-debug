@@ -2,15 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SessionManager, ISessionLauncher, IDebugSessionLike, Session } from './sessionManager';
-import { IDisposable } from './common/disposable';
-import * as net from 'net';
+import { randomBytes } from 'crypto';
 import { Container } from 'inversify';
-import { StreamDapTransport, IDapTransport } from './dap/transport';
-import { IPseudoAttachConfiguration } from './configuration';
-import { getDeferred, IDeferred } from './common/promiseUtil';
-import DapConnection from './dap/connection';
+import * as net from 'net';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { Readable, Writable } from 'stream';
+import { IDisposable } from './common/disposable';
+import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IPseudoAttachConfiguration } from './configuration';
+import DapConnection from './dap/connection';
+import { IDapTransport, StreamDapTransport } from './dap/transport';
+import { IDebugSessionLike, ISessionLauncher, Session, SessionManager } from './sessionManager';
 
 interface IDebugServerCreateResult {
   server: net.Server;
@@ -79,13 +82,19 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
    * @param debugSession The IDE-specific debug session
    * @returns The newly created debug server and a promise which resolves to the DapConnection associated with the session
    */
-  public createChildDebugServer(debugSession: T): IDebugServerCreateResult {
-    return this.innerCreateServer(debugSession, transport =>
-      this.sessionManager.createNewChildSession(
-        debugSession,
-        (debugSession.configuration as IPseudoAttachConfiguration).__pendingTargetId,
-        transport,
-      ),
+  public createChildDebugServer(
+    debugSession: T,
+    debugServerPort?: number,
+  ): IDebugServerCreateResult {
+    return this.innerCreateServer(
+      debugSession,
+      transport =>
+        this.sessionManager.createNewChildSession(
+          debugSession,
+          (debugSession.configuration as IPseudoAttachConfiguration).__pendingTargetId,
+          transport,
+        ),
+      debugServerPort,
     );
   }
 
@@ -101,9 +110,18 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
       deferredConnection.resolve(session.connection);
     });
     debugServer.on('error', deferredConnection.reject);
-    debugServer.listen(debugServerPort || 0);
-    this.servers.set(debugSession.id, debugServer);
 
+    if (debugServerPort !== undefined) {
+      debugServer.listen(debugServerPort);
+    } else {
+      const pipe = join(
+        process.platform === 'win32' ? '\\\\.\\pipe\\' : tmpdir(),
+        `js-debug-dap.${randomBytes(8).toString('hex')}.sock`,
+      );
+      debugServer.listen(pipe);
+    }
+
+    this.servers.set(debugSession.id, debugServer);
     return { server: debugServer, connectionPromise: deferredConnection.promise };
   }
 

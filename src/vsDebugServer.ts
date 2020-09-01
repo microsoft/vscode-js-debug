@@ -88,7 +88,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
   }
 
   launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
-    const result = this.sessionServer.createRootDebugServer(session, debugServerPort);
+    const result = this.sessionServer.createRootDebugServer(session, debugServerPort ?? 0);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     console.log((result.server.address() as net.AddressInfo).port.toString());
   }
@@ -106,7 +106,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
       deferredConnection.promise,
       childAttachConfig,
     );
-    const result = this.sessionServer.createChildDebugServer(session);
+    const result = this.sessionServer.createChildDebugServer(session, 0);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     childAttachConfig[
       '__jsDebugChildServer'
