@@ -8,7 +8,7 @@ import { basename, join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { DebugType } from '../../common/contributionUtils';
-import { existsInjected } from '../../common/fsUtils';
+import { existsWithoutDeref } from '../../common/fsUtils';
 import {
   AnyChromiumConfiguration,
   AnyChromiumLaunchConfiguration,
@@ -148,7 +148,12 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
             cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
           );
 
-    if (await existsInjected(this.fs, join(userDataDir, 'lockfile'))) {
+    const lockfile =
+      process.platform === 'win32'
+        ? join(userDataDir, 'lockfile')
+        : join(userDataDir, 'SingletonLock');
+
+    if (await existsWithoutDeref(this.fs, lockfile)) {
       const debugAnyway = localize('existingBrowser.debugAnyway', 'Debug Anyway');
       const result = await vscode.window.showErrorMessage(
         localize(

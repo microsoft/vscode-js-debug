@@ -23,6 +23,7 @@ export async function canAccess({ access }: FsPromises, file: string | undefined
     return false;
   }
 }
+
 /**
  * Returns whether the user can access the given file path.
  */
@@ -36,6 +37,24 @@ export async function existsInjected(
 
   try {
     return await stat(file);
+  } catch (e) {
+    return;
+  }
+}
+
+/**
+ * Returns the file path exists without derefencing symblinks.
+ */
+export async function existsWithoutDeref(
+  { lstat }: FsPromises,
+  file: string | undefined | null,
+): Promise<fs.Stats | undefined> {
+  if (!file) {
+    return;
+  }
+
+  try {
+    return await lstat(file);
   } catch (e) {
     return;
   }
