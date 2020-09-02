@@ -273,7 +273,7 @@ const strings = {
   'configuration.autoAttachMode':
     'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. A Node process launched with the `--inspect` flag will always be attached to, regardless of this setting.',
   'configuration.autoAttachSmartPatterns':
-    'If one of these glob patterns matches the Node.jsentrypoint script in smart `#debug.javascript.autoAttachFilter#` mode, we will debug that process. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
+    'If one of these glob patterns matches the Node.js entrypoint script in smart `#debug.javascript.autoAttachFilter#` mode, we will debug that process. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners.',
   'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
   'configuration.autoAttachMode.smart':
     "Auto attach when running scripts that aren't in a node_modules folder.",
