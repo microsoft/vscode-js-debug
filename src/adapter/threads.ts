@@ -1441,31 +1441,43 @@ export class Thread implements IVariableStoreDelegate {
    * Replaces locations in the stack trace with their source locations.
    */
   public async replacePathsInStackTrace(trace: string): Promise<string> {
-    let processed = trace;
+    // Either match lines like
+    // "    at fulfilled (/Users/roblou/code/testapp-node2/out/app.js:5:58)"
+    // or
+    // "    at /Users/roblou/code/testapp-node2/out/app.js:60:23"
+    // and replace the path in them
+    const re1 = /^(\W*at .*\()(.*):(\d+):(\d+)(\))$/;
+    const re2 = /^(\W*at )(.*):(\d+):(\d+)$/;
 
-    const re = /^(\W*at .*)\((.*):(\d+):(\d+)\)$/gm;
-    for (let match = re.exec(trace); match; match = re.exec(trace)) {
-      const [text, prefix, url, line, column] = match;
-      const compiledSource =
-        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(url)) ||
-        this._sourceContainer.getSourceByOriginalUrl(url);
-      if (!compiledSource) {
-        continue;
-      }
+    const lines = await Promise.all(
+      trace.split('\n').map(line => {
+        const match = re1.exec(line) || re2.exec(line);
+        if (!match) {
+          return line;
+        }
 
-      const { source, lineNumber, columnNumber } = await this._sourceContainer.preferredUiLocation({
-        columnNumber: Number(column),
-        lineNumber: Number(line),
-        source: compiledSource,
-      });
+        const [, prefix, url, lineNo, columnNo, suffix = ''] = match;
+        const compiledSource =
+          this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(url)) ||
+          this._sourceContainer.getSourceByOriginalUrl(url);
+        if (!compiledSource) {
+          return line;
+        }
 
-      processed = processed.replace(
-        text,
-        `${prefix}(${source.absolutePath()}:${lineNumber}:${columnNumber})`,
-      );
-    }
+        return this._sourceContainer
+          .preferredUiLocation({
+            columnNumber: Number(columnNo),
+            lineNumber: Number(lineNo),
+            source: compiledSource,
+          })
+          .then(
+            ({ source, lineNumber, columnNumber }) =>
+              `${prefix}${source.absolutePath()}:${lineNumber}:${columnNumber}${suffix}`,
+          );
+      }),
+    );
 
-    return processed;
+    return lines.join('\n');
   }
 }
 

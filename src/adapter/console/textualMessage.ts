@@ -81,7 +81,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     includeStackInVariables: boolean,
   ) {
-    if (args[0].subtype === 'error') {
+    if (args.some(a => a.subtype === 'error')) {
       await this.getUiLocation(thread); // ensure the source is loaded before decoding stack
       output = await thread.replacePathsInStackTrace(output);
     }
