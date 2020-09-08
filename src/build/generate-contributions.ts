@@ -1028,11 +1028,6 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: 'top',
     description: refString('configuration.npmScriptLensLocation'),
   },
-  [Configuration.WarnOnLongPrediction]: {
-    type: 'boolean',
-    default: true,
-    description: refString('configuration.warnOnLongPrediction'),
-  },
   [Configuration.TerminalDebugConfig]: {
     type: 'object',
     description: refString('configuration.terminalOptions'),

@@ -253,8 +253,6 @@ const strings = {
     'Automatically step through generated code that cannot be mapped back to the original source.',
   'errors.timeout': '{0}: timeout after {1}ms',
 
-  'configuration.warnOnLongPrediction':
-    'Whether a loading prompt should be shown if breakpoint prediction takes a while.',
   'configuration.npmScriptLensLocation':
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':

@@ -97,7 +97,6 @@ export const enum AutoAttachMode {
 export const enum Configuration {
   UsePreviewDebugger = 'debug.javascript.usePreview',
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
-  WarnOnLongPrediction = 'debug.javascript.warnOnLongPrediction',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
   PickAndAttachDebugOptions = 'debug.javascript.pickAndAttachOptions',
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
@@ -117,7 +116,6 @@ export type DebugByLinkState = 'on' | 'off' | 'always';
 export interface IConfigurationTypes {
   [Configuration.UsePreviewDebugger]: boolean;
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
-  [Configuration.WarnOnLongPrediction]: boolean;
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
   [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
   [Configuration.SuggestPrettyPrinting]: boolean;

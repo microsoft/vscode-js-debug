@@ -18,7 +18,7 @@ import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { toggleOnExperiment } from './ui/experimentEnlist';
-import { registerLongBreakpointUI } from './ui/longPredictionUI';
+import { LongPredictionUI } from './ui/longPredictionUI';
 import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
@@ -87,7 +87,6 @@ export function activate(context: vscode.ExtensionContext) {
   debugSessionTracker.attach();
 
   context.subscriptions.push(PrettyPrintTrackerFactory.register(debugSessionTracker));
-  registerLongBreakpointUI(context);
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(
@@ -99,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
   registerRevealPage(context, debugSessionTracker);
+  services.get(LongPredictionUI).register(context);
   services.get(DebugLinkUi).register(context);
   services.get(CascadeTerminationTracker).register(context);
 }

@@ -2,58 +2,68 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
+import { join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Configuration, readConfig, writeConfig } from '../common/contributionUtils';
-import { join } from 'path';
+import { ExtensionContext } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
-async function promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
-  if (!readConfig(vscode.workspace, Configuration.WarnOnLongPrediction)) {
-    return;
-  }
+const omitLongPredictionKey = 'omitLongPredictions';
 
-  const message = localize(
-    'longPredictionWarning.message',
-    "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
-  );
-  const openLaunch = localize('longPredictionWarning.open', 'Open launch.json');
-  const dontShow = localize('longPredictionWarning.disable', "Don't show again");
-  const result = await vscode.window.showWarningMessage(message, dontShow, openLaunch);
+@injectable()
+export class LongPredictionUI {
+  constructor(@inject(ExtensionContext) private readonly context: vscode.ExtensionContext) {}
 
-  if (result === dontShow) {
-    await writeConfig(vscode.workspace, Configuration.WarnOnLongPrediction, false);
-    return;
-  }
-
-  if (result !== openLaunch) {
-    return;
-  }
-
-  if (!workspaceFolder) {
-    workspaceFolder = await vscode.window.showWorkspaceFolderPick();
-  }
-
-  if (!workspaceFolder) {
-    await vscode.window.showWarningMessage(
-      localize('longPredictionWarning.noFolder', 'No workspace folder open.'),
+  /**
+   * Registers the link UI for the extension.
+   */
+  public register(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+      vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+        if (event.event === 'longPrediction') {
+          this.promptLongBreakpoint(event.session.workspaceFolder);
+        }
+      }),
     );
-    return;
   }
+  private async promptLongBreakpoint(workspaceFolder?: vscode.WorkspaceFolder) {
+    if (this.context.workspaceState.get(omitLongPredictionKey)) {
+      return;
+    }
 
-  const doc = await vscode.workspace.openTextDocument(
-    join(workspaceFolder.uri.fsPath, '.vscode', 'launch.json'),
-  );
-  await vscode.window.showTextDocument(doc);
-}
+    const message = localize(
+      'longPredictionWarning.message',
+      "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
+    );
+    const openLaunch = localize('longPredictionWarning.open', 'Open launch.json');
+    const dontShow = localize('longPredictionWarning.disable', "Don't show again");
+    const result = await vscode.window.showWarningMessage(message, dontShow, openLaunch);
 
-export function registerLongBreakpointUI(context: vscode.ExtensionContext) {
-  context.subscriptions.push(
-    vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
-      if (event.event === 'longPrediction') {
-        promptLongBreakpoint(event.session.workspaceFolder);
-      }
-    }),
-  );
+    if (result === dontShow) {
+      this.context.workspaceState.update(omitLongPredictionKey, true);
+      return;
+    }
+
+    if (result !== openLaunch) {
+      return;
+    }
+
+    if (!workspaceFolder) {
+      workspaceFolder = await vscode.window.showWorkspaceFolderPick();
+    }
+
+    if (!workspaceFolder) {
+      await vscode.window.showWarningMessage(
+        localize('longPredictionWarning.noFolder', 'No workspace folder open.'),
+      );
+      return;
+    }
+
+    const doc = await vscode.workspace.openTextDocument(
+      join(workspaceFolder.uri.fsPath, '.vscode', 'launch.json'),
+    );
+    await vscode.window.showTextDocument(doc);
+  }
 }
