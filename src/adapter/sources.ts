@@ -206,8 +206,16 @@ export class Source {
     return this._sourceReference;
   }
 
-  content(): Promise<string | undefined> {
-    return this._contentGetter();
+  async content(): Promise<string | undefined> {
+    let content = await this._contentGetter();
+
+    // pad for the inline source offset, see
+    // https://github.com/microsoft/vscode-js-debug/issues/736
+    if (this.inlineScriptOffset?.lineOffset) {
+      content = '\n'.repeat(this.inlineScriptOffset.lineOffset) + content;
+    }
+
+    return content;
   }
 
   mimeType(): string {
