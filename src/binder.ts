@@ -27,7 +27,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, IInitializeParams, ExtensionLocation } from './ioc-extras';
+import { disposeContainer, ExtensionLocation, IInitializeParams } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
@@ -285,11 +285,11 @@ export class Binder implements IDisposable {
 
     const listener = launcher.onTerminated(result => {
       listener.dispose();
-      this._detachOrphanThreads(this.targetList(), { restart: result.restart });
+      const detach = this._detachOrphanThreads(this.targetList(), { restart: result.restart });
       --this._terminationCount;
       this._onTargetListChangedEmitter.fire();
       if (!this._terminationCount) {
-        this._dap.then(dap => dap.terminated({ restart: result.restart }));
+        detach.then(() => this._dap).then(dap => dap.terminated({ restart: result.restart }));
       }
     });
 
@@ -458,11 +458,15 @@ export class Binder implements IDisposable {
     }
   }
 
-  _detachOrphanThreads(targets: ITarget[], terminateArgs?: Dap.TerminatedEventParams) {
-    const set = new Set(targets);
-    for (const target of this._threads.keys()) {
-      if (!set.has(target)) this._releaseTarget(target, terminateArgs);
-    }
+  private async _detachOrphanThreads(
+    targets: ITarget[],
+    terminateArgs?: Dap.TerminatedEventParams,
+  ) {
+    await Promise.all(
+      [...this._threads.keys()]
+        .filter(target => !targets.includes(target))
+        .map(target => this._releaseTarget(target, terminateArgs)),
+    );
   }
 
   async _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
