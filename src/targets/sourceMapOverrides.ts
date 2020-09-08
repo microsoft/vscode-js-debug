@@ -41,6 +41,11 @@ export class SourceMapOverrides {
     // Iterate the key/vals, only apply the first one that matches.
     for (const leftPatternRaw of sortedOverrideKeys) {
       const rightPattern = sourceMapOverrides[leftPatternRaw];
+      if (!rightPattern.includes('*') && /\$[0-9'`&]/.test(rightPattern)) {
+        this.replacers.push([new RegExp(`^${leftPatternRaw}$`, 'i'), rightPattern]);
+        continue;
+      }
+
       const leftPattern = forceForwardSlashes(leftPatternRaw);
       const entryStr = `"${leftPattern}": "${rightPattern}"`;
       const capturedGroups =
@@ -70,7 +75,10 @@ export class SourceMapOverrides {
         reSource += escapeRegexSpecialChars(leftPattern.slice(leftIndex, next?.index), '/');
 
         if (!next) {
-          this.replacers.push([new RegExp(reSource + '$', 'i'), rightPattern]);
+          this.replacers.push([
+            new RegExp(reSource + '$', 'i'),
+            rightPattern.replace(/\$/g, '$$$$').replace(/\*/, '$1'),
+          ]);
           break;
         }
 
@@ -94,21 +102,15 @@ export class SourceMapOverrides {
   public apply(sourcePath: string): string {
     const sourcePathWithForwardSlashes = forceForwardSlashes(sourcePath);
     for (const [re, replacement] of this.replacers) {
-      const parts = re.exec(sourcePathWithForwardSlashes);
-      if (!parts) {
-        continue;
+      const mappedPath = sourcePathWithForwardSlashes.replace(re, replacement);
+      if (mappedPath !== sourcePathWithForwardSlashes) {
+        this.logger.verbose(
+          LogTag.RuntimeSourceMap,
+          `SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${re.toString()}`,
+        );
+
+        return properJoin(mappedPath); // normalization, see #401
       }
-
-      // Grab the value of the wildcard from the match, replace the wildcard in the
-      // replacement pattern, and return the result.
-      const mappedPath = replacement.replace('*', parts[1]);
-
-      this.logger.verbose(
-        LogTag.RuntimeSourceMap,
-        `SourceMap: mapping ${sourcePath} => ${mappedPath}, via sourceMapPathOverrides entry - ${re.toString()}`,
-      );
-
-      return properJoin(mappedPath); // normalization, see #401
     }
 
     return sourcePath;

@@ -4,120 +4,14 @@
 
 import { expect } from 'chai';
 import * as path from 'path';
-import { ILogger } from '../../common/logging';
 import { Logger } from '../../common/logging/logger';
 import { fixDriveLetter } from '../../common/pathUtils';
 import {
   defaultPathMappingResolver,
   getComputedSourceRoot,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
-import { baseDefaults } from '../../configuration';
-import { SourceMapOverrides } from '../../targets/sourceMapOverrides';
 
 describe('SourceMapOverrides', () => {
-  let logger: ILogger;
-  before(async () => (logger = await Logger.test()));
-
-  describe('functionality', () => {
-    it('replaces simple paths', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/b/*' }, logger);
-      expect(r.apply('/a/foo/bar')).to.equal('/b/foo/bar');
-      expect(r.apply('/q/foo/bar')).to.equal('/q/foo/bar');
-    });
-
-    it('replaces paths without groups on the right', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/b' }, logger);
-      expect(r.apply('/a/foo/bar')).to.equal('/b');
-    });
-
-    it('replaces paths without groups on the left or right', () => {
-      const r = new SourceMapOverrides({ '/a': '/b' }, logger);
-      expect(r.apply('/a/foo/bar')).to.equal('/a/foo/bar');
-      expect(r.apply('/a')).to.equal('/b');
-    });
-
-    it('handles non-capturing groups', () => {
-      const r = new SourceMapOverrides({ '/a/?:*/*': '/b/*' }, logger);
-      expect(r.apply('/a/foo/bar')).to.equal('/b/bar');
-    });
-
-    it('applies longer replacements first', () => {
-      const r = new SourceMapOverrides({ '/a/*': '/c', '/a/foo': '/b' }, logger);
-      expect(r.apply('/a/foo')).to.equal('/b');
-    });
-
-    it('normalizes slashes in returned paths (issue #401)', () => {
-      const r = new SourceMapOverrides(
-        {
-          'webpack:/*': '${webRoot}/*',
-          '/./*': '${webRoot}/*',
-          '/src/*': '${webRoot}/*',
-          '/*': '*',
-          '/./~/*': '${webRoot}/node_modules/*',
-        },
-        logger,
-      );
-
-      expect(r.apply('webpack:///src/app/app.component.ts')).to.equal(
-        path.join('${webRoot}/src/app/app.component.ts'),
-      );
-    });
-
-    it('handles meteor paths (issue #491)', () => {
-      const r = new SourceMapOverrides(
-        {
-          'meteor:/💻app/*': '${webRoot}/*',
-          'meteor://💻app/*': '${webRoot}/*',
-          '~/dev/booker-meteor/meteor:/💻app/*': '${webRoot}/*',
-          'packages/meteor:/💻app/*': '${workspaceFolder}/.meteor/packages/*',
-        },
-        logger,
-      );
-
-      expect(r.apply('meteor://💻app/packages/base64/base64.js')).to.equal(
-        path.join('${webRoot}/packages/base64/base64.js'),
-      );
-    });
-
-    it('normalizes backslashes given in patterns (#604)', () => {
-      const r = new SourceMapOverrides(
-        {
-          'H:\\cv-measure\\measure-tools/test-app/measure-tools/src/*':
-            'H:\\cv-measure\\measure-tools/measure-tools/src/*',
-        },
-        logger,
-      );
-
-      expect(
-        r.apply('H:/cv-measure/measure-tools/test-app/measure-tools/src/api/Measurement.ts'),
-      ).to.equal(
-        path.win32.join('H:/cv-measure/measure-tools/measure-tools/src/api/Measurement.ts'),
-      );
-    });
-  });
-
-  describe('defaults', () => {
-    let r: SourceMapOverrides;
-    before(() => (r = new SourceMapOverrides(baseDefaults.sourceMapPathOverrides, logger)));
-
-    it('does not touch already valid paths', () => {
-      expect(r.apply('https://contoso.com/foo.ts')).to.equal('https://contoso.com/foo.ts');
-      expect(r.apply('file:///dev/foo.ts')).to.equal('file:///dev/foo.ts');
-    });
-
-    it('resolves webpack paths', () => {
-      expect(r.apply('webpack:///src/index.ts')).to.equal(
-        path.join('${workspaceFolder}/src/index.ts'),
-      );
-    });
-
-    it('replaces webpack namespaces', () => {
-      expect(r.apply('webpack://lib/src/index.ts')).to.equal(
-        path.join('${workspaceFolder}/src/index.ts'),
-      );
-    });
-  });
-
   describe('getComputedSourceRoot()', () => {
     const resolve = (...parts: string[]) => fixDriveLetter(path.resolve(...parts));
     const genPath = resolve('/project/webroot/code/script.js');
@@ -133,7 +27,7 @@ describe('SourceMapOverrides', () => {
           genPath,
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(ABS_SOURCEROOT);
     });
@@ -145,14 +39,20 @@ describe('SourceMapOverrides', () => {
           genPath,
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/src'));
     });
 
     it('handles /src style without matching pathMapping', async () => {
       expect(
-        await getComputedSourceRoot('/foo/bar', genPath, {}, defaultPathMappingResolver, logger),
+        await getComputedSourceRoot(
+          '/foo/bar',
+          genPath,
+          {},
+          defaultPathMappingResolver,
+          Logger.null,
+        ),
       ).to.equal('/foo/bar');
     });
 
@@ -163,7 +63,7 @@ describe('SourceMapOverrides', () => {
           genPath,
           {},
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal('c:\\foo\\bar');
     });
@@ -175,7 +75,7 @@ describe('SourceMapOverrides', () => {
           genPath,
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(ABS_SOURCEROOT);
     });
@@ -187,7 +87,7 @@ describe('SourceMapOverrides', () => {
           genPath,
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/code/src'));
     });
@@ -199,20 +99,32 @@ describe('SourceMapOverrides', () => {
           GEN_URL,
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/src'));
     });
 
     it('when no sourceRoot specified and runtime script is on disk, uses the runtime script dirname', async () => {
       expect(
-        await getComputedSourceRoot('', genPath, PATH_MAPPING, defaultPathMappingResolver, logger),
+        await getComputedSourceRoot(
+          '',
+          genPath,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          Logger.null,
+        ),
       ).to.equal(resolve('/project/webroot/code'));
     });
 
     it('when no sourceRoot specified and runtime script is not on disk, uses the runtime script dirname', async () => {
       expect(
-        await getComputedSourceRoot('', GEN_URL, PATH_MAPPING, defaultPathMappingResolver, logger),
+        await getComputedSourceRoot(
+          '',
+          GEN_URL,
+          PATH_MAPPING,
+          defaultPathMappingResolver,
+          Logger.null,
+        ),
       ).to.equal(resolve('/project/webroot/code'));
     });
 
@@ -223,7 +135,7 @@ describe('SourceMapOverrides', () => {
           'eval://123',
           PATH_MAPPING,
           defaultPathMappingResolver,
-          logger,
+          Logger.null,
         ),
       ).to.equal(resolve(WEBROOT));
     });
