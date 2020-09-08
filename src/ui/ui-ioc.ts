@@ -4,6 +4,9 @@
 
 import { Container } from 'inversify';
 import { trackDispose } from '../ioc-extras';
+import { CascadeTerminationTracker } from './cascadeTerminateTracker';
+import { IConfigRefresher } from './configRefresh';
+import { VsCodeConfigRefresher } from './configRefresh/implementation';
 import {
   allConfigurationProviders,
   allConfigurationResolvers,
@@ -18,7 +21,6 @@ import { ManualTerminationConditionFactory } from './profiling/manualTermination
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { UiProfileManager } from './profiling/uiProfileManager';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-import { CascadeTerminationTracker } from './cascadeTerminateTracker';
 
 export const registerUiComponents = (container: Container) => {
   allConfigurationResolvers.forEach(cls => {
@@ -38,6 +40,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DebugLinkUi).toSelf().inSingletonScope();
   container.bind(CascadeTerminationTracker).toSelf().inSingletonScope();
+  container.bind(IConfigRefresher).to(VsCodeConfigRefresher).inSingletonScope();
 
   container
     .bind(ITerminationConditionFactory)

@@ -8,6 +8,7 @@
       "type": "node",
       "request": "launch",
       "trace": true,
+      "env": {"GREET": "bye"},
       "name": "[Node] Launch program",
       "program": "${workspaceFolder}/main.js",
     },

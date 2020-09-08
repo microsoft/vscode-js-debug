@@ -27,7 +27,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, IInitializeParams, ExtensionLocation } from './ioc-extras';
+import { disposeContainer, ExtensionLocation, IInitializeParams } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
@@ -35,12 +35,12 @@ import {
   filterErrorsReportedToTelemetry,
   installUnhandledErrorReporter,
 } from './telemetry/unhandledErrorReporter';
+import { IConfigRefresher } from './ui/configRefresh';
 
 const localize = nls.loadMessageBundle();
 
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
-  // Returns whether we should disable child session treatment.
   initAdapter(debugAdapter: DebugAdapter, target: ITarget, launcher: ILauncher): Promise<boolean>;
   releaseDap(target: ITarget): void;
 }
@@ -266,7 +266,16 @@ export class Binder implements IDisposable {
   }
 
   async _restart() {
-    await Promise.all([...this.getLaunchers()].map(l => l.restart()));
+    let config = this._launchParams;
+    if (this._launchParams && this._rootServices.isBound(IConfigRefresher)) {
+      const refresher = this._rootServices.get<IConfigRefresher>(IConfigRefresher);
+      const newConfig = await refresher.refresh(this._launchParams);
+      if (newConfig) {
+        config = newConfig;
+      }
+    }
+
+    await Promise.all([...this.getLaunchers()].map(l => l.restart(config)));
   }
 
   async _launch(

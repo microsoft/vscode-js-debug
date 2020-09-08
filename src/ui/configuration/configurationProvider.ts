@@ -18,7 +18,7 @@ export interface IDebugConfigurationResolver {
   /**
    * @see DebugConfigurationProvider.resolveDebugConfiguration
    */
-  resolveDebugConfiguration: Required<
+  resolveDebugConfiguration: NonNullable<
     vscode.DebugConfigurationProvider['resolveDebugConfiguration']
   >;
 

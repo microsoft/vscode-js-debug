@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const micromatch = require('micromatch');
 
+console.log(process.env.GREET);
+
 function doBusyWork() {
   let n = 0;
   for (let i = 0; i < 10; i++) {

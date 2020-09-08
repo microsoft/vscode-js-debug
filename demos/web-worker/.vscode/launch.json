@@ -5,6 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "[web-worker] run plain",
+      "program": "node_modules/serve/bin/serve",
+      "serverReadyAction":{
+        "pattern": "Accepting connections at (.+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      }
+    },
+    {
       "type": "pwa-chrome",
       "request": "launch",
       "name": "[web-worker] launch with server",

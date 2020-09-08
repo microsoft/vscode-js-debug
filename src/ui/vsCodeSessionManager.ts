@@ -7,10 +7,10 @@ import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
 import { pick } from '../common/objUtils';
-import { RootSession, ISessionLauncher, Session } from '../sessionManager';
-import { ServerSessionManager } from '../serverSessionManager';
-import { ITarget } from '../targets/targets';
 import { IPseudoAttachConfiguration } from '../configuration';
+import { ServerSessionManager } from '../serverSessionManager';
+import { ISessionLauncher, RootSession, Session } from '../sessionManager';
+import { ITarget } from '../targets/targets';
 
 const preservedProperties = [
   // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
