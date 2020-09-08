@@ -11,6 +11,7 @@ Source event for inline
 text/javascript
 ---------
 
+
     console.log('inline script');
 
 ---------
