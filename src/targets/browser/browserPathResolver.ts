@@ -78,6 +78,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   }
 
   private async simpleUrlToAbsolute(url: string) {
+    // Simple eval'd code will never have a valid path
+    if (!url) {
+      return;
+    }
+
     // If we have a file URL, we know it's absolute already and points
     // to a location on disk.
     if (utils.isFileUrl(url)) {
