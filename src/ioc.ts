@@ -43,6 +43,7 @@ import { ICdpApi } from './cdp/connection';
 import { ObservableMap } from './common/datastructure/observableMap';
 import { DefaultBrowserProvider, IDefaultBrowserProvider } from './common/defaultBrowserProvider';
 import { OutFiles, VueComponentPaths } from './common/fileGlobList';
+import { LocalAndRemoteFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
@@ -58,6 +59,7 @@ import {
   ExtensionContext,
   ExtensionLocation,
   FS,
+  FSUtils,
   IContainer,
   IsVSCode,
   ProcessEnv,
@@ -65,7 +67,7 @@ import {
   StoragePath,
   trackDispose,
   VSCodeApi,
-  FSUtils,
+  //  FSUtils,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -91,7 +93,7 @@ import { ILauncher, ITarget } from './targets/targets';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { LocalAndRemoteFsUtils } from './common/fsUtils';
+// import { LocalAndRemoteFsUtils } from './common/fsUtils';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which

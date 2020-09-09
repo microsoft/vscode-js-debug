@@ -6,10 +6,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound, nvsNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { injectable, inject } from 'inversify';
+import { injectable } from 'inversify';
 import { some } from '../../common/promiseUtil';
 import { LocalFsUtils } from '../../common/fsUtils';
-import { FSUtils } from '../../ioc-extras';
+import { promises as fsPromises } from 'fs';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -40,7 +40,8 @@ const enum Vars {
 @injectable()
 export class NvmResolver implements INvmResolver {
   constructor(
-    @inject(FSUtils) private readonly fsUtils: LocalFsUtils,
+    // We don't need Node to support remote file system at the moment, so we hardcode fsUtils
+    private readonly fsUtils = new LocalFsUtils(fsPromises),
     private readonly env = process.env,
     private readonly arch = process.arch,
     private readonly platform = process.platform,

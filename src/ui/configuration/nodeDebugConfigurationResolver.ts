@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -46,7 +47,8 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
     @inject(INvmResolver) private readonly nvmResolver: INvmResolver,
-    @inject(LocalFsUtils) private readonly fsUtils: LocalFsUtils,
+    // We don't need Node to support remote file system at the moment, so we hardcode fsUtils
+    private readonly fsUtils: LocalFsUtils = new LocalFsUtils(fsPromises),
   ) {
     super(context);
   }

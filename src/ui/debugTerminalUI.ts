@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { promises as fsPromises } from 'fs';
 import { NeverCancelled } from '../common/cancellation';
 import {
   Commands,
@@ -132,7 +133,8 @@ export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
   linkHandler: TerminalLinkHandler,
-  fsUtils: LocalFsUtils,
+  // We don't need Node to support remote file system at the moment, so we hardcode fsUtils (it's only used for node here)
+  fsUtils = new LocalFsUtils(fsPromises),
 ) {
   /**
    * See docblocks on {@link DelegateLauncher} for more information on

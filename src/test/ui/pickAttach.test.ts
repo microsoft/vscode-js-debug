@@ -95,7 +95,7 @@ describe('pick and attach', () => {
         .on('data', (line: string) => (attached = attached || line.includes('Debugger attached')));
     });
 
-    it.only('end to end', async function () {
+    it('end to end', async function () {
       this.timeout(30 * 1000);
 
       const createQuickPick = sandbox.spy(vscode.window, 'createQuickPick');

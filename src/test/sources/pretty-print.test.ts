@@ -23,12 +23,12 @@ describe('pretty print sources', () => {
 
     const gotSource = p.dap.once('loadedSource');
     const continued = p.dap.once('continued');
-    const stopped = waitAndStayPaused(p);
+    const stopped = await waitAndStayPaused(p);
 
     p.log(await continued);
     p.log(await gotSource);
     await res;
-    (await stopped)();
+    stopped();
     p.assertLog();
   });
 
