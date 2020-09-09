@@ -10,6 +10,7 @@ export interface IDeferred<T> {
   resolve: (result: T) => void;
   reject: (err: Error) => void;
   hasSettled(): boolean;
+  settledValue: T | undefined;
   promise: Promise<T>;
 }
 
@@ -45,11 +46,13 @@ export function getDeferred<T>(): IDeferred<T> {
   let reject: IDeferred<T>['reject'] = null!;
 
   let settled = false;
+  let settledValue: T | undefined;
 
   // Promise constructor is called synchronously
   const promise = new Promise<T>((_resolve, _reject) => {
     resolve = (value: T) => {
       settled = true;
+      settledValue = value;
       _resolve(value);
     };
     reject = (error: Error) => {
@@ -62,6 +65,9 @@ export function getDeferred<T>(): IDeferred<T> {
     resolve,
     reject,
     promise,
+    get settledValue() {
+      return settledValue;
+    },
     hasSettled: () => settled,
   };
 }

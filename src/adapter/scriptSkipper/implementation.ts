@@ -11,6 +11,7 @@ import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
 import { trailingEdgeThrottle } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
+import { getDeferred, IDeferred } from '../../common/promiseUtil';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
@@ -39,7 +40,7 @@ export class ScriptSkipper {
 
   // filtering node internals
   private _nodeInternalsGlobs: string[] | null = null;
-  private _allNodeInternals?: string[]; // only set by Node
+  private _allNodeInternals?: IDeferred<ReadonlySet<string>>; // only set by Node
 
   private _isUrlSkipped: Map<string, boolean>;
   private _isAuthoredUrlSkipped: Map<string, boolean>;
@@ -135,11 +136,8 @@ export class ScriptSkipper {
     return false;
   }
 
-  private _isNodeInternal(url: string): boolean {
-    return (
-      (this._allNodeInternals && this._allNodeInternals.includes(url)) ||
-      /^internal\/.+\.js$/.test(url)
-    );
+  private _isNodeInternal(url: string, nodeInternals: ReadonlySet<string> | undefined): boolean {
+    return nodeInternals?.has(url) || /^internal\/.+\.js$/.test(url);
   }
 
   private async _updateBlackboxedUrls(urlsToBlackbox: string[]): Promise<void> {
@@ -217,7 +215,13 @@ export class ScriptSkipper {
   }
 
   public initializeSkippingValueForSource(source: Source) {
-    const isSkipped = this._initializeSkippingValueForSource(source);
+    const nodeInternals = this._allNodeInternals?.settledValue;
+    if (this._allNodeInternals && !nodeInternals) {
+      this._allNodeInternals.promise.then(v => this._initializeSkippingValueForSource(source, v));
+      return;
+    }
+
+    const isSkipped = this._initializeSkippingValueForSource(source, nodeInternals);
     if (isSkipped) {
       this._updateSkippedDebounce();
     }
@@ -225,6 +229,7 @@ export class ScriptSkipper {
 
   private _initializeSkippingValueForSource(
     source: Source,
+    nodeInternals: ReadonlySet<string> | undefined,
     scriptIds = source.scriptIds(),
   ): boolean {
     const map = source instanceof SourceFromMap ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
@@ -232,7 +237,7 @@ export class ScriptSkipper {
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
       const pathOnDisk = source.absolutePath();
-      if (this._isNodeInternal(url)) {
+      if (this._isNodeInternal(url, nodeInternals)) {
         map.set(url, this._testSkipNodeInternal(url));
       } else if (pathOnDisk) {
         map.set(url, this._testSkipNonNodeInternal(pathOnDisk));
@@ -253,7 +258,9 @@ export class ScriptSkipper {
 
       if (isSourceWithMap(source)) {
         for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
-          hasSkip = this._initializeSkippingValueForSource(nestedSource, scriptIds) || hasSkip;
+          hasSkip =
+            this._initializeSkippingValueForSource(nestedSource, nodeInternals, scriptIds) ||
+            hasSkip;
         }
 
         this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
@@ -266,15 +273,21 @@ export class ScriptSkipper {
   }
 
   private async _initNodeInternals(target: ITarget): Promise<void> {
-    if (target.type() === 'node' && this._nodeInternalsGlobs && !this._allNodeInternals) {
-      const evalResult = await this.cdp.Runtime.evaluate({
-        expression: "require('module').builtinModules" + getSourceSuffix(),
-        returnByValue: true,
-        includeCommandLineAPI: true,
-      });
-      if (evalResult && !evalResult.exceptionDetails) {
-        this._allNodeInternals = (evalResult.result.value as string[]).map(name => name + '.js');
-      }
+    if (target.type() !== 'node' || !this._nodeInternalsGlobs || this._allNodeInternals) {
+      return;
+    }
+
+    const deferred = (this._allNodeInternals = getDeferred());
+    const evalResult = await this.cdp.Runtime.evaluate({
+      expression: "require('module').builtinModules" + getSourceSuffix(),
+      returnByValue: true,
+      includeCommandLineAPI: true,
+    });
+
+    if (evalResult && !evalResult.exceptionDetails) {
+      deferred.resolve(new Set((evalResult.result.value as string[]).map(name => name + '.js')));
+    } else {
+      deferred.resolve(new Set());
     }
   }
 
