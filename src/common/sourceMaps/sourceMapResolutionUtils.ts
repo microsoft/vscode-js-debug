@@ -10,6 +10,7 @@ import { PathMapping } from '../../configuration';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
 import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
+import { LocalFsUtils } from '../fsUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -135,11 +136,10 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
  * A path mapping resolver that resolves to the nearest folder containing
  * a package.json if there's no more precise match in the mapping.
  */
-export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappingResolver => async (
-  sourceRoot,
-  pathMapping,
-  logger,
-) => {
+export const moduleAwarePathMappingResolver = (
+  fsUtils: LocalFsUtils,
+  compiledPath: string,
+): PathMappingResolver => async (sourceRoot, pathMapping, logger) => {
   // 1. Handle cases where we know the path is already absolute on disk.
   if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
     return sourceRoot;
@@ -147,6 +147,7 @@ export const moduleAwarePathMappingResolver = (compiledPath: string): PathMappin
 
   // 2. It's a unix-style path. Get the root of this package containing the compiled file.
   const implicit = await utils.nearestDirectoryContaining(
+    fsUtils,
     path.dirname(compiledPath),
     'package.json',
   );

@@ -12,7 +12,7 @@ describe('pretty print sources', () => {
     return () => p.dap.continue({ threadId });
   }
 
-  itIntegrates('base', async ({ r }) => {
+  itIntegrates('base', async function ({ r }) {
     const p = await r.launchUrl('pretty/pretty.html');
     const source = { path: p.workspacePath('web/pretty/ugly.js') };
     await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });

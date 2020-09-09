@@ -108,6 +108,8 @@ interface IDAPOperationClassification {
   '!launchvscode.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   launchunelevated: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!launchunelevated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  remotefileexists: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!remotefileexists.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   getbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!getbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   revealpage: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

@@ -54,6 +54,11 @@ export const Execa = Symbol('execa');
 export const FS = Symbol('FS');
 
 /**
+ * Injection for the `FsUtils` module.
+ */
+export const FSUtils = Symbol('FsUtils');
+
+/**
  * Location the extension is running.
  */
 export const ExtensionLocation = 'ExtensionLocation';

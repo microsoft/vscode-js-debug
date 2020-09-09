@@ -668,6 +668,57 @@ const dapCustom: JSONSchema4 = {
       ],
     },
 
+    RemoteFileExistsRequest: {
+      allOf: [
+        { $ref: '#/definitions/Request' },
+        {
+          type: 'object',
+          description: 'Check if file exists on remote file system, used in VS.',
+          properties: {
+            command: {
+              type: 'string',
+              enum: ['remoteFileExists'],
+            },
+            arguments: {
+              $ref: '#/definitions/RemoteFileExistsArguments',
+            },
+          },
+          required: ['command', 'arguments'],
+        },
+      ],
+    },
+    RemoteFileExistsArguments: {
+      type: 'object',
+      description: "Arguments for 'RemoteFileExists' request.",
+      properties: {
+        localFilePath: {
+          type: 'string',
+        },
+      },
+    },
+    RemoteFileExistsResponse: {
+      allOf: [
+        { $ref: '#/definitions/Response' },
+        {
+          type: 'object',
+          description: "Response to 'LaunchUnelevated' request.",
+          required: ['body'],
+          properties: {
+            body: {
+              type: 'object',
+              required: ['doesExists'],
+              properties: {
+                doesExists: {
+                  type: 'boolean',
+                  description: 'Does the file exist on the remote file system.',
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+
     GetBreakpointsRequest: {
       allOf: [
         { $ref: '#/definitions/Request' },

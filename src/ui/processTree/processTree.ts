@@ -5,6 +5,8 @@
 import { WindowsProcessTree } from './windowsProcessTree';
 import { DarwinProcessTree } from './darwinProcessTree';
 import { PosixProcessTree } from './posixProcessTree';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { promises as fsPromises } from 'fs';
 
 /**
  * IProcess is parsed from the {@link IProcessTree}
@@ -53,12 +55,14 @@ export interface IProcessTree {
 /**
  * The process tree implementation for the current platform.
  */
+// TODO: Figure out how to inject the fsUtils here
+const fsUtils = new LocalFsUtils(fsPromises);
 export const processTree: IProcessTree =
   process.platform === 'win32'
     ? new WindowsProcessTree()
     : process.platform === 'darwin'
-    ? new DarwinProcessTree()
-    : new PosixProcessTree();
+    ? new DarwinProcessTree(fsUtils)
+    : new PosixProcessTree(fsUtils);
 
 /*
  * Analyse the given command line arguments and extract debug port and protocol from it.

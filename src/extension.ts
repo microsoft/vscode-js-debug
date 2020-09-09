@@ -27,6 +27,8 @@ import { registerRevealPage } from './ui/revealPage';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
+import { LocalFsUtils } from './common/fsUtils';
+import { FSUtils } from './ioc-extras';
 
 export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
@@ -93,6 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     services.get(DelegateLauncherFactory),
     services.get(TerminalLinkHandler),
+    services.get<LocalFsUtils>(FSUtils),
   );
   registerNpmScriptLens(context);
   registerProfilingCommand(context, services);

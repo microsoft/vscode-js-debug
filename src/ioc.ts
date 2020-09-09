@@ -65,6 +65,7 @@ import {
   StoragePath,
   trackDispose,
   VSCodeApi,
+  FSUtils,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -90,6 +91,7 @@ import { ILauncher, ITarget } from './targets/targets';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
+import { LocalAndRemoteFsUtils } from './common/fsUtils';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -303,7 +305,11 @@ export const createGlobalContainer = (options: {
   return container;
 };
 
-export const provideLaunchParams = (container: Container, params: AnyLaunchConfiguration) => {
+export const provideLaunchParams = (
+  container: Container,
+  params: AnyLaunchConfiguration,
+  dap: Dap.Api,
+) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
 
   container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
@@ -312,4 +318,8 @@ export const provideLaunchParams = (container: Container, params: AnyLaunchConfi
     .bind(ISourcePathResolver)
     .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create(params))
     .inSingletonScope();
+
+  container
+    .bind(FSUtils)
+    .toConstantValue(LocalAndRemoteFsUtils.create(params.__remoteFilePrefix, fsPromises, dap));
 };

@@ -7,6 +7,10 @@ import { expect } from 'chai';
 import { join, resolve } from 'path';
 import { setCaseSensitivePaths, resetCaseSensitivePaths } from '../../common/urlUtils';
 import { Logger } from '../../common/logging/logger';
+import { promises as fsPromises } from 'fs';
+import { LocalFsUtils } from '../../common/fsUtils';
+
+const fsUtils = new LocalFsUtils(fsPromises);
 
 describe('node source path resolver', () => {
   describe('url to path', () => {
@@ -19,7 +23,7 @@ describe('node source path resolver', () => {
     };
 
     it('resolves absolute', async () => {
-      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
@@ -27,6 +31,7 @@ describe('node source path resolver', () => {
 
     it('normalizes roots (win -> posix) ', async () => {
       const r = new NodeSourcePathResolver(
+        fsUtils,
         {
           ...defaultOptions,
           remoteRoot: 'C:\\Source',
@@ -42,6 +47,7 @@ describe('node source path resolver', () => {
 
     it('normalizes roots (posix -> win) ', async () => {
       const r = new NodeSourcePathResolver(
+        fsUtils,
         {
           ...defaultOptions,
           remoteRoot: '/dev/src',
@@ -56,7 +62,7 @@ describe('node source path resolver', () => {
     });
 
     it('places relative paths in node_internals', async () => {
-      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
 
       expect(
         await r.urlToAbsolutePath({
@@ -66,7 +72,7 @@ describe('node source path resolver', () => {
     });
 
     it('applies source map overrides', async () => {
-      const r = new NodeSourcePathResolver(defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
 
       expect(
         await r.urlToAbsolutePath({
@@ -128,6 +134,7 @@ describe('node source path resolver', () => {
           setCaseSensitivePaths(caseSensitive);
 
           const resolver = new NodeSourcePathResolver(
+            fsUtils,
             {
               ...defaultOptions,
               resolveSourceMapLocations: locs,

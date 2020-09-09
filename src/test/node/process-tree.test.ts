@@ -10,6 +10,8 @@ import { IProcess, IProcessTree, processTree } from '../../ui/processTree/proces
 import { ReadableStreamBuffer } from 'stream-buffers';
 import { DarwinProcessTree } from '../../ui/processTree/darwinProcessTree';
 import { WindowsProcessTree } from '../../ui/processTree/windowsProcessTree';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { promises as fsPromises } from 'fs';
 
 const fakeChildProcess = (stdoutData: string) => {
   const ee: any = new EventEmitter();
@@ -54,7 +56,7 @@ describe('process tree', () => {
 
   it('works for darwin', async () => {
     await assertParses(
-      new DarwinProcessTree(),
+      new DarwinProcessTree(new LocalFsUtils(fsPromises)),
       '  PID  PPID BINARY           COMMAND\n  380     1 /usr/sbin/cfpref /usr/sbin/cfprefsd agent\n  381     1 /usr/libexec/Use /usr/libexec/UserEventAgent (Aqua)\n  383     1 /usr/sbin/distno /usr/sbin/distnoted agent\n  384     1 /usr/libexec/USB /usr/libexec/USBAgent\n  387     1 /System/Library/ /System/Library/Frameworks/CoreTelephony.framework/Support/CommCenter -L\n  389     1 /usr/libexec/lsd /usr/libexec/lsd\n  390     1 /usr/libexec/tru /usr/libexec/trustd --agent\n  391     1 /usr/libexec/sec /usr/libexec/secd\n  392     2 /System/Library/ /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd',
       [
         { pid: 380, ppid: 1, command: 'usr/sbin/cfpref', args: '/usr/sbin/cfprefsd agent' },
@@ -87,7 +89,7 @@ describe('process tree', () => {
 
   it('works for posix', async () => {
     await assertParses(
-      new PosixProcessTree(),
+      new PosixProcessTree(new LocalFsUtils(fsPromises)),
       '   PID   PPID BINARY          COMMAND\n   351      1 systemd         /lib/systemd/systemd --user\n   352    351 (sd-pam)        (sd-pam)\n   540      1 sh              sh /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0\n   548    540 node            /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/node /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0\n  6557   6434 sshd            sshd: connor@notty\n  6558   6557 bash            bash\n  7281   7199 sshd            sshd: connor@pts/0\n  7282   7281 bash            -bash\n  9880  99219 bash            /bin/bash',
       [
         { pid: 351, ppid: 1, command: '/lib/systemd/systemd', args: '--user' },

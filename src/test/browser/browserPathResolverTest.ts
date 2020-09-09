@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as fs from 'fs';
+import { promises as fsPromises, PathLike } from 'fs';
 import * as path from 'path';
 import { stub, SinonStub } from 'sinon';
 import { expect } from 'chai';
 import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
-import { fsModule } from '../../common/fsUtils';
+import { fsModule, LocalFsUtils, IFsUtils } from '../../common/fsUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { Logger } from '../../common/logging/logger';
 import { testFixturesDir } from '../test';
@@ -16,7 +16,7 @@ import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap
 import { FileGlobList } from '../../common/fileGlobList';
 
 describe('browserPathResolver.urlToAbsolutePath', () => {
-  let fsExistStub: SinonStub<[fs.PathLike, (cb: boolean) => void], void>;
+  let fsExistStub: SinonStub<[PathLike, (cb: boolean) => void], void>;
   const testVueMapper: IVueFileMapper = {
     lookup: async url => path.join(testFixturesDir, 'web', 'looked up', url),
     getVueHandling: url =>
@@ -43,6 +43,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
   describe('vue', () => {
     const resolver = new BrowserSourcePathResolver(
       testVueMapper,
+      new LocalFsUtils(fsPromises),
       {
         pathMapping: { '/': path.join(testFixturesDir, 'web') },
         clientID: 'vscode',
@@ -127,9 +128,23 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
     });
   });
 
+  class FakeLocalFsUtils implements IFsUtils {
+    exists(path: string): Promise<boolean> {
+      switch (path) {
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
+          return Promise.resolve(true);
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\app\\app.component.html':
+          return Promise.resolve(false);
+        default:
+          throw Error(`Unknown path ${path}`);
+      }
+    }
+  }
+
   describe('absolutePathToUrl', () => {
     const resolver = new BrowserSourcePathResolver(
       testVueMapper,
+      new LocalFsUtils(fsPromises),
       {
         pathMapping: {
           '/': path.join(testFixturesDir, 'web'),
@@ -170,6 +185,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
 
       const resolver = new BrowserSourcePathResolver(
         testVueMapper,
+        new FakeLocalFsUtils(),
         {
           pathMapping: { '/': webRoot },
           clientID: client,

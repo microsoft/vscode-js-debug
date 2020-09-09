@@ -6,9 +6,13 @@ import { IProcess } from './processTree';
 import { BaseProcessTree } from './baseProcessTree';
 import { spawnAsync, ChildProcessError } from '../../common/processUtils';
 import { isAbsolute } from 'path';
-import { exists } from '../../common/fsUtils';
+import { LocalFsUtils } from '../../common/fsUtils';
 
 export class DarwinProcessTree extends BaseProcessTree {
+  public constructor(private readonly fsUtils: LocalFsUtils) {
+    super();
+  }
+
   public async getWorkingDirectory(processId: number) {
     try {
       const { stdout } = await spawnAsync('lsof', [
@@ -25,7 +29,7 @@ export class DarwinProcessTree extends BaseProcessTree {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const cwd = stdout.trim().split('\n').pop()!.slice(1);
 
-      return cwd && isAbsolute(cwd) && (await exists(cwd)) ? cwd : undefined;
+      return cwd && isAbsolute(cwd) && (await this.fsUtils.exists(cwd)) ? cwd : undefined;
     } catch (e) {
       if (e instanceof ChildProcessError) {
         return undefined;

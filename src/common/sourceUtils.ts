@@ -6,10 +6,10 @@ import { Parser } from 'acorn';
 import { generate } from 'astring';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import * as ts from 'typescript';
-import { LineColumn } from '../adapter/breakpoints/breakpointBase';
-import * as fsUtils from './fsUtils';
-import { Hasher } from './hash';
 import { SourceMap } from './sourceMaps/sourceMap';
+import { LineColumn } from '../adapter/breakpoints/breakpointBase';
+import { Hasher } from './hash';
+import * as fs from 'fs';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -241,7 +241,7 @@ export async function checkContentHash(
   }
 
   if (!contentHash) {
-    const exists = await fsUtils.exists(absolutePath);
+    const exists = fs.existsSync(absolutePath);
     return exists ? absolutePath : undefined;
   }
 

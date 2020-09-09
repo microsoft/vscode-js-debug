@@ -18,6 +18,9 @@ import * as path from 'path';
 import { tmpdir } from 'os';
 import del from 'del';
 import { forceForwardSlashes } from '../../common/pathUtils';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { promises as fsPromises } from 'fs';
+import { delay } from '../../common/promiseUtil';
 
 describe('pick and attach', () => {
   const testDir = path.join(tmpdir(), 'js-debug-pick-and-attach');
@@ -46,7 +49,7 @@ describe('pick and attach', () => {
 
       child = spawn('node', ['foo.js'], { cwd: testDir });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
-      await resolveProcessId(config, true);
+      await resolveProcessId(new LocalFsUtils(fsPromises), config, true);
       expect(removePrivatePrefix(config.cwd!)).to.equal(testDir);
     });
 
@@ -58,7 +61,7 @@ describe('pick and attach', () => {
 
       child = spawn('node', ['foo.js'], { cwd: path.join(testDir, 'nested') });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
-      await resolveProcessId(config, true);
+      await resolveProcessId(new LocalFsUtils(fsPromises), config, true);
       expect(removePrivatePrefix(config.cwd!)).to.equal(testDir);
     });
 
@@ -77,7 +80,7 @@ describe('pick and attach', () => {
 
       child = spawn('node', ['foo.js'], { cwd: path.join(testDir, 'nested') });
       const config = { ...nodeAttachConfigDefaults, processId: `${child.pid}:1234` };
-      await resolveProcessId(config, true);
+      await resolveProcessId(new LocalFsUtils(fsPromises), config, true);
       expect(removePrivatePrefix(config.cwd!)).to.equal(path.join(testDir, 'nested'));
     });
   }
@@ -92,17 +95,19 @@ describe('pick and attach', () => {
         .on('data', (line: string) => (attached = attached || line.includes('Debugger attached')));
     });
 
-    it('end to end', async function () {
+    it.only('end to end', async function () {
       this.timeout(30 * 1000);
 
       const createQuickPick = sandbox.spy(vscode.window, 'createQuickPick');
       vscode.commands.executeCommand(Commands.AttachProcess);
 
+      await delay(2000);
       const picker = await eventuallyOk(() => {
         expect(createQuickPick.called).to.be.true;
         return createQuickPick.getCall(0).returnValue;
-      });
+      }, 10 * 1000);
 
+      await delay(2000);
       const item = await eventuallyOk(() => {
         const i = picker.items.find(item => (item as any).pidAndPort === `${child.pid}:${port}`);
         if (!i) {
@@ -112,7 +117,9 @@ describe('pick and attach', () => {
       }, 10 * 1000);
 
       picker.selectedItems = [item];
+      await delay(2000);
       await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
+      await delay(2000);
       await eventuallyOk(
         () => expect(attached).to.equal(true, 'expected to have attached'),
         10 * 1000,

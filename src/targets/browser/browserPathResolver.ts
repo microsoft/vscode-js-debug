@@ -4,7 +4,6 @@
 
 import * as path from 'path';
 import * as utils from '../../common/urlUtils';
-import * as fsUtils from '../../common/fsUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import {
@@ -24,6 +23,8 @@ import {
 import { injectable, inject } from 'inversify';
 import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
 import { ILogger } from '../../common/logging';
+import { IFsUtils } from '../../common/fsUtils';
+import { FSUtils } from '../../ioc-extras';
 
 interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
@@ -35,6 +36,7 @@ interface IOptions extends ISourcePathResolverOptions {
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
   constructor(
     @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
+    @inject(FSUtils) private readonly fsUtils: IFsUtils,
     options: IOptions,
     logger: ILogger,
   ) {
@@ -87,12 +89,12 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     // to a location on disk.
     if (utils.isFileUrl(url)) {
       const abs = utils.fileUrlToAbsolutePath(url);
-      if (await fsUtils.exists(abs)) {
+      if (await this.fsUtils.exists(abs)) {
         return abs;
       }
 
       const net = utils.fileUrlToNetworkPath(url);
-      if (await fsUtils.exists(net)) {
+      if (await this.fsUtils.exists(net)) {
         return net;
       }
     }
@@ -123,7 +125,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         this.options.pathMapping,
         this.logger,
       );
-      if (clientPath && (await fsUtils.exists(clientPath))) {
+      if (clientPath && (await this.fsUtils.exists(clientPath))) {
         return clientPath;
       }
 
@@ -164,8 +166,8 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       if (
         this.options.clientID === 'visualstudio' &&
         fullSourceEntry.startsWith('webpack:///') &&
-        !(await fsUtils.exists(mappedFullSourceEntry)) &&
-        (await fsUtils.exists(clientAppPath))
+        !(await this.fsUtils.exists(mappedFullSourceEntry)) &&
+        (await this.fsUtils.exists(clientAppPath))
       ) {
         return clientAppPath;
       } else {

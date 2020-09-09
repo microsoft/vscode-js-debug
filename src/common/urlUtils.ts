@@ -9,10 +9,10 @@ import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
-import { exists } from './fsUtils';
 import { memoize } from './objUtils';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
+import { LocalFsUtils } from './fsUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -81,8 +81,8 @@ export const nearestDirectoryWhere = async (
 /**
  * Returns the closest parent directory that contains a file with the given name.
  */
-export const nearestDirectoryContaining = (rootDir: string, file: string) =>
-  nearestDirectoryWhere(rootDir, p => exists(path.join(p, file)));
+export const nearestDirectoryContaining = (fsUtils: LocalFsUtils, rootDir: string, file: string) =>
+  nearestDirectoryWhere(rootDir, p => fsUtils.exists(path.join(p, file)));
 
 // todo: not super correct, and most node libraries don't handle this accurately
 const knownLoopbacks = new Set<string>(['localhost', '127.0.0.1', '::1']);
