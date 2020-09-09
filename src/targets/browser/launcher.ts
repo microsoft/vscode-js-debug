@@ -66,6 +66,7 @@ export async function launch(
     cwd = process.cwd(),
     env = EnvironmentVars.empty,
     connection: defaultConnection = 'pipe',
+    cleanUp = 'wholeBrowser',
     url,
     inspectUri,
   } = options;
@@ -123,7 +124,7 @@ export async function launch(
   }
 
   let exitListener = () => {
-    if (options.cleanUp === 'wholeBrowser') {
+    if (cleanUp === 'wholeBrowser') {
       browserProcess.kill();
     }
   };
@@ -146,7 +147,7 @@ export async function launch(
 
     const cdp = new CdpConnection(transport, logger, telemetryReporter);
     exitListener = async () => {
-      if (options.cleanUp === 'wholeBrowser') {
+      if (cleanUp === 'wholeBrowser') {
         await cdp.rootSession().Browser.close({});
         browserProcess.kill();
       } else {
