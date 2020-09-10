@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Commands, Configuration, DebugType, readConfig } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
+import { ExtensionContext } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -41,7 +42,10 @@ function getPossibleUrl(link: string, requirePort: boolean): string | undefined 
 export class DebugLinkUi {
   private mostRecentLink: string | undefined;
 
-  constructor(@inject(IDefaultBrowserProvider) private defaultBrowser: IDefaultBrowserProvider) {}
+  constructor(
+    @inject(IDefaultBrowserProvider) private defaultBrowser: IDefaultBrowserProvider,
+    @inject(ExtensionContext) private context: vscode.ExtensionContext,
+  ) {}
 
   /**
    * Registers the link UI for the extension.
@@ -71,13 +75,16 @@ export class DebugLinkUi {
     }
 
     const baseConfig = readConfig(vscode.workspace, Configuration.DebugByLinkOptions) ?? {};
-    vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], {
+    const config = {
       ...(typeof baseConfig === 'string' ? {} : baseConfig),
       type: debugType,
       name: link,
       request: 'launch',
       url: link,
-    });
+    };
+
+    vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], config);
+    this.persistConfig(config);
   }
 
   private getLinkFromTextEditor() {
@@ -107,5 +114,39 @@ export class DebugLinkUi {
 
     this.mostRecentLink = link;
     return link;
+  }
+
+  private async persistConfig(config: { url: string }) {
+    if (this.context.globalState.get('saveDebugLinks') === false) {
+      return;
+    }
+
+    const launchJson = vscode.workspace.getConfiguration('launch');
+    const configs = (launchJson.get('configurations') ?? []) as { url?: string }[];
+    if (configs.some(c => c.url === config.url)) {
+      return;
+    }
+
+    const yes = localize('yes', 'Yes');
+    const never = localize('never', 'Never');
+    const r = await vscode.window.showInformationMessage(
+      localize(
+        'debugLink.savePrompt',
+        'Would you like to save a configuration in your launch.json for easy access later?',
+      ),
+      yes,
+      localize('no', 'No'),
+      never,
+    );
+
+    if (r === never) {
+      this.context.globalState.update('saveDebugLinks', false);
+    }
+
+    if (r !== yes) {
+      return;
+    }
+
+    await launchJson.update('configurations', [...configs, config]);
   }
 }
