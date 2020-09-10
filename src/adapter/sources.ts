@@ -838,6 +838,9 @@ export class SourceContainer {
       (source instanceof SourceFromMap &&
         source.compiledToSourceUrl.has(existingByPath as ISourceWithMap))
     ) {
+      if (existingByPath) {
+        this.removeSource(existingByPath);
+      }
       this._sourceByAbsolutePath.set(source.absolutePath(), source);
     }
 
@@ -896,7 +899,7 @@ export class SourceContainer {
     deferred.resolve();
   }
 
-  removeSource(source: Source, silent = false) {
+  public removeSource(source: Source, silent = false) {
     const existing = this._sourceByReference.get(source.sourceReference());
     if (existing === undefined) {
       return; // already removed

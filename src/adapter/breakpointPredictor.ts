@@ -161,7 +161,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations = new Map<string, IWorkspaceLocation[]>();
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
-  private cache?: CorrelatedCache<number, DiscoveredMetadata[]>;
+  private cache?: CorrelatedCache<number, { sourceUrl: string; resolvedPath: string }[]>;
 
   /**
    * Event that fires if it takes a long time to predict sourcemaps.
@@ -219,7 +219,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
         const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
         if (cached) {
-          cached.forEach(addDiscovery);
+          cached.forEach(c => addDiscovery({ ...c, ...metadata }));
           return;
         }
 
@@ -245,7 +245,11 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
           addDiscovery(discovery);
         }
 
-        this.cache?.store(metadata.compiledPath, metadata.mtime, discovered);
+        this.cache?.store(
+          metadata.compiledPath,
+          metadata.mtime,
+          discovered.map(d => ({ resolvedPath: d.resolvedPath, sourceUrl: d.sourceUrl })),
+        );
       });
     } catch (error) {
       this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
