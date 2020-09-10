@@ -45,7 +45,7 @@ export const onUncaughtError = (
   logger: ILogger,
   telemetryReporter: ITelemetryReporter,
   src: ErrorType,
-  isVsCode?: boolean,
+  isVsCode = true,
 ) => (error: unknown) => {
   if (!shouldReportThisError(error)) {
     return;
