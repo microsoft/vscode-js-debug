@@ -15,9 +15,20 @@ export const enum ErrorType {
 export function installUnhandledErrorReporter(
   logger: ILogger,
   telemetryReporter: ITelemetryReporter,
+  isVsCode?: boolean,
 ): IDisposable {
-  const exceptionListener = onUncaughtError(logger, telemetryReporter, ErrorType.Exception);
-  const rejectionListener = onUncaughtError(logger, telemetryReporter, ErrorType.Rejection);
+  const exceptionListener = onUncaughtError(
+    logger,
+    telemetryReporter,
+    ErrorType.Exception,
+    isVsCode,
+  );
+  const rejectionListener = onUncaughtError(
+    logger,
+    telemetryReporter,
+    ErrorType.Rejection,
+    isVsCode,
+  );
 
   process.addListener('uncaughtException', exceptionListener);
   process.addListener('unhandledRejection', rejectionListener);
@@ -34,6 +45,7 @@ export const onUncaughtError = (
   logger: ILogger,
   telemetryReporter: ITelemetryReporter,
   src: ErrorType,
+  isVsCode?: boolean,
 ) => (error: unknown) => {
   if (!shouldReportThisError(error)) {
     return;
@@ -41,6 +53,7 @@ export const onUncaughtError = (
 
   telemetryReporter.report('error', {
     '!error': error,
+    error: isVsCode ? undefined : error,
     exceptionType: src,
   });
   logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', error);
