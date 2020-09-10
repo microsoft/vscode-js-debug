@@ -826,7 +826,7 @@ export class SourceContainer {
   private async _addSource(source: Source) {
     const existingByUrl = source.url && this._sourceByOriginalUrl.get(source.url);
     if (existingByUrl && !isOriginalSourceOf(existingByUrl, source)) {
-      this.removeSource(existingByUrl);
+      this.removeSource(existingByUrl, true);
     }
 
     this._sourceByOriginalUrl.set(source.url, source);

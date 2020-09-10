@@ -34,10 +34,5 @@ Loaded sources: {
             path : localhost꞉8001/test.js
             sourceReference : <number>
         }
-        [1] : {
-            name : localhost꞉8001/test.js
-            path : localhost꞉8001/test.js
-            sourceReference : <number>
-        }
     ]
 }
