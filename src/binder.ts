@@ -27,7 +27,7 @@ import Dap from './dap/api';
 import DapConnection from './dap/connection';
 import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
-import { disposeContainer, ExtensionLocation, IInitializeParams } from './ioc-extras';
+import { disposeContainer, ExtensionLocation, IInitializeParams, IsVSCode } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
@@ -75,6 +75,7 @@ export class Binder implements IDisposable {
       installUnhandledErrorReporter(
         _rootServices.get(ILogger),
         _rootServices.get(ITelemetryReporter),
+        _rootServices.get(IsVSCode),
       ),
     ];
 
