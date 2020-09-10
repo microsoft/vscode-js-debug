@@ -427,6 +427,9 @@ export class SourceFromMap extends Source {
 export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
   source instanceof Source && !!source.sourceMap;
 
+const isOriginalSourceOf = (compiled: Source, original: Source) =>
+  original instanceof SourceFromMap && original.compiledToSourceUrl.has(compiled as ISourceWithMap);
+
 export interface IPreferredUiLocation extends IUiLocation {
   isMapped: boolean;
   unmappedReason?: UnmappedReason;
@@ -821,6 +824,11 @@ export class SourceContainer {
   }
 
   private async _addSource(source: Source) {
+    const existingByUrl = source.url && this._sourceByOriginalUrl.get(source.url);
+    if (existingByUrl && !isOriginalSourceOf(existingByUrl, source)) {
+      this.removeSource(existingByUrl);
+    }
+
     this._sourceByOriginalUrl.set(source.url, source);
     this._sourceByReference.set(source.sourceReference(), source);
     if (source instanceof SourceFromMap) {
@@ -835,12 +843,8 @@ export class SourceContainer {
     if (
       existingByPath === undefined ||
       existingByPath.url.length >= source.url.length ||
-      (source instanceof SourceFromMap &&
-        source.compiledToSourceUrl.has(existingByPath as ISourceWithMap))
+      isOriginalSourceOf(existingByPath, source)
     ) {
-      if (existingByPath) {
-        this.removeSource(existingByPath);
-      }
       this._sourceByAbsolutePath.set(source.absolutePath(), source);
     }
 

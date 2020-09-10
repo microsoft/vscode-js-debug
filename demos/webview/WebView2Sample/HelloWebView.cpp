@@ -25,7 +25,7 @@ HINSTANCE hInst;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 // Pointer to WebView window
-static wil::com_ptr<IWebView2WebView> webviewWindow;
+static wil::com_ptr<ICoreWebView2Controller> webviewWindow;
 
 int CALLBACK WinMain(
 	_In_ HINSTANCE hInstance,
@@ -107,13 +107,21 @@ int CALLBACK WinMain(
 
 	// Create a single WebView within the parent window
 	// Locate the browser and set up the environment for WebView
-	CreateWebView2EnvironmentWithDetails(nullptr, nullptr, nullptr,
-		Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-			[hWnd](HRESULT result, IWebView2Environment* env) -> HRESULT {
+    CreateCoreWebView2EnvironmentWithOptions(
+            nullptr, nullptr, nullptr,
+            Callback<
+                ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+                [hWnd](HRESULT result,
+                       ICoreWebView2Environment *env) -> HRESULT {
 
 				// Create a WebView, whose parent is the main window hWnd
-				env->CreateWebView(hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-					[hWnd](HRESULT result, IWebView2WebView* webview) -> HRESULT {
+                  env->CreateCoreWebView2Controller(
+                                    hWnd,
+                                    Callback<
+                                        ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                                        [hWnd](HRESULT result,
+                                               ICoreWebView2Controller *webview)
+                                            -> HRESULT {
 						if (webview != nullptr) {
 							webviewWindow = webview;
 						}
@@ -124,7 +132,10 @@ int CALLBACK WinMain(
 						webviewWindow->put_Bounds(bounds);
 
 						// Schedule an async task to navigate to about:blank
-						webviewWindow->Navigate(L"about:blank");
+                                                wil::com_ptr<ICoreWebView2>
+                                                    wv;
+						webviewWindow->get_CoreWebView2(&wv);
+                        wv->Navigate(L"about:blank");
 
 						return S_OK;
 					}).Get());

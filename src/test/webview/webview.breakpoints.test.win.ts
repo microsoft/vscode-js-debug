@@ -7,7 +7,7 @@ import Dap from '../../dap/api';
 import { itIntegrates } from '../testIntegrationUtils';
 import { DebugType } from '../../common/contributionUtils';
 
-describe('webview breakpoints', () => {
+describe.only('webview breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
     const { threadId } = p.log(await p.dap.once('stopped'));
     await p.logger.logStackTrace(threadId);
