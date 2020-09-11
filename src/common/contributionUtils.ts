@@ -89,6 +89,7 @@ export const isDebugType = (debugType: string): debugType is DebugType =>
   allDebugTypes.has(debugType as DebugType);
 
 export const enum AutoAttachMode {
+  Disabled = 'disabled',
   OnlyWithFlag = 'onlyWithFlag',
   Smart = 'smart',
   Always = 'always',
