@@ -66,8 +66,6 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
    * Called for a child process when the stdio is not supposed to be captured.
    */
   private discardStdio(dap: Dap.Api, child: ChildProcessWithoutNullStreams) {
-    child.stdout.resume(); // fixes https://github.com/microsoft/vscode/issues/102254
-
     // Catch any errors written before the debugger attaches, otherwise things
     // like module not found errors will never be written.
     let preLaunchBuffer: Buffer[] | undefined = [];
@@ -78,15 +76,16 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     };
 
     const delimiter = Buffer.from('Debugger attached.');
-    const errLineReader = child.stderr.on('data', (data: Buffer) => {
+    const errLineReader = (data: Buffer) => {
       if (data.includes(delimiter)) {
         preLaunchBuffer = undefined;
-        errLineReader.destroy();
-        setTimeout(() => child.stderr.resume(), 1);
+        child.stderr.removeListener('data', errLineReader);
       } else if (preLaunchBuffer) {
         preLaunchBuffer.push(data);
       }
-    });
+    };
+
+    child.stderr.on('data', errLineReader);
 
     child.on('error', err => {
       dumpFilter();
@@ -102,6 +101,10 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
         });
       }
     });
+
+    // must be called for https://github.com/microsoft/vscode/issues/102254
+    child.stdout.resume();
+    child.stderr.resume();
   }
 }
 
