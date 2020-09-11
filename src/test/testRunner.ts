@@ -115,7 +115,7 @@ export async function run(): Promise<void> {
   } finally {
     if (nyc) {
       nyc.writeCoverageFile();
-      nyc.report();
+      await nyc.report();
     }
   }
 }
