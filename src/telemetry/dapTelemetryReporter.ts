@@ -8,7 +8,8 @@ import { LogFunctions, createLoggers } from './classification';
 import { mapValues } from '../common/objUtils';
 import { EventEmitter } from '../common/events';
 import { Batchable, ITelemetryReporter } from './telemetryReporter';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import { IsVSCode } from '../ioc-extras';
 
 /**
  * A telemetry reporter is a logging interface that pushes telemetry events
@@ -16,6 +17,8 @@ import { injectable } from 'inversify';
  */
 @injectable()
 export class DapTelemetryReporter implements ITelemetryReporter {
+  constructor(@inject(IsVSCode) private readonly isVsCode: boolean = true) {}
+
   /**
    * How often to flush telemetry batches.
    */
@@ -30,8 +33,8 @@ export class DapTelemetryReporter implements ITelemetryReporter {
   private readonly loggers = createLoggers(params => this.pushOutput(params));
   private readonly batchFlushTimeout: { [K in Batchable]?: NodeJS.Timeout } = {};
   private readonly batchers: { [K in Batchable]: ReporterBatcher } = {
-    dapOperation: new ReporterBatcher(),
-    cdpOperation: new ReporterBatcher(),
+    dapOperation: new ReporterBatcher(this.isVsCode),
+    cdpOperation: new ReporterBatcher(this.isVsCode),
   };
 
   /**
