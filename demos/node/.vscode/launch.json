@@ -10,11 +10,6 @@
       "trace": true,
       "name": "[Node] Launch program",
       "program": "${workspaceFolder}/main.js",
-
-      "args": [
-        "--inspect=5858", // must match "port" above
-        "--remote-debugging-port=9224", // must match port in red-hand-ui launch.json
-    ],
     },
     {
       "name": "[Node] Launch File with Deno",
