@@ -38,6 +38,11 @@ const telemetry: IProcessTelemetry = {
       return;
     }
 
+    if (inspectorOptions.ppid === process.pid) {
+      bootloaderLogger.info(LogTag.RuntimeLaunch, 'Disabling due to a duplicate bootloader');
+      return false;
+    }
+
     reportTelemetry(env);
 
     if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {

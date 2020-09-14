@@ -63,15 +63,6 @@ export const checkProcessFilter = (env: IBootloaderInfo) => {
   return waitForDebugger;
 };
 
-export const checkReentrant = (env: IBootloaderInfo) => {
-  if (env.ppid === process.pid) {
-    bootloaderLogger.info(LogTag.RuntimeLaunch, 'Disabling due to a duplicate bootloader');
-    return false;
-  }
-
-  return true;
-};
-
 /**
  * npm.cmd on windows *can* run `node C:/.../npm-cli.js prefix -g` before
  * running the script. In the integrated terminal, this can steal the debug
@@ -93,7 +84,6 @@ const allChecks = [
   checkLeaseFile,
   checkNotElectron,
   checkProcessFilter,
-  checkReentrant,
   checkNotNpmPrefixCheckOnWindows,
 ];
 

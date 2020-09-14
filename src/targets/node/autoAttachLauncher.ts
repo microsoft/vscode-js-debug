@@ -128,7 +128,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
 
     variables.persistent = true;
-    variables.replace('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS);
+    variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');
     variables.append(
       'VSCODE_INSPECTOR_OPTIONS',
       variableDelimiter + bootloaderEnv.VSCODE_INSPECTOR_OPTIONS,
