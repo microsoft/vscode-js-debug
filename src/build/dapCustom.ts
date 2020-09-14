@@ -828,6 +828,57 @@ const dapCustom: JSONSchema4 = {
         },
       ],
     },
+
+    GetPerformanceRequest: {
+      allOf: [
+        { $ref: '#/definitions/Request' },
+        {
+          type: 'object',
+          description: 'Requests that we get performance information from the runtime.',
+          properties: {
+            command: {
+              type: 'string',
+              enum: ['getPerformance'],
+            },
+            arguments: {
+              $ref: '#/definitions/GetPerformanceArguments',
+            },
+          },
+          required: ['command', 'arguments'],
+        },
+      ],
+    },
+    GetPerformanceArguments: {
+      type: 'object',
+      description: "Arguments for 'GetPerformance' request.",
+      properties: {},
+    },
+    GetPerformanceResponse: {
+      allOf: [
+        { $ref: '#/definitions/Response' },
+        {
+          type: 'object',
+          required: ['body'],
+          description: "Response to the 'getPerformance' request.",
+          properties: {
+            body: {
+              type: 'object',
+              properties: {
+                metrics: {
+                  type: 'object',
+                  description:
+                    "Response to 'GetPerformance' request. A key-value list of runtime-dependent details.",
+                },
+                error: {
+                  description: 'Optional error from the adapter',
+                  type: 'string',
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
   },
 };
 

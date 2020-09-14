@@ -2134,11 +2134,6 @@ export namespace Cdp {
       userVisibleOnly?: boolean;
 
       /**
-       * For "wake-lock" permission, must specify type as either "screen" or "system".
-       */
-      type?: string;
-
-      /**
        * For "clipboard" permission, may specify allowWithoutSanitization.
        */
       allowWithoutSanitization?: boolean;
@@ -3585,10 +3580,15 @@ export namespace Cdp {
       /**
        * Whether this stylesheet is mutable. Inline stylesheets become mutable
        * after they have been modified via CSSOM API.
-       * <link> element's stylesheets are never mutable. Constructed stylesheets
-       * (new CSSStyleSheet()) are mutable immediately after creation.
+       * <link> element's stylesheets become mutable only if DevTools modifies them.
+       * Constructed stylesheets (new CSSStyleSheet()) are mutable immediately after creation.
        */
       isMutable: boolean;
+
+      /**
+       * Whether this stylesheet is a constructed stylesheet (created using new CSSStyleSheet()).
+       */
+      isConstructed: boolean;
 
       /**
        * Line offset of the stylesheet within the resource (zero based).
@@ -13031,6 +13031,13 @@ export namespace Cdp {
     ): Promise<Network.SetExtraHTTPHeadersResult | undefined>;
 
     /**
+     * Specifies whether to sned a debug header to all outgoing requests.
+     */
+    setAttachDebugHeader(
+      params: Network.SetAttachDebugHeaderParams,
+    ): Promise<Network.SetAttachDebugHeaderResult | undefined>;
+
+    /**
      * Sets the requests to intercept that match the provided patterns and optionally resource types.
      * Deprecated, please use Fetch.enable instead.
      * @deprecated
@@ -13045,6 +13052,13 @@ export namespace Cdp {
     setUserAgentOverride(
       params: Network.SetUserAgentOverrideParams,
     ): Promise<Network.SetUserAgentOverrideResult | undefined>;
+
+    /**
+     * Returns information about the COEP/COOP isolation status.
+     */
+    getSecurityIsolationStatus(
+      params: Network.GetSecurityIsolationStatusParams,
+    ): Promise<Network.GetSecurityIsolationStatusResult | undefined>;
 
     /**
      * Fired when data chunk was received over the network.
@@ -13774,6 +13788,21 @@ export namespace Cdp {
     export interface SetExtraHTTPHeadersResult {}
 
     /**
+     * Parameters of the 'Network.setAttachDebugHeader' method.
+     */
+    export interface SetAttachDebugHeaderParams {
+      /**
+       * Whether to send a debug header.
+       */
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'Network.setAttachDebugHeader' method.
+     */
+    export interface SetAttachDebugHeaderResult {}
+
+    /**
      * Parameters of the 'Network.setRequestInterception' method.
      */
     export interface SetRequestInterceptionParams {
@@ -13818,6 +13847,23 @@ export namespace Cdp {
      * Return value of the 'Network.setUserAgentOverride' method.
      */
     export interface SetUserAgentOverrideResult {}
+
+    /**
+     * Parameters of the 'Network.getSecurityIsolationStatus' method.
+     */
+    export interface GetSecurityIsolationStatusParams {
+      /**
+       * If no frameId is provided, the status of the target is provided.
+       */
+      frameId?: Page.FrameId;
+    }
+
+    /**
+     * Return value of the 'Network.getSecurityIsolationStatus' method.
+     */
+    export interface GetSecurityIsolationStatusResult {
+      status: SecurityIsolationStatus;
+    }
 
     /**
      * Parameters of the 'Network.dataReceived' event.
@@ -15391,6 +15437,28 @@ export namespace Cdp {
        */
       errors?: SignedExchangeError[];
     }
+
+    export type CrossOriginOpenerPolicyValue =
+      | 'SameOrigin'
+      | 'SameOriginAllowPopups'
+      | 'UnsafeNone'
+      | 'SameOriginPlusCoep';
+
+    export interface CrossOriginOpenerPolicyStatus {
+      value: CrossOriginOpenerPolicyValue;
+    }
+
+    export type CrossOriginEmbedderPolicyValue = 'None' | 'RequireCorp';
+
+    export interface CrossOriginEmbedderPolicyStatus {
+      value: CrossOriginEmbedderPolicyValue;
+    }
+
+    export interface SecurityIsolationStatus {
+      coop: CrossOriginOpenerPolicyStatus;
+
+      coep: CrossOriginEmbedderPolicyStatus;
+    }
   }
 
   /**
@@ -16190,6 +16258,11 @@ export namespace Cdp {
        * The named grid areas border color (Default: transparent).
        */
       areaBorderColor?: DOM.RGBA;
+
+      /**
+       * The grid container background color (Default: transparent).
+       */
+      gridBackgroundColor?: DOM.RGBA;
     }
 
     /**
@@ -18347,6 +18420,23 @@ export namespace Cdp {
     export type AdFrameType = 'none' | 'child' | 'root';
 
     /**
+     * Indicates whether the frame is a secure context and why it is the case.
+     */
+    export type SecureContextType =
+      | 'Secure'
+      | 'SecureLocalhost'
+      | 'InsecureScheme'
+      | 'InsecureAncestor';
+
+    /**
+     * Indicates whether the frame is cross-origin isolated and why it is the case.
+     */
+    export type CrossOriginIsolatedContextType =
+      | 'Isolated'
+      | 'NotIsolated'
+      | 'NotIsolatedFeatureDisabled';
+
+    /**
      * Information about the Frame on the page.
      */
     export interface Frame {
@@ -18407,6 +18497,16 @@ export namespace Cdp {
        * Indicates whether this frame was tagged as an ad.
        */
       adFrameType?: AdFrameType;
+
+      /**
+       * Indicates whether the main document is a secure context and explains why that is the case.
+       */
+      secureContextType: SecureContextType;
+
+      /**
+       * Indicates whether this is a cross origin isolated context.
+       */
+      crossOriginIsolatedContextType: CrossOriginIsolatedContextType;
     }
 
     /**
@@ -19026,6 +19126,27 @@ export namespace Cdp {
     ): Promise<Profiler.TakeTypeProfileResult | undefined>;
 
     /**
+     * Enable counters collection.
+     */
+    enableCounters(
+      params: Profiler.EnableCountersParams,
+    ): Promise<Profiler.EnableCountersResult | undefined>;
+
+    /**
+     * Disable counters collection.
+     */
+    disableCounters(
+      params: Profiler.DisableCountersParams,
+    ): Promise<Profiler.DisableCountersResult | undefined>;
+
+    /**
+     * Retrieve counters.
+     */
+    getCounters(
+      params: Profiler.GetCountersParams,
+    ): Promise<Profiler.GetCountersResult | undefined>;
+
+    /**
      * Enable run time call stats collection.
      */
     enableRuntimeCallStats(
@@ -19246,6 +19367,41 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Profiler.enableCounters' method.
+     */
+    export interface EnableCountersParams {}
+
+    /**
+     * Return value of the 'Profiler.enableCounters' method.
+     */
+    export interface EnableCountersResult {}
+
+    /**
+     * Parameters of the 'Profiler.disableCounters' method.
+     */
+    export interface DisableCountersParams {}
+
+    /**
+     * Return value of the 'Profiler.disableCounters' method.
+     */
+    export interface DisableCountersResult {}
+
+    /**
+     * Parameters of the 'Profiler.getCounters' method.
+     */
+    export interface GetCountersParams {}
+
+    /**
+     * Return value of the 'Profiler.getCounters' method.
+     */
+    export interface GetCountersResult {
+      /**
+       * Collected counters information.
+       */
+      result: CounterInfo[];
+    }
+
+    /**
      * Parameters of the 'Profiler.enableRuntimeCallStats' method.
      */
     export interface EnableRuntimeCallStatsParams {}
@@ -19275,9 +19431,9 @@ export namespace Cdp {
      */
     export interface GetRuntimeCallStatsResult {
       /**
-       * Collected counter information.
+       * Collected runtime call counter information.
        */
-      result: CounterInfo[];
+      result: RuntimeCallCounterInfo[];
     }
 
     /**
@@ -19536,6 +19692,26 @@ export namespace Cdp {
        * Counter value.
        */
       value: integer;
+    }
+
+    /**
+     * Runtime call counter information.
+     */
+    export interface RuntimeCallCounterInfo {
+      /**
+       * Counter name.
+       */
+      name: string;
+
+      /**
+       * Counter value.
+       */
+      value: number;
+
+      /**
+       * Counter time in seconds.
+       */
+      time: number;
     }
   }
 
@@ -23817,7 +23993,7 @@ export namespace Cdp {
     }
 
     /**
-     * Protocol object for AudioListner
+     * Protocol object for AudioListener
      */
     export interface AudioListener {
       listenerId: GraphObjectId;

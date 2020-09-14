@@ -15,8 +15,8 @@ import { delay } from '../../common/promiseUtil';
 import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
 import Dap from '../../dap/api';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
-import { ITestHandle, NodeTestHandle, testFixturesDir, testWorkspace } from '../test';
 import { createFileTree } from '../createFileTree';
+import { ITestHandle, NodeTestHandle, testFixturesDir, testWorkspace } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('node runtime', () => {
@@ -521,6 +521,15 @@ describe('node runtime', () => {
     handle.load();
     await waitForPause(handle);
     handle.assertLog({ substring: true });
+  });
+
+  itIntegrates('gets performance information', async ({ r }) => {
+    createFileTree(testFixturesDir, { 'test.js': 'setInterval(() => {}, 1000)' });
+    const handle = await r.runScript('test.js');
+    await handle.load();
+    const res = await handle.dap.getPerformance({});
+    expect(res.error).to.be.undefined;
+    expect(res.metrics).to.not.be.empty;
   });
 
   describe('simplePortAttach', () => {

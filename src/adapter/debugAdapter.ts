@@ -20,6 +20,7 @@ import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { IEvaluator } from './evaluator';
+import { IPerformanceProvider } from './performance';
 import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
@@ -57,6 +58,7 @@ export class DebugAdapter implements IDisposable {
     // so we initialize this before configuring the event handlers for the dap
     this.breakpointManager = _services.get(BreakpointManager);
 
+    const performanceProvider = _services.get<IPerformanceProvider>(IPerformanceProvider);
     const telemetry = _services.get<ITelemetryReporter>(ITelemetryReporter);
     telemetry.onFlush(() => {
       telemetry.report('breakpointStats', this.breakpointManager.statisticsForTelemetry());
@@ -90,6 +92,9 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
+    this.dap.on('getPerformance', () =>
+      this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
+    );
     this.dap.on('breakpointLocations', params =>
       this._withThread(async thread => ({
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),

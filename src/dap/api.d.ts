@@ -970,6 +970,18 @@ export namespace Dap {
      * Stops profiling the extension itself. Used by VS.
      */
     stopSelfProfileRequest(params: StopSelfProfileParams): Promise<StopSelfProfileResult>;
+
+    /**
+     * Requests that we get performance information from the runtime.
+     */
+    on(
+      request: 'getPerformance',
+      handler: (params: GetPerformanceParams) => Promise<GetPerformanceResult | Error>,
+    ): () => void;
+    /**
+     * Requests that we get performance information from the runtime.
+     */
+    getPerformanceRequest(params: GetPerformanceParams): Promise<GetPerformanceResult>;
   }
 
   export interface TestApi {
@@ -1595,6 +1607,11 @@ export namespace Dap {
      * Stops profiling the extension itself. Used by VS.
      */
     stopSelfProfile(params: StopSelfProfileParams): Promise<StopSelfProfileResult>;
+
+    /**
+     * Requests that we get performance information from the runtime.
+     */
+    getPerformance(params: GetPerformanceParams): Promise<GetPerformanceResult>;
   }
 
   export interface AttachParams {
@@ -1971,6 +1988,20 @@ export namespace Dap {
 
   export interface GetBreakpointsResult {
     breakpoints: Breakpoint[];
+  }
+
+  export interface GetPerformanceParams {}
+
+  export interface GetPerformanceResult {
+    /**
+     * Response to 'GetPerformance' request. A key-value list of runtime-dependent details.
+     */
+    metrics?: object;
+
+    /**
+     * Optional error from the adapter
+     */
+    error?: string;
   }
 
   export interface GotoParams {

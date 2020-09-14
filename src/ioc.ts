@@ -27,6 +27,7 @@ import { Completions, ICompletions } from './adapter/completions';
 import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
+import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
@@ -127,6 +128,12 @@ export const createTargetContainer = (
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();
+
+  container.bind(PerformanceProviderFactory).toSelf();
+  container
+    .bind(IPerformanceProvider)
+    .toDynamicValue(ctx => ctx.container.get(PerformanceProviderFactory).create())
+    .inSingletonScope();
 
   container.bind(BreakpointPredictorDelegate).toSelf().inSingletonScope();
 
