@@ -117,8 +117,12 @@ export class LocalFsUtils implements IFsUtils {
   public async exists(path: string): Promise<boolean> {
     // Check if the file exists in the current directory.
     try {
-      await this.fs.access(path, fs.constants.F_OK);
-      return true;
+      if (process.platform === 'darwin') {
+        return fs.existsSync(path); // One of the unit tests fails on OSX
+      } else {
+        await this.fs.access(path, fs.constants.F_OK);
+        return true;
+      }
     } catch {
       return false;
     }
