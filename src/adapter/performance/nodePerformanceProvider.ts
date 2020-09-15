@@ -13,7 +13,12 @@ export class NodePerformanceProvider implements IPerformanceProvider {
    */
   public async retrieve(cdp: Cdp.Api): Promise<Dap.GetPerformanceResult> {
     const res = await cdp.Runtime.evaluate({
-      expression: `({ ...process.memoryUsage(), ...process.cpuUsage() })${getSourceSuffix()}`,
+      expression: `({
+        memory: process.memoryUsage(),
+        cpu: process.cpuUsage(),
+        timestamp: Date.now(),
+        resourceUsage: process.resourceUsage && process.resourceUsage(),
+      })${getSourceSuffix()}`,
       returnByValue: true,
     });
 
