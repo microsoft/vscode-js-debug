@@ -21,6 +21,7 @@ import {
 import { createPendingDapApi } from '../dap/pending-api';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
+import { NodeTarget } from '../targets/node/nodeTarget';
 import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
@@ -83,6 +84,10 @@ export const launchVirtualTerminalParent = (
       const delegateId = delegate.addDelegate(target, dap, target.parent());
       if (!target.parent()) {
         const cwd = await getWorkingDirectory(target);
+        if (target instanceof NodeTarget && cwd) {
+          target.refreshPathResolver(cwd.fsPath);
+        }
+
         vscode.debug.startDebugging(cwd && vscode.workspace.getWorkspaceFolder(cwd), {
           ...baseDebugOptions,
           type: DebugType.Terminal,

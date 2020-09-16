@@ -13,6 +13,7 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyNodeConfiguration } from '../../configuration';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBreakpointPathAndId, ITarget } from '../targets';
+import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -46,7 +47,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   constructor(
     public readonly launchConfig: AnyNodeConfiguration,
-    private readonly pathResolver: ISourcePathResolver,
+    private pathResolver: NodeSourcePathResolver,
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
@@ -224,6 +225,21 @@ export class NodeTarget implements ITarget, IThreadDelegate {
       }
     } finally {
       this.connection.close();
+    }
+  }
+
+  /**
+   * Refreshes the path resolve if the existing resolver didn't have a base
+   * directory. This is used in deferred launches, namely the debug terminal
+   * and auto attach, where the working directory is only discovered after
+   * the debug target is prepared.
+   */
+  public refreshPathResolver(cwd: string) {
+    if (!this.pathResolver.resolutionOptions.basePath) {
+      this.pathResolver = new NodeSourcePathResolver(
+        { ...this.pathResolver.resolutionOptions, basePath: cwd },
+        this.logger,
+      );
     }
   }
 }
