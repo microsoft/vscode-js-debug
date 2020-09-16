@@ -856,7 +856,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   pathMapping: {},
   url: null,
   restart: false,
-  urlFilter: '',
+  urlFilter: '*',
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
