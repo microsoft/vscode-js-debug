@@ -181,6 +181,12 @@ function shouldSmartAttach(env: IBootloaderInfo) {
     return false;
   }
 
+  // don't attach to code's cli. This is a little annoying to match with
+  // patterns, and users will never want it, so do it manually.
+  if (process.env.ELECTRON_RUN_AS_NODE === '1' && /(visual studio|vs) code/i.test(script)) {
+    return false;
+  }
+
   // otherwise, delegate to the patterns. Defaults exclude node_modules
   return autoAttachSmartPatternMatches(script, env);
 }
