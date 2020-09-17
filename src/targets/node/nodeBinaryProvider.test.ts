@@ -100,10 +100,10 @@ describe('NodeBinaryProvider', function () {
   });
 
   it('allows overriding with an explicit version', async () => {
-    const binary = await p.resolveAndValidate(env('outdated'), undefined, 12);
+    const binary = await p.resolveAndValidate(env('outdated'), undefined, 11);
     expect(binary.path).to.equal(binaryLocation('outdated'));
-    expect(binary.version).to.deep.equal(new Semver(12, 0, 0));
-    expect(binary.has(Capability.UseSpacesInRequirePath)).to.be.true;
+    expect(binary.version).to.deep.equal(new Semver(11, 0, 0));
+    expect(binary.has(Capability.UseSpacesInRequirePath)).to.be.false;
   });
 
   describe('electron versioning', () => {

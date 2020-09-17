@@ -142,7 +142,7 @@ export class NodeBinaryProvider {
     }
 
     if (explicitVersion) {
-      return new NodeBinary(location, new Semver(12, 0, 0));
+      return new NodeBinary(location, new Semver(explicitVersion, 0, 0));
     }
 
     // If the runtime executable doesn't look like Node.js (could be a shell
