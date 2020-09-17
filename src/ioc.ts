@@ -92,7 +92,6 @@ import { ILauncher, ITarget } from './targets/targets';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
-// import { LocalAndRemoteFsUtils } from './common/fsUtils';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
