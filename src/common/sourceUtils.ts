@@ -9,7 +9,8 @@ import * as ts from 'typescript';
 import { SourceMap } from './sourceMaps/sourceMap';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import { Hasher } from './hash';
-import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+import { LocalFsUtils } from './fsUtils';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -241,7 +242,7 @@ export async function checkContentHash(
   }
 
   if (!contentHash) {
-    const exists = fs.existsSync(absolutePath);
+    const exists = await new LocalFsUtils(fsPromises).exists(absolutePath);
     return exists ? absolutePath : undefined;
   }
 
