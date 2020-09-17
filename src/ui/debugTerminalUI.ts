@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { promises as fsPromises } from 'fs';
 import { NeverCancelled } from '../common/cancellation';
 import {
   Commands,
@@ -28,7 +27,7 @@ import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
 import { promises as fs } from 'fs';
 import { ProxyLogger } from '../common/logging/proxyLogger';
-import { LocalFsUtils } from '../common/fsUtils';
+import { IFsUtils } from '../common/fsUtils';
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -138,8 +137,7 @@ export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
   linkHandler: TerminalLinkHandler,
-  // We don't need Node to support remote file system at the moment, so we hardcode fsUtils (it's only used for node here)
-  fsUtils = new LocalFsUtils(fsPromises),
+  fsUtils: IFsUtils,
 ) {
   /**
    * See docblocks on {@link DelegateLauncher} for more information on

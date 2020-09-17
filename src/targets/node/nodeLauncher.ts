@@ -7,7 +7,7 @@ import { basename, extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
-import { readfile, LocalFsUtils } from '../../common/fsUtils';
+import { readfile, LocalFsUtils, IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
@@ -35,7 +35,7 @@ import { FSUtils } from '../../ioc-extras';
  * is explicitly provided, it grabs that, otherwise it looks for the first
  * existent path within the launch arguments.
  */
-const tryGetProgramFromArgs = async (fsUtils: LocalFsUtils, config: INodeLaunchConfiguration) => {
+const tryGetProgramFromArgs = async (fsUtils: IFsUtils, config: INodeLaunchConfiguration) => {
   if (typeof config.stopOnEntry === 'string') {
     return resolve(config.cwd, config.stopOnEntry);
   }

@@ -10,7 +10,7 @@ import { PathMapping } from '../../configuration';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
 import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
-import { LocalFsUtils } from '../fsUtils';
+import { IFsUtils } from '../fsUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -137,7 +137,7 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
  * a package.json if there's no more precise match in the mapping.
  */
 export const moduleAwarePathMappingResolver = (
-  fsUtils: LocalFsUtils,
+  fsUtils: IFsUtils,
   compiledPath: string,
 ): PathMappingResolver => async (sourceRoot, pathMapping, logger) => {
   // 1. Handle cases where we know the path is already absolute on disk.

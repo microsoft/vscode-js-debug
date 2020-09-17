@@ -12,7 +12,7 @@ import { MapUsingProjection } from './datastructure/mapUsingProjection';
 import { memoize } from './objUtils';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
-import { LocalFsUtils } from './fsUtils';
+import { IFsUtils } from './fsUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -81,7 +81,7 @@ export const nearestDirectoryWhere = async (
 /**
  * Returns the closest parent directory that contains a file with the given name.
  */
-export const nearestDirectoryContaining = (fsUtils: LocalFsUtils, rootDir: string, file: string) =>
+export const nearestDirectoryContaining = (fsUtils: IFsUtils, rootDir: string, file: string) =>
   nearestDirectoryWhere(rootDir, p => fsUtils.exists(path.join(p, file)));
 
 // todo: not super correct, and most node libraries don't handle this accurately

@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import * as fs from 'fs';
-import { promises as fsPromises } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -24,7 +23,7 @@ import {
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
 } from '../../configuration';
-import { ExtensionContext } from '../../ioc-extras';
+import { ExtensionContext, FSUtils } from '../../ioc-extras';
 import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
@@ -47,8 +46,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
     @inject(INvmResolver) private readonly nvmResolver: INvmResolver,
-    // We don't need Node to support remote file system at the moment, so we hardcode fsUtils
-    private readonly fsUtils: LocalFsUtils = new LocalFsUtils(fsPromises),
+    @inject(FSUtils) private readonly fsUtils: LocalFsUtils,
   ) {
     super(context);
   }

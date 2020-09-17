@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { allDebugTypes, Commands, registerCommand } from './common/contributionUtils';
 import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
+import { FSUtils } from './ioc-extras';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { registerAutoAttach } from './ui/autoAttach';
 import { CascadeTerminationTracker } from './ui/cascadeTerminateTracker';
@@ -93,6 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     services.get(DelegateLauncherFactory),
     services.get(TerminalLinkHandler),
+    services.get(FSUtils),
   );
   registerNpmScriptLens(context);
   registerProfilingCommand(context, services);

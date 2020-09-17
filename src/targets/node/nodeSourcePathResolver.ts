@@ -14,7 +14,7 @@ import {
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as urlUtils from '../../common/urlUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
-import { LocalFsUtils } from '../../common/fsUtils';
+import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 
 interface IOptions extends ISourcePathResolverOptions {
@@ -23,7 +23,7 @@ interface IOptions extends ISourcePathResolverOptions {
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
   public constructor(
-    private readonly fsUtils: LocalFsUtils,
+    private readonly fsUtils: IFsUtils,
     protected readonly options: IOptions,
     protected readonly logger: ILogger,
   ) {
