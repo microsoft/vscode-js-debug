@@ -532,7 +532,7 @@ export abstract class Breakpoint {
         uiLocations: [],
       };
       this.updateCdpRefs(list => list.map(r => (r === state ? next : r)));
-      this.updateUiLocations(thread, result.breakpointId, locations);
+      await this.updateUiLocations(thread, result.breakpointId, locations);
       return next;
     })();
 

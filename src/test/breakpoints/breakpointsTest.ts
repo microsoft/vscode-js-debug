@@ -259,10 +259,12 @@ describe('breakpoints', () => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
-      const source: Dap.Source = {
-        path: p.workspacePath('web/browserify/bundle.js'),
-      };
-      const resolved = await p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
+      await p.waitForSource('bundle.js');
+      const resolved = await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/browserify/bundle.js') },
+        breakpoints: [{ line: 36 }],
+      });
+
       delete resolved.breakpoints[0].source!.sources;
       p.log(resolved.breakpoints[0], 'Breakpoint resolved: ');
       p.cdp.Runtime.evaluate({
@@ -284,10 +286,12 @@ describe('breakpoints', () => {
       // Breakpoint in compiled script which has a source map should resolve
       // to the compiled script.
       const p = await r.launchUrlAndLoad('browserify/browserify.html');
-      const source: Dap.Source = {
-        path: p.workspacePath('web/browserify/bundle.js'),
-      };
-      const resolved = await p.dap.setBreakpoints({ source, breakpoints: [{ line: 36 }] });
+      await p.waitForSource('bundle.js');
+
+      const resolved = await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/browserify/bundle.js') },
+        breakpoints: [{ line: 36 }],
+      });
       delete resolved.breakpoints[0].source!.sources;
       p.log(resolved.breakpoints[0], 'Breakpoint resolved: ');
       p.cdp.Runtime.evaluate({
