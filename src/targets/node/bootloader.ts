@@ -199,6 +199,7 @@ function autoAttachSmartPatternMatches(script: string, env: IBootloaderInfo) {
   const r = match(
     [script.replace(/\\/g, '/')],
     ['**', ...env.aaPatterns.map(p => p.replace(knownToolToken, knownToolGlob))],
+    { dot: true },
   );
 
   return r.length > 0;
