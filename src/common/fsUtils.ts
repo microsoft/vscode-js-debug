@@ -120,8 +120,8 @@ export class LocalFsUtils implements IFsUtils {
       if (process.platform === 'darwin') {
         return fs.existsSync(path); // One of the unit tests fails on OSX
       } else {
-        await this.fs.access(path, fs.constants.F_OK);
-        return true;
+      await this.fs.access(path, fs.constants.F_OK);
+      return true;
       }
     } catch {
       return false;
