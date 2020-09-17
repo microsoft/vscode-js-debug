@@ -111,6 +111,11 @@ export interface IFsUtils {
   exists(path: string): Promise<boolean>;
 }
 
+/**
+ * Injection for the `IFsUtils` interface.
+ */
+export const FSUtils = Symbol('FsUtils');
+
 export class LocalFsUtils implements IFsUtils {
   public constructor(private readonly fs: FsPromises) {}
 
@@ -120,8 +125,8 @@ export class LocalFsUtils implements IFsUtils {
       if (process.platform === 'darwin') {
         return fs.existsSync(path); // One of the unit tests fails on OSX
       } else {
-      await this.fs.access(path, fs.constants.F_OK);
-      return true;
+        await this.fs.access(path, fs.constants.F_OK);
+        return true;
       }
     } catch {
       return false;

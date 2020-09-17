@@ -28,7 +28,7 @@ import { IProgramLauncher } from './processLauncher';
 import { CombinedProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
-import { FSUtils } from '../../ioc-extras';
+import { FSUtils } from '../../common/fsUtils';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program

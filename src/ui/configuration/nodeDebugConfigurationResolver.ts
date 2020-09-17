@@ -23,12 +23,12 @@ import {
   ResolvingNodeAttachConfiguration,
   ResolvingNodeLaunchConfiguration,
 } from '../../configuration';
-import { ExtensionContext, FSUtils } from '../../ioc-extras';
+import { ExtensionContext } from '../../ioc-extras';
 import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
-import { LocalFsUtils } from '../../common/fsUtils';
+import { FSUtils, LocalFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 

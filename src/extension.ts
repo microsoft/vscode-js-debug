@@ -5,9 +5,9 @@
 import { tmpdir } from 'os';
 import * as vscode from 'vscode';
 import { allDebugTypes, Commands, registerCommand } from './common/contributionUtils';
+import { FSUtils } from './common/fsUtils';
 import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
-import { FSUtils } from './ioc-extras';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { registerAutoAttach } from './ui/autoAttach';
 import { CascadeTerminationTracker } from './ui/cascadeTerminateTracker';

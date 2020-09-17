@@ -10,9 +10,9 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
-import { IInitializeParams, FSUtils } from '../ioc-extras';
+import { IInitializeParams } from '../ioc-extras';
 import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
-import { LocalFsUtils } from '../common/fsUtils';
+import { FSUtils, LocalFsUtils } from '../common/fsUtils';
 
 @injectable()
 export class SourcePathResolverFactory {

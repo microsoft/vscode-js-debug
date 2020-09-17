@@ -16,7 +16,7 @@ import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { ExtensionContext, FS, FsPromises, FSUtils } from '../../ioc-extras';
+import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
 import { ITarget } from '../targets';
 import {
   BootloaderEnvironment,
@@ -35,7 +35,7 @@ import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBas
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { WatchDog } from './watchdogSpawn';
-import { LocalFsUtils } from '../../common/fsUtils';
+import { FSUtils, LocalFsUtils } from '../../common/fsUtils';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment

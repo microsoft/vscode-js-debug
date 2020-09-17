@@ -43,7 +43,7 @@ import { ICdpApi } from './cdp/connection';
 import { ObservableMap } from './common/datastructure/observableMap';
 import { DefaultBrowserProvider, IDefaultBrowserProvider } from './common/defaultBrowserProvider';
 import { OutFiles, VueComponentPaths } from './common/fileGlobList';
-import { LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
+import { FSUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
@@ -59,7 +59,6 @@ import {
   ExtensionContext,
   ExtensionLocation,
   FS,
-  FSUtils,
   IContainer,
   IsVSCode,
   ProcessEnv,

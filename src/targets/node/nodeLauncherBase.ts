@@ -42,7 +42,7 @@ import {
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { FSUtils } from '../../ioc-extras';
+import { FSUtils } from '../../common/fsUtils';
 import { IFsUtils } from '../../common/fsUtils';
 
 /**

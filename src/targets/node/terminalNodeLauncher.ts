@@ -12,7 +12,7 @@ import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
-import { FS, FsPromises, FSUtils } from '../../ioc-extras';
+import { FS, FsPromises } from '../../ioc-extras';
 import {
   hideDebugInfoFromConsole,
   INodeBinaryProvider,
@@ -20,7 +20,7 @@ import {
   NodeBinary,
 } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
-import { IFsUtils } from '../../common/fsUtils';
+import { FSUtils, IFsUtils } from '../../common/fsUtils';
 import { IProgram } from './program';
 import { IStopMetadata, ITarget } from '../targets';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';

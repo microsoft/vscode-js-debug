@@ -10,7 +10,7 @@ import { inject, injectable } from 'inversify';
 import { some } from '../../common/promiseUtil';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { promises as fsPromises } from 'fs';
-import { FSUtils } from '../../ioc-extras';
+import { FSUtils } from '../../common/fsUtils';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
