@@ -23,7 +23,7 @@ import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
 import { LocalFsUtils } from '../../common/fsUtils';
-import { FSUtils } from '../../common/fsUtils';
+import { IFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -37,7 +37,7 @@ const localize = nls.loadMessageBundle();
 @injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
-    @inject(FSUtils) fsUtils: LocalFsUtils,
+    @inject(IFsUtils) fsUtils: LocalFsUtils,
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     private readonly restarters = new RestartPolicyFactory(),

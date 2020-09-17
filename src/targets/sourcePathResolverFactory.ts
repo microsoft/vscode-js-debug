@@ -12,7 +12,7 @@ import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
 import { IInitializeParams } from '../ioc-extras';
 import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
-import { FSUtils, LocalFsUtils } from '../common/fsUtils';
+import { IFsUtils, LocalFsUtils } from '../common/fsUtils';
 
 @injectable()
 export class SourcePathResolverFactory {
@@ -20,7 +20,7 @@ export class SourcePathResolverFactory {
     @inject(IInitializeParams) private readonly initializeParams: Dap.InitializeParams,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
-    @inject(FSUtils) private readonly fsUtils: LocalFsUtils,
+    @inject(IFsUtils) private readonly fsUtils: LocalFsUtils,
   ) {}
 
   public create(c: AnyLaunchConfiguration) {

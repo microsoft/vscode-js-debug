@@ -28,7 +28,6 @@ import { IProgramLauncher } from './processLauncher';
 import { CombinedProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
-import { FSUtils } from '../../common/fsUtils';
 
 /**
  * Tries to get the "program" entrypoint from the config. It a program
@@ -69,7 +68,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
     @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
-    @inject(FSUtils) fsUtils: LocalFsUtils,
+    @inject(IFsUtils) fsUtils: LocalFsUtils,
   ) {
     super(pathProvider, logger, fsUtils);
   }

@@ -20,7 +20,7 @@ import {
   NodeBinary,
 } from './nodeBinaryProvider';
 import { ILogger } from '../../common/logging';
-import { FSUtils, IFsUtils } from '../../common/fsUtils';
+import { IFsUtils } from '../../common/fsUtils';
 import { IProgram } from './program';
 import { IStopMetadata, ITarget } from '../targets';
 import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
@@ -74,7 +74,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
-    @inject(FSUtils) fsUtils: IFsUtils,
+    @inject(IFsUtils) fsUtils: IFsUtils,
   ) {
     super(pathProvider, logger, fsUtils);
   }

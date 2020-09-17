@@ -114,7 +114,7 @@ export interface IFsUtils {
 /**
  * Injection for the `IFsUtils` interface.
  */
-export const FSUtils = Symbol('FsUtils');
+export const IFsUtils = Symbol('FsUtils');
 
 export class LocalFsUtils implements IFsUtils {
   public constructor(private readonly fs: FsPromises) {}

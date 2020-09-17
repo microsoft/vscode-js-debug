@@ -10,7 +10,7 @@ import { inject, injectable } from 'inversify';
 import { some } from '../../common/promiseUtil';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { promises as fsPromises } from 'fs';
-import { FSUtils } from '../../common/fsUtils';
+import { IFsUtils } from '../../common/fsUtils';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -41,7 +41,7 @@ const enum Vars {
 @injectable()
 export class NvmResolver implements INvmResolver {
   constructor(
-    @inject(FSUtils) private readonly fsUtils = new LocalFsUtils(fsPromises),
+    @inject(IFsUtils) private readonly fsUtils = new LocalFsUtils(fsPromises),
     private readonly env = process.env,
     private readonly arch = process.arch,
     private readonly platform = process.platform,

@@ -28,7 +28,7 @@ import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
-import { FSUtils, LocalFsUtils } from '../../common/fsUtils';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -46,7 +46,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
     @inject(INvmResolver) private readonly nvmResolver: INvmResolver,
-    @inject(FSUtils) private readonly fsUtils: LocalFsUtils,
+    @inject(IFsUtils) private readonly fsUtils: LocalFsUtils,
   ) {
     super(context);
   }

@@ -42,7 +42,6 @@ import {
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { FSUtils } from '../../common/fsUtils';
 import { IFsUtils } from '../../common/fsUtils';
 
 /**
@@ -131,7 +130,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   constructor(
     @inject(INodeBinaryProvider) private readonly pathProvider: NodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
-    @inject(FSUtils) protected readonly fsUtils: IFsUtils,
+    @inject(IFsUtils) protected readonly fsUtils: IFsUtils,
   ) {}
 
   /**
