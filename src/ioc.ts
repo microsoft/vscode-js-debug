@@ -67,7 +67,6 @@ import {
   StoragePath,
   trackDispose,
   VSCodeApi,
-  //  FSUtils,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
