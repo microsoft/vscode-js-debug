@@ -153,14 +153,14 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     if (storagePath.includes(' ')) {
       if (!binary.isPreciselyKnown) {
         throw new AutoAttachPreconditionFailed(
-          'We did not find "node" on your path, so can not enable auto-attach in your environment',
+          'We did not find `node` on your PATH, so we cannot enable auto-attach in your environment',
           'https://github.com/microsoft/vscode-js-debug/issues/708',
         );
       }
 
       if (!binary.has(Capability.UseSpacesInRequirePath)) {
         throw new AutoAttachPreconditionFailed(
-          `The "node" version on your path is too old (${binary.version?.major}), so can not enable auto-attach in your environment`,
+          `The \`node\` version on your PATH is too old (${binary.version?.major}), so we cannot enable auto-attach in your environment`,
           'https://github.com/microsoft/vscode-js-debug/issues/708',
         );
       }

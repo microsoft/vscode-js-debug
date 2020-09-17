@@ -388,6 +388,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     }
 
     const target = new NodeTarget(
+      this.fsUtils,
       this.run.params,
       this.run.pathResolver,
       this.run.context.targetOrigin,

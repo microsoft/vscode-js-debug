@@ -8,6 +8,8 @@ import { IRPCMetrics, IRPCMetricsAndErrorsMap } from './classification';
  * Batches reported metrics per method call, giving performance information.
  */
 export class ReporterBatcher {
+  constructor(private readonly isVSCode: boolean = true) {}
+
   // prototype-free object so that we don't need to do hasOwnProperty checks
   private measurements: { [method: string]: { times: number[]; errors: Error[] } } = Object.create(
     null,
@@ -59,6 +61,10 @@ export class ReporterBatcher {
       item.stddev = Math.sqrt(item.stddev / (times.length - 1));
       results[item.operation] = item;
       results[`!${item.operation}.errors`] = errors;
+      // property without excalamation for VS
+      if (!this.isVSCode) {
+        results[`${item.operation}.errors`] = errors;
+      }
     }
 
     this.measurements = Object.create(null);

@@ -862,7 +862,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   pathMapping: {},
   url: null,
   restart: false,
-  urlFilter: '',
+  urlFilter: '*',
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
   webRoot: '${workspaceFolder}',
   server: null,
@@ -926,7 +926,9 @@ export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): An
   // Resolve source map locations from the outFiles by default:
   // https://github.com/microsoft/vscode-js-debug/issues/704
   if (config.resolveSourceMapLocations === undefined) {
-    config.resolveSourceMapLocations = config.outFiles;
+    if (config.request === 'launch' || !config.remoteRoot) {
+      config.resolveSourceMapLocations = config.outFiles;
+    }
   }
 
   if (config.request === 'attach') {
