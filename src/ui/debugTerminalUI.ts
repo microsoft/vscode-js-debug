@@ -2,7 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import { NeverCancelled } from '../common/cancellation';
 import {
   Commands,
@@ -11,6 +13,8 @@ import {
   readConfig,
   registerCommand,
 } from '../common/contributionUtils';
+import { IFsUtils } from '../common/fsUtils';
+import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
   ITerminalLaunchConfiguration,
@@ -25,9 +29,8 @@ import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-import { promises as fs } from 'fs';
-import { ProxyLogger } from '../common/logging/proxyLogger';
-import { IFsUtils } from '../common/fsUtils';
+
+const localize = nls.loadMessageBundle();
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -130,6 +133,31 @@ export const launchVirtualTerminalParent = (
   );
 };
 
+const Abort = Symbol('Abort');
+
+async function getWorkspaceFolder() {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length < 2) {
+    return folders?.[0];
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    folders.map(folder => ({
+      label: folder.name,
+      description: folder.uri.fsPath,
+      folder,
+    })),
+    {
+      placeHolder: localize(
+        'terminal.cwdpick',
+        'Select current working directory for new terminal',
+      ),
+    },
+  );
+
+  return picked?.folder ?? Abort;
+}
+
 /**
  * Registers a command to launch the debugger terminal.
  */
@@ -149,6 +177,15 @@ export function registerDebugTerminalUI(
     workspaceFolder?: vscode.WorkspaceFolder,
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
+    if (!workspaceFolder) {
+      const picked = await getWorkspaceFolder();
+      if (picked === Abort) {
+        return;
+      }
+
+      workspaceFolder = picked;
+    }
+
     const logger = new ProxyLogger();
     const launcher = new TerminalNodeLauncher(
       new NodeBinaryProvider(logger, fs),
@@ -173,12 +210,7 @@ export function registerDebugTerminalUI(
 
   context.subscriptions.push(
     registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder, config) =>
-      launchTerminal(
-        delegateFactory,
-        command,
-        folder ?? vscode.workspace.workspaceFolders?.[0],
-        config,
-      ),
+      launchTerminal(delegateFactory, command, folder, config),
     ),
     vscode.window.registerTerminalLinkProvider?.(linkHandler),
   );
