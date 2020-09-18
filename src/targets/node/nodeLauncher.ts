@@ -7,7 +7,7 @@ import { basename, extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
-import { exists, readfile } from '../../common/fsUtils';
+import { readfile, LocalFsUtils, IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
@@ -34,7 +34,7 @@ import { WatchDog } from './watchdogSpawn';
  * is explicitly provided, it grabs that, otherwise it looks for the first
  * existent path within the launch arguments.
  */
-const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
+const tryGetProgramFromArgs = async (fsUtils: IFsUtils, config: INodeLaunchConfiguration) => {
   if (typeof config.stopOnEntry === 'string') {
     return resolve(config.cwd, config.stopOnEntry);
   }
@@ -50,7 +50,7 @@ const tryGetProgramFromArgs = async (config: INodeLaunchConfiguration) => {
     }
 
     const candidate = resolve(config.cwd, arg);
-    if (await exists(candidate)) {
+    if (await fsUtils.exists(candidate)) {
       return candidate;
     }
   }
@@ -68,8 +68,9 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
     @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
+    @inject(IFsUtils) fsUtils: LocalFsUtils,
   ) {
-    super(pathProvider, logger);
+    super(pathProvider, logger, fsUtils);
   }
 
   /**
@@ -257,7 +258,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         // the get-go, but in our scenario the bootloader is the first thing
         // which is run and something we don't want to break in. We just
         // do our best to find the entrypoint from the run params.
-        const program = await tryGetProgramFromArgs(run.params);
+        const program = await tryGetProgramFromArgs(this.fsUtils, run.params);
         if (!program) {
           this.logger.warn(LogTag.Runtime, 'Could not resolve program entrypointfrom args');
           return;

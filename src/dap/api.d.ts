@@ -924,6 +924,18 @@ export namespace Dap {
     launchUnelevatedRequest(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
 
     /**
+     * Check if file exists on remote file system, used in VS.
+     */
+    on(
+      request: 'remoteFileExists',
+      handler: (params: RemoteFileExistsParams) => Promise<RemoteFileExistsResult | Error>,
+    ): () => void;
+    /**
+     * Check if file exists on remote file system, used in VS.
+     */
+    remoteFileExistsRequest(params: RemoteFileExistsParams): Promise<RemoteFileExistsResult>;
+
+    /**
      * Gets all defined breakpoints.
      */
     on(
@@ -1587,6 +1599,11 @@ export namespace Dap {
      * Launches Chrome unelevated, used in VS.
      */
     launchUnelevated(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
+
+    /**
+     * Check if file exists on remote file system, used in VS.
+     */
+    remoteFileExists(params: RemoteFileExistsParams): Promise<RemoteFileExistsResult>;
 
     /**
      * Gets all defined breakpoints.
@@ -2646,6 +2663,17 @@ export namespace Dap {
      * The bytes read from memory, encoded using base64.
      */
     data?: string;
+  }
+
+  export interface RemoteFileExistsParams {
+    localFilePath?: string;
+  }
+
+  export interface RemoteFileExistsResult {
+    /**
+     * Does the file exist on the remote file system.
+     */
+    doesExists: boolean;
   }
 
   export interface RestartFrameParams {

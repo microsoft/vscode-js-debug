@@ -5,6 +5,7 @@
 import { tmpdir } from 'os';
 import * as vscode from 'vscode';
 import { allDebugTypes, Commands, registerCommand } from './common/contributionUtils';
+import { IFsUtils } from './common/fsUtils';
 import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
@@ -93,6 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     services.get(DelegateLauncherFactory),
     services.get(TerminalLinkHandler),
+    services.get(IFsUtils),
   );
   registerNpmScriptLens(context);
   registerProfilingCommand(context, services);

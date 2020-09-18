@@ -35,6 +35,7 @@ import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBas
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { WatchDog } from './watchdogSpawn';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment
@@ -50,8 +51,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     @inject(ILogger) logger: ILogger,
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
     @inject(FS) private readonly fs: FsPromises,
+    @inject(IFsUtils) fsUtils: LocalFsUtils,
   ) {
-    super(pathProvider, logger);
+    super(pathProvider, logger, fsUtils);
   }
 
   /**

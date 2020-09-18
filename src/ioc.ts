@@ -43,6 +43,7 @@ import { ICdpApi } from './cdp/connection';
 import { ObservableMap } from './common/datastructure/observableMap';
 import { DefaultBrowserProvider, IDefaultBrowserProvider } from './common/defaultBrowserProvider';
 import { OutFiles, VueComponentPaths } from './common/fileGlobList';
+import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
@@ -284,6 +285,7 @@ export const createGlobalContainer = (options: {
   container.bind(ProcessEnv).toConstantValue(process.env);
   container.bind(Execa).toConstantValue(execa);
   container.bind(FS).toConstantValue(fsPromises);
+  container.bind(IFsUtils).toConstantValue(new LocalFsUtils(fsPromises));
   container
     .bind<ExtensionLocation>(ExtensionLocation)
     .toConstantValue(options.isRemote ? 'remote' : 'local');
@@ -303,7 +305,11 @@ export const createGlobalContainer = (options: {
   return container;
 };
 
-export const provideLaunchParams = (container: Container, params: AnyLaunchConfiguration) => {
+export const provideLaunchParams = (
+  container: Container,
+  params: AnyLaunchConfiguration,
+  dap: Dap.Api,
+) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
 
   container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
@@ -312,4 +318,8 @@ export const provideLaunchParams = (container: Container, params: AnyLaunchConfi
     .bind(ISourcePathResolver)
     .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create(params))
     .inSingletonScope();
+
+  container
+    .bind(IFsUtils)
+    .toConstantValue(LocalAndRemoteFsUtils.create(params.__remoteFilePrefix, fsPromises, dap));
 };

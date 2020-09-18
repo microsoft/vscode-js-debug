@@ -364,7 +364,8 @@ describe('profiling', () => {
       disposable.dispose();
     });
 
-    it('profiles from launch', async () => {
+    it('profiles from launch', async function () {
+      this.timeout(20 * 1000); // 20 seconds timeout
       vscode.debug.startDebugging(undefined, {
         type: DebugType.Node,
         request: 'launch',

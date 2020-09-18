@@ -6,9 +6,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound, nvsNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { injectable } from 'inversify';
-import { exists } from '../../common/fsUtils';
+import { inject, injectable } from 'inversify';
 import { some } from '../../common/promiseUtil';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { promises as fsPromises } from 'fs';
+import { IFsUtils } from '../../common/fsUtils';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -39,6 +41,7 @@ const enum Vars {
 @injectable()
 export class NvmResolver implements INvmResolver {
   constructor(
+    @inject(IFsUtils) private readonly fsUtils = new LocalFsUtils(fsPromises),
     private readonly env = process.env,
     private readonly arch = process.arch,
     private readonly platform = process.platform,
@@ -84,7 +87,7 @@ export class NvmResolver implements INvmResolver {
       throw new ProtocolError(nvmNotFound());
     }
 
-    if (!directory || !(await exists(directory))) {
+    if (!directory || !(await this.fsUtils.exists(directory))) {
       throw new ProtocolError(nvmVersionNotFound(version, versionManagers.join('/')));
     }
 
@@ -97,7 +100,7 @@ export class NvmResolver implements INvmResolver {
    * This detects that.
    */
   private async getBinaryInFolder(dir: string) {
-    if (await some(['node64.exe', 'node64'].map(exe => exists(path.join(dir, exe))))) {
+    if (await some(['node64.exe', 'node64'].map(exe => this.fsUtils.exists(path.join(dir, exe))))) {
       return 'node64';
     }
 
@@ -129,7 +132,7 @@ export class NvmResolver implements INvmResolver {
     if (!nvmHome) {
       // if NVM_DIR is not set. Probe for '.nvm' directory instead
       const nvmDir = path.join(this.env['HOME'] || '', '.nvm');
-      if (await exists(nvmDir)) {
+      if (await this.fsUtils.exists(nvmDir)) {
         nvmHome = nvmDir;
       }
     }

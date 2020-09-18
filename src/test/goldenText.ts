@@ -50,8 +50,20 @@ export class GoldenText {
       const match = frame.match(/^(.*):(\d+):(\d+)$/);
       if (!match) return null;
       const filePath = match[1];
-      if (filePath === __filename) continue;
-      return filePath;
+
+      // We need to consider .ts files because we may have source-map-support to convert stack traces to .ts
+
+      if (
+        filePath === __filename ||
+        filePath === __filename.replace(/[\\/]out([\\/].*).js$/, '$1.ts')
+      )
+        continue;
+
+      if (filePath.endsWith('.ts')) {
+        return filePath.replace(/([\\/]src[\\/].*).ts$/, `${path.sep}out$1.js`);
+      } else {
+        return filePath;
+      }
     }
     return null;
   }

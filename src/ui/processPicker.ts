@@ -15,6 +15,8 @@ import { processTree, analyseArguments } from './processTree/processTree';
 import { readConfig, Configuration } from '../common/contributionUtils';
 import { nearestDirectoryContaining } from '../common/urlUtils';
 import { isSubdirectoryOf } from '../common/pathUtils';
+import { LocalFsUtils } from '../common/fsUtils';
+import { promises as fsPromises } from 'fs';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -45,7 +47,8 @@ export async function attachProcess() {
     processId,
   };
 
-  await resolveProcessId(config, true);
+  // TODO: Figure out how to inject FsUtils
+  await resolveProcessId(new LocalFsUtils(fsPromises), config, true);
   await vscode.debug.startDebugging(
     config.cwd ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.cwd)) : undefined,
     config,
@@ -57,7 +60,11 @@ export async function attachProcess() {
  * appropriately. Returns true if the configuration was updated, false
  * if it was cancelled.
  */
-export async function resolveProcessId(config: ResolvingNodeAttachConfiguration, setCwd = false) {
+export async function resolveProcessId(
+  fsUtils: LocalFsUtils,
+  config: ResolvingNodeAttachConfiguration,
+  setCwd = false,
+) {
   // we resolve Process Picker early (before VS Code) so that we can probe the process for its protocol
   const processId = config.processId?.trim();
   const result = processId && decodePidAndPort(processId);
@@ -79,14 +86,14 @@ export async function resolveProcessId(config: ResolvingNodeAttachConfiguration,
   delete config.processId;
 
   if (setCwd) {
-    const inferredWd = await inferWorkingDirectory(result.pid);
+    const inferredWd = await inferWorkingDirectory(fsUtils, result.pid);
     if (inferredWd) {
       config.cwd = inferredWd;
     }
   }
 }
 
-async function inferWorkingDirectory(processId?: number) {
+async function inferWorkingDirectory(fsUtils: LocalFsUtils, processId?: number) {
   const inferredWd = processId && (await processTree.getWorkingDirectory(processId));
 
   // If we couldn't infer the working directory, just use the first workspace folder
@@ -94,7 +101,7 @@ async function inferWorkingDirectory(processId?: number) {
     return vscode.workspace.workspaceFolders?.[0].uri.fsPath;
   }
 
-  const packageRoot = await nearestDirectoryContaining(inferredWd, 'package.json');
+  const packageRoot = await nearestDirectoryContaining(fsUtils, inferredWd, 'package.json');
   if (!packageRoot) {
     return inferredWd;
   }

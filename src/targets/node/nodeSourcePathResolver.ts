@@ -14,12 +14,22 @@ import {
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as urlUtils from '../../common/urlUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
+import { IFsUtils } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
 }
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
+  public constructor(
+    private readonly fsUtils: IFsUtils,
+    protected readonly options: IOptions,
+    protected readonly logger: ILogger,
+  ) {
+    super(options, logger);
+  }
+
   public get resolutionOptions() {
     return this.options;
   }
@@ -84,7 +94,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
           map.sourceRoot,
           map.metadata.compiledPath,
           { '/': this.options.basePath },
-          moduleAwarePathMappingResolver(map.metadata.compiledPath),
+          moduleAwarePathMappingResolver(this.fsUtils, map.metadata.compiledPath),
           this.logger,
         ),
         url,

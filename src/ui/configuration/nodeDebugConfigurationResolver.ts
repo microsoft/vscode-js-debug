@@ -28,6 +28,7 @@ import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -45,6 +46,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
     @inject(INvmResolver) private readonly nvmResolver: INvmResolver,
+    @inject(IFsUtils) private readonly fsUtils: LocalFsUtils,
   ) {
     super(context);
   }
@@ -62,7 +64,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       config.request === 'attach' &&
       typeof config.processId === 'string'
     ) {
-      await resolveProcessId(config);
+      await resolveProcessId(this.fsUtils, config);
     }
 
     return config;
@@ -120,7 +122,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
 
       // assign a random debug port if requested, otherwise remove manual
       // --inspect-brk flags, which are no longer needed and interfere
-      if (config.attachSimplePort == null) {
+      if (config.attachSimplePort === null || config.attachSimplePort === undefined) {
         fixInspectFlags(config);
       } else {
         if (config.attachSimplePort === 0) {
@@ -134,7 +136,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       }
 
       // update outfiles to the nearest package root
-      await guessOutFiles(folder, config);
+      await guessOutFiles(this.fsUtils, folder, config);
     }
 
     return applyNodeDefaults(config);
@@ -202,6 +204,7 @@ function getAbsoluteProgramLocation(folder: vscode.WorkspaceFolder | undefined, 
  * @see https://github.com/microsoft/vscode-js-debug/issues/326
  */
 async function guessOutFiles(
+  fsUtils: LocalFsUtils,
   folder: vscode.WorkspaceFolder | undefined,
   config: ResolvingNodeLaunchConfiguration,
 ) {
@@ -214,7 +217,11 @@ async function guessOutFiles(
     return;
   }
 
-  const root = await nearestDirectoryContaining(path.dirname(programLocation), 'package.json');
+  const root = await nearestDirectoryContaining(
+    fsUtils,
+    path.dirname(programLocation),
+    'package.json',
+  );
   if (root && isSubdirectoryOf(folder.uri.fsPath, root)) {
     const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
     config.outFiles = resolveVariableInConfig(

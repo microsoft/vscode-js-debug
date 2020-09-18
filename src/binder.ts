@@ -121,15 +121,15 @@ export class Binder implements IDisposable {
           dap,
         ),
       );
-      dap.on('launch', params =>
-        this._boot(
+      dap.on('launch', params => {
+        return this._boot(
           applyDefaults(
             params as AnyResolvingConfiguration,
             this._rootServices.get(ExtensionLocation),
           ),
           dap,
-        ),
-      );
+        );
+      });
       dap.on('terminate', async () => {
         await this._disconnect();
         return {};
@@ -208,7 +208,7 @@ export class Binder implements IDisposable {
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {
     warnNightly(dap);
     this.reportBootTelemetry(params);
-    provideLaunchParams(this._rootServices, params);
+    provideLaunchParams(this._rootServices, params, dap);
     this._rootServices.get<ILogger>(ILogger).setup(resolveLoggerOptions(dap, params.trace));
 
     const cts =

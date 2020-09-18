@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
 import { NeverCancelled } from '../common/cancellation';
 import {
@@ -12,7 +11,6 @@ import {
   readConfig,
   registerCommand,
 } from '../common/contributionUtils';
-import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
   ITerminalLaunchConfiguration,
@@ -27,6 +25,9 @@ import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
+import { promises as fs } from 'fs';
+import { ProxyLogger } from '../common/logging/proxyLogger';
+import { IFsUtils } from '../common/fsUtils';
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -136,6 +137,7 @@ export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
   linkHandler: TerminalLinkHandler,
+  fsUtils: IFsUtils,
 ) {
   /**
    * See docblocks on {@link DelegateLauncher} for more information on
@@ -148,7 +150,12 @@ export function registerDebugTerminalUI(
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
   ) {
     const logger = new ProxyLogger();
-    const launcher = new TerminalNodeLauncher(new NodeBinaryProvider(logger, fs), logger, fs);
+    const launcher = new TerminalNodeLauncher(
+      new NodeBinaryProvider(logger, fs),
+      logger,
+      fs,
+      fsUtils,
+    );
     launcher.onTerminalCreated(terminal => {
       linkHandler.enableHandlingInTerminal(terminal);
     });

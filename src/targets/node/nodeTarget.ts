@@ -7,6 +7,7 @@ import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
@@ -46,6 +47,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   public readonly onNameChanged = this._onNameChangedEmitter.event;
 
   constructor(
+    private readonly fsUtils: IFsUtils,
     public readonly launchConfig: AnyNodeConfiguration,
     private pathResolver: NodeSourcePathResolver,
     private readonly targetOriginValue: ITargetOrigin,
@@ -237,6 +239,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   public refreshPathResolver(cwd: string) {
     if (!this.pathResolver.resolutionOptions.basePath) {
       this.pathResolver = new NodeSourcePathResolver(
+        this.fsUtils,
         { ...this.pathResolver.resolutionOptions, basePath: cwd },
         this.logger,
       );
