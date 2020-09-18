@@ -94,6 +94,13 @@ export async function findExecutable(
 }
 
 /**
+ * Electron shims us to be able to files from `.asar` files, but
+ * these don't actually exist on the filesystem and will
+ * cause failures if we think they are.
+ */
+export const isWithinAsar = (filePath: string) => filePath.includes(`.asar${path.sep}`);
+
+/**
  * Join path segments properly based on whether they appear to be c:/ -style or / style.
  * Note - must check posix first because win32.isAbsolute includes posix.isAbsolute
  */

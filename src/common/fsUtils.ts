@@ -4,8 +4,8 @@
 
 import * as fs from 'fs';
 import * as util from 'util';
-import { FsPromises } from '../ioc-extras';
 import Dap from '../dap/api';
+import { FsPromises } from '../ioc-extras';
 
 export const fsModule = fs;
 
@@ -135,7 +135,6 @@ export class RemoteFsThroughDapUtils implements IFsUtils {
 
   public async exists(path: string): Promise<boolean> {
     try {
-      // Custom request
       const { doesExists } = await this.dap.remoteFileExistsRequest({
         localFilePath: path,
       });

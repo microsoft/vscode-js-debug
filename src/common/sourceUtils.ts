@@ -4,13 +4,14 @@
 
 import { Parser } from 'acorn';
 import { generate } from 'astring';
+import { promises as fsPromises } from 'fs';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import * as ts from 'typescript';
-import { SourceMap } from './sourceMaps/sourceMap';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
-import { Hasher } from './hash';
-import { promises as fsPromises } from 'fs';
 import { LocalFsUtils } from './fsUtils';
+import { Hasher } from './hash';
+import { isWithinAsar } from './pathUtils';
+import { SourceMap } from './sourceMaps/sourceMap';
 
 export async function prettyPrintAsSourceMap(
   fileName: string,
@@ -238,6 +239,10 @@ export async function checkContentHash(
   contentOverride?: string,
 ): Promise<string | undefined> {
   if (!absolutePath) {
+    return undefined;
+  }
+
+  if (isWithinAsar(absolutePath)) {
     return undefined;
   }
 
