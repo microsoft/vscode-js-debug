@@ -5,12 +5,12 @@
 import { CancellationToken } from 'vscode';
 import Cdp from '../cdp/api';
 import { IDisposable, IEvent } from '../common/events';
+import { ILogger } from '../common/logging';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { ITargetOrigin } from './targetOrigin';
-import { ILogger } from '../common/logging';
 
 export const ITarget = Symbol('ITarget');
 
@@ -26,6 +26,11 @@ export interface ITarget {
    * (e.g. webview debugging in the extension host).
    */
   readonly launchConfig: AnyLaunchConfiguration;
+
+  /**
+   * Launcher's target info.
+   */
+  readonly targetInfo: Readonly<Cdp.Target.TargetInfo>;
 
   id(): string;
   name(): string;

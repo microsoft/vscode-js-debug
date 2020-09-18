@@ -1,15 +1,15 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { ILauncher, ILaunchResult, ITarget, IStopMetadata, ILaunchContext } from '../targets';
-import { AnyLaunchConfiguration } from '../../configuration';
 import { DebugType } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EventEmitter } from '../../common/events';
-import { IPendingDapApi } from '../../dap/pending-api';
-import { MutableTargetOrigin } from '../targetOrigin';
 import { ILogger } from '../../common/logging';
 import { ProxyLogger } from '../../common/logging/proxyLogger';
+import { AnyLaunchConfiguration } from '../../configuration';
+import { IPendingDapApi } from '../../dap/pending-api';
+import { MutableTargetOrigin } from '../targetOrigin';
+import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 
 export interface IDelegateRef {
   id: number;
@@ -89,7 +89,10 @@ export class DelegateLauncher implements ILauncher {
 
     const delegate = this.parentList.get(params.delegateId);
     if (delegate === undefined) {
-      throw new Error(`Could not get debug session delegate ID ${params.delegateId}`);
+      // Parent session was disconnected. Take the launch, but then say it's
+      // town down a moment later. Ref: https://github.com/microsoft/vscode/issues/106576
+      setTimeout(() => this.onTerminatedEmitter.fire({ killed: true, code: 0 }), 1);
+      return { blockSessionTermination: true };
     }
 
     const origin = delegate.target.targetOrigin();

@@ -53,7 +53,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
-    targetInfo: Cdp.Target.TargetInfo,
+    public readonly targetInfo: Cdp.Target.TargetInfo,
     public readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
   ) {
@@ -195,9 +195,17 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return this._attached;
   }
 
-  async detach(): Promise<void> {
+  public async detach(): Promise<void> {
     this._serialize = this._serialize.then(async () => {
-      if (!this._attached) return undefined;
+      if (this._waitingForDebugger) {
+        const cdp = await this._doAttach();
+        await cdp?.Runtime.runIfWaitingForDebugger({});
+      }
+
+      if (!this._attached) {
+        return undefined;
+      }
+
       this._doDetach();
     });
   }

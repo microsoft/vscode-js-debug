@@ -86,6 +86,13 @@ export const launchVirtualTerminalParent = (
       }
 
       const delegateId = delegate.addDelegate(target, dap, target.parent());
+
+      // Check that we didn't detach from the parent session.
+      if (target.targetInfo.openerId && !target.parent()) {
+        target.detach();
+        return;
+      }
+
       if (!target.parent()) {
         const cwd = await getWorkingDirectory(target);
         if (target instanceof NodeTarget && cwd) {
