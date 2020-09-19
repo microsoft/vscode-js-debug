@@ -1098,7 +1098,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     items: {
       type: 'string',
     },
-    default: ['!**/node_modules/**', '!**/.yarn/**', `**/${knownToolToken}/**`],
+    default: ['!**/{node_modules,yarn,.yarn}/**', `**/${knownToolToken}/**`],
     markdownDescription: refString('configuration.autoAttachSmartPatterns'),
   },
   [Configuration.BreakOnConditionalError]: {
