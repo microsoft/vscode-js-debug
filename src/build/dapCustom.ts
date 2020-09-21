@@ -4,30 +4,84 @@
 
 import { JSONSchema4 } from 'json-schema';
 
-const dapCustom: JSONSchema4 = {
-  definitions: {
-    EnableCustomBreakpointsRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Enable custom breakpoints.',
+const upperFirst = (x: string) => x.slice(0, 1).toUpperCase() + x.slice(1);
+
+const makeEvent = (name: string, description: string, params: JSONSchema4) => ({
+  [`${upperFirst(name)}Event`]: {
+    allOf: [
+      { $ref: '#/definitions/Event' },
+      {
+        type: 'object',
+        description,
+        properties: {
+          event: {
+            type: 'string',
+            enum: [name],
+          },
+          body: {
+            type: 'object',
+            ...params,
+          },
+        },
+        required: ['event', 'body'],
+      },
+    ],
+  },
+});
+
+const makeRequest = (
+  name: string,
+  description: string,
+  args: JSONSchema4 = {},
+  response?: JSONSchema4,
+) => ({
+  [`${upperFirst(name)}Request`]: {
+    allOf: [
+      { $ref: '#/definitions/Request' },
+      {
+        type: 'object',
+        description,
+        properties: {
+          command: {
+            type: 'string',
+            enum: [name],
+          },
+          arguments: {
+            $ref: `#/definitions/${upperFirst(name)}Arguments`,
+          },
+        },
+        required: ['command', 'arguments'],
+      },
+    ],
+  },
+  [`${upperFirst(name)}Arguments`]: {
+    type: 'object',
+    description: `Arguments for '${name}' request.`,
+    ...args,
+  },
+  [`${upperFirst(name)}Response`]: {
+    allOf: [
+      { $ref: '#/definitions/Response' },
+      {
+        type: 'object',
+        description: `Response to '${name}' request.`,
+        ...(response && {
           properties: {
-            command: {
-              type: 'string',
-              enum: ['enableCustomBreakpoints'],
-            },
-            arguments: {
-              $ref: '#/definitions/EnableCustomBreakpointsArguments',
+            body: {
+              type: 'object',
+              ...response,
             },
           },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    EnableCustomBreakpointsArguments: {
-      type: 'object',
-      description: "Arguments for 'enableCustomBreakpoints' request.",
+          required: ['body'],
+        }),
+      },
+    ],
+  },
+});
+
+const dapCustom: JSONSchema4 = {
+  definitions: {
+    ...makeRequest('enableCustomBreakpoints', 'Enable custom breakpoints.', {
       properties: {
         ids: {
           type: 'array',
@@ -38,135 +92,45 @@ const dapCustom: JSONSchema4 = {
         },
       },
       required: ['ids'],
-    },
-    EnableCustomBreakpointsResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'enableCustomBreakpoints' request.",
-        },
-      ],
-    },
+    }),
 
-    DisableCustomBreakpointsRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Disable custom breakpoints.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['disableCustomBreakpoints'],
-            },
-            arguments: {
-              $ref: '#/definitions/DisableCustomBreakpointsArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    DisableCustomBreakpointsArguments: {
-      type: 'object',
-      description: "Arguments for 'disableCustomBreakpoints' request.",
+    ...makeRequest('disableCustomBreakpoints', 'Disable custom breakpoints.', {
       properties: {
         ids: {
           type: 'array',
           items: {
             type: 'string',
           },
-          description: 'Id of breakpoints to disable.',
+          description: 'Id of breakpoints to enable.',
         },
       },
       required: ['ids'],
-    },
-    DisableCustomBreakpointsResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'disableCustomBreakpoints' request.",
-        },
-      ],
-    },
+    }),
 
-    CanPrettyPrintSourceRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Returns whether particular source can be pretty-printed.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['canPrettyPrintSource'],
-            },
-            arguments: {
-              $ref: '#/definitions/CanPrettyPrintSourceArguments',
-            },
+    ...makeRequest(
+      'canPrettyPrintSource',
+      'Returns whether particular source can be pretty-printed.',
+      {
+        properties: {
+          source: {
+            $ref: '#/definitions/Source',
+            description: 'Source to be pretty printed.',
           },
-          required: ['command', 'arguments'],
         },
-      ],
-    },
-    CanPrettyPrintSourceArguments: {
-      type: 'object',
-      description: "Arguments for 'canPrettyPrintSource' request.",
-      properties: {
-        source: {
-          $ref: '#/definitions/Source',
-          description: 'Source to be pretty printed.',
+        required: ['source'],
+      },
+      {
+        required: ['canPrettyPrint'],
+        properties: {
+          canPrettyPrint: {
+            type: 'boolean',
+            description: 'Whether source can be pretty printed.',
+          },
         },
       },
-      required: ['source'],
-    },
-    CanPrettyPrintSourceResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'canPrettyPrintSource' request.",
-          properties: {
-            body: {
-              type: 'object',
-              properties: {
-                canPrettyPrint: {
-                  type: 'boolean',
-                  description: 'Whether source can be pretty printed.',
-                },
-              },
-              required: ['canPrettyPrint'],
-            },
-          },
-          required: ['body'],
-        },
-      ],
-    },
+    ),
 
-    PrettyPrintSourceRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Pretty prints source for debugging.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['prettyPrintSource'],
-            },
-            arguments: {
-              $ref: '#/definitions/PrettyPrintSourceArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    PrettyPrintSourceArguments: {
-      type: 'object',
-      description: "Arguments for 'prettyPrintSource' request.",
+    ...makeRequest('prettyPrintSource', 'Pretty prints source for debugging.', {
       properties: {
         source: {
           $ref: '#/definitions/Source',
@@ -184,38 +148,9 @@ const dapCustom: JSONSchema4 = {
         },
       },
       required: ['source'],
-    },
-    PrettyPrintSourceResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'prettyPrintSource' request.",
-        },
-      ],
-    },
-    ToggleSkipFileStatusRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Toggle skip status of file.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['toggleSkipFileStatus'],
-            },
-            arguments: {
-              $ref: '#/definitions/ToggleSkipFileStatusArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    ToggleSkipFileStatusArguments: {
-      type: 'object',
-      description: "Arguments for 'toggleSkipFileStatus' request.",
+    }),
+
+    ...makeRequest('toggleSkipFileStatus', 'Toggle skip status of file.', {
       properties: {
         resource: {
           type: 'string',
@@ -226,206 +161,94 @@ const dapCustom: JSONSchema4 = {
           description: 'Source reference number of file.',
         },
       },
-    },
-    ToggleSkipFileStatusResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'toggleSkipFileStatus' request.",
-        },
-      ],
-    },
+    }),
 
-    RevealLocationRequestedEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'A request to reveal a certain location in the UI.',
-          properties: {
-            event: {
+    ...makeEvent('revealLocationRequested', 'A request to reveal a certain location in the UI.', {
+      properties: {
+        source: {
+          $ref: '#/definitions/Source',
+          description: 'The source to reveal.',
+        },
+        line: {
+          type: 'integer',
+          description: 'The line number to reveal.',
+        },
+        column: {
+          type: 'integer',
+          description: 'The column number to reveal.',
+        },
+      },
+      required: ['source'],
+    }),
+
+    ...makeEvent('copyRequested', 'A request to copy a certain string to clipboard.', {
+      properties: {
+        text: {
+          type: 'string',
+          description: 'Text to copy.',
+        },
+      },
+      required: ['text'],
+    }),
+
+    ...makeEvent(
+      'longPrediction',
+      'An event sent when breakpoint prediction takes a significant amount of time.',
+      {},
+    ),
+
+    ...makeEvent(
+      'launchBrowserInCompanion',
+      'Request to launch a browser in the companion extension within the UI.',
+      {
+        required: ['type', 'params', 'serverPort', 'launchId'],
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['chrome', 'edge'],
+            description: 'Type of browser to launch',
+          },
+          launchId: {
+            type: 'number',
+            description: 'Incrementing ID to refer to this browser launch request',
+          },
+          serverPort: {
+            type: 'number',
+            description: 'Local port the debug server is listening on',
+          },
+          browserArgs: {
+            type: 'array',
+            items: {
               type: 'string',
-              enum: ['revealLocationRequested'],
-            },
-            body: {
-              type: 'object',
-              properties: {
-                source: {
-                  $ref: '#/definitions/Source',
-                  description: 'The source to reveal.',
-                },
-                line: {
-                  type: 'integer',
-                  description: 'The line number to reveal.',
-                },
-                column: {
-                  type: 'integer',
-                  description: 'The column number to reveal.',
-                },
-              },
-              required: ['source'],
             },
           },
-          required: ['event', 'body'],
-        },
-      ],
-    },
-
-    CopyRequestedEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'A request to copy a certain string to clipboard.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['copyRequested'],
-            },
-            body: {
-              type: 'object',
-              properties: {
-                text: {
-                  type: 'string',
-                  description: 'Text to copy.',
-                },
-              },
-              required: ['text'],
+          attach: {
+            type: 'object',
+            required: ['host', 'port'],
+            properties: {
+              host: { type: 'string' },
+              port: { type: 'number' },
             },
           },
-          required: ['event', 'body'],
-        },
-      ],
-    },
-
-    LongPredictionEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description:
-            'An event sent when breakpoint prediction takes a significant amount of time.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['longPrediction'],
-            },
-            body: {
-              type: 'object',
-              properties: {},
-            },
+          params: {
+            type: 'object',
+            description: 'Original launch parameters for the debug session',
           },
-          required: ['event', 'body'],
         },
-      ],
-    },
+      },
+    ),
 
-    LaunchBrowserInCompanionEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'Enable custom breakpoints.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['launchBrowserInCompanion'],
-            },
-            body: {
-              type: 'object',
-              description: "Body for 'LaunchBrowserInCompanion' request.",
-              required: ['type', 'params', 'serverPort', 'launchId'],
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['chrome', 'edge'],
-                  description: 'Type of browser to launch',
-                },
-                launchId: {
-                  type: 'number',
-                  description: 'Incrementing ID to refer to this browser launch request',
-                },
-                serverPort: {
-                  type: 'number',
-                  description: 'Local port the debug server is listening on',
-                },
-                browserArgs: {
-                  type: 'array',
-                  items: {
-                    type: 'string',
-                  },
-                },
-                attach: {
-                  type: 'object',
-                  required: ['host', 'port'],
-                  properties: {
-                    host: { type: 'string' },
-                    port: { type: 'number' },
-                  },
-                },
-                params: {
-                  type: 'object',
-                  description: 'Original launch parameters for the debug session',
-                },
-              },
-            },
-          },
-          required: ['event', 'body'],
+    ...makeEvent('killCompanionBrowser', 'Kills a launched browser companion.', {
+      required: ['launchId'],
+      properties: {
+        launchId: {
+          type: 'number',
+          description: 'Incrementing ID to refer to this browser launch request',
         },
-      ],
-    },
+      },
+    }),
 
-    KillCompanionBrowserEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'Enable custom breakpoints.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['killCompanionBrowser'],
-            },
-            body: {
-              type: 'object',
-              description: "Body for 'KillCompanionBrowser' request.",
-              required: ['launchId'],
-              properties: {
-                launchId: {
-                  type: 'number',
-                  description: 'Incrementing ID to refer to this browser launch request',
-                },
-              },
-            },
-          },
-          required: ['event', 'body'],
-        },
-      ],
-    },
-
-    StartProfileRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Starts taking a profile of the target.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['startProfile'],
-            },
-            arguments: {
-              $ref: '#/definitions/StartProfileArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    StartProfileArguments: {
-      type: 'object',
-      description: "Arguments for 'StartProfile' request.",
+    ...makeRequest('startProfile', 'Starts taking a profile of the target.', {
       properties: {
         stopAtBreakpoint: {
           type: 'array',
@@ -444,152 +267,67 @@ const dapCustom: JSONSchema4 = {
         },
       },
       required: ['file', 'type'],
-    },
-    StartProfileResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'StartProfile' request.",
-        },
-      ],
-    },
+    }),
 
-    StopProfileRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Stops a running profile.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['stopProfile'],
-            },
-            arguments: {
-              $ref: '#/definitions/StopProfileArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    StopProfileArguments: {
-      type: 'object',
-      description: "Arguments for 'StopProfile' request.",
-      properties: {},
-    },
-    StopProfileResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'StopProfile' request.",
-        },
-      ],
-    },
+    ...makeRequest('stopProfile', 'Stops a running profile.'),
 
-    ProfileStartedEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'Fired when a profiling state changes.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['profileStarted'],
-            },
-            body: {
-              type: 'object',
-              description: "Body for 'ProfilerStateUpdateEvent' event.",
-              required: ['type', 'file'],
-              properties: {
-                type: {
-                  type: 'string',
-                  description: 'Type of running profile',
-                },
-                file: {
-                  type: 'string',
-                  description: 'Location where the profile is saved.',
-                },
-              },
-            },
-          },
-          required: ['event', 'body'],
-        },
-      ],
-    },
-    ProfilerStateUpdateEvent: {
-      allOf: [
-        { $ref: '#/definitions/Event' },
-        {
-          type: 'object',
-          description: 'Fired when a profiling state changes.',
-          properties: {
-            event: {
-              type: 'string',
-              enum: ['profilerStateUpdate'],
-            },
-            body: {
-              type: 'object',
-              description: "Body for 'ProfilerStateUpdateEvent' event.",
-              required: ['label', 'running'],
-              properties: {
-                label: {
-                  type: 'string',
-                  description: 'Description of the current state',
-                },
-                running: {
-                  type: 'boolean',
-                  description: 'Set to false if the profile has now ended',
-                },
-              },
-            },
-          },
-          required: ['event', 'body'],
-        },
-      ],
-    },
-
-    LaunchVSCodeRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Launches a VS Code extension host in debug mode.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['launchVSCode'],
-            },
-            arguments: {
-              $ref: '#/definitions/LaunchVSCodeArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    LaunchVSCodeArguments: {
-      type: 'object',
-      description: "Arguments for 'LaunchVSCode' request.",
-      required: ['args', 'env'],
+    ...makeEvent('profileStarted', 'Fired when a profiling state changes.', {
+      required: ['type', 'file'],
       properties: {
-        args: {
-          type: 'array',
-          items: {
-            $ref: '#/definitions/LaunchVSCodeArgument',
-          },
+        type: {
+          type: 'string',
+          description: 'Type of running profile',
         },
-        env: {
-          type: 'object',
-        },
-        debugRenderer: {
-          type: 'boolean',
+        file: {
+          type: 'string',
+          description: 'Location where the profile is saved.',
         },
       },
-    },
+    }),
+
+    ...makeEvent('profilerStateUpdate', 'Fired when a profiling state changes.', {
+      required: ['label', 'running'],
+      properties: {
+        label: {
+          type: 'string',
+          description: 'Description of the current state',
+        },
+        running: {
+          type: 'boolean',
+          description: 'Set to false if the profile has now ended',
+        },
+      },
+    }),
+
+    ...makeRequest(
+      'launchVSCode',
+      'Launches a VS Code extension host in debug mode.',
+      {
+        required: ['args', 'env'],
+        properties: {
+          args: {
+            type: 'array',
+            items: {
+              $ref: '#/definitions/LaunchVSCodeArgument',
+            },
+          },
+          env: {
+            type: 'object',
+          },
+          debugRenderer: {
+            type: 'boolean',
+          },
+        },
+      },
+      {
+        properties: {
+          rendererDebugPort: {
+            type: 'number',
+          },
+        },
+      },
+    ),
+
     LaunchVSCodeArgument: {
       type: 'object',
       description:
@@ -603,49 +341,8 @@ const dapCustom: JSONSchema4 = {
         },
       },
     },
-    LaunchVSCodeResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'LaunchVSCode' request.",
-          required: ['body'],
-          properties: {
-            body: {
-              type: 'object',
-              properties: {
-                rendererDebugPort: {
-                  type: 'number',
-                },
-              },
-            },
-          },
-        },
-      ],
-    },
 
-    LaunchUnelevatedRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Launches Chrome unelevated, used in VS.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['launchUnelevated'],
-            },
-            arguments: {
-              $ref: '#/definitions/LaunchUnelevatedArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    LaunchUnelevatedArguments: {
-      type: 'object',
-      description: "Arguments for 'LaunchUnelevated' request.",
+    ...makeRequest('launchUnelevated', 'Launches a VS Code extension host in debug mode.', {
       properties: {
         process: {
           type: 'string',
@@ -657,177 +354,53 @@ const dapCustom: JSONSchema4 = {
           },
         },
       },
-    },
-    LaunchUnelevatedResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'LaunchUnelevated' request.",
-        },
-      ],
-    },
+    }),
 
-    RemoteFileExistsRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Check if file exists on remote file system, used in VS.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['remoteFileExists'],
-            },
-            arguments: {
-              $ref: '#/definitions/RemoteFileExistsArguments',
-            },
+    ...makeRequest(
+      'remoteFileExists',
+      'Check if file exists on remote file system, used in VS.',
+      {
+        properties: {
+          localFilePath: {
+            type: 'string',
           },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    RemoteFileExistsArguments: {
-      type: 'object',
-      description: "Arguments for 'RemoteFileExists' request.",
-      properties: {
-        localFilePath: {
-          type: 'string',
         },
       },
-    },
-    RemoteFileExistsResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'LaunchUnelevated' request.",
-          required: ['body'],
-          properties: {
-            body: {
-              type: 'object',
-              required: ['doesExists'],
-              properties: {
-                doesExists: {
-                  type: 'boolean',
-                  description: 'Does the file exist on the remote file system.',
-                },
-              },
-            },
+      {
+        required: ['doesExists'],
+        properties: {
+          doesExists: {
+            type: 'boolean',
+            description: 'Does the file exist on the remote file system.',
           },
         },
-      ],
-    },
+      },
+    ),
 
-    GetBreakpointsRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Gets all defined breakpoints.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['getBreakpoints'],
-            },
-            arguments: {
-              $ref: '#/definitions/GetBreakpointsArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    GetBreakpointsArguments: {
-      type: 'object',
-      description: "Arguments for 'GetBreakpoints' request.",
-      properties: {},
-    },
-    GetBreakpointsResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'GetBreakpoints' request.",
-          required: ['body'],
-          properties: {
-            body: {
-              type: 'object',
-              required: ['breakpoints'],
-              properties: {
-                breakpoints: {
-                  type: 'array',
-                  items: {
-                    $ref: '#/definitions/Breakpoint',
-                  },
-                },
-              },
-            },
+    ...makeRequest(
+      'remoteFileExists',
+      'Check if file exists on remote file system, used in VS.',
+      {
+        properties: {
+          localFilePath: {
+            type: 'string',
           },
         },
-      ],
-    },
+      },
+      {
+        required: ['doesExists'],
+        properties: {
+          doesExists: {
+            type: 'boolean',
+            description: 'Does the file exist on the remote file system.',
+          },
+        },
+      },
+    ),
 
-    RevealPageRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Gets all defined breakpoints.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['revealPage'],
-            },
-            arguments: {
-              $ref: '#/definitions/RevealPageArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    RevealPageArguments: {
-      type: 'object',
-      description: "Arguments for 'RevealPage' request.",
-      properties: {},
-    },
-    RevealPageResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'RevealPage' request.",
-          required: ['body'],
-          properties: {
-            body: {},
-          },
-        },
-      ],
-    },
+    ...makeRequest('revealPage', 'Focuses the browser page or tab associated with the session.'),
 
-    StartSelfProfileRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Starts profiling the extension itself. Used by VS.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['startSelfProfile'],
-            },
-            arguments: {
-              $ref: '#/definitions/StartSelfProfileArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    StartSelfProfileArguments: {
-      type: 'object',
-      description: "Arguments for 'StartSelfProfile' request.",
+    ...makeRequest('startSelfProfile', 'Starts profiling the extension itself. Used by VS.', {
       required: ['file'],
       properties: {
         file: {
@@ -835,101 +408,28 @@ const dapCustom: JSONSchema4 = {
           type: 'string',
         },
       },
-    },
-    StartSelfProfileResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'StartSelfProfile' request.",
-        },
-      ],
-    },
+    }),
 
-    StopSelfProfileRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Stops profiling the extension itself. Used by VS.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['stopSelfProfile'],
-            },
-            arguments: {
-              $ref: '#/definitions/StopSelfProfileArguments',
-            },
-          },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    StopSelfProfileArguments: {
-      type: 'object',
-      description: "Arguments for 'StopSelfProfile' request.",
-      properties: {},
-    },
-    StopSelfProfileResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          description: "Response to 'StopSelfProfile' request.",
-        },
-      ],
-    },
+    ...makeRequest('stopSelfProfile', 'Stops profiling the extension itself. Used by VS.'),
 
-    GetPerformanceRequest: {
-      allOf: [
-        { $ref: '#/definitions/Request' },
-        {
-          type: 'object',
-          description: 'Requests that we get performance information from the runtime.',
-          properties: {
-            command: {
-              type: 'string',
-              enum: ['getPerformance'],
-            },
-            arguments: {
-              $ref: '#/definitions/GetPerformanceArguments',
-            },
+    ...makeRequest(
+      'getPerformance',
+      'Requests that we get performance information from the runtime.',
+      {},
+      {
+        properties: {
+          metrics: {
+            type: 'object',
+            description:
+              "Response to 'GetPerformance' request. A key-value list of runtime-dependent details.",
           },
-          required: ['command', 'arguments'],
-        },
-      ],
-    },
-    GetPerformanceArguments: {
-      type: 'object',
-      description: "Arguments for 'GetPerformance' request.",
-      properties: {},
-    },
-    GetPerformanceResponse: {
-      allOf: [
-        { $ref: '#/definitions/Response' },
-        {
-          type: 'object',
-          required: ['body'],
-          description: "Response to the 'getPerformance' request.",
-          properties: {
-            body: {
-              type: 'object',
-              properties: {
-                metrics: {
-                  type: 'object',
-                  description:
-                    "Response to 'GetPerformance' request. A key-value list of runtime-dependent details.",
-                },
-                error: {
-                  description: 'Optional error from the adapter',
-                  type: 'string',
-                },
-              },
-            },
+          error: {
+            description: 'Optional error from the adapter',
+            type: 'string',
           },
         },
-      ],
-    },
+      },
+    ),
   },
 };
 

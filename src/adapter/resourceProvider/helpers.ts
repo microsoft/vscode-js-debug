@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { OptionsOfTextResponseBody } from 'got';
+import { OptionsOfTextResponseBody } from 'got/dist/source';
 
 /**
  * Adds a header to the outgoing request.

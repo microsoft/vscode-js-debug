@@ -67,7 +67,6 @@ export class DebugAdapter implements IDisposable {
     this.dap = dap;
     this.dap.on('initialize', params => this._onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
-    this.dap.on('getBreakpoints', () => this._onGetBreakpoints());
     this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
     this.dap.on('configurationDone', () => this.configurationDone());
     this.dap.on('loadedSources', () => this._onLoadedSources());
@@ -173,10 +172,6 @@ export class DebugAdapter implements IDisposable {
     );
   }
 
-  private _onGetBreakpoints(): Promise<Dap.GetBreakpointsResult> {
-    return this.breakpointManager.getBreakpoints();
-  }
-
   async setExceptionBreakpoints(
     params: Dap.SetExceptionBreakpointsParams,
   ): Promise<Dap.SetExceptionBreakpointsResult> {
@@ -226,13 +221,17 @@ export class DebugAdapter implements IDisposable {
 
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     const source = this.sourceContainer.source(params.source);
-    if (!source)
+    if (!source) {
       return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    }
+
     const content = await source.content();
-    if (content === undefined)
+    if (content === undefined) {
       return errors.createSilentError(
         localize('error.sourceContentDidFail', 'Unable to retrieve source content'),
       );
+    }
+
     return { content, mimeType: source.mimeType() };
   }
 

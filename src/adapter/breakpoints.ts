@@ -589,13 +589,6 @@ export class BreakpointManager {
   }
 
   /**
-   * Gets all user-defined breakpoints
-   */
-  public async getBreakpoints(): Promise<Dap.GetBreakpointsResult> {
-    return { breakpoints: await Promise.all(this.allUserBreakpoints.map(bp => bp.toDap())) };
-  }
-
-  /**
    * Emits a message on DAP notifying of a state update in this breakpoint.
    */
   public async notifyBreakpointChange(

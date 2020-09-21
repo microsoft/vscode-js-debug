@@ -856,12 +856,12 @@ export namespace Dap {
     longPrediction(params: LongPredictionEventParams): void;
 
     /**
-     * Enable custom breakpoints.
+     * Request to launch a browser in the companion extension within the UI.
      */
     launchBrowserInCompanion(params: LaunchBrowserInCompanionEventParams): void;
 
     /**
-     * Enable custom breakpoints.
+     * Kills a launched browser companion.
      */
     killCompanionBrowser(params: KillCompanionBrowserEventParams): void;
 
@@ -912,14 +912,14 @@ export namespace Dap {
     launchVSCodeRequest(params: LaunchVSCodeParams): Promise<LaunchVSCodeResult>;
 
     /**
-     * Launches Chrome unelevated, used in VS.
+     * Launches a VS Code extension host in debug mode.
      */
     on(
       request: 'launchUnelevated',
       handler: (params: LaunchUnelevatedParams) => Promise<LaunchUnelevatedResult | Error>,
     ): () => void;
     /**
-     * Launches Chrome unelevated, used in VS.
+     * Launches a VS Code extension host in debug mode.
      */
     launchUnelevatedRequest(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
 
@@ -936,26 +936,14 @@ export namespace Dap {
     remoteFileExistsRequest(params: RemoteFileExistsParams): Promise<RemoteFileExistsResult>;
 
     /**
-     * Gets all defined breakpoints.
-     */
-    on(
-      request: 'getBreakpoints',
-      handler: (params: GetBreakpointsParams) => Promise<GetBreakpointsResult | Error>,
-    ): () => void;
-    /**
-     * Gets all defined breakpoints.
-     */
-    getBreakpointsRequest(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
-
-    /**
-     * Gets all defined breakpoints.
+     * Focuses the browser page or tab associated with the session.
      */
     on(
       request: 'revealPage',
       handler: (params: RevealPageParams) => Promise<RevealPageResult | Error>,
     ): () => void;
     /**
-     * Gets all defined breakpoints.
+     * Focuses the browser page or tab associated with the session.
      */
     revealPageRequest(params: RevealPageParams): Promise<RevealPageResult>;
 
@@ -1523,7 +1511,7 @@ export namespace Dap {
     ): Promise<LongPredictionEventParams>;
 
     /**
-     * Enable custom breakpoints.
+     * Request to launch a browser in the companion extension within the UI.
      */
     on(
       request: 'launchBrowserInCompanion',
@@ -1539,7 +1527,7 @@ export namespace Dap {
     ): Promise<LaunchBrowserInCompanionEventParams>;
 
     /**
-     * Enable custom breakpoints.
+     * Kills a launched browser companion.
      */
     on(
       request: 'killCompanionBrowser',
@@ -1596,7 +1584,7 @@ export namespace Dap {
     launchVSCode(params: LaunchVSCodeParams): Promise<LaunchVSCodeResult>;
 
     /**
-     * Launches Chrome unelevated, used in VS.
+     * Launches a VS Code extension host in debug mode.
      */
     launchUnelevated(params: LaunchUnelevatedParams): Promise<LaunchUnelevatedResult>;
 
@@ -1606,12 +1594,7 @@ export namespace Dap {
     remoteFileExists(params: RemoteFileExistsParams): Promise<RemoteFileExistsResult>;
 
     /**
-     * Gets all defined breakpoints.
-     */
-    getBreakpoints(params: GetBreakpointsParams): Promise<GetBreakpointsResult>;
-
-    /**
-     * Gets all defined breakpoints.
+     * Focuses the browser page or tab associated with the session.
      */
     revealPage(params: RevealPageParams): Promise<RevealPageResult>;
 
@@ -1830,7 +1813,7 @@ export namespace Dap {
 
   export interface DisableCustomBreakpointsParams {
     /**
-     * Id of breakpoints to disable.
+     * Id of breakpoints to enable.
      */
     ids: string[];
   }
@@ -1999,12 +1982,6 @@ export namespace Dap {
      * The exit code returned from the debuggee.
      */
     exitCode: integer;
-  }
-
-  export interface GetBreakpointsParams {}
-
-  export interface GetBreakpointsResult {
-    breakpoints: Breakpoint[];
   }
 
   export interface GetPerformanceParams {}

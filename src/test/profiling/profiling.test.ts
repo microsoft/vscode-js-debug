@@ -267,11 +267,6 @@ describe('profiling', () => {
         ),
       );
 
-      await eventuallyOk(async () => {
-        const { breakpoints } = await session.customRequest('getBreakpoints');
-        expect(breakpoints.length).to.be.greaterThan(0, 'expected to set breakpoints');
-      }, 5000);
-
       await pickTermination(session, /breakpoint/i);
 
       const breakpointPicker = await eventuallyOk(() => {
