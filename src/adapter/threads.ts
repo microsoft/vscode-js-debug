@@ -164,6 +164,13 @@ export class Thread implements IVariableStoreDelegate {
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
 
+  /**
+   * Details set when a "step in" is issued. Used allow async stepping in
+   * sourcemapped worker scripts.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/223
+   */
+  private _waitingForStepIn?: IPausedDetails;
+
   public readonly onPaused = this._onPausedEmitter.event;
 
   constructor(
@@ -231,23 +238,33 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   public async pause(): Promise<Dap.PauseResult | Dap.Error> {
-    if (await this._cdp.Debugger.pause({})) this._expectedPauseReason = { reason: 'pause' };
-    else return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
-    return {};
+    this._expectedPauseReason = { reason: 'pause' };
+
+    if (await this._cdp.Debugger.pause({})) {
+      return {};
+    }
+
+    return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    if (await this._cdp.Debugger.stepOver({}))
-      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
-    else return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
-    return {};
+    this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
+    if (await this._cdp.Debugger.stepOver({})) {
+      return {};
+    }
+
+    return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
   }
 
   async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
-    if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true }))
-      this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
-    else return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
-    return {};
+    this._waitingForStepIn = this._pausedDetails;
+    this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
+
+    if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
+      return {};
+    }
+
+    return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
@@ -595,7 +612,6 @@ export class Thread implements IVariableStoreDelegate {
       this._breakpointManager.isEntrypointBreak(hitBreakpoints);
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
-    let shouldPause: boolean;
     if (isSourceMapPause) {
       const location = event.callFrames[0].location;
       const scriptId = event.data?.scriptId || location.scriptId;
@@ -604,39 +620,40 @@ export class Thread implements IVariableStoreDelegate {
         await this._handleWebpackModuleEval();
       }
 
-      // Set shouldPause=true if we just resolved a breakpoint that's on this
-      // location; this won't have existed before now.
-      shouldPause = await this._handleSourceMapPause(scriptId, location);
-      // Set shouldPause=true if there's a non-entry, user defined breakpoint
-      // among the remaining points--or an inspect-brk.
-      shouldPause =
-        shouldPause ||
-        isInspectBrk ||
-        (await this._breakpointManager.shouldPauseAt(
+      if (event.data && !isInspectBrk) {
+        event.data.__rewriteAs = 'breakpoint';
+      }
+
+      if (await this._handleSourceMapPause(scriptId, location)) {
+        // Pause if we just resolved a breakpoint that's on this
+        // location; this won't have existed before now.
+      } else if (isInspectBrk) {
+        // Inspect-brk is handled later on
+      } else if (await this.isCrossThreadStep(event)) {
+        // Check if we're stepping into an async-loaded script (#223)
+        event.data = { ...event.data, __rewriteAs: 'step' };
+      } else if (
+        await this._breakpointManager.shouldPauseAt(
           event,
           hitBreakpoints,
           this._delegate.entryBreakpoint,
           true,
-        ));
-
-      if (!shouldPause) {
-        this.resume();
-        return;
+        )
+      ) {
+        // Check if there are any user-defined breakpoints on this line
+      } else {
+        // If none of this above, it's pure instrumentation.
+        return this.resume();
       }
-
-      // If should stay paused, that means the user set a breakpoint on
-      // the first line (which we are already on!), so pretend it's
-      // a breakpoint and let it bubble up.
-      if (event.data) {
-        event.data.__rewriteAsBreakpoint = true;
-      }
-    } else {
-      shouldPause = await this._breakpointManager.shouldPauseAt(
+    } else if (
+      !(await this._breakpointManager.shouldPauseAt(
         event,
         hitBreakpoints,
         this._delegate.entryBreakpoint,
         false,
-      );
+      ))
+    ) {
+      return this.resume();
     }
 
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
@@ -676,11 +693,6 @@ export class Thread implements IVariableStoreDelegate {
 
     // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
     const pausedDetails = (this._pausedDetails = this._createPausedDetails(event));
-    if (!shouldPause) {
-      this.resume();
-      return;
-    }
-
     const smartStepDirection = await this._smartStepper.getSmartStepDirection(
       pausedDetails,
       this._expectedPauseReason,
@@ -702,6 +714,7 @@ export class Thread implements IVariableStoreDelegate {
       // continue
     }
 
+    this._waitingForStepIn = undefined;
     this._pausedDetailsEvent.set(pausedDetails, event);
     this._pausedVariables = new VariableStore(
       this._cdp,
@@ -897,6 +910,24 @@ export class Thread implements IVariableStoreDelegate {
       event.asyncStackTraceId,
     );
 
+    if (event.data?.__rewriteAs === 'breakpoint') {
+      return {
+        thread: this,
+        stackTrace,
+        reason: 'breakpoint',
+        description: localize('pause.breakpoint', 'Paused on breakpoint'),
+      };
+    }
+
+    if (event.data?.__rewriteAs === 'step') {
+      return {
+        thread: this,
+        stackTrace,
+        reason: 'step',
+        description: localize('pause.default', 'Paused'),
+      };
+    }
+
     switch (event.reason) {
       case 'assert':
         return {
@@ -938,14 +969,6 @@ export class Thread implements IVariableStoreDelegate {
           exception: event.data as Cdp.Runtime.RemoteObject | undefined,
         };
       case 'instrumentation':
-        if (event.data && event.data.__rewriteAsBreakpoint) {
-          return {
-            thread: this,
-            stackTrace,
-            reason: 'breakpoint',
-            description: localize('pause.breakpoint', 'Paused on breakpoint'),
-          };
-        }
         if (event.data && event.data['scriptId']) {
           return {
             thread: this,
@@ -1348,6 +1371,38 @@ export class Thread implements IVariableStoreDelegate {
         threadId: this.id,
         allThreadsContinued: false,
       }),
+    );
+  }
+
+  /**
+   * Returns whether the pause event is (probably) from a cross-thread step.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/223
+   */
+  private isCrossThreadStep(event: Cdp.Debugger.PausedEvent) {
+    if (!event.asyncStackTraceId || !event.asyncStackTraceId.debuggerId) {
+      return false;
+    }
+
+    const parent = Thread.threadForDebuggerId(event.asyncStackTraceId.debuggerId);
+    if (!parent || !parent._waitingForStepIn) {
+      return false;
+    }
+
+    const originalStack = parent._waitingForStepIn.stackTrace;
+    return parent._cdp.Debugger.getStackTrace({ stackTraceId: event.asyncStackTraceId }).then(
+      trace => {
+        if (!trace || !trace.stackTrace.callFrames.length) {
+          return false;
+        }
+
+        const parentFrame = StackFrame.fromRuntime(parent, trace.stackTrace.callFrames[0]);
+        if (!parentFrame.equivalentTo(originalStack.frames[0])) {
+          return false;
+        }
+
+        parent._waitingForStepIn = undefined;
+        return true;
+      },
     );
   }
 

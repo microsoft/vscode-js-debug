@@ -628,6 +628,10 @@ export class BreakpointManager {
     delegateEntryBreak: IBreakpointPathAndId | undefined,
     continueByDefault = false,
   ) {
+    if (!hitBreakpointIds.length) {
+      return !continueByDefault;
+    }
+
     // To automatically continue, we need *no* breakpoints to want to pause and
     // at least one breakpoint who wants to continue. See
     // {@link HitCondition} for more details here.

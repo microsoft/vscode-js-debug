@@ -22,7 +22,6 @@ async function main() {
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      version: 'insiders',
       launchArgs: [
         path.resolve(__dirname, '../../..'),
         '--disable-extensions',

@@ -15,7 +15,7 @@ import { IExtraProperty, IScopeRef } from './variables';
 const localize = nls.loadMessageBundle();
 
 export class StackTrace {
-  private _frames: StackFrame[] = [];
+  public readonly frames: StackFrame[] = [];
   private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
@@ -28,7 +28,7 @@ export class StackTrace {
     const result = new StackTrace(thread);
     for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
       if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
-        result._frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
+        result.frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
         frameLimit--;
       }
     }
@@ -64,7 +64,7 @@ export class StackTrace {
   }
 
   async loadFrames(limit: number): Promise<StackFrame[]> {
-    while (this._frames.length < limit && this._asyncStackTraceId) {
+    while (this.frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
         this._lastFrameThread = Thread.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
       if (!this._lastFrameThread) {
@@ -77,7 +77,7 @@ export class StackTrace {
       this._asyncStackTraceId = undefined;
       if (response) this._appendStackTrace(this._lastFrameThread, response.stackTrace);
     }
-    return this._frames;
+    return this.frames;
   }
 
   frame(frameId: number): StackFrame | undefined {
@@ -107,7 +107,7 @@ export class StackTrace {
   }
 
   _appendFrame(frame: StackFrame) {
-    this._frames.push(frame);
+    this.frames.push(frame);
     this._frameById.set(frame._id, frame);
   }
 
@@ -183,6 +183,19 @@ export class StackFrame {
     this._rawLocation = rawLocation;
     this.uiLocation = thread.rawLocationToUiLocation(rawLocation);
     this._thread = thread;
+  }
+
+  /**
+   * Gets whether this stackframe is at the same position as the other frame.
+   */
+  public equivalentTo(other: StackFrame | undefined) {
+    return (
+      other &&
+      other._rawLocation.columnNumber === this._rawLocation.columnNumber &&
+      other._rawLocation.lineNumber === this._rawLocation.lineNumber &&
+      other._rawLocation.scriptId === this._rawLocation.scriptId &&
+      other._rawLocation.url === this._rawLocation.url
+    );
   }
 
   callFrameId(): string | undefined {

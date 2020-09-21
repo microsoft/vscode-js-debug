@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { TestP } from '../test';
+import { TestP, TestRoot } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('threads', () => {
@@ -154,9 +154,7 @@ describe('threads', () => {
       p.assertLog();
     });
 
-    itIntegrates.skip('cross thread constructor source map', async ({ r }) => {
-      const p = await r.launchUrlAndLoad('index.html');
-
+    const runCrossThreadTest = async (r: TestRoot, p: TestP) => {
       p.cdp.Runtime.evaluate({
         expression: `debugger;\nwindow.w = new Worker('workerSourceMap.js');\n//# sourceURL=test.js`,
       });
@@ -179,6 +177,22 @@ describe('threads', () => {
       worker.dap.continue({ threadId: secondThreadId });
       p.log(await worker.dap.once('continued'));
       p.assertLog();
+    };
+
+    itIntegrates('cross thread constructor source map', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('index.html');
+      await runCrossThreadTest(r, p);
+    });
+
+    itIntegrates('cross thread constructor source map predicted', async ({ r }) => {
+      // the call path is different when an instrumentation breakpoint is present,
+      // set a breakpoint to ensure with add the instrumentation bp as well.
+      const p = await r.launchUrlAndLoad('index.html');
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/does-not-exist.html') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
+      await runCrossThreadTest(r, p);
     });
 
     itIntegrates('cross thread source map', async ({ r }) => {
