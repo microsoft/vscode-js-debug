@@ -18,6 +18,7 @@ import { DebugLinkUi } from './ui/debugLinkUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
+import { DisableSourceMapUI } from './ui/disableSourceMapUI';
 import { toggleOnExperiment } from './ui/experimentEnlist';
 import { LongPredictionUI } from './ui/longPredictionUI';
 import { registerNpmScriptLens } from './ui/npmScriptLens';
@@ -103,6 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
   services.get(LongPredictionUI).register(context);
   services.get(DebugLinkUi).register(context);
   services.get(CascadeTerminationTracker).register(context);
+  services.get(DisableSourceMapUI).register(context);
 }
 
 export function deactivate() {

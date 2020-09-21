@@ -982,6 +982,23 @@ export namespace Dap {
      * Requests that we get performance information from the runtime.
      */
     getPerformanceRequest(params: GetPerformanceParams): Promise<GetPerformanceResult>;
+
+    /**
+     * Fired when requesting a missing source from a sourcemap. UI will offer to disable the sourcemap.
+     */
+    suggestDisableSourcemap(params: SuggestDisableSourcemapEventParams): void;
+
+    /**
+     * Disables the sourcemapped source and refreshes the stacktrace if paused.
+     */
+    on(
+      request: 'disableSourcemap',
+      handler: (params: DisableSourcemapParams) => Promise<DisableSourcemapResult | Error>,
+    ): () => void;
+    /**
+     * Disables the sourcemapped source and refreshes the stacktrace if paused.
+     */
+    disableSourcemapRequest(params: DisableSourcemapParams): Promise<DisableSourcemapResult>;
   }
 
   export interface TestApi {
@@ -1612,6 +1629,27 @@ export namespace Dap {
      * Requests that we get performance information from the runtime.
      */
     getPerformance(params: GetPerformanceParams): Promise<GetPerformanceResult>;
+
+    /**
+     * Fired when requesting a missing source from a sourcemap. UI will offer to disable the sourcemap.
+     */
+    on(
+      request: 'suggestDisableSourcemap',
+      handler: (params: SuggestDisableSourcemapEventParams) => void,
+    ): void;
+    off(
+      request: 'suggestDisableSourcemap',
+      handler: (params: SuggestDisableSourcemapEventParams) => void,
+    ): void;
+    once(
+      request: 'suggestDisableSourcemap',
+      filter?: (event: SuggestDisableSourcemapEventParams) => boolean,
+    ): Promise<SuggestDisableSourcemapEventParams>;
+
+    /**
+     * Disables the sourcemapped source and refreshes the stacktrace if paused.
+     */
+    disableSourcemap(params: DisableSourcemapParams): Promise<DisableSourcemapResult>;
   }
 
   export interface AttachParams {
@@ -1819,6 +1857,15 @@ export namespace Dap {
   }
 
   export interface DisableCustomBreakpointsResult {}
+
+  export interface DisableSourcemapParams {
+    /**
+     * Source to be pretty printed.
+     */
+    source: Source;
+  }
+
+  export interface DisableSourcemapResult {}
 
   export interface DisassembleParams {
     /**
@@ -3150,6 +3197,13 @@ export namespace Dap {
      * - If the attribute is missing or false, only the thread with the given threadId can be expanded.
      */
     allThreadsStopped?: boolean;
+  }
+
+  export interface SuggestDisableSourcemapEventParams {
+    /**
+     * Source to be pretty printed.
+     */
+    source: Source;
   }
 
   export interface TerminateParams {

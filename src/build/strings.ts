@@ -280,6 +280,8 @@ const strings = {
   'configuration.autoAttachMode.disabled': 'Auto attach is disabled and not shown in status bar.',
   'configuration.breakOnConditionalError':
     'Whether to stop when conditional breakpoints throw an error. Note: your launch.json `type` must be prefixed with `pwa-` to use this, such as `pwa-node`.',
+  'configuration.unmapMissingSources':
+    "Configures whether sourcemapped file where the original file can't be read will automatically be unmapped. If this is false (default), a prompt is shown.",
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

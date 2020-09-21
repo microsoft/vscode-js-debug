@@ -1106,6 +1106,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: false,
     markdownDescription: refString('configuration.breakOnConditionalError'),
   },
+  [Configuration.UnmapMissingSources]: {
+    type: 'boolean',
+    default: false,
+    description: refString('configuration.unmapMissingSources'),
+  },
 };
 
 const commands: ReadonlyArray<{

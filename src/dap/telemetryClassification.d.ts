@@ -118,4 +118,6 @@ interface IDAPOperationClassification {
   '!stopselfprofile.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   getperformance: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!getperformance.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  disablesourcemap: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!disablesourcemap.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

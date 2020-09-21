@@ -430,6 +430,34 @@ const dapCustom: JSONSchema4 = {
         },
       },
     ),
+
+    ...makeEvent(
+      'suggestDisableSourcemap',
+      'Fired when requesting a missing source from a sourcemap. UI will offer to disable the sourcemap.',
+      {
+        properties: {
+          source: {
+            $ref: '#/definitions/Source',
+            description: 'Source to be pretty printed.',
+          },
+        },
+        required: ['source'],
+      },
+    ),
+
+    ...makeRequest(
+      'disableSourcemap',
+      'Disables the sourcemapped source and refreshes the stacktrace if paused.',
+      {
+        properties: {
+          source: {
+            $ref: '#/definitions/Source',
+            description: 'Source to be pretty printed.',
+          },
+        },
+        required: ['source'],
+      },
+    ),
   },
 };
 

@@ -25,7 +25,7 @@ import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
-import { SourceContainer } from './sources';
+import { SourceContainer, SourceFromMap } from './sources';
 import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
 import { VariableStore } from './variables';
 
@@ -70,6 +70,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
     this.dap.on('configurationDone', () => this.configurationDone());
     this.dap.on('loadedSources', () => this._onLoadedSources());
+    this.dap.on('disableSourcemap', params => this._onDisableSourcemap(params));
     this.dap.on('source', params => this._onSource(params));
     this.dap.on('threads', () => this._onThreads());
     this.dap.on('stackTrace', params => this._onStackTrace(params));
@@ -214,6 +215,25 @@ export class DebugAdapter implements IDisposable {
     return { sources: await this.sourceContainer.loadedSources() };
   }
 
+  private async _onDisableSourcemap(params: Dap.DisableSourcemapParams) {
+    const source = this.sourceContainer.source(params.source);
+    if (!source) {
+      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+    }
+
+    if (!(source instanceof SourceFromMap)) {
+      return errors.createSilentError(localize('error.sourceNotFound', 'Source not a source map'));
+    }
+
+    for (const compiled of source.compiledToSourceUrl.keys()) {
+      this.sourceContainer.disableSourceMapForSource(compiled);
+    }
+
+    await this._thread?.refreshStackTrace();
+
+    return {};
+  }
+
   async _onSource(params: Dap.SourceParams): Promise<Dap.SourceResult | Dap.Error> {
     if (!params.source) {
       params.source = { sourceReference: params.sourceReference };
@@ -227,6 +247,10 @@ export class DebugAdapter implements IDisposable {
 
     const content = await source.content();
     if (content === undefined) {
+      if (source instanceof SourceFromMap) {
+        this.dap.suggestDisableSourcemap({ source: params.source });
+      }
+
       return errors.createSilentError(
         localize('error.sourceContentDidFail', 'Unable to retrieve source content'),
       );

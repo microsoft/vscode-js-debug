@@ -94,7 +94,6 @@ export const enum AutoAttachMode {
   Smart = 'smart',
   Always = 'always',
 }
-
 export const enum Configuration {
   UsePreviewDebugger = 'debug.javascript.usePreview',
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
@@ -107,6 +106,7 @@ export const enum Configuration {
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
   BreakOnConditionalError = 'debug.javascript.breakOnConditionalError',
+  UnmapMissingSources = 'debug.javascript.unmapMissingSources',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -128,6 +128,7 @@ export interface IConfigurationTypes {
   [Configuration.AutoAttachMode]: AutoAttachMode;
   [Configuration.AutoAttachSmartPatterns]: ReadonlyArray<string>;
   [Configuration.BreakOnConditionalError]: boolean;
+  [Configuration.UnmapMissingSources]: boolean;
 }
 
 export interface ICommandTypes {

@@ -4,6 +4,7 @@
 
 import { Container } from 'inversify';
 import { trackDispose } from '../ioc-extras';
+import { CascadeTerminationTracker } from './cascadeTerminateTracker';
 import {
   allConfigurationProviders,
   allConfigurationResolvers,
@@ -12,6 +13,7 @@ import {
 } from './configuration';
 import { DebugLinkUi } from './debugLinkUI';
 import { DebugSessionTracker } from './debugSessionTracker';
+import { DisableSourceMapUI } from './disableSourceMapUI';
 import { LongPredictionUI } from './longPredictionUI';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
@@ -19,7 +21,6 @@ import { ManualTerminationConditionFactory } from './profiling/manualTermination
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { UiProfileManager } from './profiling/uiProfileManager';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-import { CascadeTerminationTracker } from './cascadeTerminateTracker';
 
 export const registerUiComponents = (container: Container) => {
   allConfigurationResolvers.forEach(cls => {
@@ -40,6 +41,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DebugLinkUi).toSelf().inSingletonScope();
   container.bind(CascadeTerminationTracker).toSelf().inSingletonScope();
+  container.bind(DisableSourceMapUI).toSelf().inSingletonScope();
 
   container
     .bind(ITerminationConditionFactory)
