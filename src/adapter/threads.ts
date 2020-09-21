@@ -533,7 +533,6 @@ export class Thread implements IVariableStoreDelegate {
     }
 
     this._delegate.initialize();
-    this._pauseOnScheduledAsyncCall();
 
     this._dap.with(dap =>
       dap.thread({
@@ -559,11 +558,6 @@ export class Thread implements IVariableStoreDelegate {
 
     this._onThreadResumed();
     await this._onThreadPaused(this._pausedDetails);
-  }
-
-  async _pauseOnScheduledAsyncCall(): Promise<void> {
-    if (!scheduledPauseOnAsyncCall) return;
-    await this._cdp.Debugger.pauseOnAsyncCall({ parentStackTraceId: scheduledPauseOnAsyncCall });
   }
 
   private _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
@@ -625,25 +619,16 @@ export class Thread implements IVariableStoreDelegate {
           true,
         ));
 
-      if (
-        scheduledPauseOnAsyncCall &&
-        event.asyncStackTraceId &&
-        scheduledPauseOnAsyncCall.debuggerId === event.asyncStackTraceId.debuggerId &&
-        scheduledPauseOnAsyncCall.id === event.asyncStackTraceId.id
-      ) {
-        // Paused on the script which is run as a task for scheduled async call.
-        // We are waiting for this pause, no need to resume.
-      } else if (shouldPause) {
-        // If should stay paused, that means the user set a breakpoint on
-        // the first line (which we are already on!), so pretend it's
-        // a breakpoint and let it bubble up.
-        if (event.data) {
-          event.data.__rewriteAsBreakpoint = true;
-        }
-      } else {
-        await this._pauseOnScheduledAsyncCall();
+      if (!shouldPause) {
         this.resume();
         return;
+      }
+
+      // If should stay paused, that means the user set a breakpoint on
+      // the first line (which we are already on!), so pretend it's
+      // a breakpoint and let it bubble up.
+      if (event.data) {
+        event.data.__rewriteAsBreakpoint = true;
       }
     } else {
       shouldPause = await this._breakpointManager.shouldPauseAt(
@@ -652,14 +637,6 @@ export class Thread implements IVariableStoreDelegate {
         this._delegate.entryBreakpoint,
         false,
       );
-    }
-
-    if (event.asyncCallStackTraceId) {
-      scheduledPauseOnAsyncCall = event.asyncCallStackTraceId;
-      const threads = Array.from(Thread._allThreadsByDebuggerId.values());
-      await Promise.all(threads.map(thread => thread._pauseOnScheduledAsyncCall()));
-      this.resume();
-      return;
     }
 
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
@@ -732,7 +709,6 @@ export class Thread implements IVariableStoreDelegate {
       this.launchConfig.__autoExpandGetters,
       this.launchConfig.customDescriptionGenerator,
     );
-    scheduledPauseOnAsyncCall = undefined;
 
     await this._onThreadPaused(pausedDetails);
   }
@@ -1480,5 +1456,3 @@ export class Thread implements IVariableStoreDelegate {
     return lines.join('\n');
   }
 }
-
-let scheduledPauseOnAsyncCall: Cdp.Runtime.StackTraceId | undefined;
