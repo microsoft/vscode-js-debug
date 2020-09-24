@@ -13,7 +13,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
@@ -57,7 +57,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
@@ -102,7 +102,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
@@ -146,7 +146,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/out/**/*.js"

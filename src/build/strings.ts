@@ -219,7 +219,7 @@ const strings = {
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
-  'node.versionHint.descriotion':
+  'node.versionHint.description':
     "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.",
   'timeouts.generalDescription': 'Timeouts for several debugger operations',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
@@ -271,7 +271,7 @@ const strings = {
   'configuration.autoAttachMode':
     'Configures which processes to automatically attach and debug when `#debug.node.autoAttach#` is on. A Node process launched with the `--inspect` flag will always be attached to, regardless of this setting.',
   'configuration.autoAttachSmartPatterns':
-    'Configures glob patterns for determing when to attach in "smart" `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners. [Read more on the VS Code docs](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach-smart-patterns).',
+    'Configures glob patterns for determining when to attach in "smart" `#debug.javascript.autoAttachFilter#` mode. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners. [Read more on the VS Code docs](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach-smart-patterns).',
   'configuration.autoAttachMode.explicit': 'Only auto attach when the `--inspect` is given.',
   'configuration.autoAttachMode.smart':
     "Auto attach when running scripts that aren't in a node_modules folder.",
