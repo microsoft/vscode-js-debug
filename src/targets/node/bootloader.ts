@@ -24,6 +24,13 @@ const telemetry: IProcessTelemetry = {
   architecture: process.arch,
 };
 
+/**
+ * npm and yarn are sometimes installed globally as as 'standalone' binaries
+ * that get execute (or are executed by standalone binaries). Don't auto
+ * attach to their basenames.
+ */
+const blockedBasnames = ['npm', 'yarn'];
+
 (() => {
   try {
     const env = new BootloaderEnvironment(process.env);
@@ -161,13 +168,6 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
       return false;
   }
 }
-
-/**
- * npm and yarn are sometimes installed globally as as 'standalone' binaries
- * that get execute (or are executed by standalone binaries). Don't auto
- * attach to their basenames.
- */
-const blockedBasnames = ['npm', 'yarn'];
 
 /**
  * Returns whether to smart attach. The goal here is to avoid attaching to
