@@ -163,6 +163,13 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
 }
 
 /**
+ * npm and yarn are sometimes installed globally as as 'standalone' binaries
+ * that get execute (or are executed by standalone binaries). Don't auto
+ * attach to their basenames.
+ */
+const blockedBasnames = ['npm', 'yarn'];
+
+/**
  * Returns whether to smart attach. The goal here is to avoid attaching to
  * scripts like `npm` or `webpack` which the user probably doesn't want to
  * debug. Unfortunately Node doesn't expose the originally argv to us where
@@ -178,6 +185,10 @@ function shouldSmartAttach(env: IBootloaderInfo) {
   // *nix likes to install node and npm side-by-side, detect if the script is
   // a sibling of the runtime.
   if (path.dirname(script) === path.dirname(process.argv0)) {
+    return false;
+  }
+
+  if (blockedBasnames.includes(path.basename(script))) {
     return false;
   }
 
