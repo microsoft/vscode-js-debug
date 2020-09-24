@@ -333,7 +333,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
   nodeVersionHint: {
     type: 'number',
     minimum: 8,
-    description: refString('node.timeout.description'),
+    description: refString('node.versionHint.description'),
     default: 12,
   },
 };
