@@ -116,23 +116,33 @@ function inspectOrQueue(env: IBootloaderInfo) {
     // The bootloader must call inspector.open() synchronously, which will block
     // the event loop. Spawn the watchdog handoff in a new process to debug this.
 
-    /* Minified code is given in spawnSync:
+    /*
+    // Minified code is given in spawnSync:
 
     const c: Socket = require('net').createConnection(process.env.NODE_INSPECTOR_IPC);
-    setTimeout(() => process.exit(1), 5000);
-    c.on('error', () => process.exit(1));
+    setTimeout(() => {
+      console.error('timeout');
+      process.exit(1);
+    }, 5000);
+    c.on('error', err => {
+      console.error(err);
+      process.exit(1);
+    });
     c.on('connect', () => {
       c.write(process.env.NODE_INSPECTOR_INFO, 'utf-8');
       c.write(Buffer.from([0]));
-      c.on('data', c => process.exit(c[0]));
+      c.on('data', c => {
+        console.error('read byte', c[0]);
+        process.exit(c[0]);
+      });
     });
     */
 
-    const { status } = spawnSync(
+    const { status, stderr } = spawnSync(
       env.execPath || process.execPath,
       [
         '-e',
-        `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC);setTimeout(()=>process.exit(1),5e3),c.on("error",()=>process.exit(1)),c.on("connect",()=>{c.write(process.env.NODE_INSPECTOR_INFO,"utf-8"),c.write(Buffer.from([0])),c.on("data",e=>process.exit(e[0]))});`,
+        `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC);setTimeout(()=>{console.error("timeout"),process.exit(1)},5e3),c.on("error",e=>{console.error(e),process.exit(1)}),c.on("connect",()=>{c.write(process.env.NODE_INSPECTOR_INFO,"utf-8"),c.write(Buffer.from([0])),c.on("data",e=>{console.error("read byte",e[0]),process.exit(e[0])})});`,
       ],
       {
         env: {
@@ -143,6 +153,7 @@ function inspectOrQueue(env: IBootloaderInfo) {
     );
 
     if (status) {
+      console.error(stderr.toString());
       console.error(`Error activating auto attach, please report to https://aka.ms/js-dbg-issue`);
       return; // some error status code
     }
