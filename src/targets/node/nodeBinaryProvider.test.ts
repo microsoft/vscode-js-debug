@@ -13,6 +13,7 @@ import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { Capability, NodeBinary, NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
 import { testWorkspace } from '../../test/test';
+import { IPackageJsonProvider } from './packageJsonProvider';
 
 describe('NodeBinaryProvider', function () {
   this.timeout(30 * 1000); // windows lookups in CI seem to be very slow sometimes
@@ -28,7 +29,15 @@ describe('NodeBinaryProvider', function () {
       process.platform === 'win32' ? `${binary}.exe` : binary,
     );
 
-  beforeEach(() => (p = new NodeBinaryProvider(Logger.null, fsPromises)));
+  let packageJson: IPackageJsonProvider;
+
+  beforeEach(() => {
+    packageJson = {
+      getPath: () => Promise.resolve(undefined),
+      getContents: () => Promise.resolve(undefined),
+    };
+    p = new NodeBinaryProvider(Logger.null, fsPromises, packageJson);
+  });
 
   it('rejects not found', async () => {
     try {
@@ -104,6 +113,16 @@ describe('NodeBinaryProvider', function () {
     expect(binary.path).to.equal(binaryLocation('outdated'));
     expect(binary.version).to.deep.equal(new Semver(11, 0, 0));
     expect(binary.has(Capability.UseSpacesInRequirePath)).to.be.false;
+  });
+
+  it('finds node from node_modules when available', async () => {
+    packageJson.getPath = () =>
+      Promise.resolve(join(testWorkspace, 'nodePathProvider', 'node-module', 'package.json'));
+    const binary = await p.resolveAndValidate(env('outdated'), 'npm');
+    expect(binary.path).to.equal(binaryLocation('outdated', 'npm'));
+    expect(binary.version).to.deep.equal(new Semver(12, 0, 0));
+    expect(binary.isPreciselyKnown).to.be.true;
+    expect(binary.has(Capability.UseSpacesInRequirePath)).to.be.true;
   });
 
   describe('electron versioning', () => {

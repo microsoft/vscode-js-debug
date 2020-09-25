@@ -3,11 +3,11 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable, multiInject } from 'inversify';
-import { basename, extname, resolve } from 'path';
+import { extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
-import { readfile, LocalFsUtils, IFsUtils } from '../../common/fsUtils';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
@@ -18,12 +18,14 @@ import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 import { CallbackFile } from './callback-file';
 import {
+  getRunScript,
   hideDebugInfoFromConsole,
   INodeBinaryProvider,
   NodeBinaryProvider,
 } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
+import { IPackageJsonProvider } from './packageJsonProvider';
 import { IProgramLauncher } from './processLauncher';
 import { CombinedProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
@@ -69,6 +71,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
     @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
     @inject(IFsUtils) fsUtils: LocalFsUtils,
+    @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
   ) {
     super(pathProvider, logger, fsUtils);
   }
@@ -205,30 +208,13 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       return params.attachSimplePort;
     }
 
-    const exe = params.runtimeExecutable;
-    if (!exe) {
-      return;
-    }
-
-    if (!['npm', 'yarn', 'pnpm'].includes(basename(exe, extname(exe)))) {
-      return;
-    }
-
-    const script = params.runtimeArgs.find(
-      a => !a.startsWith('-') && a !== 'run' && a !== 'run-script',
-    );
+    const script = getRunScript(params.runtimeExecutable, params.runtimeArgs);
     if (!script) {
       return;
     }
 
-    let packageJson: { scripts?: { [name: string]: string } };
-    try {
-      packageJson = JSON.parse(await readfile(resolve(params.cwd, 'package.json')));
-    } catch {
-      return;
-    }
-
-    if (!packageJson.scripts?.[script]?.includes('--inspect-brk')) {
+    const packageJson = await this.packageJson.getContents();
+    if (!packageJson?.scripts?.[script]?.includes('--inspect-brk')) {
       return;
     }
 

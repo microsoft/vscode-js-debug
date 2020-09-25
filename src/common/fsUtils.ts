@@ -109,6 +109,7 @@ export function readFileRaw(path: string): Promise<Buffer> {
 
 export interface IFsUtils {
   exists(path: string): Promise<boolean>;
+  readFile(path: string): Promise<Buffer>;
 }
 
 /**
@@ -128,6 +129,10 @@ export class LocalFsUtils implements IFsUtils {
       return false;
     }
   }
+
+  public readFile(path: string) {
+    return this.fs.readFile(path);
+  }
 }
 
 export class RemoteFsThroughDapUtils implements IFsUtils {
@@ -142,6 +147,10 @@ export class RemoteFsThroughDapUtils implements IFsUtils {
     } catch {
       return false;
     }
+  }
+
+  public readFile(): never {
+    throw new Error('not implemented');
   }
 }
 
@@ -171,6 +180,12 @@ export class LocalAndRemoteFsUtils implements IFsUtils {
 
   public async exists(path: string): Promise<boolean> {
     return (this.shouldUseRemoteFileSystem(path) ? this.remoteFsUtils : this.localFsUtils).exists(
+      path,
+    );
+  }
+
+  public async readFile(path: string): Promise<Buffer> {
+    return (this.shouldUseRemoteFileSystem(path) ? this.remoteFsUtils : this.localFsUtils).readFile(
       path,
     );
   }

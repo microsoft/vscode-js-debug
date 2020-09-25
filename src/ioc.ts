@@ -81,6 +81,7 @@ import { NodeAttacher } from './targets/node/nodeAttacher';
 import { INodeBinaryProvider, NodeBinaryProvider } from './targets/node/nodeBinaryProvider';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { INvmResolver, NvmResolver } from './targets/node/nvmResolver';
+import { IPackageJsonProvider, PackageJsonProvider } from './targets/node/packageJsonProvider';
 import { IProgramLauncher } from './targets/node/processLauncher';
 import { RestartPolicyFactory } from './targets/node/restartPolicy';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
@@ -224,6 +225,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(ILauncher).to(NodeLauncher).onActivation(trackDispose);
   container.bind(IProgramLauncher).to(SubprocessProgramLauncher);
   container.bind(IProgramLauncher).to(TerminalProgramLauncher);
+  container.bind(IPackageJsonProvider).to(PackageJsonProvider).inSingletonScope();
 
   if (parent.get(IsVSCode)) {
     // dynamic require to not break the debug server
@@ -311,7 +313,6 @@ export const provideLaunchParams = (
   dap: Dap.Api,
 ) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
-
   container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
 
   container

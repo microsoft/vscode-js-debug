@@ -24,6 +24,7 @@ import { createPendingDapApi } from '../dap/pending-api';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { NodeTarget } from '../targets/node/nodeTarget';
+import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
@@ -195,7 +196,7 @@ export function registerDebugTerminalUI(
 
     const logger = new ProxyLogger();
     const launcher = new TerminalNodeLauncher(
-      new NodeBinaryProvider(logger, fs),
+      new NodeBinaryProvider(logger, fs, noPackageJsonProvider),
       logger,
       fs,
       fsUtils,

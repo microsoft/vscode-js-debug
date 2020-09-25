@@ -13,6 +13,7 @@ import {
   AutoAttachPreconditionFailed,
 } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
+import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 
 const localize = nls.loadMessageBundle();
@@ -33,7 +34,7 @@ export function registerAutoAttach(
       const logger = new ProxyLogger();
       // TODO: Figure out how to inject FsUtils
       const inst = new AutoAttachLauncher(
-        new NodeBinaryProvider(logger, fs),
+        new NodeBinaryProvider(logger, fs, noPackageJsonProvider),
         logger,
         context,
         fs,

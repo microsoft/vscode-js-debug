@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { basename, isAbsolute } from 'path';
+import { basename, dirname, extname, isAbsolute, resolve } from 'path';
 import * as nls from 'vscode-nls';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
@@ -13,6 +13,7 @@ import { Semver } from '../../common/semver';
 import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
+import { IPackageJsonProvider } from './packageJsonProvider';
 
 const localize = nls.loadMessageBundle();
 
@@ -33,6 +34,24 @@ export function hideDebugInfoFromConsole(binary: NodeBinary, env: EnvironmentVar
     ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-publish-uid=http` })
     : env;
 }
+
+export const isPackageManager = (exe: string) =>
+  ['npm', 'yarn', 'pnpm'].includes(basename(exe, extname(exe)));
+
+/**
+ * Detects an "npm run"-style invokation, and if found gets the script that the
+ * user intends to run.
+ */
+export const getRunScript = (
+  runtimeExecutable: string | null,
+  runtimeArgs: ReadonlyArray<string>,
+) => {
+  if (!runtimeExecutable || !isPackageManager(runtimeExecutable)) {
+    return;
+  }
+
+  return runtimeArgs.find(a => !a.startsWith('-') && a !== 'run' && a !== 'run-script');
+};
 
 const assumedVersion = new Semver(12, 0, 0);
 const minimumVersion = new Semver(8, 0, 0);
@@ -120,6 +139,7 @@ export class NodeBinaryProvider {
   constructor(
     @inject(ILogger) private readonly logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
+    @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
   ) {}
 
   /**
@@ -150,6 +170,13 @@ export class NodeBinaryProvider {
     // on the path as a fallback.
     const exeInfo = exeRe.exec(basename(location).toLowerCase());
     if (!exeInfo) {
+      if (isPackageManager(location)) {
+        const packageJson = await this.packageJson.getPath();
+        if (packageJson) {
+          env = env.addToPath(resolve(dirname(packageJson), 'node_modules/.bin'), 'prepend');
+        }
+      }
+
       try {
         const realBinary = await this.resolveAndValidate(env, 'node');
         return new NodeBinary(location, realBinary.version);

@@ -65,13 +65,13 @@ export const nearestDirectoryWhere = async (
   predicate: (dir: string) => Promise<boolean>,
 ): Promise<string | undefined> => {
   while (true) {
+    if (await predicate(rootDir)) {
+      return rootDir;
+    }
+
     const parent = path.dirname(rootDir);
     if (parent === rootDir) {
       return undefined;
-    }
-
-    if (await predicate(parent)) {
-      return parent;
     }
 
     rootDir = parent;

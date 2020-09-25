@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { promises as fsPromises, PathLike } from 'fs';
-import * as path from 'path';
-import { stub, SinonStub } from 'sinon';
 import { expect } from 'chai';
-import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
-import { fsModule, LocalFsUtils, IFsUtils } from '../../common/fsUtils';
-import { defaultSourceMapPathOverrides } from '../../configuration';
-import { Logger } from '../../common/logging/logger';
-import { testFixturesDir } from '../test';
-import { IVueFileMapper, VueHandling, VueFileMapper } from '../../adapter/vueFileMapper';
-import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap';
+import { PathLike, promises as fsPromises } from 'fs';
+import * as path from 'path';
+import { SinonStub, stub } from 'sinon';
+import { IVueFileMapper, VueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
 import { FileGlobList } from '../../common/fileGlobList';
+import { fsModule, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
+import { Logger } from '../../common/logging/logger';
+import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap';
+import { defaultSourceMapPathOverrides } from '../../configuration';
+import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
+import { testFixturesDir } from '../test';
 
 describe('browserPathResolver.urlToAbsolutePath', () => {
   let fsExistStub: SinonStub<[PathLike, (cb: boolean) => void], void>;
@@ -128,7 +128,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
     });
   });
 
-  class FakeLocalFsUtils implements IFsUtils {
+  class FakeLocalFsUtils {
     exists(path: string): Promise<boolean> {
       switch (path) {
         case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
@@ -185,7 +185,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
 
       const resolver = new BrowserSourcePathResolver(
         testVueMapper,
-        new FakeLocalFsUtils(),
+        new FakeLocalFsUtils() as IFsUtils,
         {
           pathMapping: { '/': webRoot },
           clientID: client,

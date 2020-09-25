@@ -1,13 +1,13 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import {
-  getCaseInsensitiveProperty,
-  caseInsensitiveMerge,
-  removeUndefined,
-  removeNulls,
-} from './objUtils';
 import * as path from 'path';
+import {
+  caseInsensitiveMerge,
+  getCaseInsensitiveProperty,
+  removeNulls,
+  removeUndefined,
+} from './objUtils';
 
 /**
  * Container for holding sets of environment variables. Deals with case
@@ -52,7 +52,7 @@ export class EnvironmentVars {
   /**
    * Adds the given location to the environment PATH.
    */
-  public addToPath(location: string) {
+  public addToPath(location: string, prependOrAppend: 'prepend' | 'append' = 'append') {
     const prop = EnvironmentVars.platform === 'win32' ? 'Path' : 'PATH';
     const delimiter =
       EnvironmentVars.platform === 'win32' ? path.win32.delimiter : path.posix.delimiter;
@@ -60,8 +60,10 @@ export class EnvironmentVars {
     let value = this.lookup(prop);
     if (!value) {
       value = location;
-    } else {
+    } else if (prependOrAppend === 'append') {
       value = value + delimiter + location;
+    } else {
+      value = location + delimiter + value;
     }
 
     return this.update(prop, value);
