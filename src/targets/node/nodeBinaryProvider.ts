@@ -35,8 +35,9 @@ export function hideDebugInfoFromConsole(binary: NodeBinary, env: EnvironmentVar
     : env;
 }
 
-export const isPackageManager = (exe: string) =>
-  ['npm', 'yarn', 'pnpm'].includes(basename(exe, extname(exe)));
+const packageManagers: ReadonlySet<string> = new Set(['npm', 'yarn', 'pnpm', 'tnpm', 'cnpm']);
+
+export const isPackageManager = (exe: string) => packageManagers.has(basename(exe, extname(exe)));
 
 /**
  * Detects an "npm run"-style invokation, and if found gets the script that the
