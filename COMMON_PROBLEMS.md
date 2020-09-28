@@ -17,3 +17,17 @@ This debugger attaches to scripts by using `NODE_OPTIONS` to tell Node.js to `--
 However, `--inspect-brk` will cause Node.js to pause on the first line of the executed script and wait for a debugger to attach. Unfortunately, this pauses at the first line of the _bootloader_, so it never tells VS Code that there's something to debug.
 
 In most cases, `--inspect-brk` was used to make sure the VS Code attached completely before running your program. The bootloader does the same thing, so this is no longer necessary.
+
+## My app doesn't run, and I have an antivirus/firewall running
+
+### Symptoms
+
+You launch your app and VS Code enters debug mode, but it doesn't attach to the application and the "Pause" and "Step" buttons in the debug toolbar are disabled, and you're running an antivirus/firewall.
+
+### Solution
+
+We've seen some cases where an antivirus or firewall prevents VS Code from attaching to the process. To fix this, in order of preference:
+
+- You can allow local/'loopback' connections
+- By default, we use a random free port. You can pass an `--inspect` flag to your `runtimeArgs` to use the default port 9229, however we will still be unable to debug child processes.
+- You can disable your firewall, or allowlist VS Code/Node.js.
