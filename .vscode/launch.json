@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "Debug Server",
       "program": "${workspaceFolder}/out/src/debugServerMain.js",
-      "args": ["4711"],
+      "args": ["4711"]
       // "preLaunchTask": "npm: watch"
     },
     {
@@ -38,12 +38,12 @@
       "skipFiles": ["<node_internals>/**"],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/out",
+        "--extensionDevelopmentPath=${workspaceFolder}/out"
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js",
-        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js",
-      ],
+        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js"
+      ]
       // "preLaunchTask": "npm: watch"
     },
     {
@@ -55,23 +55,8 @@
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
       // "preLaunchTask": "npm: watch"
-    },
-    {
-      "name": "Extension Dogfood",
-      "type": "pwa-extensionHost",
-      "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
-      "args": [
-        "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/out"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
-      ],
     },
     {
       "name": "Extension and Auto Launch",
@@ -90,8 +75,8 @@
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js",
-        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js",
-      ],
+        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js"
+      ]
     },
     {
       "name": "Extension and Companion",
@@ -114,34 +99,28 @@
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js",
-        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js",
-      ],
+        "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js"
+      ]
     },
-		{
-			"name": "Run Tests",
-			"type": "pwa-extensionHost",
+    {
+      "name": "Run Golden Tests",
+      "type": "pwa-extensionHost",
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}/out",
-				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
-			],
-			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],
-			// "preLaunchTask": "npm: watch"
-    },
-		{
-			"name": "Reset Results",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/out",
+        "--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
       ],
-      "env": {
-        "RESET_RESULTS": "true"
-      },
-			"outFiles": ["${workspaceFolder}/out/src/test/**/*.js"],
-			// "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/out/**/*.js"]
+    },
+    {
+      "name": "Run Unit Tests",
+      "type": "pwa-node",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/mocha",
+      "runtimeArgs": ["--config", ".mocharc.unit.js"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"]
     },
     {
       "name": "Debug Gulp",

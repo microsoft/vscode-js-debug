@@ -34,8 +34,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${workspaceFolder}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -81,8 +83,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${workspaceFolder}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
@@ -122,8 +126,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${workspaceFolder}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -165,8 +171,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${workspaceFolder}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -204,8 +212,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${webRoot}/*",
   "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -245,8 +255,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${webRoot}/*",
   "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
@@ -293,8 +305,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${webRoot}/*",
   "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -335,8 +349,10 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
-  "webpack://?:*/*": "${webRoot}/*",
   "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>

@@ -36,7 +36,9 @@ export class SourceMapOverrides {
 
   constructor(sourceMapOverrides: { [from: string]: string }, private readonly logger: ILogger) {
     // Sort the overrides by length, large to small
-    const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort((a, b) => b.length - a.length);
+    const sortedOverrideKeys = Object.keys(sourceMapOverrides).sort(
+      (a, b) => b.replace(nonCapturingGroup, '*').length - a.replace(nonCapturingGroup, '*').length,
+    );
 
     // Iterate the key/vals, only apply the first one that matches.
     for (const leftPatternRaw of sortedOverrideKeys) {

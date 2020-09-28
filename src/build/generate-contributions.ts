@@ -189,7 +189,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   sourceMapPathOverrides: {
     type: 'object',
     description: refString('node.sourceMapPathOverrides.description'),
-    default: baseDefaults.sourceMapPathOverrides,
+    default: {
+      'webpack://?:*/*': '${workspaceFolder}/*',
+      'webpack:///./~/*': '${workspaceFolder}/node_modules/*',
+      'meteor://💻app/*': '${workspaceFolder}/*',
+    },
   },
   timeout: {
     type: 'number',

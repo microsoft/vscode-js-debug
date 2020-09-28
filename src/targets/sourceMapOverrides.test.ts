@@ -117,5 +117,15 @@ describe('SourceMapOverrides', () => {
         path.join('${workspaceFolder}/src/index.ts'),
       );
     });
+
+    it('maps an absolute path on windows', () => {
+      expect(r.apply('webpack:///c:/users/connor/hello.ts')).to.equal(
+        'c:\\users\\connor\\hello.ts',
+      );
+    });
+
+    it('maps an absolute path on unix', () => {
+      expect(r.apply('webpack:////users/connor/hello.ts')).to.equal('/users/connor/hello.ts');
+    });
   });
 });

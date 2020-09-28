@@ -912,8 +912,10 @@ export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
 
 export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]: string } {
   return {
-    'webpack://?:*/*': `${webRoot}/*`,
     'webpack:///./~/*': `${webRoot}/node_modules/*`,
+    'webpack:////*': '/*',
+    'webpack://?:*/*': `${webRoot}/*`,
+    'webpack:///([a-z]):/(.+)': '$1:/$2',
     'meteor://💻app/*': `${webRoot}/*`,
   };
 }
