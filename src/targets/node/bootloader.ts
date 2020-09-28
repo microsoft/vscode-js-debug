@@ -56,11 +56,10 @@ const blockedBasnames = ['npm', 'yarn'];
       inspectorOptions.execPath = process.execPath;
     }
 
-    inspectOrQueue(inspectorOptions);
-
+    const didAttach = inspectOrQueue(inspectorOptions);
     if (inspectorOptions.onlyEntrypoint) {
       env.inspectorOptions = undefined;
-    } else {
+    } else if (didAttach) {
       env.updateInspectorOption('ppid', process.pid);
     }
   } catch (e) {
@@ -76,7 +75,7 @@ const enum Mode {
   Inactive,
 }
 
-function inspectOrQueue(env: IBootloaderInfo) {
+function inspectOrQueue(env: IBootloaderInfo): boolean {
   const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
     : env.deferredMode
@@ -85,7 +84,7 @@ function inspectOrQueue(env: IBootloaderInfo) {
 
   bootloaderLogger.info(LogTag.Runtime, 'Set debug mode', { mode });
   if (mode === Mode.Inactive) {
-    return;
+    return false;
   }
 
   // inspector.url() will be defined if --inspect is passed to the process.
@@ -94,7 +93,7 @@ function inspectOrQueue(env: IBootloaderInfo) {
   if (!openedFromCli) {
     // if the debugger isn't explicitly enabled, turn it on based on our inspect mode
     if (!shouldForceProcessIntoDebugMode(env)) {
-      return;
+      return false;
     }
 
     inspector.open(0, undefined, false); // first call to set the inspector.url()
@@ -155,7 +154,7 @@ function inspectOrQueue(env: IBootloaderInfo) {
     if (status) {
       console.error(stderr.toString());
       console.error(`Error activating auto attach, please report to https://aka.ms/js-dbg-issue`);
-      return; // some error status code
+      return false; // some error status code
     }
   }
 
@@ -166,6 +165,8 @@ function inspectOrQueue(env: IBootloaderInfo) {
   } else {
     inspector.open(openedFromCli ? undefined : 0, undefined, true);
   }
+
+  return true;
 }
 
 function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
