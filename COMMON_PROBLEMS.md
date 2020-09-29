@@ -31,3 +31,13 @@ We've seen some cases where an antivirus or firewall prevents VS Code from attac
 - You can allow local/'loopback' connections
 - By default, we use a random free port. You can pass an `--inspect` flag to your `runtimeArgs` to use the default port 9229, however we will still be unable to debug child processes.
 - You can disable your firewall, or allowlist VS Code/Node.js.
+
+## My app doesn't run using a Node 10 release before around 10.18.0
+
+### Symptoms
+
+You launch your app, but the debugger doesn't connect to it. You're using an older Node 10 release.
+
+### Solution
+
+We've seen some transient issues with early Node 10 point releases. To fix this we, recommend updating to a later Node 10 release (10.22.1 being the most recent at the time of writing), or to a newer version of Node altogether if nothing is keeping you on 10.
