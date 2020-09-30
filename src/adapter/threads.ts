@@ -27,6 +27,7 @@ import { SmartStepper } from './smartStepping';
 import {
   base1To0,
   IPreferredUiLocation,
+  ISourceWithMap,
   IUiLocation,
   rawToUiOffset,
   Source,
@@ -111,7 +112,7 @@ export type ScriptWithSourceMapHandler = (
   sources: Source[],
   brokenOn?: Cdp.Debugger.Location,
 ) => Promise<IUiLocation[]>;
-export type SourceMapDisabler = (hitBreakpoints: string[]) => Source[];
+export type SourceMapDisabler = (hitBreakpoints: string[]) => ISourceWithMap[];
 
 export type RawLocation = {
   url: string;

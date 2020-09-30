@@ -25,7 +25,7 @@ import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
-import { SourceContainer, SourceFromMap } from './sources';
+import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
 import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
 import { VariableStore } from './variables';
 
@@ -226,7 +226,7 @@ export class DebugAdapter implements IDisposable {
     }
 
     for (const compiled of source.compiledToSourceUrl.keys()) {
-      this.sourceContainer.disableSourceMapForSource(compiled);
+      this.sourceContainer.disableSourceMapForSource(compiled, /* permanent= */ true);
     }
 
     await this._thread?.refreshStackTrace();
@@ -414,7 +414,7 @@ export class DebugAdapter implements IDisposable {
     const { map: sourceMap, source: generated } = prettified;
 
     this.breakpointManager.moveBreakpoints(source, sourceMap, generated);
-    this.sourceContainer.clearDisabledSourceMaps(source);
+    this.sourceContainer.clearDisabledSourceMaps(source as ISourceWithMap);
     await this._refreshStackTrace();
 
     return {};

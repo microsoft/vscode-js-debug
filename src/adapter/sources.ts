@@ -425,7 +425,7 @@ export class SourceFromMap extends Source {
 }
 
 export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
-  source instanceof Source && !!source.sourceMap;
+  !!source && source instanceof Source && !!source.sourceMap;
 
 const isOriginalSourceOf = (compiled: Source, original: Source) =>
   original instanceof SourceFromMap && original.compiledToSourceUrl.has(compiled as ISourceWithMap);
@@ -483,7 +483,18 @@ export class SourceContainer {
   // Test support.
   _fileContentOverridesForTest = new Map<string, string>();
 
-  private _disabledSourceMaps = new Set<Source>();
+  /**
+   * Map of sources with maps that are disabled temporarily. This can happen
+   * if stepping stepping in or setting breakpoints in disabled files.
+   */
+  private readonly _temporarilyDisabledSourceMaps = new Set<ISourceWithMap>();
+
+  /**
+   * Map of sources with maps that are disabled for the length of the debug
+   * session. This can happen if manually disabling sourcemaps for a file
+   * (as a result of a missing source, for instance)
+   */
+  private readonly _permanentlyDisabledSourceMaps = new Set<ISourceWithMap>();
 
   /**
    * Fires when a new script is parsed.
@@ -682,12 +693,15 @@ export class SourceContainer {
 
   _sourceMappedUiLocation(uiLocation: IUiLocation, map: SourceMap): IUiLocation | UnmappedReason {
     const compiled = uiLocation.source;
-    if (this._disabledSourceMaps.has(compiled)) {
-      return UnmappedReason.MapDisabled;
-    }
-
     if (!isSourceWithMap(compiled)) {
       return UnmappedReason.HasNoMap;
+    }
+
+    if (
+      this._temporarilyDisabledSourceMaps.has(compiled) ||
+      this._permanentlyDisabledSourceMaps.has(compiled)
+    ) {
+      return UnmappedReason.MapDisabled;
     }
 
     const entry = this.getOptiminalOriginalPosition(
@@ -919,7 +933,11 @@ export class SourceContainer {
     }
 
     this._sourceByAbsolutePath.delete(source.absolutePath());
-    this._disabledSourceMaps.delete(source);
+    if (isSourceWithMap(source)) {
+      this._permanentlyDisabledSourceMaps.delete(source);
+      this._temporarilyDisabledSourceMaps.delete(source);
+    }
+
     if (!silent) {
       source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
     }
@@ -1067,15 +1085,19 @@ export class SourceContainer {
     });
   }
 
-  disableSourceMapForSource(source: Source) {
-    this._disabledSourceMaps.add(source);
+  disableSourceMapForSource(source: ISourceWithMap, permanent = false) {
+    if (permanent) {
+      this._permanentlyDisabledSourceMaps.add(source);
+    } else {
+      this._temporarilyDisabledSourceMaps.add(source);
+    }
   }
 
-  clearDisabledSourceMaps(forSource?: Source) {
+  clearDisabledSourceMaps(forSource?: ISourceWithMap) {
     if (forSource) {
-      this._disabledSourceMaps.delete(forSource);
+      this._temporarilyDisabledSourceMaps.delete(forSource);
     } else {
-      this._disabledSourceMaps.clear();
+      this._temporarilyDisabledSourceMaps.clear();
     }
   }
 }

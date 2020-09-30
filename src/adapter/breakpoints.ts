@@ -26,6 +26,8 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import {
   base0To1,
   base1To0,
+  ISourceWithMap,
+  isSourceWithMap,
   IUiLocation,
   rawToUiOffset,
   Source,
@@ -375,12 +377,12 @@ export class BreakpointManager {
     });
 
     this._thread.setSourceMapDisabler(breakpointIds => {
-      const sources: Source[] = [];
+      const sources: ISourceWithMap[] = [];
       for (const id of breakpointIds) {
         const breakpoint = this._resolvedBreakpoints.get(id);
         if (breakpoint) {
           const source = this._sourceContainer.source(breakpoint.source);
-          if (source) sources.push(source);
+          if (isSourceWithMap(source)) sources.push(source);
         }
       }
       return sources;
