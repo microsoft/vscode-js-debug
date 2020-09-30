@@ -9,10 +9,13 @@
   "eslint.validate": ["javascript", "javascriptreact", "typescript"],
   "search.exclude": {
     "**/testdata": true,
-    "**/.dynamic-testWorkspace/defaultSearchExcluded": true,
+    "**/.dynamic-testWorkspace/defaultSearchExcluded": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
   },
   "editor.formatOnSave": true
 }

@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { promises as fs } from 'fs';
+import { homedir } from 'os';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { NeverCancelled } from '../common/cancellation';
@@ -143,6 +144,12 @@ export const launchVirtualTerminalParent = (
 
 const Abort = Symbol('Abort');
 
+const home = homedir();
+const tildify: (s: string) => string =
+  process.platform === 'win32'
+    ? s => s
+    : s => (s.startsWith(home) ? `~${s.slice(home.length)}` : s);
+
 async function getWorkspaceFolder() {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length < 2) {
@@ -152,7 +159,7 @@ async function getWorkspaceFolder() {
   const picked = await vscode.window.showQuickPick(
     folders.map(folder => ({
       label: folder.name,
-      description: folder.uri.fsPath,
+      description: tildify(folder.uri.fsPath),
       folder,
     })),
     {
