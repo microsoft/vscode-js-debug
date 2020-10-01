@@ -14,7 +14,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Development
 
-For basic development of the extension, you can run:
+For basic development of the extension you will need the [nightly extension](https://github.com/microsoft/vscode-js-debug#nightly-extension) locally, and you can then:
 
 1. Clone the repo and run `npm install`
 2. Run `npm run watch` in a terminal. This will compile and watch for changes in sources.
