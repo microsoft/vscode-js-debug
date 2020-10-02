@@ -20,20 +20,16 @@ steps:
   inputs:
     verbose: false
 
-- task: Gulp@0
-  displayName: gulp compile
-  inputs:
-    targets: compile
-    publishJUnitResults: true
-
 # A shell script here due to https://github.com/microsoft/azure-pipelines-tasks/issues/12650
 - task: CmdLine@2
   displayName: npm test
   inputs:
     script: npm test
+    publishJUnitResults: true
   timeoutInMinutes: 12
   condition: eq(${{ parameters.runTests }}, true)
   env:
+    JSDBG_TEST_VERSION: insiders
     DISPLAY: ':99.0'
 
 - task: CmdLine@2

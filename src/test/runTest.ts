@@ -22,6 +22,7 @@ async function main() {
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
+      version: process.env.JSDBG_TEST_VERSION,
       launchArgs: [
         path.resolve(__dirname, '../../..'),
         '--disable-extensions',
