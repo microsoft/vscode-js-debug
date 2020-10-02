@@ -25,7 +25,7 @@ export class HttpStatusError extends Error {
     public readonly url: string,
     public readonly body?: string,
   ) {
-    super(`Unexpected ${statusCode} response from ${url}`);
+    super(`Unexpected ${statusCode} response from ${url}: ${body ?? '<empty body>'}`);
   }
 }
 
