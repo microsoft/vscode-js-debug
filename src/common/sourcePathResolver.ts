@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourceMap, ISourceMapMetadata } from './sourceMaps/sourceMap';
+import { ISourceMapMetadata, SourceMap } from './sourceMaps/sourceMap';
 
 /**
  * Request to resolve a URL to an absolute path.
@@ -50,7 +50,7 @@ export interface ISourcePathResolver {
   /**
    * Attempts to convert an absolute path on disk to a URL for CDP.
    */
-  absolutePathToUrl(absolutePath: string): string | undefined;
+  absolutePathToUrlRegexp(absolutePath: string): string | undefined;
 }
 
 // Script tags in html have line/column numbers offset relative to the actual script start.

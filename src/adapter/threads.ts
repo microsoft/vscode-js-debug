@@ -92,6 +92,7 @@ export class ExecutionContext {
 
 export type Script = {
   url: string;
+  urlRegexp?: string;
   scriptId: string;
   hash: string;
   source: Promise<Source>;

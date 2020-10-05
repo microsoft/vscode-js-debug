@@ -375,10 +375,10 @@ export abstract class Breakpoint {
     });
     const promises: Promise<void>[] = [];
     for (const workspaceLocation of workspaceLocations) {
-      const url = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(
+      const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
         workspaceLocation.absolutePath,
       );
-      if (url) promises.push(this._setByUrl(thread, url, workspaceLocation));
+      if (urlRegexp) promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
     }
     await Promise.all(promises);
   }
@@ -405,21 +405,27 @@ export abstract class Breakpoint {
       }
     }
 
-    let url: string | undefined;
     if (this.source.path) {
-      url = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrl(this.source.path);
+      const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
+        this.source.path,
+      );
+      if (!urlRegexp) {
+        return;
+      }
+
+      await this._setByUrlRegexp(thread, urlRegexp, lineColumn);
     } else {
       const source = this._manager._sourceContainer.source(this.source);
-      url = source?.url;
-    }
+      const url = source?.url;
 
-    if (!url) {
-      return;
-    }
+      if (!url) {
+        return;
+      }
 
-    await this._setByUrl(thread, url, lineColumn);
-    if (this.source.path !== url && this.source.path !== undefined) {
-      await this._setByUrl(thread, absolutePathToFileUrl(this.source.path), lineColumn);
+      await this._setByUrl(thread, url, lineColumn);
+      if (this.source.path !== url && this.source.path !== undefined) {
+        await this._setByUrl(thread, absolutePathToFileUrl(this.source.path), lineColumn);
+      }
     }
   }
 
@@ -434,7 +440,8 @@ export abstract class Breakpoint {
       bp =>
         (script.url &&
           isSetByUrl(bp.args) &&
-          new RegExp(bp.args.urlRegex ?? '').test(script.url) &&
+          (new RegExp(bp.args.urlRegex ?? '').test(script.url) ||
+            (script.urlRegexp && bp.args.urlRegex === script.urlRegexp)) &&
           lcEqual(bp.args, lineColumn)) ||
         (script.scriptId &&
           isSetByLocation(bp.args) &&
@@ -444,9 +451,17 @@ export abstract class Breakpoint {
   }
 
   protected async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
+    return this._setByUrlRegexp(thread, urlToRegex(url), lineColumn);
+  }
+
+  protected async _setByUrlRegexp(
+    thread: Thread,
+    urlRegexp: string,
+    lineColumn: LineColumn,
+  ): Promise<void> {
     lineColumn = base1To0(lineColumn);
 
-    const previous = this.hasSetOnLocation({ url }, lineColumn);
+    const previous = this.hasSetOnLocation({ urlRegexp }, lineColumn);
     if (previous) {
       if (previous.state === CdpReferenceState.Pending) {
         await previous.done;
@@ -456,7 +471,7 @@ export abstract class Breakpoint {
     }
 
     return this._setAny(thread, {
-      urlRegex: urlToRegex(url),
+      urlRegex: urlRegexp,
       condition: this.getBreakCondition(),
       ...lineColumn,
     });

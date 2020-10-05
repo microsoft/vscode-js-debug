@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { existsSync } from 'fs';
+import { tmpdir } from 'os';
 import * as path from 'path';
-import { IDisposable } from '../disposable';
 import { ILoggingConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
+import { IDisposable } from '../disposable';
 import { ConsoleLogSink } from './consoleLogSink';
-import { tmpdir } from 'os';
 import { FileLogSink } from './fileLogSink';
-import { existsSync } from 'fs';
 
 export const enum LogLevel {
   Verbose = 0,
@@ -29,6 +29,7 @@ export const enum LogTag {
   RuntimeWelcome = 'runtime.welcome',
   RuntimeException = 'runtime.exception',
   RuntimeSourceMap = 'runtime.sourcemap',
+  RuntimeBreakpoints = 'runtime.breakpoints',
   SourceMapParsing = 'sourcemap.parsing',
   PerfFunction = 'perf.function',
   CdpSend = 'cdp.send',
@@ -47,6 +48,7 @@ const logTabObj: { [K in LogTag]: null } = {
   [LogTag.RuntimeWelcome]: null,
   [LogTag.RuntimeException]: null,
   [LogTag.RuntimeSourceMap]: null,
+  [LogTag.RuntimeBreakpoints]: null,
   [LogTag.SourceMapParsing]: null,
   [LogTag.PerfFunction]: null,
   [LogTag.CdpSend]: null,

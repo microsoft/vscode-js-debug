@@ -5,14 +5,14 @@
 import { inject, injectable } from 'inversify';
 import { IVueFileMapper } from '../adapter/vueFileMapper';
 import { DebugType } from '../common/contributionUtils';
+import { IFsUtils, LocalFsUtils } from '../common/fsUtils';
 import { ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
+import { IInitializeParams } from '../ioc-extras';
 import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
-import { IInitializeParams } from '../ioc-extras';
 import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
-import { IFsUtils, LocalFsUtils } from '../common/fsUtils';
 
 @injectable()
 export class SourcePathResolverFactory {
@@ -52,6 +52,8 @@ export class SourcePathResolverFactory {
           pathMapping: { '/': c.webRoot, ...c.pathMapping },
           sourceMapOverrides: c.sourceMapPathOverrides,
           clientID: this.initializeParams.clientID,
+          isBlazor: !!c.inspectUri,
+          remoteFilePrefix: c.__remoteFilePrefix,
         },
         this.logger,
       );
