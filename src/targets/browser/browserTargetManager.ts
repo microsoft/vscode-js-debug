@@ -258,7 +258,7 @@ export class BrowserTargetManager implements IDisposable {
 
     // For targets that we don't report to the system, auto-resume them on our on.
     if (!jsTypes.has(type)) {
-      cdp.Runtime.runIfWaitingForDebugger({});
+      target.runIfWaitingForDebugger();
     } else if (type === BrowserTargetType.Page && waitForDebuggerOnStart) {
       cdp.Page.waitForDebugger({});
     }

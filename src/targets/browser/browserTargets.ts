@@ -3,14 +3,15 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import { EventEmitter } from '../../common/events';
-import { ITarget } from '../../targets/targets';
-import Cdp from '../../cdp/api';
-import * as urlUtils from '../../common/urlUtils';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { AnyChromiumConfiguration } from '../../configuration';
-import { ILogger } from '../../common/logging';
 import { IThreadDelegate } from '../../adapter/threads';
+import Cdp from '../../cdp/api';
+import { EventEmitter } from '../../common/events';
+import { ILogger } from '../../common/logging';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import * as urlUtils from '../../common/urlUtils';
+import { AnyChromiumConfiguration } from '../../configuration';
+import { ITarget } from '../../targets/targets';
+import { signalReadyExpr } from '../node/extensionHostExtras';
 import { BrowserTargetManager } from './browserTargetManager';
 
 export const enum BrowserTargetType {
@@ -131,6 +132,17 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
 
   initialize() {
     return Promise.resolve();
+  }
+
+  async runIfWaitingForDebugger() {
+    const todo = [this._cdp.Runtime.runIfWaitingForDebugger({})];
+
+    if ('debugWebviews' in this.launchConfig) {
+      // a vscode renderer attachment
+      todo.push(this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }));
+    }
+
+    await Promise.all(todo);
   }
 
   parent(): ITarget | undefined {

@@ -54,6 +54,12 @@ export interface ITarget {
    */
   afterBind(): Promise<void>;
 
+  /**
+   * Called after the launchBlocker resolves. Signals that we're all set up
+   * and ready to start debugging the target.
+   */
+  runIfWaitingForDebugger(): Promise<void>;
+
   initialize(): Promise<void>;
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;

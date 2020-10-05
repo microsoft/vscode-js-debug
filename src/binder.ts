@@ -385,7 +385,7 @@ export class Binder implements IDisposable {
 
     const startThread = async () => {
       await debugAdapter.launchBlocker();
-      cdp.Runtime.runIfWaitingForDebugger({});
+      target.runIfWaitingForDebugger();
       threadData.resolve({ thread, debugAdapter });
       return {};
     };

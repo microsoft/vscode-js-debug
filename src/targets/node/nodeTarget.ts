@@ -6,6 +6,7 @@ import { basename } from 'path';
 import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
+import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
@@ -14,6 +15,7 @@ import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyNodeConfiguration } from '../../configuration';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBreakpointPathAndId, ITarget } from '../targets';
+import { signalReadyExpr } from './extensionHostExtras';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 
 export interface INodeTargetLifecycleHooks {
@@ -134,6 +136,16 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   hasParent(): boolean {
     return !!this._parent;
+  }
+
+  async runIfWaitingForDebugger() {
+    const todo = [this._cdp.Runtime.runIfWaitingForDebugger({})];
+
+    if (this.launchConfig.type === DebugType.ExtensionHost) {
+      todo.push(this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }));
+    }
+
+    await Promise.all(todo);
   }
 
   public setParent(parent?: NodeTarget) {
