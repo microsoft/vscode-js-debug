@@ -172,7 +172,11 @@ export class LocalAndRemoteFsUtils implements IFsUtils {
   ): IFsUtils {
     const localFsUtils = new LocalFsUtils(fsPromises);
     if (remoteFilePrefix !== undefined) {
-      return new this(remoteFilePrefix, localFsUtils, new RemoteFsThroughDapUtils(dap));
+      return new this(
+        remoteFilePrefix.toLowerCase(),
+        localFsUtils,
+        new RemoteFsThroughDapUtils(dap),
+      );
     } else {
       return localFsUtils;
     }
@@ -191,6 +195,6 @@ export class LocalAndRemoteFsUtils implements IFsUtils {
   }
 
   public shouldUseRemoteFileSystem(path: string) {
-    return path.startsWith(this.remoteFilePrefix);
+    return path.toLowerCase().startsWith(this.remoteFilePrefix);
   }
 }
