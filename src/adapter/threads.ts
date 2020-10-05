@@ -269,13 +269,13 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
+    this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+
     if (await this._cdp.Debugger.stepOut({})) {
-      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
-    } else {
-      return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+      return {};
     }
 
-    return {};
+    return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
   }
 
   _stackFrameNotFoundError(): Dap.Error {

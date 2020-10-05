@@ -1,3 +1,13 @@
 Evaluating#1: //# sourceMappingURL=does-not-exist.js.map
 
-stderr> Could not read source map for http://localhost:8001/eval1.js: Unexpected 404 response from http://localhost:8001/does-not-exist.js.map
+stderr> Could not read source map for http://localhost:8001/eval1.js: Unexpected 404 response from http://localhost:8001/does-not-exist.js.map: <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot GET /does-not-exist.js.map</pre>
+</body>
+</html>
+
