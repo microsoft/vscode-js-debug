@@ -18,7 +18,9 @@
       "request": "launch",
       "name": "Debug Server",
       "program": "${workspaceFolder}/out/src/debugServerMain.js",
-      "args": ["4711"]
+      "args": [
+        "4711"
+      ]
       // "preLaunchTask": "npm: watch"
     },
     {
@@ -27,15 +29,35 @@
       "name": "Debug Server (Flat Session)",
       "trace": true,
       "program": "${workspaceFolder}/out/src/flatSessionLauncher.js",
-      "args": ["4712"],
-      "skipFiles": ["<node_internals>/**/*.js"]
+      "args": [
+        "4712"
+      ],
+      "skipFiles": [
+        "<node_internals>/**/*.js"
+      ]
+      // "preLaunchTask": "npm: watch"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Server (VS Server)",
+      "trace": true,
+      "program": "${workspaceFolder}/out/src/vsDebugServer.js",
+      "args": [
+        "4712"
+      ],
+      "skipFiles": [
+        "<node_internals>/**/*.js"
+      ]
       // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/out"
@@ -50,19 +72,25 @@
       "name": "Extension (packaged)",
       "type": "extensionHost",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
       // "preLaunchTask": "npm: watch"
     },
     {
       "name": "Extension and Auto Launch",
       "type": "pwa-extensionHost",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode/extensions/debug-auto-launch",
@@ -82,7 +110,9 @@
       "name": "Extension and Companion",
       "type": "pwa-extensionHost",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-debug-companion",
@@ -106,28 +136,41 @@
       "name": "Run Golden Tests",
       "type": "pwa-extensionHost",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/out",
         "--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"]
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ]
     },
     {
       "name": "Run Unit Tests",
       "type": "pwa-node",
       "request": "launch",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/mocha",
-      "runtimeArgs": ["--config", ".mocharc.unit.js"],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"]
+      "runtimeArgs": [
+        "--config",
+        ".mocharc.unit.js"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ]
     },
     {
       "name": "Debug Gulp",
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/node_modules/gulp/bin/gulp.js",
-      "args": ["move-bundle-files"]
+      "args": [
+        "move-bundle-files"
+      ]
     }
   ]
 }
