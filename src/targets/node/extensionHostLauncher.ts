@@ -81,7 +81,7 @@ const resolveCodeLaunchArgs = (launchArgs: IExtensionHostLaunchConfiguration, po
   });
 
   if (!launchArgs.noDebug) {
-    args.unshift({ prefix: `--inspect-extensions=${port}` });
+    args.unshift({ prefix: `--inspect-brk-extensions=${port}` });
   }
 
   args.unshift({ prefix: `--debugId=${launchArgs.__sessionId}` }); // pass the debug session ID so that broadcast events know where they come from

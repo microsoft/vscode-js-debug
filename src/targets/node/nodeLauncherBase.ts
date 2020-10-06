@@ -16,6 +16,7 @@ import { AutoAttachMode } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
+import { IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
@@ -42,7 +43,6 @@ import {
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { IProgram } from './program';
-import { IFsUtils } from '../../common/fsUtils';
 
 /**
  * Telemetry received from the nested process.
@@ -475,8 +475,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const telemetry = await cdp.Runtime.evaluate({
       contextId: 1,
       returnByValue: true,
+      // note: for some bizarre reason, if launched with --inspect-brk, the
+      // process.pid in extension host debugging is initially undefined.
       expression:
-        `typeof process === 'undefined' ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
+        `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
         getSourceSuffix(),
     });
 

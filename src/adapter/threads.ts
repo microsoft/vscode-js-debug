@@ -4,6 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
+import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
@@ -661,8 +662,8 @@ export class Thread implements IVariableStoreDelegate {
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
     if (
       isInspectBrk &&
-      'continueOnAttach' in this.launchConfig &&
-      this.launchConfig.continueOnAttach
+      (('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach) ||
+        this.launchConfig.type === DebugType.ExtensionHost)
     ) {
       this.resume();
       return;
