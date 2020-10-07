@@ -195,7 +195,7 @@ export class ScriptSkipper {
         } else {
           this.logger.error(
             LogTag.Internal,
-            'Could not map script beginning for ' + authoredSource.sourceReference(),
+            'Could not map script beginning for ' + authoredSource.sourceReference,
           );
         }
       }
@@ -236,11 +236,10 @@ export class ScriptSkipper {
 
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
-      const pathOnDisk = source.absolutePath();
       if (this._isNodeInternal(url, nodeInternals)) {
         map.set(url, this._testSkipNodeInternal(url));
-      } else if (pathOnDisk) {
-        map.set(url, this._testSkipNonNodeInternal(pathOnDisk));
+      } else if (source.absolutePath) {
+        map.set(url, this._testSkipNonNodeInternal(source.absolutePath));
       } else {
         map.set(url, this._testSkipNonNodeInternal(url));
       }

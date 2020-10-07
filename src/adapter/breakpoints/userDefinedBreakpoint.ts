@@ -94,6 +94,17 @@ export class UserDefinedBreakpoint extends Breakpoint {
   }
 
   /**
+   * Returns information for the diagnostic dump.
+   */
+  public diagnosticDump() {
+    return {
+      source: this.source,
+      params: this.dapParams,
+      cdp: this.cdpBreakpoints,
+    };
+  }
+
+  /**
    * @override
    */
   protected getBreakCondition() {

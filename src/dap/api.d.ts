@@ -141,6 +141,13 @@ export namespace Dap {
     progressEnd(params: ProgressEndEventParams): void;
 
     /**
+     * This event signals that some state in the debug adapter has changed and requires that the client needs to re-render the data snapshot previously requested.
+     * Debug adapters do not have to emit this event for runtime changes like stopped or thread events because in that case the client refetches the new state anyway. But the event can be used for example to refresh the UI after rendering formatting has changed in the debug adapter.
+     * This event should only be sent if the debug adapter has received a value true for the 'supportsInvalidatedEvent' capability of the 'initialize' request.
+     */
+    invalidated(params: InvalidatedEventParams): void;
+
+    /**
      * This optional request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
      * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
@@ -999,6 +1006,18 @@ export namespace Dap {
      * Disables the sourcemapped source and refreshes the stacktrace if paused.
      */
     disableSourcemapRequest(params: DisableSourcemapParams): Promise<DisableSourcemapResult>;
+
+    /**
+     * Generates diagnostic information for the debug session.
+     */
+    on(
+      request: 'createDiagnostics',
+      handler: (params: CreateDiagnosticsParams) => Promise<CreateDiagnosticsResult | Error>,
+    ): () => void;
+    /**
+     * Generates diagnostic information for the debug session.
+     */
+    createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
   }
 
   export interface TestApi {
@@ -1186,6 +1205,18 @@ export namespace Dap {
       request: 'progressEnd',
       filter?: (event: ProgressEndEventParams) => boolean,
     ): Promise<ProgressEndEventParams>;
+
+    /**
+     * This event signals that some state in the debug adapter has changed and requires that the client needs to re-render the data snapshot previously requested.
+     * Debug adapters do not have to emit this event for runtime changes like stopped or thread events because in that case the client refetches the new state anyway. But the event can be used for example to refresh the UI after rendering formatting has changed in the debug adapter.
+     * This event should only be sent if the debug adapter has received a value true for the 'supportsInvalidatedEvent' capability of the 'initialize' request.
+     */
+    on(request: 'invalidated', handler: (params: InvalidatedEventParams) => void): void;
+    off(request: 'invalidated', handler: (params: InvalidatedEventParams) => void): void;
+    once(
+      request: 'invalidated',
+      filter?: (event: InvalidatedEventParams) => boolean,
+    ): Promise<InvalidatedEventParams>;
 
     /**
      * This optional request is sent from the debug adapter to the client to run a command in a terminal.
@@ -1650,6 +1681,11 @@ export namespace Dap {
      * Disables the sourcemapped source and refreshes the stacktrace if paused.
      */
     disableSourcemap(params: DisableSourcemapParams): Promise<DisableSourcemapResult>;
+
+    /**
+     * Generates diagnostic information for the debug session.
+     */
+    createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
   }
 
   export interface AttachParams {
@@ -1812,6 +1848,15 @@ export namespace Dap {
      * Text to copy.
      */
     text: string;
+  }
+
+  export interface CreateDiagnosticsParams {}
+
+  export interface CreateDiagnosticsResult {
+    /**
+     * Location of the generated report on disk
+     */
+    file: string;
   }
 
   export interface DataBreakpointInfoParams {
@@ -2143,6 +2188,11 @@ export namespace Dap {
      * Client supports progress reporting.
      */
     supportsProgressReporting?: boolean;
+
+    /**
+     * Client supports the invalidated event.
+     */
+    supportsInvalidatedEvent?: boolean;
   }
 
   export interface InitializeResult {
@@ -2323,6 +2373,23 @@ export namespace Dap {
   }
 
   export interface InitializedEventParams {}
+
+  export interface InvalidatedEventParams {
+    /**
+     * Optional set of logical areas that got invalidated. This property has a hint characteristic: a client can only be expected to make a 'best effort' in honouring the areas but there are no guarantees. If this property is missing, empty, or if values are not understand the client should assume a single value 'all'.
+     */
+    areas?: InvalidatedAreas[];
+
+    /**
+     * If specified, the client only needs to refetch data related to this thread.
+     */
+    threadId?: number;
+
+    /**
+     * If specified, the client only needs to refetch data related to this stack frame (and the 'threadId' is ignored).
+     */
+    stackFrameId?: number;
+  }
 
   export interface KillCompanionBrowserEventParams {
     /**
@@ -3772,6 +3839,11 @@ export namespace Dap {
 
     prefix?: string;
   }
+
+  /**
+   * Logical areas that can be invalidated by the 'invalidated' event.
+   */
+  export type InvalidatedAreas = string;
 
   /**
    * Names of checksum algorithms that may be supported by a debug adapter.

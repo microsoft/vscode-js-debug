@@ -118,7 +118,7 @@ const defaultTimeouts: SourceMapTimeouts = {
 //    source1._compiledToSourceUrl.get(compiled1) === sourceUrl
 //
 export class Source {
-  private readonly _sourceReference: number;
+  public readonly sourceReference: number;
   private readonly _name: string;
   private readonly _fqname: string;
 
@@ -129,8 +129,10 @@ export class Source {
 
   private readonly _container: SourceContainer;
 
-  // Url has been mapped to some absolute path.
-  private readonly _absolutePath: string;
+  /**
+   * Hypothesized absolute path for the source. May or may not actually exist.
+   */
+  public readonly absolutePath: string;
 
   public sourceMap?: ISourceWithMap['sourceMap'];
 
@@ -162,19 +164,19 @@ export class Source {
     public readonly runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
   ) {
-    this._sourceReference = container.getSourceReference(url);
+    this.sourceReference = container.getSourceReference(url);
     this._contentGetter = once(contentGetter);
     this._container = container;
-    this._absolutePath = absolutePath || '';
+    this.absolutePath = absolutePath || '';
     this._fqname = this._fullyQualifiedName();
     this._name = this._humanName();
     this.setSourceMapUrl(sourceMapUrl);
 
     this._existingAbsolutePath = sourceUtils.checkContentHash(
-      this._absolutePath,
+      this.absolutePath,
       // Inline scripts will never match content of the html file. We skip the content check.
       inlineScriptOffset || runtimeScriptOffset ? undefined : contentHash,
-      container._fileContentOverridesForTest.get(this._absolutePath),
+      container._fileContentOverridesForTest.get(this.absolutePath),
     );
   }
 
@@ -189,7 +191,7 @@ export class Source {
       sourceByUrl: new Map(),
       metadata: {
         sourceMapUrl,
-        compiledPath: this._absolutePath || this.url,
+        compiledPath: this.absolutePath || this.url,
       },
     };
   }
@@ -200,10 +202,6 @@ export class Source {
 
   scriptIds(): Cdp.Runtime.ScriptId[] {
     return this._scriptIds;
-  }
-
-  sourceReference(): number {
-    return this._sourceReference;
   }
 
   async content(): Promise<string | undefined> {
@@ -287,7 +285,7 @@ export class Source {
     const dap: Dap.Source = {
       name: this._name,
       path: this._fqname,
-      sourceReference: this._sourceReference,
+      sourceReference: this.sourceReference,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
       origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
     };
@@ -298,10 +296,6 @@ export class Source {
     }
 
     return dap;
-  }
-
-  absolutePath(): string {
-    return this._absolutePath;
   }
 
   existingAbsolutePath(): Promise<string | undefined> {
@@ -336,11 +330,11 @@ export class Source {
    */
   private _fullyQualifiedName(): string {
     if (!this.url) {
-      return '<eval>/VM' + this._sourceReference;
+      return '<eval>/VM' + this.sourceReference;
     }
 
-    if (this._absolutePath.startsWith('<node_internals>')) {
-      return this._absolutePath;
+    if (this.absolutePath.startsWith('<node_internals>')) {
+      return this.absolutePath;
     }
 
     if (utils.isAbsolute(this.url)) {
@@ -357,7 +351,7 @@ export class Source {
       const tokens: string[] = [];
       const url = new URL(this.url);
       if (url.protocol === 'data:') {
-        return '<eval>/VM' + this._sourceReference;
+        return '<eval>/VM' + this.sourceReference;
       }
 
       if (url.hostname) {
@@ -507,6 +501,13 @@ export class SourceContainer {
    */
   private hasWarnedAboutMaps = new Set<SourceMap>();
 
+  /**
+   * Gets an iterator for all sources in the collection.
+   */
+  public get sources() {
+    return this._sourceByReference.values();
+  }
+
   constructor(
     @inject(IDapApi) dap: Dap.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
@@ -544,18 +545,28 @@ export class SourceContainer {
     else this._fileContentOverridesForTest.set(absolutePath, content);
   }
 
-  async loadedSources(): Promise<Dap.Source[]> {
+  /**
+   * Returns DAP objects for every loaded source in the container.
+   */
+  public async loadedSources(): Promise<Dap.Source[]> {
     const promises: Promise<Dap.Source>[] = [];
     for (const source of this._sourceByReference.values()) promises.push(source.toDap());
     return await Promise.all(promises);
   }
 
-  source(ref: Dap.Source): Source | undefined {
+  /**
+   * Gets the Source object by DAP reference, first by sourceReference and
+   * then by path.
+   */
+  public source(ref: Dap.Source): Source | undefined {
     if (ref.sourceReference) return this._sourceByReference.get(ref.sourceReference);
     if (ref.path) return this._sourceByAbsolutePath.get(ref.path);
     return undefined;
   }
 
+  /**
+   * Gets whether the source is skipped.
+   */
   public isSourceSkipped(url: string): boolean {
     return this.scriptSkipper.isScriptSkipped(url);
   }
@@ -605,10 +616,12 @@ export class SourceContainer {
     return id; // conflicts, but it's better than nothing, maybe?
   }
 
-  // This method returns a "preferred" location. This usually means going through a source map
-  // and showing the source map source instead of a compiled one. We use timeout to avoid
-  // waiting for the source map for too long.
-  async preferredUiLocation(uiLocation: IUiLocation): Promise<IPreferredUiLocation> {
+  /**
+   * This method returns a "preferred" location. This usually means going
+   * through a source map and showing the source map source instead of a
+   * compiled one. We use timeout to avoid waiting for the source map for too long.
+   */
+  public async preferredUiLocation(uiLocation: IUiLocation): Promise<IPreferredUiLocation> {
     let isMapped = false;
     let unmappedReason: UnmappedReason | undefined = UnmappedReason.CannotMap;
     while (true) {
@@ -691,7 +704,10 @@ export class SourceContainer {
     return r;
   }
 
-  _sourceMappedUiLocation(uiLocation: IUiLocation, map: SourceMap): IUiLocation | UnmappedReason {
+  private _sourceMappedUiLocation(
+    uiLocation: IUiLocation,
+    map: SourceMap,
+  ): IUiLocation | UnmappedReason {
     const compiled = uiLocation.source;
     if (!isSourceWithMap(compiled)) {
       return UnmappedReason.HasNoMap;
@@ -844,7 +860,7 @@ export class SourceContainer {
     }
 
     this._sourceByOriginalUrl.set(source.url, source);
-    this._sourceByReference.set(source.sourceReference(), source);
+    this._sourceByReference.set(source.sourceReference, source);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.set(source.url, source);
     }
@@ -853,13 +869,13 @@ export class SourceContainer {
     // files with query strings appended to deduplicate them, or nested inside
     // of internal prefixes. If we see a duplicate entries for an absolute path,
     // take the shorter of them.
-    const existingByPath = this._sourceByAbsolutePath.get(source.absolutePath());
+    const existingByPath = this._sourceByAbsolutePath.get(source.absolutePath);
     if (
       existingByPath === undefined ||
       existingByPath.url.length >= source.url.length ||
       isOriginalSourceOf(existingByPath, source)
     ) {
-      this._sourceByAbsolutePath.set(source.absolutePath(), source);
+      this._sourceByAbsolutePath.set(source.absolutePath, source);
     }
 
     this.scriptSkipper.initializeSkippingValueForSource(source);
@@ -918,7 +934,7 @@ export class SourceContainer {
   }
 
   public removeSource(source: Source, silent = false) {
-    const existing = this._sourceByReference.get(source.sourceReference());
+    const existing = this._sourceByReference.get(source.sourceReference);
     if (existing === undefined) {
       return; // already removed
     }
@@ -927,12 +943,12 @@ export class SourceContainer {
       source === existing,
       'Expected source to be the same as the existing reference',
     );
-    this._sourceByReference.delete(source.sourceReference());
+    this._sourceByReference.delete(source.sourceReference);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.delete(source.url);
     }
 
-    this._sourceByAbsolutePath.delete(source.absolutePath());
+    this._sourceByAbsolutePath.delete(source.absolutePath);
     if (isSourceWithMap(source)) {
       this._permanentlyDisabledSourceMaps.delete(source);
       this._temporarilyDisabledSourceMaps.delete(source);
@@ -1077,7 +1093,10 @@ export class SourceContainer {
     }
   }
 
-  async revealUiLocation(uiLocation: IUiLocation) {
+  /**
+   * Opens the UI location within the connected editor.
+   */
+  public async revealUiLocation(uiLocation: IUiLocation) {
     this._dap.revealLocationRequested({
       source: await uiLocation.source.toDap(),
       line: uiLocation.lineNumber,
@@ -1085,7 +1104,11 @@ export class SourceContainer {
     });
   }
 
-  disableSourceMapForSource(source: ISourceWithMap, permanent = false) {
+  /**
+   * Disables the source map for the given source, either only until we
+   * stop debugging within the file, or permanently.
+   */
+  public disableSourceMapForSource(source: ISourceWithMap, permanent = false) {
     if (permanent) {
       this._permanentlyDisabledSourceMaps.add(source);
     } else {
@@ -1093,7 +1116,10 @@ export class SourceContainer {
     }
   }
 
-  clearDisabledSourceMaps(forSource?: ISourceWithMap) {
+  /**
+   * Clears temporarily disables maps for the sources.
+   */
+  public clearDisabledSourceMaps(forSource?: ISourceWithMap) {
     if (forSource) {
       this._temporarilyDisabledSourceMaps.delete(forSource);
     } else {

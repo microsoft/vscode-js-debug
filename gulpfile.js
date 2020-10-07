@@ -24,12 +24,13 @@ const unzipper = require('unzipper');
 const signale = require('signale');
 const streamBuffers = require('stream-buffers');
 const got = require('got').default;
+const execa = require('execa');
 
 const dirname = 'js-debug';
 const translationProjectName = 'vscode-extensions';
 const translationExtensionName = 'js-debug';
 
-const sources = ['src/**/*.ts'];
+const sources = ['src/**/*.{ts,tsx}'];
 const allPackages = [];
 
 const buildDir = 'out';
@@ -187,6 +188,7 @@ async function runWebpack({
   devtool = false,
   compileInPlace = false,
   mode = process.argv.includes('watch') ? 'development' : 'production',
+  watch = false,
 } = options) {
   // add the entrypoints common to both vscode and vs here
   packages = [
@@ -194,13 +196,14 @@ async function runWebpack({
     { entry: `${buildSrcDir}/common/hash/hash.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
+    { entry: `${buildSrcDir}/diagnosticTool/index.js`, library: false, target: 'web' },
   ];
 
-  let configs = [];
-  for (const { entry, library, filename } of packages) {
+  let todo = [];
+  for (const { entry, target, library, filename } of packages) {
     const config = {
       mode,
-      target: 'node',
+      target: target || 'node',
       entry: path.resolve(entry),
       output: {
         path: compileInPlace ? path.resolve(path.dirname(entry)) : path.resolve(distSrcDir),
@@ -219,8 +222,13 @@ async function runWebpack({
               base: path.join(__dirname, 'out/src'),
             },
           },
+          {
+            test: '\\.css$', // will be regex'd in the webpackBuild script
+            use: ['style-loader', 'css-loader'],
+          },
         ],
       },
+      plugins: [],
       node: {
         __dirname: false,
         __filename: false,
@@ -234,29 +242,20 @@ async function runWebpack({
       config.output.libraryTarget = 'commonjs2';
     }
 
-    if (process.argv.includes('--analyze-size')) {
-      config.plugins = [
-        new (require('webpack-bundle-analyzer').BundleAnalyzerPlugin)({
-          analyzerMode: 'static',
-          reportFilename: path.resolve(distSrcDir, path.basename(entry) + '.html'),
-        }),
-      ];
-    }
-
-    configs.push(config);
+    todo.push(
+      execa('node', [path.join(__dirname, 'src/build/webpackBuild')], {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          CONFIG: JSON.stringify(config),
+          ANALYZE_SIZE: String(process.argv.includes('--analyze-size')),
+          WATCH: String(watch),
+        },
+      }),
+    );
   }
 
-  await new Promise((resolve, reject) =>
-    webpack(configs, (err, stats) => {
-      if (err) {
-        reject(err);
-      } else if (stats.hasErrors()) {
-        reject(stats);
-      } else {
-        resolve();
-      }
-    }),
-  );
+  await Promise.all(todo);
 }
 
 /** Run webpack to bundle the extension output files */
@@ -427,7 +426,11 @@ gulp.task('default', gulp.series('compile'));
 gulp.task(
   'watch',
   gulp.series('clean', 'compile', done => {
-    gulp.watch([...sources, '*.json'], gulp.series('compile'));
+    gulp.watch(
+      [...sources, '*.json'],
+      gulp.series('compile:ts', 'compile:static', 'compile:dynamic'),
+    );
+    runWebpack({ watch: true, devtool: 'source-map', compileInPlace: true });
     done();
   }),
 );
@@ -435,7 +438,7 @@ gulp.task(
 const runPrettier = (onlyStaged, fix, callback) => {
   const child = cp.fork(
     './node_modules/@mixer/parallel-prettier/dist/index.js',
-    [fix ? '--write' : '--list-different', 'src/**/*.ts', '!src/**/*.d.ts', '*.md'],
+    [fix ? '--write' : '--list-different', 'src/**/*.{ts,tsx}', '!src/**/*.d.ts', '*.md'],
     { stdio: 'inherit' },
   );
 

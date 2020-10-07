@@ -13,6 +13,8 @@
     "alwaysStrict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "jsx": "react",
+    "jsxFactory": "h",
     "types": ["node", "chai-subset", "chai-as-promised", "mocha"]
   },
   "include": ["src"]

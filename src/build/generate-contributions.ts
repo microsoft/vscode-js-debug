@@ -1185,6 +1185,11 @@ const commands: ReadonlyArray<{
     title: refString('debugLink.label'),
     category: 'Debug',
   },
+  {
+    command: Commands.CreateDiagnostics,
+    title: refString('createDiagnostics.label'),
+    category: 'Debug',
+  },
 ];
 
 const menus: Menus = {
@@ -1211,6 +1216,11 @@ const menus: Menus = {
     {
       command: Commands.DebugLink,
       title: refString('debugLink.label'),
+    },
+    {
+      command: Commands.CreateDiagnostics,
+      title: refString('createDiagnostics.label'),
+      when: forAnyDebugType('debugType', 'inDebugMode'),
     },
   ],
   'debug/callstack/context': [

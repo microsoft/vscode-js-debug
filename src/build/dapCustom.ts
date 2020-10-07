@@ -458,6 +458,21 @@ const dapCustom: JSONSchema4 = {
         required: ['source'],
       },
     ),
+
+    ...makeRequest(
+      'createDiagnostics',
+      'Generates diagnostic information for the debug session.',
+      undefined,
+      {
+        properties: {
+          file: {
+            type: 'string',
+            description: 'Location of the generated report on disk',
+          },
+        },
+        required: ['file'],
+      },
+    ),
   },
 };
 

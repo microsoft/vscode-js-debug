@@ -1505,7 +1505,7 @@ export class Thread implements IVariableStoreDelegate {
           })
           .then(
             ({ source, lineNumber, columnNumber }) =>
-              `${prefix}${source.absolutePath()}:${lineNumber}:${columnNumber}${suffix}`,
+              `${prefix}${source.absolutePath}:${lineNumber}:${columnNumber}${suffix}`,
           );
       }),
     );

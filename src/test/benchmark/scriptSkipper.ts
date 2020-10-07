@@ -25,13 +25,13 @@ const skipper = new ScriptSkipper(
 
 const notSkipped = ({
   url: 'file:///not-skipped.js',
-  absolutePath: () => '/not-skipped.js',
+  absolutePath: '/not-skipped.js',
   scriptIds: () => ['41'],
 } as Partial<Source>) as Source;
 
 const isSkipped = ({
   url: 'file:///foo/bar.js',
-  absolutePath: () => '/foo/bar.js',
+  absolutePath: '/foo/bar.js',
   scriptIds: () => ['42'],
 } as Partial<Source>) as Source;
 

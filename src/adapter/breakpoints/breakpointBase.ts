@@ -330,7 +330,7 @@ export abstract class Breakpoint {
     }
 
     const remotePath = this._manager._sourceContainer.sourcePathResolver.rebaseLocalToRemote(
-      source.absolutePath(),
+      source.absolutePath,
     );
     if (breakpointIsForUrl(args, remotePath)) {
       return true;
@@ -397,7 +397,7 @@ export abstract class Breakpoint {
     // we'll depend only on the mapped locations.
     if (sourceByPath instanceof SourceFromMap) {
       const mappedInPlace = [...sourceByPath.compiledToSourceUrl.keys()].some(
-        s => s.absolutePath() === this.source.path,
+        s => s.absolutePath === this.source.path,
       );
 
       if (mappedInPlace) {

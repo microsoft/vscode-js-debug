@@ -97,6 +97,17 @@ export namespace Cdp {
     getFullAXTree(
       params: Accessibility.GetFullAXTreeParams,
     ): Promise<Accessibility.GetFullAXTreeResult | undefined>;
+
+    /**
+     * Query a DOM node's accessibility subtree for accessible name and role.
+     * This command computes the name and role for all nodes in the subtree, including those that are
+     * ignored for accessibility, and returns those that mactch the specified name and role. If no DOM
+     * node is specified, or the DOM node does not exist, the command returns an error. If neither
+     * `accessibleName` or `role` is specified, it returns all the accessibility nodes in the subtree.
+     */
+    queryAXTree(
+      params: Accessibility.QueryAXTreeParams,
+    ): Promise<Accessibility.QueryAXTreeResult | undefined>;
   }
 
   /**
@@ -168,6 +179,47 @@ export namespace Cdp {
      * Return value of the 'Accessibility.getFullAXTree' method.
      */
     export interface GetFullAXTreeResult {
+      nodes: AXNode[];
+    }
+
+    /**
+     * Parameters of the 'Accessibility.queryAXTree' method.
+     */
+    export interface QueryAXTreeParams {
+      /**
+       * Identifier of the node for the root to query.
+       */
+      nodeId?: DOM.NodeId;
+
+      /**
+       * Identifier of the backend node for the root to query.
+       */
+      backendNodeId?: DOM.BackendNodeId;
+
+      /**
+       * JavaScript object id of the node wrapper for the root to query.
+       */
+      objectId?: Runtime.RemoteObjectId;
+
+      /**
+       * Find nodes with this computed name.
+       */
+      accessibleName?: string;
+
+      /**
+       * Find nodes with this computed role.
+       */
+      role?: string;
+    }
+
+    /**
+     * Return value of the 'Accessibility.queryAXTree' method.
+     */
+    export interface QueryAXTreeResult {
+      /**
+       * A list of `Accessibility.AXNode` matching the specified attributes,
+       * including nodes that are ignored for accessibility.
+       */
       nodes: AXNode[];
     }
 
@@ -13061,6 +13113,13 @@ export namespace Cdp {
     ): Promise<Network.GetSecurityIsolationStatusResult | undefined>;
 
     /**
+     * Fetches the resource and returns the content.
+     */
+    loadNetworkResource(
+      params: Network.LoadNetworkResourceParams,
+    ): Promise<Network.LoadNetworkResourceResult | undefined>;
+
+    /**
      * Fired when data chunk was received over the network.
      */
     on(event: 'dataReceived', listener: (event: Network.DataReceivedEvent) => void): IDisposable;
@@ -13732,7 +13791,8 @@ export namespace Cdp {
      */
     export interface SetCookieResult {
       /**
-       * True if successfully set cookie.
+       * Always set to true. If an error occurs, the response indicates protocol error.
+       * @deprecated
        */
       success: boolean;
     }
@@ -13863,6 +13923,33 @@ export namespace Cdp {
      */
     export interface GetSecurityIsolationStatusResult {
       status: SecurityIsolationStatus;
+    }
+
+    /**
+     * Parameters of the 'Network.loadNetworkResource' method.
+     */
+    export interface LoadNetworkResourceParams {
+      /**
+       * Frame id to get the resource for.
+       */
+      frameId: Page.FrameId;
+
+      /**
+       * URL of the resource to get content for.
+       */
+      url: string;
+
+      /**
+       * Options for the request.
+       */
+      options: LoadNetworkResourceOptions;
+    }
+
+    /**
+     * Return value of the 'Network.loadNetworkResource' method.
+     */
+    export interface LoadNetworkResourceResult {
+      resource: LoadNetworkResourcePageResult;
     }
 
     /**
@@ -15037,6 +15124,12 @@ export namespace Cdp {
        * module) (0-based).
        */
       lineNumber?: number;
+
+      /**
+       * Initiator column number, set for Parser type or for Script type (when script is importing
+       * module) (0-based).
+       */
+      columnNumber?: number;
     }
 
     /**
@@ -15446,18 +15539,66 @@ export namespace Cdp {
 
     export interface CrossOriginOpenerPolicyStatus {
       value: CrossOriginOpenerPolicyValue;
+
+      reportOnlyValue: CrossOriginOpenerPolicyValue;
+
+      reportingEndpoint?: string;
+
+      reportOnlyReportingEndpoint?: string;
     }
 
     export type CrossOriginEmbedderPolicyValue = 'None' | 'RequireCorp';
 
     export interface CrossOriginEmbedderPolicyStatus {
       value: CrossOriginEmbedderPolicyValue;
+
+      reportOnlyValue: CrossOriginEmbedderPolicyValue;
+
+      reportingEndpoint?: string;
+
+      reportOnlyReportingEndpoint?: string;
     }
 
     export interface SecurityIsolationStatus {
       coop: CrossOriginOpenerPolicyStatus;
 
       coep: CrossOriginEmbedderPolicyStatus;
+    }
+
+    /**
+     * An object providing the result of a network resource load.
+     */
+    export interface LoadNetworkResourcePageResult {
+      success: boolean;
+
+      /**
+       * Optional values used for error reporting.
+       */
+      netError?: number;
+
+      netErrorName?: string;
+
+      httpStatusCode?: number;
+
+      /**
+       * If successful, one of the following two fields holds the result.
+       */
+      stream?: IO.StreamHandle;
+
+      /**
+       * Response headers.
+       */
+      headers?: Network.Headers;
+    }
+
+    /**
+     * An options object that may be extended later to better support CORS,
+     * CORB and streaming.
+     */
+    export interface LoadNetworkResourceOptions {
+      disableCache: boolean;
+
+      includeCredentials: boolean;
     }
   }
 
@@ -22860,6 +23001,10 @@ export namespace Cdp {
      * Return value of the 'Target.closeTarget' method.
      */
     export interface CloseTargetResult {
+      /**
+       * Always set to true. If an error occurs, the response indicates protocol error.
+       * @deprecated
+       */
       success: boolean;
     }
 
@@ -23233,9 +23378,14 @@ export namespace Cdp {
       openerId?: TargetID;
 
       /**
-       * Whether the opened window has access to the originating window.
+       * Whether the target has access to the originating window.
        */
       canAccessOpener: boolean;
+
+      /**
+       * Frame id of originating window (is only set if target has an opener).
+       */
+      openerFrameId?: Page.FrameId;
 
       browserContextId?: Browser.BrowserContextID;
     }
@@ -24294,6 +24444,13 @@ export namespace Cdp {
        * Defaults to false.
        */
       hasUserVerification?: boolean;
+
+      /**
+       * If set to true, the authenticator will support the largeBlob extension.
+       * https://w3c.github.io/webauthn#largeBlob
+       * Defaults to false.
+       */
+      hasLargeBlob?: boolean;
 
       /**
        * If set to true, tests of user presence will succeed immediately.

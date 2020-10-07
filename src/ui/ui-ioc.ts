@@ -13,6 +13,7 @@ import {
 } from './configuration';
 import { DebugLinkUi } from './debugLinkUI';
 import { DebugSessionTracker } from './debugSessionTracker';
+import { DiagnosticsUI } from './diagnosticsUI';
 import { DisableSourceMapUI } from './disableSourceMapUI';
 import { LongPredictionUI } from './longPredictionUI';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
@@ -37,6 +38,7 @@ export const registerUiComponents = (container: Container) => {
 
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
+  container.bind(DiagnosticsUI).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(LongPredictionUI).toSelf().inSingletonScope();
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DebugLinkUi).toSelf().inSingletonScope();

@@ -9,10 +9,6 @@
       "request": "launch",
       "name": "[web-worker] launch with server",
       "url": "http://localhost:5002",
-      "server": {
-        "program": "${workspaceFolder}/node_modules/serve/bin/serve.js",
-        "args": ["-p", "5002"],
-      },
     },
     {
       "type": "pwa-chrome",

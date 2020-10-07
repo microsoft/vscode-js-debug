@@ -26,6 +26,7 @@ import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 import { Completions, ICompletions } from './adapter/completions';
 import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
+import { Diagnostics } from './adapter/diagnosics';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
 import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
 import { IProfileController, ProfileController } from './adapter/profileController';
@@ -153,6 +154,7 @@ export const createTargetContainer = (
 
   container.bind(BreakpointManager).toSelf().inSingletonScope();
   container.bind(SourceContainer).toSelf().inSingletonScope();
+  container.bind(Diagnostics).toSelf().inSingletonScope();
 
   container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
   container.bind(ICompletions).to(Completions).inSingletonScope();

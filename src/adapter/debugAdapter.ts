@@ -19,6 +19,7 @@ import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
+import { Diagnostics } from './diagnosics';
 import { IEvaluator } from './evaluator';
 import { IPerformanceProvider } from './performance';
 import { IProfileController } from './profileController';
@@ -100,6 +101,7 @@ export class DebugAdapter implements IDisposable {
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),
       })),
     );
+    this.dap.on('createDiagnostics', () => this._dumpDiagnostics());
   }
 
   public async launchBlocker(): Promise<void> {
@@ -418,6 +420,10 @@ export class DebugAdapter implements IDisposable {
     await this._refreshStackTrace();
 
     return {};
+  }
+
+  async _dumpDiagnostics() {
+    return { file: await this._services.get(Diagnostics).generateHtml() };
   }
 
   dispose() {

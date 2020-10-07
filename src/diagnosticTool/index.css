@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,400i,500|IBM+Plex+Sans:300,400,600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --font-family-mono: 'IBM Plex Mono', monospace;
+  --font-family-body: 'IBM Plex Sans', sans-serif;
+}
+
+
+body {
+  background: #292B3C;
+  font-family: var(--font-family-body);
+}
+
+pre,
+code {
+  font-family: var(--font-family-mono);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 300;
+}
+
+a {
+  color: #36cdc4;
+  text-decoration: none;
+}
+
+.intro {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+
+}

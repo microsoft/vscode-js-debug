@@ -22,6 +22,7 @@ export const enum Commands {
   AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
   AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
   CreateDebuggerTerminal = 'extension.NAMESPACE(node-debug).createDebuggerTerminal',
+  CreateDiagnostics = 'extension.js-debug.createDiagnostics',
   DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.NAMESPACE(node-debug).npmScript',
   EnlistExperiment = 'extension.js-debug.experimentEnlist',
@@ -59,6 +60,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.AutoAttachSetVariables]: null,
   [Commands.AutoAttachToProcess]: null,
   [Commands.CreateDebuggerTerminal]: null,
+  [Commands.CreateDiagnostics]: null,
   [Commands.DebugLink]: null,
   [Commands.DebugNpmScript]: null,
   [Commands.EnlistExperiment]: null,
@@ -140,6 +142,7 @@ export interface ICommandTypes {
     workspaceFolder?: WorkspaceFolder,
     config?: Partial<ITerminalLaunchConfiguration>,
   ): void;
+  [Commands.CreateDiagnostics](): void;
   [Commands.ToggleSkipping](file: string | number): void;
   [Commands.PrettyPrint](): void;
   [Commands.EnlistExperiment](): void;

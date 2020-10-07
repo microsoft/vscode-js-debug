@@ -286,6 +286,7 @@ const strings = {
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',
   'debugLink.label': 'Open Link',
+  'createDiagnostics.label': 'Create Diagnostic Information for Current Session',
 };
 
 export default strings;

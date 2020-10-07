@@ -103,24 +103,26 @@ export class BreakpointManager {
    */
   private _byPath: Map<string, UserDefinedBreakpoint[]> = urlUtils.caseNormalizedMap();
 
-  private _sourceMapHandlerWasUpdated = false;
-
-  public hasAtLocation(location: IUiLocation) {
-    const breakpointsAtPath = this._byPath.get(location.source.absolutePath()) || [];
-    const breakpointsAtSource = this._byRef.get(location.source.sourceReference()) || [];
-    return breakpointsAtPath
-      .concat(breakpointsAtSource)
-      .some(
-        bp =>
-          bp.originalPosition.columnNumber === location.columnNumber &&
-          bp.originalPosition.lineNumber === location.lineNumber,
-      );
+  /**
+   * Returns user-defined breakpoints set by ref.
+   */
+  public get appliedByPath(): ReadonlyMap<string, UserDefinedBreakpoint[]> {
+    return this._byPath;
   }
+
+  private _sourceMapHandlerWasUpdated = false;
 
   /**
    * User-defined breakpoints by `sourceReference`.
    */
   private _byRef: Map<number, UserDefinedBreakpoint[]> = new Map();
+
+  /**
+   * Returns user-defined breakpoints set by ref.
+   */
+  public get appliedByRef(): ReadonlyMap<number, UserDefinedBreakpoint[]> {
+    return this._byRef;
+  }
 
   /**
    * Mapping of source paths to entrypoint breakpoint IDs we set there.
@@ -158,17 +160,32 @@ export class BreakpointManager {
       // We search for all breakpoints in |sources| and set them to this
       // particular script.
       for (const source of sources) {
-        const path = source.absolutePath();
+        const path = source.absolutePath;
         const byPath = path ? this._byPath.get(path) : undefined;
         for (const breakpoint of byPath || [])
           todo.push(breakpoint.updateForSourceMap(this._thread, script));
-        const byRef = this._byRef.get(source.sourceReference());
+        const byRef = this._byRef.get(source.sourceReference);
         for (const breakpoint of byRef || [])
           todo.push(breakpoint.updateForSourceMap(this._thread, script));
       }
 
       return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
     };
+  }
+
+  /**
+   * Returns whether a breakpoint is set at the given UI location.
+   */
+  public hasAtLocation(location: IUiLocation) {
+    const breakpointsAtPath = this._byPath.get(location.source.absolutePath) || [];
+    const breakpointsAtSource = this._byRef.get(location.source.sourceReference) || [];
+    return breakpointsAtPath
+      .concat(breakpointsAtSource)
+      .some(
+        bp =>
+          bp.originalPosition.columnNumber === location.columnNumber &&
+          bp.originalPosition.lineNumber === location.lineNumber,
+      );
   }
 
   /**
@@ -189,16 +206,16 @@ export class BreakpointManager {
 
         bp.updateSourceLocation(
           {
-            path: toSource.absolutePath(),
-            sourceReference: toSource.sourceReference(),
+            path: toSource.absolutePath,
+            sourceReference: toSource.sourceReference,
           },
           { lineNumber: gen.line, columnNumber: gen.column + 1, source: toSource },
         );
         return false;
       });
 
-    const fromPath = fromSource.absolutePath();
-    const toPath = toSource.absolutePath();
+    const fromPath = fromSource.absolutePath;
+    const toPath = toSource.absolutePath;
     const byPath = fromPath ? this._byPath.get(fromPath) : undefined;
     if (byPath && toPath) {
       const [remaining, moved] = tryUpdateLocations(byPath);
@@ -206,11 +223,11 @@ export class BreakpointManager {
       this._byPath.set(toPath, moved);
     }
 
-    const byRef = this._byRef.get(fromSource.sourceReference());
+    const byRef = this._byRef.get(fromSource.sourceReference);
     if (byRef) {
       const [remaining, moved] = tryUpdateLocations(byRef);
-      this._byRef.set(fromSource.sourceReference(), remaining);
-      this._byRef.set(toSource.sourceReference(), moved);
+      this._byRef.set(fromSource.sourceReference, remaining);
+      this._byRef.set(toSource.sourceReference, moved);
     }
   }
 

@@ -6,6 +6,7 @@
 
 interface ObjectConstructor {
   keys<T>(o: T): WithoutSymbols<keyof T>[];
+  fromEntries<K, V>(map: ReadonlyMap<K, V>): { [key: string]: V };
 }
 
 // eslint-disable-next-line
