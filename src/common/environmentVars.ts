@@ -70,6 +70,14 @@ export class EnvironmentVars {
   }
 
   /**
+   * Adds a value to the NODE_OPTIONS arg.
+   */
+  public addNodeOption(option: string) {
+    const existing = this.lookup('NODE_OPTIONS');
+    return this.update('NODE_OPTIONS', existing ? `${existing} ${option}` : option);
+  }
+
+  /**
    * Creates a new set of environment variables with the given update.
    */
   public update(prop: string, value: string | null) {

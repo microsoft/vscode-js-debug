@@ -1,8 +1,8 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { EnvironmentVars } from '../../common/environmentVars';
 import { expect } from 'chai';
+import { EnvironmentVars } from './environmentVars';
 
 describe('EnvironmentVars', () => {
   const vars = new EnvironmentVars({
@@ -23,6 +23,13 @@ describe('EnvironmentVars', () => {
       foo: 'updated',
       bar: 'baz',
     });
+  });
+
+  it('adds node options', () => {
+    const v1 = vars.addNodeOption('--foo');
+    const v2 = v1.addNodeOption('--bar');
+    expect(v1.lookup('NODE_OPTIONS')).to.equal('--foo');
+    expect(v2.lookup('NODE_OPTIONS')).to.equal('--foo --bar');
   });
 
   describe('posix', () => {

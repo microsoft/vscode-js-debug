@@ -322,9 +322,14 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       ELECTRON_RUN_AS_NODE: null,
     } as IBootloaderEnvironment;
 
-    const existingOpts = baseEnv.lookup('NODE_OPTIONS');
-    if (existingOpts) {
-      env.NODE_OPTIONS += ` ${existingOpts}`;
+    const baseEnvOpts = baseEnv.lookup('NODE_OPTIONS');
+    if (baseEnvOpts) {
+      env.NODE_OPTIONS += ` ${baseEnvOpts}`;
+    }
+
+    const globalOpts = process.env.NODE_OPTIONS;
+    if (globalOpts) {
+      env.NODE_OPTIONS += ` ${process.env.NODE_OPTIONS}`;
     }
 
     return baseEnv.merge({ ...env });

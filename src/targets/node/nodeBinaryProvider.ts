@@ -31,7 +31,7 @@ export const enum Capability {
  */
 export function hideDebugInfoFromConsole(binary: NodeBinary, env: EnvironmentVars) {
   return binary.has(Capability.UseInspectPublishUid)
-    ? env.merge({ NODE_OPTIONS: `${env.lookup('NODE_OPTIONS') ?? ''} --inspect-publish-uid=http` })
+    ? env.addNodeOption('--inspect-publish-uid=http')
     : env;
 }
 
