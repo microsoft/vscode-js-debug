@@ -79,8 +79,8 @@ function inspectOrQueue(env: IBootloaderInfo): boolean {
   const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
     : env.deferredMode
-      ? Mode.Deferred
-      : Mode.Immediate;
+    ? Mode.Deferred
+    : Mode.Immediate;
 
   bootloaderLogger.info(LogTag.Runtime, 'Set debug mode', { mode });
   if (mode === Mode.Inactive) {
@@ -261,7 +261,10 @@ function reportTelemetry(env: BootloaderEnvironment) {
  */
 function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
   const p = spawn(execPath, [watchdogPath], {
-    env: { NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo), NODE_SKIP_PLATFORM_CHECK: process.env.NODE_SKIP_PLATFORM_CHECK },
+    env: {
+      NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo),
+      NODE_SKIP_PLATFORM_CHECK: process.env.NODE_SKIP_PLATFORM_CHECK,
+    },
     stdio: 'ignore',
     detached: true,
   });
