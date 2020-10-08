@@ -6,17 +6,20 @@ import { ComponentType, FunctionComponent, h, render } from 'preact';
 import { useState } from 'preact/hooks';
 import { IDiagnosticDump } from '../adapter/diagnosics';
 import { Intro } from './intro';
+import { DumpContext } from './useDump';
 
 require('../../../src/diagnosticTool/index.css');
 
 declare const DUMP: IDiagnosticDump | undefined;
 
 const App: FunctionComponent<{ dump: IDiagnosticDump }> = ({ dump }) => {
-  const [Component, setComponent] = useState<ComponentType<{ dump: IDiagnosticDump }> | undefined>(
-    undefined,
-  );
+  const [Component, setComponent] = useState<ComponentType<{}> | undefined>(undefined);
 
-  return Component ? <Component dump={dump} /> : <Intro onPick={setComponent} />;
+  return (
+    <DumpContext.Provider value={dump}>
+      {Component ? <Component /> : <Intro onPick={cmp => setComponent(() => cmp)} />}
+    </DumpContext.Provider>
+  );
 };
 
 if (typeof DUMP !== 'undefined') {

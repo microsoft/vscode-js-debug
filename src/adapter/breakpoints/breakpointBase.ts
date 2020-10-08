@@ -216,6 +216,7 @@ export abstract class Breakpoint {
         bp.state === CdpReferenceState.Applied && bp.cdpId === cdpId
           ? {
               ...bp,
+              locations: resolvedLocations,
               uiLocations: [
                 ...bp.uiLocations,
                 ...this._manager._sourceContainer.currentSiblingUiLocations(uiLocation, source),

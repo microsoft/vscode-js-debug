@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,400i,500|IBM+Plex+Sans:300,400,600&display=swap');
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,400i,300|IBM+Plex+Sans:300,400,600&display=swap');
 
 * {
   margin: 0;
@@ -8,11 +8,15 @@
 :root {
   --font-family-mono: 'IBM Plex Mono', monospace;
   --font-family-body: 'IBM Plex Sans', sans-serif;
+
+  --body-bg: #bd2f31;
+  --modal-bg: #fff;
+  --primary-color: #bd2f31;
+  --subtle-bg: rgba(0, 0, 0, 0.05);
 }
 
-
 body {
-  background: #292B3C;
+  background: var(--body-bg);
   font-family: var(--font-family-body);
 }
 
@@ -28,7 +32,12 @@ h3 {
 }
 
 a {
-  color: #36cdc4;
+  cursor: pointer;
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+a:hover {
   text-decoration: none;
 }
 
@@ -37,5 +46,152 @@ a {
   height: 100vh;
   justify-content: center;
   align-items: center;
+}
 
+.intro > div {
+  background: var(--modal-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+}
+
+.intro header {
+  background: var(--subtle-bg);
+  padding: 1rem;
+}
+
+.intro-content {
+  padding: 1rem;
+}
+
+.intro-content li {
+  list-style-type: none;
+}
+
+.intro-content li a {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.intro-content li a:hover {
+  background: var(--subtle-bg);
+}
+
+.content {
+  background: var(--modal-bg);
+  margin: 2rem;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.source-filter {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.source-container {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.source-container h2 {
+  font-family: var(--font-family-mono);
+  font-weight: 300;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.8);
+  font-size: 1.2rem;
+  user-select: none;
+}
+
+.source-container h2:hover {
+  color: #000;
+}
+
+.source-container.expanded {
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  padding-left: 0.25rem;
+}
+
+.source-container.expanded h2 {
+  margin-bottom: 0.5rem;
+}
+
+.source-data-grid {
+  display: grid;
+  grid-template-columns: 25% auto;
+  row-gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.source-data-grid dt {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.source-data-grid li {
+  list-style-type: none;
+}
+
+.source-breadcrumbs {
+  padding: 0.5rem 0.25rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.source-breadcrumbs li {
+  display: inline;
+  list-style-type: none;
+}
+
+.bp-tracing code {
+  font-size: 0.8em;
+}
+
+.bp-tracing li {
+  margin: 1rem 0 1rem 1rem;
+}
+
+.bp-tracing p {
+  margin: 0.5rem 0;
+}
+
+.bp-tracing li ul {
+  margin: 0.5rem 1rem;
+}
+
+.decision-buttons {
+  margin: 0.5rem 0;
+}
+
+.decision-buttons button {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 3px;
+  border: 2px solid var(--primary-color);
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+.decision-buttons button + button {
+  margin-left: 0.25rem;
+}
+
+.decision-buttons button.active {
+  background: transparent;
+  color: #000;
+}
+
+.text-diff .add {
+  background: rgba(0, 255, 0, 0.2);
+  color: darkgreen;
+}
+
+
+.text-diff .rm {
+  background: rgba(255, 0, 0, 0.2);
+  text-decoration: line-through;
+  color: darkred;
 }

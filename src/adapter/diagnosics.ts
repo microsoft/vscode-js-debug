@@ -13,7 +13,11 @@ import { toolPath } from '../diagnosticTool/tool';
 import { FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { BreakpointManager } from './breakpoints';
-import { CdpReferenceState } from './breakpoints/breakpointBase';
+import {
+  CdpReferenceState,
+  IBreakpointCdpReferenceApplied,
+  IBreakpointCdpReferencePending,
+} from './breakpoints/breakpointBase';
 import { IUiLocation, SourceContainer, SourceFromMap } from './sources';
 
 export interface IDiagnosticSource {
@@ -31,10 +35,22 @@ export interface IDiagnosticSource {
   };
 }
 
+export interface IDiagnosticUiLocation {
+  lineNumber: number;
+  columnNumber: number;
+  sourceReference: number;
+}
+
+export type DiagnosticBreakpointArgs =
+  | Omit<IBreakpointCdpReferencePending, 'done'>
+  | (Omit<IBreakpointCdpReferenceApplied, 'uiLocations'> & {
+      uiLocations: IDiagnosticUiLocation[];
+    });
+
 export interface IDiagnosticBreakpoint {
   source: Dap.Source;
   params: Dap.SourceBreakpoint;
-  cdp: object[];
+  cdp: DiagnosticBreakpointArgs[];
 }
 
 export interface IDiagnosticDump {
@@ -72,10 +88,18 @@ export class Diagnostics {
   public async generateHtml(file = join(tmpdir(), 'js-debug-diagnostics.html')) {
     await this.fs.writeFile(
       file,
-      `<body>
-        <script>window.DUMP=${JSON.stringify(await this.generateObject())}
+      `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+      </head>
+      <body>
+        <script>window.DUMP=${JSON.stringify(await this.generateObject())}</script>
         <script>${await this.fs.readFile(toolPath, 'utf-8')}</script>
-      </body>`,
+      </body>
+      </html>`,
     );
 
     return file;
@@ -119,7 +143,7 @@ export class Diagnostics {
               ? [...source.compiledToSourceUrl.entries()].map(
                   ([k, v]) => [k.sourceReference, v] as [number, string],
                 )
-              : [],
+              : undefined,
           sourceMap: source.sourceMap && {
             url: source.sourceMap.url,
             metadata: source.sourceMap.metadata,
@@ -135,7 +159,7 @@ export class Diagnostics {
     return Promise.all(output);
   }
 
-  private dumpUiLocation(location: IUiLocation) {
+  private dumpUiLocation(location: IUiLocation): IDiagnosticUiLocation {
     return {
       lineNumber: location.lineNumber,
       columnNumber: location.columnNumber,

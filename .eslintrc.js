@@ -22,6 +22,7 @@ module.exports = {
       'block',
       '---------------------------------------------------------\n * Copyright (C) Microsoft Corporation. All rights reserved.\n *--------------------------------------------------------',
     ],
+    'react/no-unescaped-entities': 'off',
     'react/prop-types': 'off',
     '@typescript-eslint/no-unused-vars': [
       'warn',

@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { CdpReferenceState, Breakpoint, BreakpointCdpReference } from './breakpointBase';
 import * as nls from 'vscode-nls';
-import { BreakpointManager } from '../breakpoints';
-import Dap from '../../dap/api';
-import { getDeferred } from '../../common/promiseUtil';
-import { IBreakpointCondition } from './conditions';
 import Cdp from '../../cdp/api';
+import { getDeferred } from '../../common/promiseUtil';
+import Dap from '../../dap/api';
+import { BreakpointManager } from '../breakpoints';
+import { Breakpoint, BreakpointCdpReference, CdpReferenceState } from './breakpointBase';
+import { IBreakpointCondition } from './conditions';
 
 const localize = nls.loadMessageBundle();
 
