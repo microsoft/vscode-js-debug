@@ -32,6 +32,12 @@ export interface ITarget {
    */
   readonly targetInfo: Readonly<Cdp.Target.TargetInfo>;
 
+  /**
+   * Additional launch config information that should be passed into the
+   * child debug session's configuration.
+   */
+  readonly supplementalConfig?: Record<string, unknown>;
+
   id(): string;
   name(): string;
   onNameChanged: IEvent<void>;

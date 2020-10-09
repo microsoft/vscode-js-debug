@@ -59,7 +59,6 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
-  private _targetInfo: Cdp.Target.TargetInfo;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
   private _attached = false;
@@ -77,11 +76,20 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     return this._targetInfo.targetId;
   }
 
+  /**
+   * @inheritdoc
+   */
+  public readonly supplementalConfig = {
+    __usePerformanceFromParent:
+      this._targetInfo.type !== BrowserTargetType.Page &&
+      this._targetInfo.type !== BrowserTargetType.Page,
+  };
+
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
   constructor(
     targetManager: BrowserTargetManager,
-    targetInfo: Cdp.Target.TargetInfo,
+    private _targetInfo: Cdp.Target.TargetInfo,
     cdp: Cdp.Api,
     parentTarget: BrowserTarget | undefined,
     waitingForDebugger: boolean,
@@ -96,8 +104,7 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     this._manager = targetManager;
     this.parentTarget = parentTarget;
     this._waitingForDebugger = waitingForDebugger;
-    this._targetInfo = targetInfo;
-    this._updateFromInfo(targetInfo);
+    this._updateFromInfo(_targetInfo);
     this._ondispose = ondispose;
   }
 
