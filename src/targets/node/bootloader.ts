@@ -41,7 +41,7 @@ const blockedBasnames = ['npm', 'yarn'];
     });
 
     if (!checkAll(inspectorOptions)) {
-      env.inspectorOptions = undefined; // save work for any children
+      env.unsetForTree(); // save work for any children
       return;
     }
 
@@ -56,9 +56,9 @@ const blockedBasnames = ['npm', 'yarn'];
       inspectorOptions.execPath = process.execPath;
     }
 
-    const didAttach = inspectOrQueue(inspectorOptions);
+    const didAttach = inspectOrQueue(inspectorOptions, env);
     if (inspectorOptions.onlyEntrypoint) {
-      env.inspectorOptions = undefined;
+      env.unsetForTree();
     } else if (didAttach) {
       env.updateInspectorOption('ppid', process.pid);
     }
@@ -75,7 +75,7 @@ const enum Mode {
   Inactive,
 }
 
-function inspectOrQueue(env: IBootloaderInfo): boolean {
+function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment): boolean {
   const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
     : env.deferredMode
@@ -92,7 +92,7 @@ function inspectOrQueue(env: IBootloaderInfo): boolean {
   const openedFromCli = inspector.url() !== undefined;
   if (!openedFromCli) {
     // if the debugger isn't explicitly enabled, turn it on based on our inspect mode
-    if (!shouldForceProcessIntoDebugMode(env)) {
+    if (!shouldForceProcessIntoDebugMode(env, bootloader)) {
       return false;
     }
 
@@ -170,12 +170,12 @@ function inspectOrQueue(env: IBootloaderInfo): boolean {
   return true;
 }
 
-function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
+function shouldForceProcessIntoDebugMode(env: IBootloaderInfo, bootloader: BootloaderEnvironment) {
   switch (env.autoAttachMode) {
     case AutoAttachMode.Always:
       return true;
     case AutoAttachMode.Smart:
-      return shouldSmartAttach(env);
+      return shouldSmartAttach(env, bootloader);
     case AutoAttachMode.OnlyWithFlag:
     default:
       return false;
@@ -189,7 +189,7 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
  * we could detect a direct invokation of something like `npm install`,
  * so we match against the script name.
  */
-function shouldSmartAttach(env: IBootloaderInfo) {
+function shouldSmartAttach(env: IBootloaderInfo, bootloader: BootloaderEnvironment) {
   const script: string | undefined = process.argv[1];
   if (!script) {
     return true; // node REPL
@@ -208,6 +208,7 @@ function shouldSmartAttach(env: IBootloaderInfo) {
   // don't attach to code's cli. This is a little annoying to match with
   // patterns, and users will never want it, so do it manually.
   if (process.env.ELECTRON_RUN_AS_NODE === '1' && /(visual studio|vs) code/i.test(script)) {
+    bootloader.unsetForTree(); // fixes #783
     return false;
   }
 

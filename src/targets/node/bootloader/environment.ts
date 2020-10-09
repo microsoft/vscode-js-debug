@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import type { IWatchdogInfo } from '../watchdogSpawn';
-import type { IProcessTelemetry } from '../nodeLauncherBase';
 import { AutoAttachMode } from '../../../common/contributionUtils';
+import type { IProcessTelemetry } from '../nodeLauncherBase';
+import type { IWatchdogInfo } from '../watchdogSpawn';
 
 /**
  * Attachment mode for the debugger.
@@ -143,6 +143,13 @@ export class BootloaderEnvironment {
     } else {
       this.processEnv.VSCODE_INSPECTOR_OPTIONS = JSON.stringify(value);
     }
+  }
+
+  /**
+   * Unsets inspector options for this and all child processes.
+   */
+  public unsetForTree() {
+    delete this.processEnv.VSCODE_INSPECTOR_OPTIONS;
   }
 
   /**
