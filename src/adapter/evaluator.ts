@@ -2,11 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { generate } from 'astring';
 import { randomBytes } from 'crypto';
+import { replace } from 'estraverse';
+import { ConditionalExpression } from 'estree';
 import { inject, injectable } from 'inversify';
-import * as ts from 'typescript';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { parseProgram } from '../common/sourceCodeManipulations';
 import { getSourceSuffix } from './templates';
 
 export const returnValueStr = '$returnValue';
@@ -181,29 +184,37 @@ export class Evaluator implements IEvaluator {
    * returning the modified expression if it was found.
    */
   private replaceReturnValue(expr: string, hoistedVar: string): string | undefined {
-    const sourceFile = ts.createSourceFile(
-      'test.js',
-      expr,
-      ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true,
-    );
-
-    let adjust = 0;
     let found = false;
 
-    const replacement = `(typeof ${hoistedVar} !== 'undefined' ? ${hoistedVar} : undefined)`;
-    const replace = (node: ts.Node) => {
-      if (ts.isIdentifier(node) && node.text === returnValueStr) {
-        expr = expr.slice(0, node.getStart() + adjust) + replacement + expr.slice(node.getEnd());
-        adjust += node.getEnd() - node.getStart() - replacement.length;
-        found = true;
-      }
-
-      ts.forEachChild(node, replace);
+    const replacement: ConditionalExpression = {
+      type: 'ConditionalExpression',
+      test: {
+        type: 'BinaryExpression',
+        left: {
+          type: 'UnaryExpression',
+          operator: 'typeof',
+          prefix: true,
+          argument: { type: 'Identifier', name: hoistedVar },
+        },
+        operator: '!==',
+        right: { type: 'Literal', value: 'undefined' },
+      },
+      consequent: { type: 'Identifier', name: hoistedVar },
+      alternate: {
+        type: 'Identifier',
+        name: 'undefined',
+      },
     };
 
-    replace(sourceFile);
+    const transformed = replace(parseProgram(expr), {
+      enter: node => {
+        if (node.type === 'Identifier' && node.name === returnValueStr) {
+          found = true;
+          return replacement;
+        }
+      },
+    });
 
-    return found ? expr : undefined;
+    return found ? generate(transformed) : undefined;
   }
 }

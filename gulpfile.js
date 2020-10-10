@@ -196,14 +196,14 @@ async function runWebpack({
     { entry: `${buildSrcDir}/common/hash/hash.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/bootloader.js`, library: false },
     { entry: `${buildSrcDir}/${nodeTargetsDir}/watchdog.js`, library: false },
-    { entry: `${buildSrcDir}/diagnosticTool/index.js`, library: false, target: 'web' },
+    { entry: `${buildSrcDir}/diagnosticTool/diagnosticTool.js`, library: false, target: 'web' },
   ];
 
   let todo = [];
   for (const { entry, target, library, filename } of packages) {
     const config = {
       mode,
-      target: target || 'node',
+      target: target || 'async-node',
       entry: path.resolve(entry),
       output: {
         path: compileInPlace ? path.resolve(path.dirname(entry)) : path.resolve(distSrcDir),
@@ -213,6 +213,11 @@ async function runWebpack({
       devtool: devtool,
       resolve: {
         extensions: ['.js', '.json'],
+        alias: {
+          // their .mjs seems broken:
+          acorn: require.resolve('acorn'),
+          'acorn-loose': require.resolve('acorn-loose'),
+        },
       },
       module: {
         rules: [

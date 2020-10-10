@@ -2,9 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { generate } from 'astring';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { flatten } from '../common/objUtils';
+import { codeToFunctionReturningErrors, parseSource } from '../common/sourceCodeManipulations';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as objectPreview from './objectPreview';
@@ -13,8 +15,6 @@ import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
-import ts from 'typescript';
-import { codeToFunctionReturningErrors } from '../common/sourceCodeManipulations';
 
 const localize = nls.loadMessageBundle();
 
@@ -643,15 +643,8 @@ export class VariableStore {
   }
 
   private extractFunctionFromCustomDescriptionGenerator(generatorDefinition: string): string {
-    const sourceFile = ts.createSourceFile(
-      'customDescriptionGenerator.js',
-      generatorDefinition,
-      ts.ScriptTarget.ESNext,
-      true,
-    );
-
-    const code = codeToFunctionReturningErrors('defaultValue', sourceFile.statements);
-    return code;
+    const code = codeToFunctionReturningErrors(['defaultValue'], parseSource(generatorDefinition));
+    return generate(code);
   }
 
   private async _createArrayVariable(

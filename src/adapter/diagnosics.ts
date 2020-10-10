@@ -9,7 +9,7 @@ import { mapValues } from '../common/objUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
-import { toolPath } from '../diagnosticTool/tool';
+import { toolPath } from '../diagnosticTool';
 import { FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { BreakpointManager } from './breakpoints';

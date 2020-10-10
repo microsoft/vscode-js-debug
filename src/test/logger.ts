@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Log } from './test';
 import Dap from '../dap/api';
+import { Log } from './test';
 
 interface ILogOptions {
   depth?: number;
@@ -216,28 +216,11 @@ export class Logger {
       return await this.logEvaluateResult(result, options);
     }
 
-    let complete: () => void;
-    const result = new Promise(f => (complete = f));
-    const next = async () => {
-      const expression = expressions.shift();
-      if (!expression) {
-        complete();
-      } else {
-        this._log(`Evaluating: '${expression}'`);
-        await this._dap.evaluate({ expression, context });
-      }
-    };
-
-    let chain = Promise.resolve();
-    this._dap.on('output', async params => {
-      chain = chain.then(async () => {
-        await this.logOutput(params, options);
-        this._log(``);
-        next();
-      });
-    });
-
-    next();
-    await result;
+    for (const expression of expressions) {
+      this._log(`Evaluating: '${expression}'`);
+      const evaluation = this._dap.evaluate({ expression, context });
+      this.logOutput(await this._dap.once('output'), options);
+      await evaluation;
+    }
   }
 }

@@ -10,8 +10,6 @@ for (const rule of config.module.rules) {
   }
 }
 
-const compiler = require('webpack')(config);
-
 if (process.env.ANALYZE_SIZE === 'true') {
   config.plugins.push(
     new (require('webpack-bundle-analyzer').BundleAnalyzerPlugin)({
@@ -20,6 +18,8 @@ if (process.env.ANALYZE_SIZE === 'true') {
     }),
   );
 }
+
+const compiler = require('webpack')(config);
 
 const handleResult = (err, stats) => {
   if (err) {

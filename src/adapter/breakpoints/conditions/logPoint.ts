@@ -2,29 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as ts from 'typescript';
-import { invalidBreakPointCondition } from '../../../dap/errors';
-import { ProtocolError } from '../../../dap/protocolError';
-import { ILogger } from '../../../common/logging';
-import { IBreakpointCondition } from '.';
-import { SimpleCondition } from './simple';
+import { generate } from 'astring';
 import { createHash } from 'crypto';
+import { Statement } from 'estree';
+import { inject, injectable } from 'inversify';
+import { IBreakpointCondition } from '.';
+import { parseSource, returnErrorsFromStatements } from '../../../common/sourceCodeManipulations';
 import { getSyntaxErrorIn } from '../../../common/sourceUtils';
 import Dap from '../../../dap/api';
-import { injectable, inject } from 'inversify';
+import { invalidBreakPointCondition } from '../../../dap/errors';
+import { ProtocolError } from '../../../dap/protocolError';
 import { IEvaluator } from '../../evaluator';
 import { RuntimeLogPoint } from './runtimeLogPoint';
-import { returnErrorsFromStatements } from '../../../common/sourceCodeManipulations';
+import { SimpleCondition } from './simple';
 
 /**
  * Compiles log point expressions to breakpoints.
  */
 @injectable()
 export class LogPointCompiler {
-  constructor(
-    @inject(ILogger) private readonly logger: ILogger,
-    @inject(IEvaluator) private readonly evaluator: IEvaluator,
-  ) {}
+  constructor(@inject(IEvaluator) private readonly evaluator: IEvaluator) {}
 
   /**
    * Compiles the log point to an IBreakpointCondition.
@@ -45,8 +42,8 @@ export class LogPointCompiler {
     return new RuntimeLogPoint(invoke);
   }
 
-  private serializeLogStatements(statements: ReadonlyArray<ts.Statement>) {
-    return returnErrorsFromStatements('', statements, false);
+  private serializeLogStatements(statements: ReadonlyArray<Statement>) {
+    return returnErrorsFromStatements([], statements, false);
   }
 
   /**
@@ -57,7 +54,7 @@ export class LogPointCompiler {
   private logMessageToExpression(msg: string) {
     const unescape = (str: string) => str.replace(/%/g, '%%');
     const formatParts = [];
-    const args = [];
+    const args: string[] = [];
 
     let end = 0;
 
@@ -73,15 +70,8 @@ export class LogPointCompiler {
 
       formatParts.push(unescape(msg.slice(end, start)));
 
-      const sourceFile = ts.createSourceFile(
-        'file.js',
-        msg.slice(start),
-        ts.ScriptTarget.ESNext,
-        true,
-      );
-
-      const firstBlock = sourceFile.statements[0];
-      end = start + firstBlock.end;
+      const [block] = parseSource(msg.slice(start));
+      end = start + block.end;
 
       // unclosed or empty bracket is not valid, emit it as text
       if (end - 1 === start + 1 || msg[end - 1] !== '}') {
@@ -89,16 +79,11 @@ export class LogPointCompiler {
         continue;
       }
 
-      if (
-        !this.logger.assert(
-          ts.isBlock(firstBlock),
-          'Expected first statement in logpoint to be block',
-        )
-      ) {
+      if (block.type !== 'BlockStatement') {
         break;
       }
 
-      args.push(this.serializeLogStatements((firstBlock as ts.Block).statements));
+      args.push(generate(this.serializeLogStatements(block.body)));
       formatParts.push('%O');
     }
 

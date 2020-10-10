@@ -8,7 +8,7 @@ import { IDiagnosticDump } from '../adapter/diagnosics';
 import { Intro } from './intro';
 import { DumpContext } from './useDump';
 
-require('../../../src/diagnosticTool/index.css');
+require('../../../src/diagnosticTool/diagnosticTool.css');
 
 declare const DUMP: IDiagnosticDump | undefined;
 

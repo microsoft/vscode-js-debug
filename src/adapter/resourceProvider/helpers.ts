@@ -7,11 +7,11 @@ import { OptionsOfTextResponseBody } from 'got/dist/source';
 /**
  * Adds a header to the outgoing request.
  */
-export const addHeader = (
+export const addHeader: (
   options: OptionsOfTextResponseBody,
   key: string,
   value: string,
-): OptionsOfTextResponseBody => {
+) => OptionsOfTextResponseBody = (options, key, value) => {
   key = key.toLowerCase();
 
   const existing = options.headers?.[key];

@@ -2,10 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Node as AcornNode } from 'acorn';
+import { isDummy } from 'acorn-loose';
+import { traverse, VisitorOption } from 'estraverse';
+import { Identifier, MemberExpression, Node, Program } from 'estree';
 import { inject, injectable } from 'inversify';
-import * as ts from 'typescript';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { getEnd, getStart, getText, parseProgram } from '../common/sourceCodeManipulations';
 import { positionToOffset } from '../common/sourceUtils';
 import Dap from '../dap/api';
 import { IEvaluator, returnValueStr } from './evaluator';
@@ -16,6 +20,7 @@ import { enumerateProperties, enumeratePropertiesTemplate } from './templates/en
  * Context in which a completion is being evaluated.
  */
 export interface ICompletionContext {
+  expression: string;
   executionContextId: number | undefined;
   stackFrame: StackFrame | undefined;
 }
@@ -68,57 +73,50 @@ export const enum CompletionKind {
 }
 
 /**
- * Tries to infer the completion kind for the given TypeScript node.
+ * Tries to infer the completion kind for the given Acorn node.
  */
-const inferCompletionKindForDeclaration = (node: ts.Declaration) => {
-  if (ts.isClassLike(node)) {
-    return CompletionKind.Class;
-  } else if (ts.isMethodDeclaration(node)) {
-    return CompletionKind.Method;
-  } else if (ts.isConstructorDeclaration(node)) {
-    return CompletionKind.Constructor;
-  } else if (ts.isPropertyDeclaration(node)) {
-    return CompletionKind.Property;
-  } else if (ts.isVariableDeclarationList(node)) {
-    return CompletionKind.Variable;
-  } else if (ts.isVariableDeclaration(node)) {
-    return node.initializer && ts.isFunctionLike(node.initializer)
-      ? CompletionKind.Function
-      : CompletionKind.Variable;
-  } else if (ts.isStringLiteral(node)) {
-    return CompletionKind.Text;
-  } else if (ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)) {
-    return CompletionKind.Value;
-  } else if (ts.isInterfaceDeclaration(node)) {
-    return CompletionKind.Interface;
-  } else if (ts.isTypeAliasDeclaration(node)) {
-    return CompletionKind.Interface;
-  } else {
-    return undefined;
+const inferCompletionInfoForDeclaration = (node: Node) => {
+  switch (node.type) {
+    case 'ClassDeclaration':
+    case 'ClassExpression':
+      return { type: CompletionKind.Class, id: node.id };
+    case 'MethodDefinition':
+      return {
+        type:
+          node.key?.type === 'Identifier' && node.key.name === 'constructor'
+            ? CompletionKind.Constructor
+            : CompletionKind.Method,
+        id: node.key,
+      };
+    case 'VariableDeclarator':
+      return {
+        type:
+          node.init?.type === 'FunctionExpression' || node.init?.type === 'ArrowFunctionExpression'
+            ? CompletionKind.Function
+            : CompletionKind.Variable,
+        id: node.id,
+      };
   }
 };
 
-function maybeHasSideEffects(node: ts.Node): boolean {
+function maybeHasSideEffects(node: Node): boolean {
   let result = false;
-  traverse(node);
+  traverse(node, {
+    enter(node) {
+      if (
+        node.type === 'CallExpression' ||
+        node.type === 'NewExpression' ||
+        (node.type === 'UnaryExpression' && node.operator === 'delete') ||
+        node.type === 'ClassBody'
+      ) {
+        result = true;
+        return VisitorOption.Break;
+      }
+    },
+  });
 
-  function traverse(node: ts.Node) {
-    if (result) return;
-    if (
-      node.kind === ts.SyntaxKind.CallExpression ||
-      node.kind === ts.SyntaxKind.NewExpression ||
-      node.kind === ts.SyntaxKind.DeleteExpression ||
-      node.kind === ts.SyntaxKind.ClassExpression
-    ) {
-      result = true;
-      return;
-    }
-    ts.forEachChild(node, traverse);
-  }
   return result;
 }
-
-const isDeclarationStatement = (node: ts.Node): node is ts.DeclarationStatement => 'name' in node;
 
 export const ICompletions = Symbol('ICompletions');
 
@@ -139,34 +137,28 @@ export class Completions {
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
   ) {}
 
-  async completions(
+  public async completions(
     options: ICompletionContext & ICompletionExpression,
   ): Promise<Dap.CompletionItem[]> {
-    const sourceFile = ts.createSourceFile(
-      'test.js',
-      options.expression,
-      ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true,
-    );
+    const source = parseProgram(options.expression);
 
     const offset = positionToOffset(options.expression, options.line, options.column);
     let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
-    const traverse = (node: ts.Node) => {
-      if (node.pos < offset && offset <= node.end) {
-        if (ts.isIdentifier(node)) {
-          candidate = () => this.identifierCompleter(options, sourceFile, node, offset);
-        } else if (ts.isPropertyAccessExpression(node)) {
-          candidate = () => this.propertyAccessCompleter(options, node, offset);
-        } else if (ts.isElementAccessExpression(node)) {
-          candidate = () => this.elementAccessCompleter(options, node, offset);
+    traverse(source, {
+      enter: node => {
+        const asAcorn = node as AcornNode;
+        if (asAcorn.start < offset && offset <= asAcorn.end) {
+          if (node.type === 'Identifier') {
+            candidate = () => this.identifierCompleter(options, source, node, offset);
+          } else if (node.type === 'MemberExpression') {
+            candidate = node.computed
+              ? () => this.elementAccessCompleter(options, node, offset)
+              : () => this.propertyAccessCompleter(options, node, offset);
+          }
         }
-      }
-
-      ts.forEachChild(node, traverse);
-    };
-
-    traverse(sourceFile);
+      },
+    });
 
     return candidate().then(v => v.sort((a, b) => (a.sortText > b.sortText ? 1 : -1)));
   }
@@ -174,22 +166,19 @@ export class Completions {
   /**
    * Completer for a TS element access, via bracket syntax.
    */
-  async elementAccessCompleter(
+  private async elementAccessCompleter(
     options: ICompletionContext,
-    node: ts.ElementAccessExpression,
+    node: MemberExpression,
     offset: number,
   ) {
-    if (!ts.isStringLiteralLike(node.argumentExpression)) {
+    if (node.property.type !== 'Literal' || typeof node.property.value !== 'string') {
       // If this is not a string literal, either they're typing a number (where
       // autocompletion would be quite silly) or a complex expression where
       // trying to complete by property name is inappropriate.
       return [];
     }
 
-    const prefix = node.argumentExpression
-      .getText()
-      .slice(1, offset - node.argumentExpression.getStart());
-
+    const prefix = options.expression.slice(getStart(node.property) + 1, offset);
     const completions = await this.defaultCompletions(options, prefix);
 
     // Filter out the array access, adjust replacement ranges
@@ -198,8 +187,8 @@ export class Completions {
       .map(item => ({
         ...item,
         text: JSON.stringify(item.text ?? item.label) + ']',
-        start: node.argumentExpression.getStart(),
-        length: node.argumentExpression.getWidth() + 1,
+        start: getStart(node.property),
+        length: getEnd(node.property) - getStart(node.property),
       }));
   }
 
@@ -208,28 +197,26 @@ export class Completions {
    */
   private async identifierCompleter(
     options: ICompletionContext,
-    source: ts.SourceFile,
-    node: ts.Identifier,
+    source: Program,
+    node: Identifier,
     offset: number,
   ) {
     // Walk through the expression and look for any locally-declared variables or identifiers.
     const localIdentifiers: ICompletionWithSort[] = [];
-    ts.forEachChild(source, function transverse(node: ts.Node) {
-      if (!isDeclarationStatement(node)) {
-        ts.forEachChild(node, transverse);
-        return;
-      }
-
-      if (node.name && ts.isIdentifier(node.name)) {
-        localIdentifiers.push({
-          label: node.name.text,
-          type: inferCompletionKindForDeclaration(node),
-          sortText: node.name.text,
-        });
-      }
+    traverse(source, {
+      enter(node) {
+        const completion = inferCompletionInfoForDeclaration(node);
+        if (completion?.id?.type === 'Identifier') {
+          localIdentifiers.push({
+            label: completion.id.name,
+            type: completion.type,
+            sortText: completion.id.name,
+          });
+        }
+      },
     });
 
-    const prefix = node.getText().substring(0, offset - node.getStart());
+    const prefix = options.expression.slice(getStart(node), offset);
     const completions = [...localIdentifiers, ...(await this.defaultCompletions(options, prefix))];
 
     if (
@@ -252,21 +239,23 @@ export class Completions {
    */
   async propertyAccessCompleter(
     options: ICompletionContext,
-    node: ts.PropertyAccessExpression,
+    node: MemberExpression,
     offset: number,
   ): Promise<ICompletionWithSort[]> {
     const { result, isArray } = await this.completePropertyAccess({
       executionContextId: options.executionContextId,
       stackFrame: options.stackFrame,
-      expression: node.expression.getText(),
-      prefix: node.name.text.substring(0, offset - node.name.getStart()),
+      expression: getText(options.expression, node.object),
+      prefix: isDummy(node.property)
+        ? ''
+        : options.expression.slice(getStart(node.property), offset),
       // If we see the expression might have a side effect, still try to get
       // completions, but tell V8 to throw if it sees a side effect. This is a
       // fairly conservative checker, we don't enable it if not needed.
-      throwOnSideEffect: maybeHasSideEffects(node.expression),
+      throwOnSideEffect: maybeHasSideEffects(node),
     });
 
-    const start = node.name.getStart() - 1;
+    const start = getStart(node.property) - 1;
 
     // For any properties are aren't valid identifiers, (erring on the side of
     // caution--not checking unicode and such), quote them as foo['bar!']
@@ -280,7 +269,6 @@ export class Completions {
     }
 
     if (isArray) {
-      const start = node.name.getStart() - 1;
       const placeholder = 'index';
       result.unshift({
         label: `[${placeholder}]`,

@@ -113,8 +113,8 @@ export const serializeForClipboardTmpl = templateFunction(function (
 });
 
 export const serializeForClipboard = remoteFunction<[number], string>(`
-  function(spaces) {
-    const result = ${serializeForClipboardTmpl('this', 'spaces')};
+  function(spaces2) {
+    const result = ${serializeForClipboardTmpl('this', 'spaces2')};
     return result;
   }
 `);

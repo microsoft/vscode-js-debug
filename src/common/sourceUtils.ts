@@ -2,15 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Parser } from 'acorn';
+import { parseExpressionAt, Parser } from 'acorn';
 import { generate } from 'astring';
+import { replace, VisitorOption } from 'estraverse';
+import { Expression, ExpressionStatement, Identifier, Program, Statement } from 'estree';
 import { promises as fsPromises } from 'fs';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
-import * as ts from 'typescript';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import { LocalFsUtils } from './fsUtils';
 import { Hasher } from './hash';
 import { isWithinAsar } from './pathUtils';
+import { acornOptions, parseProgram } from './sourceCodeManipulations';
 import { SourceMap } from './sourceMaps/sourceMap';
 
 export async function prettyPrintAsSourceMap(
@@ -19,7 +21,7 @@ export async function prettyPrintAsSourceMap(
   compiledPath: string,
   sourceMapUrl: string,
 ): Promise<SourceMap | undefined> {
-  const ast = Parser.parse(minified, { locations: true, ecmaVersion: 2020 });
+  const ast = Parser.parse(minified, { locations: true, ecmaVersion: 'latest' });
   const sourceMap = new SourceMapGenerator({ file: fileName });
 
   // provide a fake SourceMapGenerator since we want to actually add the
@@ -54,116 +56,120 @@ export async function prettyPrintAsSourceMap(
 }
 
 export function rewriteTopLevelAwait(code: string): string | undefined {
-  // Basic idea is to wrap code in async function, which
-  // we can await and expose side-effects outside of the function.
-  // See "rewriteTopLevelAwait" test for examples.
-  code = '(async () => {' + code + '\n})()';
-  let body: ts.Block;
+  let program: Program;
   try {
-    const sourceFile = ts.createSourceFile(
-      'file.js',
-      code,
-      ts.ScriptTarget.ESNext,
-      /*setParentNodes */ true,
-    );
-    // eslint-disable-next-line
-    body = (sourceFile.statements[0] as any)['expression']['expression']['expression'][
-      'body'
-    ] as ts.Block;
+    // todo: strict needed due to https://github.com/acornjs/acorn/issues/988
+    program = parseProgram(code, /* strict= */ true);
   } catch (e) {
-    return;
+    return undefined;
   }
 
-  const changes: { start: number; end: number; text: string }[] = [];
+  const makeAssignment = (id: Identifier, rhs: Expression): ExpressionStatement => ({
+    type: 'ExpressionStatement',
+    expression: {
+      type: 'AssignmentExpression',
+      operator: '=',
+      left: id,
+      right: rhs,
+    },
+  });
+
   let containsAwait = false;
   let containsReturn = false;
 
-  function traverse(node: ts.Node) {
-    switch (node.kind) {
-      case ts.SyntaxKind.ClassDeclaration:
-        // Expose "class Foo" as "Foo=class Foo"
-        const cd = node as ts.ClassDeclaration;
-        if (cd.parent === body && cd.name)
-          changes.push({ text: cd.name.text + '=', start: cd.pos, end: cd.pos });
-        break;
-      case ts.SyntaxKind.FunctionDeclaration:
-        // Expose "function foo(..." as "foo=function foo(..."
-        const fd = node as ts.FunctionDeclaration;
-        if (fd.name) changes.push({ text: fd.name.text + '=', start: fd.pos, end: fd.pos });
-        return;
-      case ts.SyntaxKind.FunctionExpression:
-      case ts.SyntaxKind.ArrowFunction:
-      case ts.SyntaxKind.MethodDeclaration:
-        // Do not recurse into functions.
-        return;
-      case ts.SyntaxKind.AwaitExpression:
-        containsAwait = true;
-        break;
-      case ts.SyntaxKind.ForOfStatement:
-        if ((node as ts.ForOfStatement).awaitModifier) containsAwait = true;
-        break;
-      case ts.SyntaxKind.ReturnStatement:
-        containsReturn = true;
-        break;
-      case ts.SyntaxKind.VariableDeclarationList:
-        // Expose "var foo=..." as void(foo=...)
-        const vd = node as ts.VariableDeclarationList;
-
-        let s = code.substr(vd.pos);
-        let skip = 0;
-        while (skip < s.length && /^\s$/.test(s[skip])) ++skip;
-        s = s.substring(skip);
-        const dec = s.startsWith('const') ? 'const' : s.substr(0, 3);
-        const vdpos = vd.pos + skip;
-
-        if (vd.parent.kind === ts.SyntaxKind.ForOfStatement) break;
-        if (!vd.declarations.length) break;
-        if (dec !== 'var') {
-          // Do not expose "for (const|let foo".
-          if (vd.parent.kind !== ts.SyntaxKind.VariableStatement || vd.parent.parent !== body)
-            break;
-        }
-        const onlyOneDeclaration = vd.declarations.length === 1;
-        changes.push({
-          text: onlyOneDeclaration ? 'void' : 'void (',
-          start: vdpos,
-          end: vdpos + dec.length,
-        });
-        for (const declaration of vd.declarations) {
-          if (!declaration.initializer) {
-            changes.push({ text: '(', start: declaration.pos, end: declaration.pos });
-            changes.push({ text: '=undefined)', start: declaration.end, end: declaration.end });
-            continue;
+  const replaced = replace(program, {
+    enter(node, parent) {
+      switch (node.type) {
+        case 'ClassDeclaration':
+          return makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
+            ...node,
+            type: 'ClassExpression',
+          });
+        case 'FunctionDeclaration':
+          this.skip();
+          return makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
+            ...node,
+            type: 'FunctionExpression',
+          });
+        case 'FunctionExpression':
+        case 'ArrowFunctionExpression':
+        case 'MethodDefinition':
+          return VisitorOption.Skip;
+        case 'AwaitExpression':
+          containsAwait = true;
+          return;
+        case 'ForOfStatement':
+          if (node.await) {
+            containsAwait = true;
           }
-          changes.push({ text: '(', start: declaration.pos, end: declaration.pos });
-          changes.push({ text: ')', start: declaration.end, end: declaration.end });
-        }
-        if (!onlyOneDeclaration) {
-          const last = vd.declarations[vd.declarations.length - 1];
-          changes.push({ text: ')', start: last.end, end: last.end });
-        }
-        break;
-    }
-    ts.forEachChild(node, traverse);
-  }
-  traverse(body);
+          return;
+        case 'ReturnStatement':
+          containsReturn = true;
+          return;
+        case 'VariableDeclaration':
+          if (!parent || !('body' in parent) || !(parent.body instanceof Array)) {
+            return;
+          }
+
+          const stmts = parent.body as Statement[];
+          const spliced = node.declarations.map(
+            (decl): ExpressionStatement => ({
+              type: 'ExpressionStatement',
+              expression: {
+                type: 'UnaryExpression',
+                operator: 'void',
+                prefix: true,
+                argument: {
+                  type: 'AssignmentExpression',
+                  operator: '=',
+                  left: decl.id,
+                  right: decl.init || { type: 'Identifier', name: 'undefined' },
+                },
+              },
+            }),
+          );
+
+          stmts.splice(stmts.indexOf(node), 1, ...spliced);
+      }
+    },
+  }) as Program;
 
   // Top-level return is not allowed.
-  if (!containsAwait || containsReturn) return;
+  if (!containsAwait || containsReturn) {
+    return;
+  }
 
   // If we expect the value (last statement is an expression),
   // return it from the inner function.
-  const last = body.statements[body.statements.length - 1];
-  if (last.kind === ts.SyntaxKind.ExpressionStatement) {
-    changes.push({ text: 'return (', start: last.pos, end: last.pos });
-    if (code[last.end - 1] !== ';') changes.push({ text: ')', start: last.end, end: last.end });
-    else changes.push({ text: ')', start: last.end - 1, end: last.end - 1 });
+  const last = replaced.body[replaced.body.length - 1];
+  if (last.type === 'ExpressionStatement') {
+    replaced.body[replaced.body.length - 1] = {
+      type: 'ReturnStatement',
+      argument: last.expression,
+    };
   }
-  for (let i = changes.length - 1; i >= 0; i--) {
-    const change = changes[i];
-    code = code.substr(0, change.start) + change.text + code.substr(change.end);
-  }
-  return code;
+
+  const fn: ExpressionStatement = {
+    type: 'ExpressionStatement',
+    expression: {
+      type: 'CallExpression',
+      callee: {
+        type: 'ArrowFunctionExpression',
+        params: [],
+        generator: false,
+        expression: false,
+        async: true,
+        body: {
+          type: 'BlockStatement',
+          body: replaced.body as Statement[],
+        },
+      },
+      arguments: [],
+      optional: false,
+    },
+  };
+
+  return generate(fn);
 }
 
 /**
@@ -172,24 +178,21 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
  * for other expression or invalid code.
  */
 export function wrapObjectLiteral(code: string): string {
-  let src: ts.SourceFile;
   try {
-    src = ts.createSourceFile('file.js', `return ${code};`, ts.ScriptTarget.ESNext, true);
+    const expr = parseExpressionAt(code, 0, acornOptions);
+    if (expr.end < code.length) {
+      return code;
+    }
+
+    const cast = expr as Expression;
+    if (cast.type !== 'ObjectExpression') {
+      return code;
+    }
+
+    return `(${code})`;
   } catch {
     return code;
   }
-  const returnStmt = src.statements[0];
-  if (!ts.isReturnStatement(returnStmt) || !returnStmt.expression) {
-    return code; // should never happen, maybe if there's a bizarre parse error
-  }
-
-  const diagnostics = ((src as unknown) as { parseDiagnostics?: ts.DiagnosticMessage[] })
-    .parseDiagnostics;
-  if (diagnostics?.some(d => d.category === ts.DiagnosticCategory.Error)) {
-    return code; // abort on parse errors
-  }
-
-  return ts.isObjectLiteralExpression(returnStmt.expression) ? `(${code})` : code;
 }
 
 export function parseSourceMappingUrl(content: string): string | undefined {

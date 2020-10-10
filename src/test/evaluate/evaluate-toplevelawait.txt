@@ -1,126 +1,83 @@
 Evaluating: 'await Promise.resolve(1)'
-stdout> [32m↳ 1[0m
-
+result: 1
 Evaluating: '{a:await Promise.resolve(1)}'
-stdout> > [32m↳ {a: 1}[0m
-
+> result: {a: 1}
 Evaluating: '$_'
-stdout> > [32m↳ {a: 1}[0m
-
+> result: {a: 1}
 Evaluating: 'let {a,b} = await Promise.resolve({a: 1, b:2}), f = 5;'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'a'
-stdout> [32m↳ 1[0m
-
+result: 1
 Evaluating: 'b'
-stdout> [32m↳ 2[0m
-
+result: 2
 Evaluating: 'let c = await Promise.resolve(2)'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'c'
-stdout> [32m↳ 2[0m
-
+result: 2
 Evaluating: 'let d;'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'd'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'let [i,{abc:{k}}] = [0,{abc:{k:1}}];'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'i'
-stdout> [32m↳ 0[0m
-
+result: 0
 Evaluating: 'k'
-stdout> [32m↳ 1[0m
-
+result: 1
 Evaluating: 'var l = await Promise.resolve(2);'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'l'
-stdout> [32m↳ 2[0m
-
+result: 2
 Evaluating: 'foo(await koo());'
-stdout> [32m↳ 4[0m
-
+result: 4
 Evaluating: '$_'
-stdout> [32m↳ 4[0m
-
+result: 4
 Evaluating: 'const m = foo(await koo());'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'm'
-stdout> [32m↳ 4[0m
-
+result: 4
 Evaluating: 'const n = foo(await
 koo());'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'n'
-stdout> [32m↳ 4[0m
-
+result: 4
 Evaluating: '`status: ${(await Promise.resolve({status:200})).status}`'
-stdout> [32m↳ 'status: 200'[0m
-
+result: 'status: 200'
 Evaluating: 'for (let i = 0; i < 2; ++i) await i'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'for (let i = 0; i < 2; ++i) { await i }'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'await 0'
-stdout> [32m↳ 0[0m
-
+result: 0
 Evaluating: 'await 0;function foo(){}'
-stdout> [32m↳ undefined[0m
-
+> result: ƒ foo() {}
 Evaluating: 'foo'
-stdout> > [32m↳ ƒ foo(){}[0m
-
+> result: ƒ foo() {}
 Evaluating: 'class Foo{}; await 1;'
-stdout> [32m↳ 1[0m
-
+result: 1
 Evaluating: 'Foo'
-stdout> > [32m↳ class Foo{}[0m
-
+> result: class Foo {}
 Evaluating: 'await 0;function* gen(){}'
-stdout> [32m↳ undefined[0m
-
+> result: ƒ* gen() {}
 Evaluating: 'for (var i = 0; i < 10; ++i) { await i; }'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'i'
-stdout> [32m↳ 10[0m
-
+result: 0
 Evaluating: 'for (let j = 0; j < 5; ++j) { await j; }'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'j'
-stderr> ↳ Uncaught ReferenceError: j is not defined
-stderr> > ↳ Uncaught ReferenceError: j is not defined
-
+result:
 Evaluating: 'gen'
-stdout> > [32m↳ ƒ* gen(){}[0m
-
+> result: ƒ* gen() {}
 Evaluating: 'await 5; return 42;'
-stderr> ↳ Uncaught SyntaxError: await is only valid in async function
-stderr> ↳ Uncaught SyntaxError: await is only valid in async function
-
+result:
 Evaluating: 'let o = await 1, p'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'p'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 'let q = 1, s = await 2'
-stdout> [32m↳ undefined[0m
-
+result: undefined
 Evaluating: 's'
-stdout> [32m↳ 2[0m
-
+result: 2
 Evaluating: 'await {...{foo: 42}}'
-stdout> > [32m↳ {foo: 42}[0m
-
+> result: {foo: 42}
