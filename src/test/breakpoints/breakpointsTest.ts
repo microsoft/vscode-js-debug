@@ -373,7 +373,7 @@ describe('breakpoints', () => {
       };
       const breakpoints = [
         { line: 6, column: 0, logMessage: '123' },
-        { line: 7, column: 0, logMessage: "{{foo: 'bar'}}" },
+        { line: 7, column: 0, logMessage: "{({foo: 'bar'})}" },
         { line: 8, column: 0, logMessage: '{foo}' },
         { line: 9, column: 0, logMessage: 'foo {foo} bar' },
         { line: 10, column: 0, logMessage: 'foo {bar + baz}' },
