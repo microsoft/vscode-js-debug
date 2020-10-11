@@ -219,8 +219,9 @@ export class Logger {
     for (const expression of expressions) {
       this._log(`Evaluating: '${expression}'`);
       const evaluation = this._dap.evaluate({ expression, context });
-      this.logOutput(await this._dap.once('output'), options);
+      await this.logOutput(await this._dap.once('output'), options);
       await evaluation;
+      this._log(``);
     }
   }
 }
