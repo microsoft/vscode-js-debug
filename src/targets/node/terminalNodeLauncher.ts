@@ -2,28 +2,28 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
+import { IFsUtils } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
 import { FS, FsPromises } from '../../ioc-extras';
+import { IStopMetadata, ITarget } from '../targets';
 import {
   hideDebugInfoFromConsole,
   INodeBinaryProvider,
-  NodeBinaryProvider,
   NodeBinary,
+  NodeBinaryProvider,
 } from './nodeBinaryProvider';
-import { ILogger } from '../../common/logging';
-import { IFsUtils } from '../../common/fsUtils';
+import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { IProgram } from './program';
-import { IStopMetadata, ITarget } from '../targets';
-import { NodeLauncherBase, IProcessTelemetry, IRunData } from './nodeLauncherBase';
 
 class VSCodeTerminalProcess implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
@@ -44,7 +44,11 @@ class VSCodeTerminalProcess implements IProgram {
   }
 
   public stop() {
-    this.terminal.dispose();
+    // send ctrl+c to sigint any running processs (vscode/#108289)
+    this.terminal.sendText('\x03');
+    // and then destroy it on the next event loop tick
+    setTimeout(() => this.terminal.dispose(), 1);
+
     return this.stopped;
   }
 }
@@ -136,11 +140,17 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     this.terminalCreatedEmitter.fire(terminal);
 
     terminal.show();
-    this.program = new VSCodeTerminalProcess(terminal);
+    const program = (this.program = new VSCodeTerminalProcess(terminal));
 
     if (runData.params.command) {
       terminal.sendText(runData.params.command, true);
     }
+
+    program.stopped.then(result => {
+      if (program === this.program) {
+        this.onProgramTerminated(result);
+      }
+    });
   }
 
   /**
