@@ -438,15 +438,21 @@ export abstract class Breakpoint {
   protected hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
-        (script.url &&
-          isSetByUrl(bp.args) &&
-          (new RegExp(bp.args.urlRegex ?? '').test(script.url) ||
-            (script.urlRegexp && bp.args.urlRegex === script.urlRegexp)) &&
-          lcEqual(bp.args, lineColumn)) ||
-        (script.scriptId &&
-          isSetByLocation(bp.args) &&
-          bp.args.location.scriptId === script.scriptId &&
-          lcEqual(bp.args.location, lineColumn)),
+        script.scriptId &&
+        isSetByLocation(bp.args) &&
+        bp.args.location.scriptId === script.scriptId &&
+        lcEqual(bp.args.location, lineColumn),
+    );
+  }
+
+  /**
+   * Returns whether a breakpoint has been set on the given line and column
+   * at the provided script by url regexp already. This is used to deduplicate breakpoint
+   * requests to avoid triggering any logpoint breakpoints multiple times.
+   */
+  protected hasSetOnLocationByRegexp(urlRegexp: string, lineColumn: LineColumn) {
+    return this.cdpBreakpoints.find(
+      bp => isSetByUrl(bp.args) && bp.args.urlRegex === urlRegexp && lcEqual(bp.args, lineColumn),
     );
   }
 
@@ -461,7 +467,7 @@ export abstract class Breakpoint {
   ): Promise<void> {
     lineColumn = base1To0(lineColumn);
 
-    const previous = this.hasSetOnLocation({ urlRegexp }, lineColumn);
+    const previous = this.hasSetOnLocationByRegexp(urlRegexp, lineColumn);
     if (previous) {
       if (previous.state === CdpReferenceState.Pending) {
         await previous.done;
