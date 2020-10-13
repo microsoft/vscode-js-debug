@@ -10,6 +10,7 @@ import { ILogger } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { IInitializeParams } from '../ioc-extras';
+import { BlazorSourcePathResolver } from './browser/blazorSourcePathResolver';
 import { baseURL } from './browser/browserLaunchParams';
 import { BrowserSourcePathResolver } from './browser/browserPathResolver';
 import { NodeSourcePathResolver } from './node/nodeSourcePathResolver';
@@ -41,7 +42,8 @@ export class SourcePathResolverFactory {
         this.logger,
       );
     } else {
-      return new BrowserSourcePathResolver(
+      const isBlazor = !!c.inspectUri;
+      return new (isBlazor ? BlazorSourcePathResolver : BrowserSourcePathResolver)(
         this.vueMapper,
         this.fsUtils,
         {
@@ -52,7 +54,6 @@ export class SourcePathResolverFactory {
           pathMapping: { '/': c.webRoot, ...c.pathMapping },
           sourceMapOverrides: c.sourceMapPathOverrides,
           clientID: this.initializeParams.clientID,
-          isBlazor: !!c.inspectUri,
           remoteFilePrefix: c.__remoteFilePrefix,
         },
         this.logger,

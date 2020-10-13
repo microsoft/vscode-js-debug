@@ -53,7 +53,6 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
         remoteRoot: null,
         resolveSourceMapLocations: null,
         remoteFilePrefix: undefined,
-        isBlazor: false,
       },
       Logger.null,
     );
@@ -158,7 +157,6 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
         localRoot: null,
         remoteRoot: null,
         resolveSourceMapLocations: null,
-        isBlazor: false,
         remoteFilePrefix: undefined,
       },
       Logger.null,
@@ -198,7 +196,6 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
           localRoot: null,
           remoteRoot: null,
           resolveSourceMapLocations: null,
-          isBlazor: false,
           remoteFilePrefix: undefined,
         },
         await Logger.test(),

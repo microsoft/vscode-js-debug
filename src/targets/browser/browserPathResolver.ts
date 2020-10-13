@@ -7,7 +7,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
 import { IFsUtils } from '../../common/fsUtils';
-import { ILogger, LogTag } from '../../common/logging';
+import { ILogger } from '../../common/logging';
 import {
   fixDriveLetterAndSlashes,
   isSubdirectoryOf,
@@ -25,19 +25,15 @@ import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
-interface IOptions extends ISourcePathResolverOptions {
+export interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
   pathMapping: PathMapping;
   clientID: string | undefined;
-  isBlazor: boolean;
   remoteFilePrefix: string | undefined;
 }
 
 @injectable()
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
-  private readonly blazorInCodespacesRegexp: RegExp;
-  private readonly blazorInCodespacesRegexpSubstitution = '$1:\\$2';
-
   constructor(
     @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
     @inject(IFsUtils) private readonly fsUtils: IFsUtils,
@@ -45,56 +41,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     logger: ILogger,
   ) {
     super(options, logger);
-    if (this.options.isBlazor && this.options.remoteFilePrefix) {
-      const sep = `\\${path.sep}`;
-      const escapedPrefix = this.options.remoteFilePrefix.replace(new RegExp(sep, 'g'), sep);
-      this.blazorInCodespacesRegexp = new RegExp(
-        `^${escapedPrefix}${sep}([A-z])\\$${sep}(.*)$`,
-        // Sample value: /^C:\\Users\\digeff\\AppData\\Local\\Temp\\4169355D62D44D791D2A7534DE8994AB4B9E\\9\\~~\\([A-z])\$\\(.*)$/
-      );
-    } else {
-      this.blazorInCodespacesRegexp = new RegExp('');
-    }
-  }
-
-  public absolutePathToUrlRegexp(absolutePath: string): string | undefined {
-    if (this.options.isBlazor) {
-      if (this.options.remoteFilePrefix) {
-        // Sample values:
-        // absolutePath = C:\\Users\\digeff\\AppData\\Local\\Temp\\97D4F6178D8AD3159C555FA5FACA1ABA807E\\7\\~~\\C$\\workspace\\BlazorApp\\Pages\\Counter.razor
-        const filePath = absolutePath.replace(
-          this.blazorInCodespacesRegexp,
-          this.blazorInCodespacesRegexpSubstitution,
-        );
-        // filePath = C:\\workspace\\BlazorApp\\Pages\\Counter.razor
-        const fileUrlPath = utils.platformPathToUrlPath(filePath);
-        // fileUrlPath = C:/workspace/BlazorApp/Pages/Counter.razor
-        const noColonFileUrlPath = fileUrlPath.replace(/^(\w):(.*)$/, '$1$2');
-        // noColonFileUrlPath = C/workspace/BlazorApp/Pages/Counter.razor
-        const fileRegexp = utils.urlToRegex(noColonFileUrlPath);
-        // fileRegexp = [cC]\\/[wW][oO][rR][kK][sS][pP][aA][cC][eE]\\/[bB][lL][aA][zZ][oO][rR][wW][aA][sS][mM]\\/[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]
-        if (fileRegexp) {
-          const dotnetUrlRegexp = `dotnet://.*\\.dll/${fileRegexp}`;
-          // dotnetUrlRegexp = dotnet://.*\\.dll/[cC]\\/[wW][oO][rR][kK][sS][pP][aA][cC][eE]\\/[bB][lL][aA][zZ][oO][rR][wW][aA][sS][mM]\\/[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]
-          this.logger.verbose(
-            LogTag.RuntimeBreakpoints,
-            'absolutePathToUrlRegexp.blazor.remoteFs',
-            {
-              absolutePath,
-              dotnetUrlRegexp,
-            },
-          );
-          return dotnetUrlRegexp;
-        }
-      } else {
-        // Blazor files have a file:/// url. Override the default absolutePathToUrlRegexp which returns an http based regexp
-        const fileUrl = utils.absolutePathToFileUrl(absolutePath);
-        const fileRegexp = utils.urlToRegex(fileUrl);
-        return fileRegexp;
-      }
-    }
-
-    return super.absolutePathToUrlRegexp(absolutePath);
   }
 
   absolutePathToUrl(absolutePath: string): string | undefined {
