@@ -430,10 +430,9 @@ export class VariableStore {
     // Wrap up
     const resolved = flatten(await Promise.all(properties));
     resolved.sort((a, b) => {
-      const aname = a.v.name.includes(' ') ? a.v.name.split(' ')[1] : a.v.name;
-      const bname = b.v.name.includes(' ') ? b.v.name.split(' ')[1] : b.v.name;
+      const aname = a.v.name.includes(' ') ? a.v.name.split(' ')[0] : a.v.name;
+      const bname = b.v.name.includes(' ') ? b.v.name.split(' ')[0] : b.v.name;
       if (!isNaN(+aname) && !isNaN(+bname)) return +aname - +bname;
-      // tslint:disable-next-line
       const delta = b.weight - a.weight;
       return delta ? delta : aname.localeCompare(bname);
     });
@@ -521,14 +520,14 @@ export class VariableStore {
       } else {
         const obj = owner.wrap(p.name, p.get);
         obj.evaluteOnInspect = true;
-        result.push(this._createGetter(`get ${p.name}`, obj, 'propertyValue'));
+        result.push(this._createGetter(`${p.name} (get)`, obj, 'propertyValue'));
       }
     }
 
     // add setter if present
     if (p.set && p.set.type !== 'undefined') {
       result.push(
-        await this._createVariable(`set ${p.name}`, owner.wrap(p.name, p.set), 'propertyValue'),
+        await this._createVariable(`${p.name} (set)`, owner.wrap(p.name, p.set), 'propertyValue'),
       );
     }
 

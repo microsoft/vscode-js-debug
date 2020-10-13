@@ -1,16 +1,16 @@
 > result: {}
-    > set foo: ƒ foo(x) {}
-        > get arguments: ƒ ()
-        > set arguments: ƒ ()
-        > get caller: ƒ ()
-        > set caller: ƒ ()
+    > foo (set): ƒ foo(x) {}
+        > arguments (get): ƒ ()
+        > arguments (set): ƒ ()
+        > caller (get): ƒ ()
+        > caller (set): ƒ ()
         length: 1
         name: 'set foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Scopes]]: Scopes[1]
         > __proto__: function () { [native code] }
     > __proto__: Object
-        > set foo: ƒ foo(x) {}
+        > foo (set): ƒ foo(x) {}
         > __proto__: Object
 
 > result: {}
@@ -20,18 +20,18 @@
         > __proto__: Object
 
 > result: {}
-    > get foo: ƒ foo() { throw 'wat'; }
-        > get arguments: ƒ ()
-        > set arguments: ƒ ()
-        > get caller: ƒ ()
-        > set caller: ƒ ()
+    > foo (get): ƒ foo() { throw 'wat'; }
+        > arguments (get): ƒ ()
+        > arguments (set): ƒ ()
+        > caller (get): ƒ ()
+        > caller (set): ƒ ()
         length: 0
         name: 'get foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Scopes]]: Scopes[1]
         > __proto__: function () { [native code] }
     > __proto__: Object
-        > get foo: ƒ foo() { throw 'wat'; }
+        > foo (get): ƒ foo() { throw 'wat'; }
         > __proto__: Object
 
 > result: {}

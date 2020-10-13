@@ -18,17 +18,17 @@ result: 3
     0: 1
     1: 2
     2: 3
-    > get buffer: ƒ buffer()
-    > get byteLength: ƒ byteLength()
-    > get byteOffset: ƒ byteOffset()
-    > get length: ƒ length()
-    > get Symbol(Symbol.toStringTag): ƒ [Symbol.toStringTag]()
+    > buffer (get): ƒ buffer()
+    > byteLength (get): ƒ byteLength()
+    > byteOffset (get): ƒ byteOffset()
+    > length (get): ƒ length()
+    > Symbol(Symbol.toStringTag) (get): ƒ [Symbol.toStringTag]()
     > __proto__: TypedArray
 
 > result: ArrayBuffer(3)
     > [[Int8Array]]: Int8Array(3) [1, 2, 3]
     > [[Uint8Array]]: Uint8Array(3) [1, 2, 3]
-    > get byteLength: ƒ byteLength()
+    > byteLength (get): ƒ byteLength()
     > __proto__: ArrayBuffer
 
 > result: Proxy {a: 1}
@@ -37,53 +37,53 @@ result: 3
     > [[Target]]: Object
 
 > result: {}
-    > set foo: ƒ foo(x) {}
-        > get arguments: ƒ ()
-        > set arguments: ƒ ()
-        > get caller: ƒ ()
-        > set caller: ƒ ()
+    > foo (set): ƒ foo(x) {}
+        > arguments (get): ƒ ()
+        > arguments (set): ƒ ()
+        > caller (get): ƒ ()
+        > caller (set): ƒ ()
         length: 1
         name: 'set foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Scopes]]: Scopes[1]
         > __proto__: function () { [native code] }
     > __proto__: Object
-        > set foo: ƒ foo(x) {}
+        > foo (set): ƒ foo(x) {}
         > __proto__: Object
 
 > result: {}
-    > get foo: ƒ foo() { return 42 }
+    > foo (get): ƒ foo() { return 42 }
         42
     > __proto__: Object
-        > get foo: ƒ foo() { return 42 }
+        > foo (get): ƒ foo() { return 42 }
         > __proto__: Object
 
 > result: {}
-    > get foo: ƒ foo() { throw 'wat'; }
-        > get arguments: ƒ ()
-        > set arguments: ƒ ()
-        > get caller: ƒ ()
-        > set caller: ƒ ()
+    > foo (get): ƒ foo() { throw 'wat'; }
+        > arguments (get): ƒ ()
+        > arguments (set): ƒ ()
+        > caller (get): ƒ ()
+        > caller (set): ƒ ()
         length: 0
         name: 'get foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Scopes]]: Scopes[1]
         > __proto__: function () { [native code] }
     > __proto__: Object
-        > get foo: ƒ foo() { throw 'wat'; }
+        > foo (get): ƒ foo() { throw 'wat'; }
         > __proto__: Object
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar
 stderr> > Uncaught Error: bar
-stderr>     
+stderr>
 <anonymous> @ localhost꞉8001/eval1.js:1:26
 ◀ setTimeout ▶
 <anonymous> @ localhost꞉8001/eval1.js:1
 
 stderr> Uncaught Error: baz
 stderr> > Uncaught Error: baz
-stderr>     
+stderr>
 <anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
 <anonymous> @ <eval>/VM<xx>:1
@@ -94,7 +94,7 @@ stderr>
 
 stderr> Uncaught Error: error2
 stderr> > Uncaught Error: error2
-stderr>     
+stderr>
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
 <anonymous> @ <eval>/VM<xx>:1:27
 ◀ setTimeout ▶

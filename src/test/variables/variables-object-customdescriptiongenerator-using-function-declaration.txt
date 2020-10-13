@@ -1,3 +1,3 @@
 > result: using function: Instance of bar
-    > get getter: ƒ getter() {}
+    > getter (get): ƒ getter() {}
     > __proto__: using function: Instance of bar
