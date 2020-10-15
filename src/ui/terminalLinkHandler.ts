@@ -163,9 +163,10 @@ export class TerminalLinkHandler
       // ignored
     }
 
-    const cwd = terminal.workspaceFolder
-      ? vscode.workspace.workspaceFolders?.[terminal.workspaceFolder]
-      : undefined;
+    const cwd =
+      terminal.workspaceFolder !== undefined
+        ? vscode.workspace.workspaceFolders?.[terminal.workspaceFolder]
+        : undefined;
 
     vscode.debug.startDebugging(cwd, {
       ...this.baseConfiguration,
