@@ -7,10 +7,10 @@ import * as path from 'path';
 import { URL } from 'url';
 import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
+import { IFsUtils } from '../fsUtils';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
 import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
-import { IFsUtils } from '../fsUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {

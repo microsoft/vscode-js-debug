@@ -91,7 +91,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     if (!path.isAbsolute(url) && this.options.basePath) {
       url = properResolve(
         await getComputedSourceRoot(
-          this.rebaseRemoteToLocal(map.sourceRoot),
+          this.options.remoteRoot && urlUtils.isAbsolute(map.sourceRoot)
+            ? this.rebaseRemoteToLocal(map.sourceRoot) || map.sourceRoot
+            : map.sourceRoot,
           map.metadata.compiledPath,
           { '/': this.options.basePath },
           moduleAwarePathMappingResolver(this.fsUtils, map.metadata.compiledPath),
