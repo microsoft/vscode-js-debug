@@ -4,6 +4,8 @@
 
 import * as path from 'path';
 import { URL } from 'url';
+import { IFsUtils } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
 import { fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
@@ -14,8 +16,6 @@ import {
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as urlUtils from '../../common/urlUtils';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
-import { IFsUtils } from '../../common/fsUtils';
-import { ILogger } from '../../common/logging';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
@@ -91,7 +91,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     if (!path.isAbsolute(url) && this.options.basePath) {
       url = properResolve(
         await getComputedSourceRoot(
-          map.sourceRoot,
+          this.rebaseRemoteToLocal(map.sourceRoot),
           map.metadata.compiledPath,
           { '/': this.options.basePath },
           moduleAwarePathMappingResolver(this.fsUtils, map.metadata.compiledPath),
