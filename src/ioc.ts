@@ -68,6 +68,7 @@ import {
   trackDispose,
   VSCodeApi,
 } from './ioc-extras';
+import { BreakpointsStatisticsCalculator } from './statistics/breakpointsStatistics';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
 import { EdgeLauncher } from './targets/browser/edgeLauncher';
@@ -153,6 +154,7 @@ export const createTargetContainer = (
     .onActivation(trackDispose);
 
   container.bind(BreakpointManager).toSelf().inSingletonScope();
+
   container.bind(SourceContainer).toSelf().inSingletonScope();
   container.bind(Diagnostics).toSelf().inSingletonScope();
 
@@ -199,6 +201,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .onActivation(trackDispose);
 
   container.bind(BreakpointsPredictor).toSelf();
+  container.bind(BreakpointsStatisticsCalculator).toSelf().inSingletonScope();
   container
     .bind(IBreakpointsPredictor)
     .toDynamicValue(

@@ -82,7 +82,6 @@ export class BreakpointManager {
   _scriptSourceMapHandler: ScriptWithSourceMapHandler;
   private _launchBlocker: Set<Promise<unknown>> = new Set();
   private _predictorDisabledForTest = false;
-  private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
   private readonly pauseForSourceMaps: boolean;
   private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
@@ -136,6 +135,8 @@ export class BreakpointManager {
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(IBreakpointConditionFactory)
     private readonly conditionFactory: IBreakpointConditionFactory,
+    @inject(BreakpointsStatisticsCalculator)
+    public readonly _breakpointsStatisticsCalculator: BreakpointsStatisticsCalculator,
     @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: IBreakpointsPredictor,
   ) {
     this._dap = dap;
@@ -616,7 +617,7 @@ export class BreakpointManager {
   ): Promise<void> {
     const dap = await breakpoint.toDap();
     if (dap.verified) {
-      this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpoint.dapId);
+      this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpoint);
     }
 
     if (emitChange) {
@@ -701,7 +702,7 @@ export class BreakpointManager {
     for (const breakpointId of hitBreakpointIds) {
       const breakpoint = this._resolvedBreakpoints.get(breakpointId);
       if (breakpoint instanceof UserDefinedBreakpoint) {
-        this._breakpointsStatisticsCalculator.registerBreakpointHit(breakpoint.dapId);
+        this._breakpointsStatisticsCalculator.registerBreakpointHit(breakpoint);
       }
     }
   }

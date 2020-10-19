@@ -5,6 +5,7 @@
 import { inject, injectable } from 'inversify';
 import { BasicSourceMapConsumer, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
+import { BreakpointsStatisticsCalculator } from '../../statistics/breakpointsStatistics';
 import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 import { IDisposable } from '../disposable';
 import { ISourcePathResolver } from '../sourcePathResolver';
@@ -21,7 +22,7 @@ export interface ISourceMapFactory extends IDisposable {
    * Loads the provided source map.
    * @throws a {@link ProtocolError} if it cannot be parsed
    */
-  load(metadata: ISourceMapMetadata): Promise<SourceMap>;
+  load(metadata: ISourceMapMetadata, foundByBreakpointsPredictor: boolean): Promise<SourceMap>;
 }
 
 /**
@@ -49,12 +50,23 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
   constructor(
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
+    @inject(BreakpointsStatisticsCalculator)
+    public readonly _breakpointsStatisticsCalculator: BreakpointsStatisticsCalculator,
   ) {}
 
   /**
    * @inheritdoc
    */
-  public load(metadata: ISourceMapMetadata): Promise<SourceMap> {
+  public load(
+    metadata: ISourceMapMetadata,
+    foundByBreakpointsPredictor: boolean,
+  ): Promise<SourceMap> {
+    // Register for telemetry how did we find this source-map
+    this._breakpointsStatisticsCalculator.registerSourceMap(
+      metadata.sourceMapUrl,
+      foundByBreakpointsPredictor,
+    );
+
     const existing = this.knownMaps.get(metadata.sourceMapUrl);
     if (!existing) {
       return this.loadNewSourceMap(metadata);

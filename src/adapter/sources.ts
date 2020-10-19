@@ -901,7 +901,7 @@ export class SourceContainer {
     this._sourceMaps.set(source.sourceMap.url, sourceMap);
 
     try {
-      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata, false);
     } catch (e) {
       this._dap.output({
         output: sourceMapParseFailed(source.url, e.message).error.format + '\n',
@@ -1024,7 +1024,7 @@ export class SourceContainer {
           : fileUrl
           ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
-        undefined,
+        map.metadata.sourceMapUrl,
         undefined,
         compiled.runtimeScriptOffset,
       );

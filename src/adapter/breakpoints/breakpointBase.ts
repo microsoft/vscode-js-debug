@@ -7,7 +7,14 @@ import { LogTag } from '../../common/logging';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { base1To0, IUiLocation, Source, SourceFromMap, uiToRawOffset } from '../sources';
+import {
+  base1To0,
+  ISourceWithMap,
+  IUiLocation,
+  Source,
+  SourceFromMap,
+  uiToRawOffset,
+} from '../sources';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -318,6 +325,11 @@ export abstract class Breakpoint {
     await Promise.all(promises);
 
     return uiLocations;
+  }
+
+  public sourceMap(): ISourceWithMap['sourceMap'] | undefined {
+    const source = this._manager._sourceContainer.source(this.source);
+    return source?.sourceMap;
   }
 
   /**
