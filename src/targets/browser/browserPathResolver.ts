@@ -2,33 +2,34 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import * as path from 'path';
-import * as utils from '../../common/urlUtils';
-import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
-import { IUrlResolution } from '../../common/sourcePathResolver';
-import {
-  properResolve,
-  fixDriveLetterAndSlashes,
-  properRelative,
-  isSubdirectoryOf,
-} from '../../common/pathUtils';
-import { PathMapping } from '../../configuration';
 import { URL } from 'url';
+import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
+import { IFsUtils } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
+import {
+  fixDriveLetterAndSlashes,
+  isSubdirectoryOf,
+  properRelative,
+  properResolve,
+} from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
-  getFullSourceEntry,
   defaultPathMappingResolver,
   getComputedSourceRoot,
+  getFullSourceEntry,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
-import { injectable, inject } from 'inversify';
-import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
-import { ILogger } from '../../common/logging';
-import { IFsUtils } from '../../common/fsUtils';
+import { IUrlResolution } from '../../common/sourcePathResolver';
+import * as utils from '../../common/urlUtils';
+import { PathMapping } from '../../configuration';
+import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
-interface IOptions extends ISourcePathResolverOptions {
+export interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
   pathMapping: PathMapping;
   clientID: string | undefined;
+  remoteFilePrefix: string | undefined;
 }
 
 @injectable()

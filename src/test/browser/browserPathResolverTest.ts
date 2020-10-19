@@ -15,17 +15,18 @@ import { defaultSourceMapPathOverrides } from '../../configuration';
 import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
 import { testFixturesDir } from '../test';
 
+export const testVueMapper: IVueFileMapper = {
+  lookup: async url => path.join(testFixturesDir, 'web', 'looked up', url),
+  getVueHandling: url =>
+    url.includes('lookup.vue')
+      ? VueHandling.Lookup
+      : url.includes('omit.vue')
+      ? VueHandling.Omit
+      : VueHandling.Unhandled,
+};
+
 describe('browserPathResolver.urlToAbsolutePath', () => {
   let fsExistStub: SinonStub<[PathLike, (cb: boolean) => void], void>;
-  const testVueMapper: IVueFileMapper = {
-    lookup: async url => path.join(testFixturesDir, 'web', 'looked up', url),
-    getVueHandling: url =>
-      url.includes('lookup.vue')
-        ? VueHandling.Lookup
-        : url.includes('omit.vue')
-        ? VueHandling.Omit
-        : VueHandling.Unhandled,
-  };
 
   before(() => {
     fsExistStub = stub(fsModule, 'exists').callsFake((path, cb) => {
@@ -52,6 +53,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
         localRoot: null,
         remoteRoot: null,
         resolveSourceMapLocations: null,
+        remoteFilePrefix: undefined,
       },
       Logger.null,
     );
@@ -156,6 +158,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
         localRoot: null,
         remoteRoot: null,
         resolveSourceMapLocations: null,
+        remoteFilePrefix: undefined,
       },
       Logger.null,
     );
@@ -194,6 +197,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
           localRoot: null,
           remoteRoot: null,
           resolveSourceMapLocations: null,
+          remoteFilePrefix: undefined,
         },
         await Logger.test(),
       );
