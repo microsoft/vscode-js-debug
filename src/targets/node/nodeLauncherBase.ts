@@ -274,7 +274,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Returns the user-configured portion of the environment variables.
    */
   protected getConfiguredEnvironment(params: T) {
-    let baseEnv = EnvironmentVars.empty;
+    let baseEnv = new EnvironmentVars({
+      // fixes https://github.com/microsoft/vscode/issues/75097
+      APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL: null,
+    });
 
     // read environment variables from any specified file
     if (params.envFile) {
