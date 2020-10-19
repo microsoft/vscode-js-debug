@@ -4,4 +4,4 @@
 
 import { join } from 'path';
 
-export const toolPath = join(__dirname, 'index.bundle.js');
+export const toolPath = join(__dirname, 'diagnosticTool.bundle.js');
