@@ -1162,7 +1162,9 @@ export class Thread implements IVariableStoreDelegate {
       const source = await this._sourceContainer.addSource(
         event.url,
         contentGetter,
-        resolvedSourceMapUrl,
+        resolvedSourceMapUrl
+          ? { url: resolvedSourceMapUrl, createdFrom: 'scriptParsed' }
+          : undefined,
         inlineSourceOffset,
         runtimeScriptOffset,
         hash,

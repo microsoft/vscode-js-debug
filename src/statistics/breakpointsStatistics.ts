@@ -26,6 +26,7 @@ export interface IManyBreakpointsStatistics {
   hit: number;
   hitSources: IBreakpointSources;
   verifiedSources: IBreakpointSources;
+  loadedSourcesMaps: IBreakpointSources;
 }
 
 interface ISourceMapStatistics {
@@ -36,6 +37,7 @@ interface ISourceMapStatistics {
 @injectable()
 export class BreakpointsStatisticsCalculator {
   private readonly _statisticsById = new Map<number, BreakpointStatistic>();
+  private readonly _sourceMapsUsedBySources = new Set<string>();
   private readonly _sourceMapStatisticsByUrl = new Map<string, ISourceMapStatistics>();
 
   public registerBreakpoints(manyBreakpoints: Dap.Breakpoint[]): void {
@@ -47,6 +49,10 @@ export class BreakpointsStatisticsCalculator {
           new BreakpointStatistic(breakpoint.verified, false),
         );
     });
+  }
+
+  registerLoadSourceUsingMap(sourceMapUrl: string) {
+    this._sourceMapsUsedBySources.add(sourceMapUrl);
   }
 
   public registerResolvedBreakpoint(breakpoint: UserDefinedBreakpoint) {
@@ -81,11 +87,8 @@ export class BreakpointsStatisticsCalculator {
       breakpointPredictorAndScriptParsed: 0,
       scriptParsed: 0,
     };
-    const verifiedSources: IBreakpointSources = {
-      breakpointPredictor: 0,
-      breakpointPredictorAndScriptParsed: 0,
-      scriptParsed: 0,
-    };
+    const verifiedSources = { ...hitSources };
+    const loadedSourcesMaps = { ...hitSources };
 
     for (const singleStatistic of this._statisticsById.values()) {
       count++;
@@ -103,7 +106,11 @@ export class BreakpointsStatisticsCalculator {
       }
     }
 
-    return { set: count, verified, hit, hitSources, verifiedSources };
+    for (const sourceMapUrl of this._sourceMapsUsedBySources.values()) {
+      this.accumulateSources(loadedSourcesMaps, this.calculateSourceMapStatistics(sourceMapUrl));
+    }
+
+    return { set: count, verified, hit, hitSources, verifiedSources, loadedSourcesMaps };
   }
 
   private accumulateSources(accumulation: IBreakpointSources, singlePoint: IBreakpointSources) {

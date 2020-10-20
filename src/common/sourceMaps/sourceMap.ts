@@ -3,20 +3,23 @@
  *--------------------------------------------------------*/
 
 import {
-  Position,
-  NullableMappedPosition,
-  NullablePosition,
+  BasicSourceMapConsumer,
   MappedPosition,
   MappingItem,
-  BasicSourceMapConsumer,
+  NullableMappedPosition,
+  NullablePosition,
+  Position,
 } from 'source-map';
-import { completeUrlEscapingRoot } from '../urlUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
+import { completeUrlEscapingRoot } from '../urlUtils';
+
+export type SourceMapCreatedFrom = 'breakpointsPredictor' | 'scriptParsed' | 'prettyPrint';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
   mtime?: number;
   compiledPath: string;
+  createdFrom: SourceMapCreatedFrom;
 }
 
 /**

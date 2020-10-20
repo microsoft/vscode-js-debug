@@ -72,5 +72,6 @@ export const createMetadataForFile = async (compiledPath: string, fileContents?:
     compiledPath,
     sourceMapUrl,
     mtime: stats && stats.mtimeMs,
-  };
+    createdFrom: 'breakpointsPredictor',
+  } as Required<ISourceMapMetadata>;
 };

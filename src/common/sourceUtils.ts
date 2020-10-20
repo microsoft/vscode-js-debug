@@ -49,6 +49,7 @@ export async function prettyPrintAsSourceMap(
     {
       sourceMapUrl,
       compiledPath,
+      createdFrom: 'prettyPrint',
     },
     '',
     [fileName],

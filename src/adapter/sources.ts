@@ -15,7 +15,11 @@ import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
 import { delay, getDeferred } from '../common/promiseUtil';
-import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
+import {
+  ISourceMapMetadata,
+  SourceMap,
+  SourceMapCreatedFrom,
+} from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
@@ -25,6 +29,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import { sourceMapParseFailed } from '../dap/errors';
+import { BreakpointsStatisticsCalculator } from '../statistics/breakpointsStatistics';
 import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
@@ -159,7 +164,7 @@ export class Source {
     public readonly url: string,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
-    sourceMapUrl?: string,
+    sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom },
     public readonly inlineScriptOffset?: InlineScriptOffset,
     public readonly runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
@@ -170,7 +175,7 @@ export class Source {
     this.absolutePath = absolutePath || '';
     this._fqname = this._fullyQualifiedName();
     this._name = this._humanName();
-    this.setSourceMapUrl(sourceMapUrl);
+    this.setSourceMapUrl(sourceMap);
 
     this._existingAbsolutePath = sourceUtils.checkContentHash(
       this.absolutePath,
@@ -180,18 +185,19 @@ export class Source {
     );
   }
 
-  private setSourceMapUrl(sourceMapUrl?: string) {
-    if (!sourceMapUrl) {
+  private setSourceMapUrl(sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom }) {
+    if (!sourceMap) {
       this.sourceMap = undefined;
       return;
     }
 
     this.sourceMap = {
-      url: sourceMapUrl,
+      url: sourceMap.url,
       sourceByUrl: new Map(),
       metadata: {
-        sourceMapUrl,
+        sourceMapUrl: sourceMap.url,
         compiledPath: this.absolutePath || this.url,
+        createdFrom: sourceMap.createdFrom,
       },
     };
   }
@@ -257,7 +263,7 @@ export class Source {
     }
 
     // Note: this overwrites existing source map.
-    this.setSourceMapUrl(sourceMapUrl);
+    this.setSourceMapUrl({ url: sourceMapUrl, createdFrom: 'prettyPrint' });
     const asCompiled = this as ISourceWithMap;
     const sourceMap: SourceMapData = {
       compiled: new Set([asCompiled]),
@@ -516,6 +522,8 @@ export class SourceContainer {
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
+    @inject(BreakpointsStatisticsCalculator)
+    public readonly _breakpointsStatisticsCalculator: BreakpointsStatisticsCalculator,
   ) {
     this._dap = dap;
 
@@ -745,9 +753,23 @@ export class SourceContainer {
     };
   }
 
-  private getCompiledLocations(uiLocation: IUiLocation): IUiLocation[] {
+  private getCompiledLocations(
+    uiLocation: IUiLocation,
+    alreadyVisisted: IUiLocation[] = [],
+  ): IUiLocation[] {
     if (!(uiLocation.source instanceof SourceFromMap)) {
       return [];
+    } else if (
+      alreadyVisisted.find(
+        e =>
+          e.columnNumber === uiLocation.columnNumber &&
+          e.lineNumber === uiLocation.lineNumber &&
+          e.source === uiLocation.source,
+      ) !== undefined
+    ) {
+      return [];
+    } else {
+      alreadyVisisted.push(uiLocation);
     }
 
     let output: IUiLocation[] = [];
@@ -782,7 +804,10 @@ export class SourceContainer {
         source: compiled,
       };
 
-      output = output.concat(compiledUiLocation, this.getCompiledLocations(compiledUiLocation));
+      output = output.concat(
+        compiledUiLocation,
+        this.getCompiledLocations(compiledUiLocation, alreadyVisisted),
+      );
     }
 
     return output;
@@ -821,7 +846,7 @@ export class SourceContainer {
   public async addSource(
     url: string,
     contentGetter: ContentGetter,
-    sourceMapUrl?: string,
+    sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom },
     inlineSourceRange?: InlineScriptOffset,
     runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
@@ -837,12 +862,13 @@ export class SourceContainer {
       url,
       absolutePath,
       contentGetter,
-      sourceMapUrl &&
+      sourceMap &&
       this.sourcePathResolver.shouldResolveSourceMap({
-        sourceMapUrl,
+        sourceMapUrl: sourceMap.url,
         compiledPath: absolutePath || url,
+        createdFrom: sourceMap.createdFrom,
       })
-        ? sourceMapUrl
+        ? sourceMap
         : undefined,
       inlineSourceRange,
       runtimeScriptOffset,
@@ -879,6 +905,10 @@ export class SourceContainer {
     }
 
     this.scriptSkipper.initializeSkippingValueForSource(source);
+
+    if (source.sourceMap?.url) {
+      this._breakpointsStatisticsCalculator.registerLoadSourceUsingMap(source.sourceMap?.url);
+    }
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     if (!isSourceWithMap(source)) {
@@ -1024,7 +1054,7 @@ export class SourceContainer {
           : fileUrl
           ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
-        map.metadata.sourceMapUrl,
+        undefined,
         undefined,
         compiled.runtimeScriptOffset,
       );
