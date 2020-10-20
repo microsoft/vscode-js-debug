@@ -758,23 +758,9 @@ export class SourceContainer {
     };
   }
 
-  private getCompiledLocations(
-    uiLocation: IUiLocation,
-    alreadyVisisted: IUiLocation[] = [],
-  ): IUiLocation[] {
+  private getCompiledLocations(uiLocation: IUiLocation): IUiLocation[] {
     if (!(uiLocation.source instanceof SourceFromMap)) {
       return [];
-    } else if (
-      alreadyVisisted.find(
-        e =>
-          e.columnNumber === uiLocation.columnNumber &&
-          e.lineNumber === uiLocation.lineNumber &&
-          e.source === uiLocation.source,
-      ) !== undefined
-    ) {
-      return [];
-    } else {
-      alreadyVisisted.push(uiLocation);
     }
 
     let output: IUiLocation[] = [];
@@ -809,10 +795,7 @@ export class SourceContainer {
         source: compiled,
       };
 
-      output = output.concat(
-        compiledUiLocation,
-        this.getCompiledLocations(compiledUiLocation, alreadyVisisted),
-      );
+      output = output.concat(compiledUiLocation, this.getCompiledLocations(compiledUiLocation));
     }
 
     return output;
