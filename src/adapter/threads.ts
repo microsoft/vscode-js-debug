@@ -1163,7 +1163,7 @@ export class Thread implements IVariableStoreDelegate {
         event.url,
         contentGetter,
         resolvedSourceMapUrl
-          ? { url: resolvedSourceMapUrl, createdFrom: 'scriptParsed' }
+          ? { url: resolvedSourceMapUrl, sourceMapOrigin: 'scriptParsed' }
           : undefined,
         inlineSourceOffset,
         runtimeScriptOffset,

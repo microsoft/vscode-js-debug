@@ -15,11 +15,7 @@ import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
 import { delay, getDeferred } from '../common/promiseUtil';
-import {
-  ISourceMapMetadata,
-  SourceMap,
-  SourceMapCreatedFrom,
-} from '../common/sourceMaps/sourceMap';
+import { ISourceMapMetadata, SourceMap, SourceMapOrigin } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
@@ -164,7 +160,7 @@ export class Source {
     public readonly url: string,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
-    sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom },
+    sourceMap?: { url: string; sourceMapOrigin: SourceMapOrigin },
     public readonly inlineScriptOffset?: InlineScriptOffset,
     public readonly runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
@@ -185,7 +181,7 @@ export class Source {
     );
   }
 
-  private setSourceMapUrl(sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom }) {
+  private setSourceMapUrl(sourceMap?: { url: string; sourceMapOrigin: SourceMapOrigin }) {
     if (!sourceMap) {
       this.sourceMap = undefined;
       return;
@@ -197,7 +193,7 @@ export class Source {
       metadata: {
         sourceMapUrl: sourceMap.url,
         compiledPath: this.absolutePath || this.url,
-        createdFrom: sourceMap.createdFrom,
+        sourceMapOrigin: sourceMap.sourceMapOrigin,
       },
     };
   }
@@ -263,7 +259,7 @@ export class Source {
     }
 
     // Note: this overwrites existing source map.
-    this.setSourceMapUrl({ url: sourceMapUrl, createdFrom: 'prettyPrint' });
+    this.setSourceMapUrl({ url: sourceMapUrl, sourceMapOrigin: 'prettyPrint' });
     const asCompiled = this as ISourceWithMap;
     const sourceMap: SourceMapData = {
       compiled: new Set([asCompiled]),
@@ -422,6 +418,15 @@ export class SourceFromMap extends Source {
   // (through a source map). This map holds the original |sourceUrl| as written in the
   // source map, which was used to produce this source for each compiled.
   public readonly compiledToSourceUrl = new Map<ISourceWithMap, string>();
+
+  public get sourceMapOrigin(): SourceMapOrigin | undefined {
+    for (const compiled of this.compiledToSourceUrl.keys()) {
+      // We assume that all the source-maps were created from the same place, so we just return the first value we find
+      return compiled.sourceMap.metadata.sourceMapOrigin;
+    }
+
+    return undefined;
+  }
 }
 
 export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
@@ -846,7 +851,7 @@ export class SourceContainer {
   public async addSource(
     url: string,
     contentGetter: ContentGetter,
-    sourceMap?: { url: string; createdFrom: SourceMapCreatedFrom },
+    sourceMap?: { url: string; sourceMapOrigin: SourceMapOrigin },
     inlineSourceRange?: InlineScriptOffset,
     runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
@@ -866,7 +871,7 @@ export class SourceContainer {
       this.sourcePathResolver.shouldResolveSourceMap({
         sourceMapUrl: sourceMap.url,
         compiledPath: absolutePath || url,
-        createdFrom: sourceMap.createdFrom,
+        sourceMapOrigin: sourceMap.sourceMapOrigin,
       })
         ? sourceMap
         : undefined,
@@ -906,9 +911,8 @@ export class SourceContainer {
 
     this.scriptSkipper.initializeSkippingValueForSource(source);
 
-    if (source.sourceMap?.url) {
-      this._breakpointsStatisticsCalculator.registerLoadSourceUsingMap(source.sourceMap?.url);
-    }
+    this._breakpointsStatisticsCalculator.recordSourceStatistics(source);
+
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
     if (!isSourceWithMap(source)) {
@@ -931,7 +935,7 @@ export class SourceContainer {
     this._sourceMaps.set(source.sourceMap.url, sourceMap);
 
     try {
-      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata, false);
+      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
     } catch (e) {
       this._dap.output({
         output: sourceMapParseFailed(source.url, e.message).error.format + '\n',

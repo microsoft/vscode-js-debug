@@ -4,17 +4,19 @@
 
 import { injectable } from 'inversify';
 import { UserDefinedBreakpoint } from '../adapter/breakpoints/userDefinedBreakpoint';
+import { Source } from '../adapter/sources';
+import { SourceMapOrigin } from '../common/sourceMaps/sourceMap';
 import { Dap } from '../dap/api';
 
 class BreakpointStatistic {
   public constructor(
     public verified = false,
     public hit = false,
-    public sourceMapUrl: string | undefined = undefined,
+    public sourceMapOrigin: SourceMapOrigin | undefined = undefined,
   ) {}
 }
 
-export interface IBreakpointSources {
+export interface IMapOriginStatistics {
   breakpointPredictor: number;
   scriptParsed: number;
   breakpointPredictorAndScriptParsed: number;
@@ -24,131 +26,117 @@ export interface IManyBreakpointsStatistics {
   set: number;
   verified: number;
   hit: number;
-  hitSources: IBreakpointSources;
-  verifiedSources: IBreakpointSources;
-  loadedSourcesMaps: IBreakpointSources;
-}
-
-interface ISourceMapStatistics {
-  foundByBreakpointPredictor: boolean;
-  loadedFromScriptParsed: boolean;
+  hitSources: IMapOriginStatistics;
+  verifiedSources: IMapOriginStatistics;
+  sourceMapOrigin: IMapOriginStatistics;
 }
 
 @injectable()
 export class BreakpointsStatisticsCalculator {
-  private readonly _statisticsById = new Map<number, BreakpointStatistic>();
-  private readonly _sourceMapsUsedBySources = new Set<string>();
-  private readonly _sourceMapStatisticsByUrl = new Map<string, ISourceMapStatistics>();
+  private readonly _breakpointStatisticsById = new Map<number, BreakpointStatistic>();
+  private readonly _sourcesStatistics: IMapOriginStatistics = {
+    breakpointPredictor: 0,
+    breakpointPredictorAndScriptParsed: 0,
+    scriptParsed: 0,
+  };
 
   public registerBreakpoints(manyBreakpoints: Dap.Breakpoint[]): void {
     manyBreakpoints.forEach(breakpoint => {
       breakpoint.id !== undefined &&
-        !this._statisticsById.has(breakpoint.id) &&
-        this._statisticsById.set(
+        !this._breakpointStatisticsById.has(breakpoint.id) &&
+        this._breakpointStatisticsById.set(
           breakpoint.id,
           new BreakpointStatistic(breakpoint.verified, false),
         );
     });
   }
 
-  registerLoadSourceUsingMap(sourceMapUrl: string) {
-    this._sourceMapsUsedBySources.add(sourceMapUrl);
+  public recordSourceStatistics(source: Source) {
+    this.accumulateSources(
+      this._sourcesStatistics,
+      this.calculateSourceMapStatistics(source.sourceMap?.metadata.sourceMapOrigin),
+    );
   }
 
   public registerResolvedBreakpoint(breakpoint: UserDefinedBreakpoint) {
-    const statistics = this.getStatistics(breakpoint.dapId);
+    const statistics = this.getStatistics(breakpoint);
     statistics.verified = true;
-    statistics.sourceMapUrl = breakpoint.sourceMap()?.url;
   }
 
   public registerBreakpointHit(breakpoint: UserDefinedBreakpoint) {
-    const statistics = this.getStatistics(breakpoint.dapId);
+    const statistics = this.getStatistics(breakpoint);
     statistics.hit = true;
-    statistics.sourceMapUrl = breakpoint.sourceMap()?.url;
   }
 
-  private getStatistics(breakpointId: number): BreakpointStatistic {
-    const statistic = this._statisticsById.get(breakpointId);
+  private getStatistics(breakpoint: UserDefinedBreakpoint): BreakpointStatistic {
+    let statistic = this._breakpointStatisticsById.get(breakpoint.dapId);
     if (statistic !== undefined) {
       return statistic;
     } else {
-      const newStatistic = new BreakpointStatistic();
-      this._statisticsById.set(breakpointId, newStatistic);
-      return newStatistic;
+      statistic = new BreakpointStatistic(false, false);
+      this._breakpointStatisticsById.set(breakpoint.dapId, statistic);
     }
+
+    if (!statistic.sourceMapOrigin) {
+      statistic.sourceMapOrigin = breakpoint.sourceMapOrigin();
+    }
+
+    return statistic;
   }
 
   public statistics(): IManyBreakpointsStatistics {
     let count = 0;
     let verified = 0;
     let hit = 0;
-    const hitSources: IBreakpointSources = {
+    const hitMapOrigin: IMapOriginStatistics = {
       breakpointPredictor: 0,
       breakpointPredictorAndScriptParsed: 0,
       scriptParsed: 0,
     };
-    const verifiedSources = { ...hitSources };
-    const loadedSourcesMaps = { ...hitSources };
+    const verifiedMapOrigin = { ...hitMapOrigin };
 
-    for (const singleStatistic of this._statisticsById.values()) {
+    for (const singleStatistic of this._breakpointStatisticsById.values()) {
       count++;
-      const breakpointSources = this.calculateSourceMapStatistics(
-        singleStatistic.sourceMapUrl || '',
-      );
+      const breakpointSources = this.calculateSourceMapStatistics(singleStatistic.sourceMapOrigin);
 
       if (singleStatistic.hit) {
         hit++;
-        this.accumulateSources(hitSources, breakpointSources);
+        this.accumulateSources(hitMapOrigin, breakpointSources);
       }
       if (singleStatistic.verified) {
         verified++;
-        this.accumulateSources(verifiedSources, breakpointSources);
+        this.accumulateSources(verifiedMapOrigin, breakpointSources);
       }
     }
 
-    for (const sourceMapUrl of this._sourceMapsUsedBySources.values()) {
-      this.accumulateSources(loadedSourcesMaps, this.calculateSourceMapStatistics(sourceMapUrl));
-    }
-
-    return { set: count, verified, hit, hitSources, verifiedSources, loadedSourcesMaps };
+    return {
+      set: count,
+      verified,
+      hit,
+      hitSources: hitMapOrigin,
+      verifiedSources: verifiedMapOrigin,
+      sourceMapOrigin: this._sourcesStatistics,
+    };
   }
 
-  private accumulateSources(accumulation: IBreakpointSources, singlePoint: IBreakpointSources) {
+  private accumulateSources(accumulation: IMapOriginStatistics, singlePoint: IMapOriginStatistics) {
     accumulation.breakpointPredictorAndScriptParsed +=
       singlePoint.breakpointPredictorAndScriptParsed;
     accumulation.breakpointPredictor += singlePoint.breakpointPredictor;
     accumulation.scriptParsed += singlePoint.scriptParsed;
   }
 
-  private calculateSourceMapStatistics(sourceMapUrl: string): IBreakpointSources {
-    const sourceMapStatistics = this._sourceMapStatisticsByUrl.get(sourceMapUrl);
-    if (sourceMapStatistics) {
-      if (
-        sourceMapStatistics.foundByBreakpointPredictor &&
-        sourceMapStatistics.loadedFromScriptParsed
-      ) {
-        return { breakpointPredictor: 0, breakpointPredictorAndScriptParsed: 1, scriptParsed: 0 };
-      } else if (sourceMapStatistics.foundByBreakpointPredictor) {
+  private calculateSourceMapStatistics(
+    sourceMapOrigin: SourceMapOrigin | undefined,
+  ): IMapOriginStatistics {
+    if (sourceMapOrigin) {
+      if (sourceMapOrigin === 'breakpointsPredictor') {
         return { breakpointPredictor: 1, breakpointPredictorAndScriptParsed: 0, scriptParsed: 0 };
-      } else if (sourceMapStatistics.loadedFromScriptParsed) {
+      } else if (sourceMapOrigin === 'scriptParsed') {
         return { breakpointPredictor: 0, breakpointPredictorAndScriptParsed: 0, scriptParsed: 1 };
       }
     }
+
     return { breakpointPredictor: 0, breakpointPredictorAndScriptParsed: 0, scriptParsed: 0 };
-  }
-
-  public registerSourceMap(sourceMapUrl: string, foundByBreakpointsPredictor: boolean) {
-    const statistics = this._sourceMapStatisticsByUrl.get(sourceMapUrl) || {
-      foundByBreakpointPredictor: false,
-      loadedFromScriptParsed: false,
-    };
-
-    if (foundByBreakpointsPredictor) {
-      statistics.foundByBreakpointPredictor = true;
-    } else {
-      statistics.loadedFromScriptParsed = true;
-    }
-
-    this._sourceMapStatisticsByUrl.set(sourceMapUrl, statistics);
   }
 }

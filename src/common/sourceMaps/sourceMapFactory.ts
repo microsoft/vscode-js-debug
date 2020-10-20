@@ -22,7 +22,7 @@ export interface ISourceMapFactory extends IDisposable {
    * Loads the provided source map.
    * @throws a {@link ProtocolError} if it cannot be parsed
    */
-  load(metadata: ISourceMapMetadata, foundByBreakpointsPredictor: boolean): Promise<SourceMap>;
+  load(metadata: ISourceMapMetadata): Promise<SourceMap>;
 }
 
 /**
@@ -57,16 +57,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
   /**
    * @inheritdoc
    */
-  public load(
-    metadata: ISourceMapMetadata,
-    foundByBreakpointsPredictor: boolean,
-  ): Promise<SourceMap> {
-    // Register for telemetry how did we find this source-map
-    this._breakpointsStatisticsCalculator.registerSourceMap(
-      metadata.sourceMapUrl,
-      foundByBreakpointsPredictor,
-    );
-
+  public load(metadata: ISourceMapMetadata): Promise<SourceMap> {
     const existing = this.knownMaps.get(metadata.sourceMapUrl);
     if (!existing) {
       return this.loadNewSourceMap(metadata);

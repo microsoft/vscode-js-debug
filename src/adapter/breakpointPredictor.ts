@@ -225,7 +225,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
         let map: SourceMap;
         try {
-          map = await this.sourceMapFactory.load(metadata, true);
+          map = await this.sourceMapFactory.load(metadata);
         } catch {
           return;
         }
@@ -291,7 +291,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     const sourceMaps = await Promise.all(
       [...set].map(metadata =>
         this.sourceMapFactory
-          .load(metadata, true)
+          .load(metadata)
           .then(map => ({ map, metadata }))
           .catch(() => undefined),
       ),

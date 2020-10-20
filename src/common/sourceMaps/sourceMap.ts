@@ -13,13 +13,13 @@ import {
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { completeUrlEscapingRoot } from '../urlUtils';
 
-export type SourceMapCreatedFrom = 'breakpointsPredictor' | 'scriptParsed' | 'prettyPrint';
+export type SourceMapOrigin = 'breakpointsPredictor' | 'scriptParsed' | 'prettyPrint';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
   mtime?: number;
   compiledPath: string;
-  createdFrom: SourceMapCreatedFrom;
+  sourceMapOrigin: SourceMapOrigin;
 }
 
 /**
