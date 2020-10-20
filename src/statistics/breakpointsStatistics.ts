@@ -51,9 +51,9 @@ export class BreakpointsStatisticsCalculator {
   }
 
   public recordSourceStatistics(source: Source) {
-    this.accumulateSources(
+    this.accumulateSourceMapOriginStatistics(
       this._sourcesStatistics,
-      this.calculateSourceMapStatistics(source.sourceMap?.metadata.sourceMapOrigin),
+      source.sourceMap?.metadata.sourceMapOrigin,
     );
   }
 
@@ -94,15 +94,17 @@ export class BreakpointsStatisticsCalculator {
 
     for (const singleStatistic of this._breakpointStatisticsById.values()) {
       count++;
-      const breakpointSources = this.calculateSourceMapStatistics(singleStatistic.sourceMapOrigin);
 
       if (singleStatistic.hit) {
         hit++;
-        this.accumulateSources(hitMapOrigin, breakpointSources);
+        this.accumulateSourceMapOriginStatistics(hitMapOrigin, singleStatistic.sourceMapOrigin);
       }
       if (singleStatistic.verified) {
         verified++;
-        this.accumulateSources(verifiedMapOrigin, breakpointSources);
+        this.accumulateSourceMapOriginStatistics(
+          verifiedMapOrigin,
+          singleStatistic.sourceMapOrigin,
+        );
       }
     }
 
@@ -116,25 +118,17 @@ export class BreakpointsStatisticsCalculator {
     };
   }
 
-  private accumulateSources(
+  private accumulateSourceMapOriginStatistics(
     accumulation: ISourceMapOriginStatistics,
-    singlePoint: ISourceMapOriginStatistics,
-  ) {
-    accumulation.breakpointPredictor += singlePoint.breakpointPredictor;
-    accumulation.scriptParsed += singlePoint.scriptParsed;
-  }
-
-  private calculateSourceMapStatistics(
     sourceMapOrigin: SourceMapOrigin | undefined,
-  ): ISourceMapOriginStatistics {
-    if (sourceMapOrigin) {
-      if (sourceMapOrigin === 'breakpointsPredictor') {
-        return { breakpointPredictor: 1, scriptParsed: 0 };
-      } else if (sourceMapOrigin === 'scriptParsed') {
-        return { breakpointPredictor: 0, scriptParsed: 1 };
-      }
+  ) {
+    switch (sourceMapOrigin) {
+      case 'breakpointsPredictor':
+        accumulation.breakpointPredictor += 1;
+        break;
+      case 'scriptParsed':
+        accumulation.scriptParsed += 1;
+        break;
     }
-
-    return { breakpointPredictor: 0, scriptParsed: 0 };
   }
 }
