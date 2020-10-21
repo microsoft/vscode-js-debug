@@ -19,6 +19,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: remote source maps don't resolve correctly with an absolute sourceroot shorter than the local path ([ref](https://github.com/microsoft/vscode/issues/108418))
 - fix: terminal links not setting the first workspace folder ([#701](https://github.com/microsoft/vscode-js-debug/issues/701))
 - fix: send ctrl+c to kill nodemon running in debug terminal ([#701](https://github.com/microsoft/vscode/issues/108289))
+- refactor: improve performance when loading very many sourcemaps for pages that don't need authentication
 - refactor: remove runtime dependency on TypeScript ([ref](https://github.com/microsoft/vscode/issues/107680))
 
 ## 1.50.2 - 2020-10-02

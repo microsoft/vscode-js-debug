@@ -545,7 +545,6 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Runtime.enable({});
 
     if (!this.launchConfig.noDebug) {
-      this._cdp.Network.enable({});
       this._ensureDebuggerEnabledAndRefreshDebuggerId();
     } else {
       this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');

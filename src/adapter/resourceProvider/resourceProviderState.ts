@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { OptionsOfTextResponseBody } from 'got';
+import { Headers } from 'got';
 import { injectable } from 'inversify';
 import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
@@ -31,28 +31,27 @@ export class ResourceProviderState {
   /**
    * Applies state overrides to the request options.
    */
-  public async apply(
-    url: string,
-    options: OptionsOfTextResponseBody,
-  ): Promise<OptionsOfTextResponseBody> {
+  public async apply(url: string, headers: Headers): Promise<Headers> {
     const cdp = this.cdp[0];
     if (cdp) {
-      options = await this.applyCookies(cdp, url, options);
+      headers = await this.applyCookies(cdp, url, headers);
     }
 
     // Todo: are schemes such as HTTP Basic Auth something we'd like to support here?
 
-    return options;
+    return headers;
   }
 
-  private async applyCookies(cdp: Cdp.Api, url: string, options: OptionsOfTextResponseBody) {
+  private async applyCookies(cdp: Cdp.Api, url: string, headers: Headers) {
+    await cdp.Network.enable({});
+
     const cookies = await cdp.Network.getCookies({ urls: [url] });
     if (!cookies?.cookies?.length) {
-      return options;
+      return headers;
     }
 
     return addHeader(
-      options,
+      headers,
       'Cookie',
       cookies.cookies
         // By spec, cookies with shorter paths should be sorted before longer ones
