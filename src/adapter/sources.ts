@@ -902,13 +902,25 @@ export class SourceContainer {
 
     try {
       sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
-    } catch (e) {
-      this._dap.output({
-        output: sourceMapParseFailed(source.url, e.message).error.format + '\n',
-        category: 'stderr',
-      });
+    } catch (urlError) {
+      try {
+        const sourceMapAbsolutePath = await this.sourcePathResolver.urlToAbsolutePath({
+          url: source.sourceMap.metadata.sourceMapUrl,
+        });
+        if (sourceMapAbsolutePath) {
+          source.sourceMap.metadata.sourceMapUrl = sourceMapAbsolutePath;
+        }
+        sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+      } catch (ignoredPathError) {}
 
-      return deferred.resolve();
+      if (!sourceMap.map) {
+        this._dap.output({
+          output: sourceMapParseFailed(source.url, urlError.message).error.format + '\n',
+          category: 'stderr',
+        });
+
+        return deferred.resolve();
+      }
     }
 
     // Source map could have been detached while loading.
