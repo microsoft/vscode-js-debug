@@ -3,12 +3,12 @@
  *--------------------------------------------------------*/
 
 import * as fs from 'fs';
-import * as vscode from 'vscode';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { runCommand, Commands } from '../common/contributionUtils';
-import { getRunScriptCommand } from './getRunScriptCommand';
+import { Commands, runCommand } from '../common/contributionUtils';
 import { readfile } from '../common/fsUtils';
+import { getRunScriptCommand } from './getRunScriptCommand';
 
 const localize = nls.loadMessageBundle();
 
@@ -40,18 +40,18 @@ export async function debugNpmScript(inFolder?: string) {
     description: script.command,
   }));
 
-  quickPick.onDidAccept(() => {
+  quickPick.onDidAccept(async () => {
     const { script } = quickPick.selectedItems[0];
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(script.directory));
+    quickPick.dispose();
+
     runCommand(
       vscode.commands,
       Commands.CreateDebuggerTerminal,
-      getRunScriptCommand(script.name, workspaceFolder),
+      await getRunScriptCommand(script.name, workspaceFolder),
       workspaceFolder,
       { cwd: script.directory },
     );
-
-    quickPick.dispose();
   });
 
   quickPick.show();
