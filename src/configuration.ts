@@ -468,6 +468,14 @@ export interface IChromiumBaseConfiguration extends IBaseConfiguration {
    *    the original URL is `https`, or `ws` otherwise.
    */
   inspectUri?: string | null;
+
+  /**
+   * Whether scripts are loaded individually with unique sourcemaps containing
+   * the basename of the source file. This can be set to optimize sourcemap
+   * handling when dealing with lots of small scripts. If set to "auto", we'll
+   * detect known cases where this is appropriate.
+   */
+  perScriptSourcemaps: 'yes' | 'no' | 'auto';
 }
 
 /**
@@ -869,6 +877,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   browserAttachLocation: 'workspace',
   targetSelection: 'automatic',
   vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
+  perScriptSourcemaps: 'auto',
 };
 
 export const edgeAttachConfigDefaults: IEdgeAttachConfiguration = {

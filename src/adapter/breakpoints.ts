@@ -9,7 +9,7 @@ import { bisectArray, flatten } from '../common/objUtils';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import * as urlUtils from '../common/urlUtils';
-import { AnyLaunchConfiguration } from '../configuration';
+import { AnyLaunchConfiguration, IChromiumBaseConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import { ProtocolError } from '../dap/protocolError';
@@ -83,7 +83,6 @@ export class BreakpointManager {
   private _launchBlocker: Set<Promise<unknown>> = new Set();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
-  private readonly pauseForSourceMaps: boolean;
   private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
   /**
@@ -140,7 +139,6 @@ export class BreakpointManager {
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
-    this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
 
     _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
 
@@ -465,13 +463,20 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  private _updateSourceMapHandler(thread: Thread) {
+  private async _updateSourceMapHandler(thread: Thread) {
     this._sourceMapHandlerWasUpdated = true;
+    const perScriptSm =
+      (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'yes';
 
-    if (this._breakpointsPredictor && !this.pauseForSourceMaps) {
-      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+    if (perScriptSm) {
+      await Promise.all([
+        this.updateEntryBreakpointMode(thread, EntryBreakpointMode.Greedy),
+        thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler),
+      ]);
+    } else if (this._breakpointsPredictor && !this.launchConfig.pauseForSourceMap) {
+      await thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
     } else {
-      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
+      await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
   }
 

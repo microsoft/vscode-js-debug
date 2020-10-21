@@ -101,6 +101,8 @@ const strings = {
   'browser.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',
   'browser.server.description':
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
+  'browser.perScriptSourcemaps.description':
+    'Whether scripts are loaded individually with unique sourcemaps containing the basename of the source file. This can be set to optimize sourcemap handling when dealing with lots of small scripts. If set to "auto", we\'ll detect known cases where this is appropriate.',
   'browser.userDataDir.description':
     'By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
   'browser.inspectUri.description':

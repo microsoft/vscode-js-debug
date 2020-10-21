@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## TBA
 
 - feat: add a diagnostic tool under the `Create Diagnostic Information` command ([#260](https://github.com/microsoft/vscode-js-debug/issues/260))
+- feat: add an advanced `perScriptSourcemaps` option, when loading individual unbundled scripts
 - feat: suffix rather than prefix setter/getters ([ref](https://github.com/microsoft/vscode/issues/108036))
 - fix: include the response body in sourcemap http error info
 - fix: extensions being able to activate before the debugger attaches ([ref](https://github.com/microsoft/vscode/pull/108141))
