@@ -321,6 +321,15 @@ export abstract class Breakpoint {
   }
 
   /**
+   * Should be called when the execution context is cleared. Breakpoints set
+   * on a script ID will no longer be bound correctly.
+   */
+  public executionContextWasCleared() {
+    // only url-set breakpoints are still valid
+    this.updateCdpRefs(l => l.filter(bp => isSetByUrl(bp.args)));
+  }
+
+  /**
    * Gets whether the breakpoint was set in the source by URL. Also checks
    * the rebased remote paths, since Sources are always normalized to the
    * 'local' locations, but the CDP set is for the remote.

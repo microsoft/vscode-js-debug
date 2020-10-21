@@ -734,4 +734,14 @@ export class BreakpointManager {
     this.moduleEntryBreakpoints.set(source.path, bp);
     this._setBreakpoint(bp, thread);
   }
+
+  /**
+   * Should be called when the execution context is cleared. Breakpoints set
+   * on a script ID will no longer be bound correctly.
+   */
+  public executionContextWasCleared() {
+    for (const bp of this.allUserBreakpoints) {
+      bp.executionContextWasCleared();
+    }
+  }
 }

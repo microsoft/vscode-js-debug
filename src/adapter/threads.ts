@@ -592,6 +592,7 @@ export class Thread implements IVariableStoreDelegate {
 
   _executionContextsCleared() {
     this._removeAllScripts();
+    this._breakpointManager.executionContextWasCleared();
     if (this._pausedDetails) this.onResumed();
     this._executionContexts.clear();
   }
@@ -1091,6 +1092,7 @@ export class Thread implements IVariableStoreDelegate {
     const scripts = Array.from(this._sourceContainer.scriptsById.values());
     this._sourceContainer.clear();
     this._scriptSources.clear();
+    this._sourceMapLoads.clear();
     Promise.all(
       scripts.map(script =>
         script.source.then(source => {
