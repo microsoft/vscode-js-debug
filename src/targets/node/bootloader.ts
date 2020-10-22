@@ -122,7 +122,7 @@ function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment)
     setTimeout(() => {
       console.error('timeout');
       process.exit(1);
-    }, 5000);
+    }, 10000);
     c.on('error', err => {
       console.error(err);
       process.exit(1);
@@ -141,7 +141,7 @@ function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment)
       env.execPath || process.execPath,
       [
         '-e',
-        `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC);setTimeout(()=>{console.error("timeout"),process.exit(1)},5e3),c.on("error",e=>{console.error(e),process.exit(1)}),c.on("connect",()=>{c.write(process.env.NODE_INSPECTOR_INFO,"utf-8"),c.write(Buffer.from([0])),c.on("data",e=>{console.error("read byte",e[0]),process.exit(e[0])})});`,
+        `const c=require("net").createConnection(process.env.NODE_INSPECTOR_IPC);setTimeout(()=>{console.error("timeout"),process.exit(1)},10000),c.on("error",e=>{console.error(e),process.exit(1)}),c.on("connect",()=>{c.write(process.env.NODE_INSPECTOR_INFO,"utf-8"),c.write(Buffer.from([0])),c.on("data",e=>{console.error("read byte",e[0]),process.exit(e[0])})});`,
       ],
       {
         env: {
