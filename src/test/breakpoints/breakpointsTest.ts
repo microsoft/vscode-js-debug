@@ -8,6 +8,7 @@ import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import Dap from '../../dap/api';
 import { createFileTree } from '../createFileTree';
+import { removeNodeInternalsStackLines } from '../goldenText';
 import { ITestHandle, testFixturesDir, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
@@ -995,13 +996,7 @@ describe('breakpoints', () => {
 
   itIntegrates('can step in when first line of code is function', async ({ r }) => {
     createFileTree(testFixturesDir, {
-      'test.js': [
-        'function double(x) {',
-        '  x *= 2;',
-        '  return x;',
-        '}',
-        'console.log(double(x))',
-      ],
+      'test.js': ['function double(x) {', '  x *= 2;', '  return x;', '}', 'double(2)'],
     });
 
     const handle = await r.runScript('test.js');
@@ -1016,6 +1011,6 @@ describe('breakpoints', () => {
     handle.dap.stepIn({ threadId });
     await waitForPause(handle);
 
-    handle.assertLog({ substring: true });
+    handle.assertLog({ process: removeNodeInternalsStackLines });
   });
 });
