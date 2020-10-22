@@ -1,0 +1,22 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${fixturesDir}/test.js:5:1
+Module._compile @ <node_internals>/internal/modules/cjs/loader.js:955:30
+Module._extensions..js @ <node_internals>/internal/modules/cjs/loader.js:991:10
+Module.load @ <node_internals>/internal/modules/cjs/loader.js:811:32
+Module._load @ <node_internals>/internal/modules/cjs/loader.js:723:14
+Module.runMain @ <node_internals>/internal/modules/cjs/loader.js:1043:10
+<anonymous> @ <node_internals>/internal/main/run_main_module.js:17:11
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+Module._load @ <node_internals>/internal/modules/cjs/loader.js:727:5
+Module.runMain @ <node_internals>/internal/modules/cjs/loader.js:1043:10
+<anonymous> @ <node_internals>/internal/main/run_main_module.js:17:11

@@ -80,6 +80,12 @@ export type BreakpointCdpReference =
 
 export abstract class Breakpoint {
   protected isEnabled = false;
+  private readonly setInCdpScriptIds = new Set<string>();
+
+  /**
+   * Returns script IDs whether this breakpoint has been resolved.
+   */
+  public readonly cdpScriptIds: ReadonlySet<string> = this.setInCdpScriptIds;
 
   /**
    * Returns whether this breakpoint is enabled.
@@ -367,9 +373,15 @@ export abstract class Breakpoint {
     cast.cdpBreakpoints = mutator(this.cdpBreakpoints);
 
     const nextIdSet = new Set<string>();
+    this.setInCdpScriptIds.clear();
+
     for (const bp of this.cdpBreakpoints) {
       if (bp.state === CdpReferenceState.Applied) {
         nextIdSet.add(bp.cdpId);
+
+        for (const location of bp.locations) {
+          this.setInCdpScriptIds.add(location.scriptId);
+        }
       }
     }
 

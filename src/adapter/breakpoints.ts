@@ -635,7 +635,27 @@ export class BreakpointManager {
   /**
    * Rreturns whether any of the given breakpoints are an entrypoint breakpoint.
    */
-  public isEntrypointBreak(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+  public isEntrypointBreak(
+    hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
+    scriptId: string,
+  ) {
+    // Fix: if we stopped in a script where an active entrypoint breakpoint
+    // exists, regardless of the reason, treat this as a breakpoint.
+    // ref: https://github.com/microsoft/vscode/issues/107859
+    const entryInScript = [...this.moduleEntryBreakpoints.values()].filter(
+      bp => bp.enabled && bp.cdpScriptIds.has(scriptId),
+    );
+
+    if (entryInScript.length) {
+      for (const breakpoint of entryInScript) {
+        if (!(breakpoint instanceof PatternEntryBreakpoint)) {
+          breakpoint.disable();
+        }
+      }
+
+      return true;
+    }
+
     return hitBreakpointIds.some(id => {
       const bp = this._resolvedBreakpoints.get(id);
       return bp && (bp instanceof EntryBreakpoint || isSetAtEntry(bp));
@@ -670,7 +690,7 @@ export class BreakpointManager {
         }
 
         const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-        if (breakpoint instanceof EntryBreakpoint) {
+        if (breakpoint instanceof EntryBreakpoint && breakpoint.enabled) {
           // we intentionally don't remove the record from the map; it's kept as
           // an indicator that it did exist and was hit, so that if further
           // breakpoints are set in the file it doesn't get re-applied.

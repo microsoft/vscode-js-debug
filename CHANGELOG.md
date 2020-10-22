@@ -21,6 +21,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: terminal links not setting the first workspace folder ([#701](https://github.com/microsoft/vscode-js-debug/issues/701))
 - fix: send ctrl+c to kill nodemon running in debug terminal ([ref](https://github.com/microsoft/vscode/issues/108289))
 - fix: increase auto attach timeout ([#806](https://github.com/microsoft/vscode-js-debug/issues/806))
+- fix: stepping into function on the first line of a file with a breakpoint ([ref](https://github.com/microsoft/vscode/issues/107859))
 - refactor: improve performance when loading very many sourcemaps for pages that don't need authentication
 - refactor: remove runtime dependency on TypeScript ([ref](https://github.com/microsoft/vscode/issues/107680))
 

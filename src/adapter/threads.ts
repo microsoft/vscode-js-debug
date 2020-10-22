@@ -609,15 +609,14 @@ export class Thread implements IVariableStoreDelegate {
       bp => bp !== this._pauseOnSourceMapBreakpointId,
     );
     const isInspectBrk = (event.reason as string) === 'Break on start';
+    const location = event.callFrames[0].location;
+    const scriptId = event.data?.scriptId || location.scriptId;
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
-      this._breakpointManager.isEntrypointBreak(hitBreakpoints);
+      this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId);
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
-      const location = event.callFrames[0].location;
-      const scriptId = event.data?.scriptId || location.scriptId;
-
       if (
         (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'auto' &&
         this._shouldEnablePerScriptSms(event)

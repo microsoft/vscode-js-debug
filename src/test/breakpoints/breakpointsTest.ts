@@ -8,7 +8,7 @@ import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import Dap from '../../dap/api';
 import { createFileTree } from '../createFileTree';
-import { ITestHandle, TestP, TestRoot, testWorkspace } from '../test';
+import { ITestHandle, testFixturesDir, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 import del = require('del');
 
@@ -991,5 +991,31 @@ describe('breakpoints', () => {
     p.cdp.Page.navigate({ url: r.buildUrl('unique-refresh?v=2') });
     await waitForPause(p);
     p.assertLog();
+  });
+
+  itIntegrates('can step in when first line of code is function', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'test.js': [
+        'function double(x) {',
+        '  x *= 2;',
+        '  return x;',
+        '}',
+        'console.log(double(x))',
+      ],
+    });
+
+    const handle = await r.runScript('test.js');
+    await handle.dap.setBreakpoints({
+      source: { path: join(testFixturesDir, 'test.js') },
+      breakpoints: [{ line: 5, column: 0 }],
+    });
+
+    handle.load();
+    const { threadId } = handle.log(await handle.dap.once('stopped'));
+    await handle.logger.logStackTrace(threadId);
+    handle.dap.stepIn({ threadId });
+    await waitForPause(handle);
+
+    handle.assertLog({ substring: true });
   });
 });
