@@ -8,22 +8,27 @@ import Cdp from '../../cdp/api';
 import { IDisposable } from '../../common/disposable';
 import { addHeader } from './helpers';
 
+interface ICdpAndNetworkState {
+  cdp: Cdp.Api;
+  enabledNetwork: boolean;
+}
+
 /**
  * Provides state shared between all IResourceProviders.
  */
 @injectable()
 export class ResourceProviderState {
-  private cdp: Cdp.Api[] = [];
+  private cdp: ICdpAndNetworkState[] = [];
 
   /**
    * Listens to the CDP API, monitoring requests.
    */
   public attach(cdp: Cdp.Api): IDisposable {
-    this.cdp.push(cdp);
+    this.cdp.push({ cdp, enabledNetwork: false });
 
     return {
       dispose: () => {
-        this.cdp = this.cdp.filter(c => c !== cdp);
+        this.cdp = this.cdp.filter(c => c.cdp !== cdp);
       },
     };
   }
@@ -42,10 +47,13 @@ export class ResourceProviderState {
     return headers;
   }
 
-  private async applyCookies(cdp: Cdp.Api, url: string, headers: Headers) {
-    await cdp.Network.enable({});
+  private async applyCookies(c: ICdpAndNetworkState, url: string, headers: Headers) {
+    if (!c.enabledNetwork) {
+      c.enabledNetwork = true;
+      await c.cdp.Network.enable({});
+    }
 
-    const cookies = await cdp.Network.getCookies({ urls: [url] });
+    const cookies = await c.cdp.Network.getCookies({ urls: [url] });
     if (!cookies?.cookies?.length) {
       return headers;
     }

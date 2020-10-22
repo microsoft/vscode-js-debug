@@ -223,8 +223,6 @@ class CDPSession {
   }
 
   _createApi(): Cdp.Api {
-    const enabledDomains = new Set<string>();
-
     return new Proxy(
       {},
       {
@@ -236,36 +234,13 @@ class CDPSession {
             {},
             {
               get: (_target, methodName: string) => {
-                if (methodName === 'then') {
-                  return;
-                }
-
-                if (methodName === 'on') {
+                if (methodName === 'then') return;
+                if (methodName === 'on')
                   return (eventName: string, listener: (params: object) => void) =>
                     this._on(`${agentName}.${eventName}`, listener);
-                }
-
-                if (methodName === 'off') {
+                if (methodName === 'off')
                   return (eventName: string, listener: (params: object) => void) =>
                     this._off(`${agentName}.${eventName}`, listener);
-                }
-
-                if (methodName === 'enable') {
-                  if (enabledDomains.has(agentName)) {
-                    return () => ({});
-                  } else {
-                    enabledDomains.add(agentName); // fall through to method
-                  }
-                }
-
-                if (methodName === 'disable') {
-                  if (!enabledDomains.has(agentName)) {
-                    return () => ({});
-                  } else {
-                    enabledDomains.delete(agentName); // fall through to method
-                  }
-                }
-
                 return (params: object | undefined) =>
                   this._send(`${agentName}.${methodName}`, params);
               },
