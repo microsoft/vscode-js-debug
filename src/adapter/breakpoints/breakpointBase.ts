@@ -389,19 +389,27 @@ export abstract class Breakpoint {
   }
 
   protected async _setPredicted(thread: Thread): Promise<void> {
-    if (!this.source.path || !this._manager._breakpointsPredictor) return;
+    if (!this.source.path || !this._manager._breakpointsPredictor) {
+      return;
+    }
+
     const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this.source.path,
       lineNumber: this.originalPosition.lineNumber,
       columnNumber: this.originalPosition.columnNumber,
     });
+
     const promises: Promise<void>[] = [];
     for (const workspaceLocation of workspaceLocations) {
       const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
         workspaceLocation.absolutePath,
       );
-      if (urlRegexp) promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
+
+      if (urlRegexp) {
+        promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
+      }
     }
+
     await Promise.all(promises);
   }
 
@@ -460,10 +468,14 @@ export abstract class Breakpoint {
   protected hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
-        script.scriptId &&
-        isSetByLocation(bp.args) &&
-        bp.args.location.scriptId === script.scriptId &&
-        lcEqual(bp.args.location, lineColumn),
+        (script.scriptId &&
+          isSetByLocation(bp.args) &&
+          bp.args.location.scriptId === script.scriptId &&
+          lcEqual(bp.args.location, lineColumn)) ||
+        (script.url &&
+          isSetByUrl(bp.args) &&
+          new RegExp(bp.args.urlRegex ?? '').test(script.url) &&
+          lcEqual(bp.args, lineColumn)),
     );
   }
 
@@ -484,12 +496,12 @@ export abstract class Breakpoint {
 
   protected async _setByUrlRegexp(
     thread: Thread,
-    urlRegexp: string,
+    urlRegex: string,
     lineColumn: LineColumn,
   ): Promise<void> {
     lineColumn = base1To0(lineColumn);
 
-    const previous = this.hasSetOnLocationByRegexp(urlRegexp, lineColumn);
+    const previous = this.hasSetOnLocationByRegexp(urlRegex, lineColumn);
     if (previous) {
       if (previous.state === CdpReferenceState.Pending) {
         await previous.done;
@@ -498,11 +510,7 @@ export abstract class Breakpoint {
       return;
     }
 
-    return this._setAny(thread, {
-      urlRegex: urlRegexp,
-      condition: this.getBreakCondition(),
-      ...lineColumn,
-    });
+    return this._setAny(thread, { urlRegex, condition: this.getBreakCondition(), ...lineColumn });
   }
 
   private async _setByScriptId(
