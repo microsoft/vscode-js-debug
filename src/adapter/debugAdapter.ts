@@ -63,6 +63,7 @@ export class DebugAdapter implements IDisposable {
     const telemetry = _services.get<ITelemetryReporter>(ITelemetryReporter);
     telemetry.onFlush(() => {
       telemetry.report('breakpointStats', this.breakpointManager.statisticsForTelemetry());
+      telemetry.report('statistics', this.sourceContainer.statistics());
     });
 
     this.dap = dap;

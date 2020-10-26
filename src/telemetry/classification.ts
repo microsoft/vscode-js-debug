@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from '../dap/api';
 import * as fs from 'fs';
 import * as path from 'path';
+import Dap from '../dap/api';
 
 /******************************************************************************
  * GDPR tooling definitions
@@ -107,6 +107,14 @@ export interface IBreakpointMetrics {
   set: number;
   verified: number;
   hit: number;
+}
+
+export interface IStatistics {
+  fallbackSourceMapCount: number;
+}
+
+interface IStatisticsClassification {
+  fallbackSourceMapCount: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
 }
 
 interface IBrowserVersionClassification {
@@ -225,6 +233,12 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
       IBreakpointClassification & IGlobalClassification
     >('js-debug/breakpointStats', { ...globalMetrics, ...metrics });
 
+  const statistics = (metrics: IStatistics) =>
+    publicLog2<IGlobalMetrics & IStatistics, IStatisticsClassification & IGlobalClassification>(
+      'js-debug/statistics',
+      { ...globalMetrics, ...metrics },
+    );
+
   const nodeRuntime = (metrics: INodeRuntimeMetrics) => {
     globalMetrics.nodeVersion = metrics.version;
 
@@ -256,6 +270,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
 
   return {
     breakpointStats,
+    statistics,
     browserVersion,
     cdpOperation,
     dapOperation,
