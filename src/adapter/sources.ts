@@ -942,7 +942,7 @@ export class SourceContainer {
               originalSourceMapError: extractErrorDetails(urlError),
             },
           );
-        } catch () {}
+        } catch {}
       }
 
       if (!sourceMap.map) {
