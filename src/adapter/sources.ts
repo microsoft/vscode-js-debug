@@ -911,7 +911,7 @@ export class SourceContainer {
           source.sourceMap.metadata.sourceMapUrl = sourceMapAbsolutePath;
         }
         sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
-      } catch (ignoredPathError) {}
+      } catch {}
 
       if (!sourceMap.map) {
         this._dap.output({
