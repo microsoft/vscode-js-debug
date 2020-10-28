@@ -310,12 +310,21 @@ const NoMatchingSourceHelper: FunctionComponent<{ basename: string }> = ({ basen
         How did you expect this file to be loaded? (If you have a compilation step, you should pick
         'sourcemap')
         <NoMatchingDecisionButtons onChange={setHint} value={hint} />
-        {hint === NoMatchingSourceHint.Direct && (
-          <p>
-            It looks like your program didn't load the file this run. Make sure it's loaded by your
-            program.
-          </p>
-        )}
+        {hint === NoMatchingSourceHint.Direct &&
+          (isBrowserType(dump) ? (
+            <p>
+              It looks like your webpage didn't load this script; breakpoints won't be bound until
+              the file they're set in is loaded. Make sure your script is imported from the right
+              location using a <code>{'<script>'}</code> tag.
+            </p>
+          ) : (
+            <p>
+              It looks like your program didn't load this script; breakpoints won't be bound until
+              the file they're set in is loaded. Make sure your script is imported with a{' '}
+              <code>require()</code> or <code>import</code> statement, such as{' '}
+              <code>require('./{basename}')</code>.
+            </p>
+          ))}
         {hint === NoMatchingSourceHint.SourceMap && (
           <p>
             Here's some hints that might help you:
