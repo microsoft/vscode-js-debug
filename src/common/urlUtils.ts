@@ -219,6 +219,11 @@ export function stripTrailingSlash(aPath: string): string {
 export function fileUrlToAbsolutePath(urlOrPath: FileUrl): string;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
+  if (isVSCodeWebviewUrl(urlOrPath)) {
+    // Strip off vscode webview url part: vscode-webview-resource://<36-char-guid>/file
+    urlOrPath = `file:${urlOrPath.substr(67)}`;
+  }
+
   if (!isFileUrl(urlOrPath)) {
     return undefined;
   }
@@ -354,10 +359,17 @@ export function urlToRegex(aPath: string, escapeRegex = true) {
 export type FileUrl = string & { __opaque_file_url: true };
 
 /**
- * Returns whether the string is a file UR
+ * Returns whether the string is a file URL
  */
 export function isFileUrl(candidate: string): candidate is FileUrl {
   return candidate.startsWith('file:///');
+}
+
+/**
+ * Returns whether the string is a file URL
+ */
+export function isVSCodeWebviewUrl(candidate: string): candidate is FileUrl {
+  return candidate.startsWith('vscode-webview-resource://');
 }
 
 export function maybeAbsolutePathToFileUrl(
