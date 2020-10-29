@@ -464,6 +464,7 @@ export interface IChromiumBaseConfiguration extends IBaseConfiguration {
    *    `{url.port}`, `{url.hostname}`
    *  - `port` is the debug port that Chrome is listening on.
    *  - `browserInspectUri` is the inspector URI on the launched browser
+    ' - `browserInspectUriPath` is the path part of the inspector URI on the launched browser (e.g.: "/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2").\n' +
    *  - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if
    *    the original URL is `https`, or `ws` otherwise.
    */
