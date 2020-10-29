@@ -32,6 +32,7 @@ export function constructInspectorWSUri(
     'url.hostname': () => getUrl(urlText).hostname,
     'url.port': () => getUrl(urlText).port,
     browserInspectUri: () => encodeURIComponent(browserInspectUri),
+    browserInspectUriPath: () => new URL(browserInspectUri).pathname,
     wsProtocol: () => (getUrl(urlText).protocol === 'https:' ? 'wss' : 'ws'), // the protocol includes the : at the end
   };
 
