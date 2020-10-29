@@ -6,17 +6,10 @@ import { Container } from 'inversify';
 import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
-import { pick } from '../common/objUtils';
 import { IPseudoAttachConfiguration } from '../configuration';
 import { ServerSessionManager } from '../serverSessionManager';
 import { ISessionLauncher, RootSession, Session } from '../sessionManager';
 import { ITarget } from '../targets/targets';
-
-const preservedProperties = [
-  // Preserve the `serverReadyAction` so that stdio from child sessions is parsed
-  // and processed: https://github.com/microsoft/vscode-js-debug/issues/362
-  'serverReadyAction',
-];
 
 /**
  * Session launcher which uses vscode's `startDebugging` method to start a new debug session
@@ -33,8 +26,13 @@ class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
       parentSession.debugSession.workspaceFolder,
       {
         ...config,
-        ...pick(parentSession.debugSession.configuration, preservedProperties),
         ...target.supplementalConfig,
+        // Preserve the `serverReadyAction` so children hook into it when echo'ing console
+        // (ref #362) but not if running in the integrated terminal (ref #814)
+        serverReadyAction:
+          parentSession.debugSession.configuration.console === 'integratedTerminal'
+            ? undefined
+            : parentSession.debugSession.configuration.serverReadyAction,
         __parentId: parentSession.debugSession.id,
       } as vscode.DebugConfiguration,
       {

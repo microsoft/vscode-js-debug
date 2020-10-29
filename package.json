@@ -1,7 +1,7 @@
 {
   "name": "js-debug",
   "displayName": "JavaScript Debugger",
-  "version": "1.50.2",
+  "version": "1.51.0",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
@@ -17,7 +17,7 @@
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.50.0-insider",
+    "vscode": "^1.51.0-insider",
     "node": ">=10"
   },
   "icon": "resources/logo.png",

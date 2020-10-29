@@ -101,6 +101,8 @@ const strings = {
   'browser.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',
   'browser.server.description':
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
+  'browser.perScriptSourcemaps.description':
+    'Whether scripts are loaded individually with unique sourcemaps containing the basename of the source file. This can be set to optimize sourcemap handling when dealing with lots of small scripts. If set to "auto", we\'ll detect known cases where this is appropriate.',
   'browser.userDataDir.description':
     'By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile.',
   'browser.inspectUri.description':
@@ -108,6 +110,7 @@ const strings = {
     ' - `url.*` is the parsed address of the running application. For instance, `{url.port}`, `{url.hostname}`\n' +
     ' - `port` is the debug port that Chrome is listening on.\n' +
     ' - `browserInspectUri` is the inspector URI on the launched browser\n' +
+    ' - `browserInspectUriPath` is the path part of the inspector URI on the launched browser (e.g.: "/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2").\n' +
     ' - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if the original URL is `https`, or `ws` otherwise.\n',
   'browser.restart': 'Whether to reconnect if the browser connection is closed',
   'browser.profileStartup.description':

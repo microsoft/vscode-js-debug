@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import dataUriToBuffer from 'data-uri-to-buffer';
-import got, { OptionsOfTextResponseBody, RequestError } from 'got';
+import got, { Headers, OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable } from 'inversify';
 import { CancellationToken } from 'vscode';
 import { HttpStatusError, IResourceProvider, Response } from '.';
@@ -65,23 +65,16 @@ export class BasicResourceProvider implements IResourceProvider {
     }
   }
 
-  private async fetchHttp(
+  protected async fetchHttp(
     url: string,
     cancellationToken: CancellationToken,
-    headers?: { [key: string]: string },
+    headers?: Headers,
   ): Promise<Response<string>> {
     const isSecure = !url.startsWith('http://');
-    const [targetAddressIsLoopback, options] = await Promise.all([
-      isLoopback(url),
-      this.createHttpOptions(url),
-    ]);
-
-    if (isSecure && targetAddressIsLoopback) {
+    const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
+    if (isSecure && (await isLoopback(url))) {
       options.rejectUnauthorized = false;
     }
-
-    options.followRedirect = true;
-    options.headers = { ...options.headers, ...headers };
 
     const disposables = new DisposableList();
 
@@ -105,10 +98,5 @@ export class BasicResourceProvider implements IResourceProvider {
         error: new HttpStatusError(statusCode, url, body),
       };
     }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected createHttpOptions(url: string): Promise<OptionsOfTextResponseBody> {
-    return Promise.resolve({});
   }
 }

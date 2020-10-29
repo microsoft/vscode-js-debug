@@ -12,7 +12,7 @@ import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
-import { AnyLaunchConfiguration, OutputSource } from '../configuration';
+import { AnyLaunchConfiguration, IChromiumBaseConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as ProtocolError from '../dap/protocolError';
@@ -545,7 +545,6 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Runtime.enable({});
 
     if (!this.launchConfig.noDebug) {
-      this._cdp.Network.enable({});
       this._ensureDebuggerEnabledAndRefreshDebuggerId();
     } else {
       this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');
@@ -592,6 +591,7 @@ export class Thread implements IVariableStoreDelegate {
 
   _executionContextsCleared() {
     this._removeAllScripts();
+    this._breakpointManager.executionContextWasCleared();
     if (this._pausedDetails) this.onResumed();
     this._executionContexts.clear();
   }
@@ -609,17 +609,19 @@ export class Thread implements IVariableStoreDelegate {
       bp => bp !== this._pauseOnSourceMapBreakpointId,
     );
     const isInspectBrk = (event.reason as string) === 'Break on start';
+    const location = event.callFrames[0].location;
+    const scriptId = event.data?.scriptId || location.scriptId;
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
-      this._breakpointManager.isEntrypointBreak(hitBreakpoints);
+      this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId);
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
-      const location = event.callFrames[0].location;
-      const scriptId = event.data?.scriptId || location.scriptId;
-
-      if (this._isWebpackModuleEvalPause(event)) {
-        await this._handleWebpackModuleEval();
+      if (
+        (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'auto' &&
+        this._shouldEnablePerScriptSms(event)
+      ) {
+        await this._enablePerScriptSourcemaps();
       }
 
       if (event.data && !isInspectBrk) {
@@ -1091,6 +1093,7 @@ export class Thread implements IVariableStoreDelegate {
     const scripts = Array.from(this._sourceContainer.scriptsById.values());
     this._sourceContainer.clear();
     this._scriptSources.clear();
+    this._sourceMapLoads.clear();
     Promise.all(
       scripts.map(script =>
         script.source.then(source => {
@@ -1445,12 +1448,12 @@ export class Thread implements IVariableStoreDelegate {
    * breakpoints before evaluating code, they just work as fast as they can and
    * hope the breakpoints get set in time.)
    */
-  private async _handleWebpackModuleEval() {
+  private async _enablePerScriptSourcemaps() {
     await this._breakpointManager.updateEntryBreakpointMode(this, EntryBreakpointMode.Greedy);
     await this.setScriptSourceMapHandler(false, this._scriptWithSourceMapHandler);
   }
 
-  private _isWebpackModuleEvalPause(event: Cdp.Debugger.PausedEvent) {
+  private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
     if (
       event.reason !== 'instrumentation' ||
       !event.data ||

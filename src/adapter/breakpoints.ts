@@ -9,7 +9,7 @@ import { bisectArray, flatten } from '../common/objUtils';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import * as urlUtils from '../common/urlUtils';
-import { AnyLaunchConfiguration } from '../configuration';
+import { AnyLaunchConfiguration, IChromiumBaseConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import { ProtocolError } from '../dap/protocolError';
@@ -83,7 +83,6 @@ export class BreakpointManager {
   private _launchBlocker: Set<Promise<unknown>> = new Set();
   private _predictorDisabledForTest = false;
   private _breakpointsStatisticsCalculator = new BreakpointsStatisticsCalculator();
-  private readonly pauseForSourceMaps: boolean;
   private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
   /**
@@ -140,7 +139,6 @@ export class BreakpointManager {
   ) {
     this._dap = dap;
     this._sourceContainer = sourceContainer;
-    this.pauseForSourceMaps = launchConfig.pauseForSourceMap;
 
     _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
 
@@ -465,13 +463,20 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  private _updateSourceMapHandler(thread: Thread) {
+  private async _updateSourceMapHandler(thread: Thread) {
     this._sourceMapHandlerWasUpdated = true;
+    const perScriptSm =
+      (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'yes';
 
-    if (this._breakpointsPredictor && !this.pauseForSourceMaps) {
-      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+    if (perScriptSm) {
+      await Promise.all([
+        this.updateEntryBreakpointMode(thread, EntryBreakpointMode.Greedy),
+        thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler),
+      ]);
+    } else if (this._breakpointsPredictor && !this.launchConfig.pauseForSourceMap) {
+      await thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
     } else {
-      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
+      await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
   }
 
@@ -630,7 +635,27 @@ export class BreakpointManager {
   /**
    * Rreturns whether any of the given breakpoints are an entrypoint breakpoint.
    */
-  public isEntrypointBreak(hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>) {
+  public isEntrypointBreak(
+    hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,
+    scriptId: string,
+  ) {
+    // Fix: if we stopped in a script where an active entrypoint breakpoint
+    // exists, regardless of the reason, treat this as a breakpoint.
+    // ref: https://github.com/microsoft/vscode/issues/107859
+    const entryInScript = [...this.moduleEntryBreakpoints.values()].filter(
+      bp => bp.enabled && bp.cdpScriptIds.has(scriptId),
+    );
+
+    if (entryInScript.length) {
+      for (const breakpoint of entryInScript) {
+        if (!(breakpoint instanceof PatternEntryBreakpoint)) {
+          breakpoint.disable();
+        }
+      }
+
+      return true;
+    }
+
     return hitBreakpointIds.some(id => {
       const bp = this._resolvedBreakpoints.get(id);
       return bp && (bp instanceof EntryBreakpoint || isSetAtEntry(bp));
@@ -665,7 +690,7 @@ export class BreakpointManager {
         }
 
         const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-        if (breakpoint instanceof EntryBreakpoint) {
+        if (breakpoint instanceof EntryBreakpoint && breakpoint.enabled) {
           // we intentionally don't remove the record from the map; it's kept as
           // an indicator that it did exist and was hit, so that if further
           // breakpoints are set in the file it doesn't get re-applied.
@@ -733,5 +758,15 @@ export class BreakpointManager {
     const bp = new EntryBreakpoint(this, source, this.entryBreakpointMode);
     this.moduleEntryBreakpoints.set(source.path, bp);
     this._setBreakpoint(bp, thread);
+  }
+
+  /**
+   * Should be called when the execution context is cleared. Breakpoints set
+   * on a script ID will no longer be bound correctly.
+   */
+  public executionContextWasCleared() {
+    for (const bp of this.allUserBreakpoints) {
+      bp.executionContextWasCleared();
+    }
   }
 }

@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
 import * as fs from 'fs';
 import * as path from 'path';
-import { expect } from 'chai';
+import { forceForwardSlashes } from '../common/pathUtils';
+import { escapeRegexSpecialChars } from '../common/stringUtils';
 import * as urlUtils from '../common/urlUtils';
 import { testFixturesDir } from './test';
-import { escapeRegexSpecialChars } from '../common/stringUtils';
-import { forceForwardSlashes } from '../common/pathUtils';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
@@ -18,6 +18,9 @@ const trimLineWhitespace = (str: string) =>
     .map(l => l.trimRight())
     .join('\n')
     .replace(/\\r\\n/g, '\\n');
+
+export const removeNodeInternalsStackLines = (s: string) =>
+  s.replace(/^.*<node_internals>.*\r?\n/gm, '');
 
 export class GoldenText {
   _results: string[];
@@ -80,13 +83,23 @@ export class GoldenText {
    * This method _must_ be called from the test file.
    * The output file will go next to the file from which this is called.
    */
-  assertLog(options: { substring?: boolean; customAssert?: (expected: string) => any } = {}) {
-    const output = this.getOutput();
+  assertLog(
+    options: {
+      substring?: boolean;
+      process?: (s: string) => string;
+      customAssert?: (expected: string) => any;
+    } = {},
+  ) {
+    let output = this.getOutput();
     this._hasNonAssertedLogs = false;
 
     if (options.customAssert) {
       options.customAssert(output);
       return;
+    }
+
+    if (options.process) {
+      output = options.process(output);
     }
 
     const goldenFilePath = this.findGoldenFilePath();

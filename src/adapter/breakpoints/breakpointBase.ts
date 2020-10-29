@@ -80,6 +80,12 @@ export type BreakpointCdpReference =
 
 export abstract class Breakpoint {
   protected isEnabled = false;
+  private readonly setInCdpScriptIds = new Set<string>();
+
+  /**
+   * Returns script IDs whether this breakpoint has been resolved.
+   */
+  public readonly cdpScriptIds: ReadonlySet<string> = this.setInCdpScriptIds;
 
   /**
    * Returns whether this breakpoint is enabled.
@@ -321,6 +327,15 @@ export abstract class Breakpoint {
   }
 
   /**
+   * Should be called when the execution context is cleared. Breakpoints set
+   * on a script ID will no longer be bound correctly.
+   */
+  public executionContextWasCleared() {
+    // only url-set breakpoints are still valid
+    this.updateCdpRefs(l => l.filter(bp => isSetByUrl(bp.args)));
+  }
+
+  /**
    * Gets whether the breakpoint was set in the source by URL. Also checks
    * the rebased remote paths, since Sources are always normalized to the
    * 'local' locations, but the CDP set is for the remote.
@@ -358,9 +373,15 @@ export abstract class Breakpoint {
     cast.cdpBreakpoints = mutator(this.cdpBreakpoints);
 
     const nextIdSet = new Set<string>();
+    this.setInCdpScriptIds.clear();
+
     for (const bp of this.cdpBreakpoints) {
       if (bp.state === CdpReferenceState.Applied) {
         nextIdSet.add(bp.cdpId);
+
+        for (const location of bp.locations) {
+          this.setInCdpScriptIds.add(location.scriptId);
+        }
       }
     }
 
@@ -368,19 +389,27 @@ export abstract class Breakpoint {
   }
 
   protected async _setPredicted(thread: Thread): Promise<void> {
-    if (!this.source.path || !this._manager._breakpointsPredictor) return;
+    if (!this.source.path || !this._manager._breakpointsPredictor) {
+      return;
+    }
+
     const workspaceLocations = this._manager._breakpointsPredictor.predictedResolvedLocations({
       absolutePath: this.source.path,
       lineNumber: this.originalPosition.lineNumber,
       columnNumber: this.originalPosition.columnNumber,
     });
+
     const promises: Promise<void>[] = [];
     for (const workspaceLocation of workspaceLocations) {
       const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
         workspaceLocation.absolutePath,
       );
-      if (urlRegexp) promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
+
+      if (urlRegexp) {
+        promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
+      }
     }
+
     await Promise.all(promises);
   }
 
@@ -439,10 +468,14 @@ export abstract class Breakpoint {
   protected hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
-        script.scriptId &&
-        isSetByLocation(bp.args) &&
-        bp.args.location.scriptId === script.scriptId &&
-        lcEqual(bp.args.location, lineColumn),
+        (script.scriptId &&
+          isSetByLocation(bp.args) &&
+          bp.args.location.scriptId === script.scriptId &&
+          lcEqual(bp.args.location, lineColumn)) ||
+        (script.url &&
+          isSetByUrl(bp.args) &&
+          new RegExp(bp.args.urlRegex ?? '').test(script.url) &&
+          lcEqual(bp.args, lineColumn)),
     );
   }
 
@@ -463,12 +496,12 @@ export abstract class Breakpoint {
 
   protected async _setByUrlRegexp(
     thread: Thread,
-    urlRegexp: string,
+    urlRegex: string,
     lineColumn: LineColumn,
   ): Promise<void> {
     lineColumn = base1To0(lineColumn);
 
-    const previous = this.hasSetOnLocationByRegexp(urlRegexp, lineColumn);
+    const previous = this.hasSetOnLocationByRegexp(urlRegex, lineColumn);
     if (previous) {
       if (previous.state === CdpReferenceState.Pending) {
         await previous.done;
@@ -477,11 +510,7 @@ export abstract class Breakpoint {
       return;
     }
 
-    return this._setAny(thread, {
-      urlRegex: urlRegexp,
-      condition: this.getBreakCondition(),
-      ...lineColumn,
-    });
+    return this._setAny(thread, { urlRegex, condition: this.getBreakCondition(), ...lineColumn });
   }
 
   private async _setByScriptId(

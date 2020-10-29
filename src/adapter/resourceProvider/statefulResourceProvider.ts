@@ -2,8 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { OptionsOfTextResponseBody } from 'got';
+import { Headers } from 'got';
 import { inject, injectable, optional } from 'inversify';
+import { CancellationToken } from 'vscode';
+import { Response } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { DisposableList, IDisposable } from '../../common/disposable';
@@ -33,7 +35,19 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
     this.disposables.dispose();
   }
 
-  protected async createHttpOptions(url: string): Promise<OptionsOfTextResponseBody> {
-    return this.state.apply(url, await super.createHttpOptions(url));
+  protected async fetchHttp(
+    url: string,
+    cancellationToken: CancellationToken,
+    headers: Headers = {},
+  ): Promise<Response<string>> {
+    const res = await super.fetchHttp(url, cancellationToken, headers);
+    if (!res.ok) {
+      const updated = await this.state.apply(url, headers);
+      if (updated !== headers) {
+        return await super.fetchHttp(url, cancellationToken, updated);
+      }
+    }
+
+    return res;
   }
 }

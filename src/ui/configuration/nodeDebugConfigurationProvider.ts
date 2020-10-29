@@ -2,13 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
-import * as vscode from 'vscode';
-import * as path from 'path';
 import { injectable } from 'inversify';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import { DebugType } from '../../common/contributionUtils';
-import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
-import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { flatten } from '../../common/objUtils';
 import {
   AnyNodeConfiguration,
   AnyResolvingConfiguration,
@@ -18,8 +17,9 @@ import {
   ResolvingTerminalConfiguration,
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
-import { flatten } from '../../common/objUtils';
-import { getRunScriptCommand } from '../getRunScriptCommand';
+import { getPackageManager } from '../getRunScriptCommand';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
+import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
 
 const localize = nls.loadMessageBundle();
 
@@ -97,12 +97,13 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
       return [openTerminal];
     }
 
+    const packageManager = await getPackageManager(folder);
     return scripts
       .map<DynamicConfig>(script => ({
         type: DebugType.Terminal,
         name: localize('node.launch.script', 'Run Script: {0}', script.name),
         request: 'launch',
-        command: getRunScriptCommand(script.name, folder),
+        command: `${packageManager} run ${script.name}`,
         cwd: script.directory,
       }))
       .concat(openTerminal);

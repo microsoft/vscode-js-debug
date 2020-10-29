@@ -702,6 +702,12 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     ],
     // eslint-disable-next-line
   } as any,
+  perScriptSourcemaps: {
+    type: 'string',
+    default: 'auto',
+    enum: ['yes', 'no', 'auto'],
+    description: refString('browser.perScriptSourcemaps.description'),
+  },
 };
 
 /**

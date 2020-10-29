@@ -464,10 +464,19 @@ export interface IChromiumBaseConfiguration extends IBaseConfiguration {
    *    `{url.port}`, `{url.hostname}`
    *  - `port` is the debug port that Chrome is listening on.
    *  - `browserInspectUri` is the inspector URI on the launched browser
+    ' - `browserInspectUriPath` is the path part of the inspector URI on the launched browser (e.g.: "/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2").\n' +
    *  - `wsProtocol` is the hinted websocket protocol. This is set to `wss` if
    *    the original URL is `https`, or `ws` otherwise.
    */
   inspectUri?: string | null;
+
+  /**
+   * Whether scripts are loaded individually with unique sourcemaps containing
+   * the basename of the source file. This can be set to optimize sourcemap
+   * handling when dealing with lots of small scripts. If set to "auto", we'll
+   * detect known cases where this is appropriate.
+   */
+  perScriptSourcemaps: 'yes' | 'no' | 'auto';
 }
 
 /**
@@ -869,6 +878,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   browserAttachLocation: 'workspace',
   targetSelection: 'automatic',
   vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
+  perScriptSourcemaps: 'auto',
 };
 
 export const edgeAttachConfigDefaults: IEdgeAttachConfiguration = {

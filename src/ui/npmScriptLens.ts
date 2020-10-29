@@ -2,24 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { JSONVisitor, visit } from 'jsonc-parser';
+import * as path from 'path';
 import {
-  TextDocument,
   CodeLens,
   CodeLensProvider,
-  Range,
-  workspace,
-  languages,
-  ExtensionContext,
-  ProviderResult,
-  Position,
   EventEmitter,
+  ExtensionContext,
+  languages,
+  Position,
+  Range,
+  TextDocument,
+  workspace,
 } from 'vscode';
-import * as path from 'path';
-import { readConfig, Configuration, asCommand, Commands } from '../common/contributionUtils';
-import { JSONVisitor, visit } from 'jsonc-parser';
-import { IDisposable } from '../common/disposable';
-import { getRunScriptCommand } from './getRunScriptCommand';
 import * as nls from 'vscode-nls';
+import { asCommand, Commands, Configuration, readConfig } from '../common/contributionUtils';
+import { IDisposable } from '../common/disposable';
+import { getPackageManager } from './getRunScriptCommand';
 
 const localize = nls.loadMessageBundle();
 
@@ -53,7 +52,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
   /**
    * @inheritdoc
    */
-  public provideCodeLenses(document: TextDocument): ProviderResult<CodeLens[]> {
+  public async provideCodeLenses(document: TextDocument): Promise<CodeLens[]> {
     if (this.lensLocation === 'never') {
       return [];
     }
@@ -80,6 +79,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
 
     if (this.lensLocation === 'all') {
       const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+      const packageManager = await getPackageManager(workspaceFolder);
       return tokens.scripts.map(
         ({ name, position }) =>
           new CodeLens(
@@ -87,7 +87,7 @@ export class NpmScriptLenProvider implements CodeLensProvider, IDisposable {
             asCommand({
               title,
               command: Commands.CreateDebuggerTerminal,
-              arguments: [getRunScriptCommand(name, workspaceFolder), workspaceFolder, { cwd }],
+              arguments: [`${packageManager} run ${name}`, workspaceFolder, { cwd }],
             }),
           ),
       );
