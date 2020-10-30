@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ComponentType, FunctionComponent, h, render } from 'preact';
+import { ComponentType, Fragment, FunctionComponent, h, render } from 'preact';
 import { useState } from 'preact/hooks';
 import { IDiagnosticDump } from '../adapter/diagnosics';
 import { Intro } from './intro';
@@ -17,7 +17,16 @@ const App: FunctionComponent<{ dump: IDiagnosticDump }> = ({ dump }) => {
 
   return (
     <DumpContext.Provider value={dump}>
-      {Component ? <Component /> : <Intro onPick={cmp => setComponent(() => cmp)} />}
+      {Component ? (
+        <Fragment>
+          <a role="button" onClick={() => setComponent(undefined)} className="back">
+            &larr; Back
+          </a>
+          <Component />
+        </Fragment>
+      ) : (
+        <Intro onPick={cmp => setComponent(() => cmp)} />
+      )}
     </DumpContext.Provider>
   );
 };

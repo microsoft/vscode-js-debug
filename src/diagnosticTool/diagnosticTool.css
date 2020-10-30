@@ -1,44 +1,28 @@
-@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,400i,300|IBM+Plex+Sans:300,400,600&display=swap');
-
 * {
   margin: 0;
   padding: 0;
 }
 
 :root {
-  --font-family-mono: 'IBM Plex Mono', monospace;
-  --font-family-body: 'IBM Plex Sans', sans-serif;
-
-  --body-bg: #bd2f31;
-  --modal-bg: #fff;
-  --primary-color: #bd2f31;
   --subtle-bg: rgba(0, 0, 0, 0.05);
 }
 
 body {
-  background: var(--body-bg);
-  font-family: var(--font-family-body);
-}
-
-pre,
-code {
-  font-family: var(--font-family-mono);
-}
-
-h1,
-h2,
-h3 {
-  font-weight: 300;
+  color: var(--vscode-foreground)
 }
 
 a {
   cursor: pointer;
-  color: var(--primary-color);
   text-decoration: underline;
 }
 
 a:hover {
   text-decoration: none;
+}
+
+.back {
+  padding: 1rem 0;
+  display: inline-block;
 }
 
 .intro {
@@ -49,10 +33,16 @@ a:hover {
 }
 
 .intro > div {
-  background: var(--modal-bg);
-  border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--vscode-notebook-focusedCellBorder);
+}
+
+.intro > div,
+.content,
+.source-container.expanded {
+  background: var(--vscode-notebook-focusedCellBackground);
+  border: 1px solid var(--vscode-notebook-focusedCellBorder);
 }
 
 .intro header {
@@ -72,7 +62,6 @@ a:hover {
   display: block;
   margin-top: 0.5rem;
   padding: 0.5rem;
-  border-radius: 8px;
 }
 
 .intro-content li a:hover {
@@ -80,41 +69,44 @@ a:hover {
 }
 
 .content {
-  background: var(--modal-bg);
   margin: 2rem;
   padding: 1rem;
-  border-radius: 4px;
 }
 
 .source-filter {
   display: block;
   width: 100%;
   padding: 0.5rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   margin-bottom: 0.5rem;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: none;
 }
 
 .source-container {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  padding: 0.5rem;
+}
+
+.source-container code {
+  word-break: break-all;
+}
+
+.source-container.expanded + .source-container.expanded {
+  border-top: none;
 }
 
 .source-container h2 {
-  font-family: var(--font-family-mono);
+  font-family: var(--editor-font-family);
   font-weight: 300;
   cursor: pointer;
-  color: rgba(0, 0, 0, 0.8);
+  opacity: 0.8;
   font-size: 1.2rem;
   user-select: none;
 }
 
 .source-container h2:hover {
-  color: #000;
-}
-
-.source-container.expanded {
-  border-left: 3px solid rgba(0, 0, 0, 0.2);
-  padding-left: 0.25rem;
+  opacity: 1;
 }
 
 .source-container.expanded h2 {
@@ -123,13 +115,9 @@ a:hover {
 
 .source-data-grid {
   display: grid;
-  grid-template-columns: 25% auto;
+  grid-template-columns: 25% 75%;
   row-gap: 0.5rem;
   padding: 0.5rem 0.25rem;
-}
-
-.source-data-grid dt {
-  color: rgba(0, 0, 0, 0.8);
 }
 
 .source-data-grid li {
@@ -147,7 +135,7 @@ a:hover {
 }
 
 .bp-tracing code {
-  font-size: 0.8em;
+  font-size: var(--vscode-editor-font-size);
 }
 
 .bp-tracing li {
@@ -166,13 +154,17 @@ a:hover {
   margin: 0.5rem 0;
 }
 
-.decision-buttons button {
-  background: var(--primary-color);
-  color: #fff;
-  border-radius: 3px;
-  border: 2px solid var(--primary-color);
-  padding: 0.25rem;
+button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: 0;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
+}
+
+button:hover,
+button:focus {
+  background: var(--vscode-button-hoverBackground);
 }
 
 .decision-buttons button + button {
@@ -180,18 +172,17 @@ a:hover {
 }
 
 .decision-buttons button.active {
-  background: transparent;
-  color: #000;
+  background: var(--vscode-button-hoverBackground);
 }
 
 .text-diff .add {
-  background: rgba(0, 255, 0, 0.2);
-  color: darkgreen;
+  background: var(--vscode-diffEditor-insertedTextBackground);
+  border: 1px solid var(--vscode-diffEditor-insertedTextBorder);
 }
 
 
 .text-diff .rm {
-  background: rgba(255, 0, 0, 0.2);
+  background: var(--vscode-diffEditor-removedTextBackground);
   text-decoration: line-through;
-  color: darkred;
+  border: 1px solid var(--vscode-diffEditor-removedTextBorder);
 }

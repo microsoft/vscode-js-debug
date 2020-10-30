@@ -40,23 +40,19 @@ export const SourceExplorer: FunctionComponent = () => {
 
   return (
     <Fragment>
-      <div className="content">
-        <input
-          placeholder="Filter sources..."
-          className="source-filter"
-          value={filter}
-          onChange={onChange}
-          onKeyUp={onChange}
-        />
-        <small>
-          Showing {results.length} of {dump.sources.length} sources...
-        </small>
-      </div>
-      <div className="content" style={{ paddingTop: '0.25rem', paddingBottom: '0.25rem' }}>
-        {results.map(result => (
-          <Source source={result} key={result.sourceReference} />
-        ))}
-      </div>
+      <input
+        placeholder="Filter sources..."
+        className="source-filter"
+        value={filter}
+        onChange={onChange}
+        onKeyUp={onChange}
+      />
+      <small style={{ marginBottom: '1rem' }}>
+        Showing {results.length} of {dump.sources.length} sources...
+      </small>
+      {results.map(result => (
+        <Source source={result} key={result.sourceReference} />
+      ))}
     </Fragment>
   );
 };
@@ -120,9 +116,7 @@ const SourceData: FunctionComponent<{
   <dl className="source-data-grid">
     <dt>url</dt>
     <dd>
-      <a href={source.url} target="_blank" rel="noreferrer">
-        <code>{source.url}</code>
-      </a>
+      <code>{source.url}</code>
     </dd>
     <dt>sourceReference</dt>
     <dd>
