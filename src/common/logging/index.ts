@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { existsSync } from 'fs';
+import { randomBytes } from 'crypto';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import { ILoggingConfiguration } from '../../configuration';
@@ -150,17 +150,11 @@ export function fulfillLoggerOptions(
     return { console: false, level: 'fatal', stdio: false, logFile: null, tags: [] };
   }
 
-  let logFile: string;
-  let i = 0;
-  do {
-    logFile = path.join(logDir, `vscode-debugadapter-${i++}.json.gz`);
-  } while (existsSync(logFile));
-
   const defaults: ILoggingConfiguration = {
     console: false,
     level: 'verbose',
     stdio: true,
-    logFile,
+    logFile: path.join(logDir, `vscode-debugadapter-${randomBytes(4).toString('hex')}.json.gz`),
     tags: [],
   };
 
