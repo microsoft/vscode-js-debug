@@ -4,29 +4,27 @@
 
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
-import { Commands, registerCommand } from '../common/contributionUtils';
-import { ExtensionLocation } from '../ioc-extras';
-
-const localize = nls.loadMessageBundle();
+import { Commands, Contributions, registerCommand } from '../common/contributionUtils';
+import { FS, FsPromises } from '../ioc-extras';
 
 @injectable()
 export class DiagnosticsUI {
-  constructor(@inject(ExtensionLocation) private readonly location: ExtensionLocation) {}
+  constructor(@inject(FS) private readonly fs: FsPromises) {}
 
   public register(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       registerCommand(vscode.commands, Commands.CreateDiagnostics, async () => {
         const { file } = await vscode.debug.activeDebugSession?.customRequest('createDiagnostics');
-        if (this.location === 'remote' || !(await vscode.env.openExternal(vscode.Uri.file(file)))) {
-          await vscode.env.clipboard.writeText(file);
-          await vscode.window.showInformationMessage(
-            localize(
-              'createDiagnostics.copied',
-              'The path to the diagnostic report has been copied to your clipboard',
-            ),
-          );
-        }
+        const panel = vscode.window.createWebviewPanel(
+          Contributions.DiagnosticsView,
+          'Debug Diagnostics',
+          vscode.ViewColumn.Active,
+          {
+            enableScripts: true,
+          },
+        );
+
+        panel.webview.html = await this.fs.readFile(file, 'utf-8');
       }),
     );
   }

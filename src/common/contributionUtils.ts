@@ -13,6 +13,7 @@ import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 
 export const enum Contributions {
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
+  DiagnosticsView = 'jsDebugDiagnostics',
 }
 
 export const enum Commands {

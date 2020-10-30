@@ -8,6 +8,7 @@ import {
   AutoAttachMode,
   Commands,
   Configuration,
+  Contributions,
   DebugType,
   IConfigurationTypes,
 } from '../common/contributionUtils';
@@ -1300,6 +1301,7 @@ if (require.main === module) {
       activationEvents: [
         ...[...allCommands].map(cmd => `onCommand:${cmd}`),
         ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
+        `onWebviewPanel:${Contributions.DiagnosticsView}`,
       ],
       contributes: {
         menus,
