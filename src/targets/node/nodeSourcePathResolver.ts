@@ -21,6 +21,8 @@ interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
 }
 
+const localNodeInternalsPrefix = 'node:';
+
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
   public constructor(
     private readonly fsUtils: IFsUtils,
@@ -40,9 +42,11 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
 
     // Allow debugging of externally loaded Node internals
     // [ by building Node with ./configure --node-builtin-modules-path $(pwd) ]
-    if (url.startsWith('node:')) {
-      url = url.replace('node:', this.options.basePath + '/lib/');
-      if (!url.endsWith('.js')) url += '.js';
+    if (url.startsWith(localNodeInternalsPrefix) && this.options.basePath) {
+      url = path.join(this.options.basePath, 'lib', url.slice(localNodeInternalsPrefix.length));
+      if (!url.endsWith('.js')) {
+        url += '.js';
+      }
     }
 
     if (map) {

@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
 import { expect } from 'chai';
-import { join, resolve } from 'path';
-import { setCaseSensitivePaths, resetCaseSensitivePaths } from '../../common/urlUtils';
-import { Logger } from '../../common/logging/logger';
 import { promises as fsPromises } from 'fs';
+import { join, resolve } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
+import { Logger } from '../../common/logging/logger';
+import { resetCaseSensitivePaths, setCaseSensitivePaths } from '../../common/urlUtils';
+import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
 
 const fsUtils = new LocalFsUtils(fsPromises);
 
@@ -80,6 +80,17 @@ describe('node source path resolver', () => {
           map: { sourceRoot: '', metadata: { compiledPath: 'hello.js' } } as any,
         }),
       ).to.equal(join(__dirname, 'hello.js'));
+    });
+
+    it('loads local node internals (#823)', async () => {
+      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, Logger.null);
+
+      expect(await r.urlToAbsolutePath({ url: 'node:url' })).to.equal(
+        join(__dirname, 'lib/url.js'),
+      );
+      expect(await r.urlToAbsolutePath({ url: 'node:internal/url.js' })).to.equal(
+        join(__dirname, 'lib/internal/url.js'),
+      );
     });
 
     describe('source map filtering', () => {
