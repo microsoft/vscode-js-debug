@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - feat: allow debugging node internals ([#823](https://github.com/microsoft/vscode-js-debug/issues/823))
 - feat: show diagnostic tool in a webview and integrate with vscode theme ([ref](https://github.com/microsoft/vscode/issues/109526), [ref](https://github.com/microsoft/vscode/issues/109529), [ref](https://github.com/microsoft/vscode/issues/109531))
+- feat: support vscode webview resource uri sourcemaps ([#820](https://github.com/microsoft/vscode-js-debug/pull/820))
 - fix: support chrome dev and beta builds ([ref](https://github.com/OmniSharp/omnisharp-vscode/issues/4108))
 - fix: race causing potentially corrupted log files ([#825](https://github.com/microsoft/vscode-js-debug/issues/825))
 - fix: extension host debugging pausing in internals ([ref](https://github.com/microsoft/vscode/issues/105047))
