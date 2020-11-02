@@ -972,7 +972,9 @@ export function applyEdgeDefaults(
 export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
 ): IExtensionHostLaunchConfiguration {
-  return { ...extensionHostConfigDefaults, ...config };
+  const resolved = { ...extensionHostConfigDefaults, ...config };
+  resolved.outFiles = [...resolved.outFiles, '**/node_modules.asar/**'];
+  return resolved;
 }
 
 export function applyTerminalDefaults(
