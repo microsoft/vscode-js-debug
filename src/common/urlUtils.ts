@@ -9,10 +9,10 @@ import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
+import { IFsUtils } from './fsUtils';
 import { memoize } from './objUtils';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
-import { IFsUtils } from './fsUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -220,8 +220,17 @@ export function fileUrlToAbsolutePath(urlOrPath: FileUrl): string;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
   if (isVSCodeWebviewUrl(urlOrPath)) {
-    // Strip off vscode webview url part: vscode-webview-resource://<36-char-guid>/file
-    urlOrPath = `file:${urlOrPath.substr(67)}`;
+    const url = new URL(urlOrPath);
+    // Strip off vscode webview url part: vscode-webview-resource://<36-char-guid>/file...
+    urlOrPath = url.pathname
+      .replace(/%2F/gi, '/')
+      .replace(/^\/([a-z0-9\-]+)(\/{1,2})/i, (_: string, scheme: string, sep: string) => {
+        if (sep.length === 1) {
+          return `${scheme}:///`; // Add empty authority.
+        } else {
+          return `${scheme}://`; // Url has own authority.
+        }
+      });
   }
 
   if (!isFileUrl(urlOrPath)) {
