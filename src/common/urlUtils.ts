@@ -9,10 +9,10 @@ import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
+import { IFsUtils } from './fsUtils';
 import { memoize } from './objUtils';
 import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
-import { IFsUtils } from './fsUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
 
@@ -219,6 +219,20 @@ export function stripTrailingSlash(aPath: string): string {
 export function fileUrlToAbsolutePath(urlOrPath: FileUrl): string;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined;
 export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
+  if (isVSCodeWebviewUrl(urlOrPath)) {
+    const url = new URL(urlOrPath);
+    // Strip off vscode webview url part: vscode-webview-resource://<36-char-guid>/file...
+    urlOrPath = url.pathname
+      .replace(/%2F/gi, '/')
+      .replace(/^\/([a-z0-9\-]+)(\/{1,2})/i, (_: string, scheme: string, sep: string) => {
+        if (sep.length === 1) {
+          return `${scheme}:///`; // Add empty authority.
+        } else {
+          return `${scheme}://`; // Url has own authority.
+        }
+      });
+  }
+
   if (!isFileUrl(urlOrPath)) {
     return undefined;
   }
@@ -354,10 +368,17 @@ export function urlToRegex(aPath: string, escapeRegex = true) {
 export type FileUrl = string & { __opaque_file_url: true };
 
 /**
- * Returns whether the string is a file UR
+ * Returns whether the string is a file URL
  */
 export function isFileUrl(candidate: string): candidate is FileUrl {
   return candidate.startsWith('file:///');
+}
+
+/**
+ * Returns whether the string is a file URL
+ */
+export function isVSCodeWebviewUrl(candidate: string): candidate is FileUrl {
+  return candidate.startsWith('vscode-webview-resource://');
 }
 
 export function maybeAbsolutePathToFileUrl(
