@@ -1122,6 +1122,17 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: false,
     description: refString('configuration.unmapMissingSources'),
   },
+  [Configuration.DefaultRuntimeExecutables]: {
+    type: 'object',
+    default: {
+      [DebugType.Node]: 'node',
+    },
+    markdownDescription: refString('configuration.defaultRuntimeExecutables'),
+    properties: [DebugType.Node, DebugType.Chrome, DebugType.Edge].reduce(
+      (obj, type) => ({ ...obj, [type]: { type: 'string' } }),
+      {},
+    ),
+  },
 };
 
 const commands: ReadonlyArray<{

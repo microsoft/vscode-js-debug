@@ -5,7 +5,7 @@
 import { inject, injectable } from 'inversify';
 import { isAbsolute } from 'path';
 import * as vscode from 'vscode';
-import { Configuration, readConfig } from '../../common/contributionUtils';
+import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
 import { fulfillLoggerOptions } from '../../common/logging';
 import {
   AnyLaunchConfiguration,
@@ -52,6 +52,24 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
       return resolved && this.commonResolution(resolved, folder);
     } catch (err) {
       vscode.window.showErrorMessage(err.message, { modal: true });
+    }
+  }
+
+  /**
+   * Gets the default runtime executable for the type, if configured.
+   */
+  protected applyDefaultRuntimeExecutable(cfg: {
+    type: DebugType;
+    runtimeExecutable?: string | null;
+  }) {
+    if (cfg.runtimeExecutable) {
+      return;
+    }
+
+    const allDefaults = readConfig(vscode.workspace, Configuration.DefaultRuntimeExecutables);
+    const defaultValue = allDefaults ? allDefaults[cfg.type] : undefined;
+    if (defaultValue) {
+      cfg.runtimeExecutable = defaultValue;
     }
   }
 

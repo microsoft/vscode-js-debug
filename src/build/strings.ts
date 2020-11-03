@@ -285,6 +285,8 @@ const strings = {
     'Whether to stop when conditional breakpoints throw an error. Note: your launch.json `type` must be prefixed with `pwa-` to use this, such as `pwa-node`.',
   'configuration.unmapMissingSources':
     "Configures whether sourcemapped file where the original file can't be read will automatically be unmapped. If this is false (default), a prompt is shown.",
+  'configuration.defaultRuntimeExecutables':
+    'The default `runtimeExecutable` used for launch configurations, if unspecified. This can be used to config custom paths to Node.js or browser installations.',
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',

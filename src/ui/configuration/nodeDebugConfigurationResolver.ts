@@ -12,6 +12,7 @@ import { writeToConsole } from '../../common/console';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubdirectoryOf } from '../../common/pathUtils';
 import { nearestDirectoryContaining } from '../../common/urlUtils';
 import {
@@ -28,7 +29,6 @@ import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
-import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -104,6 +104,9 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
     }
 
     if (config.request === 'launch') {
+      // custom node install
+      this.applyDefaultRuntimeExecutable(config);
+
       // nvm support
       const nvmVersion = config.runtimeVersion;
       if (typeof nvmVersion === 'string' && nvmVersion !== 'default') {

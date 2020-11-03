@@ -110,6 +110,7 @@ export const enum Configuration {
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
   BreakOnConditionalError = 'debug.javascript.breakOnConditionalError',
   UnmapMissingSources = 'debug.javascript.unmapMissingSources',
+  DefaultRuntimeExecutables = 'debug.javascript.defaultRuntimeExecutable',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -132,6 +133,7 @@ export interface IConfigurationTypes {
   [Configuration.AutoAttachSmartPatterns]: ReadonlyArray<string>;
   [Configuration.BreakOnConditionalError]: boolean;
   [Configuration.UnmapMissingSources]: boolean;
+  [Configuration.DefaultRuntimeExecutables]: { [K in DebugType]?: string };
 }
 
 export interface ICommandTypes {

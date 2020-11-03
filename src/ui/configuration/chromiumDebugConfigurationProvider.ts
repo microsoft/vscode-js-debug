@@ -89,6 +89,11 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
     if (isAttach(config) && !config.browserAttachLocation) {
       config.browserAttachLocation = browserLocation;
     }
+
+    if (config.request === 'launch') {
+      const cast = config as ResolvingConfiguration<AnyChromiumLaunchConfiguration>;
+      this.applyDefaultRuntimeExecutable(cast);
+    }
   }
 
   /**
