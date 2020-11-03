@@ -23,7 +23,8 @@ describe('SourceMapOverrides', () => {
 
     it('replaces paths without groups on the left or right', () => {
       const r = new SourceMapOverrides({ '/a': '/b' }, Logger.null);
-      expect(r.apply('/a/foo/bar')).to.equal('/a/foo/bar');
+      expect(r.apply('/a/foo/bar')).to.equal('/b/foo/bar');
+      expect(r.apply('/abbbbb')).to.equal('/abbbbb');
       expect(r.apply('/a')).to.equal('/b');
     });
 
@@ -94,6 +95,11 @@ describe('SourceMapOverrides', () => {
       ).to.equal(
         path.win32.join('H:/cv-measure/measure-tools/measure-tools/src/api/Measurement.ts'),
       );
+    });
+
+    it('handles single file overrides', () => {
+      const r = new SourceMapOverrides({ '/foo/bar.js': '${webRoot}/baz.js' }, Logger.null);
+      expect(r.apply('/foo/bar.js')).to.equal(path.join('${webRoot}/baz.js'));
     });
   });
 

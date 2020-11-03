@@ -42,7 +42,7 @@ export class SourceMapOverrides {
 
     // Iterate the key/vals, only apply the first one that matches.
     for (const leftPatternRaw of sortedOverrideKeys) {
-      const rightPattern = sourceMapOverrides[leftPatternRaw];
+      let rightPattern = sourceMapOverrides[leftPatternRaw];
       if (!rightPattern.includes('*') && /\$[0-9'`&]/.test(rightPattern)) {
         this.replacers.push([new RegExp(`^${leftPatternRaw}$`, 'i'), rightPattern]);
         continue;
@@ -72,15 +72,13 @@ export class SourceMapOverrides {
 
       let reSource = '^';
       let leftIndex = 0;
+      anyGroupRe.lastIndex = 0;
+
       while (true) {
         const next = anyGroupRe.exec(leftPattern);
         reSource += escapeRegexSpecialChars(leftPattern.slice(leftIndex, next?.index), '/');
 
         if (!next) {
-          this.replacers.push([
-            new RegExp(reSource + '$', 'i'),
-            rightPattern.replace(/\$/g, '$$$$').replace(/\*/, '$1'),
-          ]);
           break;
         }
 
@@ -93,7 +91,15 @@ export class SourceMapOverrides {
         leftIndex = next.index + next[0].length;
       }
 
-      anyGroupRe.lastIndex = 0;
+      if (capturedGroups === 0) {
+        reSource += `([\\/\\\\].*)?`;
+        rightPattern += '*';
+      }
+
+      this.replacers.push([
+        new RegExp(reSource + '$', 'i'),
+        rightPattern.replace(/\$/g, '$$$$').replace(/\*/, '$1'),
+      ]);
     }
   }
 

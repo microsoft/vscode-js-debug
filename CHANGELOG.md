@@ -13,6 +13,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: extension host debugging pausing in internals ([ref](https://github.com/microsoft/vscode/issues/105047))
 - fix: make urls ending in `/*` also match the base path ([#834](https://github.com/microsoft/vscode-js-debug/issues/834))
 - fix: ignore hash portion of url when determining matches ([#840](https://github.com/microsoft/vscode-js-debug/issues/840))
+- fix: automatically add a \* suffix to sourceMapPathOverrides that lack one ([#841](https://github.com/microsoft/vscode-js-debug/issues/841))
 
 ## v1.51.0 - 2020-10-26
 
