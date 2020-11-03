@@ -224,6 +224,15 @@ describe('urlUtils', () => {
       ]);
     });
 
+    it('ignores hashes in url matching', () => {
+      testAll('http://localhost', [
+        ['http://localhost/#/foo', true],
+        ['http://localhost/#!/bar', true],
+        ['http://localhost#!/bar', true],
+        ['http://localhost/#', true],
+      ]);
+    });
+
     it('works with file:// + query params', () => {
       testAll('/foo/bar?a://*', [
         ['file:///foo/bar?a%3A%2F%2Fb', true],

@@ -475,6 +475,11 @@ export const createTargetFilter = (
       aUrl = aUrl.substr(0, aUrl.length - 1);
     }
 
+    const hashIndex = aUrl.indexOf('#');
+    if (hashIndex !== -1) {
+      aUrl = aUrl.slice(0, aUrl[hashIndex - 1] === '/' ? hashIndex - 1 : hashIndex);
+    }
+
     return aUrl;
   };
 
