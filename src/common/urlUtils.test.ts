@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { expect } from 'chai';
-import { SinonStub, stub } from 'sinon';
 import { promises as dns } from 'dns';
 import * as os from 'os';
+import { SinonStub, stub } from 'sinon';
 import {
-  fileUrlToAbsolutePath,
   createTargetFilter,
-  urlToRegex,
-  setCaseSensitivePaths,
-  resetCaseSensitivePaths,
+  fileUrlToAbsolutePath,
   isLoopback,
-} from '../../common/urlUtils';
+  resetCaseSensitivePaths,
+  setCaseSensitivePaths,
+  urlToRegex,
+} from './urlUtils';
 
 describe('urlUtils', () => {
   describe('fileUrlToPath()', () => {
@@ -173,8 +173,16 @@ describe('urlUtils', () => {
     it('respects one wildcard', () => {
       testAll('localhost/site/*', [
         ['http://localhost/site/app', true],
-        ['http://localhost/site/', false],
+        ['http://localhost/site/', true],
         ['http://localhost/', false],
+      ]);
+    });
+
+    it('makes wildcard optional (#834)', () => {
+      testAll('localhost/*', [
+        ['http://localhost/site/', true],
+        ['http://localhost/', true],
+        ['http://localhost', true],
       ]);
     });
 

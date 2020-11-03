@@ -479,7 +479,7 @@ export const createTargetFilter = (
   };
 
   const escaped = targetUrls.map(url =>
-    escapeRegexSpecialChars(standardizeMatch(url), '/*').replace(/\*/g, '.*'),
+    escapeRegexSpecialChars(standardizeMatch(url), '/*').replace(/(\/\*$)|\*/g, '.*'),
   );
   const targetUrlRegex = new RegExp('^(' + escaped.join('|') + ')$', 'g');
 
