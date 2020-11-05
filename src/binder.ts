@@ -130,6 +130,9 @@ export class Binder implements IDisposable {
           dap,
         );
       });
+      dap.on('pause', async () => {
+        return {};
+      });
       dap.on('terminate', async () => {
         await this._disconnect();
         return {};
