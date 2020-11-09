@@ -1234,6 +1234,7 @@ const menus: Menus = {
     {
       command: Commands.DebugLink,
       title: refString('debugLink.label'),
+      when: '!isWeb',
     },
     {
       command: Commands.CreateDiagnostics,
