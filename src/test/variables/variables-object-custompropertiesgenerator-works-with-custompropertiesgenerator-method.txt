@@ -1,0 +1,6 @@
+> result: Bar {realProp: 'cc3'}
+    customProp1: 'aa1'
+    customProp2: 'bb2'
+    > getter (get): ƒ getter() {}
+    realProp: 'cc3'
+    > __proto__: Foo

@@ -139,6 +139,52 @@ describe('variables', () => {
         p.assertLog();
       });
     });
+
+    describe('customPropertiesGenerator', () => {
+      itIntegrates('works with customPropertiesGenerator method ', async ({ r }) => {
+        const p = await r.launchAndLoad('blank', {
+          customPropertiesGenerator:
+            'function () { if (this.customPropertiesGenerator) return this.customPropertiesGenerator(); else return this; }',
+        });
+        await p.logger.evaluateAndLog(`
+        class Foo { get getter() {} }
+        class Bar extends Foo {
+          constructor() {
+            super();
+            this.realProp = 'cc3';
+          }
+
+          customPropertiesGenerator() {
+            const properties = Object.create(this.__proto__);
+            return Object.assign(properties, this, { customProp1: 'aa1', customProp2: 'bb2' });
+          }
+        }
+        new Bar();`);
+        p.assertLog();
+      });
+    });
+
+    itIntegrates('shows errors while generating properties', async ({ r }) => {
+      const p = await r.launchAndLoad('blank', {
+        customPropertiesGenerator:
+          'function () { if (this.customPropertiesGenerator) throw new Error("Some error while generating properties"); else return this; }',
+      });
+      await p.logger.evaluateAndLog(`
+      class Foo { get getter() {} }
+      class Bar extends Foo {
+        constructor() {
+          super();
+          this.realProp = 'cc3';
+        }
+
+        customPropertiesGenerator() {
+          const properties = Object.create(this.__proto__);
+          return Object.assign(properties, this, { customProp1: 'aa1', customProp2: 'bb2' });
+        }
+      }
+      new Bar();`);
+      p.assertLog();
+    });
   });
 
   describe('web', () => {

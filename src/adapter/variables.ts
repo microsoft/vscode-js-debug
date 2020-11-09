@@ -6,7 +6,7 @@ import { generate } from 'astring';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { flatten } from '../common/objUtils';
-import { codeToFunctionReturningErrors, parseSource } from '../common/sourceCodeManipulations';
+import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as objectPreview from './objectPreview';
@@ -109,6 +109,7 @@ export class VariableStore {
     delegate: IVariableStoreDelegate,
     private readonly autoExpandGetters: boolean,
     private readonly customDescriptionGenerator: string | undefined,
+    private readonly customPropertiesGenerator: string | undefined,
   ) {
     this._cdp = cdp;
     this._delegate = delegate;
@@ -355,6 +356,42 @@ export class VariableStore {
     object: RemoteObject,
     objectId = object.objectId,
   ): Promise<Dap.Variable[]> {
+    const properties: (
+      | Promise<{ v: Dap.Variable; weight: number }[]>
+      | { v: Dap.Variable; weight: number }[]
+    )[] = [];
+
+    if (this.customPropertiesGenerator) {
+      const { result, errorDescription } = await this.evaluateCodeForObject(
+        object,
+        [],
+        this.customPropertiesGenerator,
+        [],
+        /*catchAndReturnErrors*/ false,
+      );
+
+      if (result && result.type !== 'undefined') {
+        object = new RemoteObject(object.name, object.cdp, result, object.parent);
+        objectId = object.objectId;
+      } else {
+        const value =
+          result?.description || errorDescription || localize('error.unknown', 'Unknown error');
+        properties.push([
+          {
+            v: {
+              name: localize(
+                'error.failedToCustomizeObjectProperties',
+                `Failed properties customization`,
+              ),
+              value,
+              variablesReference: 0,
+            },
+            weight: 0,
+          },
+        ]);
+      }
+    }
+
     const [accessorsProperties, ownProperties] = await Promise.all([
       object.cdp.Runtime.getProperties({
         objectId,
@@ -382,11 +419,6 @@ export class VariableStore {
       if (property.symbol) propertySymbols.push(property);
       else propertiesMap.set(property.name, property);
     }
-
-    const properties: (
-      | Promise<{ v: Dap.Variable; weight: number }[]>
-      | { v: Dap.Variable; weight: number }[]
-    )[] = [];
 
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
@@ -613,36 +645,65 @@ export class VariableStore {
       return defaultValueDescription;
     }
 
-    let errorDescription;
+    const { result, errorDescription } = await this.evaluateCodeForObject(
+      object,
+      ['defaultValue'],
+      this.customDescriptionGenerator,
+      [defaultValueDescription],
+      /*catchAndReturnErrors*/ true,
+    );
+
+    return result?.value
+      ? '' + result.value
+      : localize(
+          'error.customValueDescriptionGeneratorFailed',
+          "{0} (couldn't describe: {1})",
+          defaultValueDescription,
+          errorDescription,
+        );
+  }
+
+  private async evaluateCodeForObject(
+    object: Cdp.Runtime.RemoteObject | RemoteObject,
+    parameterNames: string[],
+    codeToEvaluate: string,
+    argumentsToEvaluateWith: string[],
+    catchAndReturnErrors: boolean,
+  ): Promise<{ result?: Cdp.Runtime.RemoteObject; errorDescription?: string }> {
     try {
       const customValueDescription = await this._cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
         functionDeclaration: this.extractFunctionFromCustomDescriptionGenerator(
-          this.customDescriptionGenerator,
+          parameterNames,
+          codeToEvaluate,
+          catchAndReturnErrors,
         ),
-        arguments: [this._toCallArgument(defaultValueDescription)],
+        arguments: argumentsToEvaluateWith.map(arg => this._toCallArgument(arg)),
       });
-      if (customValueDescription?.exceptionDetails === undefined) {
-        return '' + customValueDescription?.result.value;
-      } else if (customValueDescription.result.description) {
-        errorDescription = customValueDescription.result.description.split('\n', 1)[0];
-      } else {
-        errorDescription = localize('error.unknown', 'Unknown error');
-      }
-    } catch (e) {
-      errorDescription = e.stack || e.message || String(e);
-    }
 
-    return localize(
-      'error.customValueDescriptionGeneratorFailed',
-      "{0} (couldn't describe: {1})",
-      defaultValueDescription,
-      errorDescription,
-    );
+      if (customValueDescription) {
+        if (customValueDescription.exceptionDetails === undefined) {
+          return { result: customValueDescription.result };
+        } else if (customValueDescription && customValueDescription.result.description) {
+          return { errorDescription: customValueDescription.result.description };
+        }
+      }
+      return { errorDescription: localize('error.unknown', 'Unknown error') };
+    } catch (e) {
+      return { errorDescription: e.stack || e.message || String(e) };
+    }
   }
 
-  private extractFunctionFromCustomDescriptionGenerator(generatorDefinition: string): string {
-    const code = codeToFunctionReturningErrors(['defaultValue'], parseSource(generatorDefinition));
+  private extractFunctionFromCustomDescriptionGenerator(
+    parameterNames: string[],
+    generatorDefinition: string,
+    catchAndReturnErrors: boolean,
+  ): string {
+    const code = statementsToFunction(
+      parameterNames,
+      parseSource(generatorDefinition),
+      catchAndReturnErrors,
+    );
     return generate(code);
   }
 

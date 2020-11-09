@@ -7,13 +7,13 @@ import { expect } from 'chai';
 import { FunctionDeclaration } from 'estree';
 import { assertAstEqual } from '../test/assertAstEqual';
 import {
-  codeToFunctionReturningErrors,
   functionToFunctionCall,
   parseSource,
+  statementsToFunction,
 } from './sourceCodeManipulations';
 
 describe('sourceCodeManipulations', () => {
-  describe('codeToFunctionReturningErrors', () => {
+  describe('statementsToFunction', () => {
     const wrapped = (...str: string[]) =>
       [
         'function _generatedCode(a) {',
@@ -47,7 +47,7 @@ describe('sourceCodeManipulations', () => {
     for (const { in: input, out } of tcases) {
       it(input, () => {
         const parsed = parseSource(input);
-        const transformed = codeToFunctionReturningErrors(['a'], parsed);
+        const transformed = statementsToFunction(['a'], parsed, true);
         assertAstEqual(generate(transformed), out);
       });
     }

@@ -242,6 +242,12 @@ const strings = {
       2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue
       3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue
       `,
+  'customPropertiesGenerator.description': `Customize the properties shown for an object in the debugger (local variables, etc...). Samples:
+    1. { ...this, extraProperty: '12345' } // Add an extraProperty 12345 to all objects
+    2. this.customProperties ? this.customProperties() : this // Use customProperties method if available, if not use the properties in this (the default properties)
+    3. function () { return this.customProperties ? this.customProperties() : this } // Use customDescription method if available, if not return the default properties
+
+    Deprecated: This is a temporary implementation of this feature until we have time to implement it in the way described here: https://github.com/microsoft/vscode/issues/102181`,
 
   'longPredictionWarning.message':
     "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
