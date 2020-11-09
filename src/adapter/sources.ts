@@ -25,6 +25,9 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import { sourceMapParseFailed } from '../dap/errors';
+import { IInitializeParams } from '../ioc-extras';
+import { IStatistics } from '../telemetry/classification';
+import { extractErrorDetails } from '../telemetry/dapTelemetryReporter';
 import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
@@ -501,6 +504,8 @@ export class SourceContainer {
    */
   private hasWarnedAboutMaps = new Set<SourceMap>();
 
+  private readonly _statistics: IStatistics = { fallbackSourceMapCount: 0 };
+
   /**
    * Gets an iterator for all sources in the collection.
    */
@@ -508,11 +513,19 @@ export class SourceContainer {
     return this._sourceByReference.values();
   }
 
+  /**
+   * Gets statistics for telemetry
+   */
+  public statistics(): IStatistics {
+    return this._statistics;
+  }
+
   constructor(
     @inject(IDapApi) dap: Dap.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
+    @inject(IInitializeParams) private readonly initializeConfig: Dap.InitializeParams,
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
@@ -902,13 +915,44 @@ export class SourceContainer {
 
     try {
       sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
-    } catch (e) {
-      this._dap.output({
-        output: sourceMapParseFailed(source.url, e.message).error.format + '\n',
-        category: 'stderr',
-      });
+    } catch (urlError) {
+      if (this.initializeConfig.clientID === 'visualstudio') {
+        // On VS we want to support loading source-maps from storage if the web-server doesn't serve them
+        const originalSourceMapUrl = source.sourceMap.metadata.sourceMapUrl;
+        try {
+          const sourceMapAbsolutePath = await this.sourcePathResolver.urlToAbsolutePath({
+            url: originalSourceMapUrl,
+          });
 
-      return deferred.resolve();
+          if (sourceMapAbsolutePath) {
+            source.sourceMap.metadata.sourceMapUrl = utils.absolutePathToFileUrl(
+              sourceMapAbsolutePath,
+            );
+          }
+
+          sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+          this._statistics.fallbackSourceMapCount++;
+
+          this.logger.info(
+            LogTag.SourceMapParsing,
+            `Failed to process original source-map; falling back to storage source-map`,
+            {
+              fallbackSourceMapUrl: source.sourceMap.metadata.sourceMapUrl,
+              originalSourceMapUrl,
+              originalSourceMapError: extractErrorDetails(urlError),
+            },
+          );
+        } catch {}
+      }
+
+      if (!sourceMap.map) {
+        this._dap.output({
+          output: sourceMapParseFailed(source.url, urlError.message).error.format + '\n',
+          category: 'stderr',
+        });
+
+        return deferred.resolve();
+      }
     }
 
     // Source map could have been detached while loading.

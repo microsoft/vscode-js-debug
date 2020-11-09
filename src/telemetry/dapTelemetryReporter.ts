@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from '../dap/api';
-import { ReporterBatcher } from './opsReportBatch';
-import { LogFunctions, createLoggers } from './classification';
-import { mapValues } from '../common/objUtils';
-import { EventEmitter } from '../common/events';
-import { Batchable, ITelemetryReporter } from './telemetryReporter';
 import { inject, injectable } from 'inversify';
+import { EventEmitter } from '../common/events';
+import { mapValues } from '../common/objUtils';
+import Dap from '../dap/api';
 import { IsVSCode } from '../ioc-extras';
+import { createLoggers, LogFunctions } from './classification';
+import { ReporterBatcher } from './opsReportBatch';
+import { Batchable, ITelemetryReporter } from './telemetryReporter';
 
 /**
  * A telemetry reporter is a logging interface that pushes telemetry events
@@ -153,7 +153,7 @@ interface IErrorTelemetryProperties {
 /**
  * Converts the Error to an nice object with any private paths replaced.
  */
-function extractErrorDetails(e: Error): { error: IErrorTelemetryProperties } {
+export function extractErrorDetails(e: Error): { error: IErrorTelemetryProperties } {
   const message = String(e.message);
   const name = String(e.name);
 
