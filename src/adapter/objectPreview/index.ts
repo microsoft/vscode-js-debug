@@ -78,6 +78,7 @@ function previewRemoteObjectInternal(
 
 export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
   if (prop.name === '__proto__') return 0;
+  if (prop.name.startsWith('__')) return 1;
   return 100;
 }
 

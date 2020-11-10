@@ -1,0 +1,8 @@
+> result: Bar {realProp: 'cc3'}
+    > getter (get): ƒ getter() {}
+    realProp: 'cc3'
+    > __proto__: Foo
+
+Failed properties customization: Error: Some error while generating properties
+    at Bar.<anonymous> (<anonymous>:3:47)
+    at Bar._generatedCode (<anonymous>:4:6)

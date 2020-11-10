@@ -1,7 +1,6 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-
 import { Node as AcornNode, parse as parseStrict } from 'acorn';
 import { isDummy, Options, parse } from 'acorn-loose';
 import {
@@ -53,19 +52,20 @@ export const parseSource: (str: string) => (Statement & AcornNode)[] = str => {
 };
 
 /**
- * function (params) { code } => function (params) { catchAndReturnErrors(code) }
- * statement => function () { return catchAndReturnErrors(return statement) }
- * statement; statement => function () { catchAndReturnErrors(statement; return statement;) }
+ * function (params) { code } => function (params) { catchAndReturnErrors?(code) }
+ * statement => function () { return catchAndReturnErrors?(return statement) }
+ * statement; statement => function () { catchAndReturnErrors?(statement; return statement;) }
  * */
-export function codeToFunctionReturningErrors(
+export function statementsToFunction(
   parameterNames: ReadonlyArray<string>,
   statements: ReadonlyArray<Statement>,
+  catchAndReturnErrors: boolean,
 ): AnyFunctionExpression {
   if (statements.length > 1 || statements[0].type !== 'FunctionDeclaration') {
-    return statementToFunctionReturningErrors(parameterNames, statements, true);
+    return statementToFunction(parameterNames, statements, true, catchAndReturnErrors);
   }
 
-  return codeToFunctionExecutingCodeAndReturningErrors(
+  return codeToFunctionExecutingCode(
     parameterNames,
     [
       {
@@ -92,19 +92,21 @@ export function codeToFunctionReturningErrors(
       },
     ],
     true,
+    catchAndReturnErrors,
   );
 }
 
 /**
- * code => (parameterNames) => return catchAndReturnErrors(code)
+ * code => (parameterNames) => return catchAndReturnErrors?(code)
  * */
-const codeToFunctionExecutingCodeAndReturningErrors = (
+const codeToFunctionExecutingCode = (
   parameterNames: ReadonlyArray<string>,
   body: ReadonlyArray<Statement>,
   preserveThis: boolean,
+  catchAndReturnErrors: boolean,
 ): AnyFunctionExpression => {
   const param: Identifier = { type: 'Identifier', name: 'e' };
-  const inner: TryStatement = {
+  const innerWithTry: TryStatement = {
     type: 'TryStatement',
     block: { type: 'BlockStatement', body: body as Statement[] },
     handler: {
@@ -149,18 +151,20 @@ const codeToFunctionExecutingCodeAndReturningErrors = (
     },
   };
 
+  const inner = catchAndReturnErrors ? [innerWithTry] : (body as Array<Statement>);
+
   return preserveThis
     ? {
         type: 'FunctionExpression',
         id: { type: 'Identifier', name: '_generatedCode' },
         params: parameterNames.map(name => ({ type: 'Identifier', name })),
-        body: { type: 'BlockStatement', body: [inner] },
+        body: { type: 'BlockStatement', body: inner },
       }
     : {
         type: 'ArrowFunctionExpression',
         params: parameterNames.map(name => ({ type: 'Identifier', name })),
         expression: false,
-        body: { type: 'BlockStatement', body: [inner] },
+        body: { type: 'BlockStatement', body: inner },
       };
 };
 
@@ -188,17 +192,18 @@ export const returnErrorsFromStatements = (
 ) =>
   functionToFunctionCall(
     parameterNames,
-    statementToFunctionReturningErrors(parameterNames, statements, preserveThis),
+    statementToFunction(parameterNames, statements, preserveThis, /*catchAndReturnErrors*/ true),
   );
 
 /**
  * statement => function () { catchAndReturnErrors(return statement); }
  * statement; statement => function () { catchAndReturnErrors(statement; return statement); }
  * */
-function statementToFunctionReturningErrors(
+function statementToFunction(
   parameterNames: ReadonlyArray<string>,
   statements: ReadonlyArray<Statement>,
   preserveThis: boolean,
+  catchAndReturnErrors: boolean,
 ) {
   const last = statements[statements.length - 1];
   if (last.type !== 'ReturnStatement') {
@@ -208,7 +213,12 @@ function statementToFunctionReturningErrors(
     }
   }
 
-  return codeToFunctionExecutingCodeAndReturningErrors(parameterNames, statements, preserveThis);
+  return codeToFunctionExecutingCode(
+    parameterNames,
+    statements,
+    preserveThis,
+    catchAndReturnErrors,
+  );
 }
 
 export function statementToExpression(stmt: Statement): Expression | undefined {

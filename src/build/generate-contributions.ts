@@ -68,7 +68,8 @@ type ConfigurationAttributes<T> = {
 type Described =
   | { description: MappedReferenceString }
   | { enumDescriptions: MappedReferenceString[] }
-  | { markdownDescription: MappedReferenceString };
+  | { markdownDescription: MappedReferenceString }
+  | { deprecated: boolean };
 
 type Menus = {
   [menuId: string]: {
@@ -273,6 +274,12 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     type: 'string',
     default: undefined,
     description: refString('customDescriptionGenerator.description'),
+  },
+  customPropertiesGenerator: {
+    type: 'string',
+    default: undefined,
+    deprecated: true,
+    description: refString('customPropertiesGenerator.description'),
   },
   cascadeTerminateToConfigurations: {
     type: 'array',
