@@ -5,6 +5,9 @@
 import { inject, injectable } from 'inversify';
 import { BasicSourceMapConsumer, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
+import Dap from '../../dap/api';
+import { IRootDapApi } from '../../dap/connection';
+import { sourceMapParseFailed } from '../../dap/errors';
 import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 import { IDisposable } from '../disposable';
 import { ISourcePathResolver } from '../sourcePathResolver';
@@ -22,6 +25,109 @@ export interface ISourceMapFactory extends IDisposable {
    * @throws a {@link ProtocolError} if it cannot be parsed
    */
   load(metadata: ISourceMapMetadata): Promise<SourceMap>;
+
+  /**
+   * Guards a call to a source map invokation to catch parse errors. Sourcemap
+   * parsing happens lazily, so we need to wrap around their call sites.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/483
+   */
+  guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T;
+}
+
+/**
+ * Base implementation of the ISourceMapFactory.
+ */
+@injectable()
+export class SourceMapFactory implements ISourceMapFactory {
+  /**
+   * A set of sourcemaps that we warned about failing to parse.
+   * @see ISourceMapFactory#guardSourceMapFn
+   */
+  private hasWarnedAboutMaps = new WeakSet<SourceMap>();
+
+  constructor(
+    @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
+    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
+    @inject(IRootDapApi) protected readonly dap: Dap.Api,
+  ) {}
+
+  /**
+   * @inheritdoc
+   */
+  public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
+    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
+
+    // The source-map library is destructive with its sources parsing. If the
+    // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
+    // to `/foo.ts` as if the source map refers to the root of the filesystem.
+    // This would prevent us from being able to see that it's actually in
+    // a parent directory, so we make the sourceRoot empty but show it here.
+    const actualRoot = basic.sourceRoot;
+    basic.sourceRoot = undefined;
+
+    // The source map library (also) "helpfully" normalizes source URLs, so
+    // preserve them in the same way. Then, rename the sources to prevent any
+    // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
+    const actualSources = basic.sources;
+    basic.sources = basic.sources.map((_, i) => `source${i}.js`);
+
+    return new SourceMap(
+      (await new SourceMapConsumer(basic)) as BasicSourceMapConsumer,
+      metadata,
+      actualRoot ?? '',
+      actualSources,
+    );
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T {
+    try {
+      return fn();
+    } catch (e) {
+      if (!/error parsing/i.test(String(e.message))) {
+        throw e;
+      }
+
+      if (!this.hasWarnedAboutMaps.has(sourceMap)) {
+        const message = sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error;
+        this.dap.output({
+          output: message.format + '\n',
+          category: 'stderr',
+        });
+        this.hasWarnedAboutMaps.add(sourceMap);
+      }
+
+      return defaultValue();
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public dispose() {
+    // no-op
+  }
+
+  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap> {
+    let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
+    if (absolutePath) {
+      absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
+    }
+
+    const content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
+    if (!content.ok) {
+      throw content.error;
+    }
+
+    let body = content.body;
+    if (body.slice(0, 3) === ')]}') {
+      body = body.substring(body.indexOf('\n'));
+    }
+
+    return JSON.parse(body);
+  }
 }
 
 /**
@@ -29,7 +135,7 @@ export interface ISourceMapFactory extends IDisposable {
  * duplicate loading.
  */
 @injectable()
-export class CachingSourceMapFactory implements ISourceMapFactory {
+export class CachingSourceMapFactory extends SourceMapFactory {
   private readonly knownMaps = new MapUsingProjection<
     string,
     {
@@ -45,11 +151,6 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
    * are available this can be removed.
    */
   private overwrittenSourceMaps: Promise<SourceMap>[] = [];
-
-  constructor(
-    @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
-    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
-  ) {}
 
   /**
    * @inheritdoc
@@ -83,7 +184,7 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
   }
 
   private loadNewSourceMap(metadata: ISourceMapMetadata) {
-    const created = this.loadSourceMap(metadata);
+    const created = super.load(metadata);
     this.knownMaps.set(metadata.sourceMapUrl, { metadata, reloadIfNoMtime: false, prom: created });
     return created;
   }
@@ -117,49 +218,5 @@ export class CachingSourceMapFactory implements ISourceMapFactory {
     for (const map of this.knownMaps.values()) {
       map.reloadIfNoMtime = true;
     }
-  }
-
-  private async loadSourceMap(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
-
-    // The source-map library is destructive with its sources parsing. If the
-    // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
-    // to `/foo.ts` as if the source map refers to the root of the filesystem.
-    // This would prevent us from being able to see that it's actually in
-    // a parent directory, so we make the sourceRoot empty but show it here.
-    const actualRoot = basic.sourceRoot;
-    basic.sourceRoot = undefined;
-
-    // The source map library (also) "helpfully" normalizes source URLs, so
-    // preserve them in the same way. Then, rename the sources to prevent any
-    // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
-    const actualSources = basic.sources;
-    basic.sources = basic.sources.map((_, i) => `source${i}.js`);
-
-    return new SourceMap(
-      (await new SourceMapConsumer(basic)) as BasicSourceMapConsumer,
-      metadata,
-      actualRoot ?? '',
-      actualSources,
-    );
-  }
-
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap> {
-    let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
-    if (absolutePath) {
-      absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
-    }
-
-    const content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
-    if (!content.ok) {
-      throw content.error;
-    }
-
-    let body = content.body;
-    if (body.slice(0, 3) === ')]}') {
-      body = body.substring(body.indexOf('\n'));
-    }
-
-    return JSON.parse(body);
   }
 }

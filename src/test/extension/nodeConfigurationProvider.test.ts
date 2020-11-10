@@ -87,6 +87,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result!.trace).to.deep.equal({
         console: false,
         level: 'warn',
+        logFile: (result as any).trace.logFile,
         stdio: true,
         tags: ['cdp'],
       });

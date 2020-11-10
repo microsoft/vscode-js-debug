@@ -53,7 +53,7 @@ import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
-import { IDapApi } from './dap/connection';
+import { IDapApi, IRootDapApi } from './dap/connection';
 import {
   BrowserFinder,
   Execa,
@@ -191,23 +191,6 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .inSingletonScope()
     .onActivation(trackDispose);
 
-  // Source handling:
-  container
-    .bind(ISourceMapFactory)
-    .to(CachingSourceMapFactory)
-    .inSingletonScope()
-    .onActivation(trackDispose);
-
-  container.bind(BreakpointsPredictor).toSelf();
-  container
-    .bind(IBreakpointsPredictor)
-    .toDynamicValue(
-      ctx =>
-        new BreakpointPredictorDelegate(ctx.container.get(ISourceMapFactory), () =>
-          ctx.container.get(BreakpointsPredictor),
-        ),
-    )
-    .inSingletonScope();
   container.bind(OutFiles).to(OutFiles).inSingletonScope();
   container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
   container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
@@ -316,6 +299,7 @@ export const provideLaunchParams = (
 ) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
   container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
+  container.bind(IRootDapApi).toConstantValue(dap);
 
   container
     .bind(ISourcePathResolver)
@@ -325,4 +309,22 @@ export const provideLaunchParams = (
   container
     .bind(IFsUtils)
     .toConstantValue(LocalAndRemoteFsUtils.create(params.__remoteFilePrefix, fsPromises, dap));
+
+  // Source handling:
+  container
+    .bind(ISourceMapFactory)
+    .to(CachingSourceMapFactory)
+    .inSingletonScope()
+    .onActivation(trackDispose);
+
+  container.bind(BreakpointsPredictor).toSelf();
+  container
+    .bind(IBreakpointsPredictor)
+    .toDynamicValue(
+      ctx =>
+        new BreakpointPredictorDelegate(ctx.container.get(ISourceMapFactory), () =>
+          ctx.container.get(BreakpointsPredictor),
+        ),
+    )
+    .inSingletonScope();
 };

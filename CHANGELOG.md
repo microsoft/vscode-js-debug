@@ -15,6 +15,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: ignore hash portion of url when determining matches ([#840](https://github.com/microsoft/vscode-js-debug/issues/840))
 - fix: automatically add a \* suffix to sourceMapPathOverrides that lack one ([#841](https://github.com/microsoft/vscode-js-debug/issues/841))
 - fix: don't show `Debug: Open Link` command in web where it doesn't work
+- fix: handle exceptions thrown dealing with sourcemaps in prediction ([#845](https://github.com/microsoft/vscode-js-debug/issues/845))
 
 ## v1.51.0 - 2020-10-26
 

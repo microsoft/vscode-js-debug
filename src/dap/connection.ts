@@ -2,17 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from './api';
-
-import { ITelemetryReporter } from '../telemetry/telemetryReporter';
-import { ILogger, LogTag } from '../common/logging';
-import { isDapError } from './errors';
-import { ProtocolError } from './protocolError';
-import { Message, IDapTransport } from './transport';
 import { IDisposable } from '../common/disposable';
-import { getDeferred } from '../common/promiseUtil';
 import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
+import { getDeferred } from '../common/promiseUtil';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import Dap from './api';
+import { isDapError } from './errors';
 import { logOmittedCalls } from './logOmittedCalls';
+import { ProtocolError } from './protocolError';
+import { IDapTransport, Message } from './transport';
 
 const requestSuffix = 'Request';
 export const isRequest = (req: string) => req.endsWith('Request');
@@ -21,6 +20,11 @@ export const isRequest = (req: string) => req.endsWith('Request');
  * Symbol injected to get the closest DAP connection.
  */
 export const IDapApi = Symbol('IDapApi');
+
+/**
+ * Symbol to get the DAP connection for the top-level logical session.
+ */
+export const IRootDapApi = Symbol('IDapApi');
 
 export default class Connection {
   private _sequence: number;

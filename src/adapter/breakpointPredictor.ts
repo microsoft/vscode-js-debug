@@ -312,16 +312,21 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         }
 
         const { map, metadata } = sourceMapLoad;
-        const entry = getOptimalCompiledPosition(
-          metadata.sourceUrl,
-          {
-            lineNumber: b.line,
-            columnNumber: b.column || 1,
-          },
+        const entry = this.sourceMapFactory.guardSourceMapFn(
           map,
+          () =>
+            getOptimalCompiledPosition(
+              metadata.sourceUrl,
+              {
+                lineNumber: b.line,
+                columnNumber: b.column || 1,
+              },
+              map,
+            ),
+          () => null,
         );
 
-        if (entry.line === null) {
+        if (!entry || entry.line === null) {
           continue;
         }
 

@@ -498,15 +498,9 @@ export class SourceContainer {
    */
   public readonly onScript = this.onScriptEmitter.event;
 
-  /**
-   * A set of sourcemaps that we warned about failing to parse.
-   * @see SourceContainer#guardSourceMapFn
-   */
-  private hasWarnedAboutMaps = new Set<SourceMap>();
-
   private readonly _statistics: IStatistics = { fallbackSourceMapCount: 0 };
 
-  /**
+  /*
    * Gets an iterator for all sources in the collection.
    */
   public get sources() {
@@ -770,7 +764,7 @@ export class SourceContainer {
         continue;
       }
 
-      const entry = this.guardSourceMapFn(
+      const entry = this.sourceMapFactory.guardSourceMapFn(
         sourceMap.map,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         () => sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map!),
@@ -805,7 +799,7 @@ export class SourceContainer {
    * Gets the best original position for the location in the source map.
    */
   public getOptiminalOriginalPosition(sourceMap: SourceMap, uiLocation: LineColumn) {
-    return this.guardSourceMapFn<NullableMappedPosition>(
+    return this.sourceMapFactory.guardSourceMapFn<NullableMappedPosition>(
       sourceMap,
       () => {
         const glb = sourceMap.originalPositionFor({
@@ -1053,7 +1047,7 @@ export class SourceContainer {
 
       // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-      const content = this.guardSourceMapFn(
+      const content = this.sourceMapFactory.guardSourceMapFn(
         map,
         () => map.sourceContentFor(url),
         () => null,
@@ -1109,32 +1103,6 @@ export class SourceContainer {
 
     await sourceMap.loaded;
     return [...source.sourceMap.sourceByUrl.values()];
-  }
-
-  /**
-   * Guards a call to a source map invokation to catch parse errors. Sourcemap
-   * parsing happens lazily, so we need to wrap around their call sites.
-   * @see https://github.com/microsoft/vscode-js-debug/issues/483
-   */
-  private guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T {
-    try {
-      return fn();
-    } catch (e) {
-      if (!/error parsing/i.test(String(e.message))) {
-        throw e;
-      }
-
-      if (!this.hasWarnedAboutMaps.has(sourceMap)) {
-        const message = sourceMapParseFailed(sourceMap.metadata.compiledPath, e.message).error;
-        this._dap.output({
-          output: message.format + '\n',
-          category: 'stderr',
-        });
-        this.hasWarnedAboutMaps.add(sourceMap);
-      }
-
-      return defaultValue();
-    }
   }
 
   /**
