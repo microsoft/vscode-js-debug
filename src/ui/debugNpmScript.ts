@@ -30,21 +30,8 @@ export async function debugNpmScript(inFolder?: string) {
     return; // cancelled
   }
 
-  // For multi-root workspaces, prefix the script name with the workspace
-  // directory name so the user knows where it's coming from.
-  const multiDir = scripts.some(s => s.directory !== scripts[0].directory);
-  const quickPick = vscode.window.createQuickPick<ScriptPickItem>();
-  quickPick.items = scripts.map(script => ({
-    script,
-    label: multiDir ? `${path.basename(script.directory)}: ${script.name}` : script.name,
-    description: script.command,
-  }));
-
-  quickPick.onDidAccept(async () => {
-    const { script } = quickPick.selectedItems[0];
+  const runScript = async (script: IScript) => {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(script.directory));
-    quickPick.dispose();
-
     runCommand(
       vscode.commands,
       Commands.CreateDebuggerTerminal,
@@ -52,6 +39,26 @@ export async function debugNpmScript(inFolder?: string) {
       workspaceFolder,
       { cwd: script.directory },
     );
+  };
+
+  if (scripts.length === 1) {
+    return runScript(scripts[0]);
+  }
+
+  // For multi-root workspaces, prefix the script name with the workspace
+  // directory name so the user knows where it's coming from.
+  const multiDir = scripts.some(s => s.directory !== scripts[0].directory);
+  const quickPick = vscode.window.createQuickPick<ScriptPickItem>();
+
+  quickPick.items = scripts.map(script => ({
+    script,
+    label: multiDir ? `${path.basename(script.directory)}: ${script.name}` : script.name,
+    description: script.command,
+  }));
+
+  quickPick.onDidAccept(async () => {
+    runScript(quickPick.selectedItems[0].script);
+    quickPick.dispose();
   });
 
   quickPick.show();
