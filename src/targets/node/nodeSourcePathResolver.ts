@@ -47,6 +47,8 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       if (!url.endsWith('.js')) {
         url += '.js';
       }
+
+      return url;
     }
 
     if (map) {

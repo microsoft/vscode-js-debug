@@ -5,8 +5,8 @@
 import { expect } from 'chai';
 import { join } from 'path';
 import Dap from '../../dap/api';
-import { ITestHandle, testFixturesDir, testWorkspace } from '../test';
 import { createFileTree } from '../createFileTree';
+import { ITestHandle, testFixturesDir, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 
 describe('sources', () => {
@@ -235,7 +235,7 @@ describe('sources', () => {
         breakpoints: [{ line: 1, column: 1 }],
       });
 
-      const output = p.dap.once('output', o => o.category === 'stderr');
+      const output = r.rootDap().once('output', o => o.category === 'stderr');
       const contents = Buffer.from(
         JSON.stringify({
           version: 3,
