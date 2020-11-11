@@ -242,7 +242,7 @@ export class NodeBinaryProvider {
   public async getVersionText(binary: string) {
     try {
       const { stdout } = await spawnAsync(binary, ['--version'], {
-        env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+        env: EnvironmentVars.processEnv().defined(),
       });
       return stdout;
     } catch (e) {

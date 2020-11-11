@@ -24,7 +24,7 @@ export const IDapApi = Symbol('IDapApi');
 /**
  * Symbol to get the DAP connection for the top-level logical session.
  */
-export const IRootDapApi = Symbol('IDapApi');
+export const IRootDapApi = Symbol('IRootDapApi');
 
 export default class Connection {
   private _sequence: number;

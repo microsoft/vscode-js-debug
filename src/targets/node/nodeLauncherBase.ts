@@ -264,7 +264,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   protected resolveNodePath(params: T, executable = 'node') {
     return this.pathProvider.resolveAndValidate(
-      EnvironmentVars.merge(process.env, this.getConfiguredEnvironment(params)),
+      EnvironmentVars.merge(EnvironmentVars.processEnv(), this.getConfiguredEnvironment(params)),
       executable,
       params.nodeVersionHint,
     );
@@ -274,10 +274,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    * Returns the user-configured portion of the environment variables.
    */
   protected getConfiguredEnvironment(params: T) {
-    let baseEnv = new EnvironmentVars({
-      // fixes https://github.com/microsoft/vscode/issues/75097
-      APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL: null,
-    });
+    let baseEnv = EnvironmentVars.empty;
 
     // read environment variables from any specified file
     if (params.envFile) {
@@ -330,9 +327,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       env.NODE_OPTIONS += ` ${baseEnvOpts}`;
     }
 
-    const globalOpts = process.env.NODE_OPTIONS;
+    const globalOpts = EnvironmentVars.processEnv().lookup('NODE_OPTIONS');
     if (globalOpts) {
-      env.NODE_OPTIONS += ` ${process.env.NODE_OPTIONS}`;
+      env.NODE_OPTIONS += ` ${globalOpts}`;
     }
 
     return baseEnv.merge({ ...env });

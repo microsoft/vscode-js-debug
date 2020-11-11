@@ -120,7 +120,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
         cleanUp,
         hasUserNavigation: !!(url || file),
         cwd: cwd || webRoot || undefined,
-        env: EnvironmentVars.merge(process.env, { ELECTRON_RUN_AS_NODE: null }, env),
+        env: EnvironmentVars.merge(EnvironmentVars.processEnv(), env),
         args: runtimeArgs || [],
         userDataDir: resolvedDataDir,
         connection: port || (inspectUri ? 0 : 'pipe'), // We don't default to pipe if we are using an inspectUri

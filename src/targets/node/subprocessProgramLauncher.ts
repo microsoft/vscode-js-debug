@@ -40,7 +40,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     const child = spawn(executable, args, {
       shell,
       cwd: config.cwd,
-      env: EnvironmentVars.merge(process.env, config.env).defined(),
+      env: EnvironmentVars.merge(EnvironmentVars.processEnv(), config.env).defined(),
     });
 
     if (config.outputCapture === OutputSource.Console) {

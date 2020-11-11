@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { expect } from 'chai';
-import { EnvironmentVars } from './environmentVars';
+import { EnvironmentVars, getSanitizeProcessEnv } from './environmentVars';
 
 describe('EnvironmentVars', () => {
   const vars = new EnvironmentVars({
@@ -30,6 +30,17 @@ describe('EnvironmentVars', () => {
     const v2 = v1.addNodeOption('--bar');
     expect(v1.lookup('NODE_OPTIONS')).to.equal('--foo');
     expect(v2.lookup('NODE_OPTIONS')).to.equal('--foo --bar');
+  });
+
+  it('filters code vars from process', () => {
+    const r = getSanitizeProcessEnv({
+      ELECTRON_RUN_AS_NODE: '1',
+      VSCODE_LOGS: 'logs.txt',
+      APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL: '1',
+      IS_COOL: 'very',
+    });
+
+    expect(r.defined()).to.deep.equal({ IS_COOL: 'very' });
   });
 
   describe('posix', () => {

@@ -5,9 +5,29 @@ import * as path from 'path';
 import {
   caseInsensitiveMerge,
   getCaseInsensitiveProperty,
+  mapValues,
+  once,
   removeNulls,
   removeUndefined,
 } from './objUtils';
+
+/**
+ * @see https://github.com/microsoft/vscode/blob/97664e1452b68b5b6eedce95eaa79956fada01b5/src/vs/base/common/processes.ts#L104
+ */
+export function getSanitizeProcessEnv(base: NodeJS.ProcessEnv) {
+  const keysToRemove = [
+    /^APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL$/i,
+    /^ELECTRON_.+$/i,
+    /^GOOGLE_API_KEY$/i,
+    /^VSCODE_.+$/i,
+    /^SNAP(|_.*)$/i,
+    /^GDK_PIXBUF_.+$/i,
+  ];
+
+  return new EnvironmentVars(base).map((key, value) =>
+    keysToRemove.some(re => re.test(key)) ? undefined : value,
+  );
+}
 
 /**
  * Container for holding sets of environment variables. Deals with case
@@ -25,6 +45,11 @@ export class EnvironmentVars {
   public static readonly empty = new EnvironmentVars({});
 
   /**
+   * Process environment, sanitized of any VS Code specific variables.
+   */
+  public static readonly processEnv = once(() => getSanitizeProcessEnv(process.env));
+
+  /**
    * Current environment variables.
    */
   public readonly value: Readonly<{ [key: string]: string | null }>;
@@ -36,9 +61,7 @@ export class EnvironmentVars {
   /**
    * Returns a map of defined environment variables.
    */
-  public defined() {
-    return removeNulls(this.value);
-  }
+  public readonly defined = once(() => removeNulls(this.value));
 
   /**
    * Looks up an environment variable property.
@@ -89,6 +112,14 @@ export class EnvironmentVars {
    */
   public merge(...vars: (EnvironmentVars | { [key: string]: string | null | undefined })[]) {
     return EnvironmentVars.merge(this, ...vars);
+  }
+
+  /**
+   * Maps the environment variables. If the mapper function returns undefined,
+   * the value is not included in the resulting set of variables.
+   */
+  public map(mapper: (key: string, value: string | null) => string | null | undefined) {
+    return new EnvironmentVars(mapValues(this.value, (v, k) => mapper(k, v)));
   }
 
   /**
