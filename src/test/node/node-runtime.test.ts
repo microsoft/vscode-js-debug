@@ -8,6 +8,7 @@ import { promises as fsPromises } from 'fs';
 import { dirname, join } from 'path';
 import { stub } from 'sinon';
 import split from 'split2';
+import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { once } from '../../common/objUtils';
 import { findInPath } from '../../common/pathUtils';
@@ -478,6 +479,7 @@ describe('node runtime', () => {
       vars: ['A=foo', 'B=bar'],
     });
 
+    EnvironmentVars.processEnv.forget();
     const previousC = process.env.C;
     process.env.C = 'inherited';
 
@@ -494,6 +496,7 @@ describe('node runtime', () => {
     );
 
     process.env.C = previousC;
+    EnvironmentVars.processEnv.forget();
   });
 
   itIntegrates('writes errors if runtime executable not found', async ({ r }) => {
