@@ -337,6 +337,12 @@ export interface IConfigurationWithEnv {
   envFile: string | null;
 }
 
+export const enum KillBehavior {
+  Forceful = 'forceful',
+  Polite = 'polite',
+  None = 'none',
+}
+
 /**
  * Configuration for a launch request.
  */
@@ -412,6 +418,17 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    * Deno and cases where the "launch" actually runs a Docker container.)
    */
   attachSimplePort: null | number;
+
+  /**
+   * Configures how debug process are killed when stopping the sesssion. Can be:
+   *  - forceful (default): forcefully tears down the process tree. Sends
+   *    SIGKILL on posix, or `taskkill.exe /F` on Windows.
+   *  - polite: gracefully tears down the process tree. It's possible that
+   *    misbehaving processes continue to run after shutdown in this way. Sends
+   *    SIGTERM on posix, or `taskkill.exe` with no `/F` (force) flag on Windows.
+   *  - none: no termination will happen.
+   */
+  killBehavior: KillBehavior;
 }
 
 /**
@@ -866,6 +883,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeArgs: [],
   profileStartup: false,
   attachSimplePort: null,
+  killBehavior: KillBehavior.Forceful,
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

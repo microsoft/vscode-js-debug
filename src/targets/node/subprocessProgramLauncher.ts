@@ -49,7 +49,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
       this.captureStdio(context.dap, child);
     }
 
-    return new SubprocessProgram(child, this.logger);
+    return new SubprocessProgram(child, this.logger, config.killBehavior);
   }
 
   /**

@@ -8,7 +8,11 @@ import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
 import { LogTag } from '../../common/logging';
 import { Semver } from '../../common/semver';
-import { AnyLaunchConfiguration, IExtensionHostAttachConfiguration } from '../../configuration';
+import {
+  AnyLaunchConfiguration,
+  IExtensionHostAttachConfiguration,
+  KillBehavior,
+} from '../../configuration';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { NodeBinary } from './nodeBinaryProvider';
@@ -97,7 +101,11 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     // process stops, stop our Watchdog, and vise versa.
     const watchdog = this.program;
     if (telemetry && watchdog) {
-      const code = new TerminalProcess({ processId: telemetry.processId }, this.logger);
+      const code = new TerminalProcess(
+        { processId: telemetry.processId },
+        this.logger,
+        KillBehavior.Forceful,
+      );
       code.stopped.then(() => watchdog.stop());
       watchdog.stopped.then(() => {
         if (!this.restarting) {

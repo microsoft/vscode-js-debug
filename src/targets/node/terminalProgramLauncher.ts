@@ -48,7 +48,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
       throw new ProtocolError(cannotLaunchInTerminal(err.message));
     }
 
-    return new TerminalProcess(result, this.logger);
+    return new TerminalProcess(result, this.logger, config.killBehavior);
   }
 
   /**

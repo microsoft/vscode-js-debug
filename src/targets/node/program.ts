@@ -4,6 +4,7 @@
 
 import { ChildProcess } from 'child_process';
 import { ILogger } from '../../common/logging';
+import { KillBehavior } from '../../configuration';
 import Dap from '../../dap/api';
 import { IStopMetadata } from '../targets';
 import { killTree } from './killTree';
@@ -54,7 +55,11 @@ export class SubprocessProgram implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
   private killed = false;
 
-  constructor(private readonly child: ChildProcess, private readonly logger: ILogger) {
+  constructor(
+    private readonly child: ChildProcess,
+    private readonly logger: ILogger,
+    private readonly killBehavior: KillBehavior,
+  ) {
     this.stopped = new Promise((resolve, reject) => {
       child.once('exit', code => resolve({ killed: this.killed, code: code || 0 }));
       child.once('error', error => reject({ killed: this.killed, code: 1, error }));
@@ -67,7 +72,7 @@ export class SubprocessProgram implements IProgram {
 
   public stop(): Promise<IStopMetadata> {
     this.killed = true;
-    killTree(this.child.pid, this.logger);
+    killTree(this.child.pid, this.logger, this.killBehavior);
     return this.stopped;
   }
 }
@@ -137,6 +142,7 @@ export class TerminalProcess implements IProgram {
   constructor(
     private readonly terminalResult: Dap.RunInTerminalResult,
     private readonly logger: ILogger,
+    private readonly killBehavior: KillBehavior,
   ) {
     if (terminalResult.processId) {
       this.startPollLoop(terminalResult.processId);
@@ -145,7 +151,7 @@ export class TerminalProcess implements IProgram {
 
   public gotTelemetery({ processId }: IProcessTelemetry) {
     if (this.didStop) {
-      killTree(processId, this.logger);
+      killTree(processId, this.logger, this.killBehavior);
       return; // to avoid any races
     }
 
@@ -163,11 +169,11 @@ export class TerminalProcess implements IProgram {
     // If we're already polling some process ID, kill it and accelerate polling
     // so we can confirm it's dead quickly.
     if (this.loop) {
-      killTree(this.loop.processId, this.logger);
+      killTree(this.loop.processId, this.logger, this.killBehavior);
       this.startPollLoop(this.loop.processId, TerminalProcess.killConfirmInterval);
     } else if (this.terminalResult.shellProcessId) {
       // If we had a shell process ID, well, that's good enough.
-      killTree(this.terminalResult.shellProcessId, this.logger);
+      killTree(this.terminalResult.shellProcessId, this.logger, this.killBehavior);
       this.startPollLoop(this.terminalResult.shellProcessId, TerminalProcess.killConfirmInterval);
     } else {
       // Otherwise, we can't do anything. Pretend like we did.

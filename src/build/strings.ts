@@ -191,6 +191,11 @@ const strings = {
     'Try to restart the program if it exits with a non-zero exit code.',
   'node.attach.restart.description':
     "Try to reconnect to the program if we lose connection. If set to `true`, we'll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the `delay` and `maxAttempts` in an object instead.",
+  'node.killBehavior.description': `Configures how debug process are killed when stopping the sesssion. Can be:
+
+- forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or \`taskkill.exe /F\` on Windows.
+- polite: gracefully tears down the process tree. It's possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or \`taskkill.exe\` with no \`/F\` (force) flag on Windows.
+- none: no termination will happen.`,
   'node.showAsyncStacks.description': 'Show the async calls that led to the current call stack.',
   'node.snippet.attach.description': 'Attach to a running node program',
   'node.snippet.attach.label': 'Node.js: Attach',
