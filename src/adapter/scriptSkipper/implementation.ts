@@ -32,6 +32,8 @@ interface ISharedSkipToggleEvent {
   params: Dap.ToggleSkipFileStatusParams;
 }
 
+const node15InternalsPrefix = 'node:';
+
 @injectable()
 export class ScriptSkipper {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
@@ -117,11 +119,15 @@ export class ScriptSkipper {
   }
 
   private _testSkipNodeInternal(testString: string): boolean {
-    if (this._nodeInternalsGlobs) {
-      return micromatch([testString], this._nodeInternalsGlobs).length > 0;
+    if (!this._nodeInternalsGlobs) {
+      return false;
     }
 
-    return false;
+    if (testString.startsWith(node15InternalsPrefix)) {
+      testString = testString.slice(node15InternalsPrefix.length);
+    }
+
+    return micromatch([testString], this._nodeInternalsGlobs).length > 0;
   }
 
   private _testSkipNonNodeInternal(testString: string): boolean {
@@ -137,6 +143,10 @@ export class ScriptSkipper {
   }
 
   private _isNodeInternal(url: string, nodeInternals: ReadonlySet<string> | undefined): boolean {
+    if (url.startsWith(node15InternalsPrefix)) {
+      return true;
+    }
+
     return nodeInternals?.has(url) || /^internal\/.+\.js$/.test(url);
   }
 
