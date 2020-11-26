@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
-import { AnyLaunchConfiguration } from '../configuration';
+import { inject, injectable } from 'inversify';
 import * as path from 'path';
+import { AnyLaunchConfiguration } from '../configuration';
 
 @injectable()
 export class FileGlobList {
@@ -41,8 +41,10 @@ export class FileGlobList {
  */
 @injectable()
 export class OutFiles extends FileGlobList {
-  constructor(@inject(AnyLaunchConfiguration) { rootPath, outFiles }: AnyLaunchConfiguration) {
-    super({ rootPath, patterns: outFiles });
+  constructor(
+    @inject(AnyLaunchConfiguration) { rootPath, outFiles, sourceMaps }: AnyLaunchConfiguration,
+  ) {
+    super({ rootPath, patterns: sourceMaps === false ? [] : outFiles });
   }
 }
 
