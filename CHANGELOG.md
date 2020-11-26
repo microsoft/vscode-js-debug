@@ -22,6 +22,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: more thoroughly clean VS Code-specific environment variables from launch ([#64897](https://github.com/microsoft/vscode/issues/64897), [#38428](https://github.com/microsoft/vscode/issues/38428))
 - fix: node internals not skipping on Node 15 ([#862](https://github.com/microsoft/vscode-js-debug/issues/862))
 - fix: don't scan outfiles when sourceMaps is false ([#866](https://github.com/microsoft/vscode-js-debug/issues/866))
+- fix: skipfiles not working for paths in dotfiles/folders ([ref](https://github.com/microsoft/vscode/issues/111301))
 
 ## v1.51.0 - 2020-10-26
 

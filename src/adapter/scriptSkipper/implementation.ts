@@ -136,6 +136,7 @@ export class ScriptSkipper {
         micromatch(
           [urlUtils.lowerCaseInsensitivePath(pathUtils.forceForwardSlashes(testString))],
           this._nonNodeInternalGlobs,
+          { dot: true },
         ).length > 0
       );
     }
