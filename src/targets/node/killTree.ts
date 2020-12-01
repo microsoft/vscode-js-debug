@@ -39,8 +39,8 @@ export function killTree(
       const cmd = join(__dirname, './terminateProcess.sh');
       const r = spawnSync('sh', [
         cmd,
-        behavior === KillBehavior.Forceful ? '9' : '15',
         processId.toString(),
+        behavior === KillBehavior.Forceful ? '9' : '15',
       ]);
 
       if (r.stderr && r.status) {
