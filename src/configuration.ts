@@ -996,7 +996,7 @@ export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
 ): IExtensionHostLaunchConfiguration {
   const resolved = { ...extensionHostConfigDefaults, ...config };
-  resolved.outFiles = [...resolved.outFiles, '**/node_modules.asar/**'];
+  resolved.skipFiles = [...resolved.skipFiles, '**/node_modules.asar/**'];
   return resolved;
 }
 

@@ -8,6 +8,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: allow outdated node dialog to be bypassed ([ref](https://github.com/microsoft/vscode/issues/111642))
 - fix: syntax errors in chrome not showing locations ([#867](https://github.com/microsoft/vscode-js-debug/issues/867))
 
+## v1.52.2 - 2020-12-07
+
+- fix: issue preventing breakpoint predictor from running in ext host ([ref](https://github.com/microsoft/vscode/issues/112052))
+
 ## v1.52.1 - 2020-12-01
 
 - fix: processes not being killed on posix ([#864](https://github.com/microsoft/vscode-js-debug/issues/864))
