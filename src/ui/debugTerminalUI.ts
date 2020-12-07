@@ -203,7 +203,7 @@ export function registerDebugTerminalUI(
 
     const logger = new ProxyLogger();
     const launcher = new TerminalNodeLauncher(
-      new NodeBinaryProvider(logger, fs, noPackageJsonProvider),
+      new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
       logger,
       fs,
       fsUtils,

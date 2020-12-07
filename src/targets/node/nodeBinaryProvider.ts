@@ -2,17 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import { basename, dirname, extname, isAbsolute, resolve } from 'path';
+import type * as vscodeType from 'vscode';
 import * as nls from 'vscode-nls';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import { Semver } from '../../common/semver';
-import { cannotFindNodeBinary, ErrorCodes, nodeBinaryOutOfDate } from '../../dap/errors';
+import {
+  cannotFindNodeBinary,
+  ErrorCodes,
+  isErrorOfType,
+  nodeBinaryOutOfDate,
+} from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { FS, FsPromises } from '../../ioc-extras';
+import { FS, FsPromises, VSCodeApi } from '../../ioc-extras';
 import { IPackageJsonProvider } from './packageJsonProvider';
 
 const localize = nls.loadMessageBundle();
@@ -98,6 +104,12 @@ export class NodeBinary {
   }
 }
 
+export class NodeBinaryOutOfDateError extends ProtocolError {
+  constructor(public readonly version: string | Semver, public readonly location: string) {
+    super(nodeBinaryOutOfDate(version.toString(), location));
+  }
+}
+
 const exeRe = /^(node|electron)(64)?(\.exe|\.cmd)?$/i;
 
 /**
@@ -141,6 +153,7 @@ export class NodeBinaryProvider {
     @inject(ILogger) private readonly logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
     @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
+    @optional() @inject(VSCodeApi) private readonly vscode: typeof vscodeType | undefined,
   ) {}
 
   /**
@@ -150,6 +163,35 @@ export class NodeBinaryProvider {
     env: EnvironmentVars,
     executable = 'node',
     explicitVersion?: number,
+  ): Promise<NodeBinary> {
+    if (!this.vscode) {
+      return this.resolveAndValidateInner(env, executable, explicitVersion);
+    }
+
+    try {
+      return await this.resolveAndValidateInner(env, executable, explicitVersion);
+    } catch (e) {
+      if (!(e instanceof NodeBinaryOutOfDateError)) {
+        throw e;
+      }
+
+      const yes = localize('yes', 'Yes');
+      const response = await this.vscode.window.showErrorMessage(
+        localize('outOfDate', '{0} Would you like to try debugging anyway?', e.message),
+        yes,
+      );
+      if (response !== yes) {
+        throw e;
+      }
+
+      return new NodeBinary(e.location, e.version instanceof Semver ? e.version : undefined);
+    }
+  }
+
+  private async resolveAndValidateInner(
+    env: EnvironmentVars,
+    executable: string,
+    explicitVersion: number | undefined,
   ): Promise<NodeBinary> {
     const location = await this.resolveBinaryLocation(executable, env);
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
@@ -179,12 +221,12 @@ export class NodeBinaryProvider {
       }
 
       try {
-        const realBinary = await this.resolveAndValidate(env, 'node');
+        const realBinary = await this.resolveAndValidateInner(env, 'node', undefined);
         return new NodeBinary(location, realBinary.version);
       } catch (e) {
         // if we verified it's outdated, still throw the error. If it's not
         // found, at least try to run it since the package manager exists.
-        if ((e as ProtocolError).cause.id === ErrorCodes.NodeBinaryOutOfDate) {
+        if (isErrorOfType(e, ErrorCodes.NodeBinaryOutOfDate)) {
           throw e;
         }
 
@@ -209,7 +251,7 @@ export class NodeBinaryProvider {
 
     const majorVersionMatch = /v([0-9]+)\.([0-9]+)\.([0-9]+)/.exec(versionText);
     if (!majorVersionMatch) {
-      throw new ProtocolError(nodeBinaryOutOfDate(versionText.trim(), location));
+      throw new NodeBinaryOutOfDateError(versionText.trim(), location);
     }
 
     const [, major, minor, patch] = majorVersionMatch.map(Number);
@@ -225,7 +267,7 @@ export class NodeBinaryProvider {
     }
 
     if (version.lt(minimumVersion)) {
-      throw new ProtocolError(nodeBinaryOutOfDate(versionText.trim(), location));
+      throw new NodeBinaryOutOfDateError(version, location);
     }
 
     const entry = new NodeBinary(location, version);

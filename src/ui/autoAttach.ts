@@ -34,7 +34,7 @@ export function registerAutoAttach(
       const logger = new ProxyLogger();
       // TODO: Figure out how to inject FsUtils
       const inst = new AutoAttachLauncher(
-        new NodeBinaryProvider(logger, fs, noPackageJsonProvider),
+        new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
         logger,
         context,
         fs,

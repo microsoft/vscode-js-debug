@@ -4,6 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Dap from './api';
+import { ProtocolError } from './protocolError';
 
 const localize = nls.loadMessageBundle();
 
@@ -236,3 +237,6 @@ export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
  */
 export const isDapError = (value: unknown): value is Dap.Error =>
   typeof value === 'object' && !!value && '__errorMarker' in value;
+
+export const isErrorOfType = (error: unknown, code: ErrorCodes): error is ProtocolError =>
+  error instanceof ProtocolError && error.cause.id === code;
