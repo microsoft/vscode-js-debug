@@ -41,3 +41,19 @@ You launch your app, but the debugger doesn't connect to it. You're using an old
 ### Solution
 
 We've seen some transient issues with early Node 10 point releases. To fix this we, recommend updating to a later Node 10 release (10.22.1 being the most recent at the time of writing), or to a newer version of Node altogether if nothing is keeping you on 10.
+
+## My configuration property shows as invalid
+
+### Symptoms
+
+You're adding a configuration property to your launch.json, but it shows an invalid, even if it works.
+
+### Solution
+
+This can happen for newly introduced options. To fix this, you should prefix your launch type with `pwa-`, for example:
+
+- `node` -> `pwa-node`
+- `chrome` -> `pwa-chrome`
+- `extensionHost` -> `pwa-extensionHost`
+
+This is needed because the old configuration types are still "owned" by the old debuggers, and just redirect to this new debugger. While most additional options will be blindly passed along, they don't appear the old schemas and some may not work.
