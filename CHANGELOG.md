@@ -2,6 +2,10 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## v1.52.2 - 2020-12-07
+
+- fix: issue preventing breakpoint predictor from running in ext host ([ref](https://github.com/microsoft/vscode/issues/112052))
+
 ## v1.52.1 - 2020-12-01
 
 - fix: processes not being killed on posix ([#864](https://github.com/microsoft/vscode-js-debug/issues/864))
