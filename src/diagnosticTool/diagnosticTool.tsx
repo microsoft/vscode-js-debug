@@ -2,30 +2,32 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ComponentType, Fragment, FunctionComponent, h, render } from 'preact';
-import { useState } from 'preact/hooks';
+import { Fragment, FunctionComponent, h, render } from 'preact';
 import { IDiagnosticDump } from '../adapter/diagnosics';
-import { Intro } from './intro';
+import { BreakpointHelper } from './breakpointHelper';
+import { Experience, Intro } from './intro';
+import { SourceExplorer } from './sourceExplorer';
 import { DumpContext } from './useDump';
+import { usePersistedState } from './usePersistentState';
 
 require('../../../src/diagnosticTool/diagnosticTool.css');
 
 declare const DUMP: IDiagnosticDump | undefined;
 
 const App: FunctionComponent<{ dump: IDiagnosticDump }> = ({ dump }) => {
-  const [Component, setComponent] = useState<ComponentType<{}> | undefined>(undefined);
+  const [experience, setExperience] = usePersistedState<Experience>('experience', Experience.Intro);
 
   return (
     <DumpContext.Provider value={dump}>
-      {Component ? (
+      {experience === Experience.Intro ? (
+        <Intro onPick={setExperience} />
+      ) : (
         <Fragment>
-          <a role="button" onClick={() => setComponent(undefined)} className="back">
+          <a role="button" onClick={() => setExperience(Experience.Intro)} className="back">
             &larr; Back
           </a>
-          <Component />
+          {experience === Experience.BreakpointHelper ? <BreakpointHelper /> : <SourceExplorer />}
         </Fragment>
-      ) : (
-        <Intro onPick={cmp => setComponent(() => cmp)} />
       )}
     </DumpContext.Provider>
   );

@@ -2,12 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ComponentType, FunctionComponent, h } from 'preact';
-import { BreakpointHelper } from './breakpointHelper';
-import { SourceExplorer } from './sourceExplorer';
+import { FunctionComponent, h } from 'preact';
+
+export const enum Experience {
+  Intro,
+  BreakpointHelper,
+  SourceExplorer,
+}
 
 export const Intro: FunctionComponent<{
-  onPick(cmp: ComponentType<{}>): void;
+  onPick(exp: Experience): void;
 }> = ({ onPick }) => (
   <div className="intro">
     <div>
@@ -16,12 +20,12 @@ export const Intro: FunctionComponent<{
         <p>What are you trying to find out?</p>
         <ul>
           <li>
-            <a role="button" onClick={() => onPick(BreakpointHelper)}>
+            <a role="button" onClick={() => onPick(Experience.BreakpointHelper)}>
               Why my breakpoints don&apos;t bind
             </a>
           </li>
           <li>
-            <a role="button" onClick={() => onPick(SourceExplorer)}>
+            <a role="button" onClick={() => onPick(Experience.SourceExplorer)}>
               What scripts and sourcemaps are loaded
             </a>
           </li>

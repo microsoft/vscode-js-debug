@@ -3,13 +3,23 @@
  *--------------------------------------------------------*/
 
 import { Fragment, FunctionComponent, h } from 'preact';
-import { useCallback, useMemo, useState } from 'preact/hooks';
+import { useCallback, useMemo } from 'preact/hooks';
 import { IDiagnosticSource } from '../adapter/diagnosics';
+import { truthy } from '../common/objUtils';
 import { basename, prettyName, sortScore } from './diagnosticPaths';
 import { useDump } from './useDump';
+import { usePersistedState } from './usePersistentState';
 
 export const SourceExplorer: FunctionComponent = () => {
   const dump = useDump();
+
+  const uniqueIdMap = useMemo(() => {
+    const map = new Map<number, IDiagnosticSource>();
+    for (const source of dump.sources) {
+      map.set(source.uniqueId, source);
+    }
+    return map;
+  }, [dump.sources]);
 
   const indexed = useMemo(
     () =>
@@ -22,10 +32,10 @@ export const SourceExplorer: FunctionComponent = () => {
             ] as [string, IDiagnosticSource],
         )
         .sort((a, b) => sortScore(a[1]) - sortScore(b[1])),
-    dump.sources,
+    [dump.sources],
   );
 
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = usePersistedState('filter', '');
   const results = useMemo(
     () =>
       filter
@@ -51,7 +61,7 @@ export const SourceExplorer: FunctionComponent = () => {
         Showing {results.length} of {dump.sources.length} sources...
       </small>
       {results.map(result => (
-        <Source source={result} key={result.sourceReference} />
+        <Source source={result} allSources={uniqueIdMap} key={result.sourceReference} />
       ))}
     </Fragment>
   );
@@ -59,9 +69,17 @@ export const SourceExplorer: FunctionComponent = () => {
 
 export const Source: FunctionComponent<{
   source: IDiagnosticSource;
-}> = ({ source }) => {
-  const [breadcrumbs, setBreadcrumbs] = useState([source]);
-  const [expanded, setExpanded] = useState(false);
+  allSources: Map<number, IDiagnosticSource>;
+}> = ({ source, allSources }) => {
+  const [rawBreadcrumbs, setBreadcrumbs] = usePersistedState(
+    `sourceBreadCrumbs${source.uniqueId}`,
+    [source.uniqueId],
+  );
+  const breadcrumbs = useMemo(() => rawBreadcrumbs.map(b => allSources.get(b)).filter(truthy), [
+    allSources,
+    rawBreadcrumbs,
+  ]);
+  const [expanded, setExpanded] = usePersistedState(`sourceExpanded${source.uniqueId}`, false);
   const dump = useDump();
   const toggleExpand = useCallback(() => setExpanded(!expanded), [expanded]);
 
@@ -76,7 +94,7 @@ export const Source: FunctionComponent<{
             open={sourceReference => {
               const src = dump.sources.find(s => s.sourceReference === sourceReference);
               if (src) {
-                setBreadcrumbs(breadcrumbs.concat(src));
+                setBreadcrumbs(rawBreadcrumbs.concat(src.uniqueId));
               }
             }}
           />
@@ -88,7 +106,7 @@ export const Source: FunctionComponent<{
 
 const Breadcrumbs: FunctionComponent<{
   sources: ReadonlyArray<IDiagnosticSource>;
-  update(sources: IDiagnosticSource[]): void;
+  update(sources: number[]): void;
 }> = ({ sources, update }) => (
   <ol className="source-breadcrumbs">
     {sources.map((source, i) => {
@@ -99,7 +117,7 @@ const Breadcrumbs: FunctionComponent<{
 
       return (
         <li key={i}>
-          <a key={i} onClick={() => update(sources.slice(0, i + 1))}>
+          <a key={i} onClick={() => update(sources.slice(0, i + 1).map(s => s.uniqueId))}>
             {label}
           </a>{' '}
           &raquo;{' '}

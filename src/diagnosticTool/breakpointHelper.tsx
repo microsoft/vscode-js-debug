@@ -17,6 +17,7 @@ import { flatten } from '../common/objUtils';
 import { DecisionButtons } from './decisionButtons';
 import { basename, isBrowserType, isNodeType, prettyName } from './diagnosticPaths';
 import { useDump } from './useDump';
+import { usePersistedState } from './usePersistentState';
 
 export const BreakpointHelper: FunctionComponent = () => {
   const dump = useDump();
@@ -70,7 +71,7 @@ const buildTracing = (bp: IDiagnosticBreakpoint, dump: IDiagnosticDump) => {
       <p>
         <ul>
           {bp.cdp.map((cdp, i) => (
-            <CdpBreakpoint cdp={cdp} key={i} />
+            <CdpBreakpoint cdp={cdp} index={i} key={i} />
           ))}
         </ul>
       </p>
@@ -237,9 +238,12 @@ const UiLocation: FunctionComponent<{ loc: IDiagnosticUiLocation }> = ({ loc }) 
   );
 };
 
-const CdpBreakpoint: FunctionComponent<{ cdp: DiagnosticBreakpointArgs }> = ({ cdp }) => {
+const CdpBreakpoint: FunctionComponent<{ cdp: DiagnosticBreakpointArgs; index: number }> = ({
+  cdp,
+  index,
+}) => {
   const dump = useDump();
-  const [showRegex, setShowRegex] = useState(false);
+  const [showRegex, setShowRegex] = usePersistedState(`showCdpBp${index}`, false);
   const { url, line, col, regex } =
     'location' in cdp.args
       ? {

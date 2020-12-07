@@ -21,6 +21,7 @@ import {
 import { IUiLocation, SourceContainer, SourceFromMap } from './sources';
 
 export interface IDiagnosticSource {
+  uniqueId: number;
   url: string;
   sourceReference: number;
   absolutePath: string;
@@ -129,9 +130,11 @@ export class Diagnostics {
 
   private dumpSources() {
     const output: Promise<IDiagnosticSource>[] = [];
+    let idCounter = 0;
     for (const source of this.sources.sources) {
       output.push(
         (async () => ({
+          uniqueId: idCounter++,
           url: source.url,
           sourceReference: source.sourceReference,
           absolutePath: source.absolutePath,
