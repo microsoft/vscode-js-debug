@@ -543,6 +543,7 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
+    this._cdp.Debugger.on('scriptFailedToParse', event => this._onScriptParsed(event));
     this._cdp.Runtime.enable({});
 
     if (!this.launchConfig.noDebug) {
