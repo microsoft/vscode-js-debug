@@ -391,7 +391,10 @@ export class Source {
     return fqname;
   }
 
-  private blackboxed(): boolean {
+  /**
+   * Gets whether this script is blackboxed (part of the skipfiles).
+   */
+  public blackboxed(): boolean {
     return this._container.isSourceSkipped(this.url);
   }
 }

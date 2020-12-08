@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.52.2 - 2020-12-07
 
+- feat: make the line on log messages take into account skipFiles ([#882](https://github.com/microsoft/vscode-js-debug/issues/882))
 - fix: issue preventing breakpoint predictor from running in ext host ([ref](https://github.com/microsoft/vscode/issues/112052))
 
 ## v1.52.1 - 2020-12-01

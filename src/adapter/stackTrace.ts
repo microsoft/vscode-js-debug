@@ -4,6 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
+import { once } from '../common/objUtils';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
@@ -20,16 +21,11 @@ export class StackTrace {
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
 
-  public static fromRuntime(
-    thread: Thread,
-    stack: Cdp.Runtime.StackTrace,
-    frameLimit = Infinity,
-  ): StackTrace {
+  public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
-    for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
+    for (let frameNo = 0; frameNo < stack.callFrames.length; frameNo++) {
       if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
         result.frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
-        frameLimit--;
       }
     }
 
@@ -39,6 +35,34 @@ export class StackTrace {
     } else {
       result._appendStackTrace(thread, stack.parent);
     }
+
+    return result;
+  }
+
+  public static async fromRuntimeWithPredicate(
+    thread: Thread,
+    stack: Cdp.Runtime.StackTrace,
+    predicate: (frame: StackFrame) => Promise<boolean>,
+    frameLimit = Infinity,
+  ): Promise<StackTrace> {
+    const result = new StackTrace(thread);
+    for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
+      if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
+        const frame = StackFrame.fromRuntime(thread, stack.callFrames[frameNo]);
+        if (await predicate(frame)) {
+          result.frames.push();
+          frameLimit--;
+        }
+      }
+    }
+
+    if (stack.parentId) {
+      result._asyncStackTraceId = stack.parentId;
+      console.assert(!stack.parent);
+    } else {
+      result._appendStackTrace(thread, stack.parent);
+    }
+
     return result;
   }
 
@@ -122,11 +146,14 @@ export class StackTrace {
     let to = (params.levels || 50) + from;
     const frames = await this.loadFrames(to);
     to = Math.min(frames.length, params.levels ? to : frames.length);
-    const result: Dap.StackFrame[] = [];
-    for (let index = from; index < to; index++)
-      result.push(await frames[index].toDap(params.format));
+
+    const result: Promise<Dap.StackFrame>[] = [];
+    for (let index = from; index < to; index++) {
+      result.push(frames[index].toDap(params.format));
+    }
+
     return {
-      stackFrames: result,
+      stackFrames: await Promise.all(result),
       totalFrames: !!this._asyncStackTraceId ? 1000000 : frames.length,
     };
   }
@@ -146,7 +173,7 @@ export class StackFrame {
   _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
-  public readonly uiLocation:
+  public readonly uiLocation: () =>
     | Promise<IPreferredUiLocation | undefined>
     | IPreferredUiLocation
     | undefined;
@@ -181,7 +208,7 @@ export class StackFrame {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._rawLocation = rawLocation;
-    this.uiLocation = thread.rawLocationToUiLocation(rawLocation);
+    this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
   }
 
@@ -286,7 +313,7 @@ export class StackFrame {
   }
 
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
-    const uiLocation = await this.uiLocation;
+    const uiLocation = await this.uiLocation();
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldSmartStepStackFrame(this);
     const presentationHint = this._isAsyncSeparator
@@ -324,7 +351,7 @@ export class StackFrame {
 
   async format(): Promise<string> {
     if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
-    const uiLocation = await this.uiLocation;
+    const uiLocation = await this.uiLocation();
     const prettyName =
       (uiLocation && (await uiLocation.source.prettyName())) || this._rawLocation.url;
     const anyLocation = uiLocation || this._rawLocation;

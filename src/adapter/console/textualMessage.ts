@@ -9,6 +9,7 @@ import Dap from '../../dap/api';
 import { formatMessage } from '../messageFormat';
 import { formatAsTable, messageFormatters, previewAsObject } from '../objectPreview';
 import { AnyObject } from '../objectPreview/betterTypes';
+import { IUiLocation } from '../sources';
 import { StackTrace } from '../stackTrace';
 import { Thread } from '../threads';
 import { IConsoleMessage } from './consoleMessage';
@@ -18,7 +19,7 @@ const localize = nls.loadMessageBundle();
 export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackTrace }>
   implements IConsoleMessage {
   protected readonly stackTrace = once((thread: Thread) =>
-    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace, 2) : undefined,
+    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace) : undefined,
   );
 
   constructor(protected readonly event: T) {}
@@ -37,17 +38,36 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
       return;
     }
 
-    const frames = await stackTrace.loadFrames(1);
-    const uiLocation = await frames[0].uiLocation;
-    if (!uiLocation) {
-      return;
+    let firstExistingLocation: IUiLocation | undefined;
+    for (let i = 0; i < stackTrace.frames.length; i++) {
+      const uiLocation = await stackTrace.frames[i].uiLocation();
+      if (!uiLocation) {
+        continue;
+      }
+
+      if (!firstExistingLocation) {
+        firstExistingLocation = uiLocation;
+      }
+
+      if (uiLocation.source.blackboxed()) {
+        continue;
+      }
+
+      return {
+        source: await uiLocation.source.toDap(),
+        line: uiLocation.lineNumber,
+        column: uiLocation.columnNumber,
+      };
     }
 
-    return {
-      source: await uiLocation.source.toDap(),
-      line: uiLocation.lineNumber,
-      column: uiLocation.columnNumber,
-    };
+    // if all the stack is blackboxed, fall back to the original location
+    if (firstExistingLocation) {
+      return {
+        source: await firstExistingLocation.source.toDap(),
+        line: firstExistingLocation.lineNumber,
+        column: firstExistingLocation.columnNumber,
+      };
+    }
   });
 
   /**
