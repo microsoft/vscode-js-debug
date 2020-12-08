@@ -19,7 +19,7 @@ export class ExceptionMessage extends TextualMessage<Cdp.Runtime.ExceptionDetail
    */
   protected readonly stackTrace = once((thread: Thread) => {
     if (this.event.stackTrace) {
-      return StackTrace.fromRuntime(thread, this.event.stackTrace, 2);
+      return StackTrace.fromRuntime(thread, this.event.stackTrace);
     }
 
     if (this.event.scriptId) {
