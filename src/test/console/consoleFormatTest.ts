@@ -411,4 +411,25 @@ describe('console format', () => {
     await handle.logger.evaluateAndLog(['try { throwError() } catch (e) { console.error(e) }']);
     handle.assertLog();
   });
+
+  itIntegrates('applies skipfiles to logged stacks', async ({ r }) => {
+    const handle = await r.launchAndLoad(
+      `
+        <script>
+        function doLog() { console.log.apply(console, arguments); }
+        //# sourceURL=ignore-me.js
+        </script>
+      `,
+      { skipFiles: ['**/ignore-me.js'] },
+    );
+
+    const evaluation = handle.dap.evaluate({
+      expression: 'doLog("hello world");\n//# sourceURL=dont-ignore-me.js',
+      context: 'repl',
+    });
+    const output = await handle.dap.once('output');
+    await evaluation;
+    handle.log(`logged ${output.output} at ${output.source?.name}:${output.line}:${output.column}`);
+    handle.assertLog();
+  });
 });
