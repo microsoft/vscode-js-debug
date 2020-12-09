@@ -81,7 +81,10 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       // If it's a data URI, use the compiled path as a stand-in. It should
       // be quite rare that ignored files (i.e. node_modules) reference
       // source modules and vise versa.
-      (isDataUri(sourceMapUrl) && compiledPath) ||
+      //
+      // Use getPathFromUri in case the referencing path is something like
+      // webpack-internal:///./foo/bar.js (#854)
+      (isDataUri(sourceMapUrl) && properResolve(getPathFromUri(compiledPath))) ||
       // Fall back to the raw URL if those fail.
       sourceMapUrl;
 
