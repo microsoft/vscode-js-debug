@@ -219,10 +219,34 @@ interface ICDPOperationClassification {
   '!network.websockethandshakeresponsereceived.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.websocketwillsendhandshakerequest': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.websocketwillsendhandshakerequest.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'network.webtransportcreated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.webtransportcreated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'network.webtransportclosed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.webtransportclosed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.requestwillbesentextrainfo': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.requestwillbesentextrainfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.responsereceivedextrainfo': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.responsereceivedextrainfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'network.trusttokenoperationdone': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.trusttokenoperationdone.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: NodeRuntime
+  'noderuntime.waitingfordisconnect': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!noderuntime.waitingfordisconnect.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: NodeTracing
+  'nodetracing.datacollected': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!nodetracing.datacollected.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'nodetracing.tracingcomplete': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!nodetracing.tracingcomplete.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: NodeWorker
+  'nodeworker.attachedtoworker': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!nodeworker.attachedtoworker.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'nodeworker.detachedfromworker': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!nodeworker.detachedfromworker.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'nodeworker.receivedmessagefromworker': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!nodeworker.receivedmessagefromworker.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Overlay
   'overlay.inspectnoderequested': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -247,6 +271,8 @@ interface ICDPOperationClassification {
   '!page.framedetached.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.framenavigated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.framenavigated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'page.documentopened': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!page.documentopened.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.frameresized': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.frameresized.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.framerequestednavigation': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

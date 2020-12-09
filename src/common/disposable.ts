@@ -20,6 +20,10 @@ export class DisposableList {
   private disposed = false;
   private items: IDisposable[] = [];
 
+  public get isDisposed() {
+    return this.disposed;
+  }
+
   constructor(initialItems?: ReadonlyArray<IDisposable>) {
     if (initialItems) {
       this.items = initialItems.slice();

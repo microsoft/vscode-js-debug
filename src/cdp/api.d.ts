@@ -52,6 +52,9 @@ export namespace Cdp {
     Media: MediaApi;
     Memory: MemoryApi;
     Network: NetworkApi;
+    NodeRuntime: NodeRuntimeApi;
+    NodeTracing: NodeTracingApi;
+    NodeWorker: NodeWorkerApi;
     Overlay: OverlayApi;
     Page: PageApi;
     Performance: PerformanceApi;
@@ -92,11 +95,19 @@ export namespace Cdp {
     ): Promise<Accessibility.GetPartialAXTreeResult | undefined>;
 
     /**
-     * Fetches the entire accessibility tree
+     * Fetches the entire accessibility tree for the root Document
      */
     getFullAXTree(
       params: Accessibility.GetFullAXTreeParams,
     ): Promise<Accessibility.GetFullAXTreeResult | undefined>;
+
+    /**
+     * Fetches a particular accessibility node by AXNodeId.
+     * Requires `enable()` to have been called previously.
+     */
+    getChildAXNodes(
+      params: Accessibility.GetChildAXNodesParams,
+    ): Promise<Accessibility.GetChildAXNodesResult | undefined>;
 
     /**
      * Query a DOM node's accessibility subtree for accessible name and role.
@@ -173,12 +184,32 @@ export namespace Cdp {
     /**
      * Parameters of the 'Accessibility.getFullAXTree' method.
      */
-    export interface GetFullAXTreeParams {}
+    export interface GetFullAXTreeParams {
+      /**
+       * The maximum depth at which descendants of the root node should be retrieved.
+       * If omitted, the full tree is returned.
+       */
+      max_depth?: integer;
+    }
 
     /**
      * Return value of the 'Accessibility.getFullAXTree' method.
      */
     export interface GetFullAXTreeResult {
+      nodes: AXNode[];
+    }
+
+    /**
+     * Parameters of the 'Accessibility.getChildAXNodes' method.
+     */
+    export interface GetChildAXNodesParams {
+      id: AXNodeId;
+    }
+
+    /**
+     * Return value of the 'Accessibility.getChildAXNodes' method.
+     */
+    export interface GetChildAXNodesResult {
       nodes: AXNode[];
     }
 
@@ -270,6 +301,7 @@ export namespace Cdp {
       | 'labelfor'
       | 'labelwrapped'
       | 'legend'
+      | 'rubyannotation'
       | 'tablecaption'
       | 'title'
       | 'other';
@@ -1452,6 +1484,8 @@ export namespace Cdp {
        */
       violatedDirective: string;
 
+      isReportOnly: boolean;
+
       contentSecurityPolicyViolationType: ContentSecurityPolicyViolationType;
 
       frameAncestor?: AffectedFrame;
@@ -1781,6 +1815,13 @@ export namespace Cdp {
      * Set dock tile details, platform-specific.
      */
     setDockTile(params: Browser.SetDockTileParams): Promise<Browser.SetDockTileResult | undefined>;
+
+    /**
+     * Invoke custom browser commands used by telemetry.
+     */
+    executeBrowserCommand(
+      params: Browser.ExecuteBrowserCommandParams,
+    ): Promise<Browser.ExecuteBrowserCommandResult | undefined>;
   }
 
   /**
@@ -2099,6 +2140,18 @@ export namespace Cdp {
      */
     export interface SetDockTileResult {}
 
+    /**
+     * Parameters of the 'Browser.executeBrowserCommand' method.
+     */
+    export interface ExecuteBrowserCommandParams {
+      commandId: BrowserCommandId;
+    }
+
+    /**
+     * Return value of the 'Browser.executeBrowserCommand' method.
+     */
+    export interface ExecuteBrowserCommandResult {}
+
     export type BrowserContextID = string;
 
     export type WindowID = integer;
@@ -2157,6 +2210,7 @@ export namespace Cdp {
       | 'protectedMediaIdentifier'
       | 'sensors'
       | 'videoCapture'
+      | 'videoCapturePanTiltZoom'
       | 'idleDetection'
       | 'wakeLockScreen'
       | 'wakeLockSystem';
@@ -2189,7 +2243,17 @@ export namespace Cdp {
        * For "clipboard" permission, may specify allowWithoutSanitization.
        */
       allowWithoutSanitization?: boolean;
+
+      /**
+       * For "camera" permission, may specify panTiltZoom.
+       */
+      panTiltZoom?: boolean;
     }
+
+    /**
+     * Browser command ids used by executeBrowserCommand.
+     */
+    export type BrowserCommandId = 'openTabSearch' | 'closeTabSearch';
 
     /**
      * Chrome histogram bucket.
@@ -7423,6 +7487,7 @@ export namespace Cdp {
       | 'marker'
       | 'backdrop'
       | 'selection'
+      | 'target-text'
       | 'first-line-inherited'
       | 'scrollbar'
       | 'scrollbar-thumb'
@@ -7754,6 +7819,13 @@ export namespace Cdp {
     ): Promise<DOMDebugger.RemoveXHRBreakpointResult | undefined>;
 
     /**
+     * Sets breakpoint on particular CSP violations.
+     */
+    setBreakOnCSPViolation(
+      params: DOMDebugger.SetBreakOnCSPViolationParams,
+    ): Promise<DOMDebugger.SetBreakOnCSPViolationResult | undefined>;
+
+    /**
      * Sets breakpoint on particular operation with DOM.
      */
     setDOMBreakpoint(
@@ -7889,6 +7961,21 @@ export namespace Cdp {
     export interface RemoveXHRBreakpointResult {}
 
     /**
+     * Parameters of the 'DOMDebugger.setBreakOnCSPViolation' method.
+     */
+    export interface SetBreakOnCSPViolationParams {
+      /**
+       * CSP Violations to stop upon.
+       */
+      violationTypes: CSPViolationType[];
+    }
+
+    /**
+     * Return value of the 'DOMDebugger.setBreakOnCSPViolation' method.
+     */
+    export interface SetBreakOnCSPViolationResult {}
+
+    /**
      * Parameters of the 'DOMDebugger.setDOMBreakpoint' method.
      */
     export interface SetDOMBreakpointParams {
@@ -7963,6 +8050,11 @@ export namespace Cdp {
      * DOM breakpoint type.
      */
     export type DOMBreakpointType = 'subtree-modified' | 'attribute-modified' | 'node-removed';
+
+    /**
+     * CSP Violation type.
+     */
+    export type CSPViolationType = 'trustedtype-sink-violation' | 'trustedtype-policy-violation';
 
     /**
      * Object event listener.
@@ -9032,6 +9124,10 @@ export namespace Cdp {
       params: Emulation.SetVisibleSizeParams,
     ): Promise<Emulation.SetVisibleSizeResult | undefined>;
 
+    setDisabledImageTypes(
+      params: Emulation.SetDisabledImageTypesParams,
+    ): Promise<Emulation.SetDisabledImageTypesResult | undefined>;
+
     /**
      * Allows overriding user agent with the given string.
      */
@@ -9525,6 +9621,21 @@ export namespace Cdp {
     export interface SetVisibleSizeResult {}
 
     /**
+     * Parameters of the 'Emulation.setDisabledImageTypes' method.
+     */
+    export interface SetDisabledImageTypesParams {
+      /**
+       * Image types to disable.
+       */
+      imageTypes: DisabledImageType[];
+    }
+
+    /**
+     * Return value of the 'Emulation.setDisabledImageTypes' method.
+     */
+    export interface SetDisabledImageTypesResult {}
+
+    /**
      * Parameters of the 'Emulation.setUserAgentOverride' method.
      */
     export interface SetUserAgentOverrideParams {
@@ -9635,6 +9746,11 @@ export namespace Cdp {
 
       mobile: boolean;
     }
+
+    /**
+     * Enum of image types that can be disabled.
+     */
+    export type DisabledImageType = 'avif' | 'webp';
   }
 
   /**
@@ -11284,6 +11400,31 @@ export namespace Cdp {
       clickCount?: integer;
 
       /**
+       * The normalized pressure, which has a range of [0,1] (default: 0).
+       */
+      force?: number;
+
+      /**
+       * The normalized tangential pressure, which has a range of [-1,1] (default: 0).
+       */
+      tangentialPressure?: number;
+
+      /**
+       * The plane angle between the Y-Z plane and the plane containing both the stylus axis and the Y axis, in degrees of the range [-90,90], a positive tiltX is to the right (default: 0).
+       */
+      tiltX?: integer;
+
+      /**
+       * The plane angle between the X-Z plane and the plane containing both the stylus axis and the X axis, in degrees of the range [-90,90], a positive tiltY is towards the user (default: 0).
+       */
+      tiltY?: integer;
+
+      /**
+       * The clockwise rotation of a pen stylus around its own major axis, in degrees in the range [0,359] (default: 0).
+       */
+      twist?: integer;
+
+      /**
        * X delta in CSS pixels for mouse wheel event (default: 0).
        */
       deltaX?: number;
@@ -11585,6 +11726,26 @@ export namespace Cdp {
        * Force (default: 1.0).
        */
       force?: number;
+
+      /**
+       * The normalized tangential pressure, which has a range of [-1,1] (default: 0).
+       */
+      tangentialPressure?: number;
+
+      /**
+       * The plane angle between the Y-Z plane and the plane containing both the stylus axis and the Y axis, in degrees of the range [-90,90], a positive tiltX is to the right (default: 0)
+       */
+      tiltX?: integer;
+
+      /**
+       * The plane angle between the X-Z plane and the plane containing both the stylus axis and the X axis, in degrees of the range [-90,90], a positive tiltY is towards the user (default: 0).
+       */
+      tiltY?: integer;
+
+      /**
+       * The clockwise rotation of a pen stylus around its own major axis, in degrees in the range [0,359] (default: 0).
+       */
+      twist?: integer;
 
       /**
        * Identifier used to track touch sources between events, must be unique within an event.
@@ -13083,11 +13244,11 @@ export namespace Cdp {
     ): Promise<Network.SetExtraHTTPHeadersResult | undefined>;
 
     /**
-     * Specifies whether to sned a debug header to all outgoing requests.
+     * Specifies whether to attach a page script stack id in requests
      */
-    setAttachDebugHeader(
-      params: Network.SetAttachDebugHeaderParams,
-    ): Promise<Network.SetAttachDebugHeaderResult | undefined>;
+    setAttachDebugStack(
+      params: Network.SetAttachDebugStackParams,
+    ): Promise<Network.SetAttachDebugStackResult | undefined>;
 
     /**
      * Sets the requests to intercept that match the provided patterns and optionally resource types.
@@ -13253,6 +13414,19 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
+     * Fired upon WebTransport creation.
+     */
+    on(
+      event: 'webTransportCreated',
+      listener: (event: Network.WebTransportCreatedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'webTransportClosed',
+      listener: (event: Network.WebTransportClosedEvent) => void,
+    ): IDisposable;
+
+    /**
      * Fired when additional information about a requestWillBeSent event is available from the
      * network stack. Not every requestWillBeSent event will have an additional
      * requestWillBeSentExtraInfo fired for it, and there is no guarantee whether requestWillBeSent
@@ -13271,6 +13445,17 @@ export namespace Cdp {
     on(
       event: 'responseReceivedExtraInfo',
       listener: (event: Network.ResponseReceivedExtraInfoEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired exactly once for each Trust Token operation. Depending on
+     * the type of the operation and whether the operation succeeded or
+     * failed, the event is fired before the corresponding request was sent
+     * or after the response was received.
+     */
+    on(
+      event: 'trustTokenOperationDone',
+      listener: (event: Network.TrustTokenOperationDoneEvent) => void,
     ): IDisposable;
   }
 
@@ -13848,19 +14033,19 @@ export namespace Cdp {
     export interface SetExtraHTTPHeadersResult {}
 
     /**
-     * Parameters of the 'Network.setAttachDebugHeader' method.
+     * Parameters of the 'Network.setAttachDebugStack' method.
      */
-    export interface SetAttachDebugHeaderParams {
+    export interface SetAttachDebugStackParams {
       /**
-       * Whether to send a debug header.
+       * Whether to attach a page script stack for debugging purpose.
        */
       enabled: boolean;
     }
 
     /**
-     * Return value of the 'Network.setAttachDebugHeader' method.
+     * Return value of the 'Network.setAttachDebugStack' method.
      */
-    export interface SetAttachDebugHeaderResult {}
+    export interface SetAttachDebugStackResult {}
 
     /**
      * Parameters of the 'Network.setRequestInterception' method.
@@ -14040,6 +14225,11 @@ export namespace Cdp {
        * The reason why loading was blocked, if any.
        */
       blockedReason?: BlockedReason;
+
+      /**
+       * The reason why loading was blocked by CORS, if any.
+       */
+      corsErrorStatus?: CorsErrorStatus;
     }
 
     /**
@@ -14419,6 +14609,46 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.webTransportCreated' event.
+     */
+    export interface WebTransportCreatedEvent {
+      /**
+       * WebTransport identifier.
+       */
+      transportId: RequestId;
+
+      /**
+       * WebTransport request URL.
+       */
+      url: string;
+
+      /**
+       * Timestamp.
+       */
+      timestamp: MonotonicTime;
+
+      /**
+       * Request initiator.
+       */
+      initiator?: Initiator;
+    }
+
+    /**
+     * Parameters of the 'Network.webTransportClosed' event.
+     */
+    export interface WebTransportClosedEvent {
+      /**
+       * WebTransport identifier.
+       */
+      transportId: RequestId;
+
+      /**
+       * Timestamp.
+       */
+      timestamp: MonotonicTime;
+    }
+
+    /**
      * Parameters of the 'Network.requestWillBeSentExtraInfo' event.
      */
     export interface RequestWillBeSentExtraInfoEvent {
@@ -14437,6 +14667,11 @@ export namespace Cdp {
        * Raw request headers as they will be sent over the wire.
        */
       headers: Headers;
+
+      /**
+       * The client security state set for the request.
+       */
+      clientSecurityState?: ClientSecurityState;
     }
 
     /**
@@ -14468,6 +14703,48 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.trustTokenOperationDone' event.
+     */
+    export interface TrustTokenOperationDoneEvent {
+      /**
+       * Detailed success or error status of the operation.
+       * 'AlreadyExists' also signifies a successful operation, as the result
+       * of the operation already exists und thus, the operation was abort
+       * preemptively (e.g. a cache hit).
+       */
+      status:
+        | 'Ok'
+        | 'InvalidArgument'
+        | 'FailedPrecondition'
+        | 'ResourceExhausted'
+        | 'AlreadyExists'
+        | 'Unavailable'
+        | 'BadResponse'
+        | 'InternalError'
+        | 'UnknownError'
+        | 'FulfilledLocally';
+
+      type: TrustTokenOperationType;
+
+      requestId: RequestId;
+
+      /**
+       * Top level origin. The context in which the operation was attempted.
+       */
+      topLevelOrigin?: string;
+
+      /**
+       * Origin of the issuer in case of a "Issuance" or "Redemption" operation.
+       */
+      issuerOrigin?: string;
+
+      /**
+       * The number of obtained Trust Tokens on a successful "Issuance" operation.
+       */
+      issuedTokenCount?: integer;
+    }
+
+    /**
      * Resource type as it was perceived by the rendering engine.
      */
     export type ResourceType =
@@ -14486,6 +14763,7 @@ export namespace Cdp {
       | 'SignedExchange'
       | 'Ping'
       | 'CSPViolationReport'
+      | 'Preflight'
       | 'Other';
 
     /**
@@ -14739,6 +15017,12 @@ export namespace Cdp {
        * Whether is loaded via link preload.
        */
       isLinkPreload?: boolean;
+
+      /**
+       * Set for requests when the TrustToken API is used. Contains the parameters
+       * passed by the developer (e.g. via "fetch") as understood by the backend.
+       */
+      trustTokenParams?: TrustTokenParams;
     }
 
     /**
@@ -14880,6 +15164,42 @@ export namespace Cdp {
       | 'corp-not-same-site';
 
     /**
+     * The reason why request was blocked.
+     */
+    export type CorsError =
+      | 'DisallowedByMode'
+      | 'InvalidResponse'
+      | 'WildcardOriginNotAllowed'
+      | 'MissingAllowOriginHeader'
+      | 'MultipleAllowOriginValues'
+      | 'InvalidAllowOriginValue'
+      | 'AllowOriginMismatch'
+      | 'InvalidAllowCredentials'
+      | 'CorsDisabledScheme'
+      | 'PreflightInvalidStatus'
+      | 'PreflightDisallowedRedirect'
+      | 'PreflightWildcardOriginNotAllowed'
+      | 'PreflightMissingAllowOriginHeader'
+      | 'PreflightMultipleAllowOriginValues'
+      | 'PreflightInvalidAllowOriginValue'
+      | 'PreflightAllowOriginMismatch'
+      | 'PreflightInvalidAllowCredentials'
+      | 'PreflightMissingAllowExternal'
+      | 'PreflightInvalidAllowExternal'
+      | 'InvalidAllowMethodsPreflightResponse'
+      | 'InvalidAllowHeadersPreflightResponse'
+      | 'MethodDisallowedByPreflightResponse'
+      | 'HeaderDisallowedByPreflightResponse'
+      | 'RedirectContainsCredentials'
+      | 'InsecurePrivateNetwork';
+
+    export interface CorsErrorStatus {
+      corsError: CorsError;
+
+      failedParameter: string;
+    }
+
+    /**
      * Source of serviceworker response.
      */
     export type ServiceWorkerResponseSource =
@@ -14887,6 +15207,29 @@ export namespace Cdp {
       | 'http-cache'
       | 'fallback-code'
       | 'network';
+
+    /**
+     * Determines what type of Trust Token operation is executed and
+     * depending on the type, some additional parameters. The values
+     * are specified in third_party/blink/renderer/core/fetch/trust_token.idl.
+     */
+    export interface TrustTokenParams {
+      type: TrustTokenOperationType;
+
+      /**
+       * Only set for "token-redemption" type and determine whether
+       * to request a fresh SRR or use a still valid cached SRR.
+       */
+      refreshPolicy: 'UseCached' | 'Refresh';
+
+      /**
+       * Origins of issuers from whom to request tokens or redemption
+       * records.
+       */
+      issuers?: string[];
+    }
+
+    export type TrustTokenOperationType = 'Issuance' | 'Redemption' | 'Signing';
 
     /**
      * HTTP response data.
@@ -15107,7 +15450,7 @@ export namespace Cdp {
       /**
        * Type of this initiator.
        */
-      type: 'parser' | 'script' | 'preload' | 'SignedExchange' | 'other';
+      type: 'parser' | 'script' | 'preload' | 'SignedExchange' | 'preflight' | 'other';
 
       /**
        * Initiator JavaScript stack trace, set for Script only.
@@ -15130,6 +15473,11 @@ export namespace Cdp {
        * module) (0-based).
        */
       columnNumber?: number;
+
+      /**
+       * Set if another request triggered this request (e.g. preflight).
+       */
+      requestId?: RequestId;
     }
 
     /**
@@ -15207,7 +15555,10 @@ export namespace Cdp {
       | 'OverwriteSecure'
       | 'InvalidDomain'
       | 'InvalidPrefix'
-      | 'UnknownError';
+      | 'UnknownError'
+      | 'SchemefulSameSiteStrict'
+      | 'SchemefulSameSiteLax'
+      | 'SchemefulSameSiteUnspecifiedTreatedAsLax';
 
     /**
      * Types of reasons why a cookie may not be sent with a request.
@@ -15221,7 +15572,10 @@ export namespace Cdp {
       | 'SameSiteUnspecifiedTreatedAsLax'
       | 'SameSiteNoneInsecure'
       | 'UserPreferences'
-      | 'UnknownError';
+      | 'UnknownError'
+      | 'SchemefulSameSiteStrict'
+      | 'SchemefulSameSiteLax'
+      | 'SchemefulSameSiteUnspecifiedTreatedAsLax';
 
     /**
      * A cookie which was not stored from a response with the corresponding reason.
@@ -15531,6 +15885,18 @@ export namespace Cdp {
       errors?: SignedExchangeError[];
     }
 
+    export type PrivateNetworkRequestPolicy = 'Allow' | 'BlockFromInsecureToMorePrivate';
+
+    export type IPAddressSpace = 'Local' | 'Private' | 'Public' | 'Unknown';
+
+    export interface ClientSecurityState {
+      initiatorIsSecureContext: boolean;
+
+      initiatorIPAddressSpace: IPAddressSpace;
+
+      privateNetworkRequestPolicy: PrivateNetworkRequestPolicy;
+    }
+
     export type CrossOriginOpenerPolicyValue =
       | 'SameOrigin'
       | 'SameOriginAllowPopups'
@@ -15560,9 +15926,9 @@ export namespace Cdp {
     }
 
     export interface SecurityIsolationStatus {
-      coop: CrossOriginOpenerPolicyStatus;
+      coop?: CrossOriginOpenerPolicyStatus;
 
-      coep: CrossOriginEmbedderPolicyStatus;
+      coep?: CrossOriginEmbedderPolicyStatus;
     }
 
     /**
@@ -15599,6 +15965,323 @@ export namespace Cdp {
       disableCache: boolean;
 
       includeCredentials: boolean;
+    }
+  }
+
+  /**
+   * Methods and events of the 'NodeRuntime' domain.
+   */
+  export interface NodeRuntimeApi {
+    /**
+     * Enable the `NodeRuntime.waitingForDisconnect`.
+     */
+    notifyWhenWaitingForDisconnect(
+      params: NodeRuntime.NotifyWhenWaitingForDisconnectParams,
+    ): Promise<NodeRuntime.NotifyWhenWaitingForDisconnectResult | undefined>;
+
+    /**
+     * This event is fired instead of `Runtime.executionContextDestroyed` when
+     * enabled.
+     * It is fired when the Node process finished all code execution and is
+     * waiting for all frontends to disconnect.
+     */
+    on(
+      event: 'waitingForDisconnect',
+      listener: (event: NodeRuntime.WaitingForDisconnectEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'NodeRuntime' domain.
+   */
+  export namespace NodeRuntime {
+    /**
+     * Parameters of the 'NodeRuntime.notifyWhenWaitingForDisconnect' method.
+     */
+    export interface NotifyWhenWaitingForDisconnectParams {
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'NodeRuntime.notifyWhenWaitingForDisconnect' method.
+     */
+    export interface NotifyWhenWaitingForDisconnectResult {}
+
+    /**
+     * Parameters of the 'NodeRuntime.waitingForDisconnect' event.
+     */
+    export interface WaitingForDisconnectEvent {}
+  }
+
+  /**
+   * Methods and events of the 'NodeTracing' domain.
+   */
+  export interface NodeTracingApi {
+    /**
+     * Gets supported tracing categories.
+     */
+    getCategories(
+      params: NodeTracing.GetCategoriesParams,
+    ): Promise<NodeTracing.GetCategoriesResult | undefined>;
+
+    /**
+     * Start trace events collection.
+     */
+    start(params: NodeTracing.StartParams): Promise<NodeTracing.StartResult | undefined>;
+
+    /**
+     * Stop trace events collection. Remaining collected events will be sent as a sequence of
+     * dataCollected events followed by tracingComplete event.
+     */
+    stop(params: NodeTracing.StopParams): Promise<NodeTracing.StopResult | undefined>;
+
+    /**
+     * Contains an bucket of collected trace events.
+     */
+    on(
+      event: 'dataCollected',
+      listener: (event: NodeTracing.DataCollectedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Signals that tracing is stopped and there is no trace buffers pending flush, all data were
+     * delivered via dataCollected events.
+     */
+    on(
+      event: 'tracingComplete',
+      listener: (event: NodeTracing.TracingCompleteEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'NodeTracing' domain.
+   */
+  export namespace NodeTracing {
+    /**
+     * Parameters of the 'NodeTracing.getCategories' method.
+     */
+    export interface GetCategoriesParams {}
+
+    /**
+     * Return value of the 'NodeTracing.getCategories' method.
+     */
+    export interface GetCategoriesResult {
+      /**
+       * A list of supported tracing categories.
+       */
+      categories: string[];
+    }
+
+    /**
+     * Parameters of the 'NodeTracing.start' method.
+     */
+    export interface StartParams {
+      traceConfig: TraceConfig;
+    }
+
+    /**
+     * Return value of the 'NodeTracing.start' method.
+     */
+    export interface StartResult {}
+
+    /**
+     * Parameters of the 'NodeTracing.stop' method.
+     */
+    export interface StopParams {}
+
+    /**
+     * Return value of the 'NodeTracing.stop' method.
+     */
+    export interface StopResult {}
+
+    /**
+     * Parameters of the 'NodeTracing.dataCollected' event.
+     */
+    export interface DataCollectedEvent {
+      value: any[];
+    }
+
+    /**
+     * Parameters of the 'NodeTracing.tracingComplete' event.
+     */
+    export interface TracingCompleteEvent {}
+
+    export interface TraceConfig {
+      /**
+       * Controls how the trace buffer stores data.
+       */
+      recordMode?: 'recordUntilFull' | 'recordContinuously' | 'recordAsMuchAsPossible';
+
+      /**
+       * Included category filters.
+       */
+      includedCategories: string[];
+    }
+  }
+
+  /**
+   * Methods and events of the 'NodeWorker' domain.
+   */
+  export interface NodeWorkerApi {
+    /**
+     * Sends protocol message over session with given id.
+     */
+    sendMessageToWorker(
+      params: NodeWorker.SendMessageToWorkerParams,
+    ): Promise<NodeWorker.SendMessageToWorkerResult | undefined>;
+
+    /**
+     * Instructs the inspector to attach to running workers. Will also attach to new workers
+     * as they start
+     */
+    enable(params: NodeWorker.EnableParams): Promise<NodeWorker.EnableResult | undefined>;
+
+    /**
+     * Detaches from all running workers and disables attaching to new workers as they are started.
+     */
+    disable(params: NodeWorker.DisableParams): Promise<NodeWorker.DisableResult | undefined>;
+
+    /**
+     * Detached from the worker with given sessionId.
+     */
+    detach(params: NodeWorker.DetachParams): Promise<NodeWorker.DetachResult | undefined>;
+
+    /**
+     * Issued when attached to a worker.
+     */
+    on(
+      event: 'attachedToWorker',
+      listener: (event: NodeWorker.AttachedToWorkerEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Issued when detached from the worker.
+     */
+    on(
+      event: 'detachedFromWorker',
+      listener: (event: NodeWorker.DetachedFromWorkerEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Notifies about a new protocol message received from the session
+     * (session ID is provided in attachedToWorker notification).
+     */
+    on(
+      event: 'receivedMessageFromWorker',
+      listener: (event: NodeWorker.ReceivedMessageFromWorkerEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'NodeWorker' domain.
+   */
+  export namespace NodeWorker {
+    /**
+     * Parameters of the 'NodeWorker.sendMessageToWorker' method.
+     */
+    export interface SendMessageToWorkerParams {
+      message: string;
+
+      /**
+       * Identifier of the session.
+       */
+      sessionId: SessionID;
+    }
+
+    /**
+     * Return value of the 'NodeWorker.sendMessageToWorker' method.
+     */
+    export interface SendMessageToWorkerResult {}
+
+    /**
+     * Parameters of the 'NodeWorker.enable' method.
+     */
+    export interface EnableParams {
+      /**
+       * Whether to new workers should be paused until the frontend sends `Runtime.runIfWaitingForDebugger`
+       * message to run them.
+       */
+      waitForDebuggerOnStart: boolean;
+    }
+
+    /**
+     * Return value of the 'NodeWorker.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'NodeWorker.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'NodeWorker.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'NodeWorker.detach' method.
+     */
+    export interface DetachParams {
+      sessionId: SessionID;
+    }
+
+    /**
+     * Return value of the 'NodeWorker.detach' method.
+     */
+    export interface DetachResult {}
+
+    /**
+     * Parameters of the 'NodeWorker.attachedToWorker' event.
+     */
+    export interface AttachedToWorkerEvent {
+      /**
+       * Identifier assigned to the session used to send/receive messages.
+       */
+      sessionId: SessionID;
+
+      workerInfo: WorkerInfo;
+
+      waitingForDebugger: boolean;
+    }
+
+    /**
+     * Parameters of the 'NodeWorker.detachedFromWorker' event.
+     */
+    export interface DetachedFromWorkerEvent {
+      /**
+       * Detached session identifier.
+       */
+      sessionId: SessionID;
+    }
+
+    /**
+     * Parameters of the 'NodeWorker.receivedMessageFromWorker' event.
+     */
+    export interface ReceivedMessageFromWorkerEvent {
+      /**
+       * Identifier of a session which sends a message.
+       */
+      sessionId: SessionID;
+
+      message: string;
+    }
+
+    export type WorkerID = string;
+
+    /**
+     * Unique identifier of attached debugging session.
+     */
+    export type SessionID = string;
+
+    export interface WorkerInfo {
+      workerId: WorkerID;
+
+      type: string;
+
+      title: string;
+
+      url: string;
     }
   }
 
@@ -15720,6 +16403,10 @@ export namespace Cdp {
     setShowGridOverlays(
       params: Overlay.SetShowGridOverlaysParams,
     ): Promise<Overlay.SetShowGridOverlaysResult | undefined>;
+
+    setShowFlexOverlays(
+      params: Overlay.SetShowFlexOverlaysParams,
+    ): Promise<Overlay.SetShowFlexOverlaysResult | undefined>;
 
     /**
      * Requests that backend shows paint rectangles
@@ -16163,6 +16850,21 @@ export namespace Cdp {
     export interface SetShowGridOverlaysResult {}
 
     /**
+     * Parameters of the 'Overlay.setShowFlexOverlays' method.
+     */
+    export interface SetShowFlexOverlaysParams {
+      /**
+       * An array of node identifiers and descriptors for the highlight appearance.
+       */
+      flexNodeHighlightConfigs: FlexNodeHighlightConfig[];
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowFlexOverlays' method.
+     */
+    export interface SetShowFlexOverlaysResult {}
+
+    /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
      */
     export interface SetShowPaintRectsParams {
@@ -16407,6 +17109,83 @@ export namespace Cdp {
     }
 
     /**
+     * Configuration data for the highlighting of Flex container elements.
+     */
+    export interface FlexContainerHighlightConfig {
+      /**
+       * The style of the container border
+       */
+      containerBorder?: LineStyle;
+
+      /**
+       * The style of the separator between lines
+       */
+      lineSeparator?: LineStyle;
+
+      /**
+       * The style of the separator between items
+       */
+      itemSeparator?: LineStyle;
+
+      /**
+       * Style of content-distribution space on the main axis (justify-content).
+       */
+      mainDistributedSpace?: BoxStyle;
+
+      /**
+       * Style of content-distribution space on the cross axis (align-content).
+       */
+      crossDistributedSpace?: BoxStyle;
+
+      /**
+       * Style of empty space caused by row gaps (gap/row-gap).
+       */
+      rowGapSpace?: BoxStyle;
+
+      /**
+       * Style of empty space caused by columns gaps (gap/column-gap).
+       */
+      columnGapSpace?: BoxStyle;
+
+      /**
+       * Style of the self-alignment line (align-items).
+       */
+      crossAlignment?: LineStyle;
+    }
+
+    /**
+     * Style information for drawing a line.
+     */
+    export interface LineStyle {
+      /**
+       * The color of the line (default: transparent)
+       */
+      color?: DOM.RGBA;
+
+      /**
+       * The line pattern (default: solid)
+       */
+      pattern?: 'dashed' | 'dotted';
+    }
+
+    /**
+     * Style information for drawing a box.
+     */
+    export interface BoxStyle {
+      /**
+       * The background color for the box (default: transparent)
+       */
+      fillColor?: DOM.RGBA;
+
+      /**
+       * The hatching color for the box (default: transparent)
+       */
+      hatchColor?: DOM.RGBA;
+    }
+
+    export type ContrastAlgorithm = 'aa' | 'aaa' | 'apca';
+
+    /**
      * Configuration data for the highlighting of page elements.
      */
     export interface HighlightConfig {
@@ -16484,6 +17263,16 @@ export namespace Cdp {
        * The grid layout highlight configuration (default: all transparent).
        */
       gridHighlightConfig?: GridHighlightConfig;
+
+      /**
+       * The flex container highlight configuration (default: all transparent).
+       */
+      flexContainerHighlightConfig?: FlexContainerHighlightConfig;
+
+      /**
+       * The contrast algorithm to use for the contrast ratio (default: aa).
+       */
+      contrastAlgorithm?: ContrastAlgorithm;
     }
 
     export type ColorFormat = 'rgb' | 'hsl' | 'hex';
@@ -16496,6 +17285,18 @@ export namespace Cdp {
        * A descriptor for the highlight appearance.
        */
       gridHighlightConfig: GridHighlightConfig;
+
+      /**
+       * Identifier of the node to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
+
+    export interface FlexNodeHighlightConfig {
+      /**
+       * A descriptor for the highlight appearance of flex containers.
+       */
+      flexContainerHighlightConfig: FlexContainerHighlightConfig;
 
       /**
        * Identifier of the node to highlight.
@@ -16935,6 +17736,11 @@ export namespace Cdp {
      */
     on(event: 'frameNavigated', listener: (event: Page.FrameNavigatedEvent) => void): IDisposable;
 
+    /**
+     * Fired when opening document to write to.
+     */
+    on(event: 'documentOpened', listener: (event: Page.DocumentOpenedEvent) => void): IDisposable;
+
     on(event: 'frameResized', listener: (event: Page.FrameResizedEvent) => void): IDisposable;
 
     /**
@@ -17143,6 +17949,11 @@ export namespace Cdp {
        * Capture the screenshot from the surface, rather than the view. Defaults to true.
        */
       fromSurface?: boolean;
+
+      /**
+       * Capture the screenshot beyond the viewport. Defaults to false.
+       */
+      captureBeyondViewport?: boolean;
     }
 
     /**
@@ -18247,12 +19058,24 @@ export namespace Cdp {
        * Id of the frame that has been detached.
        */
       frameId: FrameId;
+
+      reason: 'remove' | 'swap';
     }
 
     /**
      * Parameters of the 'Page.frameNavigated' event.
      */
     export interface FrameNavigatedEvent {
+      /**
+       * Frame object.
+       */
+      frame: Frame;
+    }
+
+    /**
+     * Parameters of the 'Page.documentOpened' event.
+     */
+    export interface DocumentOpenedEvent {
       /**
        * Frame object.
        */
@@ -18577,6 +19400,12 @@ export namespace Cdp {
       | 'NotIsolated'
       | 'NotIsolatedFeatureDisabled';
 
+    export type GatedAPIFeatures =
+      | 'SharedArrayBuffers'
+      | 'SharedArrayBuffersTransferAllowed'
+      | 'PerformanceMeasureMemory'
+      | 'PerformanceProfile';
+
     /**
      * Information about the Frame on the page.
      */
@@ -18648,6 +19477,11 @@ export namespace Cdp {
        * Indicates whether this is a cross origin isolated context.
        */
       crossOriginIsolatedContextType: CrossOriginIsolatedContextType;
+
+      /**
+       * Indicated which gated APIs / features are available.
+       */
+      gatedAPIFeatures: GatedAPIFeatures[];
     }
 
     /**
@@ -22166,6 +23000,13 @@ export namespace Cdp {
     ): Promise<Storage.GetUsageAndQuotaResult | undefined>;
 
     /**
+     * Override quota for the specified origin
+     */
+    overrideQuotaForOrigin(
+      params: Storage.OverrideQuotaForOriginParams,
+    ): Promise<Storage.OverrideQuotaForOriginResult | undefined>;
+
+    /**
      * Registers origin to be notified when an update occurs to its cache storage list.
      */
     trackCacheStorageForOrigin(
@@ -22330,10 +23171,41 @@ export namespace Cdp {
       quota: number;
 
       /**
+       * Whether or not the origin has an active storage quota override
+       */
+      overrideActive: boolean;
+
+      /**
        * Storage usage per type (bytes).
        */
       usageBreakdown: UsageForType[];
     }
+
+    /**
+     * Parameters of the 'Storage.overrideQuotaForOrigin' method.
+     */
+    export interface OverrideQuotaForOriginParams {
+      /**
+       * Security origin.
+       */
+      origin: string;
+
+      /**
+       * The quota size (in bytes) to override the original quota with.
+       * If this is called multiple times, the overriden quota will be equal to
+       * the quotaSize provided in the final call. If this is called without
+       * specifying a quotaSize, the quota will be reset to the default value for
+       * the specified origin. If this is called multiple times with different
+       * origins, the override will be maintained for each origin until it is
+       * disabled (called without a quotaSize).
+       */
+      quotaSize?: number;
+    }
+
+    /**
+     * Return value of the 'Storage.overrideQuotaForOrigin' method.
+     */
+    export interface OverrideQuotaForOriginResult {}
 
     /**
      * Parameters of the 'Storage.trackCacheStorageForOrigin' method.
@@ -23572,6 +24444,11 @@ export namespace Cdp {
        * Enables more deterministic results by forcing garbage collection
        */
       deterministic?: boolean;
+
+      /**
+       * Specifies level of details in memory dump. Defaults to "detailed".
+       */
+      levelOfDetail?: MemoryDumpLevelOfDetail;
     }
 
     /**
@@ -23754,6 +24631,13 @@ export namespace Cdp {
      * Compression type to use for traces returned via streams.
      */
     export type StreamCompression = 'none' | 'gzip';
+
+    /**
+     * Details exposed when memory request explicitly declared.
+     * Keep consistent with memory_dump_request_args.h and
+     * memory_instrumentation.mojom
+     */
+    export type MemoryDumpLevelOfDetail = 'background' | 'light' | 'detailed';
   }
 
   /**
@@ -24428,10 +25312,17 @@ export namespace Cdp {
 
     export type AuthenticatorProtocol = 'u2f' | 'ctap2';
 
+    export type Ctap2Version = 'ctap2_0' | 'ctap2_1';
+
     export type AuthenticatorTransport = 'usb' | 'nfc' | 'ble' | 'cable' | 'internal';
 
     export interface VirtualAuthenticatorOptions {
       protocol: AuthenticatorProtocol;
+
+      /**
+       * Defaults to ctap2_0. Ignored if |protocol| == u2f.
+       */
+      ctap2Version?: Ctap2Version;
 
       transport: AuthenticatorTransport;
 
@@ -24493,6 +25384,12 @@ export namespace Cdp {
        * See https://w3c.github.io/webauthn/#signature-counter
        */
       signCount: integer;
+
+      /**
+       * The large blob associated with the credential.
+       * See https://w3c.github.io/webauthn/#sctn-large-blob-extension
+       */
+      largeBlob?: string;
     }
   }
 }

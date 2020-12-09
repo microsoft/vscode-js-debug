@@ -117,6 +117,38 @@ describe('node runtime', () => {
     await handle.dap.once('terminated');
   });
 
+  if (process.env.ONLY_MINSPEC !== 'true') {
+    // not available on node 8
+    itIntegrates('debugs worker threads', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': [
+          'const { Worker, isMainThread, workerData } = require("worker_threads");',
+          'if (isMainThread) {',
+          '  new Worker(__filename, { workerData: { greet: "world" } });',
+          '} else {',
+          '  setInterval(() => {',
+          '    console.log("hello " + workerData.greet);',
+          '   }, 100);',
+          '}',
+        ],
+      });
+
+      const handle = await r.runScript('test.js');
+      handle.load();
+
+      const worker = await r.worker();
+      await worker.dap.setBreakpoints({
+        source: { path: join(testFixturesDir, 'test.js') },
+        breakpoints: [{ line: 6, column: 1 }],
+      });
+
+      worker.load();
+
+      await waitForPause(worker);
+      handle.assertLog({ substring: true });
+    });
+  }
+
   itIntegrates('exits with integrated terminal launcher', async ({ r }) => {
     // We don't actually attach the DAP fully through vscode, so stub about
     // the launch request. We just want to test that the lifecycle of a detached

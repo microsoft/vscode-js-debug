@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## TBA
 
+- feat: allow debugging node worker_threads
 - feat: make the line on log messages take into account skipFiles ([#882](https://github.com/microsoft/vscode-js-debug/issues/882))
 - fix: persist state in the diagnostic tool ([#879](https://github.com/microsoft/vscode-js-debug/issues/879))
 - fix: allow outdated node dialog to be bypassed ([ref](https://github.com/microsoft/vscode/issues/111642))

@@ -30,11 +30,7 @@ export interface INodeTargetLifecycleHooks {
 
 export class NodeTarget implements ITarget, IThreadDelegate {
   private _cdp: Cdp.Api;
-  private _parent: NodeTarget | undefined;
-  private _children: NodeTarget[] = [];
-  private _targetId: string;
   private _targetName: string;
-  private _scriptName: string;
   private _serialize: Promise<Cdp.Api | undefined> = Promise.resolve(undefined);
   private _attached = false;
   private _waitingForDebugger: boolean;
@@ -56,12 +52,11 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     public readonly targetInfo: Cdp.Target.TargetInfo,
     public readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
+    private readonly _parent: ITarget | undefined,
   ) {
     this.connection = connection;
     this._cdp = cdp;
     cdp.pause();
-    this._targetId = targetInfo.targetId;
-    this._scriptName = targetInfo.title;
     this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
     if (targetInfo.title)
       this._targetName = `${basename(targetInfo.title)} [${targetInfo.targetId}]`;
@@ -72,7 +67,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   }
 
   id(): string {
-    return this._targetId;
+    return this.targetInfo.targetId;
   }
 
   name(): string {
@@ -80,7 +75,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   }
 
   fileName(): string | undefined {
-    return this._scriptName;
+    return this.targetInfo.title;
   }
 
   type(): string {
@@ -93,10 +88,6 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   parent(): ITarget | undefined {
     return this._parent;
-  }
-
-  children(): ITarget[] {
-    return Array.from(this._children.values());
   }
 
   public async initialize() {
@@ -123,11 +114,6 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     return false;
   }
 
-  shouldCheckContentHash(): boolean {
-    // todo(connor4312): all targets need content hashing, remove dead code
-    return true;
-  }
-
   executionContextName(): string {
     return this._targetName;
   }
@@ -140,15 +126,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     await this._cdp.Runtime.runIfWaitingForDebugger({});
   }
 
-  public setParent(parent?: NodeTarget) {
-    if (this._parent) this._parent._children.splice(this._parent._children.indexOf(this), 1);
-    this._parent = parent;
-    if (this._parent) this._parent._children.push(this);
-  }
-
   private async _disconnected() {
-    this._children.forEach(child => child.setParent(this._parent));
-    this.setParent(undefined);
     this._onDisconnectEmitter.fire();
   }
 
@@ -167,13 +145,15 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   async _doAttach(): Promise<Cdp.Api | undefined> {
     this._waitingForDebugger = false;
     this._attached = true;
-    const result = await this._cdp.Target.attachToTarget({ targetId: this._targetId });
+    const result = await this._cdp.Target.attachToTarget({ targetId: this.targetInfo.targetId });
     if (!result) {
       this.logger.info(LogTag.RuntimeLaunch, 'Failed to attach to target', {
-        targetId: this._targetId,
+        targetId: this.targetInfo.targetId,
       });
       return; // timed out or cancelled, may have been a short-lived process
     }
+
+    this._cdp.NodeWorker.enable({ waitForDebuggerOnStart: true });
 
     if (result && '__dynamicAttach' in result) {
       await this._cdp.Debugger.enable({});
@@ -215,7 +195,11 @@ export class NodeTarget implements ITarget, IThreadDelegate {
   }
 
   async _doDetach() {
-    await this._cdp.Target.detachFromTarget({ targetId: this._targetId });
+    await Promise.all([
+      this._cdp.Target.detachFromTarget({ targetId: this.targetInfo.targetId }),
+      this._cdp.NodeWorker.disable({}),
+    ]);
+
     this.connection.close();
     this._attached = false;
   }

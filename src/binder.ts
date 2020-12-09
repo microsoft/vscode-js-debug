@@ -197,7 +197,7 @@ export class Binder implements IDisposable {
       return;
     }
 
-    await new Promise(resolve =>
+    await new Promise<void>(resolve =>
       this.onTargetListChanged(() => {
         if (didTerminate()) {
           resolve();

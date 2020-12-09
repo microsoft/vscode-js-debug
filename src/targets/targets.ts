@@ -44,7 +44,6 @@ export interface ITarget {
   fileName(): string | undefined;
   type(): string;
   parent(): ITarget | undefined;
-  children(): ITarget[];
   canStop(): boolean;
   stop(): void;
   canRestart(): boolean;
@@ -69,11 +68,10 @@ export interface ITarget {
   initialize(): Promise<void>;
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
-  shouldCheckContentHash(): boolean;
   scriptUrlToUrl(url: string): string;
   sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
-  entryBreakpoint: IBreakpointPathAndId | undefined;
+  entryBreakpoint?: IBreakpointPathAndId | undefined;
   logger: ILogger;
 }
 
