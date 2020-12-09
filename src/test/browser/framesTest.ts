@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITarget } from '../../targets/targets';
+import { BrowserTarget } from '../../targets/browser/browserTargets';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('frames', () => {
@@ -11,7 +11,7 @@ describe('frames', () => {
     const p = await r.launchUrl('frames.html');
     p.load();
 
-    const logTarget = (t: ITarget, indent: number) => {
+    const logTarget = (t: BrowserTarget, indent: number) => {
       const s = ' '.repeat(indent);
       p.log(
         `${s}${t.type()} "${t.name()}" [thread "${t.scriptUrlToUrl('')}"]${
@@ -22,10 +22,10 @@ describe('frames', () => {
       children.sort((t1, t2) => {
         return t1.name().localeCompare(t2.name());
       });
-      children.forEach(child => logTarget(child, indent + 2));
+      children.forEach(child => logTarget(child as BrowserTarget, indent + 2));
     };
 
-    await new Promise(f => {
+    await new Promise<void>(f => {
       r.onSessionCreated(() => {
         if (r.binder.targetList().length === 11) f();
       });
@@ -33,7 +33,7 @@ describe('frames', () => {
     r.binder
       .targetList()
       .filter(t => !t.parent())
-      .forEach(target => logTarget(target, 0));
+      .forEach(target => logTarget(target as BrowserTarget, 0));
 
     p.assertLog();
   });

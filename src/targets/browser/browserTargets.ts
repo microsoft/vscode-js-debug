@@ -233,12 +233,6 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
     return domDebuggerTypes.has(this.type());
   }
 
-  shouldCheckContentHash(): boolean {
-    // Browser executes scripts retrieved from network.
-    // We check content hash because served code can be different from actual files on disk.
-    return true;
-  }
-
   scriptUrlToUrl(url: string): string {
     return urlUtils.completeUrl(this._targetInfo.url, url) || url;
   }

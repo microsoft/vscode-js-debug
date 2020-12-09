@@ -101,11 +101,10 @@ export type Script = {
 export interface IThreadDelegate {
   name(): string;
   supportsCustomBreakpoints(): boolean;
-  shouldCheckContentHash(): boolean;
   scriptUrlToUrl(url: string): string;
   executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
   initialize(): Promise<void>;
-  entryBreakpoint: IBreakpointPathAndId | undefined;
+  entryBreakpoint?: IBreakpointPathAndId;
 }
 
 export type ScriptWithSourceMapHandler = (
@@ -1164,14 +1163,13 @@ export class Thread implements IVariableStoreDelegate {
         }
       }
 
-      const hash = this._delegate.shouldCheckContentHash() ? event.hash : undefined;
       const source = await this._sourceContainer.addSource(
         event.url,
         contentGetter,
         resolvedSourceMapUrl,
         inlineSourceOffset,
         runtimeScriptOffset,
-        hash,
+        event.hash,
       );
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

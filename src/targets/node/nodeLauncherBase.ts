@@ -11,6 +11,7 @@ import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { WorkerTransport } from '../../cdp/workerTransport';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { AutoAttachMode } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
@@ -42,6 +43,7 @@ import {
 } from './nodeBinaryProvider';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
+import { NodeWorkerTarget } from './nodeWorkerTarget';
 import { IProgram } from './program';
 
 /**
@@ -98,7 +100,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Target list.
    */
-  private readonly targets = new ObservableMap<string, NodeTarget>();
+  private readonly targets = new ObservableMap<string, ITarget>();
 
   /**
    * Underlying emitter fired when sessions terminate. Listened to by the
@@ -401,17 +403,47 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       targetInfo,
       this.run.logger,
       this.createLifecycle(cdp, this.run, targetInfo),
+      targetInfo.openerId ? this.targets.get(targetInfo.openerId) : undefined,
     );
 
-    target.setParent(targetInfo.openerId ? this.targets.get(targetInfo.openerId) : undefined);
+    this.listenToWorkerDomain(cdp, telemetryReporter, target);
     this.targets.add(targetInfo.targetId, target);
     target.onDisconnect(() => this.targets.remove(targetInfo.targetId));
+  }
+
+  private async listenToWorkerDomain(
+    cdp: Cdp.Api,
+    telemetryReporter: ITelemetryReporter,
+    parent: NodeTarget,
+  ) {
+    cdp.NodeWorker.on('attachedToWorker', evt => {
+      const transport = new WorkerTransport(evt.sessionId, cdp);
+      const target = new NodeWorkerTarget(
+        parent.launchConfig,
+        {
+          attached: true,
+          canAccessOpener: false,
+          type: 'node-worker',
+          targetId: evt.sessionId,
+          title: evt.workerInfo.title,
+          url: evt.workerInfo.url,
+          openerId: parent.id(),
+        },
+        parent,
+        parent.targetOrigin(),
+        new Connection(transport, parent.logger, telemetryReporter).rootSession(),
+        parent.sourcePathResolver(),
+        parent.logger,
+      );
+
+      this.targets.add(target.id(), target);
+      transport.onEnd(() => this.targets.remove(target.id()));
+    });
   }
 
   /**
    * Acquires the CDP session and target info from the connecting socket.
    */
-
   protected async acquireTarget(
     socket: net.Socket,
     rawTelemetryReporter: ITelemetryReporter,
