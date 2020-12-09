@@ -81,12 +81,16 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       // If it's a data URI, use the compiled path as a stand-in. It should
       // be quite rare that ignored files (i.e. node_modules) reference
       // source modules and vise versa.
-      //
-      // Use getPathFromUri in case the referencing path is something like
-      // webpack-internal:///./foo/bar.js (#854)
-      (isDataUri(sourceMapUrl) && properResolve(getPathFromUri(compiledPath))) ||
+      (isDataUri(sourceMapUrl) && compiledPath) ||
       // Fall back to the raw URL if those fail.
       sourceMapUrl;
+
+    // Where the compiled path is webpack-internal, just resolve it. We have
+    // no way to know where it's coming from, but this is necessary sometimes.
+    // See https://github.com/microsoft/vscode-js-debug/issues/854#issuecomment-741958453
+    if (sourcePath.startsWith('webpack-internal:///')) {
+      return true;
+    }
 
     // Be case insensitive for things that might be remote uris--we have no way
     // to know whether the server is case sensitive or not.

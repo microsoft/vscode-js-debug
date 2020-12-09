@@ -237,30 +237,16 @@ export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
     return undefined;
   }
 
-  return getPathFromUri(urlOrPath);
-}
-
-const matchAnyProtocolRe = /^[a-z-]+:\/{3}/i;
-
-/**
- * Extracts the path portion from (e.g. a file) uri.
- */
-export function getPathFromUri(uri: string, matchPrefixRe = matchAnyProtocolRe) {
-  let path = uri.replace(matchPrefixRe, '');
-  if (uri === path) {
-    return uri;
-  }
-
-  path = decodeURIComponent(path);
-
-  if (path[0] !== '/' && !path.match(/^[A-Za-z]:/)) {
+  urlOrPath = urlOrPath.replace('file:///', '');
+  urlOrPath = decodeURIComponent(urlOrPath);
+  if (urlOrPath[0] !== '/' && !urlOrPath.match(/^[A-Za-z]:/)) {
     // If it has a : before the first /, assume it's a windows path or url.
     // Ensure unix-style path starts with /, it can be removed when file:/// was stripped.
     // Don't add if the url still has a protocol
-    path = '/' + path;
+    urlOrPath = '/' + urlOrPath;
   }
 
-  return fixDriveLetterAndSlashes(path);
+  return fixDriveLetterAndSlashes(urlOrPath);
 }
 
 /**
