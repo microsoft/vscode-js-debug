@@ -2,12 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
+import { inject, injectable } from 'inversify';
 import * as nls from 'vscode-nls';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
@@ -17,13 +18,11 @@ import { IStopMetadata } from '../targets';
 import { LeaseFile } from './lease-file';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
-import { NodeBinary, NodeBinaryProvider, INodeBinaryProvider } from './nodeBinaryProvider';
+import { INodeBinaryProvider, NodeBinary, NodeBinaryProvider } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
 import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
-import { LocalFsUtils } from '../../common/fsUtils';
-import { IFsUtils } from '../../common/fsUtils';
 
 const localize = nls.loadMessageBundle();
 
@@ -224,7 +223,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         contextId: 1,
         returnByValue: true,
         expression:
-          `typeof process === 'undefined' ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
+          `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
             vars.defined(),
           )})` + getSourceSuffix(),
       });

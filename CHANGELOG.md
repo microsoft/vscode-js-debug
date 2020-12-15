@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: allow outdated node dialog to be bypassed ([ref](https://github.com/microsoft/vscode/issues/111642))
 - fix: syntax errors in chrome not showing locations ([#867](https://github.com/microsoft/vscode-js-debug/issues/867))
 - fix: handle certain types of webpack source maps in attachments ([#854](https://github.com/microsoft/vscode-js-debug/issues/854))
+- fix: attachment issue on Node 15 ([#895](https://github.com/microsoft/vscode-js-debug/issues/895))
 
 ## v1.52.2 - 2020-12-07
 
