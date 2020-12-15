@@ -91,10 +91,9 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
 
     // make sure that config has a 'cwd' attribute set
     if (!config.cwd) {
-      config.cwd = guessWorkingDirectory(
-        config.request === 'launch' ? config.program : undefined,
-        folder,
-      );
+      config.cwd =
+        config.localRoot || // https://github.com/microsoft/vscode-js-debug/issues/894#issuecomment-745449195
+        guessWorkingDirectory(config.request === 'launch' ? config.program : undefined, folder);
     }
 
     // if a 'remoteRoot' is specified without a corresponding 'localRoot', set 'localRoot' to the workspace folder.
