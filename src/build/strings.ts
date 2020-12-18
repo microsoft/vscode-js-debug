@@ -5,7 +5,7 @@ import { Commands } from '../common/contributionUtils';
 import { sortKeys } from '../common/objUtils';
 
 const strings = {
-  'attach.node.process': 'Attach to Node Process (preview)',
+  'attach.node.process': 'Attach to Node Process',
   'extension.description': 'An extension for debugging Node.js programs and Chrome.',
   'start.with.stop.on.entry': 'Start Debugging and Stop on Entry',
   'toggle.skipping.this.file': 'Toggle Skipping this File',
@@ -24,7 +24,7 @@ const strings = {
   'base.cascadeTerminateToConfigurations.label':
     'A list of debug sessions which, when this debug session is terminated, will also be stopped.',
 
-  'extensionHost.label': 'VS Code Extension Development (preview)',
+  'extensionHost.label': 'VS Code Extension Development',
   'extensionHost.launch.config.name': 'Launch Extension',
   'extensionHost.launch.env.description': 'Environment variables passed to the extension host.',
   'extensionHost.launch.runtimeExecutable.description': 'Absolute path to VS Code.',
@@ -42,8 +42,8 @@ const strings = {
   'edge.useWebView.description':
     "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
 
-  'chrome.label': 'Chrome (preview)',
-  'edge.label': 'Edge (preview)',
+  'chrome.label': 'Chrome',
+  'edge.label': 'Edge',
   'edge.launch.label': 'Edge: Launch',
   'edge.attach.label': 'Edge: Attach',
   'edge.launch.description': 'Launch Edge to debug a URL',
@@ -147,7 +147,7 @@ const strings = {
   'node.console.title': 'Node Debug Console',
   'node.disableOptimisticBPs.description':
     "Don't set breakpoints in any file until a sourcemap has been loaded for that file.",
-  'node.label': 'Node.js (preview)',
+  'node.label': 'Node.js',
   'node.launch.autoAttachChildProcesses.description':
     'Attach debugger to new child processes automatically.',
   'node.launch.runtimeSourcemapPausePatterns':
