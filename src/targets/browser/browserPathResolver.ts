@@ -22,6 +22,7 @@ import {
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as utils from '../../common/urlUtils';
+import { urlToRegex } from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
@@ -30,6 +31,11 @@ export interface IOptions extends ISourcePathResolverOptions {
   pathMapping: PathMapping;
   clientID: string | undefined;
   remoteFilePrefix: string | undefined;
+}
+
+const enum Suffix {
+  Html = '.html',
+  Index = 'index.html',
 }
 
 @injectable()
@@ -115,6 +121,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       pathname = url;
     }
 
+    const extname = path.extname(pathname);
     const pathParts = pathname
       .replace(/^\//, '') // Strip leading /
       .split(/[\/\\]/);
@@ -125,8 +132,13 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         this.options.pathMapping,
         this.logger,
       );
-      if (clientPath && (await this.fsUtils.exists(clientPath))) {
-        return clientPath;
+      if (clientPath) {
+        if (!extname && (await this.fsUtils.exists(clientPath + Suffix.Html))) {
+          return clientPath + Suffix.Html;
+        }
+        if (await this.fsUtils.exists(clientPath)) {
+          return clientPath;
+        }
       }
 
       pathParts.shift();
@@ -193,5 +205,26 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     }
 
     return fixDriveLetterAndSlashes(url);
+  }
+
+  /**
+   * @override
+   */
+  public absolutePathToUrlRegexp(absolutePath: string): string | undefined {
+    let url = this.absolutePathToUrl(absolutePath);
+    if (!url) {
+      return undefined;
+    }
+
+    let endRegexEscape = absolutePath.length;
+    if (url.endsWith(Suffix.Index)) {
+      endRegexEscape = url.length - Suffix.Index.length - 1;
+      url = url.slice(0, endRegexEscape) + `\\/?($|index(\\.html)?)`;
+    } else if (url.endsWith(Suffix.Html)) {
+      endRegexEscape = url.length - Suffix.Html.length;
+      url = url.slice(0, endRegexEscape) + `(\\.html)?`;
+    }
+
+    return urlToRegex(url, [0, endRegexEscape]);
   }
 }

@@ -1092,21 +1092,9 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   private _removeAllScripts(silent = false) {
-    const scripts = Array.from(this._sourceContainer.scriptsById.values());
-    this._sourceContainer.clear();
+    this._sourceContainer.clear(silent);
     this._scriptSources.clear();
     this._sourceMapLoads.clear();
-    Promise.all(
-      scripts.map(script =>
-        script.source.then(source => {
-          const set = this.scriptsFromSource(source);
-          set.delete(script);
-          if (!set.size) {
-            this._sourceContainer.removeSource(source, silent);
-          }
-        }),
-      ),
-    );
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {

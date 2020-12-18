@@ -285,7 +285,12 @@ export function isDataUri(uri: string): boolean {
 }
 
 const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) => {
-  if (escapeRegex && isRegexSpecialChar(char)) {
+  if (!escapeRegex) {
+    arr.add(char);
+    return;
+  }
+
+  if (isRegexSpecialChar(char)) {
     arr.add(`\\${char}`);
   } else {
     arr.add(char);
@@ -314,7 +319,10 @@ const createReGroup = (patterns: ReadonlySet<string>): string => {
 /**
  * Converts and escape the file URL to a regular expression.
  */
-export function urlToRegex(aPath: string, escapeRegex = true) {
+export function urlToRegex(
+  aPath: string,
+  [escapeReStart, escapeReEnd]: [number, number] = [0, aPath.length],
+) {
   const patterns: string[] = [];
 
   // aPath will often (always?) be provided as a file URI, or URL. Decode it
@@ -333,10 +341,13 @@ export function urlToRegex(aPath: string, escapeRegex = true) {
     }
 
     // Loop through each character of the string. Convert the char to a regex,
-    // creating a group, and then appent that to the match.
+    // creating a group, and then append that to the match.
     const chars = new Set<string>();
     let re = '';
-    for (const char of str) {
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const escapeRegex = i >= escapeReStart && i < escapeReEnd;
+
       if (isCaseSensitive) {
         urlToRegexChar(char, chars, escapeRegex);
       } else {

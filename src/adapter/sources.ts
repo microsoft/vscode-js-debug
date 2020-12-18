@@ -680,8 +680,13 @@ export class SourceContainer {
   /**
    * Clears all sources in the container.
    */
-  clear() {
+  clear(silent: boolean) {
     this.scriptsById.clear();
+    for (const source of this._sourceByReference.values()) {
+      this.removeSource(source, silent);
+    }
+
+    this._sourceByReference.clear();
     if (this.sourceMapFactory instanceof CachingSourceMapFactory) {
       this.sourceMapFactory.invalidateCache();
     }
