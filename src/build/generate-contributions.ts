@@ -305,7 +305,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
   cwd: {
     type: 'string',
     description: refString('node.launch.cwd.description'),
-    default: '${workspaceFolder}',
+    default: 'localRoot || ${workspaceFolder}',
   },
   localRoot: {
     type: ['string', 'null'],

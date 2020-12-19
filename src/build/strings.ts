@@ -160,7 +160,7 @@ const strings = {
   'node.launch.console.internalConsole.description':
     "VS Code Debug Console (which doesn't support to read input from a program)",
   'node.launch.cwd.description':
-    'Absolute path to the working directory of the program being debugged.',
+    "Absolute path to the working directory of the program being debugged. If you've set localRoot then cwd will match that value otherwise it falls back to your workspaceFolder",
   'node.launch.env.description':
     'Environment variables passed to the program. The value `null` removes the variable from the environment.',
   'node.launch.envFile.description':
