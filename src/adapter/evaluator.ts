@@ -16,6 +16,8 @@ export const returnValueStr = '$returnValue';
 
 const hoistedPrefix = '__js_debug_hoisted_';
 
+const makeHoistedName = () => hoistedPrefix + randomBytes(8).toString('hex');
+
 export const IEvaluator = Symbol('IEvaluator');
 
 /**
@@ -23,6 +25,7 @@ export const IEvaluator = Symbol('IEvaluator');
  */
 export type PreparedCallFrameExpr = (
   params: Omit<Cdp.Debugger.EvaluateOnCallFrameParams, 'expression'>,
+  hoisted?: { [key: string]: Cdp.Runtime.RemoteObject },
 ) => Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>;
 
 /**
@@ -40,7 +43,7 @@ export interface IEvaluator {
    */
   prepare(
     expression: string,
-    isInternalScript?: boolean,
+    options?: IPrepareOptions,
   ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr };
 
   /**
@@ -49,7 +52,7 @@ export interface IEvaluator {
    */
   evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams,
-    isInternalScript?: boolean,
+    options?: IEvaluateOptions,
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
 
   /**
@@ -57,7 +60,7 @@ export interface IEvaluator {
    */
   evaluate(
     params: Cdp.Runtime.EvaluateParams,
-    isInternalScript?: boolean,
+    options?: IEvaluateOptions,
   ): Promise<Cdp.Runtime.EvaluateResult>;
 
   /**
@@ -65,7 +68,7 @@ export interface IEvaluator {
    */
   evaluate(
     params: Cdp.Runtime.EvaluateParams | Cdp.Debugger.EvaluateOnCallFrameParams,
-    isInternalScript?: boolean,
+    options?: IEvaluateOptions,
   ): Promise<Cdp.Runtime.EvaluateResult | Cdp.Debugger.EvaluateOnCallFrameResult>;
 
   /**
@@ -77,6 +80,30 @@ export interface IEvaluator {
    * Gets whether a return value is currently set.
    */
   readonly hasReturnValue: boolean;
+}
+
+interface IEvaluatorBaseOptions {
+  /**
+   * Whether the script is 'internal' and should
+   * not be shown in the sources directory.
+   */
+  isInternalScript?: boolean;
+}
+
+export interface IPrepareOptions extends IEvaluatorBaseOptions {
+  /**
+   * Replaces the identifiers in the associated script with references to the
+   * given remote objects.
+   */
+  hoist?: ReadonlyArray<string>;
+}
+
+export interface IEvaluateOptions extends IEvaluatorBaseOptions {
+  /**
+   * Replaces the identifiers in the associated script with references to the
+   * given remote objects.
+   */
+  hoist?: { [key: string]: Cdp.Runtime.RemoteObject };
 }
 
 /**
@@ -107,14 +134,24 @@ export class Evaluator implements IEvaluator {
    */
   public prepare(
     expression: string,
+    options: IPrepareOptions = {},
   ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr } {
+    if (options.isInternalScript) {
+      expression += getSourceSuffix();
+    }
+
     // CDP gives us a way to evaluate a function in the context of a given
     // object ID. What we do to make returnValue work is to hoist the return
     // object onto `globalThis`, replace reference in the expression, then
     // evalute the expression and unhoist it from the globals.
-    const hoistedVar = hoistedPrefix + randomBytes(8).toString('hex');
-    const modified = this.replaceReturnValue(expression, hoistedVar);
-    if (!modified) {
+    const toHoist = new Map<string, string>();
+    toHoist.set(returnValueStr, makeHoistedName());
+    for (const key of options.hoist ?? []) {
+      toHoist.set(key, makeHoistedName());
+    }
+
+    const { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist);
+    if (!hoisted.size) {
       return {
         canEvaluateDirectly: true,
         invoke: params => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression }),
@@ -123,10 +160,12 @@ export class Evaluator implements IEvaluator {
 
     return {
       canEvaluateDirectly: false,
-      invoke: params =>
-        this.hoistReturnValue(hoistedVar).then(() =>
-          this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: modified }),
-        ),
+      invoke: (params, hoistMap = {}) =>
+        Promise.all(
+          [...toHoist].map(([ident, hoisted]) =>
+            this.hoistValue(ident === returnValueStr ? this.returnValue : hoistMap[ident], hoisted),
+          ),
+        ).then(() => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: transformed })),
     };
   }
 
@@ -135,33 +174,28 @@ export class Evaluator implements IEvaluator {
    */
   public evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams,
-    isInternalScript?: boolean,
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
   public evaluate(
     params: Cdp.Runtime.EvaluateParams,
-    isInternalScript?: boolean,
+    options?: IPrepareOptions,
   ): Promise<Cdp.Runtime.EvaluateResult>;
   public async evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams | Cdp.Runtime.EvaluateParams,
-    isInternalScript = true,
+    options?: IPrepareOptions,
   ) {
-    if (isInternalScript) {
-      params = { ...params, expression: params.expression + getSourceSuffix() };
-    }
-
     // no call frame means there will not be any relevant $returnValue to reference
     if (!('callFrameId' in params)) {
       return this.cdp.Runtime.evaluate(params);
     }
 
-    return this.prepare(params.expression).invoke(params);
+    return this.prepare(params.expression, options).invoke(params);
   }
 
   /**
    * Hoists the return value of the expression to the `globalThis`.
    */
-  private async hoistReturnValue(hoistedVar: string) {
-    const objectId = this.returnValue?.objectId;
+  public async hoistValue(object: Cdp.Runtime.RemoteObject | undefined, hoistedVar: string) {
+    const objectId = object?.objectId;
     const dehoist = `setTimeout(() => { delete globalThis.${hoistedVar} }, 0)`;
 
     if (objectId) {
@@ -172,7 +206,7 @@ export class Evaluator implements IEvaluator {
     } else {
       await this.cdp.Runtime.evaluate({
         expression:
-          `globalThis.${hoistedVar} = ${JSON.stringify(this.returnValue?.value)};` +
+          `globalThis.${hoistedVar} = ${JSON.stringify(object?.value)};` +
           `${dehoist};` +
           getSourceSuffix(),
       });
@@ -180,13 +214,15 @@ export class Evaluator implements IEvaluator {
   }
 
   /**
-   * Replaces $returnValue in the given expression with the `hoisted` variable,
-   * returning the modified expression if it was found.
+   * Replaces a variable in the given expression with the `hoisted` variable,
+   * returning the identifiers which were hoisted.
    */
-  private replaceReturnValue(expr: string, hoistedVar: string): string | undefined {
-    let found = false;
-
-    const replacement: ConditionalExpression = {
+  private replaceVariableInExpression(
+    expr: string,
+    hoistMap: Map<string /* identifier */, string /* hoised */>,
+  ): { hoisted: Set<string>; transformed: string } {
+    const hoisted = new Set<string>();
+    const replacement = (name: string): ConditionalExpression => ({
       type: 'ConditionalExpression',
       test: {
         type: 'BinaryExpression',
@@ -194,27 +230,27 @@ export class Evaluator implements IEvaluator {
           type: 'UnaryExpression',
           operator: 'typeof',
           prefix: true,
-          argument: { type: 'Identifier', name: hoistedVar },
+          argument: { type: 'Identifier', name },
         },
         operator: '!==',
         right: { type: 'Literal', value: 'undefined' },
       },
-      consequent: { type: 'Identifier', name: hoistedVar },
+      consequent: { type: 'Identifier', name },
       alternate: {
         type: 'Identifier',
         name: 'undefined',
       },
-    };
+    });
 
     const transformed = replace(parseProgram(expr), {
       enter: node => {
-        if (node.type === 'Identifier' && node.name === returnValueStr) {
-          found = true;
-          return replacement;
+        if (node.type === 'Identifier' && hoistMap.has(node.name)) {
+          hoisted.add(node.name);
+          return replacement(hoistMap.get(node.name) as string);
         }
       },
     });
 
-    return found ? generate(transformed) : undefined;
+    return { hoisted, transformed: hoisted.size ? generate(transformed) : expr };
   }
 }

@@ -191,7 +191,7 @@ describe('stacks', () => {
 
     itIntegrates('does not smart step on exception breakpoints', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');
-      await p.dap.setExceptionBreakpoints({ filters: ['uncaught', 'caught'] });
+      await p.dap.setExceptionBreakpoints({ filters: ['uncaught', 'all'] });
       p.addScriptTag('smartStep/exceptionBp.js');
       await dumpStackAndContinue(p, false);
       p.assertLog();

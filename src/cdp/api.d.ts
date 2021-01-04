@@ -1224,7 +1224,7 @@ export namespace Cdp {
      */
     export interface GetEncodedResponseResult {
       /**
-       * The encoded body as a base64 string. Omitted if sizeOnly is true.
+       * The encoded body as a base64 string. Omitted if sizeOnly is true. (Encoded as a base64 string when passed over JSON)
        */
       body?: string;
 
@@ -1496,6 +1496,17 @@ export namespace Cdp {
     }
 
     /**
+     * Details for a request that has been blocked with the BLOCKED_BY_RESPONSE
+     * code. Currently only used for COEP/COOP, but may be extended to include
+     * some CSP errors in the future.
+     */
+    export interface SharedArrayBufferTransferIssueDetails {
+      sourceCodeLocation: SourceCodeLocation;
+
+      isWarning: boolean;
+    }
+
+    /**
      * A unique identifier for the type of issue. Each type may use one of the
      * optional fields in InspectorIssueDetails to convey more specific
      * information about the kind of issue.
@@ -1505,7 +1516,8 @@ export namespace Cdp {
       | 'MixedContentIssue'
       | 'BlockedByResponseIssue'
       | 'HeavyAdIssue'
-      | 'ContentSecurityPolicyIssue';
+      | 'ContentSecurityPolicyIssue'
+      | 'SharedArrayBufferTransferIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1522,6 +1534,8 @@ export namespace Cdp {
       heavyAdIssueDetails?: HeavyAdIssueDetails;
 
       contentSecurityPolicyIssueDetails?: ContentSecurityPolicyIssueDetails;
+
+      sharedArrayBufferTransferIssueDetails?: SharedArrayBufferTransferIssueDetails;
     }
 
     /**
@@ -2130,7 +2144,7 @@ export namespace Cdp {
       badgeLabel?: string;
 
       /**
-       * Png encoded image.
+       * Png encoded image. (Encoded as a base64 string when passed over JSON)
        */
       image?: string;
     }
@@ -2198,6 +2212,7 @@ export namespace Cdp {
       | 'backgroundFetch'
       | 'clipboardReadWrite'
       | 'clipboardSanitizedWrite'
+      | 'displayCapture'
       | 'durableStorage'
       | 'flash'
       | 'geolocation'
@@ -2563,7 +2578,7 @@ export namespace Cdp {
      */
     export interface CachedResponse {
       /**
-       * Entry content, base64-encoded.
+       * Entry content, base64-encoded. (Encoded as a base64 string when passed over JSON)
        */
       body: string;
     }
@@ -4687,7 +4702,7 @@ export namespace Cdp {
       callFrameId: CallFrameId;
 
       /**
-       * Code of the evaluator module.
+       * Code of the evaluator module. (Encoded as a base64 string when passed over JSON)
        */
       evaluator: string;
 
@@ -4763,7 +4778,7 @@ export namespace Cdp {
       scriptSource: string;
 
       /**
-       * Wasm bytecode.
+       * Wasm bytecode. (Encoded as a base64 string when passed over JSON)
        */
       bytecode?: string;
     }
@@ -4783,7 +4798,7 @@ export namespace Cdp {
      */
     export interface GetWasmBytecodeResult {
       /**
-       * Script source.
+       * Script source. (Encoded as a base64 string when passed over JSON)
        */
       bytecode: string;
     }
@@ -9919,12 +9934,12 @@ export namespace Cdp {
        * Alternative way of specifying response headers as a \0-separated
        * series of name: value pairs. Prefer the above method unless you
        * need to represent some non-UTF8 values that can't be transmitted
-       * over the protocol as text.
+       * over the protocol as text. (Encoded as a base64 string when passed over JSON)
        */
       binaryResponseHeaders?: string;
 
       /**
-       * A response body.
+       * A response body. (Encoded as a base64 string when passed over JSON)
        */
       body?: string;
 
@@ -9960,7 +9975,7 @@ export namespace Cdp {
       method?: string;
 
       /**
-       * If set, overrides the post data in the request.
+       * If set, overrides the post data in the request. (Encoded as a base64 string when passed over JSON)
        */
       postData?: string;
 
@@ -10287,7 +10302,7 @@ export namespace Cdp {
       hasDamage: boolean;
 
       /**
-       * Base64-encoded image data of the screenshot, if one was requested and successfully taken.
+       * Base64-encoded image data of the screenshot, if one was requested and successfully taken. (Encoded as a base64 string when passed over JSON)
        */
       screenshotData?: string;
     }
@@ -12304,7 +12319,7 @@ export namespace Cdp {
       y: number;
 
       /**
-       * Base64-encoded snapshot data.
+       * Base64-encoded snapshot data. (Encoded as a base64 string when passed over JSON)
        */
       picture: string;
     }
@@ -13543,7 +13558,7 @@ export namespace Cdp {
 
       /**
        * If set the requests completes using with the provided base64 encoded raw response, including
-       * HTTP status line and headers etc... Must not be set in response to an authChallenge.
+       * HTTP status line and headers etc... Must not be set in response to an authChallenge. (Encoded as a base64 string when passed over JSON)
        */
       rawResponse?: string;
 
@@ -17961,7 +17976,7 @@ export namespace Cdp {
      */
     export interface CaptureScreenshotResult {
       /**
-       * Base64-encoded image data.
+       * Base64-encoded image data. (Encoded as a base64 string when passed over JSON)
        */
       data: string;
     }
@@ -18455,7 +18470,7 @@ export namespace Cdp {
      */
     export interface PrintToPDFResult {
       /**
-       * Base64-encoded pdf data. Empty if |returnAsStream| is specified.
+       * Base64-encoded pdf data. Empty if |returnAsStream| is specified. (Encoded as a base64 string when passed over JSON)
        */
       data: string;
 
@@ -18931,7 +18946,7 @@ export namespace Cdp {
       url: string;
 
       /**
-       * Base64-encoded data
+       * Base64-encoded data (Encoded as a base64 string when passed over JSON)
        */
       data: string;
     }
@@ -19311,7 +19326,7 @@ export namespace Cdp {
      */
     export interface ScreencastFrameEvent {
       /**
-       * Base64-encoded compressed image.
+       * Base64-encoded compressed image. (Encoded as a base64 string when passed over JSON)
        */
       data: string;
 
@@ -19368,7 +19383,7 @@ export namespace Cdp {
       url: string;
 
       /**
-       * Base64-encoded data
+       * Base64-encoded data (Encoded as a base64 string when passed over JSON)
        */
       data: string;
     }
@@ -24506,6 +24521,13 @@ export namespace Cdp {
       streamCompression?: StreamCompression;
 
       traceConfig?: TraceConfig;
+
+      /**
+       * Base64-encoded serialized perfetto.protos.TraceConfig protobuf message
+       * When specified, the parameters `categories`, `options`, `traceConfig`
+       * are ignored. (Encoded as a base64 string when passed over JSON)
+       */
+      perfettoConfig?: string;
     }
 
     /**
@@ -25368,13 +25390,13 @@ export namespace Cdp {
       rpId?: string;
 
       /**
-       * The ECDSA P-256 private key in PKCS#8 format.
+       * The ECDSA P-256 private key in PKCS#8 format. (Encoded as a base64 string when passed over JSON)
        */
       privateKey: string;
 
       /**
        * An opaque byte sequence with a maximum size of 64 bytes mapping the
-       * credential to a specific user.
+       * credential to a specific user. (Encoded as a base64 string when passed over JSON)
        */
       userHandle?: string;
 
@@ -25387,7 +25409,7 @@ export namespace Cdp {
 
       /**
        * The large blob associated with the credential.
-       * See https://w3c.github.io/webauthn/#sctn-large-blob-extension
+       * See https://w3c.github.io/webauthn/#sctn-large-blob-extension (Encoded as a base64 string when passed over JSON)
        */
       largeBlob?: string;
     }

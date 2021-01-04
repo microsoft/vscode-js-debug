@@ -83,7 +83,7 @@ describe('node runtime', () => {
             });
 
             await handle.dap.setExceptionBreakpoints({
-              filters: ['caught', 'uncaught'],
+              filters: ['all', 'uncaught'],
             });
 
             handle.dap.on('output', o => handle.logger.logOutput(o));

@@ -21,13 +21,14 @@ import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { Diagnostics } from './diagnosics';
 import { IEvaluator } from './evaluator';
+import { IExceptionPauseService, PauseOnExceptionsState } from './exceptionPauseService';
 import { IPerformanceProvider } from './performance';
 import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
-import { IThreadDelegate, PauseOnExceptionsState, Thread } from './threads';
+import { IThreadDelegate, Thread } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -39,7 +40,6 @@ export class DebugAdapter implements IDisposable {
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
   private _disposables = new DisposableList();
-  private _pauseOnExceptionsState: PauseOnExceptionsState = 'none';
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
   private _configurationDoneDeferred: IDeferred<void>;
@@ -128,14 +128,16 @@ export class DebugAdapter implements IDisposable {
       supportsEvaluateForHovers: true,
       exceptionBreakpointFilters: [
         {
-          filter: 'caught',
+          filter: PauseOnExceptionsState.All,
           label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'),
           default: false,
+          supportsCondition: true,
         },
         {
-          filter: 'uncaught',
+          filter: PauseOnExceptionsState.Uncaught,
           label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'),
           default: false,
+          supportsCondition: true,
         },
       ],
       supportsStepBack: false,
@@ -161,6 +163,7 @@ export class DebugAdapter implements IDisposable {
       completionTriggerCharacters: ['.', '[', '"', "'"],
       supportsBreakpointLocationsRequest: true,
       supportsClipboardContext: true,
+      supportsExceptionFilterOptions: true,
       //supportsDataBreakpoints: false,
       //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,
@@ -179,33 +182,7 @@ export class DebugAdapter implements IDisposable {
   async setExceptionBreakpoints(
     params: Dap.SetExceptionBreakpointsParams,
   ): Promise<Dap.SetExceptionBreakpointsResult> {
-    this._pauseOnExceptionsState = 'none';
-    if (params.filters.includes('caught')) {
-      this._pauseOnExceptionsState = 'all';
-    } else if (params.filters.includes('uncaught')) {
-      this._pauseOnExceptionsState = 'uncaught';
-    }
-
-    if (!this._thread) {
-      return {};
-    }
-
-    const result = this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
-    const logger = this._services.get<ILogger>(ILogger);
-    if (this._configurationDoneDeferred.hasSettled()) {
-      logger.verbose(LogTag.Internal, 'setExceptionBreakpoints: awaiting blocking response');
-      await result;
-    } else {
-      result.catch(rejection => {
-        const output = localize(
-          '`errors.setExceptionBreakpoints.async.failed`',
-          'Failed to configure the exceptions for which to pause due to: {0}',
-          rejection.message || localize('errors.unknown', 'Unknown error'),
-        );
-        this.dap.output({ category: 'stderr', output: output });
-      });
-    }
-
+    await this._services.get<IExceptionPauseService>(IExceptionPauseService).setBreakpoints(params);
     return {};
   }
 
@@ -323,6 +300,7 @@ export class DebugAdapter implements IDisposable {
       this.launchConfig,
       this.breakpointManager,
       this._services.get(IConsole),
+      this._services.get(IExceptionPauseService),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);
@@ -343,7 +321,6 @@ export class DebugAdapter implements IDisposable {
           .error(LogTag.Internal, 'Error enabling async stacks', err),
       );
 
-    this._thread.setPauseOnExceptionsState(this._pauseOnExceptionsState);
     this.breakpointManager.setThread(this._thread);
     return this._thread;
   }

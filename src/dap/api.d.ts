@@ -540,14 +540,16 @@ export namespace Dap {
     pauseRequest(params: PauseParams): Promise<PauseResult>;
 
     /**
-     * The request returns a stacktrace from the current execution state.
+     * The request returns a stacktrace from the current execution state of a given thread.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance conscious clients and if the debug adapter's 'supportsDelayedStackTraceLoading' capability is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive less frames than requested, which is an indication that the end of the stack has been reached.
      */
     on(
       request: 'stackTrace',
       handler: (params: StackTraceParams) => Promise<StackTraceResult | Error>,
     ): () => void;
     /**
-     * The request returns a stacktrace from the current execution state.
+     * The request returns a stacktrace from the current execution state of a given thread.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance conscious clients and if the debug adapter's 'supportsDelayedStackTraceLoading' capability is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive less frames than requested, which is an indication that the end of the stack has been reached.
      */
     stackTraceRequest(params: StackTraceParams): Promise<StackTraceResult>;
 
@@ -1393,7 +1395,8 @@ export namespace Dap {
     pause(params: PauseParams): Promise<PauseResult>;
 
     /**
-     * The request returns a stacktrace from the current execution state.
+     * The request returns a stacktrace from the current execution state of a given thread.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance conscious clients and if the debug adapter's 'supportsDelayedStackTraceLoading' capability is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive less frames than requested, which is an indication that the end of the stack has been reached.
      */
     stackTrace(params: StackTraceParams): Promise<StackTraceResult>;
 
@@ -1867,7 +1870,7 @@ export namespace Dap {
 
     /**
      * The name of the Variable's child to obtain data breakpoint information for.
-     * If variableReference isn’t provided, this can be an expression.
+     * If variablesReference isn’t provided, this can be an expression.
      */
     name: string;
   }
@@ -2014,21 +2017,21 @@ export namespace Dap {
 
     /**
      * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     variablesReference: integer;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     indexedVariables?: integer;
 
@@ -2222,7 +2225,7 @@ export namespace Dap {
     supportsEvaluateForHovers?: boolean;
 
     /**
-     * Available filters or options for the setExceptionBreakpoints request.
+     * Available exception filter options for the 'setExceptionBreakpoints' request.
      */
     exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
 
@@ -2302,7 +2305,7 @@ export namespace Dap {
     supportTerminateDebuggee?: boolean;
 
     /**
-     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and the 'totalFrames' result of the 'StackTrace' request are supported.
+     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and an optional 'totalFrames' result of the 'StackTrace' request are supported.
      */
     supportsDelayedStackTraceLoading?: boolean;
 
@@ -2370,6 +2373,11 @@ export namespace Dap {
      * The debug adapter supports adding breakpoints based on instruction references.
      */
     supportsInstructionBreakpoints?: boolean;
+
+    /**
+     * The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request.
+     */
+    supportsExceptionFilterOptions?: boolean;
   }
 
   export interface InitializedEventParams {}
@@ -2383,12 +2391,12 @@ export namespace Dap {
     /**
      * If specified, the client only needs to refetch data related to this thread.
      */
-    threadId?: number;
+    threadId?: integer;
 
     /**
      * If specified, the client only needs to refetch data related to this stack frame (and the 'threadId' is ignored).
      */
-    stackFrameId?: number;
+    stackFrameId?: integer;
   }
 
   export interface KillCompanionBrowserEventParams {
@@ -2550,7 +2558,7 @@ export namespace Dap {
     group?: string;
 
     /**
-     * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * If an attribute 'variablesReference' exists and its value is > 0, the output contains objects which can be retrieved by passing 'variablesReference' to the 'variables' request. The value should be less than or equal to 2147483647 (2^31-1).
      */
     variablesReference?: integer;
 
@@ -2683,7 +2691,7 @@ export namespace Dap {
      * progress events for the long running request until the request has been either completed or cancelled.
      * If the request ID is omitted, the progress report is assumed to be related to some general activity of the debug adapter.
      */
-    requestId?: number;
+    requestId?: integer;
 
     /**
      * If true, the request that reports progress may be canceled with a 'cancel' request.
@@ -2822,7 +2830,7 @@ export namespace Dap {
     title?: string;
 
     /**
-     * Working directory of the command.
+     * Working directory for the command. For non-empty, valid paths this typically results in execution of a change directory command.
      */
     cwd: string;
 
@@ -2839,12 +2847,12 @@ export namespace Dap {
 
   export interface RunInTerminalResult {
     /**
-     * The process ID. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The process ID. The value should be less than or equal to 2147483647 (2^31-1).
      */
     processId?: integer;
 
     /**
-     * The process ID of the terminal shell. The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The process ID of the terminal shell. The value should be less than or equal to 2147483647 (2^31-1).
      */
     shellProcessId?: integer;
   }
@@ -2909,9 +2917,14 @@ export namespace Dap {
 
   export interface SetExceptionBreakpointsParams {
     /**
-     * IDs of checked exception options. The set of IDs is returned via the 'exceptionBreakpointFilters' capability.
+     * Set of exception filters specified by their ID. The set of all possible exception filters is defined by the 'exceptionBreakpointFilters' capability. The 'filter' and 'filterOptions' sets are additive.
      */
     filters: string[];
+
+    /**
+     * Set of exception filters and their options. The set of all possible exception filters is defined by the 'exceptionBreakpointFilters' capability. This attribute is only honored by a debug adapter if the capability 'supportsExceptionFilterOptions' is true. The 'filter' and 'filterOptions' sets are additive.
+     */
+    filterOptions?: ExceptionFilterOptions[];
 
     /**
      * Configuration options for selected exceptions.
@@ -2963,21 +2976,21 @@ export namespace Dap {
 
     /**
      * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     variablesReference?: integer;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     indexedVariables?: integer;
   }
@@ -3045,21 +3058,21 @@ export namespace Dap {
 
     /**
      * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     variablesReference?: integer;
 
     /**
      * The number of named child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     namedVariables?: integer;
 
     /**
      * The number of indexed child variables.
      * The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     indexedVariables?: integer;
   }
@@ -3120,7 +3133,7 @@ export namespace Dap {
     stackFrames: StackFrame[];
 
     /**
-     * The total number of frames available.
+     * The total number of frames available in the stack. If omitted or if totalFrames is larger than the available frames, a client is expected to request frames until a request returns less frames than requested (which indicates the end of the stack). Returning monotonically increasing totalFrames values for subsequent requests can be used to enforce paging in the client.
      */
     totalFrames?: integer;
   }
@@ -3639,6 +3652,22 @@ export namespace Dap {
   }
 
   /**
+   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the setExceptionsFilter request.
+   */
+  export interface ExceptionFilterOptions {
+    /**
+     * ID of an exception filter returned by the 'exceptionBreakpointFilters' capability.
+     */
+    filterId: string;
+
+    /**
+     * An optional expression for conditional exceptions.
+     * The exception will break into the debugger if the result of the condition is true.
+     */
+    condition?: string;
+  }
+
+  /**
    * Properties of a data breakpoint passed to the setDataBreakpoints request.
    */
   export interface DataBreakpoint {
@@ -3883,23 +3912,28 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionBreakpointsFilter is shown in the UI as an option for configuring how exceptions are dealt with.
+   * An ExceptionBreakpointsFilter is shown in the UI as an filter option for configuring how exceptions are dealt with.
    */
   export interface ExceptionBreakpointsFilter {
     /**
-     * The internal ID of the filter. This value is passed to the setExceptionBreakpoints request.
+     * The internal ID of the filter option. This value is passed to the 'setExceptionBreakpoints' request.
      */
     filter: string;
 
     /**
-     * The name of the filter. This will be shown in the UI.
+     * The name of the filter option. This will be shown in the UI.
      */
     label: string;
 
     /**
-     * Initial value of the filter. If not specified a value 'false' is assumed.
+     * Initial value of the filter option. If not specified a value 'false' is assumed.
      */
     default?: boolean;
+
+    /**
+     * Controls whether a condition can be specified for this filter option. If false or missing, a condition can not be set.
+     */
+    supportsCondition?: boolean;
   }
 
   /**
@@ -4178,7 +4212,7 @@ export namespace Dap {
     supportsEvaluateForHovers?: boolean;
 
     /**
-     * Available filters or options for the setExceptionBreakpoints request.
+     * Available exception filter options for the 'setExceptionBreakpoints' request.
      */
     exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
 
@@ -4258,7 +4292,7 @@ export namespace Dap {
     supportTerminateDebuggee?: boolean;
 
     /**
-     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and the 'totalFrames' result of the 'StackTrace' request are supported.
+     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and an optional 'totalFrames' result of the 'StackTrace' request are supported.
      */
     supportsDelayedStackTraceLoading?: boolean;
 
@@ -4326,6 +4360,11 @@ export namespace Dap {
      * The debug adapter supports adding breakpoints based on instruction references.
      */
     supportsInstructionBreakpoints?: boolean;
+
+    /**
+     * The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request.
+     */
+    supportsExceptionFilterOptions?: boolean;
   }
 
   /**
@@ -4373,7 +4412,7 @@ export namespace Dap {
     /**
      * If sourceReference > 0 the contents of the source must be retrieved through the SourceRequest (even if a path is specified).
      * A sourceReference is only valid for a session, so it must not be used to persist a source.
-     * The value should be less than or equal to 2147483647 (2^31 - 1).
+     * The value should be less than or equal to 2147483647 (2^31-1).
      */
     sourceReference?: integer;
 

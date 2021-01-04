@@ -248,11 +248,36 @@ describe('threads', () => {
       await waitForPauseOnException(p);
 
       p.log('Pausing on caught exceptions');
-      await p.dap.setExceptionBreakpoints({ filters: ['caught'] });
+      await p.dap.setExceptionBreakpoints({ filters: ['all'] });
       p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
       await waitForPauseOnException(p);
       p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
       await waitForPauseOnException(p);
+      p.assertLog();
+    });
+
+    itIntegrates('pauses on conditional exceptions', async ({ r }) => {
+      const p = await r.launchAndLoad('blank');
+
+      p.log('Pausing on caught exceptions');
+      await p.dap.setExceptionBreakpoints({
+        filters: ['all'],
+        filterOptions: [{ filterId: 'all', condition: 'error.message.includes("bye")' }],
+      });
+      p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {} })`);
+      p.evaluate(`setTimeout(() => { try { throw new Error('goodbye'); } catch (e) {} })`);
+      await waitForPauseOnException(p);
+
+      p.log('Pausing on uncaught exceptions');
+      await p.dap.setExceptionBreakpoints({
+        filters: ['uncaught'],
+        filterOptions: [{ filterId: 'uncaught', condition: 'error.message.includes("bye")' }],
+      });
+      p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
+      p.evaluate(`setTimeout(() => { try { throw new Error('goodbye1'); } catch (e) {} })`);
+      p.evaluate(`setTimeout(() => { throw new Error('goodbye2'); })`);
+      await waitForPauseOnException(p);
+
       p.assertLog();
     });
 

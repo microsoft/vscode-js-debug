@@ -1,0 +1,39 @@
+Pausing on caught exceptions
+Evaluating#1: setTimeout(() => { try { throw new Error('hello'); } catch (e) {} })
+Evaluating#2: setTimeout(() => { try { throw new Error('goodbye'); } catch (e) {} })
+{
+    allThreadsStopped : false
+    description : Paused on exception
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : all
+    details : {
+        stackTrace :   at eval2.js:1:32
+    }
+    exceptionId : Error: goodbye
+}
+{
+    allThreadsContinued : false
+}
+Pausing on uncaught exceptions
+Evaluating#3: setTimeout(() => { throw new Error('hello'); })
+Evaluating#4: setTimeout(() => { try { throw new Error('goodbye1'); } catch (e) {} })
+Evaluating#5: setTimeout(() => { throw new Error('goodbye2'); })
+{
+    allThreadsStopped : false
+    description : Paused on exception
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : all
+    details : {
+        stackTrace :   at eval5.js:1:26
+    }
+    exceptionId : Error: goodbye2
+}
+{
+    allThreadsContinued : false
+}

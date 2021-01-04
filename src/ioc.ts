@@ -28,6 +28,7 @@ import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
 import { Diagnostics } from './adapter/diagnosics';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
+import { ExceptionPauseService, IExceptionPauseService } from './adapter/exceptionPauseService';
 import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
@@ -157,6 +158,7 @@ export const createTargetContainer = (
   container.bind(Diagnostics).toSelf().inSingletonScope();
 
   container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
+  container.bind(IExceptionPauseService).to(ExceptionPauseService).inSingletonScope();
   container.bind(ICompletions).to(Completions).inSingletonScope();
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();
   container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
