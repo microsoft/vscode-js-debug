@@ -13,7 +13,7 @@ import {
   IConfigurationTypes,
 } from '../common/contributionUtils';
 import { knownToolToken } from '../common/knownTools';
-import { sortKeys, walkObject } from '../common/objUtils';
+import { mapValues, sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
   baseDefaults,
@@ -56,9 +56,10 @@ type OmittedKeysFromAttributes =
   | '__remoteFilePrefix'
   | '__sessionId';
 
-type DescribedAttribute<T> = JSONSchema6 &
+export type DescribedAttribute<T> = JSONSchema6 &
   Described & {
     default: T;
+    docDefault?: string;
     enum?: Array<T>;
     enumDescriptions?: MappedReferenceString[];
   };
@@ -306,6 +307,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     type: 'string',
     description: refString('node.launch.cwd.description'),
     default: '${workspaceFolder}',
+    docDefault: 'localRoot || ${workspaceFolder}',
   },
   localRoot: {
     type: ['string', 'null'],
@@ -1036,7 +1038,10 @@ function buildDebuggers() {
     entry.configurationSnippets.push(...d.configurationSnippets);
     entry.configurationAttributes[d.request] = {
       required: d.required,
-      properties: d.configurationAttributes,
+      properties: mapValues(
+        d.configurationAttributes as { [key: string]: DescribedAttribute<unknown> },
+        ({ docDefault: _, ...attrs }) => attrs,
+      ),
     };
   }
 
