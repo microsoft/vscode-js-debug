@@ -23,6 +23,7 @@ import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
+import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
 import { SmartStepper } from './smartStepping';
 import {
@@ -73,8 +74,6 @@ export interface IPausedDetails {
   text?: string;
   exception?: Cdp.Runtime.RemoteObject;
 }
-
-export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export class ExecutionContext {
   readonly thread: Thread;
@@ -185,6 +184,7 @@ export class Thread implements IVariableStoreDelegate {
     private readonly launchConfig: AnyLaunchConfiguration,
     private readonly _breakpointManager: BreakpointManager,
     private readonly console: IConsole,
+    private readonly exceptionPause: IExceptionPauseService,
   ) {
     this._dap = new DeferredContainer(dap);
     this._delegate = delegate;
@@ -450,7 +450,7 @@ export class Thread implements IVariableStoreDelegate {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
-      /* isInternalScript= */ false,
+      { isInternalScript: false },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
@@ -601,7 +601,10 @@ export class Thread implements IVariableStoreDelegate {
     // There is a bug in Chrome that does not retain debugger id
     // across cross-process navigations. Refresh it upon clearing contexts.
     this._cdp.Debugger.enable({}).then(response => {
-      if (response) Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
+      if (response) {
+        Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
+        this.exceptionPause.apply(this._cdp);
+      }
     });
   }
 
@@ -650,15 +653,20 @@ export class Thread implements IVariableStoreDelegate {
         // If none of this above, it's pure instrumentation.
         return this.resume();
       }
-    } else if (
-      !(await this._breakpointManager.shouldPauseAt(
-        event,
-        hitBreakpoints,
-        this._delegate.entryBreakpoint,
-        false,
-      ))
-    ) {
-      return this.resume();
+    } else {
+      const wantsPause =
+        event.reason === 'exception'
+          ? await this.exceptionPause.shouldPauseAt(event)
+          : await this._breakpointManager.shouldPauseAt(
+              event,
+              hitBreakpoints,
+              this._delegate.entryBreakpoint,
+              false,
+            );
+
+      if (!wantsPause) {
+        return this.resume();
+      }
     }
 
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
@@ -667,30 +675,6 @@ export class Thread implements IVariableStoreDelegate {
       isInspectBrk &&
       (('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach) ||
         this.launchConfig.type === DebugType.ExtensionHost)
-    ) {
-      this.resume();
-      return;
-    }
-
-    // Setting blackbox patterns is asynchronous to when the source is loaded,
-    // so if the user asks to pause on exceptions the runtime may pause in a
-    // place where we don't want it to. Double check at this point and manually
-    // resume debugging for handled exceptions. This implementation seems to
-    // work identically to blackboxing (test cases represent this):
-    //
-    // - ✅ An error is thrown and caught within skipFiles. Resumed here.
-    // - ✅ An uncaught error is re/thrown within skipFiles. In both cases the
-    //      stack is reported at the first non-skipped file is shown.
-    // - ✅ An error is thrown from skipFiles and caught in user code. In both
-    //      blackboxing and this version, the debugger will not pause.
-    // - ✅ An error is thrown anywhere in user code. All good.
-    //
-    // See: https://github.com/microsoft/vscode-js-debug/issues/644
-    if (
-      event.reason === 'exception' &&
-      !event.data?.uncaught &&
-      event.callFrames.length &&
-      this._sourceContainer.scriptSkipper.isScriptSkipped(event.callFrames[0].url)
     ) {
       this.resume();
       return;
@@ -875,10 +859,6 @@ export class Thread implements IVariableStoreDelegate {
     const ui = await this.rawLocationToUiLocation(raw);
     if (ui) return `@ ${await ui.source.prettyName()}:${ui.lineNumber}`;
     return `@ VM${raw.scriptId || 'XX'}:${raw.lineNumber}`;
-  }
-
-  async setPauseOnExceptionsState(state: PauseOnExceptionsState): Promise<void> {
-    await this._cdp.Debugger.setPauseOnExceptions({ state });
   }
 
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<void> {
