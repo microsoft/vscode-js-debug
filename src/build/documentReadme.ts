@@ -3,11 +3,11 @@
  *--------------------------------------------------------*/
 
 import { promises as fs } from 'fs';
-import { debuggers } from './generate-contributions';
+import marked from 'marked';
 import { format } from 'prettier';
 import { prettier as prettierOpts } from '../../package.json';
+import { debuggers, DescribedAttribute } from './generate-contributions';
 import strings from './strings';
-import marked from 'marked';
 
 (async () => {
   let out = `# Options\n\n`;
@@ -18,22 +18,25 @@ import marked from 'marked';
     const entries = Object.entries(dbg.configurationAttributes).sort(([a], [b]) =>
       a.localeCompare(b),
     );
-    for (const [key, value] of entries) {
-      if (!value.description && !value.markdownDescription) {
+    for (const [key, value] of entries as Iterable<[string, DescribedAttribute<unknown>]>) {
+      const descriptionKeyRaw =
+        'markdownDescription' in value ? value.markdownDescription : value.description;
+      if (!descriptionKeyRaw) {
         continue;
       }
 
-      const descriptionKey = (value.description ?? value.markdownDescription)?.slice(1, -1);
-      const description = strings[descriptionKey as keyof typeof strings].replace(/\n/g, '<br>');
+      const descriptionKey = descriptionKeyRaw.slice(1, -1) as keyof typeof strings;
+      const description = strings[descriptionKey].replace(/\n/g, '<br>');
       if (!description) {
         continue;
       }
 
       const defaultValue = ((dbg.defaults as unknown) as { [key: string]: unknown })[key];
+      const docDefault = value.docDefault ?? JSON.stringify(defaultValue, null, 2) ?? 'undefined';
       out += `<h4>${key}</h4>`;
       out += `${marked(description)}`;
       out += `<h5>Default value:</h4>`;
-      out += `<pre><code>${JSON.stringify(defaultValue, null, 2) ?? 'undefined'}</pre></code>`;
+      out += `<pre><code>${docDefault}</pre></code>`;
     }
     out += `</details>\n\n`;
   }

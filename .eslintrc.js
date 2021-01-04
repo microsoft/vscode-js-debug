@@ -28,6 +28,7 @@ module.exports = {
       'warn',
       {
         varsIgnorePattern: '^h$',
+        argsIgnorePattern: '^_',
       },
     ],
     // Place to specify ESLint rules. Can be used to overwrite rules specified from the extended configs
