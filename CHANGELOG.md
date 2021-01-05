@@ -15,6 +15,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: default node cwd to the localRoot if set ([#894](https://github.com/microsoft/vscode-js-debug/issues/894))
 - fix: fix: better handle html served as index and without extensions ([#883](https://github.com/microsoft/vscode-js-debug/issues/883), [#884](https://github.com/microsoft/vscode-js-debug/issues/884))
 - docs: remove preview terminology from js-debug ([#894](https://github.com/microsoft/vscode-js-debug/issues/894))
+- fix: debugger statements being missed if directly stepped on the first executable line of a new script early in execution
 
 ## v1.52.2 - 2020-12-07
 

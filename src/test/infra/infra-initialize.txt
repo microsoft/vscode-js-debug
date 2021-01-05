@@ -10,13 +10,15 @@
     exceptionBreakpointFilters : [
         [0] : {
             default : false
-            filter : caught
+            filter : all
             label : Caught Exceptions
+            supportsCondition : true
         }
         [1] : {
             default : false
             filter : uncaught
             label : Uncaught Exceptions
+            supportsCondition : true
         }
     ]
     supportTerminateDebuggee : false
@@ -29,6 +31,7 @@
     supportsConfigurationDoneRequest : true
     supportsDelayedStackTraceLoading : true
     supportsEvaluateForHovers : true
+    supportsExceptionFilterOptions : true
     supportsExceptionInfoRequest : true
     supportsExceptionOptions : false
     supportsFunctionBreakpoints : false

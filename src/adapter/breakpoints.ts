@@ -673,7 +673,7 @@ export class BreakpointManager {
     continueByDefault = false,
   ) {
     if (!hitBreakpointIds.length) {
-      return !continueByDefault;
+      return pausedEvent.reason !== 'instrumentation';
     }
 
     // To automatically continue, we need *no* breakpoints to want to pause and
