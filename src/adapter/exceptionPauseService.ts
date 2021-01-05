@@ -5,12 +5,21 @@
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { truthy } from '../common/objUtils';
+import { getDeferred } from '../common/promiseUtil';
+import { getSyntaxErrorIn } from '../common/sourceUtils';
+import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
+import { IDapApi } from '../dap/connection';
+import { invalidBreakPointCondition } from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
+import { wrapBreakCondition } from './breakpoints/conditions/expression';
 import { IEvaluator, PreparedCallFrameExpr } from './evaluator';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 
 export interface IExceptionPauseService {
+  readonly launchBlocker: Promise<void>;
+
   /**
    * Updates the breakpoint pause state in the service.
    */
@@ -55,19 +64,40 @@ type PauseOnExceptions = { cdp: PauseOnExceptionsState.None } | ActivePause;
 export class ExceptionPauseService implements IExceptionPauseService {
   private state: PauseOnExceptions = { cdp: PauseOnExceptionsState.None };
   private cdp?: Cdp.Api;
+  private breakOnError: boolean;
+  private blocker = getDeferred<void>();
+
+  public get launchBlocker() {
+    return this.blocker.promise;
+  }
 
   constructor(
-    @inject(IEvaluator) private evaluator: IEvaluator,
-    @inject(IScriptSkipper) private scriptSkipper: ScriptSkipper,
-  ) {}
+    @inject(IEvaluator) private readonly evaluator: IEvaluator,
+    @inject(IScriptSkipper) private readonly scriptSkipper: ScriptSkipper,
+    @inject(IDapApi) private readonly dap: Dap.Api,
+    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+  ) {
+    this.breakOnError = launchConfig.__breakOnConditionalError;
+    this.blocker.resolve();
+  }
 
   /**
    * @inheritdoc
    */
   public async setBreakpoints(params: Dap.SetExceptionBreakpointsParams) {
-    this.state = this.parseBreakpointRequest(params);
+    try {
+      this.state = this.parseBreakpointRequest(params);
+    } catch (e) {
+      if (!(e instanceof ProtocolError)) {
+        throw e;
+      }
+      this.dap.output({ category: 'stderr', output: e.message });
+    }
+
     if (this.cdp) {
-      await this.cdp.Debugger.setPauseOnExceptions({ state: this.state.cdp });
+      await this.sendToCdp(this.cdp);
+    } else if (this.state.cdp !== PauseOnExceptionsState.None && this.blocker.hasSettled()) {
+      this.blocker = getDeferred();
     }
   }
 
@@ -85,11 +115,11 @@ export class ExceptionPauseService implements IExceptionPauseService {
 
     const cond = this.state.condition;
     if (evt.data?.uncaught) {
-      if (cond.uncaught && !(await this.evalCondition(evt, cond.uncaught))?.result.value) {
+      if (cond.uncaught && !(await this.evalCondition(evt, cond.uncaught))) {
         return false;
       }
     } else if (cond.caught) {
-      if (!(await this.evalCondition(evt, cond.caught))?.result.value) {
+      if (!(await this.evalCondition(evt, cond.caught))) {
         return false;
       }
     }
@@ -102,13 +132,20 @@ export class ExceptionPauseService implements IExceptionPauseService {
    */
   public async apply(cdp: Cdp.Api) {
     this.cdp = cdp;
-    if (this.state.cdp !== PauseOnExceptionsState.None) {
-      await this.cdp.Debugger.setPauseOnExceptions({ state: this.state.cdp });
-    }
+    this.sendToCdp(cdp);
   }
 
-  private evalCondition(evt: Cdp.Debugger.PausedEvent, method: PreparedCallFrameExpr) {
-    return method({ callFrameId: evt.callFrames[0].callFrameId }, { error: evt.data });
+  private async sendToCdp(cdp: Cdp.Api) {
+    if (this.state.cdp !== PauseOnExceptionsState.None) {
+      await cdp.Debugger.setPauseOnExceptions({ state: this.state.cdp });
+    }
+
+    this.blocker.resolve();
+  }
+
+  private async evalCondition(evt: Cdp.Debugger.PausedEvent, method: PreparedCallFrameExpr) {
+    const r = await method({ callFrameId: evt.callFrames[0].callFrameId }, { error: evt.data });
+    return !!r?.result.value;
   }
 
   /**
@@ -164,20 +201,29 @@ export class ExceptionPauseService implements IExceptionPauseService {
       }
     }
 
-    const compile = (condition: string[]) =>
-      condition.length === 0
-        ? undefined
-        : this.evaluator.prepare(
-            '!!(' +
-              filters
-                .map(f => f.condition)
-                .filter(truthy)
-                .join(') || !!(') +
-              ')',
-            {
-              hoist: ['error'],
-            },
-          ).invoke;
+    const compile = (condition: string[]) => {
+      if (condition.length === 0) {
+        return undefined;
+      }
+
+      const expr =
+        '!!(' +
+        filters
+          .map(f => f.condition)
+          .filter(truthy)
+          .join(') || !!(') +
+        ')';
+
+      const err = getSyntaxErrorIn(expr);
+      if (err) {
+        throw new ProtocolError(
+          invalidBreakPointCondition({ line: 0, condition: expr }, err.message),
+        );
+      }
+
+      const wrapped = this.breakOnError ? wrapBreakCondition(expr) : expr;
+      return this.evaluator.prepare(wrapped, { hoist: ['error'] }).invoke;
+    };
 
     if (cdp === PauseOnExceptionsState.None) {
       return { cdp };

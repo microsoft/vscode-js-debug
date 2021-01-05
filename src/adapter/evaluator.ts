@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Node as AcornNode } from 'acorn';
 import { generate } from 'astring';
 import { randomBytes } from 'crypto';
 import { replace } from 'estraverse';
@@ -136,7 +137,7 @@ export class Evaluator implements IEvaluator {
     expression: string,
     options: IPrepareOptions = {},
   ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr } {
-    if (options.isInternalScript) {
+    if (options.isInternalScript !== false) {
       expression += getSourceSuffix();
     }
 
@@ -242,12 +243,21 @@ export class Evaluator implements IEvaluator {
       },
     });
 
+    const parents: Node[] = [];
     const transformed = replace(parseProgram(expr), {
       enter: node => {
-        if (node.type === 'Identifier' && hoistMap.has(node.name)) {
+        const asAcorn = node as AcornNode;
+        if (
+          node.type === 'Identifier' &&
+          hoistMap.has(node.name) &&
+          expr[asAcorn.start - 1] !== '.'
+        ) {
           hoisted.add(node.name);
           return replacement(hoistMap.get(node.name) as string);
         }
+      },
+      leave: () => {
+        parents.pop();
       },
     });
 

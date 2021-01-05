@@ -15,5 +15,5 @@ export class ExpressionCondition extends SimpleCondition implements IBreakpointC
   }
 }
 
-const wrapBreakCondition = (condition: string) =>
+export const wrapBreakCondition = (condition: string) =>
   `(()=>{try{return ${condition};}catch(e){console.error(e);return true}})()`;

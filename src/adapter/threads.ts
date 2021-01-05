@@ -603,9 +603,9 @@ export class Thread implements IVariableStoreDelegate {
     this._cdp.Debugger.enable({}).then(response => {
       if (response) {
         Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
-        this.exceptionPause.apply(this._cdp);
       }
     });
+    this.exceptionPause.apply(this._cdp);
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {

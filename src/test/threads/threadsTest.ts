@@ -281,6 +281,16 @@ describe('threads', () => {
       p.assertLog();
     });
 
+    itIntegrates('deals with syntax errors in conditional exception bps', async ({ r }) => {
+      const p = await r.launchAndLoad('blank');
+      p.dap.setExceptionBreakpoints({
+        filters: ['all'],
+        filterOptions: [{ filterId: 'all', condition: 'error.message.includes("bye' }],
+      });
+      await p.logger.logOutput(await p.dap.once('output'));
+      p.assertLog();
+    });
+
     itIntegrates('configuration', async ({ r }) => {
       const p = await r.launch(`
         <script>

@@ -13,4 +13,5 @@ const fns = {
 
 setTimeout(() => {
   fns[process.argv[3]]();
+  process.exit(0);
 }, process.argv[2]);
