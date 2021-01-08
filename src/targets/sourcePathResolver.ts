@@ -5,6 +5,7 @@
 import match from 'micromatch';
 import * as path from 'path';
 import { ILogger, LogTag } from '../common/logging';
+import { node15InternalsPrefix } from '../common/node15Internal';
 import {
   fixDriveLetter,
   fixDriveLetterAndSlashes,
@@ -71,6 +72,12 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * following the `resolveSourceMapPaths`
    */
   public shouldResolveSourceMap({ sourceMapUrl, compiledPath }: ISourceMapMetadata) {
+    // Node 15 started including some source-mapped internals (acorn), but
+    // they don't ship source maps in the build. Never try to resolve those.
+    if (compiledPath.startsWith(node15InternalsPrefix)) {
+      return false;
+    }
+
     if (!this.resolveLocations || this.resolveLocations.length === 0) {
       return true;
     }

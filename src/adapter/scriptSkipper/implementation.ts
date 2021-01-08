@@ -9,6 +9,7 @@ import { ICdpApi } from '../../cdp/connection';
 import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
+import { node15InternalsPrefix } from '../../common/node15Internal';
 import { trailingEdgeThrottle } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { getDeferred, IDeferred } from '../../common/promiseUtil';
@@ -31,8 +32,6 @@ interface ISharedSkipToggleEvent {
   targetId: string;
   params: Dap.ToggleSkipFileStatusParams;
 }
-
-const node15InternalsPrefix = 'node:';
 
 @injectable()
 export class ScriptSkipper {

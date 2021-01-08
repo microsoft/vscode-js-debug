@@ -1123,7 +1123,7 @@ export class Thread implements IVariableStoreDelegate {
         // but in practice that usually means new scripts with new source maps anyway.
         resolvedSourceMapUrl = urlUtils.isDataUri(event.sourceMapURL)
           ? event.sourceMapURL
-          : event.url && urlUtils.completeUrl(event.url, event.sourceMapURL);
+          : (event.url && urlUtils.completeUrl(event.url, event.sourceMapURL)) || event.url;
         if (!resolvedSourceMapUrl) {
           this._dap.with(dap =>
             errors.reportToConsole(dap, `Could not load source map from ${event.sourceMapURL}`),

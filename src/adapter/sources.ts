@@ -1104,7 +1104,7 @@ export class SourceContainer {
 
     const sourceMap = this._sourceMaps.get(source.sourceMap.url);
     if (
-      !this.logger.assert(sourceMap, 'Unrecognized source mpa url in waitForSourceMapSources()')
+      !this.logger.assert(sourceMap, 'Unrecognized source map url in waitForSourceMapSources()')
     ) {
       return [];
     }
