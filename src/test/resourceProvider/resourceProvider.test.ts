@@ -68,4 +68,15 @@ describe('resourceProvider', () => {
       body: 'Hello world!',
     });
   });
+
+  it('applies request options', async () => {
+    const rp = new BasicResourceProvider(fs, {
+      provideOptions: opts => {
+        opts.headers = { cool: 'true' };
+      },
+    });
+
+    const res = await rp.fetch('http://localhost:8001/view-headers');
+    expect(JSON.parse(res.body || 'no content')).to.containSubset({ cool: 'true' });
+  });
 });

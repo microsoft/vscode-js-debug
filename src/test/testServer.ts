@@ -44,6 +44,8 @@ app.use(
 
 app.get('/redirect-to-greet', (_req, res) => res.redirect('/greet'));
 
+app.get('/view-headers', (req, res) => res.json(req.headers));
+
 app.get('/greet', (_req, res) => res.send('Hello world!'));
 
 app.use('/', express.static(path.join(webRoot)));

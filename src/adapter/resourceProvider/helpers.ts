@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Headers } from 'got';
+import { Headers, OptionsOfTextResponseBody } from 'got';
 
 /**
  * Adds a header to the outgoing request.
@@ -23,4 +23,18 @@ export const addHeader: (headers: Headers, key: string, value: string) => Header
         : [existing as string, value]
       : value,
   };
+};
+
+export const mergeOptions = (
+  into: OptionsOfTextResponseBody,
+  from: Partial<OptionsOfTextResponseBody>,
+) => {
+  const cast = into as Record<string, unknown>;
+  for (const [key, value] of Object.entries(from)) {
+    if (typeof value === 'object' && !!value) {
+      cast[key] = Object.assign(cast[key] || {}, value);
+    } else {
+      cast[key] = value;
+    }
+  }
 };

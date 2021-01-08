@@ -4,17 +4,21 @@
 
 import dataUriToBuffer from 'data-uri-to-buffer';
 import got, { Headers, OptionsOfTextResponseBody, RequestError } from 'got';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import { CancellationToken } from 'vscode';
 import { HttpStatusError, IResourceProvider, Response } from '.';
 import { NeverCancelled } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
 import { fileUrlToAbsolutePath, isAbsolute, isLoopback } from '../../common/urlUtils';
 import { FS, FsPromises } from '../../ioc-extras';
+import { IRequestOptionsProvider } from './requestOptionsProvider';
 
 @injectable()
 export class BasicResourceProvider implements IResourceProvider {
-  constructor(@inject(FS) private readonly fs: FsPromises) {}
+  constructor(
+    @inject(FS) private readonly fs: FsPromises,
+    @optional() @inject(IRequestOptionsProvider) private readonly options?: IRequestOptionsProvider,
+  ) {}
 
   /**
    * @inheritdoc
@@ -75,6 +79,8 @@ export class BasicResourceProvider implements IResourceProvider {
     if (isSecure && (await isLoopback(url))) {
       options.rejectUnauthorized = false;
     }
+
+    this.options?.provideOptions(options, url);
 
     const disposables = new DisposableList();
 

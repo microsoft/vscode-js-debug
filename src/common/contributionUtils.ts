@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { OptionsOfBufferResponseBody } from 'got';
 import type { Command, commands, ConfigurationTarget, workspace, WorkspaceFolder } from 'vscode';
 import type {
   IChromeLaunchConfiguration,
@@ -111,6 +112,7 @@ export const enum Configuration {
   BreakOnConditionalError = 'debug.javascript.breakOnConditionalError',
   UnmapMissingSources = 'debug.javascript.unmapMissingSources',
   DefaultRuntimeExecutables = 'debug.javascript.defaultRuntimeExecutable',
+  ResourceRequestOptions = 'debug.javascript.resourceRequestOptions',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -134,6 +136,7 @@ export interface IConfigurationTypes {
   [Configuration.BreakOnConditionalError]: boolean;
   [Configuration.UnmapMissingSources]: boolean;
   [Configuration.DefaultRuntimeExecutables]: { [K in DebugType]?: string };
+  [Configuration.ResourceRequestOptions]: Partial<OptionsOfBufferResponseBody>;
 }
 
 export interface ICommandTypes {

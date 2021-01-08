@@ -11,6 +11,7 @@ import { ICdpApi } from '../../cdp/connection';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { FS, FsPromises } from '../../ioc-extras';
 import { BasicResourceProvider } from './basicResourceProvider';
+import { IRequestOptionsProvider } from './requestOptionsProvider';
 import { ResourceProviderState } from './resourceProviderState';
 
 @injectable()
@@ -21,8 +22,9 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
     @inject(FS) fs: FsPromises,
     @inject(ResourceProviderState) private readonly state: ResourceProviderState,
     @optional() @inject(ICdpApi) cdp?: Cdp.Api,
+    @optional() @inject(IRequestOptionsProvider) options?: IRequestOptionsProvider,
   ) {
-    super(fs);
+    super(fs, options);
     if (cdp) {
       this.disposables.push(this.state.attach(cdp));
     }

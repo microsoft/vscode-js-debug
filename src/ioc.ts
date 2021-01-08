@@ -34,6 +34,7 @@ import { IProfileController, ProfileController } from './adapter/profileControll
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
+import { IRequestOptionsProvider } from './adapter/resourceProvider/requestOptionsProvider';
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
@@ -220,6 +221,12 @@ export const createTopLevelSessionContainer = (parent: Container) => {
       .bind(ILauncher)
       .to(require('./targets/node/terminalNodeLauncher').TerminalNodeLauncher)
       .onActivation(trackDispose);
+
+    // request options:
+    container
+      .bind(IRequestOptionsProvider)
+      .to(require('./ui/settingRequestOptionsProvider').SettingRequestOptionsProvider)
+      .inSingletonScope();
   }
 
   container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);

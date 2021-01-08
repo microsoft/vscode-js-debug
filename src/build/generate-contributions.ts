@@ -1152,6 +1152,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
       {},
     ),
   },
+  [Configuration.ResourceRequestOptions]: {
+    type: 'object',
+    default: {},
+    markdownDescription: refString('configuration.resourceRequestOptions'),
+  },
 };
 
 const commands: ReadonlyArray<{

@@ -299,6 +299,9 @@ const strings = {
     "Configures whether sourcemapped file where the original file can't be read will automatically be unmapped. If this is false (default), a prompt is shown.",
   'configuration.defaultRuntimeExecutables':
     'The default `runtimeExecutable` used for launch configurations, if unspecified. This can be used to config custom paths to Node.js or browser installations.',
+  'configuration.resourceRequestOptions': `Request options to use when loading resources, such as source maps, in the debugger. You may need to configure this if your sourcemaps require authentication or use a self-signed certificate, for instance. Options are used to create a request using the [\`got\`](https://github.com/sindresorhus/got) library.
+
+A common case to disable certificate verification can be done by passing \`{ "https": { "rejectUnauthorized": false } }\`.`,
 
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',
