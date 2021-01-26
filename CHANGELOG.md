@@ -2,7 +2,7 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## TBA
+## v1.53.0 - 2021-01-25
 
 - feat: allow debugging node worker_threads
 - feat: allow pausing on conditional exceptions ([ref](https://github.com/microsoft/vscode/issues/104453))
