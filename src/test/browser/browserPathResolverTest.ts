@@ -205,7 +205,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
       const url = 'webpack:///src/app/app.component.html';
       const absolutePath = await resolver.urlToAbsolutePath({
         url,
-        map: { metadata: { sourceRoot: '' } } as any,
+        map: { metadata: { sourceRoot: '', compiledPath: '' } } as any,
       });
 
       expect(absolutePath).to.equal(
