@@ -25,5 +25,4 @@ For debugging the companion app used to launch browsers from remotes, the proces
 - Also clone `vscode-js-debug-companion` as a sibling directory to `vscode-js-debug`.
 - Run `npm run watch` for the companion.
 - Run the `Extension and Companion` launch configuration.
-
-This will cause both js-debug and its companion to boot. It sets an environment variable that forces the companion app to be used for launching the browser.
+- Set `"browserLaunchLocation": "ui"` in your launch.json to route requests through the companion extension.
