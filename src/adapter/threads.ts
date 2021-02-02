@@ -474,7 +474,11 @@ export class Thread implements IVariableStoreDelegate {
       return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
     }
 
-    const variable = await variableStore.createVariable(response.result, args.context);
+    const variable =
+      args.context === 'watch'
+        ? await variableStore.createVariableForWatchEval(response.result, args.expression)
+        : await variableStore.createVariable(response.result, args.context);
+
     return {
       type: response.result.type,
       result: variable.value,

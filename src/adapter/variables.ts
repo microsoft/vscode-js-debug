@@ -271,6 +271,13 @@ export class VariableStore {
     return result;
   }
 
+  async createVariableForWatchEval(
+    value: Cdp.Runtime.RemoteObject,
+    watchExpr: string,
+  ): Promise<Dap.Variable> {
+    return this._createVariable('', new RemoteObject(`(${watchExpr})`, this._cdp, value), 'watch');
+  }
+
   async createVariable(value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
     return this._createVariable('', new RemoteObject('', this._cdp, value), context);
   }
