@@ -17,7 +17,7 @@
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.52.0-insider",
+    "vscode": "^1.53.0-insider",
     "node": ">=10"
   },
   "icon": "resources/logo.png",
@@ -171,7 +171,6 @@
   "main": "./src/extension.js",
   "enableProposedApi": true,
   "activationEvents": [
-    "onLanguage:json",
     "onDebugDynamicConfigurations",
     "onDebugInitialConfigurations",
     "onDebugResolve:node",

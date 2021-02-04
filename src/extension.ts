@@ -22,7 +22,6 @@ import { DiagnosticsUI } from './ui/diagnosticsUI';
 import { DisableSourceMapUI } from './ui/disableSourceMapUI';
 import { toggleOnExperiment } from './ui/experimentEnlist';
 import { LongPredictionUI } from './ui/longPredictionUI';
-import { registerNpmScriptLens } from './ui/npmScriptLens';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
@@ -98,7 +97,6 @@ export function activate(context: vscode.ExtensionContext) {
     services.get(TerminalLinkHandler),
     services.get(IFsUtils),
   );
-  registerNpmScriptLens(context);
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
   registerRevealPage(context, debugSessionTracker);

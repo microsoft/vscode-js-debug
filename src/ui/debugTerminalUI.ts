@@ -182,6 +182,11 @@ export function registerDebugTerminalUI(
   linkHandler: TerminalLinkHandler,
   fsUtils: IFsUtils,
 ) {
+  const terminals = new Map<
+    vscode.Terminal,
+    { launcher: TerminalNodeLauncher; folder?: vscode.WorkspaceFolder; cwd?: string }
+  >();
+
   /**
    * See docblocks on {@link DelegateLauncher} for more information on
    * how this works.
@@ -201,6 +206,21 @@ export function registerDebugTerminalUI(
       workspaceFolder = picked;
     }
 
+    // try to reuse a terminal if invoked programmatically to run a command
+    if (command) {
+      for (const [terminal, config] of terminals) {
+        if (
+          config.folder === workspaceFolder &&
+          config.cwd === defaultConfig?.cwd &&
+          !config.launcher.targetList().length
+        ) {
+          terminal.show(true);
+          terminal.sendText(command);
+          return;
+        }
+      }
+    }
+
     const logger = new ProxyLogger();
     const launcher = new TerminalNodeLauncher(
       new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
@@ -208,7 +228,9 @@ export function registerDebugTerminalUI(
       fs,
       fsUtils,
     );
+
     launcher.onTerminalCreated(terminal => {
+      terminals.set(terminal, { launcher, folder: workspaceFolder, cwd: defaultConfig?.cwd });
       linkHandler.enableHandlingInTerminal(terminal);
     });
 
@@ -224,6 +246,9 @@ export function registerDebugTerminalUI(
   }
 
   context.subscriptions.push(
+    vscode.window.onDidCloseTerminal(terminal => {
+      terminals.delete(terminal);
+    }),
     registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder, config) =>
       launchTerminal(delegateFactory, command, folder, config),
     ),
