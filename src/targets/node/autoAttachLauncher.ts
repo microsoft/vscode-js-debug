@@ -11,6 +11,7 @@ import {
   DebugType,
   readConfig,
 } from '../../common/contributionUtils';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
@@ -35,7 +36,6 @@ import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBas
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { WatchDog } from './watchdogSpawn';
-import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 
 /**
  * A special launcher whose launchProgram is a no-op. Used in attach attachment
@@ -101,6 +101,19 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     this.program.stopped.then(data => this.onProgramTerminated(data));
   }
 
+  /**
+   * (Re-)applies the current variables to the terminals if a run is
+   * currently happening.
+   */
+  public async refreshVariables() {
+    if (this.run) {
+      await this.applyInspectorOptions(
+        this.extensionContext.environmentVariableCollection,
+        this.run,
+      );
+    }
+  }
+
   private async applyInspectorOptions(
     variables: vscode.EnvironmentVariableCollection,
     runData: IRunData<ITerminalLaunchConfiguration>,
@@ -121,10 +134,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       deferredMode: true,
       inspectorIpc: this.deferredSocketName ?? runData.serverAddress + '.deferred',
       autoAttachMode,
-      aaPatterns:
-        autoAttachMode === AutoAttachMode.Smart
-          ? readConfig(vscode.workspace, Configuration.AutoAttachSmartPatterns)
-          : undefined,
+      aaPatterns: autoAttachMode === AutoAttachMode.Smart ? this.readSmartPatterns() : undefined,
     });
 
     const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
@@ -135,6 +145,14 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       'VSCODE_INSPECTOR_OPTIONS',
       variableDelimiter + bootloaderEnv.VSCODE_INSPECTOR_OPTIONS,
     );
+  }
+
+  private readSmartPatterns() {
+    const configured = readConfig(vscode.workspace, Configuration.AutoAttachSmartPatterns);
+    const allFolders = `{${vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath).join(',')}}`;
+    return configured
+      ?.map(c => c.replace('${workspaceFolder}', allFolders))
+      .map(forceForwardSlashes);
   }
 
   /**

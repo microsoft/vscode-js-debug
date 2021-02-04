@@ -24,13 +24,6 @@ const telemetry: IProcessTelemetry = {
   architecture: process.arch,
 };
 
-/**
- * npm and yarn are sometimes installed globally as as 'standalone' binaries
- * that get execute (or are executed by standalone binaries). Don't auto
- * attach to their basenames.
- */
-const blockedBasnames = ['npm', 'yarn'];
-
 (() => {
   try {
     const env = new BootloaderEnvironment(process.env);
@@ -56,7 +49,7 @@ const blockedBasnames = ['npm', 'yarn'];
       inspectorOptions.execPath = process.execPath;
     }
 
-    const didAttach = inspectOrQueue(inspectorOptions, env);
+    const didAttach = inspectOrQueue(inspectorOptions);
     if (inspectorOptions.onlyEntrypoint) {
       env.unsetForTree();
     } else if (didAttach) {
@@ -75,7 +68,7 @@ const enum Mode {
   Inactive,
 }
 
-function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment): boolean {
+function inspectOrQueue(env: IBootloaderInfo): boolean {
   const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
     : env.deferredMode
@@ -92,7 +85,7 @@ function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment)
   const openedFromCli = inspector.url() !== undefined;
   if (!openedFromCli) {
     // if the debugger isn't explicitly enabled, turn it on based on our inspect mode
-    if (!shouldForceProcessIntoDebugMode(env, bootloader)) {
+    if (!shouldForceProcessIntoDebugMode(env)) {
       return false;
     }
 
@@ -170,12 +163,12 @@ function inspectOrQueue(env: IBootloaderInfo, bootloader: BootloaderEnvironment)
   return true;
 }
 
-function shouldForceProcessIntoDebugMode(env: IBootloaderInfo, bootloader: BootloaderEnvironment) {
+function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
   switch (env.autoAttachMode) {
     case AutoAttachMode.Always:
       return true;
     case AutoAttachMode.Smart:
-      return shouldSmartAttach(env, bootloader);
+      return shouldSmartAttach(env);
     case AutoAttachMode.OnlyWithFlag:
     default:
       return false;
@@ -189,27 +182,10 @@ function shouldForceProcessIntoDebugMode(env: IBootloaderInfo, bootloader: Bootl
  * we could detect a direct invokation of something like `npm install`,
  * so we match against the script name.
  */
-function shouldSmartAttach(env: IBootloaderInfo, bootloader: BootloaderEnvironment) {
+function shouldSmartAttach(env: IBootloaderInfo) {
   const script: string | undefined = process.argv[1];
   if (!script) {
     return true; // node REPL
-  }
-
-  // *nix likes to install node and npm side-by-side, detect if the script is
-  // a sibling of the runtime.
-  if (path.dirname(script) === path.dirname(process.argv0)) {
-    return false;
-  }
-
-  if (blockedBasnames.includes(path.basename(script))) {
-    return false;
-  }
-
-  // don't attach to code's cli. This is a little annoying to match with
-  // patterns, and users will never want it, so do it manually.
-  if (process.env.ELECTRON_RUN_AS_NODE === '1' && /(visual studio|vs) code/i.test(script)) {
-    bootloader.unsetForTree(); // fixes #783
-    return false;
   }
 
   // otherwise, delegate to the patterns. Defaults exclude node_modules
@@ -223,8 +199,8 @@ function autoAttachSmartPatternMatches(script: string, env: IBootloaderInfo) {
 
   const r = match(
     [script.replace(/\\/g, '/')],
-    ['**', ...env.aaPatterns.map(p => p.replace(knownToolToken, knownToolGlob))],
-    { dot: true },
+    [...env.aaPatterns.map(p => p.replace(knownToolToken, knownToolGlob))],
+    { dot: true, nocase: true },
   );
 
   return r.length > 0;

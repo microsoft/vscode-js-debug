@@ -81,6 +81,9 @@ export function registerAutoAttach(
         }
       }
     }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      launcher?.then(l => l.refreshVariables());
+    }),
     registerCommand(vscode.commands, Commands.AutoAttachToProcess, async info => {
       const launcher = await acquireLauncher();
       launcher.spawnForChild(info);
