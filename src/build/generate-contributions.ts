@@ -1128,7 +1128,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     items: {
       type: 'string',
     },
-    default: ['!**/{node_modules,npm-global,.yarn,.nvm}/**', `**/${knownToolToken}/**`],
+    default: ['${workspaceFolder}/**', '!**/node_modules/**', `**/${knownToolToken}/**`],
     markdownDescription: refString('configuration.autoAttachSmartPatterns'),
   },
   [Configuration.BreakOnConditionalError]: {
