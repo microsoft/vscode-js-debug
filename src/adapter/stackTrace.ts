@@ -25,7 +25,7 @@ export class StackTrace {
     const result = new StackTrace(thread);
     for (let frameNo = 0; frameNo < stack.callFrames.length; frameNo++) {
       if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
-        result.frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo]));
+        result.frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo], false));
       }
     }
 
@@ -48,7 +48,7 @@ export class StackTrace {
     const result = new StackTrace(thread);
     for (let frameNo = 0; frameNo < stack.callFrames.length && frameLimit > 0; frameNo++) {
       if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
-        const frame = StackFrame.fromRuntime(thread, stack.callFrames[frameNo]);
+        const frame = StackFrame.fromRuntime(thread, stack.callFrames[frameNo], false);
         if (await predicate(frame)) {
           result.frames.push();
           frameLimit--;
@@ -118,7 +118,7 @@ export class StackTrace {
       if (stackTrace.callFrames.length) {
         this._appendFrame(StackFrame.asyncSeparator(thread, stackTrace.description || 'async'));
         for (const callFrame of stackTrace.callFrames)
-          this._appendFrame(StackFrame.fromRuntime(thread, callFrame));
+          this._appendFrame(StackFrame.fromRuntime(thread, callFrame, true));
       }
 
       if (stackTrace.parentId) {
@@ -181,8 +181,12 @@ export class StackFrame {
   private _scope: IScope | undefined;
   private _thread: Thread;
 
-  static fromRuntime(thread: Thread, callFrame: Cdp.Runtime.CallFrame): StackFrame {
-    return new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame));
+  static fromRuntime(
+    thread: Thread,
+    callFrame: Cdp.Runtime.CallFrame,
+    isAsync: boolean,
+  ): StackFrame {
+    return new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame), isAsync);
   }
 
   static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
@@ -199,12 +203,17 @@ export class StackFrame {
   }
 
   static asyncSeparator(thread: Thread, name: string): StackFrame {
-    const result = new StackFrame(thread, name, { lineNumber: 1, columnNumber: 1, url: '' });
+    const result = new StackFrame(thread, name, { lineNumber: 1, columnNumber: 1, url: '' }, true);
     result._isAsyncSeparator = true;
     return result;
   }
 
-  constructor(thread: Thread, name: string, rawLocation: RawLocation) {
+  constructor(
+    thread: Thread,
+    name: string,
+    rawLocation: RawLocation,
+    private readonly isAsync = false,
+  ) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
     this._rawLocation = rawLocation;
@@ -346,6 +355,7 @@ export class StackFrame {
       column,
       source,
       presentationHint,
+      canRestart: !this.isAsync,
     } as Dap.StackFrame;
   }
 

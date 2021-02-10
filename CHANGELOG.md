@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## TBA
 
 - fix: auto attach only to workspace scripts by default ([#856](https://github.com/microsoft/vscode-js-debug/issues/856))
+- fix: do not show restart frame action on async stacktraces ([ref](https://github.com/microsoft/vscode/issues/116345))
 
 ## v1.54.1 - 2021-02-04
 

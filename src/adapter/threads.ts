@@ -1373,7 +1373,7 @@ export class Thread implements IVariableStoreDelegate {
           return false;
         }
 
-        const parentFrame = StackFrame.fromRuntime(parent, trace.stackTrace.callFrames[0]);
+        const parentFrame = StackFrame.fromRuntime(parent, trace.stackTrace.callFrames[0], false);
         if (!parentFrame.equivalentTo(originalStack.frames[0])) {
           return false;
         }
