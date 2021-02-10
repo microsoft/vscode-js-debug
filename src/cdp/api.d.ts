@@ -58,6 +58,7 @@ export namespace Cdp {
     Overlay: OverlayApi;
     Page: PageApi;
     Performance: PerformanceApi;
+    PerformanceTimeline: PerformanceTimelineApi;
     Profiler: ProfilerApi;
     Runtime: RuntimeApi;
     Schema: SchemaApi;
@@ -1187,6 +1188,14 @@ export namespace Cdp {
      */
     enable(params: Audits.EnableParams): Promise<Audits.EnableResult | undefined>;
 
+    /**
+     * Runs the contrast check for the target page. Found issues are reported
+     * using Audits.issueAdded event.
+     */
+    checkContrast(
+      params: Audits.CheckContrastParams,
+    ): Promise<Audits.CheckContrastResult | undefined>;
+
     on(event: 'issueAdded', listener: (event: Audits.IssueAddedEvent) => void): IDisposable;
   }
 
@@ -1258,6 +1267,16 @@ export namespace Cdp {
      * Return value of the 'Audits.enable' method.
      */
     export interface EnableResult {}
+
+    /**
+     * Parameters of the 'Audits.checkContrast' method.
+     */
+    export interface CheckContrastParams {}
+
+    /**
+     * Return value of the 'Audits.checkContrast' method.
+     */
+    export interface CheckContrastResult {}
 
     /**
      * Parameters of the 'Audits.issueAdded' event.
@@ -1466,6 +1485,8 @@ export namespace Cdp {
       | 'kTrustedTypesPolicyViolation';
 
     export interface SourceCodeLocation {
+      scriptId?: Runtime.ScriptId;
+
       url: string;
 
       lineNumber: integer;
@@ -1495,15 +1516,78 @@ export namespace Cdp {
       violatingNodeId?: DOM.BackendNodeId;
     }
 
+    export type SharedArrayBufferIssueType = 'TransferIssue' | 'CreationIssue';
+
     /**
-     * Details for a request that has been blocked with the BLOCKED_BY_RESPONSE
-     * code. Currently only used for COEP/COOP, but may be extended to include
-     * some CSP errors in the future.
+     * Details for a issue arising from an SAB being instantiated in, or
+     * transfered to a context that is not cross-origin isolated.
      */
-    export interface SharedArrayBufferTransferIssueDetails {
+    export interface SharedArrayBufferIssueDetails {
       sourceCodeLocation: SourceCodeLocation;
 
       isWarning: boolean;
+
+      type: SharedArrayBufferIssueType;
+    }
+
+    export type TwaQualityEnforcementViolationType =
+      | 'kHttpError'
+      | 'kUnavailableOffline'
+      | 'kDigitalAssetLinks';
+
+    export interface TrustedWebActivityIssueDetails {
+      /**
+       * The url that triggers the violation.
+       */
+      url: string;
+
+      violationType: TwaQualityEnforcementViolationType;
+
+      httpStatusCode?: integer;
+
+      /**
+       * The package name of the Trusted Web Activity client app. This field is
+       * only used when violation type is kDigitalAssetLinks.
+       */
+      packageName?: string;
+
+      /**
+       * The signature of the Trusted Web Activity client app. This field is only
+       * used when violation type is kDigitalAssetLinks.
+       */
+      signature?: string;
+    }
+
+    export interface LowTextContrastIssueDetails {
+      violatingNodeId: DOM.BackendNodeId;
+
+      violatingNodeSelector: string;
+
+      contrastRatio: number;
+
+      thresholdAA: number;
+
+      thresholdAAA: number;
+
+      fontSize: string;
+
+      fontWeight: string;
+    }
+
+    /**
+     * Details for a CORS related issue, e.g. a warning or error related to
+     * CORS RFC1918 enforcement.
+     */
+    export interface CorsIssueDetails {
+      corsErrorStatus: Network.CorsErrorStatus;
+
+      isWarning: boolean;
+
+      request: AffectedRequest;
+
+      resourceIPAddressSpace?: Network.IPAddressSpace;
+
+      clientSecurityState?: Network.ClientSecurityState;
     }
 
     /**
@@ -1517,7 +1601,10 @@ export namespace Cdp {
       | 'BlockedByResponseIssue'
       | 'HeavyAdIssue'
       | 'ContentSecurityPolicyIssue'
-      | 'SharedArrayBufferTransferIssue';
+      | 'SharedArrayBufferIssue'
+      | 'TrustedWebActivityIssue'
+      | 'LowTextContrastIssue'
+      | 'CorsIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1535,7 +1622,13 @@ export namespace Cdp {
 
       contentSecurityPolicyIssueDetails?: ContentSecurityPolicyIssueDetails;
 
-      sharedArrayBufferTransferIssueDetails?: SharedArrayBufferTransferIssueDetails;
+      sharedArrayBufferIssueDetails?: SharedArrayBufferIssueDetails;
+
+      twaQualityEnforcementDetails?: TrustedWebActivityIssueDetails;
+
+      lowTextContrastIssueDetails?: LowTextContrastIssueDetails;
+
+      corsIssueDetails?: CorsIssueDetails;
     }
 
     /**
@@ -7503,6 +7596,8 @@ export namespace Cdp {
       | 'backdrop'
       | 'selection'
       | 'target-text'
+      | 'spelling-error'
+      | 'grammar-error'
       | 'first-line-inherited'
       | 'scrollbar'
       | 'scrollbar-thumb'
@@ -9745,11 +9840,12 @@ export namespace Cdp {
 
     /**
      * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+     * Missing optional values will be filled in by the target with what it would normally use.
      */
     export interface UserAgentMetadata {
-      brands: UserAgentBrandVersion[];
+      brands?: UserAgentBrandVersion[];
 
-      fullVersion: string;
+      fullVersion?: string;
 
       platform: string;
 
@@ -13436,6 +13532,17 @@ export namespace Cdp {
       listener: (event: Network.WebTransportCreatedEvent) => void,
     ): IDisposable;
 
+    /**
+     * Fired when WebTransport handshake is finished.
+     */
+    on(
+      event: 'webTransportConnectionEstablished',
+      listener: (event: Network.WebTransportConnectionEstablishedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when WebTransport is disposed.
+     */
     on(
       event: 'webTransportClosed',
       listener: (event: Network.WebTransportClosedEvent) => void,
@@ -14649,6 +14756,21 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.webTransportConnectionEstablished' event.
+     */
+    export interface WebTransportConnectionEstablishedEvent {
+      /**
+       * WebTransport identifier.
+       */
+      transportId: RequestId;
+
+      /**
+       * Timestamp.
+       */
+      timestamp: MonotonicTime;
+    }
+
+    /**
      * Parameters of the 'Network.webTransportClosed' event.
      */
     export interface WebTransportClosedEvent {
@@ -14709,6 +14831,12 @@ export namespace Cdp {
        * Raw response headers as they were received over the wire.
        */
       headers: Headers;
+
+      /**
+       * The IP address space of the resource. The address space can only be determined once the transport
+       * established the connection, so we can't send it in `requestWillBeSentExtraInfo`.
+       */
+      resourceIPAddressSpace: IPAddressSpace;
 
       /**
        * Raw response header text as it was received over the wire. The raw text may not always be
@@ -15553,6 +15681,11 @@ export namespace Cdp {
        * Cookie Priority
        */
       priority: CookiePriority;
+
+      /**
+       * True if cookie is SameParty.
+       */
+      sameParty: boolean;
     }
 
     /**
@@ -15573,7 +15706,9 @@ export namespace Cdp {
       | 'UnknownError'
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
-      | 'SchemefulSameSiteUnspecifiedTreatedAsLax';
+      | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
+      | 'SamePartyFromCrossPartyContext'
+      | 'SamePartyConflictsWithOtherAttributes';
 
     /**
      * Types of reasons why a cookie may not be sent with a request.
@@ -15590,7 +15725,8 @@ export namespace Cdp {
       | 'UnknownError'
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
-      | 'SchemefulSameSiteUnspecifiedTreatedAsLax';
+      | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
+      | 'SamePartyFromCrossPartyContext';
 
     /**
      * A cookie which was not stored from a response with the corresponding reason.
@@ -15900,7 +16036,10 @@ export namespace Cdp {
       errors?: SignedExchangeError[];
     }
 
-    export type PrivateNetworkRequestPolicy = 'Allow' | 'BlockFromInsecureToMorePrivate';
+    export type PrivateNetworkRequestPolicy =
+      | 'Allow'
+      | 'BlockFromInsecureToMorePrivate'
+      | 'WarnFromInsecureToMorePrivate';
 
     export type IPAddressSpace = 'Local' | 'Private' | 'Public' | 'Unknown';
 
@@ -16452,6 +16591,13 @@ export namespace Cdp {
     ): Promise<Overlay.SetShowHitTestBordersResult | undefined>;
 
     /**
+     * Request that backend shows an overlay with web vital metrics.
+     */
+    setShowWebVitals(
+      params: Overlay.SetShowWebVitalsParams,
+    ): Promise<Overlay.SetShowWebVitalsResult | undefined>;
+
+    /**
      * Paints viewport size upon main frame resize.
      */
     setShowViewportSizeOnResize(
@@ -16940,6 +17086,18 @@ export namespace Cdp {
     export interface SetShowHitTestBordersResult {}
 
     /**
+     * Parameters of the 'Overlay.setShowWebVitals' method.
+     */
+    export interface SetShowWebVitalsParams {
+      show: boolean;
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowWebVitals' method.
+     */
+    export interface SetShowWebVitalsResult {}
+
+    /**
      * Parameters of the 'Overlay.setShowViewportSizeOnResize' method.
      */
     export interface SetShowViewportSizeOnResizeParams {
@@ -17169,6 +17327,26 @@ export namespace Cdp {
     }
 
     /**
+     * Configuration data for the highlighting of Flex item elements.
+     */
+    export interface FlexItemHighlightConfig {
+      /**
+       * Style of the box representing the item's base size
+       */
+      baseSizeBox?: BoxStyle;
+
+      /**
+       * Style of the border around the box representing the item's base size
+       */
+      baseSizeBorder?: LineStyle;
+
+      /**
+       * Style of the arrow representing if the item grew or shrank
+       */
+      flexibilityArrow?: LineStyle;
+    }
+
+    /**
      * Style information for drawing a line.
      */
     export interface LineStyle {
@@ -17283,6 +17461,11 @@ export namespace Cdp {
        * The flex container highlight configuration (default: all transparent).
        */
       flexContainerHighlightConfig?: FlexContainerHighlightConfig;
+
+      /**
+       * The flex item highlight configuration (default: all transparent).
+       */
+      flexItemHighlightConfig?: FlexItemHighlightConfig;
 
       /**
        * The contrast algorithm to use for the contrast ratio (default: aa).
@@ -20039,6 +20222,140 @@ export namespace Cdp {
        * Metric value.
        */
       value: number;
+    }
+  }
+
+  /**
+   * Methods and events of the 'PerformanceTimeline' domain.
+   */
+  export interface PerformanceTimelineApi {
+    /**
+     * Previously buffered events would be reported before method returns.
+     * See also: timelineEventAdded
+     */
+    enable(
+      params: PerformanceTimeline.EnableParams,
+    ): Promise<PerformanceTimeline.EnableResult | undefined>;
+
+    /**
+     * Sent when a performance timeline event is added. See reportPerformanceTimeline method.
+     */
+    on(
+      event: 'timelineEventAdded',
+      listener: (event: PerformanceTimeline.TimelineEventAddedEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'PerformanceTimeline' domain.
+   */
+  export namespace PerformanceTimeline {
+    /**
+     * Parameters of the 'PerformanceTimeline.enable' method.
+     */
+    export interface EnableParams {
+      /**
+       * The types of event to report, as specified in
+       * https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
+       * The specified filter overrides any previous filters, passing empty
+       * filter disables recording.
+       * Note that not all types exposed to the web platform are currently supported.
+       */
+      eventTypes: string[];
+    }
+
+    /**
+     * Return value of the 'PerformanceTimeline.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'PerformanceTimeline.timelineEventAdded' event.
+     */
+    export interface TimelineEventAddedEvent {
+      event: TimelineEvent;
+    }
+
+    /**
+     * See https://github.com/WICG/LargestContentfulPaint and largest_contentful_paint.idl
+     */
+    export interface LargestContentfulPaint {
+      renderTime: Network.TimeSinceEpoch;
+
+      loadTime: Network.TimeSinceEpoch;
+
+      /**
+       * The number of pixels being painted.
+       */
+      size: number;
+
+      /**
+       * The id attribute of the element, if available.
+       */
+      elementId?: string;
+
+      /**
+       * The URL of the image (may be trimmed).
+       */
+      url?: string;
+
+      nodeId?: DOM.BackendNodeId;
+    }
+
+    export interface LayoutShiftAttribution {
+      previousRect: DOM.Rect;
+
+      currentRect: DOM.Rect;
+
+      nodeId?: DOM.BackendNodeId;
+    }
+
+    /**
+     * See https://wicg.github.io/layout-instability/#sec-layout-shift and layout_shift.idl
+     */
+    export interface LayoutShift {
+      /**
+       * Score increment produced by this event.
+       */
+      value: number;
+
+      hadRecentInput: boolean;
+
+      lastInputTime: Network.TimeSinceEpoch;
+
+      sources: LayoutShiftAttribution[];
+    }
+
+    export interface TimelineEvent {
+      /**
+       * Identifies the frame that this event is related to. Empty for non-frame targets.
+       */
+      frameId: Page.FrameId;
+
+      /**
+       * The event type, as specified in https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
+       * This determines which of the optional "details" fiedls is present.
+       */
+      type: string;
+
+      /**
+       * Name may be empty depending on the type.
+       */
+      name: string;
+
+      /**
+       * Time in seconds since Epoch, monotonically increasing within document lifetime.
+       */
+      time: Network.TimeSinceEpoch;
+
+      /**
+       * Event duration, if applicable.
+       */
+      duration?: number;
+
+      lcpDetails?: LargestContentfulPaint;
+
+      layoutShiftDetails?: LayoutShift;
     }
   }
 
@@ -23050,6 +23367,14 @@ export namespace Cdp {
     ): Promise<Storage.UntrackIndexedDBForOriginResult | undefined>;
 
     /**
+     * Returns the number of stored Trust Tokens per issuer for the
+     * current browsing context.
+     */
+    getTrustTokens(
+      params: Storage.GetTrustTokensParams,
+    ): Promise<Storage.GetTrustTokensResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -23283,6 +23608,18 @@ export namespace Cdp {
     export interface UntrackIndexedDBForOriginResult {}
 
     /**
+     * Parameters of the 'Storage.getTrustTokens' method.
+     */
+    export interface GetTrustTokensParams {}
+
+    /**
+     * Return value of the 'Storage.getTrustTokens' method.
+     */
+    export interface GetTrustTokensResult {
+      tokens: TrustTokens[];
+    }
+
+    /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
      */
     export interface CacheStorageContentUpdatedEvent {
@@ -23366,6 +23703,16 @@ export namespace Cdp {
        * Storage usage (bytes).
        */
       usage: number;
+    }
+
+    /**
+     * Pair of issuer origin and number of available (signed, but not used) Trust
+     * Tokens from that issuer.
+     */
+    export interface TrustTokens {
+      issuerOrigin: string;
+
+      count: number;
     }
   }
 

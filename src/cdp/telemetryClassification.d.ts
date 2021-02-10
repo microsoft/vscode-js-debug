@@ -221,6 +221,8 @@ interface ICDPOperationClassification {
   '!network.websocketwillsendhandshakerequest.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.webtransportcreated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.webtransportcreated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'network.webtransportconnectionestablished': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.webtransportconnectionestablished.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.webtransportclosed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.webtransportclosed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.requestwillbesentextrainfo': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -313,6 +315,10 @@ interface ICDPOperationClassification {
   // Domain: Performance
   'performance.metrics': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!performance.metrics.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: PerformanceTimeline
+  'performancetimeline.timelineeventadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!performancetimeline.timelineeventadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Profiler
   'profiler.consoleprofilefinished': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
