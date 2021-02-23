@@ -3,14 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as cp from 'child_process';
+import * as fs from 'fs';
 import { join } from 'path';
+import { Logger } from '../../common/logging/logger';
 import { getDeferred } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { killTree } from '../../targets/node/killTree';
 import { ITestHandle, testFixturesDir } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
-import * as mkdirp from 'mkdirp';
-import { Logger } from '../../common/logging/logger';
 
 describe('react', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
@@ -84,7 +84,7 @@ describe('react', () => {
 
 async function setupCRA(projectName: string, cwd: string, args: string[] = []): Promise<void> {
   console.log('Setting up CRA in ' + cwd);
-  mkdirp.sync(cwd);
+  fs.mkdirSync(cwd, { recursive: true });
   const setupProc = cp.spawn('npx', ['create-react-app', ...args, projectName], {
     cwd,
     stdio: 'pipe',

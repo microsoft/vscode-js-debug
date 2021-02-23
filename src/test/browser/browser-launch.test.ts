@@ -3,8 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { readdirSync } from 'fs';
-import mkdirp from 'mkdirp';
+import { mkdirSync, readdirSync } from 'fs';
 import WebSocket from 'ws';
 import { constructInspectorWSUri } from '../../targets/browser/constructInspectorWSUri';
 import { testFixturesDir } from '../test';
@@ -36,7 +35,7 @@ describe('browser launch', () => {
   });
 
   itIntegrates.skip('user data dir', async ({ r }) => {
-    mkdirp.sync(testFixturesDir);
+    mkdirSync(testFixturesDir, { recursive: true });
     expect(readdirSync(testFixturesDir)).to.be.empty;
 
     await r.launchUrlAndLoad('index.html', {

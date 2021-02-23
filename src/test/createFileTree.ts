@@ -1,13 +1,12 @@
-import { randomBytes } from 'crypto';
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import * as fs from 'fs';
-import * as mkdirp from 'mkdirp';
 import { EOL, tmpdir } from 'os';
 import * as path from 'path';
 import { join } from 'path';
 import { IFileTree } from './test';
+import { randomBytes } from 'crypto';
 
 export const getTestDir = () => join(tmpdir(), 'js-debug-test-' + randomBytes(6).toString('hex'));
 
@@ -16,7 +15,7 @@ export const getTestDir = () => join(tmpdir(), 'js-debug-test-' + randomBytes(6)
  * fixtures in unit tests.
  */
 export function createFileTree(rootDir: string, tree: IFileTree) {
-  mkdirp.sync(rootDir);
+  fs.mkdirSync(rootDir, { recursive: true });
 
   for (const key of Object.keys(tree)) {
     const value = tree[key];
@@ -34,7 +33,7 @@ export function createFileTree(rootDir: string, tree: IFileTree) {
       continue;
     }
 
-    mkdirp.sync(path.dirname(targetPath));
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.writeFileSync(targetPath, write);
   }
 }
