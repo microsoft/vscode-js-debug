@@ -24,6 +24,7 @@ export async function watchAllChildren(
     hostname: string;
     ipcAddress: string;
   },
+  openerId: string,
   logger: ILogger,
   cancellation: CancellationToken = NeverCancelled,
 ): Promise<WatchDog[]> {
@@ -53,7 +54,7 @@ export async function watchAllChildren(
             waitForDebugger: true,
             dynamicAttach: true,
             pid: String(child.pid),
-            ppid: child.ppid === options.pid ? '0' : String(child.ppid),
+            openerId,
           }),
         )
         .catch(err =>

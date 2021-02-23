@@ -304,7 +304,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
     const bootloaderInfo: IBootloaderInfo = {
       inspectorIpc: serverAddress,
-      ppid: undefined,
       deferredMode: false,
       // todo: look at reimplementing the filter
       // NODE_INSPECTOR_WAIT_FOR_DEBUGGER: this._launchParams!.nodeFilter || '',
@@ -394,6 +393,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       return;
     }
 
+    if (targetInfo.processId === undefined) {
+      targetInfo.processId = Number(targetInfo.targetId); // old bootloaders
+    }
+
     const target = new NodeTarget(
       this.fsUtils,
       this.run.params,
@@ -468,7 +471,12 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       cdp.Target.on('targetCreated', f),
     );
 
-    return { targetInfo, cdp, connection, logger };
+    return {
+      targetInfo: targetInfo as Cdp.Target.TargetInfo & { processId: number },
+      cdp,
+      connection,
+      logger,
+    };
   }
 
   /**

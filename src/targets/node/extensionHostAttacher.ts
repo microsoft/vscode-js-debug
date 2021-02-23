@@ -126,7 +126,6 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     const vars = await this.resolveEnvironment(
       run,
       new NodeBinary('node', Semver.parse(process.versions.node)),
-      { ppid: 0 },
     );
 
     const result = await cdp.Runtime.evaluate({

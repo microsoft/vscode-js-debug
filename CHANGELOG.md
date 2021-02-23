@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: auto attach only to workspace scripts by default ([#856](https://github.com/microsoft/vscode-js-debug/issues/856))
 - fix: do not show restart frame action on async stacktraces ([ref](https://github.com/microsoft/vscode/issues/116345))
 - fix: do not attach to node-gyp fixing install failures ([ref](https://github.com/microsoft/vscode/issues/117312))
+- fix: sessions being mixed up or not initializing when attaching concurrently ([ref](https://github.com/microsoft/vscode/issues/115996))
 
 ## v1.54.1 - 2021-02-04
 

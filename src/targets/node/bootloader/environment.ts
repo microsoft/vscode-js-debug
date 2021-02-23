@@ -24,12 +24,9 @@ export const enum BootloaderAttachMode {
 
 export interface IBootloaderInfo {
   /**
-   * Parent process ID that spawned this one. Can be:
-   *  - undefined -- indicating we're the parent process
-   *  - 0 -- indicating there's some parent (e.g. attach) that we shouldn't track/kill
-   *  - a process ID as a number
+   * Opener target ID this should be assigned to.
    */
-  ppid?: number;
+  openerId?: string;
 
   /**
    * Address of the debugger pipe server.

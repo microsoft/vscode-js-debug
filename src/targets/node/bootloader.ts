@@ -14,6 +14,7 @@ import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootl
 import { checkAll } from './bootloader/filters';
 import { bootloaderLogger } from './bootloader/logger';
 import { watchdogPath } from './bundlePaths';
+import { createTargetId } from './createTargetId';
 import { IProcessTelemetry } from './nodeLauncherBase';
 import { IWatchdogInfo } from './watchdogSpawn';
 
@@ -38,22 +39,18 @@ const telemetry: IProcessTelemetry = {
       return;
     }
 
-    if (inspectorOptions.ppid === process.pid) {
-      bootloaderLogger.info(LogTag.RuntimeLaunch, 'Disabling due to a duplicate bootloader');
-      return false;
-    }
-
     reportTelemetry(env);
 
     if (/(\\|\/|^)node(64)?(.exe)?$/.test(process.execPath)) {
       inspectorOptions.execPath = process.execPath;
     }
 
-    const didAttach = inspectOrQueue(inspectorOptions);
+    const ownId = createTargetId();
+    const didAttach = inspectOrQueue(inspectorOptions, ownId);
     if (inspectorOptions.onlyEntrypoint) {
       env.unsetForTree();
     } else if (didAttach) {
-      env.updateInspectorOption('ppid', process.pid);
+      env.updateInspectorOption('openerId', ownId);
     }
   } catch (e) {
     console.error(
@@ -68,7 +65,7 @@ const enum Mode {
   Inactive,
 }
 
-function inspectOrQueue(env: IBootloaderInfo): boolean {
+function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
   const mode = !isPipeAvailable(env.inspectorIpc)
     ? Mode.Inactive
     : env.deferredMode
@@ -99,7 +96,8 @@ function inspectOrQueue(env: IBootloaderInfo): boolean {
     scriptName: process.argv[1],
     inspectorURL: inspector.url() as string,
     waitForDebugger: true,
-    ppid: String(env.ppid ?? ''),
+    ownId,
+    openerId: env.openerId,
   };
 
   if (mode === Mode.Immediate) {

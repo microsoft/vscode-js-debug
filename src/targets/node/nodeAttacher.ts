@@ -155,7 +155,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     let leaseFile: Promise<LeaseFile>;
     return {
       initialized: async () => {
-        leaseFile = this.onFirstInitialize(cdp, run);
+        leaseFile = this.onFirstInitialize(cdp, run, target);
         await leaseFile;
       },
       close: () => {
@@ -169,7 +169,11 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     };
   }
 
-  protected async onFirstInitialize(cdp: Cdp.Api, run: IRunData<INodeAttachConfiguration>) {
+  protected async onFirstInitialize(
+    cdp: Cdp.Api,
+    run: IRunData<INodeAttachConfiguration>,
+    parentInfo: Cdp.Target.TargetInfo,
+  ) {
     // We use a lease file to indicate to the process that the debugger is
     // still running. This is needed because once we attach, we set the
     // NODE_OPTIONS for the process, forever. We can try to unset this on
@@ -180,7 +184,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     const binary = await this.resolveNodePath(run.params);
     const [telemetry] = await Promise.all([
       this.gatherTelemetryFromCdp(cdp, run),
-      this.setEnvironmentVariables(cdp, run, leaseFile.path, binary),
+      this.setEnvironmentVariables(cdp, run, leaseFile.path, parentInfo.targetId, binary),
     ]);
 
     if (telemetry && run.params.attachExistingChildren) {
@@ -191,6 +195,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
           hostname: run.params.address,
           ipcAddress: run.serverAddress,
         },
+        parentInfo.targetId,
         this.logger,
       ).catch(err => this.logger.warn(LogTag.Internal, 'Error watching child processes', { err }));
     }
@@ -202,6 +207,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     cdp: Cdp.Api,
     run: IRunData<INodeAttachConfiguration>,
     leasePath: string,
+    openerId: string,
     binary: NodeBinary,
   ) {
     if (!run.params.autoAttachChildProcesses) {
@@ -213,11 +219,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = await this.resolveEnvironment(run, binary, {
-      ppid: 0,
-      requireLease: leasePath,
-    });
-
+    const vars = await this.resolveEnvironment(run, binary, { requireLease: leasePath, openerId });
     for (let retries = 0; retries < 5; retries++) {
       const result = await cdp.Runtime.evaluate({
         contextId: 1,

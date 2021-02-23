@@ -22,6 +22,12 @@ class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
     target: ITarget,
     config: IPseudoAttachConfiguration,
   ) {
+    console.log(
+      'starting debug session for parent:',
+      parentSession.debugSession.name,
+      'named',
+      config.name,
+    );
     vscode.debug.startDebugging(
       parentSession.debugSession.workspaceFolder,
       {
@@ -65,6 +71,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   public createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    console.log(`staring new session named ${debugSession.name}`);
     const result = this.sessionServerManager.createDebugServer(debugSession);
     return new vscode.DebugAdapterServer((result.server.address() as net.AddressInfo).port);
   }

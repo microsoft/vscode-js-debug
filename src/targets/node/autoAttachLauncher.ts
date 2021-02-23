@@ -33,6 +33,7 @@ import {
   NodeBinaryProvider,
 } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
+import { NodeTarget } from './nodeTarget';
 import { StubProgram } from './program';
 import { ITerminalLauncherLike } from './terminalNodeLauncher';
 import { WatchDog } from './watchdogSpawn';
@@ -76,7 +77,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
    * @inheritdoc
    */
   public getProcessTelemetry(target: ITarget) {
-    return Promise.resolve(this.telemetryItems.get(Number(target.id())));
+    return Promise.resolve(
+      target instanceof NodeTarget ? this.telemetryItems.get(target.processId()) : undefined,
+    );
   }
 
   /**

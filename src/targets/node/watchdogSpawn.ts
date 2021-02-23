@@ -12,8 +12,14 @@ import { IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import { Logger } from '../../common/logging/logger';
 import { IStopMetadata } from '../targets';
+import { createTargetId } from './createTargetId';
 
 export interface IWatchdogInfo {
+  /**
+   * Observed target id.
+   */
+  ownId?: string;
+
   /**
    * Observed process ID.
    */
@@ -47,9 +53,9 @@ export interface IWatchdogInfo {
   waitForDebugger: boolean;
 
   /**
-   * Parent process ID.
+   * Parent ID, if any.
    */
-  ppid?: string;
+  openerId?: string;
 }
 
 const enum Method {
@@ -62,12 +68,13 @@ export class WatchDog implements IDisposable {
   private target?: WebSocketTransport;
   private gracefulExit = false;
   private targetAlive = false;
-  private readonly targetInfo: Cdp.Target.TargetInfo = {
-    targetId: this.info.pid || '0',
+  private readonly targetInfo: Cdp.Target.TargetInfo & { processId: number } = {
+    targetId: this.info.ownId ?? createTargetId(),
+    processId: Number(this.info.pid) || 0,
     type: this.info.waitForDebugger ? 'waitingForDebugger' : '',
     title: this.info.scriptName,
     url: 'file://' + this.info.scriptName,
-    openerId: this.info.ppid,
+    openerId: this.info.openerId,
     attached: true,
     canAccessOpener: false,
   };

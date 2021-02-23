@@ -49,7 +49,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
-    public readonly targetInfo: Cdp.Target.TargetInfo,
+    public readonly targetInfo: Cdp.Target.TargetInfo & { processId: number },
     public readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
     private readonly _parent: ITarget | undefined,
@@ -59,8 +59,8 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     cdp.pause();
     this._waitingForDebugger = targetInfo.type === 'waitingForDebugger';
     if (targetInfo.title)
-      this._targetName = `${basename(targetInfo.title)} [${targetInfo.targetId}]`;
-    else this._targetName = `[${targetInfo.targetId}]`;
+      this._targetName = `${basename(targetInfo.title)} [${targetInfo.processId}]`;
+    else this._targetName = `[${targetInfo.processId}]`;
 
     cdp.Target.on('targetDestroyed', () => this.connection.close());
     connection.onDisconnected(() => this._disconnected());
@@ -68,6 +68,10 @@ export class NodeTarget implements ITarget, IThreadDelegate {
 
   id(): string {
     return this.targetInfo.targetId;
+  }
+
+  processId() {
+    return this.targetInfo.processId;
   }
 
   name(): string {
