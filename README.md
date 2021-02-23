@@ -107,7 +107,7 @@ We support launching the [new Microsoft Edge browser](https://www.microsoft.com/
 
 <img src="resources/readme/webview2.png" width="584">
 
-With this comes support for the [WebView2](https://docs.microsoft.com/microsoft-edge/hosting/webview2) control in desktop Windows applications. Check out our [webview demo](https://github.com/microsoft/vscode-js-debug/tree/master/demos/webview) to learn how to set this up.
+With this comes support for the [WebView2](https://docs.microsoft.com/microsoft-edge/hosting/webview2) control in desktop Windows applications. Check out our [webview demo](https://github.com/microsoft/vscode-js-debug/tree/main/demos/webview) to learn how to set this up.
 
 ### Better sourcemap and breakpoint behavior
 

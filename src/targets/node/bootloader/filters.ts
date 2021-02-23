@@ -79,7 +79,18 @@ export const checkNotNpmPrefixCheckOnWindows = () => {
   );
 };
 
+/**
+ * Disable attaching to the node-gyp tree, otherwise some checks it does fails
+ * since Node writes debugger information to stderr.
+ * @see https://github.com/nodejs/node-gyp/blob/c3c510d89ede3a747eb679a49254052344ed8bc3/gyp/pylib/gyp/input.py#L982-L989
+ * @see https://github.com/microsoft/vscode/issues/117312
+ */
+export const checkIsNotNodeGyp = (env: IBootloaderInfo) => {
+  return !!env.deferredMode && basename(process.argv[1]) === 'node-gyp.js';
+};
+
 const allChecks = [
+  checkIsNotNodeGyp,
   checkIsDebugMode,
   checkLeaseFile,
   checkNotElectron,
