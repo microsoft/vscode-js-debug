@@ -11,6 +11,8 @@ interface ILogOptions {
   logInternalInfo?: boolean;
 }
 
+const kOmitProperties = ['[[ArrayBufferData]]'];
+
 /**
  * Runs the 'walker' function over the tree of variables, iterating in a depth-
  * first-search until walker returns false.
@@ -83,6 +85,10 @@ export class Logger {
     baseIndent: string = '',
   ): Promise<void> {
     return walkVariables(this._dap, rootVariable, (variable, depth) => {
+      if (kOmitProperties.includes(variable.name)) {
+        return depth < (options.depth ?? 1);
+      }
+
       const name = variable.name ? `${variable.name}: ` : '';
       let value = variable.value || '';
       if (value.endsWith('\n')) value = value.substring(0, value.length - 1);

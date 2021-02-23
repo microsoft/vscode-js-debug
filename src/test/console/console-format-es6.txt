@@ -1,17 +1,17 @@
 Evaluating: 'console.log(p)'
-stdout> > Promise {<rejected>: -0}
+stdout> > Promise {[[PromiseState]]: 'rejected', [[PromiseResult]]: -0}
 
 Evaluating: 'console.log([p])'
 stdout> > (1) [Promise]
 
 Evaluating: 'console.log(p2)'
-stdout> > Promise {<resolved>: 1}
+stdout> > Promise {[[PromiseState]]: 'fulfilled', [[PromiseResult]]: 1}
 
 Evaluating: 'console.log([p2])'
 stdout> > (1) [Promise]
 
 Evaluating: 'console.log(p3)'
-stdout> > Promise {<pending>}
+stdout> > Promise {[[PromiseState]]: 'pending', [[PromiseResult]]: undefined}
 
 Evaluating: 'console.log([p3])'
 stdout> > (1) [Promise]
@@ -89,7 +89,7 @@ Evaluating: 'console.log([bigmap])'
 stdout> > (1) [Map(6)]
 
 Evaluating: 'console.log(generator)'
-stdout> > genFunction {<suspended>}
+stdout> > genFunction {[[GeneratorState]]: 'suspended'}
 
 Evaluating: 'console.log([generator])'
 stdout> > (1) [genFunction]

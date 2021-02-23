@@ -26,9 +26,10 @@ result: 3
     > __proto__: TypedArray
 
 > result: ArrayBuffer(3)
-    > [[Int8Array]]: Int8Array(3) [1, 2, 3]
-    > [[Uint8Array]]: Uint8Array(3) [1, 2, 3]
     > byteLength (get): ƒ byteLength()
+    [[ArrayBufferByteLength]]: 3
+    > [[Int8Array]]: Int8Array(3)
+    > [[Uint8Array]]: Uint8Array(3)
     > __proto__: ArrayBuffer
 
 > result: Proxy {a: 1}

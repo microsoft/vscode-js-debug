@@ -28,8 +28,8 @@ describe('completion', () => {
           type: 'property',
         },
         {
-          label: 'concat',
-          sortText: '~~~concat',
+          label: 'at',
+          sortText: '~~~at',
           type: 'method',
         },
       ],
@@ -49,8 +49,8 @@ describe('completion', () => {
           type: 'method',
         },
         {
-          label: 'big',
-          sortText: '~~~big',
+          label: 'at',
+          sortText: '~~~at',
           type: 'method',
         },
       ],
@@ -101,8 +101,8 @@ describe('completion', () => {
           type: 'property',
         },
         {
-          label: 'concat',
-          sortText: '~~~concat',
+          label: 'at',
+          sortText: '~~~at',
           type: 'method',
         },
       ],
